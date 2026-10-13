@@ -1,6 +1,6 @@
 # Static web images (hub, site, games), all served by Caddy. Build context: repository root.
 #   docker build -f deploy/docker/web.Dockerfile --target hub .
-FROM node:24-bookworm-slim AS workspace
+FROM node:26-bookworm-slim AS workspace
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true TURBO_TELEMETRY_DISABLED=1
 RUN corepack enable
 WORKDIR /repo
