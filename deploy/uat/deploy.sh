@@ -19,11 +19,15 @@ log() { printf '\033[1m[uat]\033[0m %s\n' "$*"; }
 # Secrets live outside git. Created once with a random database password.
 if [[ ! -f "$ENV_FILE" ]]; then
   mkdir -p "$(dirname "$ENV_FILE")"
-  umask 077
-  {
-    echo "TOHE_UAT_HOST=10.100.0.2"
-    echo "TOHE_UAT_DB_PASSWORD=$(openssl rand -hex 24)"
-  } >"$ENV_FILE"
+  # Subshell: the restrictive umask must not leak into the source export below (the API image runs as a
+  # non-root user and must be able to read its files).
+  (
+    umask 077
+    {
+      echo "TOHE_UAT_HOST=10.100.0.2"
+      echo "TOHE_UAT_DB_PASSWORD=$(openssl rand -hex 24)"
+    } >"$ENV_FILE"
+  )
   log "created $ENV_FILE (keep it; the database password is in it)"
 fi
 set -a
@@ -41,7 +45,7 @@ fi
 
 rm -rf "$SRC"
 mkdir -p "$SRC"
-git -C "$REPO" archive "$SHA" | tar -x -C "$SRC"
+git -C "$REPO" archive "$SHA" | (umask 022 && tar -x -C "$SRC")
 
 cd "$SRC"
 export TOHE_VERSION="$SHA"
