@@ -9,6 +9,10 @@ export default defineConfig({
   site: process.env.TOHE_SITE_URL ?? 'http://localhost:4710',
   server: { port: 4710 },
   markdown: { remarkPlugins: [remarkRepoLinks] },
+  // Sätteri (Astro 7's Markdown engine) loads its native binding relative to its own file. If Vite bundles it
+  // into the prerender chunk the binding is not found (seen in the Docker build), so always load it from
+  // node_modules; it is a direct dependency for that reason.
+  vite: { ssr: { external: ['satteri'] } },
   integrations: [
     mermaid({ theme: 'neutral', autoTheme: true }),
     starlight({
