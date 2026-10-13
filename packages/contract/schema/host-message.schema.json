@@ -25,7 +25,10 @@
               "type": "string"
             }
           },
-          "required": ["id", "name"],
+          "required": [
+            "id",
+            "name"
+          ],
           "additionalProperties": false
         },
         "locale": {
@@ -38,7 +41,9 @@
               "type": "boolean"
             }
           },
-          "required": ["muted"],
+          "required": [
+            "muted"
+          ],
           "additionalProperties": false
         },
         "save": {
@@ -57,7 +62,15 @@
           "maximum": 9007199254740991
         }
       },
-      "required": ["tohe", "type", "profile", "locale", "settings", "save", "seed"],
+      "required": [
+        "tohe",
+        "type",
+        "profile",
+        "locale",
+        "settings",
+        "save",
+        "seed"
+      ],
       "additionalProperties": false
     },
     {
@@ -72,7 +85,10 @@
           "const": "pause"
         }
       },
-      "required": ["tohe", "type"],
+      "required": [
+        "tohe",
+        "type"
+      ],
       "additionalProperties": false
     },
     {
@@ -87,7 +103,10 @@
           "const": "resume"
         }
       },
-      "required": ["tohe", "type"],
+      "required": [
+        "tohe",
+        "type"
+      ],
       "additionalProperties": false
     },
     {
@@ -108,11 +127,17 @@
               "type": "boolean"
             }
           },
-          "required": ["muted"],
+          "required": [
+            "muted"
+          ],
           "additionalProperties": false
         }
       },
-      "required": ["tohe", "type", "settings"],
+      "required": [
+        "tohe",
+        "type",
+        "settings"
+      ],
       "additionalProperties": false
     },
     {
@@ -138,7 +163,12 @@
           "type": "string"
         }
       },
-      "required": ["tohe", "type", "replyTo", "ok"],
+      "required": [
+        "tohe",
+        "type",
+        "replyTo",
+        "ok"
+      ],
       "additionalProperties": false
     }
   ],

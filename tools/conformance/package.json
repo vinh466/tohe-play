@@ -1,0 +1,25 @@
+{
+  "name": "@tohe/conformance",
+  "version": "0.1.0",
+  "description": "Checks that a built game honours the Game Contract: manifest, size, handshake, CSP, random input.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tohe-conformance": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/run.ts",
+    "./static-server": "./src/static-server.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tohe/contract": "workspace:*",
+    "@tohe/game-sdk": "workspace:*",
+    "playwright": "^1.64.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0"
+  }
+}

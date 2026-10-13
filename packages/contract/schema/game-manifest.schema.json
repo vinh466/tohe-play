@@ -2,6 +2,9 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "type": "object",
   "properties": {
+    "$schema": {
+      "type": "string"
+    },
     "id": {
       "type": "string",
       "pattern": "^[a-z][a-z0-9-]{1,38}[a-z0-9]$"
@@ -35,14 +38,21 @@
     "orientation": {
       "default": "portrait",
       "type": "string",
-      "enum": ["portrait", "landscape", "any"]
+      "enum": [
+        "portrait",
+        "landscape",
+        "any"
+      ]
     },
     "capabilities": {
       "default": [],
       "type": "array",
       "items": {
         "type": "string",
-        "enum": ["save", "scores"]
+        "enum": [
+          "save",
+          "scores"
+        ]
       }
     },
     "minAge": {
@@ -67,6 +77,11 @@
       "maximum": 50000
     }
   },
-  "required": ["id", "name", "version", "protocol"],
+  "required": [
+    "id",
+    "name",
+    "version",
+    "protocol"
+  ],
   "additionalProperties": false
 }

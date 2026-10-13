@@ -15,6 +15,9 @@
           "manifest": {
             "type": "object",
             "properties": {
+              "$schema": {
+                "type": "string"
+              },
               "id": {
                 "type": "string",
                 "pattern": "^[a-z][a-z0-9-]{1,38}[a-z0-9]$"
@@ -48,14 +51,21 @@
               "orientation": {
                 "default": "portrait",
                 "type": "string",
-                "enum": ["portrait", "landscape", "any"]
+                "enum": [
+                  "portrait",
+                  "landscape",
+                  "any"
+                ]
               },
               "capabilities": {
                 "default": [],
                 "type": "array",
                 "items": {
                   "type": "string",
-                  "enum": ["save", "scores"]
+                  "enum": [
+                    "save",
+                    "scores"
+                  ]
                 }
               },
               "minAge": {
@@ -105,11 +115,18 @@
             "maximum": 9007199254740991
           }
         },
-        "required": ["manifest", "path", "sizeKb"],
+        "required": [
+          "manifest",
+          "path",
+          "sizeKb"
+        ],
         "additionalProperties": false
       }
     }
   },
-  "required": ["generatedAt", "games"],
+  "required": [
+    "generatedAt",
+    "games"
+  ],
   "additionalProperties": false
 }

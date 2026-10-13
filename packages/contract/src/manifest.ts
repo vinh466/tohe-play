@@ -15,6 +15,8 @@ export type Capability = z.infer<typeof Capability>;
 /** `game.json` — shipped next to every game build. */
 export const GameManifest = z
   .object({
+    /** Optional, lets editors validate game.json against schema/game-manifest.schema.json. */
+    $schema: z.string().optional(),
     id: GameId,
     name: z.string().min(1).max(40),
     version: SemVer,

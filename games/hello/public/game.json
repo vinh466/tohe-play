@@ -1,0 +1,14 @@
+{
+  "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
+  "id": "hello",
+  "name": "Chạm Chấm",
+  "version": "1.0.0",
+  "protocol": 1,
+  "description": "Chạm thật nhanh vào chấm tròn trong 20 giây. Game mẫu của nền tảng.",
+  "icon": "icon.svg",
+  "orientation": "portrait",
+  "capabilities": ["save", "scores"],
+  "minAge": 3,
+  "tags": ["reflex", "sample"],
+  "sizeBudgetKb": 200
+}

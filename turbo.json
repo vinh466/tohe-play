@@ -7,11 +7,12 @@
       "outputs": ["dist/**", ".out/**", "bin/**", "obj/**"]
     },
     "typecheck": {
-      "dependsOn": ["^build"]
+      "dependsOn": ["^build"],
+      "outputs": []
     },
     "test": {
       "dependsOn": ["^build"],
-      "outputs": ["coverage/**"]
+      "outputs": []
     },
     "conformance": {
       "dependsOn": ["^build", "build"],

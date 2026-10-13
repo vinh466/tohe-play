@@ -20,7 +20,7 @@ export interface ConnectOptions {
 
 export type SessionEvent = 'pause' | 'resume' | 'settings';
 
-export interface GameSession<TSave extends JsonValue = JsonValue> {
+export interface GameSession<TSave = JsonValue> {
   /** `embedded` inside the hub, `standalone` when the game page is opened directly (local dev). */
   readonly mode: 'embedded' | 'standalone';
   readonly profile: Profile;
@@ -32,7 +32,7 @@ export interface GameSession<TSave extends JsonValue = JsonValue> {
   readonly settings: Settings;
   on(event: 'pause' | 'resume', listener: () => void): () => void;
   on(event: 'settings', listener: (settings: Settings) => void): () => void;
-  /** Persist the game state for this profile. Resolves once the hub has stored it. */
+  /** Persist the game state (must be JSON-serialisable, max 64 KB). Resolves once the hub has stored it. */
   save(data: TSave): Promise<void>;
   /** Record a finished run's score on a leaderboard (default board: `default`). */
   submitScore(value: number, board?: string): Promise<void>;
@@ -60,16 +60,14 @@ class Emitter {
  * Connect the game to its host. Inside the hub this performs the ready/init handshake; opened directly
  * it returns a standalone session backed by localStorage so the game can be developed on its own.
  */
-export function connect<TSave extends JsonValue = JsonValue>(
-  options: ConnectOptions,
-): Promise<GameSession<TSave>> {
+export function connect<TSave = JsonValue>(options: ConnectOptions): Promise<GameSession<TSave>> {
   const embedded =
     options.transport !== undefined || (typeof window !== 'undefined' && window.parent !== window);
   if (!embedded) return Promise.resolve(standaloneSession<TSave>(options.gameId));
   return embeddedSession<TSave>(options);
 }
 
-function embeddedSession<TSave extends JsonValue>(options: ConnectOptions): Promise<GameSession<TSave>> {
+function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TSave>> {
   const transport = options.transport ?? parentWindowTransport();
   const emitter = new Emitter();
   const pending = new Map<string, { resolve: () => void; reject: (error: Error) => void }>();
@@ -125,7 +123,7 @@ function embeddedSession<TSave extends JsonValue>(options: ConnectOptions): Prom
               return settings;
             },
             on: (event: SessionEvent, listener: Listener) => emitter.on(event, listener),
-            save: (data) => request({ type: 'save', data }),
+            save: (data) => request({ type: 'save', data: data as JsonValue }),
             submitScore: (value, board = 'default') => request({ type: 'score', value, board }),
             exit: () => send({ tohe: PROTOCOL, type: 'exit' }),
             log: (level, text) => send({ tohe: PROTOCOL, type: 'log', level, message: text.slice(0, 2000) }),
@@ -157,7 +155,7 @@ function embeddedSession<TSave extends JsonValue>(options: ConnectOptions): Prom
   });
 }
 
-function standaloneSession<TSave extends JsonValue>(gameId: string): GameSession<TSave> {
+function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
   const emitter = new Emitter();
   const key = (suffix: string) => `tohe:standalone:${gameId}:${suffix}`;
   const read = <T>(suffix: string): T | null => {

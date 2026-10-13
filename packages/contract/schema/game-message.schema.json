@@ -20,7 +20,12 @@
           "type": "string"
         }
       },
-      "required": ["tohe", "type", "gameId", "sdkVersion"]
+      "required": [
+        "tohe",
+        "type",
+        "gameId",
+        "sdkVersion"
+      ]
     },
     {
       "type": "object",
@@ -42,7 +47,12 @@
           "$ref": "#/$defs/__schema0"
         }
       },
-      "required": ["tohe", "type", "id", "data"]
+      "required": [
+        "tohe",
+        "type",
+        "id",
+        "data"
+      ]
     },
     {
       "type": "object",
@@ -69,7 +79,12 @@
           "maxLength": 40
         }
       },
-      "required": ["tohe", "type", "id", "value"]
+      "required": [
+        "tohe",
+        "type",
+        "id",
+        "value"
+      ]
     },
     {
       "type": "object",
@@ -83,7 +98,10 @@
           "const": "exit"
         }
       },
-      "required": ["tohe", "type"]
+      "required": [
+        "tohe",
+        "type"
+      ]
     },
     {
       "type": "object",
@@ -98,14 +116,23 @@
         },
         "level": {
           "type": "string",
-          "enum": ["info", "warn", "error"]
+          "enum": [
+            "info",
+            "warn",
+            "error"
+          ]
         },
         "message": {
           "type": "string",
           "maxLength": 2000
         }
       },
-      "required": ["tohe", "type", "level", "message"]
+      "required": [
+        "tohe",
+        "type",
+        "level",
+        "message"
+      ]
     }
   ],
   "$defs": {
