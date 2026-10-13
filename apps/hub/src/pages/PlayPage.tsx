@@ -3,8 +3,10 @@ import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { createHost, type HostHandle, iframeTransport } from '@tohe/game-sdk/host';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { configQuery, gamesQuery, profileQuery } from '../api/queries.ts';
+import { configQuery, gamesQuery } from '../api/queries.ts';
 import { dailySeed, isTrustedEntry, manifestFrom } from '../launcher/manifest.ts';
+import { RequireSession } from '../session/RequireSession.tsx';
+import type { Player } from '../session/session.ts';
 import { db } from '../storage/db.ts';
 import { loadSave, recordScore, storeSave } from '../storage/repository.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
@@ -12,12 +14,15 @@ import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 type Status = 'loading' | 'ready' | 'failed' | 'untrusted';
 
 export function PlayPage() {
+  return <RequireSession need="player">{({ player }) => <Launcher player={player} />}</RequireSession>;
+}
+
+function Launcher({ player }: { player: Player }) {
   const { gameId } = useParams({ from: '/play/$gameId' });
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
-  const games = useQuery(gamesQuery);
+  const games = useQuery(gamesQuery(player.id));
   const config = useQuery(configQuery);
-  const profile = useQuery(profileQuery);
   const iframe = useRef<HTMLIFrameElement>(null);
   const host = useRef<HostHandle | null>(null);
   const [status, setStatus] = useState<Status>('loading');
@@ -25,12 +30,11 @@ export function PlayPage() {
 
   const game = games.data?.find((g) => g.id === gameId);
   const gamesOrigin = config.data?.gamesOrigin;
-  const player = profile.data;
 
   // The session restarts only for a different game build, origin or profile. Everything else the session
   // needs is read from `latest` at start; later mute changes are sent as messages instead (see toggleMute).
   const buildKey = game ? `${game.id}@${game.version}` : undefined;
-  const playerId = player?.id;
+  const playerId = player.id;
   const latest = useRef({ game, player, muted, locale: i18n.language, navigate });
   latest.current = { game, player, muted, locale: i18n.language, navigate };
 
@@ -100,7 +104,7 @@ export function PlayPage() {
   };
 
   if (games.isSuccess && !game) {
-    return <Message text={t('gameNotFound')} back={t('back')} />;
+    return <Message text={t('gameNotFound')} back={t('backToGames')} />;
   }
 
   return (
@@ -143,10 +147,9 @@ export function PlayPage() {
         open={confirmingExit}
         title={t('confirmExitTitle')}
         body={t('confirmExitBody')}
-        confirmLabel={t('exit')}
-        cancelLabel={t('keepPlaying')}
-        onConfirm={() => void navigate({ to: '/' })}
-        onCancel={keepPlaying}
+        primary={{ label: t('keepPlaying'), onClick: keepPlaying }}
+        secondary={{ label: t('exit'), onClick: () => void navigate({ to: '/' }) }}
+        onDismiss={keepPlaying}
       />
     </div>
   );

@@ -139,7 +139,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "The device session: account, household, profiles, active profile, parent gate.",
+        "summary": "The device session (account, household, profiles, active profile, parent gate); 204 when signed out.",
         "operationId": "GetMe",
         "responses": {
           "200": {
@@ -151,6 +151,9 @@
                 }
               }
             }
+          },
+          "204": {
+            "description": "No Content"
           }
         }
       }

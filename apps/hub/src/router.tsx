@@ -7,6 +7,10 @@ import {
   Outlet,
 } from '@tanstack/react-router';
 import { CatalogPage } from './pages/CatalogPage.tsx';
+import { FamilyPage } from './pages/FamilyPage.tsx';
+import { ProfilesPage } from './pages/ProfilesPage.tsx';
+import { RegisterPage } from './pages/RegisterPage.tsx';
+import { WelcomePage } from './pages/WelcomePage.tsx';
 
 interface RouterContext {
   queryClient: QueryClient;
@@ -16,10 +20,30 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: () => <Outlet />,
 });
 
-const catalogRoute = createRoute({
+const catalogRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: CatalogPage });
+const welcomeRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/',
-  component: CatalogPage,
+  path: '/welcome',
+  component: WelcomePage,
+});
+const registerRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/register',
+  component: RegisterPage,
+});
+const profilesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/profiles',
+  component: ProfilesPage,
+});
+const familyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/family',
+  // ?add=true opens the "new child profile" form right after the parent gate.
+  validateSearch: (search: Record<string, unknown>): { add: boolean } => ({
+    add: search.add === true || search.add === 'true',
+  }),
+  component: FamilyPage,
 });
 
 const playRoute = createRoute({
@@ -31,7 +55,14 @@ const playRoute = createRoute({
 
 export function createAppRouter(queryClient: QueryClient) {
   return createRouter({
-    routeTree: rootRoute.addChildren([catalogRoute, playRoute]),
+    routeTree: rootRoute.addChildren([
+      catalogRoute,
+      welcomeRoute,
+      registerRoute,
+      profilesRoute,
+      familyRoute,
+      playRoute,
+    ]),
     context: { queryClient },
     defaultPreload: 'intent',
   });

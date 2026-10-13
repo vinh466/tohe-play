@@ -41,6 +41,8 @@ pnpm dev                        # API (dotnet watch) + games origin + hub + site
 ```
 
 Open <http://localhost:4720>. The API migrates the database on start and indexes the games within ~15 s.
+A new device lands on the welcome screen: create a family account (any username, password of 8+ characters),
+add a child profile under "Quản lý gia đình", or use "Chơi thử" to play as a guest.
 
 `pnpm dev` builds the games once at start. After changing a game, rebuild it and the games origin picks it up:
 

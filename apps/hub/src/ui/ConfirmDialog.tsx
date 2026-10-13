@@ -1,28 +1,23 @@
 import { useEffect, useRef } from 'react';
 
+interface Action {
+  label: string;
+  onClick(): void;
+}
+
 interface ConfirmDialogProps {
   open: boolean;
   title: string;
   body?: string;
-  confirmLabel: string;
-  cancelLabel: string;
-  onConfirm(): void;
-  onCancel(): void;
+  /** Highlighted, first in focus order: the choice that is safe to make by accident. */
+  primary: Action;
+  secondary: Action;
+  /** Escape or a tap on the backdrop. Defaults to the secondary action. */
+  onDismiss?(): void;
 }
 
-/**
- * Modal confirmation on the native <dialog> element (focus trap, Escape and backdrop handled by the browser).
- * The cancel action is the primary, highlighted button: confirmations here guard against accidental taps.
- */
-export function ConfirmDialog({
-  open,
-  title,
-  body,
-  confirmLabel,
-  cancelLabel,
-  onConfirm,
-  onCancel,
-}: ConfirmDialogProps) {
+/** Modal question with two answers, on the native <dialog> element (focus trap and Escape by the browser). */
+export function ConfirmDialog({ open, title, body, primary, secondary, onDismiss }: ConfirmDialogProps) {
   const dialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -37,7 +32,7 @@ export function ConfirmDialog({
       ref={dialog}
       onCancel={(event) => {
         event.preventDefault();
-        onCancel();
+        (onDismiss ?? secondary.onClick)();
       }}
       className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-3xl bg-white p-6 text-center text-orange-950 shadow-xl backdrop:bg-orange-950/40"
     >
@@ -47,17 +42,17 @@ export function ConfirmDialog({
         {/* First in DOM order, so showModal() focuses the safe choice. */}
         <button
           type="button"
-          onClick={onCancel}
+          onClick={primary.onClick}
           className="min-h-14 rounded-2xl bg-orange-500 font-bold text-lg text-white active:scale-95"
         >
-          {cancelLabel}
+          {primary.label}
         </button>
         <button
           type="button"
-          onClick={onConfirm}
+          onClick={secondary.onClick}
           className="min-h-14 rounded-2xl bg-orange-100 font-bold text-lg text-orange-800 active:scale-95"
         >
-          {confirmLabel}
+          {secondary.label}
         </button>
       </div>
     </dialog>

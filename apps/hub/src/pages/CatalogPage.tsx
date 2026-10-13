@@ -1,29 +1,57 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
-import { gamesQuery, profileQuery } from '../api/queries.ts';
+import { gamesQuery } from '../api/queries.ts';
+import { RequireSession } from '../session/RequireSession.tsx';
+import type { Player } from '../session/session.ts';
+import { Avatar } from '../ui/AvatarGrid.tsx';
+import { Screen } from '../ui/Screen.tsx';
 
 export function CatalogPage() {
+  return (
+    <RequireSession need="player">
+      {(session) => (
+        <Catalog
+          player={session.player}
+          household={session.status === 'account' ? session.me.household.name : null}
+        />
+      )}
+    </RequireSession>
+  );
+}
+
+function Catalog({ player, household }: { player: Player; household: string | null }) {
   const { t } = useTranslation();
-  const games = useQuery(gamesQuery);
-  const profile = useQuery(profileQuery);
+  const games = useQuery(gamesQuery(player.id));
+  const isGuest = player.kind === 'guest';
 
   return (
-    <main className="mx-auto flex min-h-dvh max-w-3xl flex-col gap-6 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] pb-10">
-      <header className="flex items-center justify-between">
-        <div>
+    <Screen>
+      <header className="flex items-center justify-between gap-3">
+        <div className="min-w-0">
           <h1 className="font-black text-3xl text-orange-700">{t('appName')}</h1>
-          <p className="text-orange-900/70">{t('tagline')}</p>
+          <p className="truncate text-orange-900/70">{household ?? t('tagline')}</p>
         </div>
-        {profile.data && (
-          <div className="flex items-center gap-2 rounded-full bg-white px-3 py-1.5 shadow-sm">
-            <span className="text-2xl" aria-hidden>
-              {profile.data.avatar}
-            </span>
-            <span className="font-semibold text-orange-900">{profile.data.name}</span>
-          </div>
-        )}
+        <Link
+          to={isGuest ? '/welcome' : '/profiles'}
+          aria-label={t('switchProfile')}
+          className="flex shrink-0 items-center gap-2 rounded-full bg-white py-1.5 pr-4 pl-1.5 shadow-sm active:scale-95"
+        >
+          <Avatar avatar={player.avatar} size="sm" />
+          <span className="max-w-28 truncate font-semibold text-orange-900">
+            {isGuest ? t('guest.name') : player.name}
+          </span>
+        </Link>
       </header>
+
+      {isGuest ? (
+        <p className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-amber-100 px-4 py-3 text-amber-900 text-sm">
+          {t('guest.banner')}
+          <Link to="/register" className="font-bold underline underline-offset-4">
+            {t('guest.signUp')}
+          </Link>
+        </p>
+      ) : null}
 
       {!navigator.onLine && (
         <p className="rounded-xl bg-amber-100 px-4 py-2 text-amber-900 text-sm">{t('offline')}</p>
@@ -37,8 +65,8 @@ export function CatalogPage() {
         {games.isError && <p className="text-red-700">{t('loadFailed')}</p>}
         {games.data?.length === 0 && <p className="text-orange-900/70">{t('noGames')}</p>}
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {games.data?.map((game) => (
-            <li key={game.id}>
+          {games.data?.map((game, index) => (
+            <li key={game.id} className="animate-pop-in" style={{ animationDelay: `${index * 40}ms` }}>
               <Link
                 to="/play/$gameId"
                 params={{ gameId: game.id }}
@@ -58,6 +86,6 @@ export function CatalogPage() {
           ))}
         </ul>
       </section>
-    </main>
+    </Screen>
   );
 }

@@ -37,9 +37,60 @@ page.on('framenavigated', (frame) =>
 );
 page.on('framedetached', (frame) => mark(`detached: ${frame.url()}`));
 
+/**
+ * Screenshot a step and check nothing overflows sideways: on phones, one element wider than the screen makes the
+ * browser zoom the whole page out, and buttons end up outside the visible area.
+ */
+const shot = async (name: string) => {
+  await page.screenshot({ path: `test-results/e2e-${name}.png` });
+  const width = await page.evaluate(() => document.documentElement.scrollWidth);
+  if (width > 390) throw new Error(`"${name}" is ${width}px wide on a 390px screen (horizontal overflow)`);
+};
+const password = 'mat-khau-e2e-123';
+const username = `e2e${Date.now().toString(36)}`;
+
 try {
-  step(`open ${hubUrl}`);
+  step(`open ${hubUrl} — a new device lands on the welcome screen`);
   await page.goto(hubUrl);
+  await page.waitForURL(/\/welcome$/);
+  await shot('welcome');
+
+  step(`register a family account (${username})`);
+  await page.getByRole('link', { name: 'Tạo tài khoản gia đình' }).tap();
+  await page.getByLabel('Tên của bạn').fill('Bố E2E');
+  await page.getByLabel('Tên đăng nhập').fill(username);
+  await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
+  await page.getByLabel('Nhập lại mật khẩu').fill(password);
+  await shot('register');
+  await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
+  await page.waitForURL(/\/profiles$/);
+
+  step('add a child profile with a PIN (behind the parent gate)');
+  await page.getByRole('button', { name: /Thêm hồ sơ/ }).tap();
+  await page.waitForURL(/\/family/);
+  await page.getByLabel('Mật khẩu').fill(password);
+  await page.getByRole('button', { name: 'Mở khoá' }).tap();
+  const form = page.getByRole('dialog', { name: 'Hồ sơ mới cho bé' });
+  await form.getByLabel('Tên').fill('Bé Na');
+  await form.getByRole('button', { name: '🐼' }).tap();
+  await form.getByRole('button', { name: '3-5 tuổi' }).tap();
+  await form.getByLabel('Mã PIN (không bắt buộc)').fill('1234');
+  await shot('new-child');
+  await form.getByRole('button', { name: 'Lưu' }).tap();
+  await page.getByRole('button', { name: /Bé Na/ }).waitFor();
+  await shot('family');
+
+  step('pick the child and enter the PIN');
+  await page.getByRole('link', { name: 'Quay lại' }).tap();
+  await page.waitForURL(/\/profiles$/);
+  await shot('profiles');
+  await page.getByRole('button', { name: /Bé Na/ }).tap();
+  const pinPad = page.getByRole('dialog', { name: /Nhập mã PIN/ });
+  for (const digit of '1234') await pinPad.getByRole('button', { name: digit, exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/');
+  const kidId = await page.evaluate(
+    async () => (await (await fetch('/api/auth/me')).json()).activeProfileId as string,
+  );
 
   step('wait for the catalog to list the sample game (the API syncs it from the games origin)');
   const card = page.getByRole('link', { name: /Chạm Chấm/ });
@@ -52,7 +103,7 @@ try {
     if (attempt === 20) throw new Error('sample game never appeared in the catalog');
     await page.reload();
   }
-  await page.screenshot({ path: 'test-results/e2e-catalog.png' });
+  await shot('catalog');
 
   step('launch it');
   await card.tap();
@@ -79,24 +130,26 @@ try {
     await page.waitForTimeout(150);
   }
   await frame.getByRole('button', { name: 'Chơi lại' }).waitFor({ timeout: 10_000 });
-  await page.screenshot({ path: 'test-results/e2e-game-over.png' });
+  await shot('game-over');
 
-  step('check the hub stored the score and the save');
+  step("check the hub stored the score and the save under the child's profile");
   await page.waitForTimeout(500);
-  const stored = await page.evaluate(async () => {
+  const stored = await page.evaluate(async (profileId) => {
     const db = await new Promise<IDBDatabase>((resolve, reject) => {
       const request = indexedDB.open('tohe');
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
-    const count = (store: string) =>
-      new Promise<number>((resolve) => {
-        const request = db.transaction(store).objectStore(store).count();
+    const rows = (store: string) =>
+      new Promise<{ profileId: string }[]>((resolve) => {
+        const request = db.transaction(store).objectStore(store).getAll();
         request.onsuccess = () => resolve(request.result);
       });
-    return { scores: await count('scores'), saves: await count('saves') };
-  });
-  if (stored.scores < 1 || stored.saves < 1) throw new Error(`nothing stored: ${JSON.stringify(stored)}`);
+    const mine = (list: { profileId: string }[]) => list.filter((row) => row.profileId === profileId).length;
+    return { scores: mine(await rows('scores')), saves: mine(await rows('saves')) };
+  }, kidId);
+  if (stored.scores < 1 || stored.saves < 1)
+    throw new Error(`nothing stored for ${kidId}: ${JSON.stringify(stored)}`);
 
   step('exit back to the catalog (the hub asks first)');
   await page.getByRole('button', { name: /Thoát/ }).first().tap();

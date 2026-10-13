@@ -71,7 +71,7 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | --- | --- | --- |
 | Platform | done | `GET /api/config` |
 | Registry | done | `GET /api/games`, `GET /api/games/{id}` |
-| Identity & Households | M1 | accounts, households, profiles, sessions |
+| Identity & Households | done | `/api/auth/*`, `/api/session/*`, `/api/household/*` — see [Identity](identity.md) |
 | Saves & Scores | M2 | per-profile saves, score boards |
 | Parental | later | play-time limits, per-profile game visibility |
 

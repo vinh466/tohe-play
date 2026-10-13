@@ -18,6 +18,12 @@ see [ADR 0010](../decisions/0010-environments-dev-and-uat.md).
 The API and PostgreSQL are not published; the hub proxies `/api`. Development uses the separate `tohe` compose
 project on ports 47xx ([Local development](local-development.md)); the two never share containers, volumes or ports.
 
+## First use
+
+Open the hub, choose **Tạo tài khoản gia đình**, then add the children's profiles under **Quản lý gia đình**
+(it asks for the password again). The second parent registers with the invite code shown there. See
+[Identity](../architecture/identity.md).
+
 ## Deploy
 
 From any checkout of the repository on the homelab:

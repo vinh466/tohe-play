@@ -13,7 +13,7 @@ milestone ends with something playable and a green `pnpm verify` + e2e smoke tes
 | # | Milestone | Done when |
 | --- | --- | --- |
 | **M0** | **Skeleton** *(this initial commit)* | Contract + SDK + conformance kit; sample game; API with registry; hub with catalog and launcher; local-first saves; site with docs and ADRs; compose stack; CI. |
-| M1 | Identity & households | ADR 0004 implemented: adult sign-in (Google, passkey), households, child profiles with avatar/PIN, profile picker in the hub, guest data migrated. |
+| M1 | Identity & households | *Done:* username + password sign-in (ADR 0011), households with invites, child profiles with avatar/age band/PIN, parent gate, profile picker, age-filtered catalog, guest progress moved. See [Identity](../architecture/identity.md). |
 | M2 | Saves & scores sync | API stores saves/scores per profile; hub syncs in the background; household leaderboard per game; conflict policy from ADR 0005. |
 | M3 | First real game: Merge Block | Spec → game built mostly by an agent with `/new-game`; a grid kit extracted only if a second grid game needs it. |
 | M4 | UAT on the homelab | *Done (ADR 0010):* `compose.uat.yaml` + `deploy/uat/deploy.sh` on 10.100.0.2, backups before every deploy. See [UAT environment](../guides/uat.md). |
@@ -33,7 +33,7 @@ Short, throw-away experiments that answer one risky question each; results go in
 
 ## Known gaps in M0
 
-- One local guest profile per device; no accounts yet (M1).
+- Accounts exist (M1); "Chơi thử" still keeps a local guest profile per device.
 - Saves and scores stay on the device (M2).
 - No production deployment yet; UAT runs on the homelab (ADR 0010).
 - No games-origin service worker (S1).

@@ -40,12 +40,13 @@ internal static class AuthEndpoints
             .WithName("Logout")
             .WithSummary("Sign out this device.");
 
-        auth.MapGet("/me", async Task<Results<Ok<MeView>, UnauthorizedHttpResult>> (
-                HttpContext http, MeQueries me, CancellationToken ct) =>
+        // "Nobody signed in" is a normal state of a device, not an error: 204 rather than 401, so browsers do not
+        // log a failed request on every visit of a signed-out or guest device.
+        auth.MapGet("/me", async Task<Results<Ok<MeView>, NoContent>> (HttpContext http, MeQueries me, CancellationToken ct) =>
             {
                 if (SessionClaims.AccountId(http.User) is not { } accountId)
                 {
-                    return TypedResults.Unauthorized();
+                    return TypedResults.NoContent();
                 }
 
                 var view = await me.LoadAsync(
@@ -53,11 +54,10 @@ internal static class AuthEndpoints
                     SessionClaims.ProfileId(http.User),
                     SessionClaims.ParentUnlockedUntil(http.User),
                     ct);
-                return view is null ? TypedResults.Unauthorized() : TypedResults.Ok(view);
+                return view is null ? TypedResults.NoContent() : TypedResults.Ok(view);
             })
-            .RequireAuthorization()
             .WithName("GetMe")
-            .WithSummary("The device session: account, household, profiles, active profile, parent gate.");
+            .WithSummary("The device session (account, household, profiles, active profile, parent gate); 204 when signed out.");
     }
 
     private static async Task<Results<Ok<MeView>, ValidationProblem>> RegisterAsync(

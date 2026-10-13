@@ -42,7 +42,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
 
         await client.PostAsync(Url("/api/auth/logout"), null, Ct);
-        Assert.Equal(HttpStatusCode.Unauthorized, (await client.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
     }
 
     [Fact]
