@@ -55,7 +55,10 @@ export function PlayPage() {
       }),
       onSave: (data) => storeSave(db, player.id, game.id, data),
       onScore: ({ value, board }) => recordScore(db, { profileId: player.id, gameId: game.id, board, value }),
-      onExit: () => void navigate({ to: '/' }),
+      onExit: () => {
+        console.info(`[game:${game.id}] requested exit`);
+        void navigate({ to: '/' });
+      },
       onLog: ({ level, message }) => console[level](`[game:${game.id}] ${message}`),
       onProtocolError: (error) => console.warn(`[game:${game.id}] protocol error: ${error}`),
     });
