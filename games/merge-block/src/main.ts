@@ -1,10 +1,11 @@
 // Wiring: SDK session, kit game, HUD, overlays, saving. Rules live in logic.ts, drawing in view.ts.
 import '@tohe/game-kit/overlay.css';
 import './style.css';
-import { createOverlay, createSfx, formatScore, haptics, hintList } from '@tohe/game-kit';
+import { createOverlay, createSfx, formatScore, formatValue, haptics, hintList } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
 import { connect } from '@tohe/game-sdk';
-import { drop, newGame, restore, type State } from './logic.ts';
+import { blockValue, drop, type Exponent, newGame, restore, type State } from './logic.ts';
+import { blockStyle } from './palette.ts';
 import { stringsFor } from './strings.ts';
 import { BoardScene } from './view.ts';
 
@@ -38,8 +39,11 @@ const bestLabel = document.querySelector('#best-label') as HTMLElement;
 const scoreValue = document.querySelector('#score') as HTMLElement;
 const bestValue = document.querySelector('#best') as HTMLElement;
 const bestBox = document.querySelector('#best-box') as HTMLElement;
+const nextBox = document.querySelector('#next-box') as HTMLElement;
+const nextBlock = document.querySelector('#next-block') as HTMLElement;
 scoreLabel.textContent = t.score;
 bestLabel.textContent = t.best;
+(document.querySelector('#next-label') as HTMLElement).textContent = t.next;
 
 let shownScore = state.score;
 let scoreAnimation = 0;
@@ -58,23 +62,48 @@ function showScore(target: number, animate = true) {
     if (progress < 1) scoreAnimation = requestAnimationFrame(step);
   };
   scoreAnimation = requestAnimationFrame(step);
-  if (animate && target > from) {
-    scoreValue.classList.remove('bump');
-    void scoreValue.offsetWidth; // restart the CSS animation
-    scoreValue.classList.add('bump');
-  }
+  if (animate && target > from) bump(scoreValue);
+}
+
+function bump(element: HTMLElement) {
+  element.classList.remove('bump');
+  void element.offsetWidth; // restart the CSS animation
+  element.classList.add('bump');
+}
+
+const cssColor = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
+
+/** The next block sits in the HUD, so the current block can hover over any column without covering it. */
+function showNext(exp: Exponent | null, animate: boolean) {
+  nextBox.classList.toggle('is-hidden', exp === null);
+  if (exp === null) return;
+  const style = blockStyle(exp);
+  const value = formatValue(blockValue(exp));
+  nextBlock.textContent = value;
+  nextBlock.classList.toggle('is-long', value.length > 2);
+  nextBlock.style.setProperty('--fill', cssColor(style.fill));
+  nextBlock.style.setProperty('--edge', cssColor(style.edge));
+  nextBlock.style.setProperty('--text', style.text);
+  if (animate) bump(nextBlock);
 }
 
 // ------------------------------------------------------------------ game
 
 let moving = false;
+/** A tap made while a move still animates, played as soon as it ends (children tap ahead); the latest wins. */
+let queued: number | null = null;
+let lastTap = Number.NEGATIVE_INFINITY;
+/** Taps closer together than this are one bouncing finger, not two drops. */
+const DOUBLE_TAP_MS = 150;
+
 const kit = createGame({
   parent: stage,
   background: '#fff7ed',
   createScene: () =>
     new BoardScene(sfx, t, {
-      onDrop: (col) => void move(col),
+      onDrop: (col) => requestMove(col),
       onScore: (score) => showScore(score),
+      onUpcoming: (next, animate) => showNext(next, animate),
     }),
 });
 /** The current scene; replaced if the kit restarts the game with the Canvas renderer. */
@@ -86,12 +115,22 @@ kit.onRestart(async (scene) => {
   board.relayout(kit.size().width, kit.size().height);
   board.setBoard(state);
   moving = false;
+  queued = null;
 });
 
 session.on('pause', () => kit.pause());
 session.on('resume', () => kit.resume());
 
 const overlay = createOverlay(app);
+
+function requestMove(col: number) {
+  if (overlay.visible) return;
+  const now = performance.now();
+  if (now - lastTap < DOUBLE_TAP_MS) return;
+  lastTap = now;
+  if (moving) queued = col;
+  else void move(col);
+}
 
 async function move(col: number) {
   if (moving || overlay.visible) return;
@@ -107,6 +146,14 @@ async function move(col: number) {
   showScore(state.score);
   moving = false;
 
+  if (!state.over && queued !== null) {
+    const nextCol = queued;
+    queued = null;
+    void persist();
+    void move(nextCol);
+    return;
+  }
+  queued = null;
   if (state.over) {
     const record = state.score > best;
     best = Math.max(best, state.score);
@@ -180,9 +227,9 @@ window.addEventListener('keydown', (event) => {
   if (overlay.visible) return;
   if (event.key === 'ArrowLeft') board.nudge(-1);
   else if (event.key === 'ArrowRight') board.nudge(1);
-  else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ')
-    void move(board.aimedColumn);
-  else return;
+  else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
+    if (!event.repeat) requestMove(board.aimedColumn); // holding the key down drops once
+  } else return;
   event.preventDefault();
 });
 

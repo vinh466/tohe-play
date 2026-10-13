@@ -6,12 +6,16 @@ The genre of "X2 Blocks" / "Drop the Number", designed for children and adults o
 ## Board
 
 - **5 columns × 7 rows.** Blocks hold powers of two: 2, 4, 8, … shown as `2048`, `4K`, `16K`, `1M`.
-- At the top: the **current** block (the one the player drops) and a smaller **next** block preview.
+- Above the board: the **current** block (the one the player drops), hovering over the aimed column.
+- In the HUD, between score and best: the **next** block. It lives there so the current block never covers it,
+  whatever column the player aims at.
 
 ## A move
 
 1. The player taps a column, or drags the current block over the columns and releases. A ghost shows where the
-   block will land.
+   block will land. A tap made while the previous move is still animating is remembered (only the latest) and
+   played as soon as that move ends, so quick taps are never lost; taps less than 150 ms apart count as one
+   (a bouncing finger), and holding a drop key drops once.
 2. The block falls to the lowest empty cell of that column. A full column refuses the block (shake + soft error
    sound); that is not a move.
 3. **Merge:** when a block arrives in a cell (landing, falling or after merging), every orthogonal neighbour
@@ -37,9 +41,11 @@ The game ends when **every column is full**. Then: score, best, "Kỷ lục mớ
 
 1. **Intro** (first time only): three picture hints — tap a column; equal blocks merge; chains multiply points.
    The first move shows a pulsing hint over the columns.
-2. **Playing:** HUD with score (counts up) and best; board; current + next block; pause and sound buttons come
-   from the hub.
-3. **Paused** (hub sends `pause`): dimmed board, **Tiếp tục**.
+2. **Playing:** HUD with score (counts up), next block and best; board with the current block above it; exit and
+   sound buttons come from the hub.
+3. **Paused:** the hub sends `pause` when the app is hidden or its exit confirmation is open; animations and
+   timers stop, and `resume` continues exactly where they were. The hub's confirmation offers to keep playing,
+   so the game shows no pause screen of its own.
 4. **Game over:** board dims and settles, card with score/best, confetti for a record, **Chơi lại**.
 
 ## Feel (juice), in tiers
@@ -53,8 +59,8 @@ The game ends when **every column is full**. Then: score, best, "Kỷ lục mớ
 | Record | Confetti + fanfare |
 | Full column | Column shakes, soft error sound |
 
-Every animation step is short (80–250 ms) so the board is readable and never blocks input for long; input is
-locked only while a move resolves.
+Every animation step is short (under half a second) so the board stays readable; taps made meanwhile are remembered
+(see *A move*), so the game never ignores the player.
 
 ## Contract usage
 
