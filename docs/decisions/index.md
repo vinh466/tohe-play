@@ -23,3 +23,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0007](0007-immutable-game-builds-and-catalog.md) | Immutable versioned game builds + a catalog indexed by the API | Accepted |
 | [0008](0008-technology-baseline.md) | Technology baseline | Accepted |
 | [0009](0009-local-environment.md) | Local environment: 47xx ports, compose, isolation | Accepted |
+| [0010](0010-environments-dev-and-uat.md) | Environments: development and UAT on the homelab | Accepted |

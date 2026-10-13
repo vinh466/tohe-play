@@ -1,0 +1,83 @@
+# Tò He — UAT on the homelab (this machine), reachable by the family's devices over WireGuard/LAN.
+# Do not run by hand: deploy with deploy/uat/deploy.sh, which builds an exact git ref, backs up the database
+# first and supplies the secrets file. See docs/guides/uat.md.
+#
+# Hub  http://${TOHE_UAT_HOST}:4820   ·   Site/docs http://${TOHE_UAT_HOST}:4810   ·   Games origin :4830
+# The API and PostgreSQL are not published; the hub proxies /api.
+name: tohe-uat
+
+x-restart: &restart
+  restart: unless-stopped
+
+services:
+  postgres:
+    <<: *restart
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: tohe
+      POSTGRES_USER: tohe
+      POSTGRES_PASSWORD: ${TOHE_UAT_DB_PASSWORD:?set by deploy/uat/deploy.sh}
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tohe -d tohe"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+
+  api:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: deploy/docker/api.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      App__Version: ${TOHE_VERSION:-unknown}
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=tohe;Username=tohe;Password=${TOHE_UAT_DB_PASSWORD};GSS Encryption Mode=Disable
+      Database__MigrateOnStartup: "true"
+      Games__PublicOrigin: http://${TOHE_UAT_HOST:-10.100.0.2}:4830
+      Games__CatalogUrl: http://games:8080/catalog.json
+      Registry__SyncInterval: "00:01:00"
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  hub:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: deploy/docker/web.Dockerfile
+      target: hub
+    environment:
+      API_UPSTREAM: api:8080
+      GAMES_ORIGIN: http://${TOHE_UAT_HOST:-10.100.0.2}:4830
+    depends_on:
+      - api
+    ports:
+      - "4820:8080"
+
+  games:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: deploy/docker/web.Dockerfile
+      target: games
+    environment:
+      HUB_ORIGINS: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
+    ports:
+      - "4830:8080"
+
+  site:
+    <<: *restart
+    build:
+      context: .
+      dockerfile: deploy/docker/web.Dockerfile
+      target: site
+      args:
+        PUBLIC_HUB_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
+        TOHE_SITE_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4810
+    ports:
+      - "4810:8080"
+
+volumes:
+  postgres-data:

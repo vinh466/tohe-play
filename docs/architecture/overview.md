@@ -16,7 +16,7 @@ flowchart TB
     frame[Game iframe<br/>sandboxed, games origin]
   end
 
-  subgraph server [Homelab k3s · local: docker compose]
+  subgraph server [Homelab · docker compose: dev 47xx, UAT 48xx]
     hubsrv[Hub server<br/>Caddy: static + /api proxy]
     api[Platform API<br/>ASP.NET Core 10]
     db[(PostgreSQL 18)]
@@ -43,14 +43,15 @@ flowchart TB
 
 Three browser origins, on purpose:
 
-| Origin | Local | Production (planned) | Why separate |
+| Origin | Local (dev) | UAT (homelab) | Why separate |
 | --- | --- | --- | --- |
-| Hub + API | `http://localhost:4720` (API also on `:4740` for debugging) | `tohe-play.vinetic.io.vn` | The session cookie (M1) stays first-party; the API is same-origin, so no CORS. |
-| Games | `http://localhost:4730` | `tohe-games.vinetic.io.vn` | Game code — possibly AI-written — can never read the hub's cookies or storage. |
-| Site | `http://localhost:4710` | `tohe.vinetic.io.vn` | Static, independent of the app; stays up if the app is down. |
+| Hub + API | `http://localhost:4720` (API also on `:4740` for debugging) | `http://10.100.0.2:4820` | The session cookie (M1) stays first-party; the API is same-origin, so no CORS. |
+| Games | `http://localhost:4730` | `http://10.100.0.2:4830` | Game code — possibly AI-written — can never read the hub's cookies or storage. |
+| Site | `http://localhost:4710` | `http://10.100.0.2:4810` | Static, independent of the app; stays up if the app is down. |
 
-Production names are flat (one level under `vinetic.io.vn`) because Cloudflare's free certificates only cover
-one subdomain level. See [ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md).
+Environments are described in [ADR 0010](../decisions/0010-environments-dev-and-uat.md). For a future public
+production, hostnames must be flat (one level under `vinetic.io.vn`) because Cloudflare's free certificates only
+cover one subdomain level — see [ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md).
 
 ## Dependency rules
 

@@ -25,7 +25,9 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - Never edit generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/hub/src/api/schema.gen.ts`);
   regenerate them.
 - Never weaken a check (tests, conformance, CSP, pnpm's minimum release age) to make it pass.
-- Only use the Tò He stack: ports 47xx, compose project `tohe`. Never touch other databases or containers.
+- Develop only on the dev stack: ports 47xx, compose project `tohe`. Never touch other databases or containers.
+- UAT (`tohe-uat`, ports 48xx, 10.100.0.2) holds the family's data: deploy only with `deploy/uat/deploy.sh`,
+  never wipe its volume or run migrations against it by hand (docs/guides/uat.md).
 - Before merging a dependency upgrade, check `docs/roadmap/upgrade-watchlist.md`. Dependabot PRs listed there
   stay open on purpose as reminders — do not close them or add ignore rules for them.
 

@@ -63,6 +63,9 @@ docker compose up --build -d    # postgres, api, hub, games, site
 Same URLs as above. Images are the ones production will use (Caddy + chiseled .NET). Stop with
 `docker compose down` (add `-v` to wipe the database). Do not run modes A and B at the same time — they share ports.
 
+This is the development stack. The family's always-on environment is separate: see
+[UAT environment](uat.md).
+
 ### Trying it on a phone
 
 Mode B with your machine's LAN address:
