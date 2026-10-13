@@ -39,10 +39,12 @@ interface Layout {
 }
 
 export interface BoardCallbacks {
-  /** The player chose a column (tap, drag-release or keyboard). */
+  /** The player chose a column (tap, drag-release or keyboard), also while a move still animates. */
   onDrop(col: number): void;
   /** Running score while a move resolves, so the HUD can count up merge by merge. */
   onScore(score: number): void;
+  /** The block after the current one, for the HUD (null once the game is over). */
+  onUpcoming(next: Exponent | null, animate: boolean): void;
 }
 
 type Block = Phaser.GameObjects.Container & { exp: Exponent };
@@ -56,8 +58,6 @@ export class BoardScene extends Phaser.Scene {
   private hint: Phaser.GameObjects.Text | null = null;
   private cells = new Map<number, Block>();
   private current: Block | null = null;
-  private next: Block | null = null;
-  private nextLabel!: Phaser.GameObjects.Text;
   private state: State | null = null;
   private hoverCol: number | null = null;
   private busy = false;
@@ -79,17 +79,13 @@ export class BoardScene extends Phaser.Scene {
     this.highlight = this.add.graphics().setDepth(1);
     this.ghost = this.add.graphics().setDepth(2);
     this.dimmer = this.add.rectangle(0, 0, 10, 10, 0xfff7ed, 0).setOrigin(0).setDepth(30);
-    this.nextLabel = crispText(this, 0, 0, this.text.next, {
-      fontSize: '13px',
-      fontStyle: '700',
-      color: '#9a3412',
-    }).setOrigin(0.5);
 
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.hover(this.columnAt(p.worldX, p.worldY)));
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.hover(this.columnAt(p.worldX, p.worldY)));
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
+      // Also while busy: main.ts remembers a tap made during a move and plays it right after.
       const col = this.columnAt(p.worldX, p.worldY);
-      if (col !== null && !this.busy) this.callbacks.onDrop(col);
+      if (col !== null) this.callbacks.onDrop(col);
     });
     this.input.on('gameout', () => this.hover(null));
 
@@ -126,7 +122,6 @@ export class BoardScene extends Phaser.Scene {
       }
     }
     this.dimmer.setSize(width, height);
-    this.nextLabel.setPosition(boardX + boardW - cell * 0.32, previewY - cell * 0.5);
 
     for (const [index, block] of this.cells) {
       const cellPos = this.cellCenter({ col: index % COLS, row: Math.floor(index / COLS) });
@@ -136,10 +131,6 @@ export class BoardScene extends Phaser.Scene {
     if (this.current) {
       this.current.setPosition(this.columnX(this.hoverCol ?? 2), previewY);
       this.paint(this.current, this.current.exp, cell);
-    }
-    if (this.next) {
-      this.next.setPosition(boardX + boardW - cell * 0.32, previewY + cell * 0.05);
-      this.paint(this.next, this.next.exp, cell * 0.5);
     }
     this.drawGuides();
   }
@@ -213,30 +204,19 @@ export class BoardScene extends Phaser.Scene {
       const { x, y } = this.cellCenter(cell);
       this.cells.set(indexOf(cell), this.makeBlock(exp, this.layoutInfo.cell, x, y));
     }
-    this.showUpcoming(state.current, state.next, false);
-    this.next?.setVisible(true);
-    this.nextLabel.setVisible(true);
+    this.showCurrent(state.current, false);
+    this.callbacks.onUpcoming(state.over ? null : state.next, false);
     this.dimmer.setFillStyle(0xfff7ed, 0);
     this.busy = false;
     this.drawGuides();
   }
 
-  private showUpcoming(current: Exponent, next: Exponent, animate: boolean) {
-    const { cell, previewY, boardX } = this.layoutInfo;
+  /** The block the player drops, hovering over the aimed column. The next one is in the HUD, never covered. */
+  private showCurrent(current: Exponent, animate: boolean) {
+    const { cell, previewY } = this.layoutInfo;
     this.current?.destroy();
     this.current = this.makeBlock(current, cell, this.columnX(this.hoverCol ?? 2), previewY).setDepth(20);
-    if (!this.next)
-      this.next = this.makeBlock(
-        next,
-        cell * 0.5,
-        boardX + cell * COLS - cell * 0.32,
-        previewY + cell * 0.05,
-      );
-    this.paint(this.next, next, cell * 0.5);
-    if (animate) {
-      void popIn(this, this.current, 180);
-      void pulse(this, this.next, 1.15);
-    }
+    if (animate) void popIn(this, this.current, 180);
   }
 
   showHint(on: boolean) {
@@ -336,6 +316,8 @@ export class BoardScene extends Phaser.Scene {
       const event = events[i] as GameEvent;
       switch (event.type) {
         case 'land':
+          // Aim stays on the column just played (also for a tap remembered during the previous move).
+          this.hoverCol = event.at.col;
           await this.animateLand(event.at, event.exp);
           break;
         case 'merge': {
@@ -354,7 +336,8 @@ export class BoardScene extends Phaser.Scene {
           await this.animateFall(event.moves);
           break;
         case 'next':
-          this.showUpcoming(event.current, event.next, true);
+          this.showCurrent(event.current, true);
+          this.callbacks.onUpcoming(event.next, true);
           break;
         case 'over':
           await this.animateOver(event.record);
@@ -450,8 +433,7 @@ export class BoardScene extends Phaser.Scene {
     }
     this.current?.destroy();
     this.current = null;
-    this.next?.setVisible(false);
-    this.nextLabel.setVisible(false);
+    this.callbacks.onUpcoming(null, true);
     if (record) {
       confetti(this, this.layoutInfo.width);
       this.sfx.play('fanfare');
