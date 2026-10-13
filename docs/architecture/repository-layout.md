@@ -18,7 +18,7 @@ tohe-play/
 │   ├── contract/            Game Contract v1: Zod schemas, JSON Schema output, game CSP
 │   ├── game-sdk/            Game side (dependency-free) + host side (/host) of the contract
 │   ├── game-kit/            Shared game building blocks: Phaser setup, sfx, haptics, juice, overlay (ADR 0012)
-│   └── design-tokens/       Light and dark colour tokens for the hub, the site and the kit (ADR 0013)
+│   └── design-tokens/       Light/dark colour tokens + the shared theme choice, for hub, site and kit (ADR 0013)
 ├── games/
 │   └── <id>/                One folder per game; folder name = game id
 ├── tools/
@@ -39,7 +39,7 @@ tohe-play/
 | `@tohe/game-sdk` (game side) | types from `@tohe/contract` only | runtime dependencies of any kind |
 | `@tohe/game-sdk/host` | `@tohe/contract` | — |
 | `@tohe/game-kit` | `@tohe/game-sdk` (types), Phaser (optional peer, `./phaser` entry only) | the hub, the API |
-| `@tohe/design-tokens` | nothing (a CSS file and a parser) | anything in this repo |
+| `@tohe/design-tokens` | nothing (CSS, a parser, the theme choice) | anything in this repo |
 | `games/*` | `@tohe/game-sdk`, `@tohe/game-kit`, any library that fits the game | the hub, the API, other games, network access |
 | `apps/hub` | contract, SDK host, design tokens, generated API types | game code |
 | `services/api` | NuGet packages in `Directory.Packages.props` | game code |

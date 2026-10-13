@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 // End-to-end smoke test against a running stack (pnpm dev, or docker compose up).
 // Opens the hub on a phone-sized viewport, launches the sample game, plays one round and checks that the
-// hub stored the score and the save locally. Every screen is checked in the light and the dark theme.
-// Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke
+// hub stored the score and the save locally. Every screen — hub, landing page, docs — is checked in the light and
+// the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke (SITE_URL defaults to :4710)
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
+const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
 const step = (message: string) => console.log(`• ${message}`);
 
 const browser = await chromium.launch().catch(() => chromium.launch({ channel: 'chrome' }));
@@ -205,6 +206,17 @@ try {
   const confirm = page.getByRole('dialog');
   await confirm.getByRole('button', { name: 'Thoát', exact: true }).tap();
   await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`);
+
+  step(`the landing page (${siteUrl}) and the docs share the hub's light/dark choice`);
+  await page.goto(siteUrl);
+  await shot('landing');
+  await page.getByRole('button', { name: 'Tối' }).tap();
+  await expectTheme('dark');
+  await page.goto(`${siteUrl}/docs/`);
+  await expectTheme('dark');
+  await shot('docs');
+  await page.goto(hubUrl);
+  await expectTheme('dark');
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);
   await context.tracing.stop();

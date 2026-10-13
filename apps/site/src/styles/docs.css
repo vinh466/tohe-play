@@ -1,11 +1,50 @@
-:root {
+/*
+ * Starlight on the Tò He palette (ADR 0013): warm surfaces and text from the design tokens, the brand orange as the
+ * accent. Starlight names its scale for dark mode (white = strongest text, black = background) and flips it for
+ * light, so each theme maps its own steps; steps without a token of the same role use a warm value in between.
+ */
+
+:root,
+::backdrop {
+  --sl-color-white: var(--tohe-ink);
+  --sl-color-gray-1: #f3dfcf;
+  --sl-color-gray-2: #e2cab8;
+  --sl-color-gray-3: var(--tohe-ink-soft);
+  --sl-color-gray-4: var(--tohe-line-strong);
+  --sl-color-gray-5: var(--tohe-line);
+  --sl-color-gray-6: var(--tohe-surface);
+  --sl-color-black: var(--tohe-page);
+
   --sl-color-accent-low: #431407;
   --sl-color-accent: #f97316;
   --sl-color-accent-high: #fed7aa;
+  --sl-color-backdrop-overlay: var(--tohe-scrim);
 }
 
-:root[data-theme="light"] {
+:root[data-theme="light"],
+[data-theme="light"] ::backdrop {
+  --sl-color-white: #2a1208;
+  --sl-color-gray-1: var(--tohe-ink);
+  --sl-color-gray-2: #5b2a17;
+  --sl-color-gray-3: var(--tohe-ink-soft);
+  --sl-color-gray-4: #c99572;
+  --sl-color-gray-5: var(--tohe-line);
+  --sl-color-gray-6: var(--tohe-soft);
+  --sl-color-gray-7: var(--tohe-page);
+  --sl-color-black: var(--tohe-surface);
+
   --sl-color-accent-low: #ffedd5;
   --sl-color-accent: #c2410c;
   --sl-color-accent-high: #7c2d12;
+}
+
+/*
+ * Mermaid's dark theme draws edge labels as #ccc on #585858 (4.4:1, below WCAG AA). Its styles are scoped to each
+ * diagram's id, hence !important.
+ */
+[data-theme="dark"] .mermaid .labelBkg,
+[data-theme="dark"] .mermaid .edgeLabel,
+[data-theme="dark"] .mermaid .edgeLabel p {
+  background-color: var(--tohe-surface) !important;
+  color: var(--tohe-ink) !important;
 }
