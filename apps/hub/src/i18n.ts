@@ -18,6 +18,9 @@ const vi = {
   untrusted: 'Trò chơi không nằm trên nguồn được phép, đã chặn.',
   best: 'Kỷ lục: {{score}}',
   back: 'Về danh sách',
+  confirmExitTitle: 'Thoát trò chơi?',
+  confirmExitBody: 'Trò chơi đang tạm dừng. Thoát bây giờ có thể mất ván đang chơi.',
+  keepPlaying: 'Chơi tiếp',
 };
 
 const en: typeof vi = {
@@ -37,6 +40,9 @@ const en: typeof vi = {
   untrusted: 'This game is not on an allowed origin and was blocked.',
   best: 'Best: {{score}}',
   back: 'Back to games',
+  confirmExitTitle: 'Leave the game?',
+  confirmExitBody: 'The game is paused. Leaving now may lose the current round.',
+  keepPlaying: 'Keep playing',
 };
 
 void i18n.use(initReactI18next).init({
