@@ -30,6 +30,11 @@ mkdirSync(outDir, { recursive: true });
 for (const folder of readdirSync(gamesDir, { withFileTypes: true })) {
   if (!folder.isDirectory()) continue;
   const gameRoot = join(gamesDir, folder.name);
+  // A game starts as a SPEC.md waiting for review (/new-game); it has no package to publish yet.
+  if (!existsSync(join(gameRoot, 'package.json'))) {
+    console.log(`  ${folder.name}/ — spec only, skipped`);
+    continue;
+  }
   const pkg = JSON.parse(readFileSync(join(gameRoot, 'package.json'), 'utf8')) as { name: string };
   if (!(pkg.name in ownPackage.devDependencies)) {
     problems.push(
