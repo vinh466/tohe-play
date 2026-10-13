@@ -10,6 +10,7 @@ import { useSetMe } from '../session/useSession.ts';
 import { Button } from '../ui/Button.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
+import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 export function WelcomePage() {
   return (
@@ -23,10 +24,13 @@ export function WelcomePage() {
 export function Brand({ subtitle }: { subtitle: string }) {
   const { t } = useTranslation();
   return (
-    <header className="flex flex-col items-center gap-2 pt-4 text-center">
-      <img src="/favicon.svg" alt="" className="size-20 rounded-3xl shadow-lg shadow-orange-200" />
-      <h1 className="font-black text-4xl text-orange-700">{t('appName')}</h1>
-      <p className="max-w-xs text-orange-900/70">{subtitle}</p>
+    <header className="relative flex flex-col items-center gap-2 pt-4 text-center">
+      <div className="absolute top-0 right-0">
+        <ThemeButton />
+      </div>
+      <img src="/favicon.svg" alt="" className="size-20 rounded-3xl shadow-glow shadow-lg" />
+      <h1 className="font-black text-4xl text-brand-ink">{t('appName')}</h1>
+      <p className="max-w-xs text-ink-soft">{subtitle}</p>
     </header>
   );
 }
@@ -62,8 +66,8 @@ function SignIn() {
   return (
     <Screen narrow>
       <Brand subtitle={t('welcome.subtitle')} />
-      <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-sm">
-        <h2 className="font-bold text-orange-950 text-xl">{t('welcome.title')}</h2>
+      <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
+        <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
         <TextField
           label={t('welcome.username')}
           name="username"
@@ -85,7 +89,7 @@ function SignIn() {
           onChange={(e) => setPassword(e.target.value)}
         />
         {login.isError ? (
-          <p role="alert" className="text-red-700">
+          <p role="alert" className="text-danger">
             {t(errorKey(login.error))}
           </p>
         ) : null}
@@ -94,9 +98,9 @@ function SignIn() {
         </Button>
       </form>
       <div className="flex flex-col items-center gap-3 text-center">
-        <p className="text-orange-900/70">
+        <p className="text-ink-soft">
           {t('welcome.noAccount')}{' '}
-          <Link to="/register" className="font-bold text-orange-700 underline underline-offset-4">
+          <Link to="/register" className="font-bold text-brand-ink underline underline-offset-4">
             {t('welcome.createFamily')}
           </Link>
         </p>

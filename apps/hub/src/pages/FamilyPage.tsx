@@ -14,6 +14,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
+import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 export function FamilyPage() {
   return <RequireSession need="account">{({ me }) => <Family me={me} />}</RequireSession>;
@@ -64,11 +65,12 @@ function Family({ me }: { me: MeView }) {
         <Link
           to="/profiles"
           aria-label={t('back')}
-          className="grid size-11 place-items-center rounded-full bg-white text-orange-800 text-xl shadow-sm active:scale-95"
+          className="grid size-11 place-items-center rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
         >
           ←
         </Link>
-        <h1 className="font-black text-3xl text-orange-700">{t('family.title')}</h1>
+        <h1 className="min-w-0 flex-1 font-black text-3xl text-brand-ink">{t('family.title')}</h1>
+        <ThemeButton />
       </header>
 
       {unlocked ? (
@@ -93,8 +95,8 @@ function Family({ me }: { me: MeView }) {
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
-    <section className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-sm">
-      <h2 className="font-bold text-orange-950 text-xl">{title}</h2>
+    <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
+      <h2 className="font-bold text-ink text-xl">{title}</h2>
       {children}
     </section>
   );
@@ -111,13 +113,11 @@ function ParentGate({ me }: { me: MeView }) {
   return (
     <form
       onSubmit={submit}
-      className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-3xl bg-white p-6 shadow-sm"
+      className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-3xl bg-surface p-6 shadow-sm"
     >
       <div className="text-center text-5xl">🔐</div>
-      <h2 className="text-center font-black text-2xl text-orange-950">{t('family.gateTitle')}</h2>
-      <p className="text-center text-orange-900/70">
-        {t('family.gateBody', { name: me.account.displayName })}
-      </p>
+      <h2 className="text-center font-black text-2xl text-ink">{t('family.gateTitle')}</h2>
+      <p className="text-center text-ink-soft">{t('family.gateBody', { name: me.account.displayName })}</p>
       <TextField
         label={t('welcome.password')}
         type="password"
@@ -178,19 +178,23 @@ function Profiles({ me, startAdding }: { me: MeView; startAdding: boolean }) {
                 type="button"
                 disabled={!editable}
                 onClick={() => setEditing(profile)}
-                className="flex w-full items-center gap-3 rounded-2xl bg-orange-50 p-3 text-left transition active:scale-[0.98] disabled:active:scale-100"
+                className="flex w-full items-center gap-3 rounded-2xl bg-fill p-3 text-left transition active:scale-[0.98] disabled:active:scale-100"
               >
                 <Avatar avatar={profile.avatar} size="sm" />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-bold text-orange-950">{profile.name}</span>
-                  <span className="text-orange-900/60 text-sm">
+                  <span className="truncate font-bold text-ink">{profile.name}</span>
+                  <span className="text-ink-soft text-sm">
                     {profile.kind === 'adult'
                       ? t('profiles.adult')
                       : t('family.years', { band: profile.ageBand })}
                     {profile.hasPin ? ` · 🔒 ${t('family.hasPin')}` : ''}
                   </span>
                 </span>
-                {editable ? <span className="text-orange-400 text-xl">›</span> : null}
+                {editable ? (
+                  <span aria-hidden className="text-ink-soft text-xl">
+                    ›
+                  </span>
+                ) : null}
               </button>
             </li>
           );
@@ -262,7 +266,7 @@ function ProfileForm({ profile, onDone }: { profile: ProfileView | null; onDone(
       />
       {isChild ? (
         <fieldset className="flex flex-col gap-2">
-          <legend className="mb-1.5 font-semibold text-orange-950">{t('family.ageBand')}</legend>
+          <legend className="mb-1.5 font-semibold text-ink">{t('family.ageBand')}</legend>
           <div className="flex flex-wrap gap-2">
             {(options.data?.ageBands ?? []).map((band) => (
               <button
@@ -270,8 +274,8 @@ function ProfileForm({ profile, onDone }: { profile: ProfileView | null; onDone(
                 type="button"
                 aria-pressed={band === ageBand}
                 onClick={() => setAgeBand(band)}
-                className={`min-h-11 rounded-full px-4 font-semibold transition active:scale-95 ${
-                  band === ageBand ? 'bg-orange-500 text-white' : 'bg-white text-orange-900'
+                className={`min-h-11 rounded-full px-4 font-semibold text-ink transition active:scale-95 ${
+                  band === ageBand ? 'bg-soft-strong ring-2 ring-brand' : 'bg-surface'
                 }`}
               >
                 {t('family.years', { band })}
@@ -292,18 +296,18 @@ function ProfileForm({ profile, onDone }: { profile: ProfileView | null; onDone(
         error={pinInvalid ? t('family.pinHint') : null}
       />
       {profile?.hasPin ? (
-        <label className="flex items-center gap-3 font-semibold text-orange-950">
+        <label className="flex items-center gap-3 font-semibold text-ink">
           <input
             type="checkbox"
             checked={removePin}
             onChange={(e) => setRemovePin(e.target.checked)}
-            className="size-6 accent-orange-500"
+            className="size-6 accent-brand"
           />
           {t('family.removePin')}
         </label>
       ) : null}
       {save.isError ? (
-        <p role="alert" className="text-red-700">
+        <p role="alert" className="text-danger">
           {t(errorKey(save.error))}
         </p>
       ) : null}
@@ -343,12 +347,12 @@ function Invite({ me }: { me: MeView }) {
       {invite ? (
         <>
           <p
-            className="select-all rounded-2xl bg-orange-50 py-4 text-center font-black font-mono text-4xl text-orange-800 tracking-[0.2em]"
+            className="select-all rounded-2xl bg-fill py-4 text-center font-black font-mono text-4xl text-accent tracking-[0.2em]"
             aria-live="polite"
           >
             {invite.code.slice(0, 4)}-{invite.code.slice(4)}
           </p>
-          <p className="text-orange-900/70 text-sm">
+          <p className="text-ink-soft text-sm">
             {t('family.inviteBody', {
               date: new Date(invite.expiresAt).toLocaleDateString(i18n.language, {
                 day: 'numeric',
@@ -380,12 +384,12 @@ function Members({ me }: { me: MeView }) {
     <Card title={t('family.members')}>
       <ul className="flex flex-col gap-1">
         {me.household.members.map((member) => (
-          <li key={member.accountId} className="flex justify-between gap-3 text-orange-950">
+          <li key={member.accountId} className="flex justify-between gap-3 text-ink">
             <span className="font-semibold">
               {member.displayName}
               {member.accountId === me.account.id ? ` (${t('family.you')})` : ''}
             </span>
-            <span className="text-orange-900/60">@{member.username}</span>
+            <span className="text-ink-soft">@{member.username}</span>
           </li>
         ))}
       </ul>
@@ -397,6 +401,6 @@ function Version() {
   const { t } = useTranslation();
   const config = useQuery(configQuery);
   return config.data ? (
-    <p className="text-orange-900/40 text-xs">{t('family.version', { version: config.data.apiVersion })}</p>
+    <p className="text-ink-soft text-xs">{t('family.version', { version: config.data.apiVersion })}</p>
   ) : null;
 }

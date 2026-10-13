@@ -1,0 +1,90 @@
+/*
+ * Tò He colour tokens (ADR 0013): one palette for the hub, the site and the game kit's screens.
+ *
+ * Light is the default; `data-theme="dark"` on <html> switches to the dark palette — warm charcoal, never pure
+ * black, so Tò He keeps its toy-like warmth at night. Names say what a colour is *for*, not what it looks like,
+ * so a theme can change any value without touching components.
+ *
+ * Contrast rules, checked in both themes by src/contrast.test.ts:
+ *   - ink, ink-soft, accent and brand-ink on page, surface, fill and soft: at least 4.5:1 (WCAG AA).
+ *   - on-brand on brand: at least 3:1 only, so text on brand must be large (1.25rem bold or bigger).
+ *   - brand and focus against page and surface: at least 3:1, so buttons and focus rings stand out.
+ */
+
+:root,
+[data-theme="light"] {
+  color-scheme: light;
+
+  /* Surfaces, from back to front */
+  --tohe-page: #fff7ed; /* page background, sheets */
+  --tohe-surface: #ffffff; /* cards, inputs, keys, chips: anything raised */
+  --tohe-fill: #fff7ed; /* quiet rows and boxes inside a surface */
+  --tohe-soft: #ffedd5; /* tinted controls: secondary and icon buttons */
+  --tohe-soft-strong: #fed7aa; /* pressed or selected tint */
+  --tohe-line: #fed7aa; /* borders and dividers */
+  --tohe-line-strong: #fdba74; /* dashed "add" outlines */
+
+  /* Text */
+  --tohe-ink: #431407; /* main text */
+  --tohe-ink-soft: #8a4a32; /* secondary text: subtitles, hints, descriptions */
+  --tohe-ink-faint: #fdba74; /* decoration only, never information */
+  --tohe-accent: #9a3412; /* text and icons of secondary controls */
+  --tohe-brand-ink: #c2410c; /* brand-coloured text: titles, links */
+
+  /* Brand: primary actions */
+  --tohe-brand: #ea580c;
+  --tohe-brand-strong: #c2410c; /* pressed */
+  --tohe-on-brand: #ffffff;
+  --tohe-glow: rgb(251 146 60 / 0.35); /* coloured shadow under brand elements */
+  --tohe-focus: #ea580c;
+
+  /* Status */
+  --tohe-danger: #b91c1c;
+  --tohe-danger-soft: #fef2f2;
+  --tohe-danger-soft-strong: #fee2e2;
+  --tohe-danger-line: #f87171;
+  --tohe-notice: #fef3c7;
+  --tohe-notice-ink: #78350f;
+
+  /* Misc */
+  --tohe-scrim: rgb(67 20 7 / 0.4); /* behind dialogs */
+  --tohe-avatar-from: #fef3c7;
+  --tohe-avatar-to: #fed7aa;
+  --tohe-bar: #f97316; /* browser UI (status bar); mirrored in the hub's public/theme-init.js */
+}
+
+[data-theme="dark"] {
+  color-scheme: dark;
+
+  --tohe-page: #17110e;
+  --tohe-surface: #261c17;
+  --tohe-fill: #31241d;
+  --tohe-soft: #3a2a20;
+  --tohe-soft-strong: #4a3426;
+  --tohe-line: #3f2e24;
+  --tohe-line-strong: #6e4c36;
+
+  --tohe-ink: #fdecdc;
+  --tohe-ink-soft: #cdb09a;
+  --tohe-ink-faint: #7a5a46;
+  --tohe-accent: #fdba74;
+  --tohe-brand-ink: #fb923c;
+
+  --tohe-brand: #ea580c;
+  --tohe-brand-strong: #c2410c;
+  --tohe-on-brand: #ffffff;
+  --tohe-glow: rgb(234 88 12 / 0.3);
+  --tohe-focus: #fb923c;
+
+  --tohe-danger: #fca5a5;
+  --tohe-danger-soft: #3b1a17;
+  --tohe-danger-soft-strong: #4c201c;
+  --tohe-danger-line: #f87171;
+  --tohe-notice: #3a2e12;
+  --tohe-notice-ink: #fcd34d;
+
+  --tohe-scrim: rgb(0 0 0 / 0.6);
+  --tohe-avatar-from: #4a3426;
+  --tohe-avatar-to: #6b4630;
+  --tohe-bar: #17110e;
+}

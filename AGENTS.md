@@ -12,6 +12,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `packages/contract` | Game Contract v1 (Zod) — source of truth for game.json, catalog, protocol, CSP |
 | `packages/game-sdk` | Game side (no runtime deps) and host side (`/host`) of the contract |
 | `packages/game-kit` | Phaser setup, sounds, haptics, juice, overlay screens — use it for every new game (ADR 0012) |
+| `packages/design-tokens` | Light and dark colour tokens shared by the hub, the site and the kit (ADR 0013) |
 | `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
 | `apps/site` | Landing (vi) + docs site (en) |
@@ -26,6 +27,8 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - Never edit generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/hub/src/api/schema.gen.ts`);
   regenerate them.
 - Never weaken a check (tests, conformance, CSP, pnpm's minimum release age) to make it pass.
+- UI colours come from the design tokens (`bg-surface`, `text-ink`…), never raw palette classes like
+  `bg-orange-500`; every screen must work in light and dark (docs/architecture/theming.md).
 - Develop only on the dev stack: ports 47xx, compose project `tohe`. Never touch other databases or containers.
 - UAT (`tohe-uat`, ports 48xx, 10.100.0.2) holds the family's data: deploy only with `deploy/uat/deploy.sh`,
   never wipe its volume or run migrations against it by hand (docs/guides/uat.md).

@@ -1,7 +1,9 @@
 #!/usr/bin/env node
 // End-to-end smoke test against a running stack (pnpm dev, or docker compose up).
 // Opens the hub on a phone-sized viewport, launches the sample game, plays one round and checks that the
-// hub stored the score and the save locally.  Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke
+// hub stored the score and the save locally. Every screen is checked in the light and the dark theme.
+// Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke
+import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
@@ -38,14 +40,42 @@ page.on('framenavigated', (frame) =>
 page.on('framedetached', (frame) => mark(`detached: ${frame.url()}`));
 
 /**
- * Screenshot a step and check nothing overflows sideways: on phones, one element wider than the screen makes the
- * browser zoom the whole page out, and buttons end up outside the visible area.
+ * Screenshot a step in the light and the dark theme, and check each:
+ * - nothing overflows sideways: on phones, one element wider than the screen makes the browser zoom the whole
+ *   page out, and buttons end up outside the visible area;
+ * - all hub text meets WCAG AA contrast (axe-core; the game's own frame is not part of the hub).
+ * The theme is switched on <html> directly, so the player's saved choice is left alone.
  */
 const shot = async (name: string) => {
-  await page.screenshot({ path: `test-results/e2e-${name}.png` });
-  const width = await page.evaluate(() => document.documentElement.scrollWidth);
-  if (width > 390) throw new Error(`"${name}" is ${width}px wide on a 390px screen (horizontal overflow)`);
+  const saved = await page.evaluate(() => document.documentElement.dataset.theme ?? 'light');
+  for (const theme of ['light', 'dark']) {
+    await page.evaluate((next) => {
+      const root = document.documentElement;
+      root.dataset.theme = next;
+      root.style.colorScheme = next;
+      // Settle entrance animations, so screenshots and contrast see final colours.
+      for (const animation of document.getAnimations()) {
+        if (animation.effect?.getComputedTiming().iterations !== Number.POSITIVE_INFINITY) animation.finish();
+      }
+    }, theme);
+    await page.screenshot({ path: `test-results/e2e-${name}-${theme}.png` });
+    const width = await page.evaluate(() => document.documentElement.scrollWidth);
+    if (width > 390) throw new Error(`"${name}" is ${width}px wide on a 390px screen (horizontal overflow)`);
+    const { violations } = await new AxeBuilder({ page })
+      .withRules(['color-contrast'])
+      .exclude('iframe')
+      .analyze();
+    const low = violations.flatMap((v) => v.nodes.map((n) => `  ${n.target.join(' ')}: ${n.failureSummary}`));
+    if (low.length > 0)
+      throw new Error(`"${name}" (${theme}) has text below WCAG AA contrast:\n${low.join('\n')}`);
+  }
+  await page.evaluate((theme) => {
+    document.documentElement.dataset.theme = theme;
+    document.documentElement.style.colorScheme = theme;
+  }, saved);
 };
+const expectTheme = (theme: 'light' | 'dark') =>
+  page.waitForFunction((t) => document.documentElement.dataset.theme === t, theme, { timeout: 5000 });
 const password = 'mat-khau-e2e-123';
 const username = `e2e${Date.now().toString(36)}`;
 
@@ -64,6 +94,25 @@ try {
   await shot('register');
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
   await page.waitForURL(/\/profiles$/);
+
+  step('choose the dark theme in "Giao diện": it applies at once and survives a reload');
+  await page.getByRole('button', { name: /^Giao diện/ }).tap();
+  const themes = page.getByRole('dialog', { name: 'Giao diện' });
+  await themes.getByRole('button', { name: /^Tối/ }).tap();
+  await expectTheme('dark');
+  await shot('theme-sheet');
+  await themes.getByRole('button', { name: '✕' }).tap();
+  await page.reload();
+  await expectTheme('dark');
+
+  step('"Theo máy" follows the device, live');
+  await page.getByRole('button', { name: /^Giao diện/ }).tap();
+  await themes.getByRole('button', { name: /^Theo máy/ }).tap();
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await expectTheme('dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await expectTheme('light');
+  await themes.getByRole('button', { name: '✕' }).tap();
 
   step('add a child profile with a PIN (behind the parent gate)');
   await page.getByRole('button', { name: /Thêm hồ sơ/ }).tap();

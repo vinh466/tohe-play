@@ -25,6 +25,16 @@ const vi = {
   cancel: 'Huỷ',
   save: 'Lưu',
   switchProfile: 'Đổi người chơi',
+  theme: {
+    title: 'Giao diện',
+    button: 'Giao diện: {{choice}}',
+    system: 'Theo máy',
+    systemHint: 'Tự sáng hoặc tối theo cài đặt của máy',
+    light: 'Sáng',
+    lightHint: 'Nền sáng, hợp ban ngày',
+    dark: 'Tối',
+    darkHint: 'Nền tối, đỡ chói khi chơi buổi tối',
+  },
   welcome: {
     title: 'Chào mừng đến Tò He',
     subtitle: 'Bố mẹ đăng nhập một lần, các bé chỉ cần chọn hình của mình.',
@@ -145,6 +155,16 @@ const en: typeof vi = {
   cancel: 'Cancel',
   save: 'Save',
   switchProfile: 'Switch player',
+  theme: {
+    title: 'Appearance',
+    button: 'Appearance: {{choice}}',
+    system: 'Match device',
+    systemHint: 'Light or dark, following this device',
+    light: 'Light',
+    lightHint: 'Bright, for daytime',
+    dark: 'Dark',
+    darkHint: 'Easy on the eyes in the evening',
+  },
   welcome: {
     title: 'Welcome to Tò He',
     subtitle: 'A parent signs in once; children just pick their picture.',

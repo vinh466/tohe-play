@@ -5,6 +5,9 @@ import { createRoot } from 'react-dom/client';
 import './i18n.ts';
 import { createAppRouter } from './router.tsx';
 import './styles.css';
+import { startTheme } from './theme/theme.ts';
+
+startTheme();
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { networkMode: 'offlineFirst', retry: 1 } },

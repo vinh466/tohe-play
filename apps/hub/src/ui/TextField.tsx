@@ -12,7 +12,7 @@ export function TextField({ label, hint, error, className = '', ...input }: Text
   const describedBy = error ? `${id}-error` : hint ? `${id}-hint` : undefined;
   return (
     <div className={`flex min-w-0 flex-col gap-1.5 ${className}`}>
-      <label htmlFor={id} className="font-semibold text-orange-950">
+      <label htmlFor={id} className="font-semibold text-ink">
         {label}
       </label>
       <input
@@ -20,14 +20,14 @@ export function TextField({ label, hint, error, className = '', ...input }: Text
         aria-invalid={error ? true : undefined}
         aria-describedby={describedBy}
         {...input}
-        className="h-12 w-full min-w-0 rounded-2xl border-2 border-orange-200 bg-white px-4 text-lg text-orange-950 outline-none transition placeholder:text-orange-300 focus:border-orange-500 aria-invalid:border-red-400"
+        className="h-12 w-full min-w-0 rounded-2xl border-2 border-line bg-surface px-4 text-ink text-lg outline-none transition placeholder:text-ink-faint focus:border-focus aria-invalid:border-danger-line"
       />
       {error ? (
-        <p id={`${id}-error`} className="text-red-700 text-sm">
+        <p id={`${id}-error`} className="text-danger text-sm">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-orange-900/60 text-sm">
+        <p id={`${id}-hint`} className="text-ink-soft text-sm">
           {hint}
         </p>
       ) : null}

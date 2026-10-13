@@ -1,4 +1,38 @@
 @import "tailwindcss";
+@import "@tohe/design-tokens/tokens.css";
+
+/*
+ * Colours come only from the design tokens (ADR 0013, docs/architecture/theming.md). The default palette is
+ * removed, so a raw class like bg-orange-500 generates nothing — src/tokens.test.ts names it instead. `inline`
+ * makes every utility read the token variable, so switching data-theme on <html> restyles the whole hub.
+ */
+@theme inline {
+  --color-*: initial;
+  --color-page: var(--tohe-page);
+  --color-surface: var(--tohe-surface);
+  --color-fill: var(--tohe-fill);
+  --color-soft: var(--tohe-soft);
+  --color-soft-strong: var(--tohe-soft-strong);
+  --color-line: var(--tohe-line);
+  --color-line-strong: var(--tohe-line-strong);
+  --color-ink: var(--tohe-ink);
+  --color-ink-soft: var(--tohe-ink-soft);
+  --color-ink-faint: var(--tohe-ink-faint);
+  --color-accent: var(--tohe-accent);
+  --color-brand-ink: var(--tohe-brand-ink);
+  --color-brand: var(--tohe-brand);
+  --color-brand-strong: var(--tohe-brand-strong);
+  --color-on-brand: var(--tohe-on-brand);
+  --color-glow: var(--tohe-glow);
+  --color-focus: var(--tohe-focus);
+  --color-danger: var(--tohe-danger);
+  --color-danger-soft: var(--tohe-danger-soft);
+  --color-danger-soft-strong: var(--tohe-danger-soft-strong);
+  --color-danger-line: var(--tohe-danger-line);
+  --color-notice: var(--tohe-notice);
+  --color-notice-ink: var(--tohe-notice-ink);
+  --color-scrim: var(--tohe-scrim);
+}
 
 @theme {
   --animate-shake: shake 0.4s ease-in-out;
@@ -31,14 +65,26 @@
   }
 }
 
+/* The warm round backdrop behind emoji avatars. */
+@utility avatar-bg {
+  background-image: linear-gradient(to bottom, var(--tohe-avatar-from), var(--tohe-avatar-to));
+}
+
 @layer base {
   html {
-    background: var(--color-orange-50);
+    background: var(--tohe-page);
+    color: var(--tohe-ink);
     -webkit-tap-highlight-color: transparent;
     overscroll-behavior: none;
   }
 
   body {
     font-family: system-ui, sans-serif;
+  }
+
+  /* Keyboard focus is visible in both themes (pointer and touch do not show it). */
+  :focus-visible {
+    outline: 3px solid var(--tohe-focus);
+    outline-offset: 2px;
   }
 }

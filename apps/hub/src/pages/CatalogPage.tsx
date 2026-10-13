@@ -6,6 +6,7 @@ import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Screen } from '../ui/Screen.tsx';
+import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 export function CatalogPage() {
   return (
@@ -29,23 +30,26 @@ function Catalog({ player, household }: { player: Player; household: string | nu
     <Screen>
       <header className="flex items-center justify-between gap-3">
         <div className="min-w-0">
-          <h1 className="font-black text-3xl text-orange-700">{t('appName')}</h1>
-          <p className="truncate text-orange-900/70">{household ?? t('tagline')}</p>
+          <h1 className="font-black text-3xl text-brand-ink">{t('appName')}</h1>
+          <p className="truncate text-ink-soft">{household ?? t('tagline')}</p>
         </div>
-        <Link
-          to={isGuest ? '/welcome' : '/profiles'}
-          aria-label={t('switchProfile')}
-          className="flex shrink-0 items-center gap-2 rounded-full bg-white py-1.5 pr-4 pl-1.5 shadow-sm active:scale-95"
-        >
-          <Avatar avatar={player.avatar} size="sm" />
-          <span className="max-w-28 truncate font-semibold text-orange-900">
-            {isGuest ? t('guest.name') : player.name}
-          </span>
-        </Link>
+        <div className="flex shrink-0 items-center gap-2">
+          <ThemeButton />
+          <Link
+            to={isGuest ? '/welcome' : '/profiles'}
+            aria-label={t('switchProfile')}
+            className="flex items-center gap-2 rounded-full bg-surface py-1.5 pr-4 pl-1.5 shadow-sm active:scale-95"
+          >
+            <Avatar avatar={player.avatar} size="sm" />
+            <span className="max-w-28 truncate font-semibold text-ink">
+              {isGuest ? t('guest.name') : player.name}
+            </span>
+          </Link>
+        </div>
       </header>
 
       {isGuest ? (
-        <p className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-amber-100 px-4 py-3 text-amber-900 text-sm">
+        <p className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
           {t('guest.banner')}
           <Link to="/register" className="font-bold underline underline-offset-4">
             {t('guest.signUp')}
@@ -54,33 +58,31 @@ function Catalog({ player, household }: { player: Player; household: string | nu
       ) : null}
 
       {!navigator.onLine && (
-        <p className="rounded-xl bg-amber-100 px-4 py-2 text-amber-900 text-sm">{t('offline')}</p>
+        <p className="rounded-xl bg-notice px-4 py-2 text-notice-ink text-sm">{t('offline')}</p>
       )}
 
       <section aria-labelledby="games-heading" className="flex flex-col gap-3">
-        <h2 id="games-heading" className="font-bold text-orange-900 text-xl">
+        <h2 id="games-heading" className="font-bold text-ink text-xl">
           {t('games')}
         </h2>
-        {games.isPending && <p className="text-orange-900/70">{t('loading')}</p>}
-        {games.isError && <p className="text-red-700">{t('loadFailed')}</p>}
-        {games.data?.length === 0 && <p className="text-orange-900/70">{t('noGames')}</p>}
+        {games.isPending && <p className="text-ink-soft">{t('loading')}</p>}
+        {games.isError && <p className="text-danger">{t('loadFailed')}</p>}
+        {games.data?.length === 0 && <p className="text-ink-soft">{t('noGames')}</p>}
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {games.data?.map((game, index) => (
             <li key={game.id} className="animate-pop-in" style={{ animationDelay: `${index * 40}ms` }}>
               <Link
                 to="/play/$gameId"
                 params={{ gameId: game.id }}
-                className="flex h-full flex-col items-center gap-2 rounded-3xl bg-white p-4 text-center shadow-sm transition active:scale-95"
+                className="flex h-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 text-center shadow-sm transition active:scale-95"
               >
                 {game.iconUrl ? (
                   <img src={game.iconUrl} alt="" className="size-20 rounded-2xl" />
                 ) : (
-                  <span className="grid size-20 place-items-center rounded-2xl bg-orange-100 text-4xl">
-                    🎲
-                  </span>
+                  <span className="grid size-20 place-items-center rounded-2xl bg-soft text-4xl">🎲</span>
                 )}
-                <span className="font-bold text-lg text-orange-900">{game.name}</span>
-                <span className="line-clamp-2 text-orange-900/70 text-sm">{game.description}</span>
+                <span className="font-bold text-ink text-lg">{game.name}</span>
+                <span className="line-clamp-2 text-ink-soft text-sm">{game.description}</span>
               </Link>
             </li>
           ))}
