@@ -33,6 +33,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Games:PublicOrigin", "https://games.example.test");
         builder.UseSetting("Games:CatalogUrl", "http://games-internal/catalog.json");
         builder.UseSetting("Registry:SyncEnabled", "false");
+        // Tests sign in many times from one client address; the real limit is covered by its own configuration.
+        builder.UseSetting("Identity:AuthRequestsPerMinute", "10000");
         builder.ConfigureServices(services => services
             .AddHttpClient<Modules.Registry.CatalogSync>()
             .ConfigurePrimaryHttpMessageHandler(() => Catalog));

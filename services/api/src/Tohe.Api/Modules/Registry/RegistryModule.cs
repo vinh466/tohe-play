@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Platform;
 
 namespace Tohe.Api.Modules.Registry;
@@ -38,7 +40,7 @@ internal static class RegistryModule
     public static WebApplicationBuilder AddRegistryModule(this WebApplicationBuilder builder)
     {
         builder.Services.AddOptions<RegistryOptions>().BindConfiguration(RegistryOptions.Section);
-        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.AddHttpClient<CatalogSync>(client => client.Timeout = TimeSpan.FromSeconds(10));
         if (builder.Configuration.GetValue($"{RegistryOptions.Section}:SyncEnabled", defaultValue: true)
             && !BuildTime.IsGeneratingOpenApi)
@@ -53,25 +55,34 @@ internal static class RegistryModule
     {
         var games = api.MapGroup("/games").WithTags("Registry");
 
-        games.MapGet("/", async (ToheDbContext db, IOptions<GamesOptions> options, CancellationToken ct) =>
+        games.MapGet("/", async (
+                ToheDbContext db, IActiveProfile activeProfile, HttpContext http, IOptions<GamesOptions> options, CancellationToken ct) =>
             {
+                var maxMinAge = (await activeProfile.GetAsync(http.User, ct))?.MaxGameMinAge ?? int.MaxValue;
                 var listed = await db.Games.AsNoTracking()
-                    .Where(game => game.Listed)
+                    .Where(game => game.Listed && game.MinAge <= maxMinAge)
                     .OrderBy(game => game.Name)
                     .ToListAsync(ct);
                 return listed.Select(game => ToSummary(game, options.Value.PublicOrigin)).ToList();
             })
             .WithName("ListGames")
-            .WithSummary("Games available in the hub.");
+            .WithSummary("Games available in the hub, filtered by the active profile's age band.");
 
         games.MapGet("/{id}", async Task<Results<Ok<GameSummary>, NotFound>> (
-                string id, ToheDbContext db, IOptions<GamesOptions> options, CancellationToken ct) =>
+                string id,
+                ToheDbContext db,
+                IActiveProfile activeProfile,
+                HttpContext http,
+                IOptions<GamesOptions> options,
+                CancellationToken ct) =>
             {
-                var game = await db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == id && g.Listed, ct);
+                var maxMinAge = (await activeProfile.GetAsync(http.User, ct))?.MaxGameMinAge ?? int.MaxValue;
+                var game = await db.Games.AsNoTracking()
+                    .FirstOrDefaultAsync(g => g.Id == id && g.Listed && g.MinAge <= maxMinAge, ct);
                 return game is null ? TypedResults.NotFound() : TypedResults.Ok(ToSummary(game, options.Value.PublicOrigin));
             })
             .WithName("GetGame")
-            .WithSummary("One game by id.");
+            .WithSummary("One game by id (not found if the active profile is too young for it).");
 
         return api;
     }

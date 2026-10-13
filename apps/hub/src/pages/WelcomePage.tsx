@@ -1,0 +1,109 @@
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { Link, useNavigate } from '@tanstack/react-router';
+import { type FormEvent, useState } from 'react';
+import { useTranslation } from 'react-i18next';
+import { auth } from '../api/client.ts';
+import { errorKey } from '../api/errors.ts';
+import { RequireSession } from '../session/RequireSession.tsx';
+import { guestMode } from '../session/session.ts';
+import { useSetMe } from '../session/useSession.ts';
+import { Button } from '../ui/Button.tsx';
+import { Screen } from '../ui/Screen.tsx';
+import { TextField } from '../ui/TextField.tsx';
+
+export function WelcomePage() {
+  return (
+    <RequireSession need="signedOut">
+      <SignIn />
+    </RequireSession>
+  );
+}
+
+/** Logo, name and tagline at the top of the sign-in screens. */
+export function Brand({ subtitle }: { subtitle: string }) {
+  const { t } = useTranslation();
+  return (
+    <header className="flex flex-col items-center gap-2 pt-4 text-center">
+      <img src="/favicon.svg" alt="" className="size-20 rounded-3xl shadow-lg shadow-orange-200" />
+      <h1 className="font-black text-4xl text-orange-700">{t('appName')}</h1>
+      <p className="max-w-xs text-orange-900/70">{subtitle}</p>
+    </header>
+  );
+}
+
+function SignIn() {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const setMe = useSetMe();
+  const [username, setUsername] = useState('');
+  const [password, setPassword] = useState('');
+
+  const login = useMutation({
+    mutationFn: () => auth.login(username.trim(), password),
+    onSuccess: async (me) => {
+      guestMode.disable();
+      await setMe(me);
+      await navigate({ to: '/profiles' });
+    },
+  });
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    login.mutate();
+  };
+
+  const tryAsGuest = async () => {
+    guestMode.enable();
+    await queryClient.invalidateQueries({ queryKey: ['me'] });
+    await navigate({ to: '/' });
+  };
+
+  return (
+    <Screen narrow>
+      <Brand subtitle={t('welcome.subtitle')} />
+      <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-sm">
+        <h2 className="font-bold text-orange-950 text-xl">{t('welcome.title')}</h2>
+        <TextField
+          label={t('welcome.username')}
+          name="username"
+          autoComplete="username"
+          autoCapitalize="none"
+          autoCorrect="off"
+          spellCheck={false}
+          required
+          value={username}
+          onChange={(e) => setUsername(e.target.value)}
+        />
+        <TextField
+          label={t('welcome.password')}
+          name="password"
+          type="password"
+          autoComplete="current-password"
+          required
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+        />
+        {login.isError ? (
+          <p role="alert" className="text-red-700">
+            {t(errorKey(login.error))}
+          </p>
+        ) : null}
+        <Button type="submit" busy={login.isPending}>
+          {t('welcome.signIn')}
+        </Button>
+      </form>
+      <div className="flex flex-col items-center gap-3 text-center">
+        <p className="text-orange-900/70">
+          {t('welcome.noAccount')}{' '}
+          <Link to="/register" className="font-bold text-orange-700 underline underline-offset-4">
+            {t('welcome.createFamily')}
+          </Link>
+        </p>
+        <Button variant="ghost" onClick={() => void tryAsGuest()}>
+          {t('welcome.tryAsGuest')}
+        </Button>
+      </div>
+    </Screen>
+  );
+}

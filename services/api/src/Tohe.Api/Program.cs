@@ -1,6 +1,8 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Infrastructure.Security;
+using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Platform;
 using Tohe.Api.Modules.Registry;
 
@@ -12,6 +14,7 @@ if (!builder.Environment.IsDevelopment())
 }
 
 builder.Services.AddProblemDetails();
+builder.Services.AddValidation();
 // Numbers are numbers: keeps the OpenAPI schema (and the generated TypeScript types) exact.
 builder.Services.ConfigureHttpJsonOptions(options =>
     options.SerializerOptions.NumberHandling = JsonNumberHandling.Strict);
@@ -24,12 +27,18 @@ builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document,
 
 builder.AddDatabase();
 builder.AddPlatformModule();
+builder.AddIdentityModule();
 builder.AddRegistryModule();
 
 var app = builder.Build();
 
+app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+app.UseSameOriginGuard();
+app.UseRateLimiter();
+app.UseAuthentication();
+app.UseAuthorization();
 
 await app.MigrateDatabaseIfConfiguredAsync();
 
@@ -41,6 +50,7 @@ app.MapScalarApiReference("/api/docs", options => options
 var api = app.MapGroup("/api");
 api.MapHealthChecks("/health");
 api.MapPlatformEndpoints();
+api.MapIdentityEndpoints();
 api.MapRegistryEndpoints();
 
 await app.RunAsync();

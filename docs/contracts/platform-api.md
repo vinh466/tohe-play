@@ -14,10 +14,10 @@ The Platform API (`services/api`) serves the hub. **Games never call it** — th
 | --- | --- |
 | Base path | Everything under `/api`. The hub reaches it on its own origin (Vite proxy in dev, Caddy in docker/prod). |
 | Format | JSON, `camelCase`, numbers are numbers (`JsonNumberHandling.Strict`). |
-| Errors | RFC 9457 problem details (`application/problem+json`). |
+| Errors | RFC 9457 problem details (`application/problem+json`) with a machine-readable `code`; validation errors carry codes per field. |
 | Description | OpenAPI 3.1, generated at build time to [`services/api/openapi/tohe-api.json`](../../services/api/openapi/tohe-api.json) and committed. |
 | Clients | The hub's types are generated from that file (`pnpm --filter @tohe/hub generate:api`). Never hand-write request/response types. |
-| Auth | Cookie session on the hub origin (M1, [ADR 0004](../decisions/0004-identity-households-and-profiles.md)). |
+| Auth | Cookie session `tohe.session` on the hub origin; household management behind the parent gate. See [Identity](../architecture/identity.md) and [ADR 0011](../decisions/0011-password-sign-in-first.md). |
 | Health | `GET /api/health` → `Healthy` when the database is reachable. |
 | Interactive docs | `GET /api/docs` (Scalar) on a running API. |
 
