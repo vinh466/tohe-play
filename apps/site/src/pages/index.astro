@@ -1,0 +1,184 @@
+---
+// Landing page (Vietnamese). The docs live under /docs and are written in English.
+const hubUrl = import.meta.env.PUBLIC_HUB_URL ?? 'http://localhost:4720';
+
+const features = [
+  {
+    icon: '🚫📢',
+    title: 'Không quảng cáo',
+    text: 'Chơi liền mạch, không bị cắt ngang. Không theo dõi, không mua hàng trong game.',
+  },
+  {
+    icon: '📱',
+    title: 'Mở là chơi',
+    text: 'Chạy ngay trên trình duyệt điện thoại, cài lên màn hình chính như một ứng dụng, chơi được cả khi mất mạng.',
+  },
+  {
+    icon: '👨‍👩‍👧',
+    title: 'Cho cả nhà',
+    text: 'Mỗi người một hồ sơ, bé chỉ cần chọn hình đại diện. Trò chơi nhỏ gọn, vài phút một ván.',
+  },
+  {
+    icon: '🧩',
+    title: 'Nhiều trò, một chỗ',
+    text: 'Từ ghép khối, xếp gạch tới nông trại mini — mỗi trò là một "con tò he" nặn từ cùng một nền tảng.',
+  },
+];
+---
+
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+    <meta name="description" content="Tò He — góc chơi nhỏ của cả nhà: trò chơi nhanh, không quảng cáo, chạy ngay trên điện thoại." />
+    <meta name="theme-color" content="#f97316" />
+    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
+    <title>Tò He — góc chơi nhỏ của cả nhà</title>
+  </head>
+  <body>
+    <header class="hero">
+      <img src="/favicon.svg" alt="" width="96" height="96" />
+      <h1>Tò He</h1>
+      <p class="lead">Góc chơi nhỏ của cả nhà — những trò chơi nhanh, gọn, không quảng cáo, mở ra là chơi.</p>
+      <div class="actions">
+        <a class="primary" href={hubUrl}>Vào chơi ngay</a>
+        <a class="secondary" href="/docs/">Tài liệu kỹ thuật</a>
+      </div>
+    </header>
+
+    <main>
+      <section class="features" aria-label="Điểm nổi bật">
+        {
+          features.map((feature) => (
+            <article>
+              <span class="icon" aria-hidden="true">
+                {feature.icon}
+              </span>
+              <h2>{feature.title}</h2>
+              <p>{feature.text}</p>
+            </article>
+          ))
+        }
+      </section>
+
+      <section class="story">
+        <h2>Vì sao lại là "Tò He"?</h2>
+        <p>
+          Tò he là món đồ chơi nặn bằng bột màu của trẻ em Việt: nhỏ xinh, nhiều màu và được nặn rất nhanh. Mỗi trò
+          chơi ở đây cũng vậy — một con tò he nhỏ, nặn nhanh từ cùng một "bột nền" kỹ thuật chung.
+        </p>
+      </section>
+
+      <section class="dev">
+        <h2>Dành cho người làm game</h2>
+        <p>
+          Mỗi trò chơi là một gói độc lập, viết bằng công nghệ phù hợp, giao tiếp với nền tảng qua một hợp đồng nhỏ và
+          ổn định. Tài liệu kỹ thuật (tiếng Anh) mô tả kiến trúc, hợp đồng và cách tạo game mới — cho cả người lẫn AI.
+        </p>
+        <a href="/docs/">Đọc tài liệu →</a>
+      </section>
+    </main>
+
+    <footer>
+      <p>Tò He · dự án gia đình · <a href="https://github.com/vinh466/tohe-play">GitHub</a></p>
+    </footer>
+  </body>
+</html>
+
+<style>
+  :global(*) {
+    box-sizing: border-box;
+  }
+  :global(body) {
+    margin: 0;
+    font-family: system-ui, sans-serif;
+    background: #fff7ed;
+    color: #431407;
+    line-height: 1.6;
+  }
+  .hero {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    padding: max(3rem, env(safe-area-inset-top)) 1.5rem 3rem;
+    text-align: center;
+    background: linear-gradient(180deg, #fed7aa 0%, #fff7ed 100%);
+  }
+  .hero img {
+    border-radius: 24px;
+  }
+  h1 {
+    margin: 0;
+    font-size: clamp(2.5rem, 8vw, 4rem);
+    font-weight: 900;
+    color: #c2410c;
+  }
+  .lead {
+    max-width: 34rem;
+    margin: 0;
+    font-size: 1.2rem;
+  }
+  .actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 0.75rem;
+    margin-top: 1rem;
+  }
+  .actions a {
+    padding: 0.9rem 1.5rem;
+    border-radius: 1rem;
+    font-weight: 700;
+    text-decoration: none;
+  }
+  .primary {
+    background: #f97316;
+    color: #fff;
+  }
+  .secondary {
+    background: #fff;
+    color: #9a3412;
+  }
+  main {
+    max-width: 60rem;
+    margin: 0 auto;
+    padding: 0 1.5rem 3rem;
+  }
+  .features {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+    gap: 1rem;
+  }
+  .features article {
+    padding: 1.25rem;
+    border-radius: 1.25rem;
+    background: #fff;
+  }
+  .features h2 {
+    margin: 0.5rem 0 0.25rem;
+    font-size: 1.15rem;
+  }
+  .features p {
+    margin: 0;
+    color: #7c2d12;
+  }
+  .icon {
+    font-size: 1.75rem;
+  }
+  .story,
+  .dev {
+    margin-top: 2.5rem;
+  }
+  .dev a,
+  footer a {
+    color: #c2410c;
+    font-weight: 700;
+  }
+  footer {
+    padding: 2rem;
+    text-align: center;
+    color: #9a3412;
+  }
+</style>
