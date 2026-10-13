@@ -26,11 +26,17 @@ export function PlayPage() {
   const gamesOrigin = config.data?.gamesOrigin;
   const player = profile.data;
 
-  // The session restarts only for a different game build or profile; mute and locale changes are sent as
-  // messages to the running game instead (see toggleMute).
+  // The session restarts only for a different game build, origin or profile. Everything else the session
+  // needs is read from `latest` at start; later mute changes are sent as messages instead (see toggleMute).
+  const buildKey = game ? `${game.id}@${game.version}` : undefined;
+  const playerId = player?.id;
+  const latest = useRef({ game, player, muted, locale: i18n.language, navigate });
+  latest.current = { game, player, muted, locale: i18n.language, navigate };
+
   useEffect(() => {
     const frame = iframe.current;
-    if (!game || !gamesOrigin || !player || !frame) return;
+    const { game, player, muted, locale, navigate } = latest.current;
+    if (!buildKey || !gamesOrigin || !playerId || !game || !player || !frame) return;
     if (!isTrustedEntry(game.entryUrl, gamesOrigin)) {
       setStatus('untrusted');
       return;
@@ -42,7 +48,7 @@ export function PlayPage() {
       manifest: manifestFrom(game),
       init: async () => ({
         profile: { id: player.id, name: player.name, avatar: player.avatar },
-        locale: i18n.language,
+        locale,
         settings: { muted },
         save: await loadSave(db, player.id, game.id),
         seed: dailySeed(),
@@ -69,7 +75,7 @@ export function PlayPage() {
       host.current = null;
       frame.src = 'about:blank';
     };
-  }, [game?.id, game?.version, gamesOrigin, player?.id]);
+  }, [buildKey, gamesOrigin, playerId]);
 
   const toggleMute = () => {
     const next = !muted;
