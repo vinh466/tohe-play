@@ -1,0 +1,15 @@
+**/node_modules
+**/dist
+**/.out
+**/.astro
+**/.turbo
+**/bin
+**/obj
+**/test-results
+**/playwright-report
+**/TestResults
+.git
+.claude
+.env
+.env.*
+!.env.example

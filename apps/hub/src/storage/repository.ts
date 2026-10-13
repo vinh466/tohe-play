@@ -3,12 +3,19 @@ import type { LocalProfile, ToheDb } from './db.ts';
 
 const AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐧', '🐨', '🦁', '🐰'];
 
+/** crypto.randomUUID only exists in secure contexts; a phone testing over plain http on the LAN is not one. */
+function newId(): string {
+  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
 /** Until accounts exist (milestone M1) every device has one local guest profile. */
 export async function ensureGuestProfile(db: ToheDb): Promise<LocalProfile> {
   const existing = await db.profiles.toCollection().first();
   if (existing) return existing;
   const profile: LocalProfile = {
-    id: crypto.randomUUID(),
+    id: newId(),
     name: 'Bạn nhỏ',
     avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)] ?? '🦊',
     createdAt: Date.now(),

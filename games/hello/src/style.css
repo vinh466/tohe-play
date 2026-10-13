@@ -60,6 +60,7 @@ body {
 }
 
 button {
+  font-family: inherit;
   min-height: 3.5rem;
   border: 0;
   border-radius: 1rem;

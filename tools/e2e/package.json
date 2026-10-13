@@ -1,0 +1,15 @@
+{
+  "name": "@tohe/e2e",
+  "version": "0.1.0",
+  "private": true,
+  "description": "End-to-end smoke test against a running stack (pnpm dev or docker compose).",
+  "type": "module",
+  "scripts": {
+    "smoke": "mkdir -p test-results && node src/smoke.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "playwright": "^1.64.0"
+  }
+}

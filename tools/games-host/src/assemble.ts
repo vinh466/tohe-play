@@ -12,7 +12,7 @@ import {
 } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { type Catalog, type CatalogEntry, GameManifest } from '@tohe/contract';
+import { type Catalog, type CatalogEntry, GameManifest, gameContentSecurityPolicy } from '@tohe/contract';
 
 const here = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(here, '../../..');
@@ -66,6 +66,12 @@ const catalog: Catalog = {
   games: entries.sort((a, b) => a.manifest.id.localeCompare(b.manifest.id)),
 };
 writeFileSync(join(outDir, 'catalog.json'), `${JSON.stringify(catalog, null, 2)}\n`);
+// Caddy snippet for the games image, so production uses exactly the CSP the conformance kit tests with.
+// {$HUB_ORIGINS} is a Caddy env placeholder, resolved when the container starts.
+writeFileSync(
+  join(dirname(outDir), 'games-csp.caddy'),
+  `header @build Content-Security-Policy "${gameContentSecurityPolicy(['{$HUB_ORIGINS}'])}"\n`,
+);
 console.log(`games-host: ${entries.length} game(s) -> ${outDir}`);
 for (const entry of entries) console.log(`  ${entry.path}  ${entry.sizeKb} KB`);
 

@@ -1,0 +1,25 @@
+# Games origin: immutable /<id>/<version>/ builds + catalog.json.
+# Env: HUB_ORIGINS (space-separated origins allowed to embed games).
+# games-csp.caddy is generated from @tohe/contract's gameContentSecurityPolicy() by `@tohe/games-host build`.
+{
+	admin off
+}
+
+:8080 {
+	encode zstd gzip
+	root * /srv
+
+	header X-Content-Type-Options nosniff
+
+	@catalog path /catalog.json
+	header @catalog {
+		Cache-Control "no-cache"
+		Access-Control-Allow-Origin "*"
+	}
+
+	@build not path /catalog.json
+	header @build Cache-Control "public, max-age=31536000, immutable"
+	import /etc/caddy/games-csp.caddy
+
+	file_server
+}

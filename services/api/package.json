@@ -4,7 +4,7 @@
   "private": true,
   "description": "Turborepo wrapper around the .NET solution, so `pnpm build|test|dev` covers the API too.",
   "scripts": {
-    "dev": "dotnet watch --project src/Tohe.Api --launch-profile http",
+    "dev": "DOTNET_USE_POLLING_FILE_WATCHER=1 dotnet watch --project src/Tohe.Api --launch-profile http",
     "build": "dotnet build Tohe.slnx",
     "test": "dotnet test --solution Tohe.slnx"
   }
