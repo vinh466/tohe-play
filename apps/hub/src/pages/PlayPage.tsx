@@ -26,7 +26,8 @@ export function PlayPage() {
   const gamesOrigin = config.data?.gamesOrigin;
   const player = profile.data;
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: the session must only restart for a different game build or profile, not on mute/locale changes (those are sent as messages).
+  // The session restarts only for a different game build or profile; mute and locale changes are sent as
+  // messages to the running game instead (see toggleMute).
   useEffect(() => {
     const frame = iframe.current;
     if (!game || !gamesOrigin || !player || !frame) return;
