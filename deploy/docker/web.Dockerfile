@@ -14,6 +14,10 @@ FROM workspace AS build-hub
 RUN pnpm turbo run build --filter=@tohe/hub
 
 FROM workspace AS build-site
+# Where the landing page's "play" button points, and the site's canonical URL (sitemap).
+ARG PUBLIC_HUB_URL=http://localhost:4720
+ARG TOHE_SITE_URL=http://localhost:4710
+ENV PUBLIC_HUB_URL=$PUBLIC_HUB_URL TOHE_SITE_URL=$TOHE_SITE_URL
 RUN pnpm turbo run build --filter=@tohe/site
 
 FROM workspace AS build-games

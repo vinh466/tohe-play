@@ -66,6 +66,9 @@ services:
       context: .
       dockerfile: deploy/docker/web.Dockerfile
       target: site
+      args:
+        PUBLIC_HUB_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4720
+        TOHE_SITE_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4710
     ports:
       - "4710:8080"
 

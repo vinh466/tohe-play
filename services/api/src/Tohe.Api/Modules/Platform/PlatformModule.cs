@@ -39,8 +39,12 @@ internal static class PlatformModule
 
     public static IEndpointRouteBuilder MapPlatformEndpoints(this IEndpointRouteBuilder api)
     {
-        var version = typeof(PlatformModule).Assembly
-            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
+        // Deployments set App:Version to the git commit they built (deploy/uat/deploy.sh).
+        var configuration = api.ServiceProvider.GetRequiredService<IConfiguration>();
+        var version = configuration["App:Version"] is { Length: > 0 } deployed
+            ? deployed
+            : typeof(PlatformModule).Assembly
+                .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
 
         api.MapGet("/config", (IOptions<GamesOptions> games) =>
                 new ClientConfig(games.Value.PublicOrigin.GetLeftPart(UriPartial.Authority), version))
