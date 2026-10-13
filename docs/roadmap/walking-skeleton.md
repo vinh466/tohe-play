@@ -15,7 +15,7 @@ milestone ends with something playable and a green `pnpm verify` + e2e smoke tes
 | **M0** | **Skeleton** *(this initial commit)* | Contract + SDK + conformance kit; sample game; API with registry; hub with catalog and launcher; local-first saves; site with docs and ADRs; compose stack; CI. |
 | M1 | Identity & households | *Done:* username + password sign-in (ADR 0011), households with invites, child profiles with avatar/age band/PIN, parent gate, profile picker, age-filtered catalog, guest progress moved. See [Identity](../architecture/identity.md). |
 | M2 | Saves & scores sync | API stores saves/scores per profile; hub syncs in the background; household leaderboard per game; conflict policy from ADR 0005. |
-| M3 | First real game: Merge Block | Spec → game built mostly by an agent with `/new-game`; a grid kit extracted only if a second grid game needs it. |
+| M3 | First real game: Merge Block | *Done:* "Ghép Khối" on Phaser 4 + `@tohe/game-kit` after the [technology research](../research/game-tech.md) (ADR 0012); pure logic with a random-play bot, saves after every move, tiered juice, Canvas fallback. |
 | M4 | UAT on the homelab | *Done (ADR 0010):* `compose.uat.yaml` + `deploy/uat/deploy.sh` on 10.100.0.2, backups before every deploy. See [UAT environment](../guides/uat.md). |
 | Later | Production | Only when needed: HTTPS, public hostnames, off-machine backups — new ADR. |
 | Gate | Go / no-go | The criteria in [Vision & scope](../vision.md#go--no-go). |

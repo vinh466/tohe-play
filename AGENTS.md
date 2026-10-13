@@ -11,7 +11,8 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `docs/` | Spec: overview, architecture, contracts, guides, conventions, ADRs, roadmap |
 | `packages/contract` | Game Contract v1 (Zod) — source of truth for game.json, catalog, protocol, CSP |
 | `packages/game-sdk` | Game side (no runtime deps) and host side (`/host`) of the contract |
-| `games/<id>` | One game per folder; `games/hello` is the reference |
+| `packages/game-kit` | Phaser setup, sounds, haptics, juice, overlay screens — use it for every new game (ADR 0012) |
+| `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
 | `apps/site` | Landing (vi) + docs site (en) |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |

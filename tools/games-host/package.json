@@ -15,6 +15,7 @@
   },
   "devDependencies": {
     "@tohe/game-hello": "workspace:*",
+    "@tohe/game-merge-block": "workspace:*",
     "@types/node": "^24.0.0"
   }
 }

@@ -1,0 +1,85 @@
+// DOM screens over the game canvas (intro, pause, game over) with one look shared by every game: big rounded
+// buttons, a card that pops in, safe-area aware. Styles: import '@tohe/game-kit/overlay.css' once.
+
+export interface OverlayAction {
+  label: string;
+  onClick(): void;
+  variant?: 'primary' | 'secondary';
+}
+
+export interface OverlayCard {
+  /** Emoji or short text shown large above the title. */
+  icon?: string;
+  title: string;
+  body?: string;
+  /** Extra content between the body and the buttons (e.g. a score table or hints). */
+  content?: HTMLElement;
+  actions: OverlayAction[];
+}
+
+export interface Overlay {
+  show(card: OverlayCard): void;
+  hide(): void;
+  readonly visible: boolean;
+}
+
+export function createOverlay(root: HTMLElement): Overlay {
+  const layer = document.createElement('div');
+  layer.className = 'tohe-overlay';
+  layer.hidden = true;
+  root.append(layer);
+
+  return {
+    show(card) {
+      const box = document.createElement('div');
+      box.className = 'tohe-card';
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-modal', 'true');
+      if (card.icon) box.append(element('div', 'tohe-card-icon', card.icon));
+      const title = element('h2', 'tohe-card-title', card.title);
+      box.append(title);
+      if (card.body) box.append(element('p', 'tohe-card-body', card.body));
+      if (card.content) box.append(card.content);
+      const actions = element('div', 'tohe-card-actions');
+      for (const action of card.actions) {
+        const button = element(
+          'button',
+          `tohe-button tohe-button-${action.variant ?? 'primary'}`,
+          action.label,
+        );
+        button.type = 'button';
+        button.addEventListener('click', action.onClick);
+        actions.append(button);
+      }
+      box.append(actions);
+      layer.replaceChildren(box);
+      layer.hidden = false;
+      (actions.querySelector('button') as HTMLButtonElement | null)?.focus({ preventScroll: true });
+    },
+    hide() {
+      layer.hidden = true;
+      layer.replaceChildren();
+    },
+    get visible() {
+      return !layer.hidden;
+    },
+  };
+}
+
+/** A list of "picture + sentence" rows, used for first-time hints. */
+export function hintList(hints: { icon: string; text: string }[]): HTMLElement {
+  const list = element('ul', 'tohe-hints');
+  for (const hint of hints) {
+    const row = element('li', 'tohe-hint');
+    row.append(element('span', 'tohe-hint-icon', hint.icon), element('span', 'tohe-hint-text', hint.text));
+    list.append(row);
+  }
+  return list;
+}
+
+function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+}
