@@ -1,3 +1,6 @@
+/* Colours are the platform's design tokens, so the page follows the hub's light/dark theme (ADR 0013). */
+@import "@tohe/design-tokens/tokens.css";
+
 * {
   box-sizing: border-box;
 }
@@ -7,7 +10,7 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #fff7ed;
+  background: var(--tohe-page);
   font-family: system-ui, sans-serif;
   touch-action: none;
   user-select: none;
@@ -30,7 +33,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: rgb(255 247 237 / 0.88);
+  background: color-mix(in srgb, var(--tohe-page) 92%, transparent);
   text-align: center;
   padding: env(safe-area-inset-top) 1.5rem env(safe-area-inset-bottom);
 }
@@ -43,13 +46,13 @@ body {
   margin: 0;
   font-size: 2.25rem;
   font-weight: 800;
-  color: #9a3412;
+  color: var(--tohe-brand-ink);
 }
 
 #overlay-detail {
   margin: 0 0 1rem;
   font-size: 1.125rem;
-  color: #7c2d12;
+  color: var(--tohe-ink-soft);
 }
 
 .actions {
@@ -59,6 +62,7 @@ body {
   width: min(18rem, 100%);
 }
 
+/* 1.25rem bold: white on brand meets WCAG AA as large text only. */
 button {
   font-family: inherit;
   min-height: 3.5rem;
@@ -66,11 +70,16 @@ button {
   border-radius: 1rem;
   font-size: 1.25rem;
   font-weight: 700;
-  background: #f97316;
-  color: #fff;
+  background: var(--tohe-brand);
+  color: var(--tohe-on-brand);
 }
 
 button.secondary {
-  background: #fed7aa;
-  color: #9a3412;
+  background: var(--tohe-soft);
+  color: var(--tohe-accent);
+}
+
+button:focus-visible {
+  outline: 3px solid var(--tohe-focus);
+  outline-offset: 2px;
 }

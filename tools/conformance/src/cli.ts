@@ -14,6 +14,6 @@ for (const check of result.checks) {
     `  ${check.ok ? '✔' : '✘'} ${check.name}${check.detail ? `\n      ${check.detail.replaceAll('\n', '\n      ')}` : ''}`,
   );
 }
-if (result.screenshot) console.log(`  screenshot: ${result.screenshot}`);
+for (const screenshot of result.screenshots) console.log(`  screenshot: ${screenshot}`);
 console.log(result.ok ? '\nPASS' : '\nFAIL');
 process.exit(result.ok ? 0 : 1);

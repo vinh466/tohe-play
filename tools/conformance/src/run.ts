@@ -1,6 +1,8 @@
 // Conformance kit: decides whether a built game honours the Game Contract, whatever it is written in.
 // It serves the build on its own origin with the production CSP, embeds it in a fake hub on a second
 // origin, drives the protocol from Node through @tohe/game-sdk/host, and throws random input at it.
+// Then it shows the game in every theme it declares and checks its text contrast (ADR 0013).
+
 import {
   existsSync,
   mkdirSync,
@@ -12,10 +14,12 @@ import {
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
+import { AxeBuilder } from '@axe-core/playwright';
 import {
   type GameManifest,
   GameManifest as GameManifestSchema,
   gameContentSecurityPolicy,
+  type Theme,
 } from '@tohe/contract';
 import { createHost, type Transport } from '@tohe/game-sdk/host';
 import { type Browser, chromium, type Frame, type Page } from 'playwright';
@@ -31,7 +35,8 @@ export interface ConformanceResult {
   gameId: string | null;
   checks: Check[];
   ok: boolean;
-  screenshot?: string;
+  /** After random input, then one per declared theme. */
+  screenshots: string[];
 }
 
 export interface ConformanceOptions {
@@ -48,11 +53,11 @@ export async function runConformance(
   const dist = resolve(distDir);
   const checks: Check[] = [];
   const check = (name: string, ok: boolean, detail?: string) => checks.push({ name, ok, detail });
-  const done = (gameId: string | null, screenshot?: string): ConformanceResult => ({
+  const done = (gameId: string | null, screenshots: string[] = []): ConformanceResult => ({
     gameId,
     checks,
     ok: checks.every((c) => c.ok),
-    screenshot,
+    screenshots,
   });
 
   // ---------------------------------------------------------------- static checks
@@ -93,7 +98,10 @@ export async function runConformance(
   const protocolErrors: string[] = [];
   const traffic = { saves: 0, scores: 0, logs: 0 };
   let browser: Browser | undefined;
-  let screenshot: string | undefined;
+  const screenshots: string[] = [];
+  // The game starts in its first declared theme; a settings change to the other one must not break it.
+  const startTheme: Theme = manifest.themes[0] ?? 'light';
+  const otherTheme: Theme = startTheme === 'light' ? 'dark' : 'light';
 
   try {
     browser = await launch();
@@ -136,7 +144,7 @@ export async function runConformance(
       init: () => ({
         profile: { id: 'conformance', name: 'Tester' },
         locale: 'vi',
-        settings: { muted: true },
+        settings: { muted: true, theme: startTheme },
         save: null,
         seed: 20261013,
       }),
@@ -155,7 +163,7 @@ export async function runConformance(
 
     if (handshake === null) {
       const frame = await gameFrame(page, gameServer.url);
-      await monkey(page, frame, options.monkeyMs ?? 4000, host);
+      await monkey(page, frame, options.monkeyMs ?? 4000, host, otherTheme);
       const alive = await frame
         .evaluate(() => document.readyState)
         .then(
@@ -165,8 +173,38 @@ export async function runConformance(
       check('survives random input, pause/resume and settings', alive);
       const outDir = resolve(options.outDir ?? 'test-results/conformance');
       mkdirSync(outDir, { recursive: true });
-      screenshot = join(outDir, `${manifest.id}.png`);
-      await page.screenshot({ path: screenshot });
+      const shot = (name: string) => {
+        const path = join(outDir, `${name}.png`);
+        screenshots.push(path);
+        return page.screenshot({ path });
+      };
+      await shot(manifest.id);
+
+      // Every declared theme: a screenshot to look at, and WCAG AA contrast for the game's text (axe-core; text
+      // drawn on a canvas is not visible to it). Paused, so two screenshots differ only by theme.
+      host.pause();
+      const looks: Buffer[] = [];
+      for (const theme of manifest.themes) {
+        host.setSettings({ muted: true, theme });
+        await page.waitForTimeout(500);
+        looks.push(await shot(`${manifest.id}-${theme}`));
+        const { violations } = await new AxeBuilder({ page }).withRules(['color-contrast']).analyze();
+        const low = violations.flatMap((v) =>
+          v.nodes.map((n) => `${n.target.join(' ')}: ${n.failureSummary}`),
+        );
+        check(`text contrast meets WCAG AA (${theme})`, low.length === 0, low.slice(0, 5).join('\n'));
+      }
+      const [first, second] = looks;
+      if (first && second) {
+        check(
+          'looks different in light and dark',
+          !first.equals(second),
+          first.equals(second)
+            ? 'game.json declares both themes, but the game ignores settings.theme'
+            : undefined,
+        );
+      }
+      host.resume();
     }
     host.dispose();
 
@@ -187,7 +225,7 @@ export async function runConformance(
     await gameServer.close();
     await hostServer.close();
   }
-  return done(manifest.id, screenshot);
+  return done(manifest.id, screenshots);
 }
 
 interface Bridge {
@@ -229,7 +267,13 @@ async function gameFrame(page: Page, origin: string): Promise<Frame> {
 }
 
 /** Random taps, with a bias towards visible buttons so menus get exercised too. */
-async function monkey(page: Page, frame: Frame, durationMs: number, host: ReturnType<typeof createHost>) {
+async function monkey(
+  page: Page,
+  frame: Frame,
+  durationMs: number,
+  host: ReturnType<typeof createHost>,
+  otherTheme: Theme,
+) {
   const viewport = page.viewportSize() ?? { width: 390, height: 844 };
   const end = Date.now() + durationMs;
   let step = 0;
@@ -243,7 +287,7 @@ async function monkey(page: Page, frame: Frame, durationMs: number, host: Return
     else await page.touchscreen.tap(Math.random() * viewport.width, Math.random() * viewport.height);
     if (step === 20) host.pause();
     if (step === 25) host.resume();
-    if (step === 30) host.setSettings({ muted: false });
+    if (step === 30) host.setSettings({ muted: false, theme: otherTheme });
     await page.waitForTimeout(40);
   }
 }

@@ -4,6 +4,7 @@ export {
   connect,
   type GameSession,
   type JsonValue,
+  normalizeSettings,
   PROTOCOL,
   SDK_VERSION,
   type SessionEvent,

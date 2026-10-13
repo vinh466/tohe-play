@@ -15,6 +15,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@axe-core/playwright": "^4.13.0",
     "@tohe/contract": "workspace:*",
     "@tohe/game-sdk": "workspace:*",
     "playwright": "^1.64.0"

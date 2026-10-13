@@ -3,7 +3,7 @@
 import type { GameMessageInput, HostMessage, Profile, Settings } from '@tohe/contract';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.1.0';
+export const SDK_VERSION = '0.2.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
@@ -42,6 +42,11 @@ export interface GameSession<TSave = JsonValue> {
 }
 
 type Listener = (payload: Settings) => void;
+
+/** Settings as the game sees them: complete even if a host leaves a field out (an older hub sends no theme). */
+export function normalizeSettings(raw: Partial<Settings> | undefined): Settings {
+  return { muted: raw?.muted === true, theme: raw?.theme === 'dark' ? 'dark' : 'light' };
+}
 
 class Emitter {
   private readonly listeners = new Map<SessionEvent, Set<Listener>>();
@@ -98,7 +103,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
 
   return new Promise((resolve, reject) => {
     let session: GameSession<TSave> | null = null;
-    let settings: Settings = { muted: false };
+    let settings = normalizeSettings(undefined);
 
     const timeout = setTimeout(() => {
       unsubscribe();
@@ -112,7 +117,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
         case 'init': {
           if (session) return;
           clearTimeout(timeout);
-          settings = message.settings;
+          settings = normalizeSettings(message.settings);
           const created: GameSession<TSave> = {
             mode: 'embedded',
             profile: message.profile,
@@ -137,7 +142,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
           emitter.emit(message.type);
           return;
         case 'settings':
-          settings = message.settings;
+          settings = normalizeSettings(message.settings);
           emitter.emit('settings', settings);
           return;
         case 'result': {
@@ -162,7 +167,13 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     const raw = localStorage.getItem(key(suffix));
     return raw === null ? null : (JSON.parse(raw) as T);
   };
-  const settings: Settings = { muted: false };
+  // Without a hub, the theme follows the device's light/dark setting, live.
+  const device = window.matchMedia('(prefers-color-scheme: dark)');
+  let settings = normalizeSettings({ muted: false, theme: device.matches ? 'dark' : 'light' });
+  device.addEventListener('change', () => {
+    settings = normalizeSettings({ ...settings, theme: device.matches ? 'dark' : 'light' });
+    emitter.emit('settings', settings);
+  });
 
   document.addEventListener('visibilitychange', () => emitter.emit(document.hidden ? 'pause' : 'resume'));
 
@@ -172,7 +183,9 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     locale: navigator.language.toLowerCase().startsWith('vi') ? 'vi' : 'en',
     seed: Date.now() % 2_147_483_647,
     saved: read<TSave>('save'),
-    settings,
+    get settings() {
+      return settings;
+    },
     on: (event: SessionEvent, listener: Listener) => emitter.on(event, listener),
     save: async (data) => localStorage.setItem(key('save'), JSON.stringify(data)),
     submitScore: async (value, board = 'default') => {

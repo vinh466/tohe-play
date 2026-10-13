@@ -13,9 +13,16 @@ describe('GameManifest', () => {
       entry: 'index.html',
       orientation: 'portrait',
       capabilities: [],
+      themes: ['light'],
       minAge: 0,
       sizeBudgetKb: 3000,
     });
+  });
+
+  it('accepts a game with both themes or a dark-only one', () => {
+    const base = { id: 'merge', name: 'x', version: '1.0.0', protocol: 1 };
+    expect(GameManifest.parse({ ...base, themes: ['light', 'dark'] }).themes).toEqual(['light', 'dark']);
+    expect(GameManifest.parse({ ...base, themes: ['dark'] }).themes).toEqual(['dark']);
   });
 
   it.each([
@@ -23,6 +30,8 @@ describe('GameManifest', () => {
     ['bad version', { id: 'merge', name: 'x', version: 'v1', protocol: 1 }],
     ['unknown protocol', { id: 'merge', name: 'x', version: '1.0.0', protocol: 2 }],
     ['unknown field', { id: 'merge', name: 'x', version: '1.0.0', protocol: 1, extra: true }],
+    ['unknown theme', { id: 'merge', name: 'x', version: '1.0.0', protocol: 1, themes: ['blue'] }],
+    ['no theme', { id: 'merge', name: 'x', version: '1.0.0', protocol: 1, themes: [] }],
   ])('rejects %s', (_label, input) => {
     expect(GameManifest.safeParse(input).success).toBe(false);
   });
@@ -42,16 +51,24 @@ describe('protocol', () => {
     expect(GameMessage.safeParse({ tohe: 1, type: 'save', id: 'r1', data: () => 1 }).success).toBe(false);
   });
 
-  it('parses an init message', () => {
+  it('parses an init message with the hub theme', () => {
     const init = HostMessage.parse({
       tohe: 1,
       type: 'init',
       profile: { id: 'p1', name: 'Bé Na' },
       locale: 'vi',
-      settings: { muted: false },
+      settings: { muted: false, theme: 'dark' },
       save: { best: 10 },
       seed: 123,
     });
-    expect(init.type).toBe('init');
+    expect(init.type === 'init' && init.settings.theme).toBe('dark');
+  });
+
+  it('rejects settings without a known theme', () => {
+    const settings = (theme: unknown) =>
+      HostMessage.safeParse({ tohe: 1, type: 'settings', settings: { muted: false, theme } });
+    expect(settings('light').success).toBe(true);
+    expect(settings('sepia').success).toBe(false);
+    expect(settings(undefined).success).toBe(false);
   });
 });

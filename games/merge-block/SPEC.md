@@ -62,13 +62,24 @@ The game ends when **every column is full**. Then: score, best, "Kỷ lục mớ
 Every animation step is short (under half a second) so the board stays readable; taps made meanwhile are remembered
 (see *A move*), so the game never ignores the player.
 
+## Themes
+
+Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013):
+
+- **Board:** a cream board on a cream page in light; a warm-charcoal board on a darker page in dark, with empty
+  cells a step lighter than the board. It switches at once when the hub changes theme mid-round.
+- **Blocks:** the same in both themes, so a value keeps its colour. Every number is at least 4.5:1 on its block
+  (checked by `palette.test.ts`): dark text on light blocks, white on the deeper 64–1024 colours. The dark champion
+  block gets a gold ring on the dark board.
+- **HUD and cards:** the platform's design tokens, through the kit.
+
 ## Contract usage
 
 | Capability | Use |
 | --- | --- |
 | `save` | After every move: `{ best, game }` where `game` is the full state (board, current, next, score, PRNG). Opening the game resumes it. |
 | `scores` | `submitScore(score)` at game over. |
-| settings | Respects `muted`. |
+| settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of a new game. |
 
 ## Invariants (checked by the random-play bot)

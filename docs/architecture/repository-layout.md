@@ -38,9 +38,9 @@ tohe-play/
 | `@tohe/contract` | `zod` | anything in this repo |
 | `@tohe/game-sdk` (game side) | types from `@tohe/contract` only | runtime dependencies of any kind |
 | `@tohe/game-sdk/host` | `@tohe/contract` | — |
-| `@tohe/game-kit` | `@tohe/game-sdk` (types), Phaser (optional peer, `./phaser` entry only) | the hub, the API |
+| `@tohe/game-kit` | `@tohe/game-sdk` (types), `@tohe/design-tokens`, Phaser (optional peer, `./phaser` entry only) | the hub, the API |
 | `@tohe/design-tokens` | nothing (CSS, a parser, the theme choice) | anything in this repo |
-| `games/*` | `@tohe/game-sdk`, `@tohe/game-kit`, any library that fits the game | the hub, the API, other games, network access |
+| `games/*` | `@tohe/game-sdk`, `@tohe/game-kit`, `@tohe/design-tokens`, any library that fits the game | the hub, the API, other games, network access |
 | `apps/hub` | contract, SDK host, design tokens, generated API types | game code |
 | `services/api` | NuGet packages in `Directory.Packages.props` | game code |
 

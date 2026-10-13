@@ -1,3 +1,4 @@
+/* The page and HUD use the design tokens (from the kit's overlay.css), so they follow the hub's light/dark theme. */
 * {
   box-sizing: border-box;
 }
@@ -7,9 +8,9 @@ body {
   margin: 0;
   height: 100%;
   overflow: hidden;
-  background: #fff7ed;
+  background: var(--tohe-page);
   font-family: system-ui, sans-serif;
-  color: #431407;
+  color: var(--tohe-ink);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -41,13 +42,13 @@ body {
   min-width: 6.5rem;
   padding: 0.35rem 0.9rem 0.45rem;
   border-radius: 1rem;
-  background: #ffedd5;
+  background: var(--tohe-soft);
 }
 
 .stat-best {
   justify-self: end;
   align-items: flex-end;
-  background: #fff;
+  background: var(--tohe-surface);
   transition: background 0.3s ease;
 }
 
@@ -64,7 +65,7 @@ body {
   opacity: 0;
 }
 
-/* Colours come from palette.ts through --fill, --edge and --text. */
+/* Colours come from palette.ts through --fill, --edge and --text. 1.2rem bold counts as large text for contrast. */
 .mini-block {
   display: grid;
   place-items: center;
@@ -74,7 +75,7 @@ body {
   background: var(--fill);
   box-shadow: inset 0 -0.2rem 0 var(--edge);
   color: var(--text);
-  font-size: 1.1rem;
+  font-size: 1.2rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
@@ -88,13 +89,13 @@ body {
 }
 
 .stat-best.is-record {
-  background: #fef08a;
+  background: var(--tohe-notice);
 }
 
 .stat-label {
   font-size: 0.8rem;
   font-weight: 700;
-  color: #9a3412;
+  color: var(--tohe-accent);
 }
 
 .crown {

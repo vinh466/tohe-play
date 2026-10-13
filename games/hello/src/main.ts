@@ -1,4 +1,5 @@
 // View + wiring: turns pointer input into logic actions, draws state on a canvas, talks to the hub via the SDK.
+import { applyTheme, type Theme } from '@tohe/design-tokens/theme';
 import { connect, createRng } from '@tohe/game-sdk';
 import { createState, ROUND_MS, type State, start, tap, tick } from './logic.ts';
 
@@ -47,6 +48,23 @@ let state: State = createState(session.saved?.best ?? 0);
 let paused = false;
 let last = performance.now();
 
+// ------------------------------------------------------------------ theme
+
+// Light/dark follows the hub (ADR 0013). The page switches through CSS; the canvas reads the same design tokens,
+// once per change.
+let colors = readColors();
+function readColors() {
+  const css = getComputedStyle(document.documentElement);
+  const token = (name: string) => css.getPropertyValue(`--tohe-${name}`).trim();
+  return { arena: token('soft'), hud: token('accent'), dot: token('brand'), timer: token('line-strong') };
+}
+function showTheme(theme: Theme) {
+  applyTheme(theme);
+  colors = readColors();
+}
+showTheme(session.settings.theme);
+session.on('settings', (settings) => showTheme(settings.theme));
+
 // ------------------------------------------------------------------ sound
 
 let audio: AudioContext | null = null;
@@ -84,26 +102,26 @@ function draw(): void {
   const { size, left, top } = playfield();
   ctx.clearRect(0, 0, canvas.clientWidth, canvas.clientHeight);
 
-  ctx.fillStyle = '#ffedd5';
+  ctx.fillStyle = colors.arena;
   ctx.beginPath();
   ctx.roundRect(left, top, size, size, 24);
   ctx.fill();
 
-  ctx.fillStyle = '#9a3412';
+  ctx.fillStyle = colors.hud;
   ctx.font = '700 22px system-ui, sans-serif';
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
   ctx.fillText(t.hud(state.score, Math.ceil(state.timeLeftMs / 1000)), canvas.clientWidth / 2, 32);
 
   if (state.dot) {
-    ctx.fillStyle = '#f97316';
+    ctx.fillStyle = colors.dot;
     ctx.beginPath();
     ctx.arc(left + state.dot.x * size, top + state.dot.y * size, state.dot.r * size, 0, Math.PI * 2);
     ctx.fill();
   }
 
   const progress = state.timeLeftMs / ROUND_MS;
-  ctx.fillStyle = '#fdba74';
+  ctx.fillStyle = colors.timer;
   ctx.fillRect(left, top - 8, size * progress, 4);
 }
 

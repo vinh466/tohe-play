@@ -10,10 +10,12 @@ sidebar:
 ## Steps
 
 1. **Write the spec first.** Create `games/<id>/SPEC.md`: the rules in plain words, the screens, what is saved,
-   what is scored, how a round ends. Get it reviewed before writing code — it is the source of truth for the game.
+   what is scored, how a round ends, and its **themes** — light and dark like the hub (the usual choice), or one
+   look if the game has one by nature ([Theming](../architecture/theming.md)). Get it reviewed before writing code —
+   it is the source of truth for the game.
 2. **Scaffold** from `games/hello`:
    - `package.json` — name `@tohe/game-<id>`, same scripts;
-   - `public/game.json` — new `id` (= folder name), `name`, `version: 0.1.0`, capabilities, size budget;
+   - `public/game.json` — new `id` (= folder name), `name`, `version: 0.1.0`, capabilities, `themes`, size budget;
    - `public/icon.svg` — square, with a `<title>`;
    - `vite.config.ts` — keep `base: './'`.
 3. **Register** the game: add `"@tohe/game-<id>": "workspace:*"` to `devDependencies` of
@@ -22,13 +24,14 @@ sidebar:
    no `Math.random` (take an `Rng`). Test them in `src/logic.test.ts`, including a random-play bot with
    `fast-check` that asserts the invariants of your game.
 5. **Write the view** in `src/main.ts` (or a framework of your choice): read input, call the logic, draw. Connect
-   with `connect({ gameId })`, honour `pause` and `muted`, `save` and `submitScore` at the end of a round.
+   with `connect({ gameId })`, honour `pause` and `muted`, `save` and `submitScore` at the end of a round. With
+   both themes, follow `settings.theme` (`followTheme` from the kit) and keep a palette per theme for your art.
 6. **Verify**:
    ```sh
    pnpm --filter @tohe/game-<id> test
    pnpm --filter @tohe/game-<id> typecheck
    pnpm --filter @tohe/game-<id> build
-   pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>.png
+   pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>*.png (one per theme)
    ```
 7. **Play it** in the hub (`pnpm dev`, then rebuild `@tohe/games-host`) on a phone-sized window, then on a phone.
 
@@ -47,8 +50,8 @@ sidebar:
 
 What the kit gives you, so you do not write it again: `createGame` (crisp on phones, resize, pause/resume, Canvas
 fallback when WebGL fails), `sfx` (synthesised sounds, iOS unlock), `haptics`, `juice` (`popIn`, `squash`, `pulse`,
-`burst`, `floatText`, `shake`, `confetti`), `overlay` (intro / pause / game-over cards in one shared style),
-`formatValue` / `formatScore`.
+`burst`, `floatText`, `shake`, `confetti`), `overlay` (intro / pause / game-over cards in one shared style, on the
+design tokens), `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
 
 **Logic emits events, the view animates them.** `drop(state, column)` (or `move`, `place`…) returns the new state and
 a list of events; the view turns each event into a short animation and never decides rules. Keep the PRNG state in

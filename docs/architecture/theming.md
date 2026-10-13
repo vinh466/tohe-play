@@ -72,8 +72,26 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 
 ## Games
 
-ADR 0013 lets games opt in through `themes` in `game.json` and `theme` in the protocol's `settings`. Until that
-reaches the Game Contract, games keep their own look, while the hub's frame around them follows the hub.
+Games opt in; some games have one look by nature ([Game Contract](../contracts/game-contract-v1.md)).
+
+- **Declaring:** `themes` in `game.json` is `["light"]` (the default), `["dark"]`, or `["light", "dark"]`.
+- **Receiving:** the hub always sends the theme it shows, as `settings.theme` in `init` and in every `settings`
+  message (for example when *Theo máy* turns dark mid-round). Games with one look ignore it; the hub's frame around
+  them follows the hub anyway.
+- **Following it** with `@tohe/game-kit`: `followTheme(session, onTheme)`.
+  - It sets `data-theme` on the game's `<html>`, so the kit's cards and any CSS on the design tokens switch with
+    it.
+  - It calls `onTheme` so the game can redraw what it paints itself.
+  - Phaser games also call `kit.setBackground(color)` for the canvas behind the scenes.
+- **Colours:**
+  - Game screens built from DOM (HUD, cards) use the tokens; the kit's `overlay.css` already loads them.
+  - Game art keeps its own palette per theme, for example `games/merge-block/src/palette.ts`: the same blocks on
+    a cream or a warm-charcoal board.
+  - A small canvas game can read the tokens with `getComputedStyle` after a theme change (`games/hello`).
+- **Checks:** for every declared theme, conformance screenshots the game and checks its DOM text with axe-core. A
+  game declaring both must look different in each.
+- **Loading:** the hub keeps its loading cover over the game until the handshake is done and fades it out, so the
+  game's first frame is already in the right theme.
 
 ## Checks
 
@@ -82,6 +100,8 @@ reaches the Game Contract, games keep their own look, while the hub's frame arou
   - `theme-init.js` agrees with `theme.ts`;
   - the `theme-color` values equal the `bar` tokens.
 - `apps/hub`: no raw palette classes; the copy of `theme-init.js` is identical to the original.
+- Games: conformance in every declared theme (above); `games/merge-block` also tests that every number is readable
+  on its block.
 - E2E smoke test (`tools/e2e`):
   - every hub screen, the landing page and the docs are screenshotted in light and dark, with axe-core's
     colour-contrast rule in both;
