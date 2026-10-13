@@ -40,7 +40,12 @@ export default defineConfig({
       logo: { src: './public/favicon.svg' },
       favicon: '/favicon.svg',
       social: [{ icon: 'github', label: 'GitHub', href: 'https://github.com/vinh466/tohe-play' }],
-      customCss: ['./src/styles/docs.css'],
+      customCss: ['@tohe/design-tokens/tokens.css', './src/styles/docs.css'],
+      // The docs share the player's light/dark choice with the hub and the landing page (ADR 0013).
+      components: {
+        ThemeProvider: './src/components/ThemeProvider.astro',
+        ThemeSelect: './src/components/ThemeSelect.astro',
+      },
       lastUpdated: true,
       plugins: [
         starlightOpenAPI([

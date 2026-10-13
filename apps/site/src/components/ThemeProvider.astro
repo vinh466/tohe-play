@@ -1,0 +1,38 @@
+---
+// Replaces Starlight's ThemeProvider (ADR 0013): the docs follow the light/dark choice made anywhere on Tò He — the
+// hub, the landing page or here — kept in the `tohe-theme` cookie instead of Starlight's own localStorage key.
+// Starlight's picker keeps working through the same `window.StarlightThemeProvider` API.
+import { Icon } from '@astrojs/starlight/components';
+import themeInit from '@tohe/design-tokens/theme-init.js?raw';
+---
+
+{/* Inline, like Starlight's, so the right theme is there before the first paint. */}
+<script is:inline set:html={themeInit} />
+<script is:inline>
+  {
+    const saved = /(?:^|;\s*)tohe-theme=(light|dark)(?:;|$)/.exec(document.cookie);
+    const choice = saved ? saved[1] : 'auto';
+    // Starlight's picker starts from localStorage: mirror the shared choice there ('' means "auto").
+    try {
+      localStorage.setItem('starlight-theme', choice === 'auto' ? '' : choice);
+    } catch {}
+    window.StarlightThemeProvider = {
+      updatePickers(theme = choice) {
+        document.querySelectorAll('starlight-theme-select').forEach((picker) => {
+          const select = picker.querySelector('select');
+          if (select) select.value = theme;
+          const icons = document.querySelector('#theme-icons');
+          const icon = icons && icons.content.querySelector('.' + theme);
+          const current = picker.querySelector('svg.label-icon');
+          if (icon && current) current.replaceChildren(...icon.cloneNode(true).childNodes);
+        });
+      },
+    };
+  }
+</script>
+
+<template id="theme-icons">
+  <Icon name="sun" class="light" />
+  <Icon name="moon" class="dark" />
+  <Icon name="laptop" class="auto" />
+</template>

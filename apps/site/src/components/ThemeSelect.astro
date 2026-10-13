@@ -1,0 +1,16 @@
+---
+// Starlight's theme picker, also saving the choice where every Tò He page reads it (ADR 0013).
+import Default from '@astrojs/starlight/components/ThemeSelect.astro';
+---
+
+<Default {...Astro.props} />
+
+<script>
+  import { saveChoice } from '@tohe/design-tokens/theme';
+
+  for (const select of document.querySelectorAll<HTMLSelectElement>('starlight-theme-select select')) {
+    select.addEventListener('change', () => {
+      saveChoice(select.value === 'light' || select.value === 'dark' ? select.value : 'system');
+    });
+  }
+</script>

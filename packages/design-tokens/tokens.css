@@ -11,8 +11,11 @@
  *   - brand and focus against page and surface: at least 3:1, so buttons and focus rings stand out.
  */
 
+/* ::backdrop (behind dialogs) does not inherit custom properties in older browsers, so it gets the tokens too. */
 :root,
-[data-theme="light"] {
+::backdrop,
+[data-theme="light"],
+[data-theme="light"] ::backdrop {
   color-scheme: light;
 
   /* Surfaces, from back to front */
@@ -53,7 +56,8 @@
   --tohe-bar: #f97316; /* browser UI (status bar); mirrored in the hub's public/theme-init.js */
 }
 
-[data-theme="dark"] {
+[data-theme="dark"],
+[data-theme="dark"] ::backdrop {
   color-scheme: dark;
 
   --tohe-page: #17110e;

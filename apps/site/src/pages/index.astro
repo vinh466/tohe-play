@@ -1,5 +1,9 @@
 ---
 // Landing page (Vietnamese). The docs live under /docs and are written in English.
+// Colours come from the design tokens and follow the player's light/dark choice, shared with the hub (ADR 0013).
+import '@tohe/design-tokens/tokens.css';
+import themeInit from '@tohe/design-tokens/theme-init.js?raw';
+
 const hubUrl = import.meta.env.PUBLIC_HUB_URL ?? 'http://localhost:4720';
 
 const features = [
@@ -24,6 +28,12 @@ const features = [
     text: 'Từ ghép khối, xếp gạch tới nông trại mini — mỗi trò là một "con tò he" nặn từ cùng một nền tảng.',
   },
 ];
+
+const themes = [
+  { choice: 'system', icon: '🌗', label: 'Theo máy' },
+  { choice: 'light', icon: '☀️', label: 'Sáng' },
+  { choice: 'dark', icon: '🌙', label: 'Tối' },
+];
 ---
 
 <!doctype html>
@@ -35,9 +45,20 @@ const features = [
     <meta name="theme-color" content="#f97316" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <title>Tò He — góc chơi nhỏ của cả nhà</title>
+    {/* The saved light/dark choice, applied before the first paint. */}
+    <script is:inline set:html={themeInit} />
   </head>
   <body>
     <header class="hero">
+      <div class="themes" role="group" aria-label="Giao diện">
+        {
+          themes.map(({ choice, icon, label }) => (
+            <button type="button" data-choice={choice} aria-label={label} title={label} aria-pressed="false">
+              <span aria-hidden="true">{icon}</span>
+            </button>
+          ))
+        }
+      </div>
       <img src="/favicon.svg" alt="" width="96" height="96" />
       <h1>Tò He</h1>
       <p class="lead">Góc chơi nhỏ của cả nhà — những trò chơi nhanh, gọn, không quảng cáo, mở ra là chơi.</p>
@@ -86,6 +107,34 @@ const features = [
   </body>
 </html>
 
+<script>
+  import {
+    applyTheme,
+    deviceScheme,
+    resolveTheme,
+    saveChoice,
+    savedChoice,
+    type ThemeChoice,
+  } from '@tohe/design-tokens/theme';
+
+  // The three buttons show and change the choice; "Theo máy" follows the device live.
+  const buttons = [...document.querySelectorAll<HTMLButtonElement>('.themes button')];
+  const device = deviceScheme();
+  const show = () => {
+    const choice = savedChoice();
+    applyTheme(resolveTheme(choice, device.matches));
+    for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.choice === choice));
+  };
+  for (const button of buttons) {
+    button.addEventListener('click', () => {
+      saveChoice(button.dataset.choice as ThemeChoice);
+      show();
+    });
+  }
+  device.addEventListener('change', show);
+  show();
+</script>
+
 <style>
   :global(*) {
     box-sizing: border-box;
@@ -93,18 +142,47 @@ const features = [
   :global(body) {
     margin: 0;
     font-family: system-ui, sans-serif;
-    background: #fff7ed;
-    color: #431407;
+    background: var(--tohe-page);
+    color: var(--tohe-ink);
     line-height: 1.6;
   }
+  :global(:focus-visible) {
+    outline: 3px solid var(--tohe-focus);
+    outline-offset: 2px;
+  }
   .hero {
+    position: relative;
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 0.75rem;
-    padding: max(3rem, env(safe-area-inset-top)) 1.5rem 3rem;
+    padding: max(4rem, env(safe-area-inset-top)) 1.5rem 3rem;
     text-align: center;
-    background: linear-gradient(180deg, #fed7aa 0%, #fff7ed 100%);
+    background: linear-gradient(180deg, var(--tohe-soft-strong) 0%, var(--tohe-page) 100%);
+  }
+  .themes {
+    position: absolute;
+    top: max(1rem, env(safe-area-inset-top));
+    right: 1rem;
+    display: flex;
+    gap: 0.25rem;
+    padding: 0.25rem;
+    border-radius: 999px;
+    background: var(--tohe-surface);
+    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  }
+  .themes button {
+    width: 2.5rem;
+    height: 2.5rem;
+    border: 0;
+    border-radius: 999px;
+    background: transparent;
+    font-size: 1.15rem;
+    cursor: pointer;
+  }
+  .themes button[aria-pressed="true"] {
+    background: var(--tohe-soft-strong);
+    box-shadow: inset 0 0 0 2px var(--tohe-brand);
   }
   .hero img {
     border-radius: 24px;
@@ -113,7 +191,7 @@ const features = [
     margin: 0;
     font-size: clamp(2.5rem, 8vw, 4rem);
     font-weight: 900;
-    color: #c2410c;
+    color: var(--tohe-brand-ink);
   }
   .lead {
     max-width: 34rem;
@@ -127,19 +205,21 @@ const features = [
     gap: 0.75rem;
     margin-top: 1rem;
   }
+  /* 1.25rem bold: white on brand meets WCAG AA as large text only (tokens.css). */
   .actions a {
-    padding: 0.9rem 1.5rem;
+    padding: 0.8rem 1.5rem;
     border-radius: 1rem;
+    font-size: 1.25rem;
     font-weight: 700;
     text-decoration: none;
   }
   .primary {
-    background: #f97316;
-    color: #fff;
+    background: var(--tohe-brand);
+    color: var(--tohe-on-brand);
   }
   .secondary {
-    background: #fff;
-    color: #9a3412;
+    background: var(--tohe-surface);
+    color: var(--tohe-accent);
   }
   main {
     max-width: 60rem;
@@ -154,7 +234,7 @@ const features = [
   .features article {
     padding: 1.25rem;
     border-radius: 1.25rem;
-    background: #fff;
+    background: var(--tohe-surface);
   }
   .features h2 {
     margin: 0.5rem 0 0.25rem;
@@ -162,7 +242,7 @@ const features = [
   }
   .features p {
     margin: 0;
-    color: #7c2d12;
+    color: var(--tohe-ink-soft);
   }
   .icon {
     font-size: 1.75rem;
@@ -173,12 +253,12 @@ const features = [
   }
   .dev a,
   footer a {
-    color: #c2410c;
+    color: var(--tohe-brand-ink);
     font-weight: 700;
   }
   footer {
     padding: 2rem;
     text-align: center;
-    color: #9a3412;
+    color: var(--tohe-ink-soft);
   }
 </style>

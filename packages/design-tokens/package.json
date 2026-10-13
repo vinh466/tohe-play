@@ -1,12 +1,14 @@
 {
   "name": "@tohe/design-tokens",
   "version": "0.1.0",
-  "description": "Tò He colour tokens for light and dark themes, shared by the hub, the site and the game kit (ADR 0013).",
+  "description": "Tò He colour tokens and the light/dark choice, shared by the hub, the site and the game kit (ADR 0013).",
   "private": true,
   "type": "module",
   "exports": {
     ".": "./src/index.ts",
-    "./tokens.css": "./tokens.css"
+    "./theme": "./src/theme.ts",
+    "./tokens.css": "./tokens.css",
+    "./theme-init.js": "./theme-init.js"
   },
   "scripts": {
     "typecheck": "tsc --noEmit",

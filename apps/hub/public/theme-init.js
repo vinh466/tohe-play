@@ -1,6 +1,6 @@
-// Runs before the first paint (a blocking script in <head>, served from our origin as the CSP requires) and applies
-// the saved light/dark choice, so a dark hub never flashes white. Mirrors src/theme/theme.ts — theme.test.ts keeps
-// the two in step — and the app takes over once it starts.
+// Applies the saved light/dark choice before the first paint, so a dark page never flashes white. Run it as a
+// blocking script in <head>: the hub serves a copy from its own origin (its CSP forbids inline scripts), the site
+// inlines it. Mirrors src/theme.ts — theme.test.ts keeps the two in step — and each page takes over once it starts.
 (() => {
   const saved = /(?:^|;\s*)tohe-theme=(light|dark)(?:;|$)/.exec(document.cookie);
   const deviceDark = matchMedia('(prefers-color-scheme: dark)').matches;

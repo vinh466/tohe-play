@@ -45,18 +45,30 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 
 ## The player's choice
 
-- **Choices:** *Theo máy* (system, the default), *Sáng* (light) and *Tối* (dark), from the round 🌗 / ☀️ / 🌙
-  button in the top corner of hub screens. Picking one applies it at once.
+- **Choices:** *Theo máy* (system, the default), *Sáng* (light) and *Tối* (dark). Picking one applies it at once,
+  everywhere:
+  - in the hub, from the round 🌗 / ☀️ / 🌙 button in the top corner of its screens;
+  - on the landing page, from the three buttons in the top corner;
+  - in the docs, from Starlight's own theme menu (*Auto / Light / Dark*).
 - **Storage:** the choice belongs to the device and lives in the `tohe-theme` cookie:
   - values `light` or `dark`; no cookie means system;
   - path `/`, one year, `SameSite=Lax`, plus `Secure` on HTTPS;
-  - cookies are per host, not per port, so the site on the same host can read the same choice.
-- **Applying it:** `<html>` gets `data-theme` and `color-scheme` (for native controls and scrollbars), and
-  `<meta name="theme-color">` gets the `bar` colour.
-  - `apps/hub/public/theme-init.js` does this before the first paint: a blocking script in `<head>`, served from
-    the hub's origin because the CSP forbids inline scripts.
-  - `src/theme/theme.ts` then takes over: it follows live changes of the device setting and handles the picker.
-  - `src/theme.test.ts` runs the init script against `theme.ts` for every cookie and device setting.
+  - cookies are per host, not per port, so the hub, the landing page and the docs on one host share the choice.
+- **The code** lives in `@tohe/design-tokens`:
+  - `theme` reads and saves the choice, resolves *Theo máy* against the device, and applies a theme: `<html>` gets
+    `data-theme` and `color-scheme` (for native controls and scrollbars), and `<meta name="theme-color">` gets
+    the `bar` colour;
+  - `theme-init.js` does the same before the first paint, as a blocking script in `<head>`.
+    `src/theme.test.ts` runs it against `theme.ts` for every cookie and device setting.
+- **Where each page runs it:**
+  - **Hub:** serves a copy of `theme-init.js` from its own origin (`public/`), because its CSP forbids inline
+    scripts. A test keeps the copy identical to the original. `src/theme/theme.ts` then follows live changes of
+    the device setting and drives the picker.
+  - **Landing page:** inlines `theme-init.js`; a small script drives its buttons.
+  - **Docs:** `src/components/ThemeProvider.astro` replaces Starlight's: it inlines `theme-init.js` and mirrors the
+    cookie into Starlight's localStorage key, so Starlight's menu starts from the shared choice.
+    `ThemeSelect.astro` wraps Starlight's menu to save changes in the cookie.
+  - **Docs colours:** `src/styles/docs.css` maps Starlight's grey scale and accent onto the tokens, for both themes.
 
 ## Games
 
@@ -65,11 +77,13 @@ reaches the Game Contract, games keep their own look, while the hub's frame arou
 
 ## Checks
 
-- `packages/design-tokens`: both themes define the same tokens; the token pairs meet WCAG AA in both themes.
-- `apps/hub`:
-  - no raw palette classes;
+- `packages/design-tokens`:
+  - both themes define the same tokens, and the token pairs meet WCAG AA in both themes;
   - `theme-init.js` agrees with `theme.ts`;
   - the `theme-color` values equal the `bar` tokens.
+- `apps/hub`: no raw palette classes; the copy of `theme-init.js` is identical to the original.
 - E2E smoke test (`tools/e2e`):
-  - every hub screen is screenshotted in light and dark, with axe-core's colour-contrast rule in both;
-  - the picker: dark survives a reload, and *Theo máy* follows the device live.
+  - every hub screen, the landing page and the docs are screenshotted in light and dark, with axe-core's
+    colour-contrast rule in both;
+  - the hub picker: dark survives a reload, and *Theo máy* follows the device live;
+  - a choice made on the landing page also applies to the docs and the hub.

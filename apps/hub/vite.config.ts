@@ -47,6 +47,5 @@ export default defineConfig({
     proxy: { '/api': 'http://localhost:4740' },
   },
   preview: { port: 4720, strictPort: true, proxy: { '/api': 'http://localhost:4740' } },
-  // Vitest empties CSS unless told otherwise; theme.test.ts reads the design tokens with `?raw`.
-  test: { environment: 'node', css: { include: [/tokens\.css/] } },
+  test: { environment: 'node' },
 });
