@@ -45,6 +45,8 @@
 [data-theme="dark"] .mermaid .labelBkg,
 [data-theme="dark"] .mermaid .edgeLabel,
 [data-theme="dark"] .mermaid .edgeLabel p {
+  /* biome-ignore lint/complexity/noImportantStyles: Mermaid scopes its styles to an id, which no class selector beats. */
   background-color: var(--tohe-surface) !important;
+  /* biome-ignore lint/complexity/noImportantStyles: as above. */
   color: var(--tohe-ink) !important;
 }

@@ -17,7 +17,7 @@ milestone ends with something playable and a green `pnpm verify` + e2e smoke tes
 | M2 | Saves & scores sync | API stores saves/scores per profile; hub syncs in the background; household leaderboard per game; conflict policy from ADR 0005. |
 | M3 | First real game: Merge Block | *Done:* "Ghép Khối" on Phaser 4 + `@tohe/game-kit` after the [technology research](../research/game-tech.md) (ADR 0012); pure logic with a random-play bot, saves after every move, tiered juice, Canvas fallback. |
 | M4 | UAT on the homelab | *Done (ADR 0010):* `compose.uat.yaml` + `deploy/uat/deploy.sh` on 10.100.0.2, backups before every deploy. See [UAT environment](../guides/uat.md). |
-| M5 | Light & dark themes | *Hub, landing page and docs done (ADR 0013):* design tokens, *Theo máy / Sáng / Tối* per device and shared across them, contrast checked in both themes. Next: games opting in through the contract. See [Theming](../architecture/theming.md). |
+| M5 | Light & dark themes | *Done (ADR 0013):* design tokens; *Theo máy / Sáng / Tối* per device, shared by the hub, the landing page and the docs; games opt in with `themes` + `settings.theme` (Ghép Khối and Chạm Chấm do); contrast checked in both themes by tests, e2e and conformance. See [Theming](../architecture/theming.md). |
 | Later | Production | Only when needed: HTTPS, public hostnames, off-machine backups — new ADR. |
 | Gate | Go / no-go | The criteria in [Vision & scope](../vision.md#go--no-go). |
 

@@ -1,6 +1,7 @@
 // The board scene: draws the state and turns logic events into animations. It never decides rules — main.ts
 // calls logic.drop() and hands the events here. Layout is in CSS pixels (the kit zooms the camera by DPR).
-import { formatValue, haptics, type Sfx } from '@tohe/game-kit';
+// Colours come from palette.ts for the current light/dark theme; setTheme() redraws everything.
+import { formatValue, haptics, type Sfx, type Theme } from '@tohe/game-kit';
 import {
   burst,
   confetti,
@@ -25,7 +26,7 @@ import {
   ROWS,
   type State,
 } from './logic.ts';
-import { blockStyle } from './palette.ts';
+import { BOARD, blockStyle } from './palette.ts';
 import type { Strings } from './strings.ts';
 
 interface Layout {
@@ -70,15 +71,20 @@ export class BoardScene extends Phaser.Scene {
     private readonly sfx: Sfx,
     private readonly text: Strings,
     private readonly callbacks: BoardCallbacks,
+    private theme: Theme,
   ) {
     super('board');
+  }
+
+  private get colors() {
+    return BOARD[this.theme];
   }
 
   create() {
     this.board = this.add.graphics().setDepth(0);
     this.highlight = this.add.graphics().setDepth(1);
     this.ghost = this.add.graphics().setDepth(2);
-    this.dimmer = this.add.rectangle(0, 0, 10, 10, 0xfff7ed, 0).setOrigin(0).setDepth(30);
+    this.dimmer = this.add.rectangle(0, 0, 10, 10, this.colors.dimmer, 0).setOrigin(0).setDepth(30);
 
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => this.hover(this.columnAt(p.worldX, p.worldY)));
     this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.hover(this.columnAt(p.worldX, p.worldY)));
@@ -96,6 +102,14 @@ export class BoardScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ layout
 
+  /** The hub switched light/dark: redraw the board and every block in the new colours. */
+  setTheme(theme: Theme) {
+    this.theme = theme;
+    if (!this.layoutInfo) return;
+    this.relayout(this.layoutInfo.width, this.layoutInfo.height);
+    this.dimmer.setFillStyle(this.colors.dimmer, this.state?.over ? this.colors.dimmerAlpha : 0);
+  }
+
   relayout(width: number, height: number) {
     if (!this.board) return;
     const gap = Math.max(4, Math.round(Math.min(width, height) * 0.012));
@@ -111,13 +125,13 @@ export class BoardScene extends Phaser.Scene {
 
     this.board.clear();
     this.board
-      .fillStyle(0xffedd5, 1)
+      .fillStyle(this.colors.board, 1)
       .fillRoundedRect(boardX - 8, boardY - 8, boardW + 16, cell * ROWS + 16, 22);
     for (let col = 0; col < COLS; col++) {
       for (let row = 0; row < ROWS; row++) {
         const { x, y } = this.cellTopLeft({ col, row });
         this.board
-          .fillStyle(0xfde7c9, 1)
+          .fillStyle(this.colors.cell, 1)
           .fillRoundedRect(x + gap / 2, y + gap / 2, cell - gap, cell - gap, cell * 0.16);
       }
     }
@@ -169,12 +183,17 @@ export class BoardScene extends Phaser.Scene {
   private paint(block: Block, exp: Exponent, size: number) {
     block.exp = exp;
     const [shape, label] = block.list as [Phaser.GameObjects.Graphics, Phaser.GameObjects.Text];
-    const style = blockStyle(exp);
+    const style = blockStyle(exp, this.theme);
     const inner = size - this.layoutInfo.gap;
     const r = inner * 0.2;
     shape.clear();
     shape.fillStyle(style.edge, 1).fillRoundedRect(-inner / 2, -inner / 2 + inner * 0.06, inner, inner, r);
     shape.fillStyle(style.fill, 1).fillRoundedRect(-inner / 2, -inner / 2, inner, inner * 0.94, r);
+    if (style.outline !== undefined) {
+      shape
+        .lineStyle(Math.max(2, inner * 0.04), style.outline, 1)
+        .strokeRoundedRect(-inner / 2, -inner / 2, inner, inner, r);
+    }
     shape
       .fillStyle(0xffffff, 0.22)
       .fillRoundedRect(
@@ -206,7 +225,7 @@ export class BoardScene extends Phaser.Scene {
     }
     this.showCurrent(state.current, false);
     this.callbacks.onUpcoming(state.over ? null : state.next, false);
-    this.dimmer.setFillStyle(0xfff7ed, 0);
+    this.dimmer.setFillStyle(this.colors.dimmer, 0);
     this.busy = false;
     this.drawGuides();
   }
@@ -273,12 +292,12 @@ export class BoardScene extends Phaser.Scene {
     const { cell, boardY, gap } = this.layoutInfo;
     const x = this.layoutInfo.boardX + this.hoverCol * cell;
     this.highlight
-      .fillStyle(0xffffff, 0.45)
+      .fillStyle(0xffffff, this.colors.highlight)
       .fillRoundedRect(x + 2, boardY - 4, cell - 4, cell * ROWS + 8, 16);
     const row = landingRow(this.state.grid, this.hoverCol);
     if (row === null) return;
     const { y } = this.cellTopLeft({ col: this.hoverCol, row });
-    const style = blockStyle(this.state.current);
+    const style = blockStyle(this.state.current, this.theme);
     this.ghost
       .lineStyle(3, style.edge, 0.9)
       .strokeRoundedRect(x + gap, y + gap, cell - gap * 2, cell - gap * 2, cell * 0.18);
@@ -379,10 +398,11 @@ export class BoardScene extends Phaser.Scene {
     if (!target) return;
     this.paint(target, merge.exp, this.layoutInfo.cell);
     target.setDepth(11);
-    const style = blockStyle(merge.exp);
+    const style = blockStyle(merge.exp, this.theme);
     burst(this, x, y, style.fill, 10 + Math.min(merge.exp, 12));
     floatText(this, x, y - this.layoutInfo.cell * 0.45, `+${formatValue(merge.gained)}`, {
-      color: '#7c2d12',
+      color: this.colors.scoreText,
+      stroke: this.colors.scoreStroke,
       size: Math.round(this.layoutInfo.cell * 0.32),
     });
     this.sfx.play('merge', merge.exp);
@@ -396,7 +416,8 @@ export class BoardScene extends Phaser.Scene {
   private announceCombo(combo: number) {
     const { width, boardY, cell } = this.layoutInfo;
     floatText(this, width / 2, boardY + cell * 1.2, this.text.combo(combo), {
-      color: combo >= 4 ? '#be185d' : '#c2410c',
+      color: combo >= 4 ? this.colors.bigCombo : this.colors.combo,
+      stroke: this.colors.scoreStroke,
       size: Math.round(cell * (0.42 + Math.min(combo, 5) * 0.05)),
       rise: cell * 0.9,
     });
@@ -427,7 +448,8 @@ export class BoardScene extends Phaser.Scene {
   }
 
   private async animateOver(record: boolean) {
-    await tweenAsync(this, { targets: this.dimmer, fillAlpha: 0.45, duration: 400 });
+    this.dimmer.setFillStyle(this.colors.dimmer, 0);
+    await tweenAsync(this, { targets: this.dimmer, fillAlpha: this.colors.dimmerAlpha, duration: 400 });
     for (const block of this.cells.values()) {
       this.tweens.add({ targets: block, angle: { from: -4, to: 4 }, duration: 140, yoyo: true, repeat: 1 });
     }

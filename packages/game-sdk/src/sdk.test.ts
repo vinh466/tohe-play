@@ -1,7 +1,7 @@
 import { type GameManifest, PROTOCOL_VERSION } from '@tohe/contract';
 import { describe, expect, it, vi } from 'vitest';
 import { createHost, type HostOptions } from './host.ts';
-import { connect, createRng, memoryTransportPair, PROTOCOL } from './index.ts';
+import { connect, createRng, memoryTransportPair, normalizeSettings, PROTOCOL } from './index.ts';
 
 const manifest: GameManifest = {
   id: 'hello',
@@ -12,6 +12,7 @@ const manifest: GameManifest = {
   entry: 'index.html',
   orientation: 'portrait',
   capabilities: ['save', 'scores'],
+  themes: ['light', 'dark'],
   minAge: 0,
   tags: [],
   sizeBudgetKb: 3000,
@@ -25,7 +26,7 @@ function setup(overrides: Partial<HostOptions> = {}) {
     init: () => ({
       profile: { id: 'p1', name: 'Na' },
       locale: 'vi',
-      settings: { muted: false },
+      settings: { muted: false, theme: 'dark' },
       save: { best: 7 },
       seed: 42,
     }),
@@ -43,6 +44,7 @@ describe('game <-> host handshake', () => {
     expect(session.profile.name).toBe('Na');
     expect(session.saved).toEqual({ best: 7 });
     expect(session.seed).toBe(42);
+    expect(session.settings).toEqual({ muted: false, theme: 'dark' });
   });
 
   it('round-trips save and score', async () => {
@@ -79,13 +81,19 @@ describe('game <-> host handshake', () => {
     const events: string[] = [];
     session.on('pause', () => events.push('pause'));
     session.on('resume', () => events.push('resume'));
-    session.on('settings', (s) => events.push(`muted=${s.muted}`));
+    session.on('settings', (s) => events.push(`muted=${s.muted} theme=${s.theme}`));
     host.pause();
     host.resume();
-    host.setSettings({ muted: true });
+    host.setSettings({ muted: true, theme: 'light' });
     await new Promise((r) => setTimeout(r, 0));
-    expect(events).toEqual(['pause', 'resume', 'muted=true']);
-    expect(session.settings.muted).toBe(true);
+    expect(events).toEqual(['pause', 'resume', 'muted=true theme=light']);
+    expect(session.settings).toEqual({ muted: true, theme: 'light' });
+  });
+
+  it('completes settings from a host that sends no theme (light)', () => {
+    expect(normalizeSettings({ muted: true })).toEqual({ muted: true, theme: 'light' });
+    expect(normalizeSettings(undefined)).toEqual({ muted: false, theme: 'light' });
+    expect(normalizeSettings({ muted: false, theme: 'dark' })).toEqual({ muted: false, theme: 'dark' });
   });
 
   it('refuses a game that announces the wrong id', async () => {

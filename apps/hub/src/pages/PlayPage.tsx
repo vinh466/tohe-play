@@ -9,6 +9,7 @@ import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { db } from '../storage/db.ts';
 import { loadSave, recordScore, storeSave } from '../storage/repository.ts';
+import { useTheme } from '../theme/useTheme.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 
 type Status = 'loading' | 'ready' | 'failed' | 'untrusted';
@@ -27,20 +28,21 @@ function Launcher({ player }: { player: Player }) {
   const host = useRef<HostHandle | null>(null);
   const [status, setStatus] = useState<Status>('loading');
   const [muted, setMuted] = useState(false);
+  const { theme } = useTheme();
 
   const game = games.data?.find((g) => g.id === gameId);
   const gamesOrigin = config.data?.gamesOrigin;
 
   // The session restarts only for a different game build, origin or profile. Everything else the session
-  // needs is read from `latest` at start; later mute changes are sent as messages instead (see toggleMute).
+  // needs is read from `latest` at start; later mute and theme changes are sent as `settings` messages.
   const buildKey = game ? `${game.id}@${game.version}` : undefined;
   const playerId = player.id;
-  const latest = useRef({ game, player, muted, locale: i18n.language, navigate });
-  latest.current = { game, player, muted, locale: i18n.language, navigate };
+  const latest = useRef({ game, player, muted, theme, locale: i18n.language, navigate });
+  latest.current = { game, player, muted, theme, locale: i18n.language, navigate };
 
   useEffect(() => {
     const frame = iframe.current;
-    const { game, player, muted, locale, navigate } = latest.current;
+    const { game, player, muted, theme, locale, navigate } = latest.current;
     if (!buildKey || !gamesOrigin || !playerId || !game || !player || !frame) return;
     if (!isTrustedEntry(game.entryUrl, gamesOrigin)) {
       setStatus('untrusted');
@@ -54,7 +56,8 @@ function Launcher({ player }: { player: Player }) {
       init: async () => ({
         profile: { id: player.id, name: player.name, avatar: player.avatar },
         locale,
-        settings: { muted },
+        // The theme the hub shows; games that declare both themes follow it (ADR 0013).
+        settings: { muted, theme },
         save: await loadSave(db, player.id, game.id),
         seed: dailySeed(),
       }),
@@ -85,11 +88,12 @@ function Launcher({ player }: { player: Player }) {
     };
   }, [buildKey, gamesOrigin, playerId]);
 
-  const toggleMute = () => {
-    const next = !muted;
-    setMuted(next);
-    host.current?.setSettings({ muted: next });
-  };
+  // Mute and theme changes reach a running game as `settings` (e.g. "Theo máy" turning dark mid-round).
+  useEffect(() => {
+    host.current?.setSettings({ muted, theme });
+  }, [muted, theme]);
+
+  const toggleMute = () => setMuted((value) => !value);
 
   // Leaving is confirmed: the bar sits right above the game, and touch adjustment on phones snaps taps near the
   // top edge of the game onto this button. A child must not be thrown out of a round by a stray tap.
@@ -135,13 +139,17 @@ function Launcher({ player }: { player: Player }) {
           allow="autoplay; fullscreen"
           className="absolute inset-0 size-full border-0"
         />
-        {status !== 'ready' && (
-          <div className="absolute inset-0 grid place-items-center bg-page p-6 text-center text-ink">
-            {status === 'loading' && t('loading')}
-            {status === 'failed' && t('gameFailed')}
-            {status === 'untrusted' && t('untrusted')}
-          </div>
-        )}
+        {/* Fades out once the game is ready, covering its first frames while it applies its theme. */}
+        <div
+          aria-hidden={status === 'ready'}
+          className={`absolute inset-0 grid place-items-center bg-page p-6 text-center text-ink transition-opacity duration-300 ${
+            status === 'ready' ? 'pointer-events-none opacity-0' : ''
+          }`}
+        >
+          {status === 'loading' && t('loading')}
+          {status === 'failed' && t('gameFailed')}
+          {status === 'untrusted' && t('untrusted')}
+        </div>
       </div>
       <ConfirmDialog
         open={confirmingExit}

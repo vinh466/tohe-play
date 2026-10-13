@@ -4,3 +4,4 @@ export { type Haptic, haptics } from './haptics.ts';
 export { prefersReducedMotion } from './motion.ts';
 export { createOverlay, hintList, type Overlay, type OverlayAction, type OverlayCard } from './overlay.ts';
 export { createSfx, noteFrequency, type Sfx, type SoundName } from './sfx.ts';
+export { followTheme, type Theme } from './theme.ts';

@@ -13,6 +13,8 @@ export function manifestFrom(game: GameSummary): GameManifest {
     entry: entryUrl.pathname.split('/').pop() || 'index.html',
     orientation: game.orientation as GameManifest['orientation'],
     capabilities: game.capabilities.filter((c): c is Capability => c === 'save' || c === 'scores'),
+    // Not read by the host: the hub always sends the theme it shows, and the API does not list `themes`.
+    themes: ['light'],
     minAge: game.minAge,
     tags: game.tags,
     sizeBudgetKb: Math.max(game.sizeKb, 1),

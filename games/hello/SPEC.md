@@ -19,13 +19,18 @@ Reference game for the platform: the smallest game that uses every part of the G
 3. Paused overlay (hub sent `pause`): **Tiếp tục**. Time does not run while paused.
 4. Game over overlay.
 
+## Themes
+
+Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013). The page and the cards use the design
+tokens; the canvas reads the same tokens (`soft` arena, `brand` dot, `accent` score) after every theme change.
+
 ## Contract usage
 
 | Capability | Use |
 | --- | --- |
 | `save` | `{ best: number }` after every round. |
 | `scores` | `submitScore(score)` after every round, board `default`. |
-| settings | Respects `muted` (beep on hit). |
+| settings | Respects `muted` (beep on hit); follows `theme`. |
 | seed | Dot positions. |
 
 ## Invariants (tested by the random-play bot)

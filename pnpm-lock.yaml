@@ -123,6 +123,9 @@ importers:
 
   games/hello:
     dependencies:
+      '@tohe/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
       '@tohe/game-sdk':
         specifier: workspace:*
         version: link:../../packages/game-sdk
@@ -155,6 +158,9 @@ importers:
       '@tohe/conformance':
         specifier: workspace:*
         version: link:../../tools/conformance
+      '@tohe/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
       fast-check:
         specifier: ^4.10.0
         version: 4.10.2
@@ -189,6 +195,9 @@ importers:
 
   packages/game-kit:
     dependencies:
+      '@tohe/design-tokens':
+        specifier: workspace:*
+        version: link:../design-tokens
       '@tohe/game-sdk':
         specifier: workspace:*
         version: link:../game-sdk
@@ -226,6 +235,9 @@ importers:
 
   tools/conformance:
     dependencies:
+      '@axe-core/playwright':
+        specifier: ^4.13.0
+        version: 4.13.0(playwright-core@1.64.0)
       '@tohe/contract':
         specifier: workspace:*
         version: link:../../packages/contract

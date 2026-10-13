@@ -39,10 +39,18 @@
           "properties": {
             "muted": {
               "type": "boolean"
+            },
+            "theme": {
+              "type": "string",
+              "enum": [
+                "light",
+                "dark"
+              ]
             }
           },
           "required": [
-            "muted"
+            "muted",
+            "theme"
           ],
           "additionalProperties": false
         },
@@ -125,10 +133,18 @@
           "properties": {
             "muted": {
               "type": "boolean"
+            },
+            "theme": {
+              "type": "string",
+              "enum": [
+                "light",
+                "dark"
+              ]
             }
           },
           "required": [
-            "muted"
+            "muted",
+            "theme"
           ],
           "additionalProperties": false
         }

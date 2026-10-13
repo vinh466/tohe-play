@@ -55,6 +55,22 @@
         ]
       }
     },
+    "themes": {
+      "default": [
+        "light"
+      ],
+      "description": "Looks the game has. With both, it follows the hub through settings.theme (ADR 0013).",
+      "minItems": 1,
+      "maxItems": 2,
+      "type": "array",
+      "items": {
+        "type": "string",
+        "enum": [
+          "light",
+          "dark"
+        ]
+      }
+    },
     "minAge": {
       "default": 0,
       "type": "integer",

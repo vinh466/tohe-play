@@ -26,6 +26,8 @@ export interface KitGame<S extends Phaser.Scene> {
    * back to Canvas). Redraw the current state on the new scene.
    */
   onRestart(listener: (scene: S) => void): () => void;
+  /** Background colour behind every scene, e.g. when the theme changes. */
+  setBackground(color: string): void;
   /** Pause / resume every running scene (update loop, tweens, timers). */
   pause(): void;
   resume(): void;
@@ -45,10 +47,11 @@ const BOOT_WINDOW_MS = 8000;
 
 export function createGame<S extends Phaser.Scene>({
   parent,
-  background,
+  background: initialBackground,
   createScene,
 }: KitGameOptions<S>): KitGame<S> {
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  let background = initialBackground;
   let size: Size = measure(parent);
   let renderer: 'webgl' | 'canvas' = webglWorks() ? 'webgl' : 'canvas';
   let scene = createScene();
@@ -93,6 +96,8 @@ export function createGame<S extends Phaser.Scene>({
       camera.setOrigin(0, 0);
       camera.setZoom(dpr);
       camera.setScroll(0, 0);
+      // The camera paints the background, so it can change after boot (the game config cannot).
+      camera.setBackgroundColor(background);
     }
   }
 
@@ -160,6 +165,10 @@ export function createGame<S extends Phaser.Scene>({
     onRestart(listener) {
       restartListeners.add(listener);
       return () => restartListeners.delete(listener);
+    },
+    setBackground(color) {
+      background = color;
+      applyCameras(game);
     },
     pause() {
       for (const active of game.scene.getScenes(true)) active.scene.pause();

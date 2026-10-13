@@ -182,6 +182,15 @@ try {
   await frame.getByRole('button', { name: 'Chơi lại' }).waitFor({ timeout: 10_000 });
   await shot('game-over');
 
+  step('the game follows the hub live: the device turns dark, "Theo máy" passes it on as settings.theme');
+  const gameTheme = (theme: string) =>
+    frame.waitForFunction((t) => document.documentElement.dataset.theme === t, theme, { timeout: 5000 });
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await gameTheme('dark');
+  await page.screenshot({ path: 'test-results/e2e-game-dark.png' });
+  await page.emulateMedia({ colorScheme: 'light' });
+  await gameTheme('light');
+
   step("check the hub stored the score and the save under the child's profile");
   await page.waitForTimeout(500);
   const stored = await page.evaluate(async (profileId) => {

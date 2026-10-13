@@ -12,6 +12,10 @@ export const SemVer = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 's
 export const Capability = z.enum(['save', 'scores']);
 export type Capability = z.infer<typeof Capability>;
 
+/** Light or dark (ADR 0013). */
+export const Theme = z.enum(['light', 'dark']);
+export type Theme = z.infer<typeof Theme>;
+
 /** `game.json` — shipped next to every game build. */
 export const GameManifest = z
   .object({
@@ -26,6 +30,12 @@ export const GameManifest = z
     icon: z.string().optional().describe('Path relative to the game root, e.g. icon.svg'),
     orientation: z.enum(['portrait', 'landscape', 'any']).default('portrait'),
     capabilities: z.array(Capability).default([]),
+    themes: z
+      .array(Theme)
+      .min(1)
+      .max(2)
+      .default(['light'])
+      .describe('Looks the game has. With both, it follows the hub through settings.theme (ADR 0013).'),
     minAge: z.number().int().min(0).max(18).default(0),
     tags: z.array(z.string().max(20)).max(8).default([]),
     sizeBudgetKb: z.number().int().positive().max(50_000).default(3000),

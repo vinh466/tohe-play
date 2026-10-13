@@ -50,12 +50,17 @@ export function floatText(
   x: number,
   y: number,
   text: string,
-  { color = '#7c2d12', size = 22, rise = 46 }: { color?: string; size?: number; rise?: number } = {},
+  {
+    color = '#7c2d12',
+    stroke = '#ffffff',
+    size = 22,
+    rise = 46,
+  }: { color?: string; stroke?: string; size?: number; rise?: number } = {},
 ) {
   const label = crispText(scene, x, y, text, { fontSize: `${size}px`, fontStyle: '900', color })
     .setOrigin(0.5)
     .setDepth(50)
-    .setStroke('#ffffff', Math.max(3, size / 6));
+    .setStroke(stroke, Math.max(3, size / 6));
   scene.tweens.add({
     targets: label,
     y: y - rise,

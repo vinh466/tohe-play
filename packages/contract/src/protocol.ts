@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { GameId, PROTOCOL_VERSION } from './manifest.ts';
+import { GameId, PROTOCOL_VERSION, Theme } from './manifest.ts';
 
 /** Max size of a serialized save, in bytes. Larger saves are rejected by the host. */
 export const MAX_SAVE_BYTES = 64 * 1024;
@@ -17,6 +17,8 @@ export type Profile = z.infer<typeof Profile>;
 
 export const Settings = z.object({
   muted: z.boolean(),
+  /** The theme the hub is showing. Games that declare both `themes` follow it; others ignore it (ADR 0013). */
+  theme: Theme,
 });
 export type Settings = z.infer<typeof Settings>;
 

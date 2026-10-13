@@ -40,6 +40,7 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `icon` | string | — | Icon file relative to the build folder (SVG or PNG, square). |
 | `orientation` | `portrait` \| `landscape` \| `any` | `portrait` | Preferred orientation. |
 | `capabilities` | array of `save`, `scores` | `[]` | Platform services the game uses. Undeclared calls are rejected. |
+| `themes` | array of `light`, `dark` | `["light"]` | Looks the game has ([ADR 0013](../decisions/0013-light-and-dark-themes.md)). With both, it follows the hub through `settings.theme`; with one, it keeps that look. |
 | `minAge` | 0–18 | `0` | Hidden from younger profiles (M1). |
 | `tags` | string[] | `[]` | Up to 8 short tags. |
 | `sizeBudgetKb` | integer | `3000` | Upper bound for the build size (source maps excluded). Conformance fails above it. |
@@ -54,6 +55,9 @@ A game **must**:
 - take randomness for gameplay from the `seed` (via `createRng(seed)`) when the result should be reproducible;
 - stop the clock on `pause` and not lose progress;
 - respect `settings.muted`;
+- if `themes` lists both, follow `settings.theme`, including changes while playing (the hub's *Theo máy* can turn
+  dark mid-round); a game with one look ignores it;
+- keep its text readable: WCAG AA contrast (4.5:1, or 3:1 for large text) in every declared theme;
 - work from 320 px wide, with touch, without hover, and with the safe-area insets of a notched phone.
 
 A game **must not**:
@@ -78,6 +82,7 @@ let best = session.saved?.best ?? 0;            // last save for this profile, o
 session.on('pause', () => game.pause());
 session.on('resume', () => game.showResumeButton());
 session.on('settings', (s) => audio.setMuted(s.muted));
+// with "themes": ["light", "dark"]: s.theme is 'light' or 'dark' (game-kit: followTheme)
 
 // at the end of a round
 await session.submitScore(score);                // needs "scores" capability
@@ -92,7 +97,7 @@ session.exit();                                  // back to the catalog
 | `locale` | `vi` or `en`. |
 | `seed` | Integer; same for everybody on the same day. |
 | `saved` | Last saved state or `null`. |
-| `settings` | `{ muted }`, kept up to date. |
+| `settings` | `{ muted, theme }`, kept up to date. `theme` is the hub's `light` or `dark`. |
 | `on(event, fn)` | `pause`, `resume`, `settings`. Returns an unsubscribe function. |
 | `save(data)` | JSON, ≤ 64 KB. Resolves when the hub stored it; rejects with the hub's reason. |
 | `submitScore(value, board?)` | Finite number; board defaults to `default`. |
@@ -100,7 +105,7 @@ session.exit();                                  // back to the catalog
 | `log(level, message)` | Forward a diagnostic line to the hub's console. |
 
 In **standalone** mode (opening the game's dev server directly) the SDK fakes the host with `localStorage`, so a
-game can be developed and tested on its own.
+game can be developed and tested on its own; `settings.theme` then follows the device's light/dark setting.
 
 Games without a bundler load `tohe-game-sdk.iife.js` (built by `pnpm --filter @tohe/game-sdk build`) with a
 `<script>` tag and use `window.Tohe.connect(...)`.
@@ -119,7 +124,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | game → host | `score` | `id`, `value`, `board` | Request; answered by `result`. |
 | host → game | `result` | `replyTo`, `ok`, `error?` | Answer to a request. |
 | host → game | `pause` / `resume` | — | Tab hidden / shown, system dialogs. |
-| host → game | `settings` | `settings` | Mute changed. |
+| host → game | `settings` | `settings` | `{ muted, theme }`: mute or theme changed. |
 | game → host | `exit` | — | Close the game. |
 | game → host | `log` | `level`, `message` | Diagnostics. |
 
@@ -138,14 +143,19 @@ origin, and checks:
 1. `game.json` is valid; entry and icon exist; the build fits `sizeBudgetKb`;
 2. the handshake (`ready` → `init`) completes within 10 s;
 3. the game survives 4 s of random taps (biased towards visible buttons) plus `pause`, `resume` and a settings
-   change;
-4. no console errors or uncaught exceptions, no requests outside the game origin, no protocol errors.
+   change, which switches to a theme the game did not start in;
+4. in every theme listed in `themes`, its text meets WCAG AA contrast (axe-core; text drawn on a canvas is not
+   checked), and a game that lists both looks different in each;
+5. no console errors or uncaught exceptions, no requests outside the game origin, no protocol errors.
 
-It writes a phone-sized screenshot to `test-results/conformance/<id>.png` — look at it.
+It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
+`<id>-<theme>.png` per theme — look at them.
 
 ## Versioning
 
 - `protocol` is an integer. Additive, optional changes (a new optional field, a new capability) keep the number.
+  Example: `themes` and `settings.theme` (ADR 0013) — older builds ignore the field; SDK 0.2.0 assumes `light` when
+  a host does not send it.
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;
   games are migrated before N−1 is dropped.
 - The SDK follows semver independently; its major version changes only with the protocol.

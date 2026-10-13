@@ -1,11 +1,20 @@
 // Wiring: SDK session, kit game, HUD, overlays, saving. Rules live in logic.ts, drawing in view.ts.
 import '@tohe/game-kit/overlay.css';
 import './style.css';
-import { createOverlay, createSfx, formatScore, formatValue, haptics, hintList } from '@tohe/game-kit';
+import {
+  createOverlay,
+  createSfx,
+  followTheme,
+  formatScore,
+  formatValue,
+  haptics,
+  hintList,
+  type Theme,
+} from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
 import { connect } from '@tohe/game-sdk';
 import { blockValue, drop, type Exponent, newGame, restore, type State } from './logic.ts';
-import { blockStyle } from './palette.ts';
+import { BOARD, blockStyle } from './palette.ts';
 import { stringsFor } from './strings.ts';
 import { BoardScene } from './view.ts';
 
@@ -96,18 +105,31 @@ let lastTap = Number.NEGATIVE_INFINITY;
 /** Taps closer together than this are one bouncing finger, not two drops. */
 const DOUBLE_TAP_MS = 150;
 
+let theme: Theme = session.settings.theme;
 const kit = createGame({
   parent: stage,
-  background: '#fff7ed',
+  background: BOARD[theme].background,
   createScene: () =>
-    new BoardScene(sfx, t, {
-      onDrop: (col) => requestMove(col),
-      onScore: (score) => showScore(score),
-      onUpcoming: (next, animate) => showNext(next, animate),
-    }),
+    new BoardScene(
+      sfx,
+      t,
+      {
+        onDrop: (col) => requestMove(col),
+        onScore: (score) => showScore(score),
+        onUpcoming: (next, animate) => showNext(next, animate),
+      },
+      theme,
+    ),
 });
 /** The current scene; replaced if the kit restarts the game with the Canvas renderer. */
 let board = kit.scene;
+
+// Light/dark follows the hub (ADR 0013): the HUD and cards through data-theme, the board through setTheme.
+followTheme(session, (next) => {
+  theme = next;
+  board.setTheme(next);
+  kit.setBackground(BOARD[next].background);
+});
 kit.onResize((size) => board.relayout(size.width, size.height));
 kit.onRestart(async (scene) => {
   board = scene;
