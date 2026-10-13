@@ -1,0 +1,52 @@
+using System.ComponentModel.DataAnnotations;
+using System.Reflection;
+using Microsoft.Extensions.Options;
+using Tohe.Api.Infrastructure;
+
+namespace Tohe.Api.Modules.Platform;
+
+/// <summary>Where games are served from. <c>PublicOrigin</c> is what browsers use; <c>CatalogUrl</c> what the API fetches.</summary>
+public sealed class GamesOptions
+{
+    public const string Section = "Games";
+
+    [Required]
+    public Uri PublicOrigin { get; set; } = null!;
+
+    [Required]
+    public Uri CatalogUrl { get; set; } = null!;
+}
+
+/// <summary>Runtime configuration the hub needs before it can launch games.</summary>
+/// <param name="GamesOrigin">Origin game iframes are loaded from; the hub only accepts messages from it.</param>
+/// <param name="ApiVersion">Informational version of the running API.</param>
+public sealed record ClientConfig(string GamesOrigin, string ApiVersion);
+
+internal static class PlatformModule
+{
+    public static WebApplicationBuilder AddPlatformModule(this WebApplicationBuilder builder)
+    {
+        var options = builder.Services.AddOptions<GamesOptions>()
+            .BindConfiguration(GamesOptions.Section)
+            .ValidateDataAnnotations();
+        if (!BuildTime.IsGeneratingOpenApi)
+        {
+            options.ValidateOnStart();
+        }
+
+        return builder;
+    }
+
+    public static IEndpointRouteBuilder MapPlatformEndpoints(this IEndpointRouteBuilder api)
+    {
+        var version = typeof(PlatformModule).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
+
+        api.MapGet("/config", (IOptions<GamesOptions> games) =>
+                new ClientConfig(games.Value.PublicOrigin.GetLeftPart(UriPartial.Authority), version))
+            .WithName("GetConfig")
+            .WithTags("Platform")
+            .WithSummary("Runtime configuration for the hub.");
+        return api;
+    }
+}

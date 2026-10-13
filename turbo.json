@@ -1,6 +1,8 @@
 {
   "$schema": "https://turborepo.com/schema.json",
   "ui": "stream",
+  "globalEnv": ["TOHE_GAMES_OUT"],
+  "globalPassThroughEnv": ["TOHE_GAMES_PORT", "TOHE_HUB_ORIGINS"],
   "tasks": {
     "build": {
       "dependsOn": ["^build"],

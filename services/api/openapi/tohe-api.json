@@ -1,0 +1,178 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Tò He Platform API",
+    "description": "Backend for the Tò He hub. Games never call it directly; see docs/contracts.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/config": {
+      "get": {
+        "tags": [
+          "Platform"
+        ],
+        "summary": "Runtime configuration for the hub.",
+        "operationId": "GetConfig",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ClientConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games": {
+      "get": {
+        "tags": [
+          "Registry"
+        ],
+        "summary": "Games available in the hub.",
+        "operationId": "ListGames",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/GameSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/games/{id}": {
+      "get": {
+        "tags": [
+          "Registry"
+        ],
+        "summary": "One game by id.",
+        "operationId": "GetGame",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/GameSummary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ClientConfig": {
+        "required": [
+          "gamesOrigin",
+          "apiVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "gamesOrigin": {
+            "type": "string"
+          },
+          "apiVersion": {
+            "type": "string"
+          }
+        }
+      },
+      "GameSummary": {
+        "required": [
+          "id",
+          "name",
+          "version",
+          "description",
+          "entryUrl",
+          "iconUrl",
+          "orientation",
+          "capabilities",
+          "tags",
+          "minAge",
+          "sizeKb"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "description": {
+            "type": "string"
+          },
+          "entryUrl": {
+            "type": "string"
+          },
+          "iconUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "orientation": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "minAge": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sizeKb": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Platform"
+    },
+    {
+      "name": "Registry"
+    }
+  ]
+}

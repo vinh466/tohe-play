@@ -1,0 +1,21 @@
+{
+  "extends": ["//"],
+  "tasks": {
+    "build": {
+      "inputs": [
+        "src/**/*.cs",
+        "src/**/*.csproj",
+        "src/**/*.json",
+        "tests/**/*.cs",
+        "tests/**/*.csproj",
+        "*.props",
+        "Tohe.slnx"
+      ],
+      "outputs": ["openapi/**"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "cache": false
+    }
+  }
+}
