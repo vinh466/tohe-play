@@ -1,0 +1,23 @@
+{
+  "name": "@tohe/game-sdk",
+  "version": "0.1.0",
+  "description": "Game side and host side of the Tò He Game Contract v1.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./host": "./src/host.ts"
+  },
+  "scripts": {
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tohe/contract": "workspace:*"
+  },
+  "devDependencies": {
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
+  }
+}

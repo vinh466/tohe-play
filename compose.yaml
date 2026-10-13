@@ -1,0 +1,73 @@
+# Tò He — local stack. Two ways to use it (see docs/guides/local-development.md):
+#   docker compose up -d postgres     -> database only, then `pnpm dev` for hot reload
+#   docker compose up --build -d      -> everything in containers, production-like images
+# Set TOHE_PUBLIC_HOST to this machine's LAN IP to try it from a phone on the same network.
+name: tohe
+
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_DB: tohe
+      POSTGRES_USER: tohe
+      POSTGRES_PASSWORD: tohe-dev-only
+    ports:
+      - "127.0.0.1:4750:5432"
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U tohe -d tohe"]
+      interval: 2s
+      timeout: 3s
+      retries: 30
+
+  api:
+    build:
+      context: .
+      dockerfile: deploy/docker/api.Dockerfile
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ConnectionStrings__Database: Host=postgres;Port=5432;Database=tohe;Username=tohe;Password=tohe-dev-only;GSS Encryption Mode=Disable
+      Database__MigrateOnStartup: "true"
+      Games__PublicOrigin: http://${TOHE_PUBLIC_HOST:-localhost}:4730
+      Games__CatalogUrl: http://games:8080/catalog.json
+      Registry__SyncInterval: "00:00:20"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "4740:8080"
+
+  hub:
+    build:
+      context: .
+      dockerfile: deploy/docker/web.Dockerfile
+      target: hub
+    environment:
+      API_UPSTREAM: api:8080
+      GAMES_ORIGIN: http://${TOHE_PUBLIC_HOST:-localhost}:4730
+    depends_on:
+      - api
+    ports:
+      - "4720:8080"
+
+  games:
+    build:
+      context: .
+      dockerfile: deploy/docker/web.Dockerfile
+      target: games
+    environment:
+      HUB_ORIGINS: http://${TOHE_PUBLIC_HOST:-localhost}:4720
+    ports:
+      - "4730:8080"
+
+  site:
+    build:
+      context: .
+      dockerfile: deploy/docker/web.Dockerfile
+      target: site
+    ports:
+      - "4710:8080"
+
+volumes:
+  postgres-data:

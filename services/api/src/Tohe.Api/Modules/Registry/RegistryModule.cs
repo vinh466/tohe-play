@@ -1,0 +1,95 @@
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
+using Tohe.Api.Infrastructure;
+using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Platform;
+
+namespace Tohe.Api.Modules.Registry;
+
+public sealed class RegistryOptions
+{
+    public const string Section = "Registry";
+
+    /// <summary>Run the background catalog sync. Tests turn it off and call <c>CatalogSync</c> directly.</summary>
+    public bool SyncEnabled { get; set; } = true;
+
+    public TimeSpan SyncInterval { get; set; } = TimeSpan.FromMinutes(5);
+}
+
+/// <summary>A playable game as shown in the hub.</summary>
+/// <param name="EntryUrl">Absolute URL to load in the game iframe.</param>
+/// <param name="IconUrl">Absolute icon URL, if the game ships one.</param>
+public sealed record GameSummary(
+    string Id,
+    string Name,
+    string Version,
+    string Description,
+    string EntryUrl,
+    string? IconUrl,
+    string Orientation,
+    IReadOnlyList<string> Capabilities,
+    IReadOnlyList<string> Tags,
+    int MinAge,
+    int SizeKb);
+
+internal static class RegistryModule
+{
+    public static WebApplicationBuilder AddRegistryModule(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddOptions<RegistryOptions>().BindConfiguration(RegistryOptions.Section);
+        builder.Services.AddSingleton(TimeProvider.System);
+        builder.Services.AddHttpClient<CatalogSync>(client => client.Timeout = TimeSpan.FromSeconds(10));
+        if (builder.Configuration.GetValue($"{RegistryOptions.Section}:SyncEnabled", defaultValue: true)
+            && !BuildTime.IsGeneratingOpenApi)
+        {
+            builder.Services.AddHostedService<CatalogSyncWorker>();
+        }
+
+        return builder;
+    }
+
+    public static IEndpointRouteBuilder MapRegistryEndpoints(this IEndpointRouteBuilder api)
+    {
+        var games = api.MapGroup("/games").WithTags("Registry");
+
+        games.MapGet("/", async (ToheDbContext db, IOptions<GamesOptions> options, CancellationToken ct) =>
+            {
+                var listed = await db.Games.AsNoTracking()
+                    .Where(game => game.Listed)
+                    .OrderBy(game => game.Name)
+                    .ToListAsync(ct);
+                return listed.Select(game => ToSummary(game, options.Value.PublicOrigin)).ToList();
+            })
+            .WithName("ListGames")
+            .WithSummary("Games available in the hub.");
+
+        games.MapGet("/{id}", async Task<Results<Ok<GameSummary>, NotFound>> (
+                string id, ToheDbContext db, IOptions<GamesOptions> options, CancellationToken ct) =>
+            {
+                var game = await db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == id && g.Listed, ct);
+                return game is null ? TypedResults.NotFound() : TypedResults.Ok(ToSummary(game, options.Value.PublicOrigin));
+            })
+            .WithName("GetGame")
+            .WithSummary("One game by id.");
+
+        return api;
+    }
+
+    private static GameSummary ToSummary(Game game, Uri origin)
+    {
+        var root = new Uri(origin, game.Path);
+        return new GameSummary(
+            game.Id,
+            game.Name,
+            game.Version,
+            game.Description,
+            new Uri(root, game.Entry).ToString(),
+            game.Icon is null ? null : new Uri(root, game.Icon).ToString(),
+            game.Orientation,
+            game.Capabilities,
+            game.Tags,
+            game.MinAge,
+            game.SizeKb);
+    }
+}

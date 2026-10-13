@@ -1,0 +1,29 @@
+{
+  "$schema": "https://turborepo.com/schema.json",
+  "ui": "stream",
+  "globalEnv": ["TOHE_GAMES_OUT", "TOHE_SITE_URL", "PUBLIC_HUB_URL"],
+  "globalPassThroughEnv": ["TOHE_GAMES_PORT", "TOHE_HUB_ORIGINS", "HUB_URL"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".out/**", "bin/**", "obj/**"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build"],
+      "outputs": []
+    },
+    "conformance": {
+      "dependsOn": ["^build", "build"],
+      "outputs": []
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    }
+  }
+}

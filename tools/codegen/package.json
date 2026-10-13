@@ -1,0 +1,14 @@
+{
+  "name": "@tohe/codegen",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Code generators that need the classic TypeScript compiler API, isolated from the repo's TypeScript 7 (see ADR 0008).",
+  "type": "module",
+  "scripts": {
+    "api-types": "openapi-typescript ../../services/api/openapi/tohe-api.json -o ../../apps/hub/src/api/schema.gen.ts"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "5.9.3"
+  }
+}

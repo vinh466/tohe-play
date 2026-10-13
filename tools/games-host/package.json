@@ -1,0 +1,20 @@
+{
+  "name": "@tohe/games-host",
+  "version": "0.1.0",
+  "description": "Assembles every game build into immutable /<id>/<version>/ folders plus catalog.json, and serves them as the games origin in local dev.",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node src/assemble.ts",
+    "dev": "node src/assemble.ts && node src/serve.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@tohe/conformance": "workspace:*",
+    "@tohe/contract": "workspace:*"
+  },
+  "devDependencies": {
+    "@tohe/game-hello": "workspace:*",
+    "@types/node": "^24.0.0"
+  }
+}
