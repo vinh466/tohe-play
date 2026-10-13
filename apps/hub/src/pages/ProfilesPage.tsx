@@ -14,6 +14,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { PinPad } from '../ui/PinPad.tsx';
 import { Screen } from '../ui/Screen.tsx';
+import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 export function ProfilesPage() {
   return <RequireSession need="account">{({ me }) => <Picker me={me} />}</RequireSession>;
@@ -74,9 +75,13 @@ function Picker({ me }: { me: MeView }) {
 
   return (
     <Screen>
-      <header className="pt-6 text-center">
-        <p className="font-semibold text-orange-900/60">{me.household.name}</p>
-        <h1 className="font-black text-4xl text-orange-700">{t('profiles.title')}</h1>
+      {/* Three columns keep the title centred next to the theme button. */}
+      <header className="grid grid-cols-[2.75rem_1fr_2.75rem] items-start gap-2 text-center">
+        <div className="col-start-2 pt-6">
+          <p className="font-semibold text-ink-soft">{me.household.name}</p>
+          <h1 className="font-black text-4xl text-brand-ink">{t('profiles.title')}</h1>
+        </div>
+        <ThemeButton />
       </header>
 
       <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
@@ -86,11 +91,11 @@ function Picker({ me }: { me: MeView }) {
               type="button"
               onClick={() => choose(profile)}
               disabled={select.isPending}
-              className="flex w-full flex-col items-center gap-2 rounded-3xl bg-white p-4 shadow-sm transition active:scale-95 disabled:opacity-60"
+              className="flex w-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 shadow-sm transition active:scale-95 disabled:opacity-60"
             >
               <Avatar avatar={profile.avatar} />
-              <span className="font-bold text-lg text-orange-950">{profile.name}</span>
-              <span className="text-orange-900/60 text-sm">
+              <span className="font-bold text-ink text-lg">{profile.name}</span>
+              <span className="text-ink-soft text-sm">
                 {profile.kind === 'adult'
                   ? t('profiles.adult')
                   : t('family.years', { band: profile.ageBand })}
@@ -103,16 +108,16 @@ function Picker({ me }: { me: MeView }) {
           <button
             type="button"
             onClick={() => void navigate({ to: '/family', search: { add: true } })}
-            className="flex size-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-orange-300 border-dashed p-4 text-orange-700 transition active:scale-95"
+            className="flex size-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-line-strong border-dashed p-4 text-brand-ink transition active:scale-95"
           >
-            <span className="grid size-16 place-items-center rounded-full bg-orange-100 text-4xl">+</span>
+            <span className="grid size-16 place-items-center rounded-full bg-soft text-4xl">+</span>
             <span className="font-bold">{t('profiles.add')}</span>
           </button>
         </li>
       </ul>
 
       {select.isError && !(select.error instanceof ApiError && select.error.code?.startsWith('pin_')) ? (
-        <p role="alert" className="text-center text-red-700">
+        <p role="alert" className="text-center text-danger">
           {t(errorKey(select.error))}
         </p>
       ) : null}

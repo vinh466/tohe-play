@@ -16,6 +16,7 @@
     "@tanstack/react-query": "^5.100.0",
     "@tanstack/react-router": "^1.170.0",
     "@tohe/contract": "workspace:*",
+    "@tohe/design-tokens": "workspace:*",
     "@tohe/game-sdk": "workspace:*",
     "dexie": "^4.4.0",
     "i18next": "^26.0.0",

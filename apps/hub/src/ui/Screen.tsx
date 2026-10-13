@@ -16,7 +16,7 @@ export function Screen({ children, narrow = false }: { children: ReactNode; narr
 /** Message shown while the session is being resolved. */
 export function Loading({ label }: { label: string }) {
   return (
-    <div className="grid min-h-dvh place-items-center text-orange-900/70" role="status">
+    <div className="grid min-h-dvh place-items-center text-ink-soft" role="status">
       {label}
     </div>
   );

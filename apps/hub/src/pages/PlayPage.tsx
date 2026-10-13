@@ -108,21 +108,21 @@ function Launcher({ player }: { player: Player }) {
   }
 
   return (
-    <div className="fixed inset-0 flex flex-col bg-orange-50">
-      <nav className="flex h-14 shrink-0 items-center justify-between border-orange-200 border-b-2 px-2 pt-[env(safe-area-inset-top)]">
+    <div className="fixed inset-0 flex flex-col bg-page">
+      <nav className="flex h-14 shrink-0 items-center justify-between border-line border-b-2 px-2 pt-[env(safe-area-inset-top)]">
         <button
           type="button"
           onClick={askToExit}
-          className="rounded-full px-3 py-1.5 font-semibold text-orange-800 active:bg-orange-100"
+          className="rounded-full px-3 py-1.5 font-semibold text-accent active:bg-soft"
         >
           ← {t('exit')}
         </button>
-        <span className="font-bold text-orange-900">{game?.name}</span>
+        <span className="font-bold text-ink">{game?.name}</span>
         <button
           type="button"
           onClick={toggleMute}
           aria-label={muted ? t('unmute') : t('mute')}
-          className="rounded-full px-3 py-1.5 text-xl active:bg-orange-100"
+          className="rounded-full px-3 py-1.5 text-xl active:bg-soft"
         >
           {muted ? '🔇' : '🔊'}
         </button>
@@ -136,7 +136,7 @@ function Launcher({ player }: { player: Player }) {
           className="absolute inset-0 size-full border-0"
         />
         {status !== 'ready' && (
-          <div className="absolute inset-0 grid place-items-center bg-orange-50 p-6 text-center text-orange-900">
+          <div className="absolute inset-0 grid place-items-center bg-page p-6 text-center text-ink">
             {status === 'loading' && t('loading')}
             {status === 'failed' && t('gameFailed')}
             {status === 'untrusted' && t('untrusted')}
@@ -159,8 +159,11 @@ function Message({ text, back }: { text: string; back: string }) {
   return (
     <main className="grid min-h-dvh place-items-center p-6 text-center">
       <div className="flex flex-col items-center gap-4">
-        <p className="text-lg text-orange-900">{text}</p>
-        <Link to="/" className="rounded-2xl bg-orange-500 px-5 py-3 font-bold text-white">
+        <p className="text-ink text-lg">{text}</p>
+        <Link
+          to="/"
+          className="rounded-2xl bg-brand px-5 py-3 font-bold text-on-brand text-xl active:bg-brand-strong"
+        >
           {back}
         </Link>
       </div>

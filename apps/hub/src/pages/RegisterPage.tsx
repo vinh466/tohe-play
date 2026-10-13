@@ -75,8 +75,8 @@ function Register() {
   return (
     <Screen narrow>
       <Brand subtitle={t('register.subtitle')} />
-      <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-white p-5 shadow-sm" noValidate>
-        <h2 className="font-bold text-orange-950 text-xl">{t('register.title')}</h2>
+      <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm" noValidate>
+        <h2 className="font-bold text-ink text-xl">{t('register.title')}</h2>
         <TextField
           label={t('register.displayName')}
           hint={t('register.displayNameHint')}
@@ -123,12 +123,12 @@ function Register() {
           error={showErrors ? local.confirm : null}
         />
 
-        <label className="flex items-center gap-3 rounded-2xl bg-orange-50 p-3 font-semibold text-orange-950">
+        <label className="flex items-center gap-3 rounded-2xl bg-fill p-3 font-semibold text-ink">
           <input
             type="checkbox"
             checked={withInvite}
             onChange={(e) => setWithInvite(e.target.checked)}
-            className="size-6 accent-orange-500"
+            className="size-6 accent-brand"
           />
           {t('register.haveInvite')}
         </label>
@@ -160,7 +160,7 @@ function Register() {
         !server?.field('username') &&
         !server?.field('inviteCode') &&
         !server?.field('password') ? (
-          <p role="alert" className="text-red-700">
+          <p role="alert" className="text-danger">
             {t(errorKey(register.error))}
           </p>
         ) : null}
@@ -168,7 +168,7 @@ function Register() {
           {t('register.submit')}
         </Button>
       </form>
-      <Link to="/welcome" className="text-center font-bold text-orange-700 underline underline-offset-4">
+      <Link to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
         {t('register.haveAccount')}
       </Link>
     </Screen>

@@ -26,3 +26,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0010](0010-environments-dev-and-uat.md) | Environments: development and UAT on the homelab | Accepted |
 | [0011](0011-password-sign-in-first.md) | Sign in with username and password first; OAuth later | Accepted |
 | [0012](0012-phaser-and-the-game-kit.md) | Phaser 4 and the game kit are the default way to build games | Accepted |
+| [0013](0013-light-and-dark-themes.md) | Light and dark themes from shared design tokens | Accepted |

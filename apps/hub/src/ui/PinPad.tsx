@@ -43,11 +43,11 @@ export function PinPad({ onComplete, errorKey = 0, error, disabled }: PinPadProp
         {[0, 1, 2, 3].map((i) => (
           <span
             key={i}
-            className={`size-5 rounded-full border-2 border-orange-500 transition ${i < digits.length ? 'scale-110 bg-orange-500' : 'bg-transparent'}`}
+            className={`size-5 rounded-full border-2 border-brand transition ${i < digits.length ? 'scale-110 bg-brand' : 'bg-transparent'}`}
           />
         ))}
       </div>
-      {error ? <p className="text-center text-red-700">{error}</p> : null}
+      {error ? <p className="text-center text-danger">{error}</p> : null}
       <div className="grid grid-cols-3 gap-3">
         {KEYS.map((key) =>
           key ? (
@@ -57,7 +57,7 @@ export function PinPad({ onComplete, errorKey = 0, error, disabled }: PinPadProp
               disabled={disabled}
               onClick={() => press(key)}
               aria-label={key === '⌫' ? 'Xoá' : key}
-              className="grid size-18 place-items-center rounded-full bg-white font-black text-3xl text-orange-900 shadow-sm active:scale-95 active:bg-orange-100 disabled:opacity-50"
+              className="grid size-18 place-items-center rounded-full bg-surface font-black text-3xl text-ink shadow-sm active:scale-95 active:bg-soft disabled:opacity-50"
             >
               {key}
             </button>
