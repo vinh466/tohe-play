@@ -26,6 +26,8 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
   regenerate them.
 - Never weaken a check (tests, conformance, CSP, pnpm's minimum release age) to make it pass.
 - Only use the Tò He stack: ports 47xx, compose project `tohe`. Never touch other databases or containers.
+- Before merging a dependency upgrade, check `docs/roadmap/upgrade-watchlist.md`. Dependabot PRs listed there
+  stay open on purpose as reminders — do not close them or add ignore rules for them.
 
 ## Commands
 

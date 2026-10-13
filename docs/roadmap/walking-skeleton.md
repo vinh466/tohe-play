@@ -37,3 +37,4 @@ Short, throw-away experiments that answer one risky question each; results go in
 - No production deployment or published images yet (M4).
 - No games-origin service worker (S1).
 - SDK reference is hand-written; no TypeDoc (ADR 0008).
+- Some dependency upgrades are on hold; see the [upgrade watchlist](upgrade-watchlist.md).
