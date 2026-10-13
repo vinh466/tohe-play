@@ -1,0 +1,24 @@
+{
+  "name": "tohe-play",
+  "private": true,
+  "type": "module",
+  "packageManager": "pnpm@11.12.0",
+  "engines": {
+    "node": ">=24"
+  },
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "conformance": "turbo run conformance",
+    "lint": "biome check .",
+    "format": "biome check --write .",
+    "verify": "biome check . && turbo run typecheck test build conformance"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^2.5.15",
+    "turbo": "^2.11.7",
+    "typescript": "^7.0.2"
+  }
+}
