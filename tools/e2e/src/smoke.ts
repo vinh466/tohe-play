@@ -65,13 +65,15 @@ try {
   step('play one 20 s round');
   // Random taps must never reach the game-over overlay: its "Thoát" (exit) button would close the game.
   // So the deadline is taken *before* the round starts (slow CI must not stretch it past 20 s), and tapping
-  // also stops as soon as any overlay button is visible again.
+  // also stops as soon as any overlay button is visible again. Taps also keep a margin from the iframe's edges:
+  // Chromium's touch adjustment snaps a tap near the hub's top bar onto its buttons.
   const end = Date.now() + 17_000;
+  const margin = 24;
   await frame.getByRole('button', { name: 'Chơi', exact: true }).tap();
   const exitButton = frame.getByRole('button', { name: 'Thoát', exact: true });
   while (Date.now() < end && !(await exitButton.isVisible())) {
-    const x = Math.round(box.x + Math.random() * box.width);
-    const y = Math.round(box.y + Math.random() * box.height);
+    const x = Math.round(box.x + margin + Math.random() * (box.width - 2 * margin));
+    const y = Math.round(box.y + margin + Math.random() * (box.height - 2 * margin));
     mark(`tap ${x},${y}`);
     await page.touchscreen.tap(x, y);
     await page.waitForTimeout(150);
@@ -96,8 +98,10 @@ try {
   });
   if (stored.scores < 1 || stored.saves < 1) throw new Error(`nothing stored: ${JSON.stringify(stored)}`);
 
-  step('exit back to the catalog');
-  await page.getByRole('link', { name: /Thoát/ }).tap();
+  step('exit back to the catalog (the hub asks first)');
+  await page.getByRole('button', { name: /Thoát/ }).first().tap();
+  const confirm = page.getByRole('dialog');
+  await confirm.getByRole('button', { name: 'Thoát', exact: true }).tap();
   await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`);
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);
