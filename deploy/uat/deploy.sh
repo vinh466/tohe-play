@@ -9,7 +9,8 @@
 set -euo pipefail
 
 REF="${1:-origin/main}"
-REPO="$(git rev-parse --show-toplevel)"
+HERE="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO="$(git -C "$HERE" rev-parse --show-toplevel)"
 STATE_DIR="${TOHE_UAT_STATE:-$HOME/.local/share/tohe-uat}"
 ENV_FILE="${TOHE_UAT_ENV:-$HOME/.config/tohe-uat/uat.env}"
 SRC="$STATE_DIR/src"
@@ -40,7 +41,7 @@ SHA="$(git -C "$REPO" rev-parse --short=12 "$REF^{commit}")"
 log "deploying $REF ($SHA)"
 
 if docker compose -p tohe-uat ps --status running --services 2>/dev/null | grep -qx postgres; then
-  "$REPO/deploy/uat/backup.sh"
+  "$HERE/backup.sh"
 fi
 
 rm -rf "$SRC"
