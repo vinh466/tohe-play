@@ -319,6 +319,94 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("profiles", "households");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Progress.SavedGame", b =>
+                {
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<string>("GameId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("data");
+
+                    b.Property<string>("PreviousData")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("previous_data");
+
+                    b.Property<DateTimeOffset?>("PreviousUpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("previous_updated_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.HasKey("ProfileId", "GameId")
+                        .HasName("pk_saves");
+
+                    b.ToTable("saves", "progress");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Progress.ScoreEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("AchievedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("achieved_at");
+
+                    b.Property<string>("Board")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("board");
+
+                    b.Property<Guid>("ClientId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_id");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<DateTimeOffset>("RecordedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("recorded_at");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_scores");
+
+                    b.HasIndex("ProfileId", "ClientId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_scores_profile_id_client_id");
+
+                    b.HasIndex("GameId", "Board", "ProfileId")
+                        .HasDatabaseName("ix_scores_game_id_board_profile_id");
+
+                    b.ToTable("scores", "progress");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Registry.Game", b =>
                 {
                     b.Property<string>("Id")

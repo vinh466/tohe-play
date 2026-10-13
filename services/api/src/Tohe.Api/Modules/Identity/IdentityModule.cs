@@ -110,6 +110,7 @@ internal static class IdentityModule
         services.AddScoped<SessionWriter>();
         services.AddScoped<MeQueries>();
         services.AddScoped<IActiveProfile, ActiveProfileReader>();
+        services.AddScoped<IHouseholdProfiles, HouseholdProfilesReader>();
         return builder;
     }
 

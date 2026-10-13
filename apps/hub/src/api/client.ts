@@ -11,6 +11,8 @@ export type ProfileOptionsView = Schemas['ProfileOptionsView'];
 export type RegisterRequest = Schemas['RegisterRequest'];
 export type CreateProfileRequest = Schemas['CreateProfileRequest'];
 export type UpdateProfileRequest = Schemas['UpdateProfileRequest'];
+export type LeaderboardEntry = Schemas['LeaderboardEntry'];
+export type ScoreInput = Schemas['ScoreInput'];
 
 /** Same origin: the hub serves /api through its reverse proxy (Vite in dev, Caddy in docker/UAT). */
 export const api = createClient<paths>({ baseUrl: '' });
@@ -89,4 +91,14 @@ export const household = {
     call(api.PATCH('/api/household/profiles/{id}', { params: { path: { id } }, body })),
   deleteProfile: (id: string) =>
     call(api.DELETE('/api/household/profiles/{id}', { params: { path: { id } } })),
+};
+
+/** Saves and scores of the active profile (M2); the hub calls these from storage/sync.ts, never from games. */
+export const progress = {
+  listSaves: () => call(api.GET('/api/progress/saves')),
+  putSave: (gameId: string, data: unknown) =>
+    call(api.PUT('/api/progress/saves/{gameId}', { params: { path: { gameId } }, body: { data } })),
+  recordScores: (scores: ScoreInput[]) => call(api.POST('/api/progress/scores', { body: { scores } })),
+  leaderboard: (gameId: string) =>
+    call(api.GET('/api/progress/leaderboard/{gameId}', { params: { path: { gameId } } })),
 };

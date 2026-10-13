@@ -246,6 +246,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/progress/saves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every save of the active profile, for a device to catch up. */
+        get: operations["ListSaves"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progress/saves/{gameId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Store the active profile's save of a game; the last write wins. */
+        put: operations["PutSave"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progress/scores": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Record finished runs of the active profile; repeats (same clientId) are ignored. */
+        post: operations["RecordScores"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/progress/leaderboard/{gameId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Best score of each household member on a game's board. */
+        get: operations["GetLeaderboard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -304,6 +372,17 @@ export interface components {
             /** Format: date-time */
             expiresAt: string;
         };
+        JsonElement: unknown;
+        LeaderboardEntry: {
+            /** Format: uuid */
+            profileId: string;
+            name: string;
+            avatar: string;
+            /** Format: double */
+            value: number;
+            /** Format: date-time */
+            achievedAt: string;
+        };
         LoginRequest: {
             username: string;
             password: string;
@@ -348,12 +427,38 @@ export interface components {
             hasPin: boolean;
             isMine: boolean;
         };
+        PutSaveRequest: {
+            data: components["schemas"]["JsonElement"];
+        };
+        RecordScoresRequest: {
+            scores: components["schemas"]["ScoreInput"][];
+        };
+        RecordScoresResult: {
+            /** Format: int32 */
+            recorded: number;
+        };
         RegisterRequest: {
             displayName: string;
             username: string;
             password: string;
             householdName?: null | string;
             inviteCode?: null | string;
+        };
+        SavedGameView: {
+            gameId: string;
+            data: components["schemas"]["JsonElement"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        ScoreInput: {
+            /** Format: uuid */
+            clientId: string;
+            gameId: string;
+            board: string;
+            /** Format: double */
+            value: number;
+            /** Format: date-time */
+            achievedAt: string;
         };
         SelectProfileRequest: {
             /** Format: uuid */
@@ -884,6 +989,154 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ListSaves: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedGameView"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    PutSave: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutSaveRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SavedGameView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RecordScores: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RecordScoresRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecordScoresResult"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetLeaderboard: {
+        parameters: {
+            query?: {
+                board?: string;
+            };
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LeaderboardEntry"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

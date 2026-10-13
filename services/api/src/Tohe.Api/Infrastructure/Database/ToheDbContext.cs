@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Tohe.Api.Modules.Identity;
+using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
 
 namespace Tohe.Api.Infrastructure.Database;
@@ -19,6 +20,10 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
     public DbSet<Household> Households => Set<Household>();
 
     public DbSet<Profile> Profiles => Set<Profile>();
+
+    public DbSet<SavedGame> SavedGames => Set<SavedGame>();
+
+    public DbSet<ScoreEntry> Scores => Set<ScoreEntry>();
 
     /// <summary>Keys that encrypt session cookies; persisted so restarts and deploys keep people signed in.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();

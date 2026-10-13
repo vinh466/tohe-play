@@ -5,7 +5,7 @@ using Tohe.Api.Infrastructure.Database;
 namespace Tohe.Api.Modules.Identity;
 
 /// <summary>The profile playing in this request's session, as other modules may see it.</summary>
-public sealed record ActiveProfile(Guid Id, ProfileKind Kind, string? AgeBand)
+public sealed record ActiveProfile(Guid Id, Guid HouseholdId, ProfileKind Kind, string? AgeBand)
 {
     /// <summary>Highest game <c>minAge</c> this profile may see; unlimited for adults and guests.</summary>
     public int MaxGameMinAge => Kind == ProfileKind.Child && AgeBand is { } band ? ProfileOptions.MinAgeOf(band) : int.MaxValue;
@@ -30,7 +30,26 @@ internal sealed class ActiveProfileReader(ToheDbContext db) : IActiveProfile
         // Join through the account so a profile id from another household can never be used.
         return await db.Profiles.AsNoTracking()
             .Where(p => p.Id == profileId && db.Users.Any(a => a.Id == accountId && a.HouseholdId == p.HouseholdId))
-            .Select(p => new ActiveProfile(p.Id, p.Kind, p.AgeBand))
+            .Select(p => new ActiveProfile(p.Id, p.HouseholdId, p.Kind, p.AgeBand))
             .FirstOrDefaultAsync(cancellationToken);
     }
+}
+
+/// <summary>A player as other modules may show it (e.g. on a leaderboard).</summary>
+public sealed record PlayerCard(Guid Id, string Name, string Avatar);
+
+/// <summary>Read access to a household's profiles for other modules.</summary>
+public interface IHouseholdProfiles
+{
+    Task<IReadOnlyList<PlayerCard>> ListAsync(Guid householdId, CancellationToken cancellationToken);
+}
+
+internal sealed class HouseholdProfilesReader(ToheDbContext db) : IHouseholdProfiles
+{
+    public async Task<IReadOnlyList<PlayerCard>> ListAsync(Guid householdId, CancellationToken cancellationToken) =>
+        await db.Profiles.AsNoTracking()
+            .Where(p => p.HouseholdId == householdId)
+            .OrderBy(p => p.CreatedAt)
+            .Select(p => new PlayerCard(p.Id, p.Name, p.Avatar))
+            .ToListAsync(cancellationToken);
 }

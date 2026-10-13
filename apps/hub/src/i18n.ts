@@ -25,6 +25,13 @@ const vi = {
   cancel: 'Huỷ',
   save: 'Lưu',
   switchProfile: 'Đổi người chơi',
+  leaderboard: {
+    button: 'Bảng xếp hạng {{game}}',
+    title: '🏆 {{game}}',
+    empty: 'Chưa ai có điểm — chơi một ván để lên bảng nhé!',
+    you: 'bạn',
+    failed: 'Không tải được bảng xếp hạng.',
+  },
   theme: {
     title: 'Giao diện',
     button: 'Giao diện: {{choice}}',
@@ -155,6 +162,13 @@ const en: typeof vi = {
   cancel: 'Cancel',
   save: 'Save',
   switchProfile: 'Switch player',
+  leaderboard: {
+    button: 'Leaderboard for {{game}}',
+    title: '🏆 {{game}}',
+    empty: 'No scores yet — play a round to get on the board!',
+    you: 'you',
+    failed: 'Could not load the leaderboard.',
+  },
   theme: {
     title: 'Appearance',
     button: 'Appearance: {{choice}}',

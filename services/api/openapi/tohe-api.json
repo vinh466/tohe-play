@@ -578,6 +578,204 @@
           }
         }
       }
+    },
+    "/api/progress/saves": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Every save of the active profile, for a device to catch up.",
+        "operationId": "ListSaves",
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/SavedGameView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progress/saves/{gameId}": {
+      "put": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Store the active profile's save of a game; the last write wins.",
+        "operationId": "PutSave",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PutSaveRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SavedGameView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progress/scores": {
+      "post": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Record finished runs of the active profile; repeats (same clientId) are ignored.",
+        "operationId": "RecordScores",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RecordScoresRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecordScoresResult"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/progress/leaderboard/{gameId}": {
+      "get": {
+        "tags": [
+          "Progress"
+        ],
+        "summary": "Best score of each household member on a game's board.",
+        "operationId": "GetLeaderboard",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "board",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "default"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/LeaderboardEntry"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -799,6 +997,37 @@
           }
         }
       },
+      "JsonElement": { },
+      "LeaderboardEntry": {
+        "required": [
+          "profileId",
+          "name",
+          "avatar",
+          "value",
+          "achievedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "achievedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "username",
@@ -979,6 +1208,43 @@
           }
         }
       },
+      "PutSaveRequest": {
+        "required": [
+          "data"
+        ],
+        "type": "object",
+        "properties": {
+          "data": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "RecordScoresRequest": {
+        "required": [
+          "scores"
+        ],
+        "type": "object",
+        "properties": {
+          "scores": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ScoreInput"
+            }
+          }
+        }
+      },
+      "RecordScoresResult": {
+        "required": [
+          "recorded"
+        ],
+        "type": "object",
+        "properties": {
+          "recorded": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "RegisterRequest": {
         "required": [
           "displayName",
@@ -1007,6 +1273,56 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SavedGameView": {
+        "required": [
+          "gameId",
+          "data",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "ScoreInput": {
+        "required": [
+          "clientId",
+          "gameId",
+          "board",
+          "value",
+          "achievedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "achievedAt": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -1085,6 +1401,9 @@
     },
     {
       "name": "Registry"
+    },
+    {
+      "name": "Progress"
     }
   ]
 }

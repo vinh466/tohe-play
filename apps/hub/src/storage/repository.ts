@@ -1,15 +1,8 @@
 import type { JsonValue } from '@tohe/game-sdk';
 import Dexie from 'dexie';
-import type { LocalProfile, ToheDb } from './db.ts';
+import { type LocalProfile, newId, type ToheDb } from './db.ts';
 
 const AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐧', '🐨', '🦁', '🐰'];
-
-/** crypto.randomUUID only exists in secure contexts; a phone testing over plain http on the LAN is not one. */
-function newId(): string {
-  if (typeof crypto.randomUUID === 'function') return crypto.randomUUID();
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-}
 
 /** The local profile used in "Chơi thử" (guest) mode: one per device, saves stay on the device. */
 export async function ensureGuestProfile(db: ToheDb): Promise<LocalProfile> {
@@ -42,7 +35,7 @@ export async function recordScore(
   db: ToheDb,
   entry: { profileId: string; gameId: string; board: string; value: number },
 ): Promise<void> {
-  await db.scores.add({ ...entry, at: Date.now(), synced: 0 });
+  await db.scores.add({ ...entry, at: Date.now(), synced: 0, clientId: newId() });
 }
 
 /** Whether a profile has played anything on this device. */
