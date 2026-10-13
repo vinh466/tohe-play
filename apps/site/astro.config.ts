@@ -71,6 +71,7 @@ export default defineConfig({
           items: [{ autogenerate: { directory: 'docs/decisions' } }],
         },
         { label: 'Roadmap', items: [{ autogenerate: { directory: 'docs/roadmap' } }] },
+        { label: 'Research', items: [{ autogenerate: { directory: 'docs/research' } }] },
         ...openAPISidebarGroups,
       ],
     }),

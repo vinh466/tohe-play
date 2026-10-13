@@ -5,7 +5,7 @@ sidebar:
   order: 8
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — the default for games is amended by [ADR 0012](0012-phaser-and-the-game-kit.md)
 - **Date:** 2026-10-13
 
 ## Context

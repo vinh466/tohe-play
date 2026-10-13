@@ -21,7 +21,8 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0005](0005-offline-first.md) | Offline first: games keep working without the API | Accepted |
 | [0006](0006-docs-as-code.md) | Docs as code, rendered by Starlight, written for humans and agents | Accepted |
 | [0007](0007-immutable-game-builds-and-catalog.md) | Immutable versioned game builds + a catalog indexed by the API | Accepted |
-| [0008](0008-technology-baseline.md) | Technology baseline | Accepted |
+| [0008](0008-technology-baseline.md) | Technology baseline | Accepted; game default amended by 0012 |
 | [0009](0009-local-environment.md) | Local environment: 47xx ports, compose, isolation | Accepted |
 | [0010](0010-environments-dev-and-uat.md) | Environments: development and UAT on the homelab | Accepted |
 | [0011](0011-password-sign-in-first.md) | Sign in with username and password first; OAuth later | Accepted |
+| [0012](0012-phaser-and-the-game-kit.md) | Phaser 4 and the game kit are the default way to build games | Accepted |
