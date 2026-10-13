@@ -8,18 +8,34 @@ const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const step = (message: string) => console.log(`• ${message}`);
 
 const browser = await chromium.launch().catch(() => chromium.launch({ channel: 'chrome' }));
-const page = await browser.newPage({
+const context = await browser.newContext({
   viewport: { width: 390, height: 844 },
   deviceScaleFactor: 2,
   isMobile: true,
   hasTouch: true,
   locale: 'vi-VN',
 });
+// A trace (screenshots, DOM snapshots, console, network) is kept only when the test fails:
+// open it with `pnpm --filter @tohe/e2e exec playwright show-trace test-results/trace.zip`.
+await context.tracing.start({ screenshots: true, snapshots: true });
+const page = await context.newPage();
+
+const started = Date.now();
+const timeline: string[] = [];
+const mark = (event: string) => timeline.push(`${((Date.now() - started) / 1000).toFixed(2)}s ${event}`);
 const errors: string[] = [];
-page.on('pageerror', (error) => errors.push(error.message));
+page.on('pageerror', (error) => {
+  errors.push(error.message);
+  mark(`uncaught: ${error.message}`);
+});
 page.on('console', (message) => {
   if (message.type() === 'error') errors.push(message.text());
+  mark(`console.${message.type()}: ${message.text()}`);
 });
+page.on('framenavigated', (frame) =>
+  mark(`${frame === page.mainFrame() ? 'hub' : 'iframe'} -> ${frame.url()}`),
+);
+page.on('framedetached', (frame) => mark(`detached: ${frame.url()}`));
 
 try {
   step(`open ${hubUrl}`);
@@ -44,6 +60,7 @@ try {
   const frame = await gameFrame(page);
   const box = await page.locator('iframe').boundingBox();
   if (!box) throw new Error('game iframe has no layout box');
+  mark(`iframe box ${JSON.stringify(box)}`);
 
   step('play one 20 s round');
   // Random taps must never reach the game-over overlay: its "Thoát" (exit) button would close the game.
@@ -53,7 +70,10 @@ try {
   await frame.getByRole('button', { name: 'Chơi', exact: true }).tap();
   const exitButton = frame.getByRole('button', { name: 'Thoát', exact: true });
   while (Date.now() < end && !(await exitButton.isVisible())) {
-    await page.touchscreen.tap(box.x + Math.random() * box.width, box.y + Math.random() * box.height);
+    const x = Math.round(box.x + Math.random() * box.width);
+    const y = Math.round(box.y + Math.random() * box.height);
+    mark(`tap ${x},${y}`);
+    await page.touchscreen.tap(x, y);
     await page.waitForTimeout(150);
   }
   await frame.getByRole('button', { name: 'Chơi lại' }).waitFor({ timeout: 10_000 });
@@ -81,10 +101,13 @@ try {
   await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`);
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);
+  await context.tracing.stop();
   console.log(`\nPASS (${stored.scores} score, ${stored.saves} save stored)`);
 } catch (error) {
   await page.screenshot({ path: 'test-results/e2e-failure.png' }).catch(() => {});
+  await context.tracing.stop({ path: 'test-results/trace.zip' }).catch(() => {});
   console.error(`\nFAIL: ${error instanceof Error ? error.message : String(error)}`);
+  console.error(`\nLast events:\n  ${timeline.slice(-40).join('\n  ')}`);
   process.exitCode = 1;
 } finally {
   await browser.close();
