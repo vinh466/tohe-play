@@ -90,7 +90,7 @@ internal static partial class ProgressModule
                 }
 
                 var profile = Active(http);
-                var now = clock.GetUtcNow();
+                var now = ToDatabasePrecision(clock.GetUtcNow());
                 var save = await db.SavedGames.FirstOrDefaultAsync(s => s.ProfileId == profile.Id && s.GameId == gameId, ct);
                 if (save is null)
                 {
@@ -173,6 +173,13 @@ internal static partial class ProgressModule
 
         return api;
     }
+
+    /// <summary>
+    /// PostgreSQL keeps microseconds; .NET has 100 ns ticks. Rounding first makes the time in a PUT's answer equal to
+    /// the one a later GET reads, which devices compare.
+    /// </summary>
+    private static DateTimeOffset ToDatabasePrecision(DateTimeOffset time) =>
+        new(time.Ticks - (time.Ticks % 10), time.Offset);
 
     private static ActiveProfile Active(HttpContext http) => (ActiveProfile)http.Items[typeof(ActiveProfile)]!;
 
