@@ -2,9 +2,10 @@
 #   docker build -f deploy/docker/web.Dockerfile --target hub .
 FROM node:26-bookworm-slim AS workspace
 ENV PNPM_HOME=/pnpm PATH=/pnpm:$PATH CI=true TURBO_TELEMETRY_DISABLED=1
-RUN corepack enable
 WORKDIR /repo
 COPY pnpm-lock.yaml pnpm-workspace.yaml package.json ./
+# Install exactly the pnpm pinned in package.json -> packageManager. Not via corepack: Node 25+ no longer ships it.
+RUN npm install --global --no-fund --no-audit "pnpm@$(node -p "require('./package.json').packageManager.split('@')[1]")"
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm fetch
 COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --prefer-offline
