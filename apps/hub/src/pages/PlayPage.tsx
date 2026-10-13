@@ -7,6 +7,7 @@ import { configQuery, gamesQuery, profileQuery } from '../api/queries.ts';
 import { dailySeed, isTrustedEntry, manifestFrom } from '../launcher/manifest.ts';
 import { db } from '../storage/db.ts';
 import { loadSave, recordScore, storeSave } from '../storage/repository.ts';
+import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 
 type Status = 'loading' | 'ready' | 'failed' | 'untrusted';
 
@@ -86,16 +87,32 @@ export function PlayPage() {
     host.current?.setSettings({ muted: next });
   };
 
+  // Leaving is confirmed: the bar sits right above the game, and touch adjustment on phones snaps taps near the
+  // top edge of the game onto this button. A child must not be thrown out of a round by a stray tap.
+  const [confirmingExit, setConfirmingExit] = useState(false);
+  const askToExit = () => {
+    host.current?.pause();
+    setConfirmingExit(true);
+  };
+  const keepPlaying = () => {
+    setConfirmingExit(false);
+    host.current?.resume();
+  };
+
   if (games.isSuccess && !game) {
     return <Message text={t('gameNotFound')} back={t('back')} />;
   }
 
   return (
     <div className="fixed inset-0 flex flex-col bg-orange-50">
-      <nav className="flex h-12 shrink-0 items-center justify-between px-2 pt-[env(safe-area-inset-top)]">
-        <Link to="/" className="rounded-full px-3 py-1.5 font-semibold text-orange-800 active:bg-orange-100">
+      <nav className="flex h-14 shrink-0 items-center justify-between border-orange-200 border-b-2 px-2 pt-[env(safe-area-inset-top)]">
+        <button
+          type="button"
+          onClick={askToExit}
+          className="rounded-full px-3 py-1.5 font-semibold text-orange-800 active:bg-orange-100"
+        >
           ← {t('exit')}
-        </Link>
+        </button>
         <span className="font-bold text-orange-900">{game?.name}</span>
         <button
           type="button"
@@ -122,6 +139,15 @@ export function PlayPage() {
           </div>
         )}
       </div>
+      <ConfirmDialog
+        open={confirmingExit}
+        title={t('confirmExitTitle')}
+        body={t('confirmExitBody')}
+        confirmLabel={t('exit')}
+        cancelLabel={t('keepPlaying')}
+        onConfirm={() => void navigate({ to: '/' })}
+        onCancel={keepPlaying}
+      />
     </div>
   );
 }
