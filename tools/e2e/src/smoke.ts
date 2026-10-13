@@ -42,17 +42,21 @@ try {
   await card.tap();
   await page.waitForURL(/\/play\/hello$/);
   const frame = await gameFrame(page);
-  await frame.getByRole('button', { name: 'Chơi' }).tap();
+  const box = await page.locator('iframe').boundingBox();
+  if (!box) throw new Error('game iframe has no layout box');
 
   step('play one 20 s round');
-  const box = await page.locator('iframe').boundingBox();
-  // Stop before the round ends: afterwards a random tap could hit the game's own "Thoát" (exit) button.
-  const end = Date.now() + 19_000;
-  while (Date.now() < end && box) {
+  // Random taps must never reach the game-over overlay: its "Thoát" (exit) button would close the game.
+  // So the deadline is taken *before* the round starts (slow CI must not stretch it past 20 s), and tapping
+  // also stops as soon as any overlay button is visible again.
+  const end = Date.now() + 17_000;
+  await frame.getByRole('button', { name: 'Chơi', exact: true }).tap();
+  const exitButton = frame.getByRole('button', { name: 'Thoát', exact: true });
+  while (Date.now() < end && !(await exitButton.isVisible())) {
     await page.touchscreen.tap(box.x + Math.random() * box.width, box.y + Math.random() * box.height);
     await page.waitForTimeout(150);
   }
-  await frame.getByRole('button', { name: 'Chơi lại' }).waitFor({ timeout: 8000 });
+  await frame.getByRole('button', { name: 'Chơi lại' }).waitFor({ timeout: 10_000 });
   await page.screenshot({ path: 'test-results/e2e-game-over.png' });
 
   step('check the hub stored the score and the save');
