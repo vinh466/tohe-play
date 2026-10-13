@@ -4,7 +4,9 @@ import { useTranslation } from 'react-i18next';
 import { gamesQuery } from '../api/queries.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
+import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
+import { LeaderboardButton } from '../ui/Leaderboard.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
 
@@ -25,6 +27,7 @@ function Catalog({ player, household }: { player: Player; household: string | nu
   const { t } = useTranslation();
   const games = useQuery(gamesQuery(player.id));
   const isGuest = player.kind === 'guest';
+  useBackgroundSync(player);
 
   return (
     <Screen>
@@ -70,7 +73,11 @@ function Catalog({ player, household }: { player: Player; household: string | nu
         {games.data?.length === 0 && <p className="text-ink-soft">{t('noGames')}</p>}
         <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
           {games.data?.map((game, index) => (
-            <li key={game.id} className="animate-pop-in" style={{ animationDelay: `${index * 40}ms` }}>
+            <li
+              key={game.id}
+              className="relative animate-pop-in"
+              style={{ animationDelay: `${index * 40}ms` }}
+            >
               <Link
                 to="/play/$gameId"
                 params={{ gameId: game.id }}
@@ -84,6 +91,7 @@ function Catalog({ player, household }: { player: Player; household: string | nu
                 <span className="font-bold text-ink text-lg">{game.name}</span>
                 <span className="line-clamp-2 text-ink-soft text-sm">{game.description}</span>
               </Link>
+              {syncsWithServer(player) ? <LeaderboardButton game={game} player={player} /> : null}
             </li>
           ))}
         </ul>

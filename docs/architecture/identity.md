@@ -76,6 +76,7 @@ sequenceDiagram
 | An adult profile can only be edited by its own account | Households module |
 | A PIN is exactly 4 digits and stored hashed; wrong PINs are rate limited | Session endpoints |
 | Children see only games whose `minAge` is at most the lower bound of their age band | Registry, via `IActiveProfile` |
+| Saves, scores and the leaderboard belong to the active profile and its household | Progress, via `IActiveProfile` and `IHouseholdProfiles` |
 | Unsafe `/api` requests from another origin (`Sec-Fetch-Site` ≠ `same-origin`) are rejected | `SameOriginGuard` middleware |
 | Sign-in, registration, PIN and parent gate: 10 requests per minute per client IP | Rate limiter policy `auth` |
 | 10 wrong passwords lock an account for 5 minutes | ASP.NET Core Identity lockout |

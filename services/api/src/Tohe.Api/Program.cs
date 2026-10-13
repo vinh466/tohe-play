@@ -4,6 +4,7 @@ using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Infrastructure.Security;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Platform;
+using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -52,6 +53,7 @@ api.MapHealthChecks("/health");
 api.MapPlatformEndpoints();
 api.MapIdentityEndpoints();
 api.MapRegistryEndpoints();
+api.MapProgressEndpoints();
 
 await app.RunAsync();
 

@@ -7,6 +7,7 @@ import { configQuery, gamesQuery } from '../api/queries.ts';
 import { dailySeed, isTrustedEntry, manifestFrom } from '../launcher/manifest.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
+import { syncer, syncsWithServer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
 import { loadSave, recordScore, storeSave } from '../storage/repository.ts';
 import { useTheme } from '../theme/useTheme.ts';
@@ -50,19 +51,29 @@ function Launcher({ player }: { player: Player }) {
     }
 
     setStatus('loading');
+    const synced = syncsWithServer(player);
     const session = createHost({
       transport: iframeTransport(frame, new URL(gamesOrigin).origin),
       manifest: manifestFrom(game),
-      init: async () => ({
-        profile: { id: player.id, name: player.name, avatar: player.avatar },
-        locale,
-        // The theme the hub shows; games that declare both themes follow it (ADR 0013).
-        settings: { muted, theme },
-        save: await loadSave(db, player.id, game.id),
-        seed: dailySeed(),
-      }),
-      onSave: (data) => storeSave(db, player.id, game.id, data),
-      onScore: ({ value, board }) => recordScore(db, { profileId: player.id, gameId: game.id, board, value }),
+      init: async () => {
+        if (synced) await catchUp(player.id);
+        return {
+          profile: { id: player.id, name: player.name, avatar: player.avatar },
+          locale,
+          // The theme the hub shows; games that declare both themes follow it (ADR 0013).
+          settings: { muted, theme },
+          save: await loadSave(db, player.id, game.id),
+          seed: dailySeed(),
+        };
+      },
+      onSave: async (data) => {
+        await storeSave(db, player.id, game.id, data);
+        if (synced) syncer.syncSoon(player.id);
+      },
+      onScore: async ({ value, board }) => {
+        await recordScore(db, { profileId: player.id, gameId: game.id, board, value });
+        if (synced) syncer.syncSoon(player.id);
+      },
       onExit: () => {
         console.info(`[game:${game.id}] requested exit`);
         void navigate({ to: '/' });
@@ -161,6 +172,15 @@ function Launcher({ player }: { player: Player }) {
       />
     </div>
   );
+}
+
+/**
+ * Before a game starts, fetch the newest save from other devices (M2) — but never make a child wait: after 2.5 s,
+ * or offline, the game opens with what this device has.
+ */
+async function catchUp(profileId: string): Promise<void> {
+  const timeout = new Promise((resolve) => setTimeout(resolve, 2500));
+  await Promise.race([syncer.syncNow(profileId).catch(() => {}), timeout]);
 }
 
 function Message({ text, back }: { text: string; back: string }) {

@@ -210,11 +210,34 @@ try {
   if (stored.scores < 1 || stored.saves < 1)
     throw new Error(`nothing stored for ${kidId}: ${JSON.stringify(stored)}`);
 
+  step('sync (M2): the save and the score reach the server');
+  const onServer = async () =>
+    page.evaluate(async () => {
+      const saves = (await (await fetch('/api/progress/saves')).json()) as { gameId: string }[];
+      const board = (await (await fetch('/api/progress/leaderboard/hello')).json()) as {
+        profileId: string;
+      }[];
+      return { saves: saves.map((s) => s.gameId), board: board.map((e) => e.profileId) };
+    });
+  for (let attempt = 0; ; attempt++) {
+    const server = await onServer();
+    if (server.saves.includes('hello') && server.board.includes(kidId)) break;
+    if (attempt === 20) throw new Error(`not synced to the server: ${JSON.stringify(server)}`);
+    await page.waitForTimeout(500);
+  }
+
   step('exit back to the catalog (the hub asks first)');
   await page.getByRole('button', { name: /Thoát/ }).first().tap();
   const confirm = page.getByRole('dialog');
   await confirm.getByRole('button', { name: 'Thoát', exact: true }).tap();
   await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`);
+
+  step('the household leaderboard lists the child');
+  await page.getByRole('button', { name: 'Bảng xếp hạng Chạm Chấm' }).tap();
+  const leaderboard = page.getByRole('dialog', { name: /Chạm Chấm/ });
+  await leaderboard.getByText('Bé Na (bạn)').waitFor();
+  await shot('leaderboard');
+  await leaderboard.getByRole('button', { name: '✕' }).tap();
 
   step(`the landing page (${siteUrl}) and the docs share the hub's light/dark choice`);
   await page.goto(siteUrl);
