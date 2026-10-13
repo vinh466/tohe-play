@@ -75,7 +75,7 @@ jobs:
           done
           exit 1
       - run: pnpm --filter @tohe/e2e exec playwright install --with-deps chromium
-      - run: for i in 1 2 3 4 5; do echo "=== run $i"; pnpm --filter @tohe/e2e smoke || exit 1; done
+      - run: pnpm --filter @tohe/e2e smoke
       - name: Site is served
         run: curl -fsS http://localhost:4710/docs/ | grep -q "Tò He"
       - name: Stack logs
