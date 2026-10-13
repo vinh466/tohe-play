@@ -1,0 +1,106 @@
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: #fff7ed;
+  font-family: system-ui, sans-serif;
+  color: #431407;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+#hud {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.6rem 1rem 0;
+}
+
+.stat {
+  display: flex;
+  flex-direction: column;
+  min-width: 6.5rem;
+  padding: 0.35rem 0.9rem 0.45rem;
+  border-radius: 1rem;
+  background: #ffedd5;
+}
+
+.stat-best {
+  align-items: flex-end;
+  background: #fff;
+  transition: background 0.3s ease;
+}
+
+.stat-best.is-record {
+  background: #fef08a;
+}
+
+.stat-label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #9a3412;
+}
+
+.crown {
+  display: inline-block;
+}
+
+.is-record .crown {
+  animation: wobble 0.8s ease-in-out infinite;
+}
+
+.stat-value {
+  font-size: 1.6rem;
+  font-weight: 900;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+}
+
+.stat-value.bump {
+  animation: bump 0.3s ease-out;
+}
+
+#stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+#stage canvas {
+  display: block;
+}
+
+@keyframes bump {
+  40% {
+    transform: scale(1.18);
+  }
+}
+
+@keyframes wobble {
+  50% {
+    transform: rotate(-12deg) scale(1.15);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stat-value.bump,
+  .is-record .crown {
+    animation: none;
+  }
+}

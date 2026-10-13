@@ -1,0 +1,31 @@
+{
+  "name": "@tohe/game-kit",
+  "version": "0.1.0",
+  "description": "Shared building blocks for Tò He games: crisp Phaser setup, synthesized sounds, haptics, juice, overlay screens.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./phaser": "./src/phaser/index.ts",
+    "./overlay.css": "./src/overlay.css"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "peerDependencies": {
+    "phaser": "^4.2.0"
+  },
+  "peerDependenciesMeta": {
+    "phaser": {
+      "optional": true
+    }
+  },
+  "dependencies": {
+    "@tohe/game-sdk": "workspace:*"
+  },
+  "devDependencies": {
+    "phaser": "^4.2.0",
+    "vitest": "^5.0.0"
+  }
+}

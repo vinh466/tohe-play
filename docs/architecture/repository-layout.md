@@ -16,7 +16,8 @@ tohe-play/
 │   └── api/                 .NET 10 solution (Tohe.slnx): src/Tohe.Api, tests/Tohe.Api.Tests, openapi/
 ├── packages/
 │   ├── contract/            Game Contract v1: Zod schemas, JSON Schema output, game CSP
-│   └── game-sdk/            Game side (dependency-free) + host side (/host) of the contract
+│   ├── game-sdk/            Game side (dependency-free) + host side (/host) of the contract
+│   └── game-kit/            Shared game building blocks: Phaser setup, sfx, haptics, juice, overlay (ADR 0012)
 ├── games/
 │   └── <id>/                One folder per game; folder name = game id
 ├── tools/
@@ -36,7 +37,8 @@ tohe-play/
 | `@tohe/contract` | `zod` | anything in this repo |
 | `@tohe/game-sdk` (game side) | types from `@tohe/contract` only | runtime dependencies of any kind |
 | `@tohe/game-sdk/host` | `@tohe/contract` | — |
-| `games/*` | `@tohe/game-sdk`, any library that fits the game | the hub, the API, other games, network access |
+| `@tohe/game-kit` | `@tohe/game-sdk` (types), Phaser (optional peer, `./phaser` entry only) | the hub, the API |
+| `games/*` | `@tohe/game-sdk`, `@tohe/game-kit`, any library that fits the game | the hub, the API, other games, network access |
 | `apps/hub` | contract, SDK host, generated API types | game code |
 | `services/api` | NuGet packages in `Directory.Packages.props` | game code |
 

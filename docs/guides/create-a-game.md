@@ -34,16 +34,25 @@ sidebar:
 
 ## Choosing technology
 
-| Game type | Default choice |
+**Default: Phaser 4 through `@tohe/game-kit`** ([ADR 0012](../decisions/0012-phaser-and-the-game-kit.md),
+[research](../research/game-tech.md)). `games/merge-block` is the reference: copy its `logic.ts` / `view.ts` /
+`main.ts` split.
+
+| Game type | Choice |
 | --- | --- |
-| Grid / puzzle (merge, block blast, tetris, 2048, match-3) | TypeScript + Canvas 2D, pure logic module |
-| UI-heavy (cards, words, quizzes) | DOM / React |
-| 2D action with physics | Phaser 4 |
-| Many sprites and effects | PixiJS 8 |
+| Puzzle, arcade, board, farm, RPG-lite | **Phaser 4 + game kit** (default) |
+| Tiny one-screen games | TypeScript + Canvas 2D, like `games/hello` |
+| UI-heavy (cards, words, quizzes) | DOM with the kit's `overlay`, `sfx`, `haptics` |
 | Large game | Godot 4 web export, single-threaded build (no COOP/COEP needed) |
 
-Any choice is fine if the build passes conformance within its size budget. Record unusual choices in the game's
-`SPEC.md`.
+What the kit gives you, so you do not write it again: `createGame` (crisp on phones, resize, pause/resume, Canvas
+fallback when WebGL fails), `sfx` (synthesised sounds, iOS unlock), `haptics`, `juice` (`popIn`, `squash`, `pulse`,
+`burst`, `floatText`, `shake`, `confetti`), `overlay` (intro / pause / game-over cards in one shared style),
+`formatValue` / `formatScore`.
+
+**Logic emits events, the view animates them.** `drop(state, column)` (or `move`, `place`…) returns the new state and
+a list of events; the view turns each event into a short animation and never decides rules. Keep the PRNG state in
+the game state, save after every move, and resume on open.
 
 ## Assets
 
