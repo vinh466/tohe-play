@@ -50,7 +50,8 @@ git -C "$REPO" archive "$SHA" | (umask 022 && tar -x -C "$SRC")
 
 cd "$SRC"
 export TOHE_VERSION="$SHA"
-docker compose -f compose.uat.yaml --env-file "$ENV_FILE" build
+# --pull: base images (dotnet runtime, node, caddy) use moving tags; take their latest security patches every time.
+docker compose -f compose.uat.yaml --env-file "$ENV_FILE" build --pull
 docker compose -f compose.uat.yaml --env-file "$ENV_FILE" up -d --remove-orphans
 
 HUB="http://${TOHE_UAT_HOST}:4820"
