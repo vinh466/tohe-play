@@ -1,15 +1,22 @@
 // The board scene: draws the state and turns logic events into animations. It never decides rules — main.ts
 // calls logic.drop() and hands the events here. Layout is in CSS pixels (the kit zooms the camera by DPR).
 // Colours come from palette.ts for the current light/dark theme; setTheme() redraws everything.
+// The board and every block (with its number) are textures drawn once per value, theme and size (the kit's
+// drawTexture): a frame then costs one quad per block instead of rebuilding rounded rectangles and text.
 import { formatValue, haptics, type Sfx, type Theme } from '@tohe/game-kit';
 import {
   burst,
   confetti,
+  crispImage,
   crispText,
+  cssHex,
   delay,
+  dprOf,
+  drawTexture,
   floatText,
   popIn,
   pulse,
+  roundedRect,
   shake,
   squash,
   tweenAsync,
@@ -50,9 +57,14 @@ export interface BoardCallbacks {
 
 type Block = Phaser.GameObjects.Container & { exp: Exponent };
 
+/** Blocks up to this value (2^11 = 2048) are drawn ahead, so a merge never waits for a new texture. */
+const PREDRAWN = 11;
+
 export class BoardScene extends Phaser.Scene {
   private layoutInfo!: Layout;
-  private board!: Phaser.GameObjects.Graphics;
+  private board!: Phaser.GameObjects.Image;
+  /** Textures drawn for the current and earlier layouts; the ones no longer shown are removed. */
+  private drawn = new Set<string>();
   private highlight!: Phaser.GameObjects.Graphics;
   private ghost!: Phaser.GameObjects.Graphics;
   private dimmer!: Phaser.GameObjects.Rectangle;
@@ -81,7 +93,7 @@ export class BoardScene extends Phaser.Scene {
   }
 
   create() {
-    this.board = this.add.graphics().setDepth(0);
+    this.board = crispImage(this, 0, 0, '__DEFAULT').setOrigin(0).setDepth(0);
     this.highlight = this.add.graphics().setDepth(1);
     this.ghost = this.add.graphics().setDepth(2);
     this.dimmer = this.add.rectangle(0, 0, 10, 10, this.colors.dimmer, 0).setOrigin(0).setDepth(30);
@@ -123,18 +135,8 @@ export class BoardScene extends Phaser.Scene {
     const previewY = Math.round(boardY - cell * 0.78);
     this.layoutInfo = { width, height, cell, gap, boardX, boardY, previewY };
 
-    this.board.clear();
-    this.board
-      .fillStyle(this.colors.board, 1)
-      .fillRoundedRect(boardX - 8, boardY - 8, boardW + 16, cell * ROWS + 16, 22);
-    for (let col = 0; col < COLS; col++) {
-      for (let row = 0; row < ROWS; row++) {
-        const { x, y } = this.cellTopLeft({ col, row });
-        this.board
-          .fillStyle(this.colors.cell, 1)
-          .fillRoundedRect(x + gap / 2, y + gap / 2, cell - gap, cell - gap, cell * 0.16);
-      }
-    }
+    this.board.setTexture(this.boardTexture()).setPosition(boardX - 8, boardY - 8);
+    for (let exp = 1; exp <= PREDRAWN; exp++) this.blockTexture(exp, cell);
     this.dimmer.setSize(width, height);
 
     for (const [index, block] of this.cells) {
@@ -147,6 +149,99 @@ export class BoardScene extends Phaser.Scene {
       this.paint(this.current, this.current.exp, cell);
     }
     this.drawGuides();
+    // Blocks still finishing an animation may show an old texture for a moment; remove them afterwards.
+    this.time.delayedCall(1000, () => this.removeUnusedTextures());
+  }
+
+  private boardTexture(): string {
+    const { cell, gap } = this.layoutInfo;
+    const width = cell * COLS + 16;
+    const height = cell * ROWS + 16;
+    const key = `merge-block:board:${this.theme}:${cell}:${gap}`;
+    this.drawn.add(key);
+    return drawTexture(this, key, width, height, (ctx) => {
+      ctx.fillStyle = cssHex(this.colors.board);
+      ctx.beginPath();
+      roundedRect(ctx, 0, 0, width, height, 22);
+      ctx.fill();
+      ctx.fillStyle = cssHex(this.colors.cell);
+      ctx.beginPath();
+      for (let col = 0; col < COLS; col++) {
+        for (let row = 0; row < ROWS; row++) {
+          roundedRect(
+            ctx,
+            8 + col * cell + gap / 2,
+            8 + row * cell + gap / 2,
+            cell - gap,
+            cell - gap,
+            cell * 0.16,
+          );
+        }
+      }
+      ctx.fill();
+    });
+  }
+
+  /** A block with its number, centred on the top face's square: `originY` puts that centre on the block's position. */
+  private blockTexture(exp: Exponent, size: number): { key: string; originY: number } {
+    const inner = size - this.layoutInfo.gap;
+    const r = inner * 0.2;
+    const line = Math.max(2, inner * 0.04);
+    const pad = Math.ceil(line / 2) + 1;
+    const height = inner * 1.06 + pad * 2;
+    const key = `merge-block:block:${this.theme}:${inner}:${exp}`;
+    this.drawn.add(key);
+    drawTexture(this, key, inner + pad * 2, height, (ctx) => {
+      const style = blockStyle(exp, this.theme);
+      const fill = (color: string, x: number, y: number, w: number, h: number, radius: number) => {
+        ctx.fillStyle = color;
+        ctx.beginPath();
+        roundedRect(ctx, pad + x, pad + y, w, h, radius);
+        ctx.fill();
+      };
+      fill(cssHex(style.edge), 0, inner * 0.06, inner, inner, r);
+      fill(cssHex(style.fill), 0, 0, inner, inner * 0.94, r);
+      if (style.outline !== undefined) {
+        ctx.lineWidth = line;
+        ctx.strokeStyle = cssHex(style.outline);
+        ctx.beginPath();
+        roundedRect(ctx, pad, pad, inner, inner, r);
+        ctx.stroke();
+      }
+      fill('rgba(255, 255, 255, 0.22)', inner * 0.1, inner * 0.07, inner * 0.8, inner * 0.18, r * 0.6);
+      // The digits' own box is centred (not the font's), a little above the middle like the top face.
+      const value = formatValue(2 ** exp);
+      const fontSize = Math.round(inner * (value.length <= 2 ? 0.46 : value.length === 3 ? 0.38 : 0.31));
+      ctx.font = `900 ${fontSize}px system-ui, sans-serif`;
+      ctx.fillStyle = style.text;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'alphabetic';
+      const box = ctx.measureText(value);
+      const middle = pad + inner / 2 - inner * 0.03;
+      ctx.fillText(
+        value,
+        pad + inner / 2,
+        middle + (box.actualBoundingBoxAscent - box.actualBoundingBoxDescent) / 2,
+      );
+    });
+    return { key, originY: (pad + inner / 2) / height };
+  }
+
+  private removeUnusedTextures() {
+    const shown = new Set<string>([this.board.texture.key]);
+    for (const object of this.children.list) {
+      if (object instanceof Phaser.GameObjects.Container) {
+        const image = object.list[0];
+        if (image instanceof Phaser.GameObjects.Image) shown.add(image.texture.key);
+      }
+    }
+    const { cell, gap } = this.layoutInfo;
+    const current = `merge-block:block:${this.theme}:${cell - gap}:`;
+    for (const key of this.drawn) {
+      if (shown.has(key) || key.startsWith(current)) continue;
+      this.textures.remove(key);
+      this.drawn.delete(key);
+    }
   }
 
   private cellTopLeft({ col, row }: Cell) {
@@ -174,7 +269,7 @@ export class BoardScene extends Phaser.Scene {
 
   private makeBlock(exp: Exponent, size: number, x: number, y: number): Block {
     const block = this.add.container(x, y) as Block;
-    block.add([this.add.graphics(), crispText(this, 0, 0, '', { fontStyle: '900' }).setOrigin(0.5)]);
+    block.add(crispImage(this, 0, 0, '__DEFAULT'));
     block.setDepth(10);
     this.paint(block, exp, size);
     return block;
@@ -182,34 +277,12 @@ export class BoardScene extends Phaser.Scene {
 
   private paint(block: Block, exp: Exponent, size: number) {
     block.exp = exp;
-    const [shape, label] = block.list as [Phaser.GameObjects.Graphics, Phaser.GameObjects.Text];
-    const style = blockStyle(exp, this.theme);
-    const inner = size - this.layoutInfo.gap;
-    const r = inner * 0.2;
-    shape.clear();
-    shape.fillStyle(style.edge, 1).fillRoundedRect(-inner / 2, -inner / 2 + inner * 0.06, inner, inner, r);
-    shape.fillStyle(style.fill, 1).fillRoundedRect(-inner / 2, -inner / 2, inner, inner * 0.94, r);
-    if (style.outline !== undefined) {
-      shape
-        .lineStyle(Math.max(2, inner * 0.04), style.outline, 1)
-        .strokeRoundedRect(-inner / 2, -inner / 2, inner, inner, r);
-    }
-    shape
-      .fillStyle(0xffffff, 0.22)
-      .fillRoundedRect(
-        -inner / 2 + inner * 0.1,
-        -inner / 2 + inner * 0.07,
-        inner * 0.8,
-        inner * 0.18,
-        r * 0.6,
-      );
-    const value = formatValue(2 ** exp);
-    const fontSize = Math.round(inner * (value.length <= 2 ? 0.46 : value.length === 3 ? 0.38 : 0.31));
-    label
-      .setText(value)
-      .setColor(style.text)
-      .setFontSize(fontSize)
-      .setY(-inner * 0.02);
+    const image = block.list[0] as Phaser.GameObjects.Image;
+    const { key, originY } = this.blockTexture(exp, size);
+    image
+      .setTexture(key)
+      .setOrigin(0.5, originY)
+      .setScale(1 / dprOf(this));
   }
 
   // ------------------------------------------------------------------ state

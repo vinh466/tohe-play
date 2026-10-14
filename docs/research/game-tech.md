@@ -60,6 +60,40 @@ So crispness is achievable but must be done right once — it goes into the kit 
 **Rendering speed**: third-party sprite benchmarks put Phaser and PixiJS close (43 vs 47 FPS at 10 000 moving
 sprites on a 2023 laptop). Casual games draw dozens to a few hundred objects; neither is a bottleneck.
 
+**Frame cost on phones** (October 2026, after Ghép Khối felt less smooth on a Galaxy A55 with Samsung Internet
+than on a computer). What we found:
+
+- **What a frame costs.** Phaser redraws the whole scene on every frame, up to 120 per second on such a screen.
+  - A `Graphics` object replays its drawing commands on every frame: every rounded rectangle is rebuilt and
+    triangulated again. Ghép Khối 1.3.0 drew about 180 of them (the board, its 35 cells, and four per block).
+  - Every `Text` owns a canvas. Each change redraws it and uploads it to the GPU again, and every merge changed
+    one.
+- **The fix (kit `drawTexture`):** draw the board and each block (shape and number) once per value, theme and size
+  with the Canvas 2D API at device pixels. Each one is then a single image, one quad per frame.
+- **Measured** on the test machine: a Xeon E5-2696 v3, whose single core is close to a phone's big core. The
+  setup was a 412 × 915 screen, 24 drops at a phone's pace, DPR 1 so that the CPU is what limits, and CPU throttled
+  4× (Chrome DevTools' "mid-tier phone"). Three runs each:
+
+  | Per frame | 1.3.0 (Graphics + Text) | 1.4.0 (drawn textures) |
+  | --- | --- | --- |
+  | Phaser, mean | 2.4–2.8 ms | 1.2–1.4 ms |
+  | Phaser, 95th percentile | 4.0–4.6 ms | 2.3–2.8 ms |
+  | Slowest frame | 9.5–32 ms | 3.9–7.2 ms |
+  | Frames over 25 ms | 5–9 | 0 |
+
+  At 120 Hz a frame has 8.3 ms, for the browser as well as the game. The board looks the same: a pixel diff of the
+  same board in both versions differs only at anti-aliased edges, in both themes.
+- **What this machine cannot measure.** It has no GPU: Chrome draws WebGL in software (SwiftShader), and headless
+  Chrome loses Phaser's WebGL context while it boots, so the kit falls back to Canvas. GPU cost and
+  WebGL-on-a-phone have to be measured on the phone. That is what the kit's `#perf` readout is for.
+- **Measuring on a phone:** open the play page with `?perf` (for example `…/play/merge-block?perf`); the hub passes
+  `#perf` to the game.
+  - The kit then shows the frame rate, the slowest frame and the number of hitches (frames over 1.5× the usual
+    time).
+  - It also shows Phaser's own time per frame, the renderer (`webgl` or `canvas`), the DPR, the canvas size and
+    the GPU's name.
+  - `canvas` on a phone means WebGL failed while the game booted, and that game then draws far more slowly.
+
 **Stability**: Phaser 4.2.1 (July 2026) was a bug-fix release (stencil, ESM build, tween delays, scale manager).
 The v3 → v4 changes are in pipelines/FX/masks/lighting; sprites, text, tweens, input, cameras, tilemaps, sound and
 scenes are unchanged — the parts casual games use.
@@ -98,7 +132,8 @@ games/<id>/
 
 | Module | Purpose |
 | --- | --- |
-| `createGame` | Phaser game at device pixels (crisp), fills its parent, re-lays out on resize/rotation, pauses the scene and its tweens on the SDK's `pause`, no Phaser audio or banner |
+| `createGame` | Phaser game at device pixels (crisp), fills its parent, re-lays out on resize/rotation, pauses the scene and its tweens on the SDK's `pause`, no Phaser audio or banner; `#perf` in the address shows a frame-rate readout |
+| `drawTexture` / `crispImage` | Shapes and text that do not change, drawn once with Canvas 2D at device pixels and shown as one image (see *Frame cost on phones*) |
 | `sfx` | Synthesised sounds (Web Audio, no files): `pop`, `drop`, `merge(level)`, `combo(n)`, `error`, `fanfare`; unlocked on the first touch (iOS); respects `muted` |
 | `haptics` | `tap` / `bump` / `success` via `navigator.vibrate` where supported (Android); silent elsewhere |
 | `juice` | Phaser helpers: `popIn`, `squash`, `floatText`, `burst` (particles), `shake` (tiered, motion-aware), `confetti` |

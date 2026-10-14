@@ -86,8 +86,10 @@ function Launcher({ player }: { player: Player }) {
       () => setStatus('ready'),
       () => setStatus('failed'),
     );
-    // Load the game only after the host listens, so its `ready` cannot be missed.
-    frame.src = game.entryUrl;
+    // Load the game only after the host listens, so its `ready` cannot be missed. `?perf` on this page turns on the
+    // game kit's frame-rate readout, for testing on phones.
+    const perf = new URLSearchParams(window.location.search).has('perf');
+    frame.src = perf ? `${game.entryUrl}#perf` : game.entryUrl;
 
     const onVisibility = () => (document.hidden ? session.pause() : session.resume());
     document.addEventListener('visibilitychange', onVisibility);
@@ -150,11 +152,12 @@ function Launcher({ player }: { player: Player }) {
           allow="autoplay; fullscreen"
           className="absolute inset-0 size-full border-0"
         />
-        {/* Fades out once the game is ready, covering its first frames while it applies its theme. */}
+        {/* Fades out once the game is ready, covering its first frames while it applies its theme. Then hidden, so
+            the compositor has no layer over the game while it plays. */}
         <div
           aria-hidden={status === 'ready'}
-          className={`absolute inset-0 grid place-items-center bg-page p-6 text-center text-ink transition-opacity duration-300 ${
-            status === 'ready' ? 'pointer-events-none opacity-0' : ''
+          className={`absolute inset-0 grid place-items-center bg-page p-6 text-center text-ink transition-[opacity,visibility] duration-300 ${
+            status === 'ready' ? 'pointer-events-none invisible opacity-0' : ''
           }`}
         >
           {status === 'loading' && t('loading')}

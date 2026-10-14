@@ -11,3 +11,4 @@ export {
   squash,
   tweenAsync,
 } from './juice.ts';
+export { crispImage, cssHex, dprOf, drawTexture, roundedRect } from './textures.ts';

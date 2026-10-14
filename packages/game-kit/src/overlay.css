@@ -163,3 +163,23 @@
     animation: none;
   }
 }
+
+/* The #perf readout (phaser/perf.ts): diagnostics for phone tests, never in a player's way. */
+.tohe-perf {
+  position: fixed;
+  left: 0.25rem;
+  bottom: max(0.25rem, env(safe-area-inset-bottom));
+  z-index: 20;
+  padding: 0.2rem 0.4rem;
+  border-radius: 0.4rem;
+  background: var(--tohe-surface);
+  color: var(--tohe-ink);
+  opacity: 0.9;
+  max-width: calc(100vw - 0.5rem);
+  font:
+    600 0.7rem / 1.35 ui-monospace,
+    monospace;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  pointer-events: none;
+}
