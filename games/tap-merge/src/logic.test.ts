@@ -53,12 +53,39 @@ describe('a tap', () => {
         { col: 2, row: 2 },
         { col: 3, row: 2 },
       ],
+      steps: [1, 1, 1],
       exp: 2,
       gained: 4 * 3,
     });
     expect(expAt(state, 2, 1)).toBe(2);
     expect(state.score).toBe(12);
     expect(state.moves).toBe(1);
+  });
+
+  it('pulls in the whole group of equal blocks that touch one another, however far it reaches', () => {
+    // A diagonal chain of 2s from the bottom-left corner, and one more 2 that touches none of them.
+    const start = board([
+      [0, 0, 1],
+      [1, 1, 1],
+      [2, 2, 1],
+      [3, 3, 1],
+      [4, 4, 1],
+      [4, 0, 1],
+    ]);
+    const { state, events } = play(start, { col: 0, row: 0 });
+    const merge = events[0];
+    expect(merge?.type === 'merge' && [merge.from, merge.steps, merge.gained]).toEqual([
+      [
+        { col: 1, row: 1 },
+        { col: 2, row: 2 },
+        { col: 3, row: 3 },
+        { col: 4, row: 4 },
+      ],
+      [1, 2, 3, 4],
+      4 * 4,
+    ]);
+    expect(expAt(state, 0, 0)).toBe(2);
+    expect(expAt(state, 4, 0)).toBe(1); // not connected: left alone
   });
 
   it('lets the blocks above fall into the holes and fills the board from the top', () => {

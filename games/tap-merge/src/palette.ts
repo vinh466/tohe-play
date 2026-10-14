@@ -57,7 +57,7 @@ export interface BoardStyle {
   /** "+128" score text and its outline. */
   scoreText: string;
   scoreStroke: string;
-  /** "Gom n!" text, and from 6 blocks on. */
+  /** "Gom n!" text, and for the biggest groups (10 blocks and more). */
   combo: string;
   bigCombo: string;
 }

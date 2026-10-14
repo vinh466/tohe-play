@@ -40,7 +40,8 @@ export interface Move {
 }
 
 export type GameEvent =
-  | { type: 'merge'; into: Cell; from: Cell[]; exp: Exponent; gained: number }
+  /** `from` in the order a ripple reaches them; `steps[i]` is how many neighbours away `from[i]` is. */
+  | { type: 'merge'; into: Cell; from: Cell[]; steps: number[]; exp: Exponent; gained: number }
   | { type: 'fall'; moves: Move[] }
   /** New blocks slide in from above the board, each falling `drop` cells into place. */
   | { type: 'fill'; blocks: { at: Cell; exp: Exponent; drop: number }[] }
@@ -94,8 +95,7 @@ export function spawn(grid: readonly Exponent[], rng: number): [Exponent, number
 
 /**
  * Which cells count as neighbours: all 8 around a block (sideways, up, down and diagonal), as the owner asked.
- * This one choice sets how long a game lasts (SPEC.md, "Game length"): with only the 4 straight directions a game
- * is about 260 taps instead of about 3,000.
+ * This one choice sets how long a game lasts (SPEC.md, "Game length").
  */
 const DIRECTIONS: readonly (readonly [number, number])[] = [
   [-1, -1],
@@ -113,15 +113,37 @@ export function around({ col, row }: Cell): Cell[] {
   return DIRECTIONS.map(([dc, dr]) => ({ col: col + dc, row: row + dr })).filter(inside);
 }
 
-/** The blocks a tap on `cell` would absorb: its equal neighbours. */
-export function matches(grid: readonly Exponent[], cell: Cell): Cell[] {
+/**
+ * The blocks a tap on `cell` would absorb: every equal block connected to it through equal neighbours, however
+ * far (the owner asked for whole groups, not only the 8 cells around). Breadth-first, so the list runs from the
+ * nearest to the farthest, with how many neighbours away each one is.
+ */
+export function group(grid: readonly Exponent[], cell: Cell): { cell: Cell; step: number }[] {
   const exp = grid[indexOf(cell)];
-  return around(cell).filter((n) => grid[indexOf(n)] === exp);
+  const seen = new Set([indexOf(cell)]);
+  const found: { cell: Cell; step: number }[] = [];
+  let frontier = [cell];
+  for (let step = 1; frontier.length > 0; step++) {
+    const next: Cell[] = [];
+    for (const from of frontier) {
+      for (const n of around(from)) {
+        if (seen.has(indexOf(n)) || grid[indexOf(n)] !== exp) continue;
+        seen.add(indexOf(n));
+        found.push({ cell: n, step });
+        next.push(n);
+      }
+    }
+    frontier = next;
+  }
+  return found;
 }
 
-/** Whether any block has an equal neighbour. */
+export const matches = (grid: readonly Exponent[], cell: Cell): Cell[] =>
+  group(grid, cell).map((g) => g.cell);
+
+/** Whether any block has an equal neighbour (then a tap on it merges). */
 export const hasMove = (grid: readonly Exponent[]) =>
-  grid.some((_, index) => matches(grid, cellAt(index)).length > 0);
+  grid.some((exp, index) => around(cellAt(index)).some((n) => grid[indexOf(n)] === exp));
 
 /** A full board, redrawn until it has a move (a fresh game never starts stuck). */
 export function newGame(seed: number, best = 0): State {
@@ -180,12 +202,13 @@ function settle(state: State, events: GameEvent[]): State {
   return { ...state, over: true, best };
 }
 
-/** Tap a block: its equal neighbours merge into it and it doubles; the board falls and refills from the top. */
+/** Tap a block: its whole group merges into it and it doubles; the board falls and refills from the top. */
 export function tap(state: State, cell: Cell): TapResult {
   if (state.over) return { ok: false, reason: 'game_over' };
   if (!inside(cell)) return { ok: false, reason: 'no_such_cell' };
-  const same = matches(state.grid, cell);
-  if (same.length === 0) return { ok: false, reason: 'no_match' };
+  const joined = group(state.grid, cell);
+  if (joined.length === 0) return { ok: false, reason: 'no_match' };
+  const same = joined.map((g) => g.cell);
 
   const grid = [...state.grid];
   const events: GameEvent[] = [];
@@ -193,7 +216,7 @@ export function tap(state: State, cell: Cell): TapResult {
   for (const n of same) grid[indexOf(n)] = 0;
   grid[indexOf(cell)] = exp;
   const gained = blockValue(exp) * same.length;
-  events.push({ type: 'merge', into: cell, from: same, exp, gained });
+  events.push({ type: 'merge', into: cell, from: same, steps: joined.map((g) => g.step), exp, gained });
 
   const moves = gravity(grid);
   if (moves.length > 0) events.push({ type: 'fall', moves });

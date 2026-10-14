@@ -1,10 +1,12 @@
 # Chạm Ghép (`tap-merge`) — spec
 
 > **Status: approved.** The owner proposed this variant of Ghép Khối and approved these rules in chat on
-> 2026-10-14 ("ừa vậy bạn triển khai đầy đủ nó giúp tôi"). Details the chat left open are marked *(default)*.
+> 2026-10-14 ("ừa vậy bạn triển khai đầy đủ nó giúp tôi"). After playing 0.1.0 the owner kept the 8 directions —
+> "a game to open and play without thinking" — and asked that a tap pull in the whole connected group, not only
+> the 8 cells around (0.2.0). Details the chat left open are marked *(default)*.
 
-A board always full of number blocks. Tap a block: the equal blocks around it, diagonals included, merge into it
-and it doubles; the board falls and new blocks slide in from the top. The genre of "Get 10" / "2248", made for
+A board always full of number blocks. Tap a block: every equal block connected to it, diagonals included, merges
+into it and it doubles; the board falls and new blocks slide in from the top. The genre of "Get 10" / "2248", made for
 children: one tap is the whole move, there is no timer, and nothing merges on its own.
 
 ## Board
@@ -14,10 +16,11 @@ children: one tap is the whole move, there is no timer, and nothing merges on it
 
 ## A move
 
-1. The player **taps a block**. While the finger is down, the block and the equal neighbours it would absorb are
+1. The player **taps a block**. While the finger is down, the block and the group it would absorb are
    highlighted. Letting go on the same block plays the move; sliding off to another block moves the highlight.
-2. **Merge:** every block with the **same value among the 8 cells around** the tapped block (sideways, up, down
-   and diagonal) is absorbed into it, and the tapped block **doubles once (×2)**, however many it absorbed.
+2. **Merge:** the tapped block's **group** is every block of the same value connected to it through neighbours
+   in 8 directions (sideways, up, down and diagonal), however far the chain reaches. The whole group is absorbed
+   into the tapped block, and the tapped block **doubles once (×2)**, however many it absorbed.
 3. A block with no equal neighbour wobbles (soft error sound). That is not a move.
 4. **Gravity:** absorbed blocks leave holes; the blocks above fall down.
 5. **Refill:** the holes left at the top of each column fill with new blocks that slide in from above the board.
@@ -28,8 +31,8 @@ children: one tap is the whole move, there is no timer, and nothing merges on it
 ## Scoring
 
 - A tap scores **the new value × the number of blocks absorbed**: a 4 made from two 2s scores 4; a 4 made from
-  four 2s (three absorbed) scores 12.
-- Absorbing many blocks scores more, but a pair keeps more value on the board. That is the game's choice.
+  a group of ten 2s (nine absorbed) scores 36.
+- A big group scores more, but a pair keeps more value on the board. That is the game's choice.
 
 ## New blocks
 
@@ -55,21 +58,22 @@ a record, and **Chơi lại**.
 ## Game length
 
 The 8 directions decide how long a game lasts. A full 5 × 7 board where diagonals count almost always holds an equal
-pair, so a game is a long run, played over several sittings (continue / new game, live leaderboard). Simulated
-games, 60 per player:
+pair, and whole groups clear more of the board at each tap, so a game hardly ever ends. That is what the owner
+wants: a game to open and play without thinking, resumed where it was left (continue / new game, live leaderboard).
+Simulated games, 40 per player:
 
-| Player | Taps per game (median) | Largest block (median) | Stuck per game |
-| --- | --- | --- | --- |
-| Taps any block that merges (a child) | about 3,000 (2,000–4,500) | 8K | 4.5 |
-| Plays carefully | about 4,000 (2,300–8,000) | 16K | 4.2 |
-| *For comparison: 4 directions only (no diagonals)* | *about 260* | *256–512* | *5* |
+| Player | Taps per game (median) | Largest block (median) | Stuck per game | Blocks absorbed per tap |
+| --- | --- | --- | --- | --- |
+| Taps any block that merges (a child) | about 16,000 | 64K | 3.9 | 2.6 on average, up to 27; 6+ in 10% of taps |
+| Always takes the biggest group | over 20,000 (never ended) | 32K | 0 | 4.1 on average; 6+ in 18% of taps |
 
-If games feel too long, the switch is one constant (`DIRECTIONS` in `logic.ts`) and a version bump.
+Earlier versions, for comparison: only the 8 cells around (0.1.0) gave about 3,000 taps; 4 directions only, about
+260. The directions are one constant (`DIRECTIONS` in `logic.ts`).
 
 ## Screens
 
-1. **Intro** (first time only): three picture hints — tap a block; equal blocks around it, diagonals too, merge
-   into it; when nothing merges, 🔀 shuffles.
+1. **Intro** (first time only): three picture hints — tap a block; equal blocks connected to it, diagonals too,
+   merge into it; when nothing merges, 🔀 shuffles.
 2. **Continue** (opening with a game in progress, after the intro was seen): "Ván đang chơi dở: n điểm" with
    **Chơi tiếp** (the default) and **Ván mới** (asks first; the run ends).
 3. **Playing:** HUD with ⏸, score (counts up), the 🔀 button with how many are left, and best; the board below.
@@ -85,9 +89,10 @@ The continue card and the ⏸ menu are the kit's standard lifecycle (`createLife
 
 | Event | Feedback |
 | --- | --- |
-| Finger down | The block and the neighbours it would absorb lift and glow |
-| Merge | Neighbours slide into the tapped block, it pops and changes colour, particle burst in its colour, "+points" floats up, rising pitch with value, haptic |
-| Big merge (4 or more absorbed) | "Gom n!" banner, a combo sound |
+| Finger down | The block and the group it would absorb lift and glow |
+| Merge | The group is pulled into the tapped block like a ripple, nearest first; the block pops and changes colour, particle burst in its colour, "+points" floats up, rising pitch with value, haptic |
+| Big merge (6 or more absorbed, about 1 tap in 8) | "Gom n!" banner, a combo sound |
+| Huge merge (9 or more absorbed) | The banner in the bright colour, a small camera shake |
 | New largest block | "Khối mới!" banner; with a 🔀 earned, "+1 🔀" and the button pops |
 | Block of 512 or more | Short camera shake (skipped with reduced motion) |
 | Fall and refill | Blocks fall with a small bounce; new blocks fade in as they slide down from above the board |

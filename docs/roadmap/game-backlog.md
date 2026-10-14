@@ -19,7 +19,7 @@ Ideas to pick from, not commitments. Each game still starts as a `SPEC.md` revie
 | Game | What | Spec |
 | --- | --- | --- |
 | Ghép Khối (`merge-block`) | Drop number blocks into columns; equal blocks merge and chain | [SPEC](../../games/merge-block/SPEC.md) |
-| Chạm Ghép (`tap-merge`) | The owner's variant of Ghép Khối: tap a block on a full board, and the equal blocks around it (diagonals too) merge into it; 🔀 rescues a stuck board | [SPEC](../../games/tap-merge/SPEC.md) |
+| Chạm Ghép (`tap-merge`) | The owner's variant of Ghép Khối: tap a block on a full board, and its whole group of equal blocks (connected in 8 directions) merges into it; a relaxed game that hardly ends; 🔀 rescues a stuck board | [SPEC](../../games/tap-merge/SPEC.md) |
 | Chạm Chấm (`hello`) | The minimal sample game: tap the dots | [SPEC](../../games/hello/SPEC.md) |
 
 ## Next

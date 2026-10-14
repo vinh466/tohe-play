@@ -57,8 +57,11 @@ type Block = Phaser.GameObjects.Container & { exp: Exponent };
 
 /** Blocks up to this value (2^11 = 2048) are drawn ahead, so a merge never waits for a new texture. */
 const PREDRAWN = 11;
-/** "Gom n!" from this many absorbed blocks on. */
-const BIG_MERGE = 4;
+/** "Gom n!" from this many absorbed blocks on (about 1 tap in 8), and a bigger celebration from HUGE_MERGE. */
+const BIG_MERGE = 6;
+const HUGE_MERGE = 9;
+/** A group is pulled in like a ripple: each step farther from the tapped block starts this much later. */
+const RIPPLE_MS = 45;
 
 export class BoardScene extends Phaser.Scene {
   private layoutInfo!: Layout;
@@ -434,12 +437,21 @@ export class BoardScene extends Phaser.Scene {
     const target = this.cells.get(indexOf(merge.into));
     const { x, y } = this.cellCenter(merge.into);
     await Promise.all(
-      merge.from.map(async (cell) => {
+      merge.from.map(async (cell, i) => {
         const block = this.cells.get(indexOf(cell));
         this.cells.delete(indexOf(cell));
         if (!block) return;
         block.setDepth(9);
-        await tweenAsync(this, { targets: block, x, y, scale: 0.6, duration: 130, ease: 'Back.easeIn' });
+        await tweenAsync(this, {
+          targets: block,
+          x,
+          y,
+          scale: 0.6,
+          duration: 130,
+          // Capped, so even a long chain merges within half a second.
+          delay: Math.min((merge.steps[i] ?? 1) - 1, 6) * RIPPLE_MS,
+          ease: 'Back.easeIn',
+        });
         block.destroy();
       }),
     );
@@ -458,9 +470,11 @@ export class BoardScene extends Phaser.Scene {
     haptics.play('bump');
     if (merge.from.length >= BIG_MERGE) {
       const gathered = merge.from.length + 1;
-      this.banner(this.text.gathered(gathered), gathered >= 6 ? this.colors.bigCombo : this.colors.combo);
-      this.sfx.play('combo', gathered);
+      const huge = merge.from.length >= HUGE_MERGE;
+      this.banner(this.text.gathered(gathered), huge ? this.colors.bigCombo : this.colors.combo);
+      this.sfx.play('combo', Math.min(gathered, 12));
       haptics.play('success');
+      if (huge) shake(this, 'small');
     }
     if (merge.exp >= 11) shake(this, 'medium');
     else if (merge.exp >= 9) shake(this, 'small');
