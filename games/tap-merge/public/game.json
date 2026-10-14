@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
+  "id": "tap-merge",
+  "name": "Chạm Ghép",
+  "version": "0.1.0",
+  "protocol": 1,
+  "description": "Chạm vào một khối số: các khối giống nó ở xung quanh, cả đường chéo, nhập lại thành số gấp đôi!",
+  "icon": "icon.svg",
+  "orientation": "portrait",
+  "capabilities": ["save", "scores"],
+  "themes": ["light", "dark"],
+  "minAge": 3,
+  "tags": ["puzzle", "numbers"],
+  "sizeBudgetKb": 2500
+}
