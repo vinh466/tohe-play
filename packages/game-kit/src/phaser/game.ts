@@ -3,6 +3,7 @@
 // DPR with its origin at the top-left, so scenes lay out in CSS pixels and pointer.worldX/Y are CSS pixels too.
 // Measured in docs/research/game-tech.md.
 import Phaser from 'phaser';
+import { createPerfReadout, perfWanted } from './perf.ts';
 
 export interface Size {
   width: number;
@@ -56,6 +57,9 @@ export function createGame<S extends Phaser.Scene>({
   let renderer: 'webgl' | 'canvas' = webglWorks() ? 'webgl' : 'canvas';
   let scene = createScene();
   let game = boot();
+  // Opened with #perf: a frame-rate readout for testing on phones (perf.ts).
+  const perf = perfWanted() ? createPerfReadout(parent, dpr) : null;
+  perf?.attach(game, renderer);
   const resizeListeners = new Set<(size: Size) => void>();
   const restartListeners = new Set<(scene: S) => void>();
 
@@ -116,6 +120,7 @@ export function createGame<S extends Phaser.Scene>({
       broken.destroy(true);
       scene = createScene();
       game = boot();
+      perf?.attach(game, renderer);
       for (const listener of restartListeners) listener(scene);
     });
   };

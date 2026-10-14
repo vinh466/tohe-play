@@ -34,6 +34,7 @@ sidebar:
    pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>*.png (one per theme)
    ```
 7. **Play it** in the hub (`pnpm dev`, then rebuild `@tohe/games-host`) on a phone-sized window, then on a phone.
+   Add `?perf` to the play page's address to see the frame rate there (the kit's `#perf` readout).
 
 ## Choosing technology
 
@@ -50,9 +51,15 @@ sidebar:
 
 What the kit gives you, so you do not write it again: `createGame` (crisp on phones, resize, pause/resume, Canvas
 fallback when WebGL fails), `sfx` (synthesised sounds, iOS unlock), `haptics`, `juice` (`popIn`, `squash`, `pulse`,
-`burst`, `floatText`, `shake`, `confetti`), `overlay` (intro / pause / game-over cards in one shared style, on the
+`burst`, `floatText`, `shake`, `confetti`), `drawTexture` + `crispImage` (art drawn once, see below), `overlay` (intro / pause / game-over cards in one shared style, on the
 design tokens), `createLifecycle` (continue / new game when a run is in progress, the ⏸ menu — for every game whose
 runs outlast one sitting), `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
+
+**Draw once, not every frame.** Phaser redraws the scene up to 120 times a second on phones. A `Graphics` object
+rebuilds its shapes on every one of those frames, and a `Text` redraws and re-uploads its canvas on every change.
+Pieces that only change between moves (tiles, blocks with numbers, the board) are textures:
+`drawTexture(scene, key, w, h, ctx => …)` once per look, put in the key, then `crispImage`. Keep `Graphics` for
+things that really change shape every frame ([measurements](../research/game-tech.md)).
 
 **Logic emits events, the view animates them.** `drop(state, column)` (or `move`, `place`…) returns the new state and
 a list of events; the view turns each event into a short animation and never decides rules. Keep the PRNG state in

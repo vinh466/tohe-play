@@ -28,7 +28,9 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
 4. `src/logic.test.ts`: rule tests + a fast-check random-play bot asserting every invariant from the spec,
    deterministic replay, and save/restore round trip.
 5. `src/view.ts`: a Phaser scene that only animates events — use the kit's `juice` (`popIn`, `squash`, `pulse`,
-   `burst`, `floatText`, `shake`, `confetti`), `crispText`, `sfx` and `haptics`. Layout in CSS pixels.
+   `burst`, `floatText`, `shake`, `confetti`), `crispText`, `sfx` and `haptics`. Layout in CSS pixels. Tiles,
+   blocks and boards are `drawTexture` + `crispImage` (drawn once per value/theme/size, key says which), not
+   `Graphics` or a `Text` per piece: those cost every frame on phones.
 6. `src/main.ts`: `connect({ gameId })`; `createGame({ createScene })` from `@tohe/game-kit/phaser` (handle
    `onRestart`); `pause`/`resume` → `kit.pause()/resume()`; `settings.muted` → `sfx.setMuted`; save after every move;
    `submitScore` at the end; intro/game-over with the kit's `overlay`; Vietnamese strings first, English second.

@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatValue } from './format.ts';
+import { perfWanted } from './phaser/perf.ts';
 import { noteFrequency } from './sfx.ts';
 
 describe('formatValue', () => {
@@ -27,5 +28,18 @@ describe('noteFrequency', () => {
   it('is clamped so huge values stay audible', () => {
     expect(noteFrequency(99)).toBe(noteFrequency(24));
     expect(noteFrequency(-3)).toBe(noteFrequency(0));
+  });
+});
+
+describe('perfWanted', () => {
+  it('turns the readout on for #perf only', () => {
+    expect(['#perf', '#a&perf', '#perf&b'].map((hash) => perfWanted(hash))).toEqual([true, true, true]);
+    expect(['', '#', '#perfect', '#superf', '?perf'].map((hash) => perfWanted(hash))).toEqual([
+      false,
+      false,
+      false,
+      false,
+      false,
+    ]);
   });
 });
