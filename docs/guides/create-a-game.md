@@ -24,7 +24,7 @@ sidebar:
    no `Math.random` (take an `Rng`). Test them in `src/logic.test.ts`, including a random-play bot with
    `fast-check` that asserts the invariants of your game.
 5. **Write the view** in `src/main.ts` (or a framework of your choice): read input, call the logic, draw. Connect
-   with `connect({ gameId })`, honour `pause` and `muted`, `save` and `submitScore` at the end of a round. With
+   with `connect({ gameId })`, honour `pause` and `muted`, `save` and `submitScore` at the end of a round (a run saved mid-way reports with `session.run(id)`, ADR 0014). With
    both themes, follow `settings.theme` (`followTheme` from the kit) and keep a palette per theme for your art.
 6. **Verify**:
    ```sh

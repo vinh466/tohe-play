@@ -25,6 +25,8 @@ interface Saved {
   /** The game in progress, resumed when the game opens again. */
   game: State | null;
   tutorialSeen: boolean;
+  /** The id the game in progress reports its score under on the household leaderboard (ADR 0014). */
+  run?: string;
 }
 
 const session = await connect<Saved>({ gameId: 'merge-block' });
@@ -40,6 +42,16 @@ let best = saved?.best ?? 0;
 const resumed = restore(saved?.game);
 let state: State = resumed && !resumed.over ? resumed : newGame(session.seed, best);
 let tutorialSeen = saved?.tutorialSeen ?? false;
+
+/** A fresh id per game. `crypto.randomUUID` needs a secure context, which a home server on plain HTTP is not. */
+function newRunId(): string {
+  const bytes = crypto.getRandomValues(new Uint8Array(16));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
+}
+// The leaderboard shows the game in progress as it grows, and its best score stays when it ends.
+let runId = (resumed && !resumed.over && saved?.run) || newRunId();
+let run = session.run(runId);
+const scoreFailed = (error: unknown) => session.log('warn', `score not stored: ${String(error)}`);
 
 // ------------------------------------------------------------------ HUD
 
@@ -183,6 +195,7 @@ async function move(col: number) {
   await board.play(result.events, state, before);
   showScore(state.score);
   moving = false;
+  if (!state.over && state.score > before) void run.update(state.score).catch(scoreFailed);
 
   if (!state.over && queued !== null) {
     const nextCol = queued;
@@ -196,9 +209,7 @@ async function move(col: number) {
     const record = state.score > best;
     best = Math.max(best, state.score);
     void persist();
-    void session
-      .submitScore(state.score)
-      .catch((error) => session.log('warn', `score not stored: ${String(error)}`));
+    void run.finish(state.score).catch(scoreFailed);
     showGameOver(record);
   } else {
     void persist();
@@ -206,11 +217,20 @@ async function move(col: number) {
 }
 
 function persist(): Promise<void> {
-  const data: Saved = { best: Math.max(best, state.best), game: state.over ? null : state, tutorialSeen };
+  const data: Saved = {
+    best: Math.max(best, state.best),
+    game: state.over ? null : state,
+    tutorialSeen,
+    run: runId,
+  };
   return session.save(data).catch((error) => session.log('warn', `save failed: ${String(error)}`));
 }
 
 function startNewGame() {
+  // A game left unfinished ends here and keeps the best score it reached on the leaderboard.
+  if (!state.over && state.score > 0) void run.finish(state.score).catch(scoreFailed);
+  runId = newRunId();
+  run = session.run(runId);
   // The next game continues the PRNG sequence, so every new game differs but stays reproducible.
   state = newGame(state.rng, best);
   board.setBoard(state);

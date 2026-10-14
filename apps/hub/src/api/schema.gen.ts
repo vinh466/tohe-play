@@ -289,7 +289,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Record finished runs of the active profile; repeats (same clientId) are ignored. */
+        /** Record runs of the active profile; the same clientId again raises that run's score. */
         post: operations["RecordScores"];
         delete?: never;
         options?: never;
@@ -382,6 +382,7 @@ export interface components {
             value: number;
             /** Format: date-time */
             achievedAt: string;
+            inProgress: boolean;
         };
         LoginRequest: {
             username: string;
@@ -459,6 +460,8 @@ export interface components {
             value: number;
             /** Format: date-time */
             achievedAt: string;
+            /** @default true */
+            final: boolean;
         };
         SelectProfileRequest: {
             /** Format: uuid */

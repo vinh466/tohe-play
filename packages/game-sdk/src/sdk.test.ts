@@ -55,7 +55,20 @@ describe('game <-> host handshake', () => {
     await session.save({ best: 9 });
     await session.submitScore(9);
     expect(onSave).toHaveBeenCalledWith({ best: 9 });
-    expect(onScore).toHaveBeenCalledWith({ value: 9, board: 'default' });
+    expect(onScore).toHaveBeenCalledWith({ value: 9, board: 'default', final: true });
+  });
+
+  it('reports a long run as it grows, then finishes it', async () => {
+    const onScore = vi.fn();
+    const { gameSide } = setup({ onScore });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    const run = session.run('run-7');
+    await run.update(10);
+    await run.finish(25);
+    expect(onScore.mock.calls.map(([score]) => score)).toEqual([
+      { value: 10, board: 'default', run: 'run-7', final: false },
+      { value: 25, board: 'default', run: 'run-7', final: true },
+    ]);
   });
 
   it('surfaces host-side failures as rejected promises', async () => {

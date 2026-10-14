@@ -6,6 +6,7 @@ export {
   type JsonValue,
   normalizeSettings,
   PROTOCOL,
+  type ScoreRun,
   SDK_VERSION,
   type SessionEvent,
 } from './game.ts';

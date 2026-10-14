@@ -20,7 +20,8 @@ export interface HostOptions {
   /** Builds the init payload once the game says it is ready. */
   init(): InitPayload | Promise<InitPayload>;
   onSave?(data: JsonValue): void | Promise<void>;
-  onScore?(score: { value: number; board: string }): void | Promise<void>;
+  /** `run` is set for a long run's reports (ADR 0014); `final` is false while it goes on. */
+  onScore?(score: { value: number; board: string; run?: string; final: boolean }): void | Promise<void>;
   onExit?(): void;
   onLog?(entry: { level: 'info' | 'warn' | 'error'; message: string }): void;
   /** A message that failed validation or broke the protocol. */
@@ -94,7 +95,14 @@ export function createHost(options: HostOptions): HostHandle {
       }
       case 'score': {
         if (!can('scores')) return reply(message.id, 'capability "scores" not declared in game.json');
-        return settle(message.id, () => options.onScore?.({ value: message.value, board: message.board }));
+        return settle(message.id, () =>
+          options.onScore?.({
+            value: message.value,
+            board: message.board,
+            run: message.run,
+            final: message.final,
+          }),
+        );
       }
       case 'exit':
         return options.onExit?.();

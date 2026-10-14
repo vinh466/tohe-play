@@ -44,6 +44,10 @@ export const ScoreMessage = z.object({
   id: requestId,
   value: z.number().finite(),
   board: z.string().max(40).default('default'),
+  /** A long run reports its score as it grows under one id; the hub keeps one score per run (ADR 0014). */
+  run: z.string().min(1).max(64).optional(),
+  /** False while the run goes on. A one-shot score, or a run's last report, is final. */
+  final: z.boolean().default(true),
 });
 
 export const ExitMessage = z.object({

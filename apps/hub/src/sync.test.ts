@@ -8,7 +8,7 @@ import { createSyncer, type ProgressApi, syncProfile } from './storage/sync.ts';
 function fakeServer() {
   let clock = Date.parse('2026-10-14T08:00:00Z');
   const saves = new Map<string, { data: unknown; updatedAt: string }>();
-  const scores = new Map<string, number>();
+  const scores = new Map<string, { value: number; final: boolean }>();
   const api: ProgressApi & { calls: number; onPut?: () => Promise<void> } = {
     calls: 0,
     async listSaves() {
@@ -25,7 +25,13 @@ function fakeServer() {
     },
     async recordScores(list) {
       api.calls++;
-      for (const score of list) scores.set(score.clientId, score.value);
+      for (const score of list) {
+        const known = scores.get(score.clientId);
+        scores.set(score.clientId, {
+          value: Math.max(known?.value ?? score.value, score.value),
+          final: (known?.final ?? false) || score.final,
+        });
+      }
       return { recorded: list.length };
     },
   };
@@ -47,7 +53,7 @@ describe('sync', () => {
     await syncProfile(db, server.api, KID);
 
     expect(server.saves.get('merge-block')?.data).toEqual({ score: 40 });
-    expect([...server.scores.values()]).toEqual([40]);
+    expect([...server.scores.values()]).toEqual([{ value: 40, final: true }]);
     expect(await db.saves.where('synced').equals(0).count()).toBe(0);
     expect(await db.scores.where('synced').equals(0).count()).toBe(0);
   });
@@ -93,6 +99,49 @@ describe('sync', () => {
     const local = await db.saves.get([KID, 'merge-block']);
     expect(local?.data).toEqual({ move: 2 });
     expect(local?.synced).toBe(0);
+  });
+
+  it('keeps a long run as one score that rises, then turns final (ADR 0014)', async () => {
+    const db = device();
+    const server = fakeServer();
+    const report = (value: number, final: boolean) =>
+      recordScore(db, { profileId: KID, gameId: 'merge-block', board: 'default', value, run: 'r1', final });
+    await report(10, false);
+    await report(30, false);
+    await report(20, false);
+    expect(await db.scores.count()).toBe(1);
+
+    await syncProfile(db, server.api, KID);
+    expect([...server.scores.values()]).toEqual([{ value: 30, final: false }]);
+
+    await report(30, true);
+    await syncProfile(db, server.api, KID);
+    expect(await db.scores.toArray()).toMatchObject([{ value: 30, final: true, synced: 1 }]);
+    expect([...server.scores.values()]).toEqual([{ value: 30, final: true }]);
+  });
+
+  it('keeps a run report made while the previous one was being pushed', async () => {
+    const db = device();
+    const server = fakeServer();
+    const report = (value: number) =>
+      recordScore(db, {
+        profileId: KID,
+        gameId: 'merge-block',
+        board: 'default',
+        value,
+        run: 'r2',
+        final: false,
+      });
+    await report(5);
+    const recordScores = server.api.recordScores;
+    server.api.recordScores = async (list) => {
+      await report(50);
+      return recordScores(list);
+    };
+
+    await syncProfile(db, server.api, KID);
+
+    expect(await db.scores.toArray()).toMatchObject([{ value: 50, synced: 0 }]);
   });
 
   it('runs one sync at a time', async () => {

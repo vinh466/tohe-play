@@ -70,8 +70,8 @@ function Launcher({ player }: { player: Player }) {
         await storeSave(db, player.id, game.id, data);
         if (synced) syncer.syncSoon(player.id);
       },
-      onScore: async ({ value, board }) => {
-        await recordScore(db, { profileId: player.id, gameId: game.id, board, value });
+      onScore: async ({ value, board, run, final }) => {
+        await recordScore(db, { profileId: player.id, gameId: game.id, board, value, run, final });
         if (synced) syncer.syncSoon(player.id);
       },
       onExit: () => {

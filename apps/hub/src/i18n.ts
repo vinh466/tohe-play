@@ -31,6 +31,7 @@ const vi = {
     empty: 'Chưa ai có điểm — chơi một ván để lên bảng nhé!',
     you: 'bạn',
     failed: 'Không tải được bảng xếp hạng.',
+    inProgress: '▶ đang chơi',
   },
   theme: {
     title: 'Giao diện',
@@ -168,6 +169,7 @@ const en: typeof vi = {
     empty: 'No scores yet — play a round to get on the board!',
     you: 'you',
     failed: 'Could not load the leaderboard.',
+    inProgress: '▶ still playing',
   },
   theme: {
     title: 'Appearance',

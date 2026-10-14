@@ -30,6 +30,10 @@ export interface LocalScore {
   synced: 0 | 1;
   /** Lets the API store a score sent twice (a retry after a lost answer) only once. */
   clientId: string;
+  /** A long run's id: its reports update this one row (ADR 0014). */
+  run?: string;
+  /** False while the run goes on; absent (rows before ADR 0014) means final. */
+  final?: boolean;
 }
 
 export interface CacheEntry {

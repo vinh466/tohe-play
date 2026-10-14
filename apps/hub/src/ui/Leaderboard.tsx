@@ -60,9 +60,14 @@ function Ranking({ gameId, player }: { gameId: string; player: Player }) {
           >
             <span className="w-8 text-center font-black text-2xl text-ink">{MEDALS[index] ?? index + 1}</span>
             <Avatar avatar={entry.avatar} size="sm" />
-            <span className="min-w-0 flex-1 truncate font-bold text-ink">
-              {entry.name}
-              {mine ? ` (${t('leaderboard.you')})` : ''}
+            <span className="flex min-w-0 flex-1 flex-col">
+              <span className="truncate font-bold text-ink">
+                {entry.name}
+                {mine ? ` (${t('leaderboard.you')})` : ''}
+              </span>
+              {entry.inProgress ? (
+                <span className="text-ink-soft text-sm">{t('leaderboard.inProgress')}</span>
+              ) : null}
             </span>
             <span className="font-black text-ink text-xl tabular-nums">{format.format(entry.value)}</span>
           </li>

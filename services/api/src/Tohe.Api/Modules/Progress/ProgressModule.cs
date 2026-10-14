@@ -15,22 +15,31 @@ public sealed record PutSaveRequest(JsonElement Data);
 /// <param name="UpdatedAt">Server time of the last write.</param>
 public sealed record SavedGameView(string GameId, JsonElement Data, DateTimeOffset UpdatedAt);
 
-/// <param name="ClientId">Chosen by the device; a score sent again with the same id is stored once.</param>
-/// <param name="AchievedAt">When the run ended, by the device's clock.</param>
+/// <param name="ClientId">Chosen by the device; the same id again updates that score instead of adding one.</param>
+/// <param name="AchievedAt">When the score was reached, by the device's clock.</param>
+/// <param name="Final">False while a long run goes on (ADR 0014).</param>
 public sealed record ScoreInput(
     Guid ClientId,
     [Required, StringLength(40)] string GameId,
     [Required, StringLength(40)] string Board,
     double Value,
-    DateTimeOffset AchievedAt);
+    DateTimeOffset AchievedAt,
+    bool Final = true);
 
 public sealed record RecordScoresRequest([Required, MaxLength(200)] IReadOnlyList<ScoreInput> Scores);
 
-/// <param name="Recorded">Scores stored by this request (repeats excluded).</param>
+/// <param name="Recorded">Scores added or raised by this request (repeats that change nothing excluded).</param>
 public sealed record RecordScoresResult(int Recorded);
 
 /// <summary>A profile's best score on a board.</summary>
-public sealed record LeaderboardEntry(Guid ProfileId, string Name, string Avatar, double Value, DateTimeOffset AchievedAt);
+/// <param name="InProgress">The best score belongs to a run that is still going on.</param>
+public sealed record LeaderboardEntry(
+    Guid ProfileId,
+    string Name,
+    string Avatar,
+    double Value,
+    DateTimeOffset AchievedAt,
+    bool InProgress);
 
 /// <summary>
 /// Saves and scores of the active profile, synced by the hub in the background (M2, ADR 0005), and the household
@@ -122,30 +131,54 @@ internal static partial class ProgressModule
 
                 var profile = Active(http);
                 var ids = request.Scores.Select(s => s.ClientId).Distinct().ToList();
-                var known = await db.Scores.AsNoTracking()
+                var known = await db.Scores
                     .Where(s => s.ProfileId == profile.Id && ids.Contains(s.ClientId))
-                    .Select(s => s.ClientId)
-                    .ToListAsync(ct);
-                var fresh = request.Scores
-                    .Where(s => !known.Contains(s.ClientId))
-                    .DistinctBy(s => s.ClientId)
-                    .Select(s => new ScoreEntry
+                    .ToDictionaryAsync(s => s.ClientId, ct);
+                var recorded = 0;
+                foreach (var input in request.Scores)
+                {
+                    if (known.TryGetValue(input.ClientId, out var entry))
                     {
-                        ProfileId = profile.Id,
-                        GameId = s.GameId,
-                        Board = s.Board,
-                        Value = s.Value,
-                        AchievedAt = s.AchievedAt,
-                        RecordedAt = clock.GetUtcNow(),
-                        ClientId = s.ClientId,
-                    })
-                    .ToList();
-                db.Scores.AddRange(fresh);
+                        // A long run reporting again: keep its highest score; once final it stays final.
+                        if (input.Value <= entry.Value && (entry.Final || !input.Final))
+                        {
+                            continue;
+                        }
+
+                        if (input.Value > entry.Value)
+                        {
+                            entry.Value = input.Value;
+                            entry.AchievedAt = input.AchievedAt;
+                        }
+
+                        entry.Final |= input.Final;
+                        entry.RecordedAt = clock.GetUtcNow();
+                    }
+                    else
+                    {
+                        entry = new ScoreEntry
+                        {
+                            ProfileId = profile.Id,
+                            GameId = input.GameId,
+                            Board = input.Board,
+                            Value = input.Value,
+                            AchievedAt = input.AchievedAt,
+                            RecordedAt = clock.GetUtcNow(),
+                            ClientId = input.ClientId,
+                            Final = input.Final,
+                        };
+                        db.Scores.Add(entry);
+                        known[input.ClientId] = entry;
+                    }
+
+                    recorded++;
+                }
+
                 await db.SaveChangesAsync(ct);
-                return TypedResults.Ok(new RecordScoresResult(fresh.Count));
+                return TypedResults.Ok(new RecordScoresResult(recorded));
             })
             .WithName("RecordScores")
-            .WithSummary("Record finished runs of the active profile; repeats (same clientId) are ignored.");
+            .WithSummary("Record runs of the active profile; the same clientId again raises that run's score.");
 
         progress.MapGet("/leaderboard/{gameId}", async (
                 string gameId,
@@ -163,7 +196,11 @@ internal static partial class ProgressModule
                     .Select(g => g.OrderByDescending(s => s.Value).ThenBy(s => s.AchievedAt).First())
                     .ToListAsync(ct);
                 return best
-                    .Join(players, s => s.ProfileId, p => p.Id, (s, p) => new LeaderboardEntry(p.Id, p.Name, p.Avatar, s.Value, s.AchievedAt))
+                    .Join(
+                        players,
+                        s => s.ProfileId,
+                        p => p.Id,
+                        (s, p) => new LeaderboardEntry(p.Id, p.Name, p.Avatar, s.Value, s.AchievedAt, !s.Final))
                     .OrderByDescending(entry => entry.Value)
                     .ThenBy(entry => entry.AchievedAt)
                     .ToList();

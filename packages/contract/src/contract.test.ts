@@ -38,9 +38,24 @@ describe('GameManifest', () => {
 });
 
 describe('protocol', () => {
-  it('parses a score message and defaults the board', () => {
+  it('parses a score message and defaults the board and finality', () => {
     const message = GameMessage.parse({ tohe: 1, type: 'score', id: 'r1', value: 42 });
-    expect(message).toEqual({ tohe: 1, type: 'score', id: 'r1', value: 42, board: 'default' });
+    expect(message).toEqual({ tohe: 1, type: 'score', id: 'r1', value: 42, board: 'default', final: true });
+  });
+
+  it('accepts a run reporting its score while it goes on', () => {
+    const message = GameMessage.parse({
+      tohe: 1,
+      type: 'score',
+      id: 'r2',
+      value: 7,
+      run: 'run-1',
+      final: false,
+    });
+    expect(message).toMatchObject({ run: 'run-1', final: false });
+    expect(GameMessage.safeParse({ tohe: 1, type: 'score', id: 'r3', value: 7, run: '' }).success).toBe(
+      false,
+    );
   });
 
   it('ignores messages without the tohe marker', () => {

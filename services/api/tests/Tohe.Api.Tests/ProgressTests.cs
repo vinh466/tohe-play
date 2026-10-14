@@ -96,6 +96,29 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Equal([("Na", 300d), ("Bố", 120d)], board!.Select(e => (e.Name, e.Value)));
     }
 
+    [Fact]
+    public async Task A_long_run_is_one_score_that_rises_and_shows_in_progress_until_it_is_final()
+    {
+        var (client, me) = await RegisterAsync("Bố");
+        await PlayAsAsync(client, me.Profiles[0].Id);
+        var run = Guid.NewGuid();
+        ScoreInput Report(double value, bool final) => new(run, "merge-block", "default", value, DateTimeOffset.UtcNow, final);
+
+        await RecordAsync(client, Report(100, final: false));
+        await RecordAsync(client, Report(350, final: false));
+        Assert.Equal(0, await RecordAsync(client, Report(200, final: false))); // lower, nothing changes
+
+        var live = Assert.Single((await client.GetFromJsonAsync<List<LeaderboardEntry>>(Url("/api/progress/leaderboard/merge-block"), Ct))!);
+        Assert.Equal((350d, true), (live.Value, live.InProgress));
+
+        await RecordAsync(client, Report(350, final: true));
+        var done = Assert.Single((await client.GetFromJsonAsync<List<LeaderboardEntry>>(Url("/api/progress/leaderboard/merge-block"), Ct))!);
+        Assert.Equal((350d, false), (done.Value, done.InProgress));
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        Assert.Equal(1, await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Scores.CountAsync(s => s.ClientId == run, Ct));
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private static ScoreInput Score(string gameId, double value) =>
