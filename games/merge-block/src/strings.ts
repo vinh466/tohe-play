@@ -16,6 +16,7 @@ export const strings = {
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     again: 'Chơi lại',
     exit: 'Thoát',
+    inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
   },
   en: {
     title: 'Merge Blocks',
@@ -34,6 +35,7 @@ export const strings = {
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     again: 'Play again',
     exit: 'Exit',
+    inProgress: (score: string) => `A game in progress: ${score} points.`,
   },
 };
 
