@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+    <title>Chạm Ghép</title>
+  </head>
+  <body>
+    <div id="app">
+      <header id="hud">
+        <div class="stat">
+          <span class="stat-label" id="score-label"></span>
+          <span class="stat-value" id="score">0</span>
+        </div>
+        <div class="rescue">
+          <span class="stat-label" id="shuffle-label"></span>
+          <button type="button" class="shuffle" id="shuffle" disabled>
+            <span aria-hidden="true">🔀</span><span id="shuffle-count">1</span>
+          </button>
+        </div>
+        <div class="stat stat-best" id="best-box">
+          <span class="stat-label"><span class="crown" aria-hidden="true">👑</span> <span id="best-label"></span></span>
+          <span class="stat-value" id="best">0</span>
+        </div>
+      </header>
+      <main id="stage"></main>
+    </div>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
