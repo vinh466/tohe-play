@@ -38,7 +38,8 @@ The script:
 1. creates `~/.config/tohe-uat/uat.env` on first run (host + a random database password — keep this file);
 2. backs up the database if UAT is running ([below](#backups));
 3. exports the exact commit with `git archive` into `~/.local/share/tohe-uat/src` — never a working copy;
-4. builds and starts the `tohe-uat` compose project (database migrations run when the API starts);
+4. builds the images on freshly pulled base images (security patches of the .NET runtime, Node and Caddy) and
+   starts the `tohe-uat` compose project (database migrations run when the API starts);
 5. waits for `/api/health` and prints the deployed commit.
 
 What is running: `curl -s http://10.100.0.2:4820/api/config` → `apiVersion` is the deployed commit.
