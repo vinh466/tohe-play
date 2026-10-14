@@ -27,3 +27,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0011](0011-password-sign-in-first.md) | Sign in with username and password first; OAuth later | Accepted |
 | [0012](0012-phaser-and-the-game-kit.md) | Phaser 4 and the game kit are the default way to build games | Accepted |
 | [0013](0013-light-and-dark-themes.md) | Light and dark themes from shared design tokens | Accepted |
+| [0014](0014-live-scores-for-long-runs.md) | Live scores for runs that last across sittings | Accepted |

@@ -31,11 +31,36 @@ export async function storeSave(
   await db.saves.put({ profileId, gameId, data, updatedAt: Date.now(), synced: 0 });
 }
 
+/**
+ * Records a score. A long run's reports (same `run`) update one row with the highest score, and once final it stays
+ * final (ADR 0014); any change makes the row pending again for sync.
+ */
 export async function recordScore(
   db: ToheDb,
-  entry: { profileId: string; gameId: string; board: string; value: number },
+  entry: { profileId: string; gameId: string; board: string; value: number; run?: string; final?: boolean },
 ): Promise<void> {
-  await db.scores.add({ ...entry, at: Date.now(), synced: 0, clientId: newId() });
+  const { run, final = true, ...score } = entry;
+  await db.transaction('rw', db.scores, async () => {
+    const current = run
+      ? await db.scores
+          .where('[profileId+gameId]')
+          .equals([score.profileId, score.gameId])
+          .filter((s) => s.run === run)
+          .first()
+      : undefined;
+    if (current?.id === undefined) {
+      await db.scores.add({ ...score, run, final, at: Date.now(), synced: 0, clientId: newId() });
+      return;
+    }
+    const wasFinal = current.final ?? true;
+    if (score.value <= current.value && (wasFinal || !final)) return; // nothing new
+    await db.scores.update(current.id, {
+      value: Math.max(current.value, score.value),
+      at: score.value > current.value ? Date.now() : current.at,
+      final: wasFinal || final,
+      synced: 0,
+    });
+  });
 }
 
 /** Whether a profile has played anything on this device. */

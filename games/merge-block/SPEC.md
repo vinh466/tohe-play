@@ -81,8 +81,8 @@ Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013):
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game }` where `game` is the full state (board, current, next, score, PRNG). Opening the game resumes it. |
-| `scores` | `submitScore(score)` at game over. |
+| `save` | After every move: `{ best, game, run }` where `game` is the full state (board, current, next, score, PRNG) and `run` its leaderboard id. Opening the game resumes it. |
+| `scores` | A live run (ADR 0014): `session.run(id).update(score)` after each move that scores, so the household leaderboard shows the game in progress; `finish(score)` at game over, or when the player starts a new game (an unfinished game keeps the best score it reached). One run id per game, kept in the save. |
 | settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of a new game. |
 

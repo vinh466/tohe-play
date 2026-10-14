@@ -24,7 +24,10 @@ public sealed class SavedGame
     public DateTimeOffset? PreviousUpdatedAt { get; set; }
 }
 
-/// <summary>One finished run, recorded by the device that played it.</summary>
+/// <summary>
+/// One run, recorded by the device that played it. A long run is reported as it grows under one
+/// <see cref="ClientId"/> and stays one row; <see cref="Final"/> turns true when it ends (ADR 0014).
+/// </summary>
 public sealed class ScoreEntry
 {
     public long Id { get; set; }
@@ -44,6 +47,9 @@ public sealed class ScoreEntry
 
     /// <summary>Chosen by the device, so a score sent twice (retry after a lost response) is stored once.</summary>
     public Guid ClientId { get; set; }
+
+    /// <summary>False while the run goes on.</summary>
+    public bool Final { get; set; } = true;
 }
 
 internal sealed class SavedGameConfiguration : IEntityTypeConfiguration<SavedGame>
@@ -65,6 +71,7 @@ internal sealed class ScoreEntryConfiguration : IEntityTypeConfiguration<ScoreEn
         builder.ToTable("scores", "progress");
         builder.Property(score => score.GameId).HasMaxLength(40);
         builder.Property(score => score.Board).HasMaxLength(40);
+        builder.Property(score => score.Final).HasDefaultValue(true);
         builder.HasIndex(score => new { score.ProfileId, score.ClientId }).IsUnique();
         builder.HasIndex(score => new { score.GameId, score.Board, score.ProfileId });
     }

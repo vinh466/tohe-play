@@ -3,7 +3,7 @@
 import type { GameMessageInput, HostMessage, Profile, Settings } from '@tohe/contract';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.2.0';
+export const SDK_VERSION = '0.3.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
@@ -36,9 +36,20 @@ export interface GameSession<TSave = JsonValue> {
   save(data: TSave): Promise<void>;
   /** Record a finished run's score on a leaderboard (default board: `default`). */
   submitScore(value: number, board?: string): Promise<void>;
+  /**
+   * A run that lasts across sittings (ADR 0014): `update()` its score as it grows — the household leaderboard shows
+   * it as "in progress" — and `finish()` it when the run ends (game over, or the player starts a new game). Use one
+   * id per run and keep it in the save.
+   */
+  run(id: string, board?: string): ScoreRun;
   /** Ask the hub to close the game. */
   exit(): void;
   log(level: 'info' | 'warn' | 'error', message: string): void;
+}
+
+export interface ScoreRun {
+  update(value: number): Promise<void>;
+  finish(value: number): Promise<void>;
 }
 
 type Listener = (payload: Settings) => void;
@@ -80,7 +91,9 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
   const send = (message: GameMessageInput) => transport.post(message);
 
   const request = (
-    message: { type: 'save'; data: JsonValue } | { type: 'score'; value: number; board: string },
+    message:
+      | { type: 'save'; data: JsonValue }
+      | { type: 'score'; value: number; board: string; run?: string; final?: boolean },
   ) =>
     new Promise<void>((resolve, reject) => {
       const id = `r${++nextId}`;
@@ -130,6 +143,10 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
             on: (event: SessionEvent, listener: Listener) => emitter.on(event, listener),
             save: (data) => request({ type: 'save', data: data as JsonValue }),
             submitScore: (value, board = 'default') => request({ type: 'score', value, board }),
+            run: (run, board = 'default') => ({
+              update: (value) => request({ type: 'score', value, board, run, final: false }),
+              finish: (value) => request({ type: 'score', value, board, run, final: true }),
+            }),
             exit: () => send({ tohe: PROTOCOL, type: 'exit' }),
             log: (level, text) => send({ tohe: PROTOCOL, type: 'log', level, message: text.slice(0, 2000) }),
           };
@@ -167,6 +184,11 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     const raw = localStorage.getItem(key(suffix));
     return raw === null ? null : (JSON.parse(raw) as T);
   };
+  const keepBest = (value: number, board: string) => {
+    const best = read<number>(`best:${board}`);
+    if (best === null || value > best) localStorage.setItem(key(`best:${board}`), JSON.stringify(value));
+  };
+
   // Without a hub, the theme follows the device's light/dark setting, live.
   const device = window.matchMedia('(prefers-color-scheme: dark)');
   let settings = normalizeSettings({ muted: false, theme: device.matches ? 'dark' : 'light' });
@@ -188,10 +210,11 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     },
     on: (event: SessionEvent, listener: Listener) => emitter.on(event, listener),
     save: async (data) => localStorage.setItem(key('save'), JSON.stringify(data)),
-    submitScore: async (value, board = 'default') => {
-      const best = read<number>(`best:${board}`);
-      if (best === null || value > best) localStorage.setItem(key(`best:${board}`), JSON.stringify(value));
-    },
+    submitScore: async (value, board = 'default') => keepBest(value, board),
+    run: (_run, board = 'default') => ({
+      update: async (value) => keepBest(value, board),
+      finish: async (value) => keepBest(value, board),
+    }),
     exit: () => console.info('[tohe] exit() called — ignored in standalone mode'),
     log: (level, message) => console[level](`[tohe] ${message}`),
   };

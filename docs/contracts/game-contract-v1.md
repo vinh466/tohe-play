@@ -88,6 +88,11 @@ session.on('settings', (s) => audio.setMuted(s.muted));
 await session.submitScore(score);                // needs "scores" capability
 await session.save({ best: Math.max(best, score) }); // needs "save" capability
 session.exit();                                  // back to the catalog
+
+// a run saved mid-way and resumed later (ADR 0014): one id per run, kept in the save
+const run = session.run(saved.runId);
+run.update(score);                               // after a move that scores: "in progress" on the leaderboard
+run.finish(score);                               // at game over, or when the player starts a new game
 ```
 
 | Member | Description |
@@ -101,6 +106,7 @@ session.exit();                                  // back to the catalog
 | `on(event, fn)` | `pause`, `resume`, `settings`. Returns an unsubscribe function. |
 | `save(data)` | JSON, ≤ 64 KB. Resolves when the hub stored it; rejects with the hub's reason. |
 | `submitScore(value, board?)` | Finite number; board defaults to `default`. |
+| `run(id, board?)` | A run that lasts across sittings: `update(value)` while it goes on, `finish(value)` when it ends. The hub keeps one score per run, its highest. |
 | `exit()` | Ask the hub to close the game. |
 | `log(level, message)` | Forward a diagnostic line to the hub's console. |
 
@@ -121,7 +127,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | game → host | `ready` | `gameId`, `sdkVersion` | First message. Sent to `*` because the host is not known yet; carries no data. |
 | host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed` | The game records `event.origin` and from now on only talks to it. |
 | game → host | `save` | `id`, `data` | Request; answered by `result`. |
-| game → host | `score` | `id`, `value`, `board` | Request; answered by `result`. |
+| game → host | `score` | `id`, `value`, `board`, `run?`, `final` | Request; answered by `result`. `run` groups the reports of one run; `final` (default `true`) is `false` while it goes on. |
 | host → game | `result` | `replyTo`, `ok`, `error?` | Answer to a request. |
 | host → game | `pause` / `resume` | — | Tab hidden / shown, system dialogs. |
 | host → game | `settings` | `settings` | `{ muted, theme }`: mute or theme changed. |
@@ -155,7 +161,8 @@ It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` aft
 
 - `protocol` is an integer. Additive, optional changes (a new optional field, a new capability) keep the number.
   Example: `themes` and `settings.theme` (ADR 0013) — older builds ignore the field; SDK 0.2.0 assumes `light` when
-  a host does not send it.
+  a host does not send it. Likewise `run` and `final` on `score` (ADR 0014): a score without them is final, as in
+  older builds.
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;
   games are migrated before N−1 is dropped.
 - The SDK follows semver independently; its major version changes only with the protocol.

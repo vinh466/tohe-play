@@ -33,7 +33,8 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
    `onRestart`); `pause`/`resume` → `kit.pause()/resume()`; `settings.muted` → `sfx.setMuted`; save after every move;
    `submitScore` at the end; intro/game-over with the kit's `overlay`; Vietnamese strings first, English second.
    Runs that outlast one sitting (saved mid-run): `createLifecycle` for "continue / new game" on open and the ⏸
-   menu in the HUD.
+   menu in the HUD, and live scores instead of `submitScore` — `session.run(id).update(score)` after scoring moves,
+   `finish(score)` at game over and when a new game replaces an unfinished one (id kept in the save, ADR 0014).
 7. Themes (with both): `followTheme(session, theme => { scene.setTheme(theme); kit.setBackground(...) })`; art
    colours in a per-theme palette (`palette.ts`), DOM colours from the design tokens (`var(--tohe-*)`); every text
    at least 4.5:1 on its background (3:1 if large and bold).

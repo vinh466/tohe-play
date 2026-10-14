@@ -376,6 +376,12 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("client_id");
 
+                    b.Property<bool>("Final")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("final");
+
                     b.Property<string>("GameId")
                         .IsRequired()
                         .HasMaxLength(40)

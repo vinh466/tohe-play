@@ -10,7 +10,14 @@ export interface ProgressApi {
   listSaves(): Promise<{ gameId: string; data: unknown; updatedAt: string }[]>;
   putSave(gameId: string, data: JsonValue): Promise<{ updatedAt: string }>;
   recordScores(
-    scores: { clientId: string; gameId: string; board: string; value: number; achievedAt: string }[],
+    scores: {
+      clientId: string;
+      gameId: string;
+      board: string;
+      value: number;
+      achievedAt: string;
+      final: boolean;
+    }[],
   ): Promise<unknown>;
 }
 
@@ -49,17 +56,23 @@ async function pushScores(db: ToheDb, api: ProgressApi, profileId: string) {
   for (let i = 0; i < pending.length; i += SCORE_BATCH) {
     const batch = pending.slice(i, i + SCORE_BATCH);
     await api.recordScores(
-      batch.map(({ clientId, gameId, board, value, at }) => ({
+      batch.map(({ clientId, gameId, board, value, at, final }) => ({
         clientId,
         gameId,
         board,
         value,
         achievedAt: new Date(at).toISOString(),
+        final: final ?? true,
       })),
     );
-    await db.scores.bulkUpdate(
-      batch.flatMap((s) => (s.id === undefined ? [] : [{ key: s.id, changes: { synced: 1 as const } }])),
-    );
+    // A run may have reported a higher score while the request was in flight: only what was sent is synced.
+    for (const sent of batch) {
+      await db.scores
+        .where('id')
+        .equals(sent.id ?? -1)
+        .and((current) => current.value === sent.value && current.final === sent.final)
+        .modify({ synced: 1 });
+    }
   }
 }
 

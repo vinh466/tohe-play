@@ -679,7 +679,7 @@
         "tags": [
           "Progress"
         ],
-        "summary": "Record finished runs of the active profile; repeats (same clientId) are ignored.",
+        "summary": "Record runs of the active profile; the same clientId again raises that run's score.",
         "operationId": "RecordScores",
         "requestBody": {
           "content": {
@@ -1004,7 +1004,8 @@
           "name",
           "avatar",
           "value",
-          "achievedAt"
+          "achievedAt",
+          "inProgress"
         ],
         "type": "object",
         "properties": {
@@ -1025,6 +1026,9 @@
           "achievedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "inProgress": {
+            "type": "boolean"
           }
         }
       },
@@ -1323,6 +1327,10 @@
           "achievedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "final": {
+            "type": "boolean",
+            "default": true
           }
         }
       },

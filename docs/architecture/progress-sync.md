@@ -4,7 +4,8 @@ description: How a game's saves and scores reach every device of a profile, and 
 ---
 
 Decision: [ADR 0005 — offline first](../decisions/0005-offline-first.md). Games know nothing of this: they call
-`save()` and `submitScore()` ([Game Contract](../contracts/game-contract-v1.md)); the hub does the rest.
+`save()`, `submitScore()` and `run()` ([Game Contract](../contracts/game-contract-v1.md)); the hub does the
+rest.
 
 ## The path of a save
 
@@ -25,8 +26,19 @@ The same profile can play on two devices that are offline at the same time.
 - **Saves:** the last write to reach the server wins; the server keeps the version it replaced
   (`previous_data`), so one conflict can be undone by hand. On a device, a save that is still waiting to be pushed is
   never overwritten by a pull: it is newer for that device, and it wins when it is pushed.
-- **Scores** never conflict: every finished run is stored. Each carries a `clientId` chosen on the device, so a
-  retry after a lost answer is stored once.
+- **Scores** never conflict: every run is stored. Each carries a `clientId` chosen on the device, so a retry
+  after a lost answer is stored once.
+
+## Long runs (ADR 0014)
+
+A game whose run lasts across sittings reports it as it grows (`run(id).update`) and finishes it at the end.
+
+- The hub keeps **one score row per run**: a higher report raises its value, and a final report marks it final for
+  good. Every change makes the row pending again.
+- A push marks a row synced only if it still holds what was sent, so a report made during the request is pushed
+  next time.
+- The server applies the same rules to a `clientId` it already has.
+- The leaderboard's best score of a profile can be a run in progress (`inProgress`, shown as "▶ đang chơi").
 
 ## API (`/api/progress`, module `Progress`, schema `progress`)
 
@@ -34,7 +46,7 @@ The same profile can play on two devices that are offline at the same time.
 | --- | --- |
 | `GET /api/progress/saves` | Every save of the active profile, with the server time of its last write. |
 | `PUT /api/progress/saves/{gameId}` | Stores a save (any JSON, at most 64 KB as in the contract); the last write wins. |
-| `POST /api/progress/scores` | Records finished runs (up to 200 per call); repeats of a `clientId` are ignored. |
+| `POST /api/progress/scores` | Records runs (up to 200 per call). A known `clientId` raises that run's score or makes it final; otherwise it is ignored. |
 | `GET /api/progress/leaderboard/{gameId}?board=default` | Best score of each household member, highest first. |
 
 All need a session with a chosen profile (`403 profile_required` otherwise). The leaderboard reads names and

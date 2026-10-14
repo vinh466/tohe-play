@@ -2,7 +2,7 @@
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "merge-block",
   "name": "Ghép Khối",
-  "version": "1.2.0",
+  "version": "1.3.0",
   "protocol": 1,
   "description": "Thả khối số vào cột, hai khối giống nhau sẽ gộp lại. Gộp liên tiếp để nhân điểm!",
   "icon": "icon.svg",

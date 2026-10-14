@@ -86,8 +86,8 @@ Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013):
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every placement: `{ best, game }`, where `game` is the full state (board, tray, score, streak, PRNG). Opening the game resumes it. |
-| `scores` | `submitScore(score)` at game over. |
+| `save` | After every placement: `{ best, game, run }`, where `game` is the full state (board, tray, score, streak, PRNG) and `run` its leaderboard id. Opening the game resumes it. |
+| `scores` | A live run (ADR 0014), like Ghép Khối: `run(id).update(score)` after placements that score, `finish(score)` at game over or when a new game replaces it. |
 | settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of a new game. |
 
