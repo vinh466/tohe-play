@@ -41,12 +41,16 @@ The game ends when **every column is full**. Then: score, best, "Kỷ lục mớ
 
 1. **Intro** (first time only): three picture hints — tap a column; equal blocks merge; chains multiply points.
    The first move shows a pulsing hint over the columns.
-2. **Playing:** HUD with score (counts up), next block and best; board with the current block above it; exit and
-   sound buttons come from the hub.
-3. **Paused:** the hub sends `pause` when the app is hidden or its exit confirmation is open; animations and
-   timers stop, and `resume` continues exactly where they were. The hub's confirmation offers to keep playing,
-   so the game shows no pause screen of its own.
-4. **Game over:** board dims and settles, card with score/best, confetti for a record, **Chơi lại**.
+2. **Continue** (opening with a game in progress, after the intro was seen): "Ván đang chơi dở: n điểm" with
+   **Chơi tiếp** (the default) and **Ván mới** (asks first; the run ends).
+3. **Playing:** HUD with ⏸, score (counts up), next block and best; board with the current block above it; exit and
+   sound buttons come from the hub. **⏸** (or Esc) opens the menu: **Tiếp tục**, **Ván mới** (asks first),
+   **Cách chơi** (the intro hints again).
+4. **Paused by the hub:** the hub sends `pause` when the app is hidden or its exit confirmation is open; animations
+   and timers stop, and `resume` continues exactly where they were.
+5. **Game over:** board dims and settles, card with score/best, confetti for a record, **Chơi lại**.
+
+The continue card and the ⏸ menu are the kit's standard lifecycle (`createLifecycle`).
 
 ## Feel (juice), in tiers
 

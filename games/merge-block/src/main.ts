@@ -2,6 +2,7 @@
 import '@tohe/game-kit/overlay.css';
 import './style.css';
 import {
+  createLifecycle,
   createOverlay,
   createSfx,
   followTheme,
@@ -9,6 +10,7 @@ import {
   formatValue,
   haptics,
   hintList,
+  lifecycleStrings,
   type Theme,
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
@@ -145,6 +147,20 @@ session.on('resume', () => kit.resume());
 
 const overlay = createOverlay(app);
 
+// Continue or start over when a game in progress is opened, and the ⏸ menu while playing (kit lifecycle).
+const lifecycle = createLifecycle({
+  overlay,
+  strings: lifecycleStrings(session.locale),
+  icon: '🧱',
+  title: t.title,
+  howTo: () => ({ icon: '🧱', title: t.title, content: hintList(t.hints) }),
+  onNewGame: () => {
+    sfx.play('click');
+    startNewGame();
+  },
+});
+document.querySelector('#hud')?.prepend(lifecycle.menuButton());
+
 function requestMove(col: number) {
   if (overlay.visible) return;
   const now = performance.now();
@@ -247,7 +263,8 @@ function showTutorial() {
 
 window.addEventListener('keydown', (event) => {
   if (overlay.visible) return;
-  if (event.key === 'ArrowLeft') board.nudge(-1);
+  if (event.key === 'Escape') lifecycle.openMenu();
+  else if (event.key === 'ArrowLeft') board.nudge(-1);
   else if (event.key === 'ArrowRight') board.nudge(1);
   else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
     if (!event.repeat) requestMove(board.aimedColumn); // holding the key down drops once
@@ -260,3 +277,4 @@ board.relayout(kit.size().width, kit.size().height);
 board.setBoard(state);
 showScore(state.score, false);
 if (!tutorialSeen) showTutorial();
+else if (state.moves > 0) lifecycle.offerContinue(t.inProgress(formatScore(state.score, session.locale)));
