@@ -1,5 +1,5 @@
 // Synthesised sound effects (Web Audio): no files to download, license or cache, and pitch can follow the game
-// (bigger merges sound higher). The audio context starts on the first touch or key press, as iOS requires.
+// (bigger merges sound higher). The audio context starts on a tap or key press, as iOS requires.
 import type { Telemetry } from '@tohe/game-sdk';
 
 export type SoundName = 'click' | 'pop' | 'drop' | 'merge' | 'combo' | 'levelUp' | 'error' | 'fanfare';
@@ -35,8 +35,16 @@ export interface SfxOptions {
   telemetry?: Telemetry;
 }
 
-/** How long after the unlocking touch the audio context must be running. */
+/** How long after the first tap the audio context must be running. */
 const UNLOCK_CHECK_MS = 1000;
+
+/** Events that may start the audio context. A finger counts when it lifts, not when it lands. */
+const UNLOCK_EVENTS = ['pointerdown', 'pointerup', 'touchend', 'click', 'keydown'] as const;
+
+/** A user activation (HTML spec): a finger or pen landing is not one, so a browser may keep the sound off for it. */
+function activates(event: Event): boolean {
+  return !(event.type === 'pointerdown' && 'pointerType' in event && event.pointerType !== 'mouse');
+}
 
 export function createSfx({ telemetry }: SfxOptions = {}): Sfx {
   let context: AudioContext | null = null;
@@ -51,23 +59,33 @@ export function createSfx({ telemetry }: SfxOptions = {}): Sfx {
       master.gain.value = muted ? 0 : 0.45;
       master.connect(context.destination);
     }
-    if (context.state === 'suspended') void context.resume();
+    // Not only 'suspended': iOS may report 'interrupted' (a call, another app's sound, the app sent to the back).
+    // A refused resume is tried again on the next tap.
+    if (context.state !== 'running' && context.state !== 'closed') context.resume().catch(() => undefined);
     return context;
   };
 
-  // Create/resume the context inside a user gesture; later sounds can then play from timers and tweens.
+  // Start the context inside a user gesture; later sounds can then play from timers and tweens. The listeners stay
+  // for the whole visit, so a tap also brings the sound back after iOS interrupted it.
   if (typeof window !== 'undefined') {
-    const unlock = () => {
+    let checked = false;
+    const unlock = (event: Event) => {
+      if (context?.state === 'running') return;
       const audio = ensure();
-      window.removeEventListener('pointerdown', unlock);
-      window.removeEventListener('keydown', unlock);
-      if (!telemetry?.enabled) return;
+      // A silent sample played inside the gesture too: the long-standing way to wake Web Audio on iOS.
+      if (audio) {
+        const blank = audio.createBufferSource();
+        blank.buffer = audio.createBuffer(1, 1, audio.sampleRate);
+        blank.connect(audio.destination);
+        blank.start();
+      }
+      if (checked || !activates(event) || !telemetry?.enabled) return;
+      checked = true;
       if (!audio) telemetry.count('kit.audio.unsupported');
       else
         setTimeout(() => audio.state !== 'running' && telemetry.count('kit.audio.blocked'), UNLOCK_CHECK_MS);
     };
-    window.addEventListener('pointerdown', unlock);
-    window.addEventListener('keydown', unlock);
+    for (const type of UNLOCK_EVENTS) window.addEventListener(type, unlock, { capture: true, passive: true });
   }
 
   const tone = ({ type, frequency, glideTo, duration, gain, delay = 0 }: Tone) => {

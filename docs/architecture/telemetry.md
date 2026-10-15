@@ -50,7 +50,7 @@ Four kinds of event, in the Game Contract (`packages/contract/src/telemetry.ts`)
 | `kit.webgl.context-lost` | count | kit | the browser took the WebGL context away |
 | `kit.first-frame-ms` | metric | kit | first frame drawn, from the game page's start |
 | frame summary | frames | kit | every minute of play and when paused |
-| `kit.audio.blocked` / `kit.audio.unsupported` | count | kit | sound still off a second after the first touch / no Web Audio |
+| `kit.audio.blocked` / `kit.audio.unsupported` | count | kit | sound still off a second after the first tap (the finger lifted) / no Web Audio |
 | `sdk.errors-dropped`, `sdk.metrics-dropped` | count | SDK | a game went over its budget |
 | `hub.play.session` | count | hub | a game opens |
 | `hub.play.duration.under-1m` … `over-60m` | count | hub | a game closes |

@@ -2,7 +2,7 @@
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "tap-merge",
   "name": "Chạm Ghép",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "protocol": 1,
   "description": "Chạm vào một khối số: cả chuỗi khối giống nó nối liền nhau, cả đường chéo, nhập lại. Gom càng nhiều, số càng to!",
   "icon": "icon.svg",
