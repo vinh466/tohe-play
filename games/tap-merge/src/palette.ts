@@ -1,7 +1,8 @@
 // Colours of the game. The board follows the hub's light/dark theme (ADR 0013); the blocks come in five presets the
 // player picks from (SPEC.md, "Block colours"), the same in both themes. The default, Hoàng hôn, is Ghép Khối's, so
 // the two games look like a family. Every number keeps at least 4.5:1 contrast on its block, and in the presets made
-// to tell numbers apart two numbers in a row are clearly different colours (palette.test.ts).
+// to tell numbers apart two numbers in a row are clearly different colours (palette.test.ts). From 64K on, the
+// preset's colours come round again with a gold ring (`blockStyle`).
 import type { Theme } from '@tohe/game-kit';
 
 export interface BlockStyle {
@@ -9,7 +10,7 @@ export interface BlockStyle {
   /** Darker edge drawn under the block for a bit of depth. */
   edge: number;
   text: string;
-  /** Light ring for blocks that would vanish into a dark board. */
+  /** The gold ring of the blocks from 64K on. */
   outline?: number;
 }
 
@@ -121,7 +122,7 @@ const COLORBLIND = styles([
   [0x8c4673, '#ffffff'], // 32K dark reddish purple
 ]);
 
-/** Each preset's blocks; index 0 is the block `2`, and blocks past the end are the champion. */
+/** Each preset's blocks, 2 to 32K; index 0 is the block `2`. */
 export const PALETTES: Record<PaletteId, readonly BlockStyle[]> = {
   sunset: SUNSET,
   bold: BOLD,
@@ -130,17 +131,31 @@ export const PALETTES: Record<PaletteId, readonly BlockStyle[]> = {
   colorblind: COLORBLIND,
 };
 
-/** 64K and up, the same in every preset. */
-export const CHAMPION: BlockStyle = { fill: 0x1e293b, edge: 0x0f172a, text: '#fde68a' };
+/** The ring of the blocks from 64K on: deep gold on the cream board, light gold on the dark one. */
+export const GOLD: Record<Theme, number> = { light: 0xb45309, dark: 0xfcd34d };
 
+const rings = new Map<string, BlockStyle>();
+
+/**
+ * A block's colours. From 64K on, the preset's colours come round again (64K like 2, 128K like 4, …) with a gold
+ * ring: the rising floor has retired those small numbers long before (2s at 4K, 4s at 16K, …), and in the rare
+ * game where one is still there, the ring and the number tell them apart.
+ */
 export function blockStyle(
   exp: number,
   theme: Theme = 'light',
   palette: PaletteId = DEFAULT_PALETTE,
 ): BlockStyle {
-  const style = PALETTES[palette][exp - 1];
-  if (style) return style;
-  return theme === 'dark' ? { ...CHAMPION, outline: 0xfde68a } : CHAMPION;
+  const preset = PALETTES[palette];
+  const style = preset[(exp - 1) % preset.length] as BlockStyle;
+  if (exp <= preset.length) return style;
+  const key = `${palette}:${theme}:${exp}`;
+  let ringed = rings.get(key);
+  if (!ringed) {
+    ringed = { ...style, outline: GOLD[theme] };
+    rings.set(key, ringed);
+  }
+  return ringed;
 }
 
 /** Everything around the blocks, per theme. */

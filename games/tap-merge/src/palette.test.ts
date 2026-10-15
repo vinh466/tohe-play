@@ -1,6 +1,6 @@
 import { contrast } from '@tohe/design-tokens';
 import { describe, expect, it } from 'vitest';
-import { BOARD, blockStyle, CHAMPION, isPalette, PALETTE_IDS, PALETTES } from './palette.ts';
+import { BOARD, blockStyle, GOLD, isPalette, PALETTE_IDS, PALETTES } from './palette.ts';
 
 const hex = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
@@ -26,7 +26,7 @@ function deltaE(a: number, b: number): number {
 describe('palette', () => {
   it('keeps every number readable on its block, in every preset (WCAG AA, 4.5:1)', () => {
     for (const id of PALETTE_IDS) {
-      for (const [index, style] of [...PALETTES[id], CHAMPION].entries()) {
+      for (const [index, style] of PALETTES[id].entries()) {
         const ratio = contrast(style.text, hex(style.fill));
         expect(
           ratio,
@@ -53,10 +53,20 @@ describe('palette', () => {
     }
   });
 
-  it('rings the dark champion block only on a dark board, whatever the preset', () => {
+  it('brings the colours round again from 64K on, with a gold ring', () => {
     for (const id of PALETTE_IDS) {
-      expect(blockStyle(40, 'light', id).outline).toBeUndefined();
-      expect(blockStyle(40, 'dark', id).outline).toBeDefined();
+      for (const theme of ['light', 'dark'] as const) {
+        expect(blockStyle(15, theme, id).outline, `${id} 32K`).toBeUndefined();
+        for (const exp of [16, 17, 30, 31, 40]) {
+          const style = blockStyle(exp, theme, id);
+          const again = PALETTES[id][(exp - 1) % 15];
+          expect([style.fill, style.text, style.outline], `${id} 2^${exp}`).toEqual([
+            again?.fill,
+            again?.text,
+            GOLD[theme],
+          ]);
+        }
+      }
       expect(blockStyle(3, 'dark', id)).toBe(blockStyle(3, 'light', id));
     }
   });

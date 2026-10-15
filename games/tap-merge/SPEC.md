@@ -7,16 +7,23 @@
 > tổng các ô"), and chose to round the sum **up** to a power of two (0.3.0) after seeing how long games last
 > ([Game length](#game-length)). The same day a friend of the owner found the gradual block colours hard to tell
 > apart; the owner likes them, so each player picks a colour preset (0.4.0, [Block colours](#block-colours)).
+> Later that day the owner asked that big blocks stop the small ones from coming ("khi merge ra 1 block to, thì cần
+> có cơ chế ko spawn block nhỏ nữa"), chose the [rising floor](#rising-floor) proposed after a simulation ("như bạn
+> đề xuất, làm sao để nó hợp lý, an toàn, và kích thích cảm giác đạt được"), with points for the blocks it clears
+> ("có cộng") and no care for older scores ("k cần quan tâm điểm cũ"), and asked for vibrations and effects tuned
+> so players stay ("tối ưu để người chơi dính hơn"): 0.5.0, [Feel](#feel-juice-in-tiers).
 > Details the chat left open are marked *(default)*.
 
 A board always full of number blocks. Tap a block: every equal block connected to it, diagonals included, merges
 into it and their sum, rounded up to a power of two, is the new block; the board falls and new blocks slide in
-from the top. The genre of "Get 10" / "2248", made for
-children: one tap is the whole move, there is no timer, and nothing merges on its own.
+from the top. Big blocks retire the smallest numbers, which leave the board with a bonus, so the game levels up as
+it goes. The genre of "Get 10" / "2248", made for children: one tap is the whole move, there is no timer, and
+nothing merges on its own.
 
 ## Board
 
-- **5 columns × 7 rows**, always full. Blocks hold powers of two: 2, 4, 8, … shown as `2048`, `4K`, `16K`, `1M`.
+- **5 columns × 7 rows**, always full. Blocks hold powers of two: 2, 4, 8, … shown as `2048`, `4K`, `16K`, `1M`
+  (never more than 4 characters, up to `512B`).
 - The same blocks and colours as Ghép Khối, so the two games look like a family.
 
 ## A move
@@ -35,8 +42,10 @@ children: one tap is the whole move, there is no timer, and nothing merges on it
 3. A block with no equal neighbour wobbles (soft error sound). That is not a move.
 4. **Gravity:** absorbed blocks leave holes; the blocks above fall down.
 5. **Refill:** the holes left at the top of each column fill with new blocks that slide in from above the board.
-6. **No chains:** blocks that now touch an equal block wait for the player's next tap. Every merge is a choice.
-7. Taps made while blocks are still moving are ignored *(default)*: a move animates in under half a second, and a
+6. **Rising floor:** when the merge made a milestone block, the smallest value retires: its blocks leave the board
+   and score, the board falls and refills again ([Rising floor](#rising-floor)).
+7. **No chains:** blocks that now touch an equal block wait for the player's next tap. Every merge is a choice.
+8. Taps made while blocks are still moving are ignored *(default)*: a move animates in under half a second, and a
    remembered tap could land on a block that has changed under the finger.
 
 ## Scoring
@@ -44,13 +53,41 @@ children: one tap is the whole move, there is no timer, and nothing merges on it
 - A tap scores **the new value × the number of blocks absorbed** *(default: unchanged since 0.1.0)*: a 4 made
   from two 2s scores 4; a 32 made from ten 2s (nine absorbed) scores 288.
 - Rounding up rewards gathering: three 2s already make an 8, and five make a 16.
+- When the floor rises, **each block that leaves scores the largest block's value** *(default)*: the first 4K
+  clearing five 2s adds 5 × 4,096 = 20,480. In simulated games that is about 14% of all points: a jackpot at each
+  milestone that never outweighs the merges.
+
+## Rising floor
+
+The smallest value that still comes and stays on the board, the **floor**, rises with the largest block made in the
+game (`floorOf` in `logic.ts`):
+
+| Largest block made | below 4K | 4K, 8K | 16K, 32K | 64K, 128K | 256K, 512K | 1M, 2M | … |
+| --- | --- | --- | --- | --- | --- | --- | --- |
+| The floor (smallest value) | 2 | 4 | 8 | 16 | 32 | 64 | one more every second new largest block |
+| The value retired then | | 2 | 4 | 8 | 16 | 32 | |
+
+- **Milestones** are 4K, 16K, 64K, 256K, 1M, …: each is four times the one before. Making one retires the floor
+  value: no new block of it comes, and **every block of it on the board leaves** (and scores, see
+  [Scoring](#scoring)); the board falls and refills from the new floor.
+- The new blocks of the merge that reaches a milestone already come from the new floor, so none is cleared a moment
+  after it arrives.
+- **Why a floor that falls behind:** a floor kept at a fixed distance under the largest block makes the board at 1M
+  look exactly like the board at 1K, only bigger: a fair player never gets stuck, games never end and blocks grow
+  without bound (2^100 and more in the simulation, [Game length](#game-length)). Rising one value for every two new
+  largest blocks widens the range of values on the board as the game goes, so every game still ends.
+- The floor is computed from the largest block made, which saves already hold: games saved before 0.5.0 need no
+  migration. Blocks they still have under the floor leave at their next tap, the same way.
+- The HUD shows the next milestone and the value it retires, "🎯 Mục tiêu **4K** tạm biệt **2**", lit up when one
+  more new largest block reaches it ([Screens](#screens)).
 
 ## New blocks
 
-Values come from the state's seeded PRNG. With *M* the exponent of the largest block on the board, new blocks have
-exponents 1 … *K*, *K* = clamp(*M* − 3, 3, 6), weighted towards the small ones (weights 6, 5, 4, 3, 2, 1). At the
-start that is 2, 4 and 8; from a 512 on the board, up to 64. A new game is a full board drawn the same way, drawn
-again until it has a move.
+Values come from the state's seeded PRNG. With *F* the exponent of the [floor](#rising-floor) and *M* the
+exponent of the largest block on the board, new blocks have exponents *F* … *F* + *K* − 1, *K* = clamp(*M* − *F* − 2,
+3, 6), weighted towards the small ones (weights 6, 5, 4, 3, 2, 1). At the start that is 2, 4 and 8; from a 512 on
+the board, up to 64; each time the floor rises, the whole range moves up one value (from 4 to 128 after the first
+4K). A new game is a full board drawn the same way, drawn again until it has a move.
 
 ## 🔀 Shuffle (the rescue)
 
@@ -68,36 +105,52 @@ a record, and **Chơi lại**.
 
 ## Game length
 
-The 8 directions and the merge rule decide how long a game lasts. A full 5 × 7 board where diagonals count almost
-always holds an equal pair, and whole groups clear more of the board at each tap, so a game is long: a game to open
-and play without thinking, resumed where it was left (continue / new game, live leaderboard). Adding up the group
-makes blocks grow faster than doubling did, so since 0.3.0 every game ends, after a long while. Simulated games,
-40 per player:
+The 8 directions, the merge rule and the floor decide how long a game lasts. A full 5 × 7 board where diagonals
+count almost always holds an equal pair, and whole groups clear more of the board at each tap, so a game is long: a
+game to open and play without thinking, resumed where it was left (continue / new game, live leaderboard). Every
+game ends, after a long while. Simulated games of 0.5.0, 40 per player (`pnpm --filter @tohe/game-tap-merge
+simulate`):
 
-| Player | Taps per game (median) | Largest block (median) | Stuck per game | Blocks absorbed per tap |
+| Player | Taps per game (median) | Largest block (median, max) | Stuck per game | Score (median, max) |
 | --- | --- | --- | --- | --- |
-| Taps any block that merges (a child) | about 1,900 (760–4,300) | 32K | 4.3 | 2.2 on average, up to 22; 6+ in 5% of taps |
-| Always takes the biggest group | about 1,700 (720–4,700) | 32K | 4.4 | 2.2 on average, up to 21; 6+ in 2% of taps |
+| Taps any block that merges (a child) | about 2,800 (1,600–4,600) | 256K, 2M | 4.9 | 11.3M, 56M |
+| Always takes one of the biggest groups | about 2,600 (1,400–3,800) | 512K, 2M | 5.5 | 12.2M, 46M |
 
-How the merge rule changes the median game of the child-like player (the same bot, 10 to 40 games per rule):
+Blocks absorbed per tap: 2.2 on average, up to 22; 6 or more in 5% of a child's taps and 2% of the greedy
+player's. The floor ends four or five values up (32 in the median game), and each rise clears about five blocks.
 
-| Merge rule | Taps per game |
-| --- | --- |
-| The tapped block doubles once, however big the group (0.2.0) | about 15,000; some games never end |
-| The sum, rounded down to a power of two (ten 2s → 16) | about 6,000 |
-| **The sum, rounded up to a power of two (ten 2s → 32), 0.3.0** | **about 1,900** |
-| The exact sum (three 2s → 6, ten 2s → 20) | about 100: numbers like 6 and 20 almost never find a pair among the new 2s, 4s and 8s |
+How the floor rule changes games (a throwaway variant of the same simulation, 40 games per player and rule, stopped
+at 25,000 taps; it refilled from the old floor before raising it, so its 0.5.0 row is a little apart from the table
+above):
 
-Earlier versions: only the 8 cells around (0.1.0) gave about 3,000 taps; 4 directions only, about 260. The
-directions are one constant (`DIRECTIONS` in `logic.ts`), the rounding one function (`merged`).
+| Floor rule | Taps per game, child / greedy | Largest block (median) | Games that do not end |
+| --- | --- | --- | --- |
+| No floor (0.4.0) | about 1,700 / 1,750 | 32K | none |
+| **One value for every second new largest block, from 4K (0.5.0)** | **about 3,000 / 2,300** | **512K** | **none** |
+| One value for every third new largest block, from 4K | about 2,550 / 2,000 | 128K | none |
+| 14 values under the largest block | about 1,750 / 1,700 | 32K (it hardly ever rises) | none |
+| 12 values under the largest block | about 8,800 / 7,000 | 32B–64B, up to 2^98 | 3 and 1 of 40 |
+| Retire a value after making a block 12 values above the floor three times | about 4,700 / 3,700 | 2M–8M, up to 2^66 | none, but blocks of 2^66 |
+
+Earlier versions: how the merge rule changed the median game of the child-like player (the same bot, 10 to 40
+games per rule): the tapped block doubling once, however big the group (0.2.0), about 15,000 taps, some games never
+ending; the sum rounded down to a power of two, about 6,000; **rounded up (0.3.0), about 1,900**; the exact sum
+(three 2s → 6), about 100, as numbers like 6 and 20 almost never find a pair among the new 2s, 4s and 8s. Only the
+8 cells around (0.1.0) gave about 3,000 taps; 4 directions only, about 260. The directions are one constant
+(`DIRECTIONS` in `logic.ts`), the rounding one function (`merged`), the floor another (`floorOf`).
 
 ## Screens
 
-1. **Intro** (first time only): three picture hints — tap a block; equal blocks connected to it, diagonals too,
-   merge into it; when nothing merges, 🔀 shuffles.
+1. **Intro** (first time only): four picture hints — tap a block; equal blocks connected to it, diagonals too,
+   merge into it; making the goal block (4K, 16K, …) retires the smallest blocks, with points; when nothing merges,
+   🔀 shuffles.
 2. **Continue** (opening with a game in progress, after the intro was seen): "Ván đang chơi dở: n điểm" with
    **Chơi tiếp** (the default) and **Ván mới** (asks first; the run ends).
-3. **Playing:** HUD with ⏸, score (counts up), the 🔀 button with how many are left, and best; the board below.
+3. **Playing:** HUD with ⏸, score (counts up), the 🔀 button with how many are left, and best; under it the goal,
+   "🎯 Mục tiêu [4K] tạm biệt [2]" with both blocks drawn small in the player's colours; the board below.
+   - **Scores never cover the HUD:** each score box keeps its share of the row; a score is shown in full while it
+     fits ("812.345") and otherwise in its own unit with as many decimals as fit ("812,3K", "23,45M"), cut and never
+     rounded up (the kit's `formatCompact`). The game-over card shows scores in full.
    Exit and sound buttons come from the hub. **⏸** (or Esc) opens the menu: **Tiếp tục**, **Ván mới** (asks
    first), **Cách chơi**, **Màu khối**.
    - **Màu khối:** one row per [preset](#block-colours), with its name and sample blocks 2 … 256 (the numbers on
@@ -105,25 +158,38 @@ directions are one constant (`DIRECTIONS` in `logic.ts`), the rounding one funct
      and keeps the choice; **Quay lại** returns to the menu.
 4. **Paused by the hub:** the hub sends `pause` when the app is hidden or its exit confirmation is open; animations
    and timers stop, and `resume` continues exactly where they were.
-5. **Game over:** board dims, card with score/best, confetti for a record, **Chơi lại**.
+5. **Game over:** board dims, card with score/best and the largest block made ("Khối lớn nhất [512K]"),
+   confetti for a record, **Chơi lại**.
 
 The continue card and the ⏸ menu are the kit's standard lifecycle (`createLifecycle`).
 
 ## Feel (juice), in tiers
 
-| Event | Feedback |
-| --- | --- |
-| Finger down | The block and the group it would absorb lift and glow |
-| Merge | The group is pulled into the tapped block like a ripple, nearest first; the block pops and changes colour, particle burst in its colour, "+points" floats up, rising pitch with value, haptic |
-| Big merge (6 or more absorbed, about 1 tap in 20) | "Gom n!" banner, a combo sound |
-| Huge merge (9 or more absorbed) | The banner in the bright colour, a small camera shake |
-| New largest block | "Khối mới!" banner; with a 🔀 earned, "+1 🔀" and the button pops |
-| Block of 512 or more | Short camera shake (skipped with reduced motion) |
-| Fall and refill | Blocks fall with a small bounce; new blocks fade in as they slide down from above the board |
-| No equal neighbour | The block wobbles, soft error sound |
-| Stuck | The 🔀 button pulses, "Chạm 🔀!" |
-| Shuffle | Every block flies to its new place |
-| Record | Confetti + fanfare |
+Feedback grows with how rare a moment is, so the big ones keep their meaning: a buzz or a shake every tap would be
+noise by the hundredth. Shakes are skipped with reduced motion; vibrations work where the browser allows them
+(Android), the kit's `haptics`.
+
+| Event | How often | Feedback | Vibration |
+| --- | --- | --- | --- |
+| Finger down on a group that merges | every tap | The block and its group lift and glow | a light tick, like a button giving way |
+| Finger down on a lone block | | It sinks a little | none |
+| Merge | every tap | The group is pulled into the tapped block like a ripple, nearest first; the block pops and changes colour, particle burst in its colour, "+points" floats up (shortened like the HUD), a note that climbs with the value, counted from the floor so it stays pleasant | a bump |
+| Big merge (6 or more absorbed) | 1 tap in 20 to 50 | "Gom n!" banner, a combo sound | a double pulse |
+| Huge merge (9 or more absorbed) | rarer | The banner in the bright colour, a small camera shake | a double pulse |
+| New largest block | from 64 on, a dozen times a game | "Khối mới: 4K!" banner, a combo sound; with a 🔀 earned, "+1 🔀" and the button pops; from 512 on a small shake | from 512 on, a double pulse |
+| The goal is one new largest block away | | The goal lights up and pops | none |
+| **Milestone: the floor rises** | four or five times a game | "Tạm biệt khối 2!" and the bonus in big letters over the board, a run up the scale, a medium shake; the retired blocks pop one after another to a rising run of notes, each in a burst of its colour; the goal pops and moves on | a long celebration pattern |
+| **The score passes the best**, while playing | once a game at most | "Vượt kỷ lục! 👑" in big letters, a fanfare, a little confetti; the best box lights up | the celebration pattern |
+| Fall and refill | every tap | Blocks fall with a small bounce; new blocks fade in as they slide down from above the board | none |
+| No equal neighbour | | The block wobbles, soft error sound | an error buzz |
+| Stuck | | The 🔀 button pulses, "Chạm 🔀!" | none |
+| Shuffle | | Every block flies to its new place | a double pulse |
+| Game over | | The board dims and wobbles; a record brings confetti and a fanfare | a double pulse for a record |
+
+- Banners queue: one waits until the one before has risen out of the way, so "Khối mới", "Gom n!", the milestone
+  and the record never cover each other.
+- Until 0.4.0 every merge from 512 on shook the board, which by the end of a long game was nearly every tap; the
+  shake now belongs to new largest blocks and the rarer moments.
 
 ## Themes
 
@@ -149,14 +215,17 @@ game's save, so it follows the profile to other devices, and a new player starts
 - Every number is at least 4.5:1 on its block, in every preset (`palette.test.ts`).
 - In every preset except Hoàng hôn, two numbers in a row are clearly different colours (`palette.test.ts`
   measures the distance between them).
-- The champion block (64K and up) is the same in every preset: dark with gold digits, and a gold ring on the
-  dark board.
+- **From 64K on**, the preset's colours come round again (64K like 2, 128K like 4, …) with a **gold ring and a
+  sparkle** in the corner (deep gold on the cream board, light gold on the dark one). The rising floor has retired
+  those small numbers long before, and in the rare game where one is still there (from a 2M on), the ring and the
+  number tell them apart. Until 0.4.0 every block from 64K on was the same dark "champion" block, which a board of
+  big blocks could no longer tell apart.
 
 ## Contract usage
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game, tutorialSeen, run, palette }` where `game` is the full state (board, score, 🔀, PRNG), `run` its leaderboard id and `palette` the player's colour preset (also saved when it changes). Opening the game resumes it. |
+| `save` | After every move: `{ best, game, tutorialSeen, run, palette }` where `game` is the full state (board, score, 🔀, largest block made, PRNG), `run` its leaderboard id and `palette` the player's colour preset (also saved when it changes). Opening the game resumes it; the floor is computed from the largest block, so saves from before 0.5.0 still open. |
 | `scores` | A live run (ADR 0014): `session.run(id).update(score)` after every move, `finish(score)` at game over or when the player starts a new game. One run id per game, kept in the save. |
 | settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of a new game. |
@@ -166,6 +235,8 @@ game's save, so it follows the profile to other devices, and a new player starts
 ## Invariants (checked by the random-play bot)
 
 - The board is always full; every block is a power of two.
+- After every tap, no block is under the floor, and the floor never goes down.
+- A tap raises the score by exactly what its merge and its floor bonus gained.
 - A merged block holds at least the sum of its group, and less than twice it.
 - The score never decreases, and every move raises it.
 - 🔀 stays between 0 and 3; a shuffle keeps the same blocks, leaves a move, and costs one.

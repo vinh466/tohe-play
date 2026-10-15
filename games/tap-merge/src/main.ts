@@ -7,6 +7,7 @@ import {
   createOverlay,
   createSfx,
   followTheme,
+  formatCompact,
   formatScore,
   formatValue,
   haptics,
@@ -16,7 +17,20 @@ import {
 } from '@tohe/game-kit';
 import { createGame, cssHex } from '@tohe/game-kit/phaser';
 import { connect } from '@tohe/game-sdk';
-import { type Cell, cellAt, isStuck, matches, newGame, restore, type State, shuffle, tap } from './logic.ts';
+import {
+  type Cell,
+  cellAt,
+  type Exponent,
+  floorOf,
+  isStuck,
+  matches,
+  newGame,
+  nextMilestone,
+  restore,
+  type State,
+  shuffle,
+  tap,
+} from './logic.ts';
 import { BOARD, blockStyle, DEFAULT_PALETTE, isPalette, PALETTE_IDS, type PaletteId } from './palette.ts';
 import { stringsFor } from './strings.ts';
 import { BoardScene } from './view.ts';
@@ -73,8 +87,43 @@ const shuffleLabel = document.querySelector('#shuffle-label') as HTMLElement;
 (document.querySelector('#score-label') as HTMLElement).textContent = t.score;
 (document.querySelector('#best-label') as HTMLElement).textContent = t.best;
 
+/**
+ * Room for a score: the HUD's score column minus the box's padding. Scores are shown in full while they fit and
+ * shortened ("56,4M") when they do not, measured in the HUD's own font, so the boxes never grow over 🔀.
+ */
+let scoreRoom = Number.POSITIVE_INFINITY;
+const measure = document.createElement('canvas').getContext('2d');
+function measureScoreRoom() {
+  const hud = document.querySelector('#hud') as HTMLElement;
+  const track = Number.parseFloat(getComputedStyle(hud).gridTemplateColumns.split(' ')[1] ?? '');
+  const box = getComputedStyle(scoreValue.parentElement as HTMLElement);
+  const font = getComputedStyle(scoreValue);
+  if (!measure || !Number.isFinite(track)) return;
+  measure.font = `${font.fontWeight} ${font.fontSize} ${font.fontFamily}`;
+  // A little margin: the canvas measures proportional digits, the HUD shows tabular ones.
+  scoreRoom = (track - Number.parseFloat(box.paddingLeft) - Number.parseFloat(box.paddingRight)) * 0.95;
+  renderScore();
+}
+
+/** The longest form of a score that fits its box. */
+function fitted(value: number): string {
+  const full = formatScore(value, session.locale);
+  if (!measure || measure.measureText(full).width <= scoreRoom) return full;
+  for (let chars = full.length - 1; chars > 3; chars--) {
+    const text = formatCompact(value, session.locale, chars);
+    if (measure.measureText(text).width <= scoreRoom) return text;
+  }
+  return formatCompact(value, session.locale, 3);
+}
+
 let shownScore = state.score;
 let scoreAnimation = 0;
+function renderScore() {
+  scoreValue.textContent = fitted(shownScore);
+  bestValue.textContent = fitted(Math.max(best, shownScore));
+  bestBox.classList.toggle('is-record', shownScore > best && best > 0);
+}
+
 function showScore(target: number, animate = true) {
   cancelAnimationFrame(scoreAnimation);
   const from = shownScore;
@@ -83,15 +132,51 @@ function showScore(target: number, animate = true) {
   const step = (now: number) => {
     const progress = duration === 0 ? 1 : Math.min(1, (now - started) / duration);
     shownScore = Math.round(from + (target - from) * (1 - (1 - progress) ** 3));
-    scoreValue.textContent = formatScore(shownScore, session.locale);
-    const leading = shownScore > best && best > 0;
-    bestValue.textContent = formatScore(Math.max(best, shownScore), session.locale);
-    bestBox.classList.toggle('is-record', leading);
+    renderScore();
     if (progress < 1) scoreAnimation = requestAnimationFrame(step);
   };
   scoreAnimation = requestAnimationFrame(step);
   if (animate && target > from) bump(scoreValue);
 }
+
+/** A block in small, coloured like the board's: the goal, and the largest block on the game-over card. */
+function miniBlock(exp: Exponent): HTMLElement {
+  const style = blockStyle(exp, theme, palette);
+  const block = document.createElement('span');
+  block.className = 'mini';
+  block.textContent = formatValue(2 ** exp);
+  block.style.backgroundColor = cssHex(style.fill);
+  block.style.color = style.text;
+  block.style.boxShadow =
+    style.outline === undefined
+      ? `inset 0 -0.15rem 0 ${cssHex(style.edge)}`
+      : `inset 0 0 0 2px ${cssHex(style.outline)}, inset 0 -0.15rem 0 ${cssHex(style.edge)}`;
+  return block;
+}
+
+/**
+ * 🎯 The next milestone and the value it retires: "Mục tiêu [4K] tạm biệt [2]". It lights up when one more new
+ * largest block reaches it, and pops when it moves on (SPEC.md, "Rising floor").
+ */
+const goal = document.querySelector('#goal') as HTMLElement;
+function showGoal(reached = false) {
+  const target = nextMilestone(state.top);
+  const retired = floorOf(state.top);
+  const label = document.createElement('span');
+  label.className = 'goal-label';
+  label.textContent = `🎯 ${t.goal}`;
+  const then = document.createElement('span');
+  then.textContent = t.goalThen;
+  goal.replaceChildren(label, miniBlock(target), then, miniBlock(retired));
+  goal.setAttribute('aria-label', t.goalLabel(formatValue(2 ** target), formatValue(2 ** retired)));
+  const near = target - state.top === 1;
+  if (near && !goal.classList.contains('is-near')) bump(goal);
+  goal.classList.toggle('is-near', near);
+  if (reached) bump(goal);
+}
+
+/** The score passes the best score once a game; a game resumed above it has already had its moment. */
+let passedBest = best > 0 && state.score > best;
 
 function bump(element: HTMLElement) {
   element.classList.remove('bump');
@@ -124,9 +209,11 @@ const kit = createGame({
         onTap: (cell) => void play(cell),
         onScore: (score) => showScore(score),
         onTop: () => bump(shuffleButton),
+        onFloor: () => showGoal(true),
       },
       theme,
       palette,
+      session.locale,
     ),
 });
 /** The current scene; replaced if the kit restarts the game with the Canvas renderer. */
@@ -137,8 +224,12 @@ followTheme(session, (next) => {
   theme = next;
   board.setTheme(next);
   kit.setBackground(BOARD[next].background);
+  showGoal();
 });
-kit.onResize((size) => board.relayout(size.width, size.height));
+kit.onResize((size) => {
+  board.relayout(size.width, size.height);
+  measureScoreRoom();
+});
 kit.onRestart(async (scene) => {
   board = scene;
   await board.whenReady;
@@ -194,6 +285,7 @@ function palettePicker(): HTMLElement {
     sfx.play('click');
     palette = id;
     board.setPalette(id);
+    showGoal();
     void persist();
   });
 }
@@ -207,6 +299,10 @@ async function play(cell: Cell) {
   }
   await animate(result.state, result.events);
   void run.update(state.score).catch(scoreFailed);
+  if (!passedBest && best > 0 && state.score > best && !state.over) {
+    passedBest = true;
+    board.celebrateRecord();
+  }
   if (state.over) endGame();
 }
 
@@ -258,10 +354,12 @@ function startNewGame() {
   run = session.run(runId);
   // The next game continues the PRNG sequence, so every new game differs but stays reproducible.
   state = newGame(state.rng, best);
+  passedBest = false;
   board.setBoard(state);
   shownScore = 0;
   showScore(0, false);
   showShuffle();
+  showGoal();
   void persist();
 }
 
@@ -270,6 +368,7 @@ function showGameOver(record: boolean) {
     icon: record ? '🏆' : '👆',
     title: record ? t.record : t.over,
     body: t.result(formatScore(state.score, session.locale), formatScore(best, session.locale)),
+    content: largestBlock(),
     actions: [
       {
         label: t.again,
@@ -284,6 +383,14 @@ function showGameOver(record: boolean) {
         : []),
     ],
   });
+}
+
+/** "Khối lớn nhất [512K]" on the game-over card. */
+function largestBlock(): HTMLElement {
+  const line = document.createElement('p');
+  line.className = 'largest';
+  line.append(t.largest(''), miniBlock(state.top));
+  return line;
 }
 
 /** The first block that merges, for the pointing hand of the first game. */
@@ -334,7 +441,10 @@ window.addEventListener('keydown', (event) => {
 await board.whenReady;
 board.relayout(kit.size().width, kit.size().height);
 board.setBoard(state);
+measureScoreRoom();
+void document.fonts?.ready.then(measureScoreRoom);
 showScore(state.score, false);
 showShuffle();
+showGoal();
 if (!tutorialSeen) showTutorial();
 else if (state.moves > 0) lifecycle.offerContinue(t.inProgress(formatScore(state.score, session.locale)));

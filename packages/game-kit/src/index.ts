@@ -1,5 +1,5 @@
 // Engine-independent parts of the kit. Phaser helpers live in '@tohe/game-kit/phaser'.
-export { formatScore, formatValue } from './format.ts';
+export { formatCompact, formatScore, formatValue } from './format.ts';
 export { type Haptic, haptics } from './haptics.ts';
 export {
   createLifecycle,

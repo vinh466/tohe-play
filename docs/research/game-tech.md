@@ -134,11 +134,11 @@ games/<id>/
 | --- | --- |
 | `createGame` | Phaser game at device pixels (crisp), fills its parent, re-lays out on resize/rotation, pauses the scene and its tweens on the SDK's `pause`, no Phaser audio or banner; `#perf` in the address shows a frame-rate readout |
 | `drawTexture` / `crispImage` | Shapes and text that do not change, drawn once with Canvas 2D at device pixels and shown as one image (see *Frame cost on phones*) |
-| `sfx` | Synthesised sounds (Web Audio, no files): `pop`, `drop`, `merge(level)`, `combo(n)`, `error`, `fanfare`; unlocked on the first touch (iOS); respects `muted` |
-| `haptics` | `tap` / `bump` / `success` via `navigator.vibrate` where supported (Android); silent elsewhere |
+| `sfx` | Synthesised sounds (Web Audio, no files): `pop`, `drop`, `merge(level)`, `combo(n)`, `levelUp`, `error`, `fanfare`; unlocked on the first touch (iOS); respects `muted` |
+| `haptics` | `tap` / `bump` / `success` / `celebrate` (rarest moments) via `navigator.vibrate` where supported (Android); silent elsewhere |
 | `juice` | Phaser helpers: `popIn`, `squash`, `floatText`, `burst` (particles), `shake` (tiered, motion-aware), `confetti` |
 | `overlay` | DOM screens over the canvas with one kid-friendly style: intro/pause/game-over cards, buttons, a tutorial strip |
-| `format` | Big numbers for children: `2048`, `4K`, `16K`, `1M` |
+| `format` | Big numbers for children: `2048`, `4K`, `16K`, `1M`; scores in full, or shortened (`12,34M`) to fit a box that cannot grow |
 
 ## Applying it to other genres
 

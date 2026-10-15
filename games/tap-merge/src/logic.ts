@@ -26,7 +26,7 @@ export interface State {
   moves: number;
   /** 🔀 left. */
   shuffles: number;
-  /** The largest block made in this game (a new one earns a shuffle). */
+  /** The largest block made in this game: a new one earns a shuffle, and it sets the floor (`floorOf`). */
   top: Exponent;
   over: boolean;
   /** PRNG (mulberry32) state. */
@@ -46,6 +46,17 @@ export type GameEvent =
   /** New blocks slide in from above the board, each falling `drop` cells into place. */
   | { type: 'fill'; blocks: { at: Cell; exp: Exponent; drop: number }[] }
   | { type: 'top'; exp: Exponent; shuffles: number; earned: boolean }
+  /**
+   * The floor rose (SPEC.md, "Rising floor"): the `retired` values no longer come, and the blocks under the new
+   * floor leave the board, each scoring the largest block's value. A `fall` and a `fill` follow when any left.
+   */
+  | {
+      type: 'floor';
+      floor: Exponent;
+      retired: Exponent[];
+      cleared: { at: Cell; exp: Exponent }[];
+      gained: number;
+    }
   | { type: 'shuffle'; moves: Move[]; shuffles: number }
   /** No equal neighbours anywhere: only 🔀 can go on. */
   | { type: 'stuck'; shuffles: number }
@@ -74,23 +85,40 @@ export function random(rng: number): [number, number] {
   return [((t ^ (t >>> 14)) >>> 0) / 4294967296, next];
 }
 
+/** The first floor step: making a 4K retires the 2s. */
+export const FLOOR_START: Exponent = 12;
+/** After that, every second new largest block retires one more value: 4s at 16K, 8s at 64K, 16s at 256K, …. */
+const FLOOR_STEP = 2;
+
+/**
+ * The smallest value that still comes and stays on the board, from the largest block made in the game. It rises
+ * more slowly than the largest block, so the range of values on the board keeps widening and every game still ends
+ * (SPEC.md, "Game length"): a floor that kept a fixed distance would make games endless.
+ */
+export const floorOf = (top: Exponent): Exponent =>
+  top < FLOOR_START ? 1 : 2 + Math.floor((top - FLOOR_START) / FLOOR_STEP);
+
+/** The largest block that raises the floor next: 4K, then 16K, 64K, 256K, …. */
+export const nextMilestone = (top: Exponent): Exponent => FLOOR_START + FLOOR_STEP * (floorOf(top) - 1);
+
 const SPAWN_WEIGHTS = [6, 5, 4, 3, 2, 1];
 
 /**
- * New blocks: exponents 1 … K, weighted towards small ones, with K = clamp(M − 3, 3, 6) where M is the largest
- * exponent on the board. At the start that is 2, 4 and 8; from a 512 on, up to 64.
+ * New blocks: exponents F … F + K − 1 from the floor F, weighted towards small ones, with K = clamp(M − F − 2, 3, 6)
+ * where M is the largest exponent on the board. At the start that is 2, 4 and 8; from a 512 on, up to 64; each
+ * time the floor rises, the whole range moves up one value.
  */
-export function spawn(grid: readonly Exponent[], rng: number): [Exponent, number] {
+export function spawn(grid: readonly Exponent[], rng: number, floor: Exponent = 1): [Exponent, number] {
   const largest = Math.max(0, ...grid);
-  const weights = SPAWN_WEIGHTS.slice(0, Math.min(6, Math.max(3, largest - 3)));
+  const weights = SPAWN_WEIGHTS.slice(0, Math.min(6, Math.max(3, largest - floor - 2)));
   const total = weights.reduce((sum, w) => sum + w, 0);
   const [r, nextRng] = random(rng);
   let pick = r * total;
   for (let i = 0; i < weights.length; i++) {
     pick -= weights[i] ?? 0;
-    if (pick < 0) return [i + 1, nextRng];
+    if (pick < 0) return [floor + i, nextRng];
   }
-  return [weights.length, nextRng];
+  return [floor + weights.length - 1, nextRng];
 }
 
 /**
@@ -212,7 +240,33 @@ export function merged(exp: Exponent, size: number): Exponent {
   return exp + up;
 }
 
-/** Tap a block: its whole group merges into it (SPEC.md, `merged`); the board falls and refills from the top. */
+/**
+ * Let the blocks fall into the holes (0) and fill the holes left at the top with new blocks from the floor up.
+ * Columns are filled one by one, bottom-up (a fixed order keeps replays deterministic); a column with n holes drops
+ * its new blocks n cells, from above the board.
+ */
+function refill(grid: Exponent[], rng: number, floor: Exponent, events: GameEvent[]): number {
+  const moves = gravity(grid);
+  if (moves.length > 0) events.push({ type: 'fall', moves });
+  const filled: { at: Cell; exp: Exponent; drop: number }[] = [];
+  for (let col = 0; col < COLS; col++) {
+    for (let row = 0; row < ROWS; row++) {
+      if (grid[indexOf({ col, row })] !== 0) continue;
+      const [value, next] = spawn(grid, rng, floor);
+      rng = next;
+      grid[indexOf({ col, row })] = value;
+      filled.push({ at: { col, row }, exp: value, drop: 0 });
+    }
+  }
+  for (const block of filled) block.drop = filled.filter((b) => b.at.col === block.at.col).length;
+  events.push({ type: 'fill', blocks: filled });
+  return rng;
+}
+
+/**
+ * Tap a block: its whole group merges into it (SPEC.md, `merged`); the board falls and refills from the top. A new
+ * largest block may raise the floor: the blocks under it then leave, score, and the board refills again.
+ */
 export function tap(state: State, cell: Cell): TapResult {
   if (state.over) return { ok: false, reason: 'game_over' };
   if (!inside(cell)) return { ok: false, reason: 'no_such_cell' };
@@ -225,34 +279,42 @@ export function tap(state: State, cell: Cell): TapResult {
   const exp = merged(grid[indexOf(cell)] ?? 0, same.length + 1);
   for (const n of same) grid[indexOf(n)] = 0;
   grid[indexOf(cell)] = exp;
-  const gained = blockValue(exp) * same.length;
+  let gained = blockValue(exp) * same.length;
   events.push({ type: 'merge', into: cell, from: same, steps: joined.map((g) => g.step), exp, gained });
 
-  const moves = gravity(grid);
-  if (moves.length > 0) events.push({ type: 'fall', moves });
+  // The new blocks already come from the floor this merge reaches: none of them is cleared a moment later.
+  const before = floorOf(state.top);
+  const top = Math.max(state.top, exp);
+  const floor = floorOf(top);
+  let rng = refill(grid, state.rng, floor, events);
 
-  // Holes are now at the top of their columns. Fill them column by column, bottom-up (a fixed order keeps replays
-  // deterministic); a column with n holes drops its new blocks n cells, from above the board.
-  let rng = state.rng;
-  const filled: { at: Cell; exp: Exponent; drop: number }[] = [];
-  for (let col = 0; col < COLS; col++) {
-    for (let row = 0; row < ROWS; row++) {
-      if (grid[indexOf({ col, row })] !== 0) continue;
-      const [value, next] = spawn(grid, rng);
-      rng = next;
-      grid[indexOf({ col, row })] = value;
-      filled.push({ at: { col, row }, exp: value, drop: 0 });
-    }
-  }
-  for (const block of filled) block.drop = filled.filter((b) => b.at.col === block.at.col).length;
-  events.push({ type: 'fill', blocks: filled });
-
-  let { shuffles, top } = state;
-  if (exp > top) {
-    top = exp;
+  let { shuffles } = state;
+  if (exp > state.top) {
     const earned = shuffles < MAX_SHUFFLES;
     if (earned) shuffles++;
     events.push({ type: 'top', exp, shuffles, earned });
+  }
+
+  // Blocks under the floor leave. They are there when the floor has just risen, or in a game saved before 0.5.0.
+  const cleared = blocks(grid).filter((b) => b.exp < floor);
+  if (floor > before || cleared.length > 0) {
+    const retired =
+      floor > before
+        ? Array.from({ length: floor - before }, (_, i) => before + i)
+        : [...new Set(cleared.map((b) => b.exp))].sort((a, b) => a - b);
+    const bonus = blockValue(top) * cleared.length;
+    events.push({
+      type: 'floor',
+      floor,
+      retired,
+      cleared: cleared.map((b) => ({ at: b.cell, exp: b.exp })),
+      gained: bonus,
+    });
+    gained += bonus;
+    if (cleared.length > 0) {
+      for (const b of cleared) grid[indexOf(b.cell)] = 0;
+      rng = refill(grid, rng, floor, events);
+    }
   }
 
   const next = settle(

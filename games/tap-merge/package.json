@@ -1,6 +1,6 @@
 {
   "name": "@tohe/game-tap-merge",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -8,7 +8,8 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "conformance": "tohe-conformance dist"
+    "conformance": "tohe-conformance dist",
+    "simulate": "node scripts/simulate.ts"
   },
   "dependencies": {
     "@tohe/game-kit": "workspace:*",
