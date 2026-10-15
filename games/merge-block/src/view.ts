@@ -1,7 +1,8 @@
 // The board scene: draws the state and turns logic events into animations. It never decides rules — main.ts
 // calls logic.drop() and hands the events here. Layout is in CSS pixels (the kit zooms the camera by DPR).
-// Colours come from palette.ts for the current light/dark theme; setTheme() redraws everything.
-// The board and every block (with its number) are textures drawn once per value, theme and size (the kit's
+// Colours come from palette.ts for the current light/dark theme and the player's block colours; setTheme() and
+// setPalette() redraw everything.
+// The board and every block (with its number) are textures drawn once per value, theme, colours and size (the kit's
 // drawTexture): a frame then costs one quad per block instead of rebuilding rounded rectangles and text.
 import { formatValue, haptics, type Sfx, type Theme } from '@tohe/game-kit';
 import {
@@ -33,7 +34,7 @@ import {
   ROWS,
   type State,
 } from './logic.ts';
-import { BOARD, blockStyle } from './palette.ts';
+import { BOARD, blockStyle, type PaletteId } from './palette.ts';
 import type { Strings } from './strings.ts';
 
 interface Layout {
@@ -84,6 +85,7 @@ export class BoardScene extends Phaser.Scene {
     private readonly text: Strings,
     private readonly callbacks: BoardCallbacks,
     private theme: Theme,
+    private palette: PaletteId,
   ) {
     super('board');
   }
@@ -120,6 +122,12 @@ export class BoardScene extends Phaser.Scene {
     if (!this.layoutInfo) return;
     this.relayout(this.layoutInfo.width, this.layoutInfo.height);
     this.dimmer.setFillStyle(this.colors.dimmer, this.state?.over ? this.colors.dimmerAlpha : 0);
+  }
+
+  /** The player picked other block colours: redraw every block. */
+  setPalette(palette: PaletteId) {
+    this.palette = palette;
+    if (this.layoutInfo) this.relayout(this.layoutInfo.width, this.layoutInfo.height);
   }
 
   relayout(width: number, height: number) {
@@ -189,10 +197,10 @@ export class BoardScene extends Phaser.Scene {
     const line = Math.max(2, inner * 0.04);
     const pad = Math.ceil(line / 2) + 1;
     const height = inner * 1.06 + pad * 2;
-    const key = `merge-block:block:${this.theme}:${inner}:${exp}`;
+    const key = `merge-block:block:${this.theme}:${this.palette}:${inner}:${exp}`;
     this.drawn.add(key);
     drawTexture(this, key, inner + pad * 2, height, (ctx) => {
-      const style = blockStyle(exp, this.theme);
+      const style = blockStyle(exp, this.theme, this.palette);
       const fill = (color: string, x: number, y: number, w: number, h: number, radius: number) => {
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -236,7 +244,7 @@ export class BoardScene extends Phaser.Scene {
       }
     }
     const { cell, gap } = this.layoutInfo;
-    const current = `merge-block:block:${this.theme}:${cell - gap}:`;
+    const current = `merge-block:block:${this.theme}:${this.palette}:${cell - gap}:`;
     for (const key of this.drawn) {
       if (shown.has(key) || key.startsWith(current)) continue;
       this.textures.remove(key);
@@ -370,7 +378,7 @@ export class BoardScene extends Phaser.Scene {
     const row = landingRow(this.state.grid, this.hoverCol);
     if (row === null) return;
     const { y } = this.cellTopLeft({ col: this.hoverCol, row });
-    const style = blockStyle(this.state.current, this.theme);
+    const style = blockStyle(this.state.current, this.theme, this.palette);
     this.ghost
       .lineStyle(3, style.edge, 0.9)
       .strokeRoundedRect(x + gap, y + gap, cell - gap * 2, cell - gap * 2, cell * 0.18);
@@ -471,7 +479,7 @@ export class BoardScene extends Phaser.Scene {
     if (!target) return;
     this.paint(target, merge.exp, this.layoutInfo.cell);
     target.setDepth(11);
-    const style = blockStyle(merge.exp, this.theme);
+    const style = blockStyle(merge.exp, this.theme, this.palette);
     burst(this, x, y, style.fill, 10 + Math.min(merge.exp, 12));
     floatText(this, x, y - this.layoutInfo.cell * 0.45, `+${formatValue(merge.gained)}`, {
       color: this.colors.scoreText,

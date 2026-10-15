@@ -2,6 +2,7 @@
 import '@tohe/game-kit/overlay.css';
 import './style.css';
 import {
+  choiceList,
   createLifecycle,
   createOverlay,
   createSfx,
@@ -16,7 +17,7 @@ import {
 import { createGame } from '@tohe/game-kit/phaser';
 import { connect } from '@tohe/game-sdk';
 import { blockValue, drop, type Exponent, newGame, restore, type State } from './logic.ts';
-import { BOARD, blockStyle } from './palette.ts';
+import { BOARD, blockStyle, DEFAULT_PALETTE, isPalette, PALETTE_IDS, type PaletteId } from './palette.ts';
 import { stringsFor } from './strings.ts';
 import { BoardScene } from './view.ts';
 
@@ -27,6 +28,8 @@ interface Saved {
   tutorialSeen: boolean;
   /** The id the game in progress reports its score under on the household leaderboard (ADR 0014). */
   run?: string;
+  /** The player's block colours (SPEC.md, "Block colours"); absent in saves from before 1.5.0. */
+  palette?: PaletteId;
 }
 
 const session = await connect<Saved>({ gameId: 'merge-block' });
@@ -42,6 +45,7 @@ let best = saved?.best ?? 0;
 const resumed = restore(saved?.game);
 let state: State = resumed && !resumed.over ? resumed : newGame(session.seed, best);
 let tutorialSeen = saved?.tutorialSeen ?? false;
+let palette: PaletteId = isPalette(saved?.palette) ? saved.palette : DEFAULT_PALETTE;
 
 /** A fresh id per game. `crypto.randomUUID` needs a secure context, which a home server on plain HTTP is not. */
 function newRunId(): string {
@@ -96,11 +100,15 @@ function bump(element: HTMLElement) {
 
 const cssColor = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
+/** The next block shown in the HUD, kept to repaint it when the player picks other colours. */
+let shownNext: Exponent | null = null;
+
 /** The next block sits in the HUD, so the current block can hover over any column without covering it. */
 function showNext(exp: Exponent | null, animate: boolean) {
+  shownNext = exp;
   nextBox.classList.toggle('is-hidden', exp === null);
   if (exp === null) return;
-  const style = blockStyle(exp);
+  const style = blockStyle(exp, theme, palette);
   const value = formatValue(blockValue(exp));
   nextBlock.textContent = value;
   nextBlock.classList.toggle('is-long', value.length > 2);
@@ -133,6 +141,7 @@ const kit = createGame({
         onUpcoming: (next, animate) => showNext(next, animate),
       },
       theme,
+      palette,
     ),
 });
 /** The current scene; replaced if the kit restarts the game with the Canvas renderer. */
@@ -166,12 +175,44 @@ const lifecycle = createLifecycle({
   icon: '🧱',
   title: t.title,
   howTo: () => ({ icon: '🧱', title: t.title, content: hintList(t.hints) }),
+  menuCards: [{ label: t.colours, card: () => ({ icon: '🎨', title: t.colours, content: palettePicker() }) }],
   onNewGame: () => {
     sfx.play('click');
     startNewGame();
   },
 });
 document.querySelector('#hud')?.prepend(lifecycle.menuButton());
+
+/** Sample blocks 2 … 256 of a preset, drawn like the board's blocks. */
+const SAMPLES = 8;
+function samples(id: PaletteId): HTMLElement {
+  const row = document.createElement('span');
+  row.className = 'samples';
+  row.setAttribute('aria-hidden', 'true');
+  for (let exp = 1; exp <= SAMPLES; exp++) {
+    const style = blockStyle(exp, theme, id);
+    const block = document.createElement('span');
+    block.className = 'sample';
+    block.textContent = formatValue(blockValue(exp));
+    block.style.backgroundColor = cssColor(style.fill);
+    block.style.color = style.text;
+    block.style.boxShadow = `inset 0 -0.2rem 0 ${cssColor(style.edge)}`;
+    row.append(block);
+  }
+  return row;
+}
+
+/** ⏸ → Màu khối: the board and the next block take the new colours at once; the choice is saved with the player. */
+function palettePicker(): HTMLElement {
+  const choices = PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id) }));
+  return choiceList(choices, palette, (id) => {
+    sfx.play('click');
+    palette = id;
+    board.setPalette(id);
+    showNext(shownNext, false);
+    void persist();
+  });
+}
 
 function requestMove(col: number) {
   if (overlay.visible) return;
@@ -222,6 +263,7 @@ function persist(): Promise<void> {
     game: state.over ? null : state,
     tutorialSeen,
     run: runId,
+    palette,
   };
   return session.save(data).catch((error) => session.log('warn', `save failed: ${String(error)}`));
 }
