@@ -108,7 +108,8 @@ run.finish(score);                               // at game over, or when the pl
 | `submitScore(value, board?)` | Finite number; board defaults to `default`. |
 | `run(id, board?)` | A run that lasts across sittings: `update(value)` while it goes on, `finish(value)` when it ends. The hub keeps one score per run, its highest. |
 | `exit()` | Ask the hub to close the game. |
-| `log(level, message)` | Forward a diagnostic line to the hub's console. |
+| `log(level, message)` | Forward a diagnostic line to the hub's console; `warn` and `error` lines also reach [telemetry](../architecture/telemetry.md). |
+| `telemetry` | Technical telemetry (ADR 0015, SDK 0.4.0): `count(name, n?)`, `metric(name, value)`, `error(error)`, `frames(summary)`, `flush()`, `enabled`. Uncaught errors are reported without calling it; pass it to the kit (`createGame({ telemetry })`, `createSfx({ telemetry })`) for frame times and renderer events. A no-op when the hub does not collect telemetry, and in standalone mode. |
 
 In **standalone** mode (opening the game's dev server directly) the SDK fakes the host with `localStorage`, so a
 game can be developed and tested on its own; `settings.theme` then follows the device's light/dark setting.
@@ -125,7 +126,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | Direction | `type` | Fields | Notes |
 | --- | --- | --- | --- |
 | game → host | `ready` | `gameId`, `sdkVersion` | First message. Sent to `*` because the host is not known yet; carries no data. |
-| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed` | The game records `event.origin` and from now on only talks to it. |
+| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. |
 | game → host | `save` | `id`, `data` | Request; answered by `result`. |
 | game → host | `score` | `id`, `value`, `board`, `run?`, `final` | Request; answered by `result`. `run` groups the reports of one run; `final` (default `true`) is `false` while it goes on. |
 | host → game | `result` | `replyTo`, `ok`, `error?` | Answer to a request. |
@@ -133,6 +134,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | host → game | `settings` | `settings` | `{ muted, theme }`: mute or theme changed. |
 | game → host | `exit` | — | Close the game. |
 | game → host | `log` | `level`, `message` | Diagnostics. |
+| game → host | `telemetry` | `events` (1–50) | Only when `init.telemetry` is true. Events are `error` (`message`, `stack?`, `count`), `count` (`name`, `count`), `metric` (`name`, `value`) or `frames` (`buckets`, `slowestMs`, `stepP50Ms?`, `stepP95Ms?`, `renderer?`); names are lower-case words joined by dots. See [Device telemetry](../architecture/telemetry.md). |
 
 ## Conformance
 
@@ -152,7 +154,9 @@ origin, and checks:
    change, which switches to a theme the game did not start in;
 4. in every theme listed in `themes`, its text meets WCAG AA contrast (axe-core; text drawn on a canvas is not
    checked), and a game that lists both looks different in each;
-5. no console errors or uncaught exceptions, no requests outside the game origin, no protocol errors.
+5. no console errors or uncaught exceptions, no requests outside the game origin, no protocol errors;
+6. with `init.telemetry` on, as in the hub, its `telemetry` messages stay within budget: about one a minute plus one
+   per pause, each at most 8 KB.
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
 `<id>-<theme>.png` per theme — look at them.

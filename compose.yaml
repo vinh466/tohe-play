@@ -32,6 +32,8 @@ services:
       Games__PublicOrigin: http://${TOHE_PUBLIC_HOST:-localhost}:4730
       Games__CatalogUrl: http://games:8080/catalog.json
       Registry__SyncInterval: "00:00:20"
+      # Development token for the telemetry report (local containers only, like the database password).
+      Telemetry__OperatorToken: tohe-dev-only
     depends_on:
       postgres:
         condition: service_healthy

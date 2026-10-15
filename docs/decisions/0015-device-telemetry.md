@@ -5,7 +5,7 @@ sidebar:
   order: 15
 ---
 
-- **Status:** Proposed
+- **Status:** Accepted (the owner took the proposed answers to every open question, 2026-10-15)
 - **Date:** 2026-10-15
 
 ## Context
@@ -35,14 +35,17 @@ Constraints:
   names, accounts, profiles, households, saves, scores, IP addresses, typed text or fingerprints.
 - **First-party:** the hub batches and sends to a new `Telemetry` module of the API (own `telemetry` schema). No
   third-party script or service.
-- **Games report through the hub.** An additive protocol message, `telemetry`, is sent only when `init` says
-  telemetry is on. The SDK captures a game's uncaught errors; the kit adds frame summaries and renderer events. The
-  protocol stays at 1. The contract change, its docs and a conformance check land together in the first
-  implementation pull request.
-- **One switch:** a household setting behind the parent gate, a server-side kill switch in `GET /api/config`, and
-  a page that shows what is sent, including the last batch.
+- **Games report through the hub.** An additive protocol message, `telemetry`, carries four kinds of event (`error`,
+  `count`, `metric`, `frames`) and is sent only when `init.telemetry` is true. SDK 0.4.0 gives games
+  `session.telemetry` and captures their uncaught errors; the kit adds frame summaries, renderer and audio events
+  when given it. The protocol stays at 1: older games send nothing, older hubs leave `init.telemetry` out.
+- **Three switches, on by default:** the server's (`Telemetry:Enabled`, read by the hub from `GET /api/config`), the
+  household's (behind the parent gate) and the device's (on the transparency page, guests included). A page shows
+  what is sent and the last batch exactly as sent.
 - **Budgets:** client-side summaries, at most one request per minute, 16 KB per batch, `sendBeacon`, silent
-  failure.
+  failure; the API refuses more than 200 events or 32 KB, and the conformance kit holds every game to its budget.
+- **Device id:** random, renewed every 30 days, tied to no account. The API reduces the User-Agent to families and
+  major versions and does not store it.
 - **Retention:** raw events 30 days, daily roll-ups one year.
 - **Agent access through a report, not the database:** `GET /api/telemetry/report`, protected by an operator
   token, a tool that prints it as Markdown, and a `/health-report` skill. Agents propose fixes; they never act on
@@ -59,9 +62,9 @@ optional export to the homelab's Grafana comes later, in phase 3).
   transparency page, the report tool and skill.
 - Every new field needs [Device telemetry](../architecture/telemetry.md) updated in the same pull request, and the
   transparency page with it.
-- The conformance kit checks a game's telemetry stays within budget and stops when telemetry is off.
-- The open questions on the architecture page (default on or off, device id, usage counts, guests, retention,
-  readers) are answered by the owner before this ADR is accepted.
+- The conformance kit runs every game with telemetry on and checks it stays within budget; the SDK's tests check
+  that it sends nothing when off.
+- UAT gains a secret, `TOHE_UAT_TELEMETRY_TOKEN`, which `deploy/uat/deploy.sh` adds to `uat.env` once.
 
 ## Alternatives considered
 

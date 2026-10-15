@@ -87,3 +87,47 @@ describe('protocol', () => {
     expect(settings(undefined).success).toBe(false);
   });
 });
+
+describe('telemetry message', () => {
+  const telemetry = (events: unknown) => GameMessage.safeParse({ tohe: 1, type: 'telemetry', events });
+
+  it('accepts the four kinds of event', () => {
+    const parsed = telemetry([
+      { kind: 'error', message: 'TypeError: x', stack: 'at f (/a.js:1:2)', count: 2 },
+      { kind: 'count', name: 'kit.renderer.canvas', count: 1 },
+      { kind: 'metric', name: 'kit.first-frame-ms', value: 812 },
+      { kind: 'frames', buckets: [100, 4, 2, 1, 0, 0], slowestMs: 48, stepP50Ms: 1.2, renderer: 'webgl' },
+    ]);
+    expect(parsed.success).toBe(true);
+  });
+
+  it('keeps names to identifiers, so no text about a player can ride along', () => {
+    expect(telemetry([{ kind: 'count', name: 'Na scored 40', count: 1 }]).success).toBe(false);
+    expect(telemetry([{ kind: 'count', name: 'game.Score', count: 1 }]).success).toBe(false);
+  });
+
+  it('rejects empty, oversized and malformed batches', () => {
+    const many = Array.from({ length: 51 }, () => ({ kind: 'count', name: 'a.b', count: 1 }));
+    expect(telemetry([]).success).toBe(false);
+    expect(telemetry(many).success).toBe(false);
+    expect(telemetry([{ kind: 'frames', buckets: [1, 2], slowestMs: 1 }]).success).toBe(false);
+    expect(telemetry([{ kind: 'metric', name: 'a.b-ms', value: -1 }]).success).toBe(false);
+  });
+
+  it('lets init say whether telemetry is on, and older hubs leave it out', () => {
+    const init = (extra: object) =>
+      HostMessage.safeParse({
+        tohe: 1,
+        type: 'init',
+        profile: { id: 'p1', name: 'Na' },
+        locale: 'vi',
+        settings: { muted: false, theme: 'light' },
+        save: null,
+        seed: 1,
+        ...extra,
+      });
+    expect(init({}).success).toBe(true);
+    expect(init({ telemetry: true }).success).toBe(true);
+    expect(init({ telemetry: 'yes' }).success).toBe(false);
+  });
+});

@@ -1,9 +1,10 @@
 // Game side of the contract. Must stay dependency-free at runtime: only `import type` from @tohe/contract,
 // so that a game bundle never pulls in Zod.
 import type { GameMessageInput, HostMessage, Profile, Settings } from '@tohe/contract';
+import { createTelemetry, disabledTelemetry, type Telemetry } from './telemetry.ts';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.3.0';
+export const SDK_VERSION = '0.4.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
@@ -45,6 +46,11 @@ export interface GameSession<TSave = JsonValue> {
   /** Ask the hub to close the game. */
   exit(): void;
   log(level: 'info' | 'warn' | 'error', message: string): void;
+  /**
+   * Technical telemetry (ADR 0015): uncaught errors are reported by themselves; the kit adds frame times and renderer
+   * events when given this object. A no-op when the hub does not collect telemetry, and in standalone mode.
+   */
+  readonly telemetry: Telemetry;
 }
 
 export interface ScoreRun {
@@ -117,6 +123,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
   return new Promise((resolve, reject) => {
     let session: GameSession<TSave> | null = null;
     let settings = normalizeSettings(undefined);
+    let telemetry: Telemetry = disabledTelemetry;
 
     const timeout = setTimeout(() => {
       unsubscribe();
@@ -131,6 +138,9 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
           if (session) return;
           clearTimeout(timeout);
           settings = normalizeSettings(message.settings);
+          telemetry = message.telemetry
+            ? createTelemetry({ send: (events) => send({ tohe: PROTOCOL, type: 'telemetry', events }) })
+            : disabledTelemetry;
           const created: GameSession<TSave> = {
             mode: 'embedded',
             profile: message.profile,
@@ -147,8 +157,12 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
               update: (value) => request({ type: 'score', value, board, run, final: false }),
               finish: (value) => request({ type: 'score', value, board, run, final: true }),
             }),
-            exit: () => send({ tohe: PROTOCOL, type: 'exit' }),
+            exit: () => {
+              telemetry.flush();
+              send({ tohe: PROTOCOL, type: 'exit' });
+            },
             log: (level, text) => send({ tohe: PROTOCOL, type: 'log', level, message: text.slice(0, 2000) }),
+            telemetry,
           };
           session = created;
           resolve(created);
@@ -157,6 +171,8 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
         case 'pause':
         case 'resume':
           emitter.emit(message.type);
+          // After the game's own pause handlers, so what they report (the kit's frame summary) goes out too.
+          if (message.type === 'pause') setTimeout(() => telemetry.flush());
           return;
         case 'settings':
           settings = normalizeSettings(message.settings);
@@ -217,5 +233,6 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     }),
     exit: () => console.info('[tohe] exit() called — ignored in standalone mode'),
     log: (level, message) => console[level](`[tohe] ${message}`),
+    telemetry: disabledTelemetry,
   };
 }

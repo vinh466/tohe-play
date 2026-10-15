@@ -6,7 +6,11 @@ using Tohe.Api.Infrastructure.Database;
 
 namespace Tohe.Api.Modules.Identity;
 
-public sealed record UpdateHouseholdRequest([Required, StringLength(40, MinimumLength = 1)] string Name);
+/// <param name="Name">A new name.</param>
+/// <param name="Telemetry">Turn technical telemetry on or off for the household's devices (ADR 0015).</param>
+public sealed record UpdateHouseholdRequest(
+    [StringLength(40, MinimumLength = 1)] string? Name = null,
+    bool? Telemetry = null);
 
 /// <param name="Pin">Optional 4-digit PIN.</param>
 public sealed record CreateProfileRequest(
@@ -49,12 +53,21 @@ internal static class HouseholdEndpoints
         household.MapPatch("/", async (UpdateHouseholdRequest request, Context context, CancellationToken ct) =>
             {
                 var home = await context.Db.Households.FirstAsync(h => h.Id == context.Account.HouseholdId, ct);
-                home.Name = request.Name.Trim();
+                if (request.Name is { } name)
+                {
+                    home.Name = name.Trim();
+                }
+
+                if (request.Telemetry is { } telemetry)
+                {
+                    home.TelemetryEnabled = telemetry;
+                }
+
                 await context.Db.SaveChangesAsync(ct);
                 return TypedResults.Ok(await context.MeAsync(ct));
             })
             .WithName("UpdateHousehold")
-            .WithSummary("Rename the household.");
+            .WithSummary("Rename the household, or turn its telemetry on or off.");
 
         household.MapPost("/invite", async (Context context, TimeProvider clock, CancellationToken ct) =>
             {

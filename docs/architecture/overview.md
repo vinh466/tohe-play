@@ -74,7 +74,7 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | Identity & Households | done | `/api/auth/*`, `/api/session/*`, `/api/household/*` — see [Identity](identity.md) |
 | Saves & Scores | M2 | per-profile saves, score boards |
 | Parental | later | play-time limits, per-profile game visibility |
-| Telemetry | proposed ([ADR 0015](../decisions/0015-device-telemetry.md)) | `/api/telemetry`, `/api/telemetry/report` — see [Device telemetry](telemetry.md) |
+| Telemetry | done ([ADR 0015](../decisions/0015-device-telemetry.md)) | `/api/telemetry`, `/api/telemetry/report` — see [Device telemetry](telemetry.md) |
 
 Generated reference: [Platform API](/docs/reference/api/).
 

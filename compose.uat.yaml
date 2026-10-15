@@ -38,6 +38,7 @@ services:
       Games__PublicOrigin: http://${TOHE_UAT_HOST:-10.100.0.2}:4830
       Games__CatalogUrl: http://games:8080/catalog.json
       Registry__SyncInterval: "00:01:00"
+      Telemetry__OperatorToken: ${TOHE_UAT_TELEMETRY_TOKEN:?set by deploy/uat/deploy.sh}
     depends_on:
       postgres:
         condition: service_healthy

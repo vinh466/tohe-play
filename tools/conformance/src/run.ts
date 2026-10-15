@@ -97,6 +97,9 @@ export async function runConformance(
   const errors: string[] = [];
   const protocolErrors: string[] = [];
   const traffic = { saves: 0, scores: 0, logs: 0 };
+  // Telemetry is on, as in the hub, so every game's reporting is exercised and held to its budget (ADR 0015).
+  const telemetry: { events: number; bytes: number }[] = [];
+  const started = Date.now();
   let browser: Browser | undefined;
   const screenshots: string[] = [];
   // The game starts in its first declared theme; a settings change to the other one must not break it.
@@ -147,10 +150,13 @@ export async function runConformance(
         settings: { muted: true, theme: startTheme },
         save: null,
         seed: 20261013,
+        telemetry: true,
       }),
       onSave: () => void traffic.saves++,
       onScore: () => void traffic.scores++,
       onLog: () => void traffic.logs++,
+      onTelemetry: (events) =>
+        void telemetry.push({ events: events.length, bytes: JSON.stringify(events).length }),
       onProtocolError: (error) => protocolErrors.push(error),
     });
 
@@ -215,10 +221,18 @@ export async function runConformance(
       foreignRequests.slice(0, 5).join('\n'),
     );
     check('no protocol errors', protocolErrors.length === 0, protocolErrors.slice(0, 5).join('\n'));
+    // One message a minute, plus one per pause or hide (the run pauses a few times); each one small.
+    const allowed = Math.ceil((Date.now() - started) / 60_000) + 6;
+    const largest = Math.max(0, ...telemetry.map((m) => m.bytes));
+    check(
+      'telemetry stays within its budget',
+      telemetry.length <= allowed && largest <= TELEMETRY_MESSAGE_BYTES,
+      `${telemetry.length} messages (at most ${allowed}), largest ${largest} bytes (at most ${TELEMETRY_MESSAGE_BYTES})`,
+    );
     checks.push({
       name: 'traffic (informational)',
       ok: true,
-      detail: `${traffic.saves} saves, ${traffic.scores} scores, ${traffic.logs} logs`,
+      detail: `${traffic.saves} saves, ${traffic.scores} scores, ${traffic.logs} logs, ${telemetry.length} telemetry messages (${telemetry.reduce((sum, m) => sum + m.events, 0)} events)`,
     });
   } finally {
     await browser?.close();
@@ -227,6 +241,9 @@ export async function runConformance(
   }
   return done(manifest.id, screenshots);
 }
+
+/** A telemetry message from a game stays small; the hub adds them up before sending. */
+const TELEMETRY_MESSAGE_BYTES = 8 * 1024;
 
 interface Bridge {
   __toGame(message: unknown): void;

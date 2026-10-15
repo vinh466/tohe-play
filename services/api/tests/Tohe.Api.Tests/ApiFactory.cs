@@ -15,6 +15,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
 {
     private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:18-alpine").Build();
 
+    public const string TelemetryToken = "test-operator-token";
+
     public FakeCatalog Catalog { get; } = new();
 
     public async ValueTask InitializeAsync() => await _postgres.StartAsync();
@@ -35,6 +37,10 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Registry:SyncEnabled", "false");
         // Tests sign in many times from one client address; the real limit is covered by its own configuration.
         builder.UseSetting("Identity:AuthRequestsPerMinute", "10000");
+        builder.UseSetting("Telemetry:RequestsPerMinute", "10000");
+        builder.UseSetting("Telemetry:OperatorToken", TelemetryToken);
+        // Tests run maintenance themselves, with the data they need.
+        builder.UseSetting("Telemetry:MaintenanceEnabled", "false");
         builder.ConfigureServices(services => services
             .AddHttpClient<Modules.Registry.CatalogSync>()
             .ConfigurePrimaryHttpMessageHandler(() => Catalog));

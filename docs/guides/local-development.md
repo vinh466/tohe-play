@@ -89,6 +89,7 @@ context: the service worker and "Add to Home Screen" only work on `localhost` or
 | `pnpm conformance` | Conformance kit for every game. |
 | `pnpm --filter @tohe/e2e smoke` | End-to-end smoke test against a running stack (`HUB_URL` to override). |
 | `pnpm --filter @tohe/hub generate:api` | Regenerate the hub's API types after an API change. |
+| `pnpm --filter @tohe/telemetry-report report` | Telemetry report of the dev stack (token `tohe-dev-only`); `-- --env uat` for UAT. |
 | `dotnet ef migrations add <Name> --project services/api/src/Tohe.Api --output-dir Infrastructure/Database/Migrations` | New migration. |
 
 ## Troubleshooting

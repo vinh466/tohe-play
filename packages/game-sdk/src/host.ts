@@ -8,6 +8,7 @@ import {
   MAX_SAVE_BYTES,
   PROTOCOL_VERSION,
   type Settings,
+  type TelemetryEvent,
 } from '@tohe/contract';
 import type { JsonValue } from './game.ts';
 import type { Transport } from './transport.ts';
@@ -24,6 +25,8 @@ export interface HostOptions {
   onScore?(score: { value: number; board: string; run?: string; final: boolean }): void | Promise<void>;
   onExit?(): void;
   onLog?(entry: { level: 'info' | 'warn' | 'error'; message: string }): void;
+  /** Telemetry from the game, already validated; only sent when `init` set `telemetry` (ADR 0015). */
+  onTelemetry?(events: TelemetryEvent[]): void;
   /** A message that failed validation or broke the protocol. */
   onProtocolError?(error: string, raw: unknown): void;
   /** Rejects `ready` if the game does not say ready in time. Default 10000 ms. */
@@ -108,6 +111,8 @@ export function createHost(options: HostOptions): HostHandle {
         return options.onExit?.();
       case 'log':
         return options.onLog?.({ level: message.level, message: message.message });
+      case 'telemetry':
+        return options.onTelemetry?.(message.events);
     }
   };
 

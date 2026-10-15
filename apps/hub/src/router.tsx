@@ -7,6 +7,7 @@ import {
   Outlet,
 } from '@tanstack/react-router';
 import { CatalogPage } from './pages/CatalogPage.tsx';
+import { DataPage } from './pages/DataPage.tsx';
 import { FamilyPage } from './pages/FamilyPage.tsx';
 import { ProfilesPage } from './pages/ProfilesPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
@@ -46,6 +47,9 @@ const familyRoute = createRoute({
   component: FamilyPage,
 });
 
+/** What telemetry sends, this device's switch and the last batch (ADR 0015); open to everyone. */
+const dataRoute = createRoute({ getParentRoute: () => rootRoute, path: '/data', component: DataPage });
+
 const playRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/play/$gameId',
@@ -61,6 +65,7 @@ export function createAppRouter(queryClient: QueryClient) {
       registerRoute,
       profilesRoute,
       familyRoute,
+      dataRoute,
       playRoute,
     ]),
     context: { queryClient },

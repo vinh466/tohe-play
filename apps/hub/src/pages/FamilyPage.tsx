@@ -13,6 +13,7 @@ import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { Screen } from '../ui/Screen.tsx';
+import { Switch } from '../ui/Switch.tsx';
 import { TextField } from '../ui/TextField.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
 
@@ -79,6 +80,7 @@ function Family({ me }: { me: MeView }) {
           <Profiles me={me} startAdding={add} />
           <Invite me={me} />
           <Members me={me} />
+          <TechnicalData me={me} />
           <footer className="mt-auto flex flex-col items-center gap-2">
             <Button variant="secondary" busy={lock.isPending} onClick={() => lock.mutate(undefined)}>
               🔒 {t('family.lock')}
@@ -393,6 +395,31 @@ function Members({ me }: { me: MeView }) {
           </li>
         ))}
       </ul>
+    </Card>
+  );
+}
+
+/** The household's telemetry switch (ADR 0015); the details and the device switch are on the "Dữ liệu kỹ thuật" page. */
+function TechnicalData({ me }: { me: MeView }) {
+  const { t } = useTranslation();
+  const update = useMeMutation((on: boolean) => household.setTelemetry(on));
+  return (
+    <Card title={t('data.title')}>
+      <Switch
+        label={t('data.household')}
+        hint={t('data.householdHint')}
+        checked={update.isPending ? update.variables : me.household.telemetry}
+        disabled={update.isPending}
+        onChange={(on) => update.mutate(on)}
+      />
+      {update.isError ? (
+        <p role="alert" className="text-danger">
+          {t(errorKey(update.error))}
+        </p>
+      ) : null}
+      <Link to="/data" className="font-semibold text-accent underline underline-offset-4">
+        {t('data.more')}
+      </Link>
     </Card>
   );
 }

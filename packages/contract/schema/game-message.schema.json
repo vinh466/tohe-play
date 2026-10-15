@@ -142,6 +142,155 @@
         "level",
         "message"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "telemetry"
+        },
+        "events": {
+          "minItems": 1,
+          "maxItems": 50,
+          "type": "array",
+          "items": {
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "error"
+                  },
+                  "message": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 300
+                  },
+                  "stack": {
+                    "type": "string",
+                    "maxLength": 1000
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 100000
+                  }
+                },
+                "required": [
+                  "kind",
+                  "message",
+                  "count"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "count"
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+){0,5}$"
+                  },
+                  "count": {
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 1000000
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "count"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "metric"
+                  },
+                  "name": {
+                    "type": "string",
+                    "maxLength": 64,
+                    "pattern": "^[a-z][a-z0-9-]*(\\.[a-z0-9-]+){0,5}$"
+                  },
+                  "value": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 1000000
+                  }
+                },
+                "required": [
+                  "kind",
+                  "name",
+                  "value"
+                ]
+              },
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "type": "string",
+                    "const": "frames"
+                  },
+                  "buckets": {
+                    "minItems": 6,
+                    "maxItems": 6,
+                    "type": "array",
+                    "items": {
+                      "type": "integer",
+                      "minimum": 0,
+                      "maximum": 1000000
+                    }
+                  },
+                  "slowestMs": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 600000
+                  },
+                  "stepP50Ms": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 600000
+                  },
+                  "stepP95Ms": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 600000
+                  },
+                  "renderer": {
+                    "type": "string",
+                    "enum": [
+                      "webgl",
+                      "canvas"
+                    ]
+                  }
+                },
+                "required": [
+                  "kind",
+                  "buckets",
+                  "slowestMs"
+                ]
+              }
+            ]
+          }
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "events"
+      ]
     }
   ],
   "$defs": {

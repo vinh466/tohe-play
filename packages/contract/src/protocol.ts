@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { GameId, PROTOCOL_VERSION, Theme } from './manifest.ts';
+import { MAX_TELEMETRY_EVENTS, TelemetryEvent } from './telemetry.ts';
 
 /** Max size of a serialized save, in bytes. Larger saves are rejected by the host. */
 export const MAX_SAVE_BYTES = 64 * 1024;
@@ -62,12 +63,20 @@ export const LogMessage = z.object({
   message: z.string().max(2000),
 });
 
+/** Errors, counts, metrics and frame summaries for the hub to send on (ADR 0015); only when `init.telemetry` is true. */
+export const TelemetryMessage = z.object({
+  ...envelope,
+  type: z.literal('telemetry'),
+  events: z.array(TelemetryEvent).min(1).max(MAX_TELEMETRY_EVENTS),
+});
+
 export const GameMessage = z.discriminatedUnion('type', [
   ReadyMessage,
   SaveMessage,
   ScoreMessage,
   ExitMessage,
   LogMessage,
+  TelemetryMessage,
 ]);
 export type GameMessage = z.infer<typeof GameMessage>;
 export type GameMessageInput = z.input<typeof GameMessage>;
@@ -84,6 +93,8 @@ export const InitMessage = z.object({
   save: z.json().nullable(),
   /** Seed for deterministic randomness, e.g. a daily challenge. */
   seed: z.number().int(),
+  /** The hub collects telemetry for this session (ADR 0015). Absent, as from older hubs, means no. */
+  telemetry: z.boolean().optional(),
 });
 
 export const PauseMessage = z.object({ ...envelope, type: z.literal('pause') });

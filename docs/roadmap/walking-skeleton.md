@@ -19,7 +19,7 @@ milestone ends with something playable and a green `pnpm verify` + e2e smoke tes
 | M4 | UAT on the homelab | *Done (ADR 0010):* `compose.uat.yaml` + `deploy/uat/deploy.sh` on 10.100.0.2, backups before every deploy. See [UAT environment](../guides/uat.md). |
 | M5 | Light & dark themes | *Done (ADR 0013):* design tokens; *Theo máy / Sáng / Tối* per device, shared by the hub, the landing page and the docs; games opt in with `themes` + `settings.theme` (Ghép Khối and Chạm Chấm do); contrast checked in both themes by tests, e2e and conformance. See [Theming](../architecture/theming.md). |
 | M6 | Second real game | *Done:* "Chạm Ghép" (`tap-merge`), the owner's tap-to-merge variant of Ghép Khối, built from the kit in a day: continue / new game, live leaderboard (ADR 0014), drawn textures, light and dark. Next: Lấp Ô ([backlog](game-backlog.md)). |
-| Next | Device telemetry | *Proposed (ADR 0015):* errors, performance and compatibility from players' devices, technical data only, one switch, a report agents read. See [Device telemetry](../architecture/telemetry.md); the owner answers its open questions first. |
+| M7 | Device telemetry | *Done (ADR 0015), phases 1–2:* errors, frame times, load times and compatibility from players' devices, technical data only, three switches and a transparency page; a report agents read with `/health-report`. Next: browser crash and CSP reports. See [Device telemetry](../architecture/telemetry.md). |
 | Later | Production | Only when needed: HTTPS, public hostnames, off-machine backups — new ADR. |
 | Gate | Go / no-go | The criteria in [Vision & scope](../vision.md#go--no-go). |
 

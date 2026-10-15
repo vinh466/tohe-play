@@ -8,6 +8,7 @@ import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
 import { Button } from '../ui/Button.tsx';
+import { DataLink } from '../ui/DataLink.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
@@ -108,6 +109,7 @@ function SignIn() {
           {t('welcome.tryAsGuest')}
         </Button>
       </div>
+      <DataLink />
     </Screen>
   );
 }

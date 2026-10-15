@@ -10,6 +10,8 @@ import type { Player } from '../session/session.ts';
 import { syncer, syncsWithServer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
 import { loadSave, recordScore, storeSave } from '../storage/repository.ts';
+import { durationBucket } from '../telemetry/collector.ts';
+import { telemetry, telemetryOn } from '../telemetry/telemetry.ts';
 import { useTheme } from '../theme/useTheme.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 
@@ -52,6 +54,10 @@ function Launcher({ player }: { player: Player }) {
 
     setStatus('loading');
     const synced = syncsWithServer(player);
+    // Telemetry (ADR 0015): a play, how long the game took to answer, its reports, and how long it was played.
+    const scope = { gameId: game.id, gameVersion: game.version };
+    const started = performance.now();
+    telemetry.count('hub.play.session', scope);
     const session = createHost({
       transport: iframeTransport(frame, new URL(gamesOrigin).origin),
       manifest: manifestFrom(game),
@@ -64,6 +70,7 @@ function Launcher({ player }: { player: Player }) {
           settings: { muted, theme },
           save: await loadSave(db, player.id, game.id),
           seed: dailySeed(),
+          telemetry: telemetryOn(),
         };
       },
       onSave: async (data) => {
@@ -78,13 +85,38 @@ function Launcher({ player }: { player: Player }) {
         console.info(`[game:${game.id}] requested exit`);
         void navigate({ to: '/' });
       },
-      onLog: ({ level, message }) => console[level](`[game:${game.id}] ${message}`),
-      onProtocolError: (error) => console.warn(`[game:${game.id}] protocol error: ${error}`),
+      onLog: ({ level, message }) => {
+        console[level](`[game:${game.id}] ${message}`);
+        if (level !== 'info') {
+          telemetry.record(
+            { kind: 'error', message: `[${level}] ${message}`.slice(0, 300), count: 1 },
+            'game',
+            scope,
+          );
+        }
+      },
+      onTelemetry: (events) => {
+        for (const event of events) telemetry.record(event, 'game', scope);
+      },
+      onProtocolError: (error) => {
+        console.warn(`[game:${game.id}] protocol error: ${error}`);
+        telemetry.record(
+          { kind: 'error', message: `protocol: ${error}`.slice(0, 300), count: 1 },
+          'hub',
+          scope,
+        );
+      },
     });
     host.current = session;
     session.ready.then(
-      () => setStatus('ready'),
-      () => setStatus('failed'),
+      () => {
+        setStatus('ready');
+        telemetry.metric('hub.game.ready-ms', Math.round(performance.now() - started), scope);
+      },
+      () => {
+        setStatus('failed');
+        telemetry.count('hub.game.failed', scope);
+      },
     );
     // Load the game only after the host listens, so its `ready` cannot be missed. `?perf` on this page turns on the
     // game kit's frame-rate readout, for testing on phones.
@@ -94,6 +126,7 @@ function Launcher({ player }: { player: Player }) {
     const onVisibility = () => (document.hidden ? session.pause() : session.resume());
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
+      telemetry.count(`hub.play.duration.${durationBucket(performance.now() - started)}`, scope);
       document.removeEventListener('visibilitychange', onVisibility);
       session.dispose();
       host.current = null;

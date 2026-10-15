@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
+using Tohe.Api.Modules.Telemetry;
 
 namespace Tohe.Api.Modules.Platform;
 
@@ -20,7 +21,8 @@ public sealed class GamesOptions
 /// <summary>Runtime configuration the hub needs before it can launch games.</summary>
 /// <param name="GamesOrigin">Origin game iframes are loaded from; the hub only accepts messages from it.</param>
 /// <param name="ApiVersion">Informational version of the running API.</param>
-public sealed record ClientConfig(string GamesOrigin, string ApiVersion);
+/// <param name="Telemetry">The server collects device telemetry (ADR 0015); off, the hub sends none.</param>
+public sealed record ClientConfig(string GamesOrigin, string ApiVersion, bool Telemetry);
 
 internal static class PlatformModule
 {
@@ -46,8 +48,9 @@ internal static class PlatformModule
             : typeof(PlatformModule).Assembly
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
 
-        api.MapGet("/config", (IOptions<GamesOptions> games) =>
-                new ClientConfig(games.Value.PublicOrigin.GetLeftPart(UriPartial.Authority), version))
+        api.MapGet("/config", (IOptions<GamesOptions> games, IOptions<TelemetryOptions> telemetry) =>
+                new ClientConfig(
+                    games.Value.PublicOrigin.GetLeftPart(UriPartial.Authority), version, telemetry.Value.Enabled))
             .WithName("GetConfig")
             .WithTags("Platform")
             .WithSummary("Runtime configuration for the hub.");

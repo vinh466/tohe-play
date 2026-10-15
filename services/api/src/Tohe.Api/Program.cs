@@ -6,6 +6,7 @@ using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Platform;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
+using Tohe.Api.Modules.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -30,6 +31,7 @@ builder.AddDatabase();
 builder.AddPlatformModule();
 builder.AddIdentityModule();
 builder.AddRegistryModule();
+builder.AddTelemetryModule();
 
 var app = builder.Build();
 
@@ -37,6 +39,7 @@ app.UseForwardedHeaders();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseSameOriginGuard();
+app.UseTelemetryBodyLimit();
 app.UseRateLimiter();
 app.UseAuthentication();
 app.UseAuthorization();
@@ -54,6 +57,7 @@ api.MapPlatformEndpoints();
 api.MapIdentityEndpoints();
 api.MapRegistryEndpoints();
 api.MapProgressEndpoints();
+api.MapTelemetryEndpoints();
 
 await app.RunAsync();
 
