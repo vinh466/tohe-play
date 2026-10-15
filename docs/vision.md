@@ -38,8 +38,9 @@ be reconsidered with a new ADR.
 
 - Ads, in-app purchases, monetisation of any kind.
 - Anti-cheat beyond what deterministic replays give for free.
-- Chat, social feeds, user-generated content, public leaderboards.
-- Real-time multiplayer (may become an ADR later; not designed for now).
+- Chat, social feeds, user-generated content, public leaderboards. Online rooms offer preset reactions only.
+- Real-time action multiplayer. Turn-based games at one table across phones are a goal: [online
+  rooms](architecture/rooms.md), [ADR 0016](decisions/0016-online-rooms-for-turn-based-games.md).
 - Native apps or app-store distribution.
 - Scale beyond a few dozen players.
 

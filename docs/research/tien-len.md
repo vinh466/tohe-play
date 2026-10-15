@@ -1,13 +1,15 @@
 ---
 title: Tiến lên miền Nam research
-description: The rules every table agrees on, the house rules that differ and become room options, and the features of a complete game — for the owner's review before the SPEC.
+description: The rules every table agrees on, the house rules that differ and become room options, the features of a complete game, and the technology for its table.
 sidebar:
   order: 3
 ---
 
 Question (owner, 2026-10-16): *research and list the features a complete Tiến lên miền Nam would have, for review.*
-This page comes before `games/tien-len/SPEC.md` (the [`/new-game`](../guides/create-a-game.md) flow): the owner picks
-from it, then the SPEC is written. Online play is a platform feature: [Online rooms](../architecture/rooms.md).
+The owner accepted the proposed answers the same day
+([decisions](#decisions-on-the-proposals-open-questions)); the game's rules are now specified in
+[`games/tien-len/SPEC.md`](../../games/tien-len/SPEC.md). Online play is a platform feature:
+[Online rooms](../architecture/rooms.md).
 
 ## Rules every table agrees on
 
@@ -115,6 +117,32 @@ games). Phases follow [Online rooms](../architecture/rooms.md#phases): **1** off
 Tiến lên miền Bắc (suit and colour rules), counting-cards scoring (đếm lá), Sâm lốc, Phỏm, and board games such as
 Cờ caro and Cờ tướng online: each is a new rules module and view; the rooms stay the same.
 
+## Technology for the table
+
+Question (owner, 2026-10-16): *is the UI technology good enough, or should a better one be researched for this game?*
+
+**Answer: keep Phaser 4 with the game kit for the table** ([ADR 0012](../decisions/0012-phaser-and-the-game-kit.md));
+the lobby and waiting room are hub pages in React, like the rest of the hub. What makes a card game feel polished
+is the cards, the motion and the feedback, not a different engine:
+
+| Need | How |
+| --- | --- |
+| Crisp cards on every phone | Each card face is drawn once into a texture at device pixels (the kit's `drawTexture`), with vector suit shapes instead of font glyphs (iOS draws ♥ as an emoji in some fonts). 52 cards cost 52 quads a frame. |
+| Dealing, playing, chopping | Phaser tweens and timelines; the kit's tiered `juice`, `sfx` and `haptics` |
+| Light and dark, four-colour deck | Textures keyed by theme and deck, redrawn on change, as the block games do |
+| Menus and results | The kit's DOM overlay |
+| A WebGL failure | The kit's Canvas fallback, already proven on the A55 |
+
+Considered and not needed now:
+
+- **DOM and CSS animations:** good for UI-like games, but the kit's sounds, juice, telemetry and fallback are built
+  around a Phaser scene, and a second way of building games costs more than it gives.
+- **Rive or Lottie** for animated effects: a runtime in every build and files made in a designer's tool, which
+  agents cannot write or review.
+- **A ready-made SVG deck:** a CC0 four-colour deck exists (about 200 KB), and classic court figures would look more
+  traditional. Drawn cards are smaller, follow the themes and need no licence check; a classic deck can be an option
+  later.
+
 ## Layout on a phone
 
 iOS Safari cannot lock the orientation of a web page, and spike S3 (orientation inside the iframe) is still open.
@@ -141,3 +169,16 @@ Card apps are often landscape; this is an open question.
   chopping rules as commonly described in Vietnam.
 - [Kelly and Churchill: MCTS for Cribbage](https://www.cs.mun.ca/~dchurchill/publications/pdf/necec17cribbage.pdf):
   determinised Monte Carlo for imperfect-information card games, the approach behind the "Khó" bot.
+- [Classic 4-colour poker deck (SVG, CC0)](https://opengameart.org/content/classic-4-color-poker-deck-svg) on
+  OpenGameArt: the ready-made deck considered for the table.
+
+## Decisions on the proposal's open questions
+
+The owner accepted every proposed answer on 2026-10-16 ("theo đề xuất của ta hãy triển khai đi"):
+
+1. House rules H1–H9 default as proposed.
+2. Points: places plus chops, thối and cóng; never money or chips.
+3. `minAge` 6.
+4. Portrait first, landscape supported.
+5. Tiến lên offline against bots ships first, then the rooms.
+6. Id `tien-len`, name "Tiến Lên".

@@ -5,7 +5,7 @@ sidebar:
   order: 16
 ---
 
-- **Status:** Proposed
+- **Status:** Accepted
 - **Date:** 2026-10-16
 
 ## Context
@@ -69,8 +69,10 @@ ADR), several API instances.
 - Online play needs the API; without it, games fall back to bots on the phone.
 - Spikes S5 (reconnection on iPhone, CSP for the same-origin WebSocket) and S6 (building and loading a rules
   module) run before implementation.
-- On acceptance, the vision's non-goal "Real-time multiplayer" becomes "real-time action multiplayer", and the open
-  questions in the design are answered.
+- The vision's non-goal "Real-time multiplayer" became "real-time action multiplayer". The owner accepted every
+  proposed answer to the design's open questions on 2026-10-16 ("theo đề xuất của ta hãy triển khai đi"); they are
+  recorded in [Online rooms](../architecture/rooms.md#decisions-on-the-proposals-open-questions) and
+  [Tiến lên](../research/tien-len.md#decisions-on-the-proposals-open-questions).
 
 ## Alternatives considered
 

@@ -202,6 +202,34 @@ importers:
         specifier: ^5.0.0
         version: 5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
 
+  games/tien-len:
+    dependencies:
+      '@tohe/game-kit':
+        specifier: workspace:*
+        version: link:../../packages/game-kit
+      '@tohe/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
+      phaser:
+        specifier: ^4.2.0
+        version: 4.2.1
+    devDependencies:
+      '@tohe/conformance':
+        specifier: workspace:*
+        version: link:../../tools/conformance
+      '@tohe/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
+      fast-check:
+        specifier: ^4.10.0
+        version: 4.10.2
+      vite:
+        specifier: ^8.3.0
+        version: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
+
   packages/contract:
     dependencies:
       zod:
@@ -316,6 +344,9 @@ importers:
       '@tohe/game-tap-merge':
         specifier: workspace:*
         version: link:../../games/tap-merge
+      '@tohe/game-tien-len':
+        specifier: workspace:*
+        version: link:../../games/tien-len
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2

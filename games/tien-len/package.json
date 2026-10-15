@@ -1,0 +1,26 @@
+{
+  "name": "@tohe/game-tien-len",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev:standalone": "vite",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "conformance": "tohe-conformance dist",
+    "simulate": "node scripts/simulate.ts"
+  },
+  "dependencies": {
+    "@tohe/game-kit": "workspace:*",
+    "@tohe/game-sdk": "workspace:*",
+    "phaser": "^4.2.0"
+  },
+  "devDependencies": {
+    "@tohe/conformance": "workspace:*",
+    "@tohe/design-tokens": "workspace:*",
+    "fast-check": "^4.10.0",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
+  }
+}

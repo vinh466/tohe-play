@@ -17,6 +17,7 @@
     "@tohe/game-hello": "workspace:*",
     "@tohe/game-merge-block": "workspace:*",
     "@tohe/game-tap-merge": "workspace:*",
+    "@tohe/game-tien-len": "workspace:*",
     "@types/node": "^24.0.0"
   }
 }

@@ -1,0 +1,217 @@
+# Tiến Lên (`tien-len`) — spec
+
+> **Status: approved.** The owner asked for Tiến lên miền Nam on 2026-10-16 and accepted every proposed answer of
+> [the research](../../docs/research/tien-len.md) the same day ("theo đề xuất của ta hãy triển khai đi"): the house
+> rules H1–H9 with their proposed defaults, points without money, ages 6+, portrait first, offline against bots
+> first and online rooms next ([ADR 0016](../../docs/decisions/0016-online-rooms-for-turn-based-games.md)). Details
+> the research left open are marked *(default)*.
+
+The southern Vietnamese shedding game for 2–4 players. Everyone gets 13 cards; in turn, beat what lies on the table
+with a higher card or combination of the same kind, or pass; bombs chop 2s; the first to play all their cards wins.
+Version 0.1 is played on one phone against bots ("Chơi với máy"); the same rules module will referee online rooms.
+
+## Cards
+
+- One 52-card deck. A card is a number 0–51: rank = card ÷ 4 (0 = 3, 1 = 4, … 11 = A, 12 = 2), suit = card mod 4
+  (0 ♠, 1 ♣, 2 ♦, 3 ♥). So a higher number is a higher card: 3♠ (0) is the lowest, 2♥ (51) the highest.
+- Every player gets 13 cards. With 2 or 3 players the other cards stay face down, unseen, for the whole hand.
+
+## Combinations
+
+| Kind | Vietnamese | Cards | Example |
+| --- | --- | --- | --- |
+| Single | Rác | 1 | 7♦ |
+| Pair | Đôi | 2 of a rank | 9♠ 9♥ |
+| Triple | Sám | 3 of a rank | Q♣ Q♦ Q♥ |
+| Straight | Sảnh | 3–12 cards of consecutive ranks, any suits, no 2 | 5♠ 6♦ 7♣ |
+| Double straight | Đôi thông | 3 or more pairs of consecutive ranks, no 2 | 4 4 5 5 6 6 |
+| Four of a kind | Tứ quý | 4 of a rank | J J J J |
+
+A combination is compared by its **top card**: its highest card, rank first, then suit.
+
+## A hand
+
+1. **Deal** 13 cards each, from the state's seeded PRNG.
+2. **Instant win** (tới trắng, H6): a player dealt one of the enabled hands wins the hand at once (see
+   [Points](#points)). Checked before the first play.
+3. **The first lead:**
+   - The first hand at a table, and the hand after an instant win: the holder of 3♠ leads; with H1 the lead must
+     include 3♠. With 2–3 players nobody may hold 3♠: then the holder of the lowest card leads (and with H1 must
+     include it).
+   - Later hands: the winner (nhất) of the last hand leads anything.
+4. **Turns** go counter-clockwise (on screen: the next player sits to the right).
+5. **On your turn**, play a combination that beats the table, or pass (bỏ lượt). The player who leads a round must
+   play.
+6. **Beating:** the same kind with the same number of cards and a higher top card; or a bomb (chặt):
+
+   | On the table | Beaten by |
+   | --- | --- |
+   | A single 2 | 3 đôi thông, tứ quý, 4 đôi thông |
+   | A pair of 2s | Tứ quý, 4 đôi thông (and 3 đôi thông with H9) |
+   | 3 đôi thông | A higher 3 đôi thông, tứ quý, 4 đôi thông |
+   | Tứ quý | A higher tứ quý, 4 đôi thông |
+   | 4 đôi thông | A higher 4 đôi thông |
+
+   A triple of 2s cannot be beaten. A double straight of 5 or more pairs beats what 4 đôi thông beats, and a lower
+   one of its own length.
+7. **Passing** locks a player out of the round: they cannot play again until a new round starts. Exception (H2): a
+   4 đôi thông may chop a 2, a pair of 2s, 3 đôi thông or tứ quý **at any time it lies on the table**, by any player
+   with cards, out of turn and even after passing. Play then goes on from the chopper.
+8. **Round end:** when every other player with cards has passed since the last play, the table clears and the last
+   player to play leads a new round. If that player has gone out, the next player in turn order with cards leads.
+9. **Going out:** a player who plays their last card takes the next place: nhất, nhì, ba, bét.
+10. **Cóng** (H5): when the first player goes out, every player who has not played a single card yet is cóng: out of
+    the hand at once, in the last places (in turn order).
+11. **Hand end** (H7): when only one player still holds cards (they are bét); or, with "stops at the first out",
+    when the first player goes out.
+
+## House rules
+
+Chosen per table (in 0.1, in the ⏸ menu; online, when the room is created). A change applies from the next hand.
+
+| # | Rule | Default |
+| --- | --- | --- |
+| H1 | The first lead must include 3♠ (or the lowest card) | On |
+| H2 | 4 đôi thông may chop out of turn, even after passing | On |
+| H3 | Chặt chồng: chop penalties add up along a chain and the last player chopped pays it all | On |
+| H4 | Thối: 2s and bombs left in hand at the end cost points | On |
+| H5 | Cóng: a player who never played when someone goes out pays double | On |
+| H6 | Instant wins: sảnh rồng, tứ quý 2, 5 đôi thông, 6 đôi; optional: 3 sám liên tiếp | The first four |
+| H7 | When the hand ends: at the last place / at the first out | At the last place |
+| H8 | Points: places plus chops, thối and cóng / places only | Places plus chops, thối and cóng |
+| H9 | 3 đôi thông beats a pair of 2s | Off |
+
+Instant-win hands: **sảnh rồng** (one card of every rank 3 … A), **tứ quý 2**, **5 đôi thông** (five pairs of
+consecutive ranks, no 2), **6 đôi** (any six pairs; a four of a kind counts as two), **3 sám liên tiếp** (triples of
+three consecutive ranks, no 2). If several players have one, the first in this order wins, then the first in turn
+order from the player who would lead.
+
+## Points
+
+Points are a table's score: never money, chips or anything that looks like a bet. Every hand sums to zero.
+
+**Places** (both H8 choices):
+
+| Players | Nhất | Nhì | Ba | Bét |
+| --- | --- | --- | --- | --- |
+| 4 | +2 | +1 | −1 | −2 |
+| 3 | +3 | −1 | −2 | |
+| 2 | +2 | −2 | | |
+
+With H7 "stops at the first out", the winner takes 2 from every other player.
+
+**Values** of what can be chopped or left over *(default, from Board Game Arena)*: a black 2 (♠ ♣) 1, a red 2
+(♦ ♥) 2, 3 đôi thông 2, tứ quý 3, 4 đôi thông 4 (longer double straights 4).
+
+With H8 "places plus chops, thối and cóng":
+
+- **Chops:** a bomb played on a 2, a pair of 2s or a bomb is a chop worth the value of what it beat. With H3 the
+  values of a chain of chops in one round add up, and when the round ends the last player chopped pays the sum to
+  the last chopper; without H3, each chop is paid at once by the player chopped.
+- **Thối** (H4): when the hand ends, every player still holding cards pays the value of their 2s and bombs to the
+  nhất. Bombs are counted from the cards left: four of a kind first, then the longest double straights; 2s one by
+  one.
+- **Cóng** (H5): each cóng player pays the nhất the last place's points once more (4 players: 2), and thối as well.
+- **Instant win:** the winner takes 2 from every other player; nothing else is paid for that hand.
+
+With "places only", only places (or the instant win) count.
+
+**Series:** the table keeps the running total of each seat over its hands (bảng điểm). A new table starts at 0.
+
+## Bots
+
+Bots decide from **their own seat's view** (their hand, the table, card counts, and the cards already played),
+never from hidden cards. A decision waits 0.6–1.3 s *(default)* so a child can follow.
+
+| Level | Plays |
+| --- | --- |
+| Dễ | A random legal play; passes now and then when it could play |
+| Vừa (default) | Splits its hand into combinations (bombs and 2s kept, longest straights, triples, pairs, singles), leads its lowest combination, beats with the cheapest card that does not break a combination, chops 2s whenever it can, saves 2s while nobody is close to going out, goes out when one play empties its hand, and avoids leading singles when an opponent has one card left |
+| Khó | Vừa's four best candidates checked by a short Monte Carlo look-ahead: unseen cards dealt at random to the others, played to the end by Vừa, 40 playouts a decision |
+
+Measured with `pnpm --filter @tohe/game-tien-len simulate` (4 players, Node 24 on the owner's workstation; a hand is
+about 50–70 moves):
+
+| Table | Hands | First place | Points a hand | Time a decision |
+| --- | --- | --- | --- | --- |
+| Vừa against three Dễ | 300 | 80 % (Dễ 3–9 %) | +1.83 | Dễ 0.01 ms, Vừa 0.1 ms |
+| Khó (40 playouts) against three Vừa | 100 | 39 % (Vừa 15–28 %) | +0.63 | about 50 ms |
+| Khó (160 playouts) against three Vừa | 100 | 37 % | +0.68 | about 180 ms |
+| Khó whose playouts use a quick greedy player | 60 | 23 % | 0.00 | about 34 ms |
+
+So 40 playouts of the Vừa player are the budget: four times the playouts add nothing, and cheaper playouts lose the
+edge. In the API's interpreter (Jint, 25–45× slower than a phone's V8,
+[research](../../docs/research/online-rooms.md#evidence-a-spike-on-2026-10-16)) a Khó decision takes about 1.5–2 s,
+hidden behind the thinking delay.
+
+## The rules module
+
+`src/rules.ts` is the referee for both modes and stays pure: no DOM, timers, network or `Math.random`. Its shape is
+the rules-module interface of [Online rooms](../../docs/architecture/rooms.md#the-contract-additive-sketch):
+`setup`, `view`, `act` (returns the new state and events, or an error code), `status`, `timeout`, `bot`. Version 0.1
+calls it directly; online, the API runs the same module from the build.
+
+Error codes for refused actions (shown to the player in words): `not_your_turn`, `not_your_cards`, `not_a_combo`,
+`must_include` (3♠), `must_beat`, `must_lead` (passing on a lead), `passed` (locked out of the round), `over`.
+
+`timeout` (the turn timer, online): pass; when leading, the lowest single (3♠ alone when it must be included).
+
+## Screens
+
+Portrait first, landscape supported *(default)*: the player's hand along the bottom, the next player to the right,
+the one opposite at the top, the previous one to the left; each opponent shows an avatar, a name, a card count and
+a ring while it is their turn; the table in the middle.
+
+1. **Intro** (first time): picture hints — the card order (3 lowest, 2 highest; ♠ ♣ ♦ ♥), beat with the same kind
+   but higher, pass if you cannot or do not want to, bombs chop 2s, first out wins. Then a practice hand: the
+   suggestion is shown on every turn with a sentence saying why.
+2. **Continue** (a hand in progress on opening): "Ván đang chơi dở" with **Chơi tiếp** and **Ván mới**.
+3. **Table:** HUD with ⏸ and the series score; buttons **Bỏ lượt**, **Gợi ý**, **Đánh**, and a sort toggle
+   (by rank / by combinations). Tapping a card lifts it (selected); sliding a finger along the hand selects a run.
+   Tapping one card when nothing is selected suggests the smallest play with it that beats the table. **Đánh** is
+   enabled only for a selection that may be played; otherwise the reason is shown ("Phải lớn hơn đôi 7").
+4. **Hand results:** places with avatars, the points of the hand line by line (places, chops, thối, cóng), the series
+   score, **Ván tiếp** (and **Thoát** in the hub).
+5. **⏸ menu:** Tiếp tục, Ván mới (the series restarts at 0, asks first), Cách chơi, Luật nhà (H1–H9, applied from the
+   next hand), Bàn chơi (2–4 players, bot level), Bộ bài (two or four colours).
+
+## Feel (juice in tiers)
+
+| Event | Feel |
+| --- | --- |
+| Deal | Cards fly to every seat in turn; the player's cards flip and sort |
+| Select | The card lifts with a tick |
+| A play | Cards slide to the table with a soft thud; the previous play slides aside and dims |
+| A refused play | The selection wobbles, soft error sound and vibration, the reason in words |
+| Your turn | A ring on your side, a short note and a tap vibration |
+| Pass | "Bỏ" bubble at the player |
+| Round won | The table sweeps to the winner |
+| A 2 played | A brighter thud |
+| Chop | Medium shake, red burst, "Chặt!" |
+| Chop on a chop | Large shake, bigger burst, "Chặt chồng!" |
+| Going out | "Nhất!", "Về nhì", … at the player; nhất gets confetti if it is the player |
+| Cóng, thối | A banner in the results, a low sound |
+| Instant win | Confetti, fanfare, the winning hand shown face up |
+
+## What is saved
+
+After every action: the hand in progress (state), the series score, the table's settings (house rules, players,
+bot level, deck), whether the intro was seen, and simple statistics (hands, places). JSON, far below 64 KB.
+
+## Themes
+
+Light and dark, following the hub. The felt and the HUD follow the theme; card faces stay light paper in both
+(slightly dimmer in dark) because they are objects, with red/black or four-colour suits that meet contrast.
+
+## Invariants (checked by the random-play bot)
+
+1. The 52 cards are always all there and distinct: hands, cards played this hand, and undealt cards.
+2. Every accepted play is a valid combination from the player's own hand that may be played then (it beats the
+   table, includes 3♠ when required, and comes from the player whose turn it is, or is an H2 chop).
+3. A player who passed plays nothing more in that round, except an H2 chop.
+4. The turn always belongs to a player who holds cards and has not passed, while the hand goes on.
+5. Every hand ends, places are a permutation of the players, and the points of a hand sum to zero, in every house
+   rule combination.
+6. The same seed and the same actions give the same state (deterministic replays and saves).
+7. A seat's view never contains another seat's cards, and bots only ever return legal actions.
+8. A saved state restores to the same game.

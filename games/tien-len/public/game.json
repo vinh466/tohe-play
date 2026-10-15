@@ -1,0 +1,15 @@
+{
+  "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
+  "id": "tien-len",
+  "name": "Tiến Lên",
+  "version": "0.1.0",
+  "protocol": 1,
+  "description": "Tiến lên miền Nam với ba bạn máy: đánh bài lớn hơn, chặt heo, chặt chồng, tới trắng. Luật nhà tự chọn.",
+  "icon": "icon.svg",
+  "orientation": "portrait",
+  "capabilities": ["save"],
+  "themes": ["light", "dark"],
+  "minAge": 6,
+  "tags": ["cards", "classic"],
+  "sizeBudgetKb": 2500
+}

@@ -1,13 +1,14 @@
 ---
-title: Online rooms (proposal)
-description: How players on different phones would sit at one table — the lobby, rooms, codes and share links, seats and bots, reconnection — as a platform feature every turn-based game reuses.
+title: Online rooms
+description: How players on different phones sit at one table — the lobby, rooms, codes and share links, seats and bots, reconnection — as a platform feature every turn-based game reuses.
 sidebar:
   order: 7
 ---
 
-> **Status: proposal** ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md), Proposed). Nothing here
-> is built yet; the owner decides the [open questions](#open-questions) first. Technology and evidence:
-> [Online rooms research](../research/online-rooms.md). First game: [Tiến lên](../research/tien-len.md).
+> **Status: accepted, being built in [phases](#phases)** ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)).
+> The owner accepted the proposed answers to the [open questions](#decisions-on-the-proposals-open-questions).
+> Technology and evidence: [Online rooms research](../research/online-rooms.md). First game:
+> [Tiến lên](../research/tien-len.md).
 
 ## Why
 
@@ -330,3 +331,17 @@ joins, and a metric for round-trip time, per game version; nothing about who pla
 7. **Leaderboards:** per household as today plus personal statistics (proposed); across households later, or never?
 8. **Vision:** replace the non-goal "Real-time multiplayer" with "real-time action multiplayer", making turn-based
    online rooms a goal, on acceptance (proposed)?
+
+## Decisions on the proposal's open questions
+
+The owner accepted every proposed answer on 2026-10-16 ("theo đề xuất của ta hãy triển khai đi"):
+
+1. Public rooms are open to every signed-in profile on the server; child profiles need a parent's switch to play
+   with other households, off by default.
+2. Guests play offline against bots only.
+3. No money or chips: points only.
+4. Preset reactions only, no typed text.
+5. Room codes are 6 digits.
+6. Turn timer 20 s by default; a disconnected seat is held 30 s before a bot plays it.
+7. Leaderboards stay per household, with personal statistics; nothing across households for now.
+8. The vision now lists real-time action multiplayer as the non-goal; turn-based online rooms are a goal.
