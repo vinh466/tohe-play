@@ -9,7 +9,10 @@ export const strings = {
     start: 'Bắt đầu',
     hints: [
       { icon: '👆', text: 'Chạm vào một khối số.' },
-      { icon: '✨', text: 'Cả chuỗi khối giống nó nối liền nhau, cả đường chéo, nhập vào và số gấp đôi.' },
+      {
+        icon: '✨',
+        text: 'Cả chuỗi khối giống nó nối liền nhau, cả đường chéo, nhập vào: gom càng nhiều, số càng to.',
+      },
       { icon: '🔀', text: 'Khi không còn khối nào ghép được, chạm 🔀 để xáo trộn.' },
     ],
     gathered: (n: number) => `Gom ${n}!`,
@@ -34,7 +37,7 @@ export const strings = {
       { icon: '👆', text: 'Tap a number block.' },
       {
         icon: '✨',
-        text: 'Every equal block connected to it, diagonals too, merges into it and its number doubles.',
+        text: 'Every equal block connected to it, diagonals too, merges into it: the more you gather, the bigger it gets.',
       },
       { icon: '🔀', text: 'When nothing can merge, tap 🔀 to shuffle.' },
     ],

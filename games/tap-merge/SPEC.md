@@ -3,10 +3,13 @@
 > **Status: approved.** The owner proposed this variant of Ghép Khối and approved these rules in chat on
 > 2026-10-14 ("ừa vậy bạn triển khai đầy đủ nó giúp tôi"). After playing 0.1.0 the owner kept the 8 directions —
 > "a game to open and play without thinking" — and asked that a tap pull in the whole connected group, not only
-> the 8 cells around (0.2.0). Details the chat left open are marked *(default)*.
+> the 8 cells around (0.2.0). On 2026-10-15 the owner asked that a merge add up the group ("khi merge thì cộng
+> tổng các ô"), and chose to round the sum **up** to a power of two (0.3.0) after seeing how long games last
+> ([Game length](#game-length)). Details the chat left open are marked *(default)*.
 
 A board always full of number blocks. Tap a block: every equal block connected to it, diagonals included, merges
-into it and it doubles; the board falls and new blocks slide in from the top. The genre of "Get 10" / "2248", made for
+into it and their sum, rounded up to a power of two, is the new block; the board falls and new blocks slide in
+from the top. The genre of "Get 10" / "2248", made for
 children: one tap is the whole move, there is no timer, and nothing merges on its own.
 
 ## Board
@@ -20,7 +23,13 @@ children: one tap is the whole move, there is no timer, and nothing merges on it
    highlighted. Letting go on the same block plays the move; sliding off to another block moves the highlight.
 2. **Merge:** the tapped block's **group** is every block of the same value connected to it through neighbours
    in 8 directions (sideways, up, down and diagonal), however far the chain reaches. The whole group is absorbed
-   into the tapped block, and the tapped block **doubles once (×2)**, however many it absorbed.
+   into the tapped block, which becomes **the sum of the group, rounded up to a power of two**, so every block
+   stays a power of two:
+
+   | Blocks in the group (with the tapped one) | 2 | 3–4 | 5–8 | 9–16 | 17–32 |
+   | --- | --- | --- | --- | --- | --- |
+   | The tapped block becomes | ×2 | ×4 | ×8 | ×16 | ×32 |
+   | From 2s | 4 | 8 (3 × 2 = 6, rounded up) | 16 | 32 (10 × 2 = 20, rounded up) | 64 |
 3. A block with no equal neighbour wobbles (soft error sound). That is not a move.
 4. **Gravity:** absorbed blocks leave holes; the blocks above fall down.
 5. **Refill:** the holes left at the top of each column fill with new blocks that slide in from above the board.
@@ -30,9 +39,9 @@ children: one tap is the whole move, there is no timer, and nothing merges on it
 
 ## Scoring
 
-- A tap scores **the new value × the number of blocks absorbed**: a 4 made from two 2s scores 4; a 4 made from
-  a group of ten 2s (nine absorbed) scores 36.
-- A big group scores more, but a pair keeps more value on the board. That is the game's choice.
+- A tap scores **the new value × the number of blocks absorbed** *(default: unchanged since 0.1.0)*: a 4 made
+  from two 2s scores 4; a 32 made from ten 2s (nine absorbed) scores 288.
+- Rounding up rewards gathering: three 2s already make an 8, and five make a 16.
 
 ## New blocks
 
@@ -57,18 +66,28 @@ a record, and **Chơi lại**.
 
 ## Game length
 
-The 8 directions decide how long a game lasts. A full 5 × 7 board where diagonals count almost always holds an equal
-pair, and whole groups clear more of the board at each tap, so a game hardly ever ends. That is what the owner
-wants: a game to open and play without thinking, resumed where it was left (continue / new game, live leaderboard).
-Simulated games, 40 per player:
+The 8 directions and the merge rule decide how long a game lasts. A full 5 × 7 board where diagonals count almost
+always holds an equal pair, and whole groups clear more of the board at each tap, so a game is long: a game to open
+and play without thinking, resumed where it was left (continue / new game, live leaderboard). Adding up the group
+makes blocks grow faster than doubling did, so since 0.3.0 every game ends, after a long while. Simulated games,
+40 per player:
 
 | Player | Taps per game (median) | Largest block (median) | Stuck per game | Blocks absorbed per tap |
 | --- | --- | --- | --- | --- |
-| Taps any block that merges (a child) | about 16,000 | 64K | 3.9 | 2.6 on average, up to 27; 6+ in 10% of taps |
-| Always takes the biggest group | over 20,000 (never ended) | 32K | 0 | 4.1 on average; 6+ in 18% of taps |
+| Taps any block that merges (a child) | about 1,900 (760–4,300) | 32K | 4.3 | 2.2 on average, up to 22; 6+ in 5% of taps |
+| Always takes the biggest group | about 1,700 (720–4,700) | 32K | 4.4 | 2.2 on average, up to 21; 6+ in 2% of taps |
 
-Earlier versions, for comparison: only the 8 cells around (0.1.0) gave about 3,000 taps; 4 directions only, about
-260. The directions are one constant (`DIRECTIONS` in `logic.ts`).
+How the merge rule changes the median game of the child-like player (the same bot, 10 to 40 games per rule):
+
+| Merge rule | Taps per game |
+| --- | --- |
+| The tapped block doubles once, however big the group (0.2.0) | about 15,000; some games never end |
+| The sum, rounded down to a power of two (ten 2s → 16) | about 6,000 |
+| **The sum, rounded up to a power of two (ten 2s → 32), 0.3.0** | **about 1,900** |
+| The exact sum (three 2s → 6, ten 2s → 20) | about 100: numbers like 6 and 20 almost never find a pair among the new 2s, 4s and 8s |
+
+Earlier versions: only the 8 cells around (0.1.0) gave about 3,000 taps; 4 directions only, about 260. The
+directions are one constant (`DIRECTIONS` in `logic.ts`), the rounding one function (`merged`).
 
 ## Screens
 
@@ -91,7 +110,7 @@ The continue card and the ⏸ menu are the kit's standard lifecycle (`createLife
 | --- | --- |
 | Finger down | The block and the group it would absorb lift and glow |
 | Merge | The group is pulled into the tapped block like a ripple, nearest first; the block pops and changes colour, particle burst in its colour, "+points" floats up, rising pitch with value, haptic |
-| Big merge (6 or more absorbed, about 1 tap in 8) | "Gom n!" banner, a combo sound |
+| Big merge (6 or more absorbed, about 1 tap in 20) | "Gom n!" banner, a combo sound |
 | Huge merge (9 or more absorbed) | The banner in the bright colour, a small camera shake |
 | New largest block | "Khối mới!" banner; with a 🔀 earned, "+1 🔀" and the button pops |
 | Block of 512 or more | Short camera shake (skipped with reduced motion) |
@@ -124,6 +143,7 @@ Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013), lik
 ## Invariants (checked by the random-play bot)
 
 - The board is always full; every block is a power of two.
+- A merged block holds at least the sum of its group, and less than twice it.
 - The score never decreases, and every move raises it.
 - 🔀 stays between 0 and 3; a shuffle keeps the same blocks, leaves a move, and costs one.
 - No block is larger than the largest block made in the game.
