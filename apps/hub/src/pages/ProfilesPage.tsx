@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, auth, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { takeNext } from '../session/next.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { useSetMe } from '../session/useSession.ts';
 import { db } from '../storage/db.ts';
@@ -31,6 +32,12 @@ function Picker({ me }: { me: MeView }) {
   const [pinErrors, setPinErrors] = useState(0);
   const [offerMove, setOfferMove] = useState<{ from: string; to: ProfileView } | null>(null);
 
+  // Back to a room link that needed a player (session/next.ts), or to the catalog.
+  const goOn = async () => {
+    const next = takeNext();
+    await navigate({ to: next ?? '/' });
+  };
+
   const select = useMutation({
     mutationFn: ({ profile, pin }: { profile: ProfileView; pin?: string }) =>
       session.selectProfile(profile.id, pin),
@@ -42,7 +49,7 @@ function Picker({ me }: { me: MeView }) {
         setOfferMove({ from: guest.id, to: profile });
         return;
       }
-      await navigate({ to: '/' });
+      await goOn();
     },
     onError: (error, { profile }) => {
       if (error instanceof ApiError && error.code === 'pin_required') setPinFor(profile);
@@ -62,7 +69,7 @@ function Picker({ me }: { me: MeView }) {
     if (move && offerMove) await moveProgress(db, offerMove.from, offerMove.to.id);
     localStorage.setItem(GUEST_PROGRESS_OFFERED, '1');
     setOfferMove(null);
-    await navigate({ to: '/' });
+    await goOn();
   };
 
   const choose = (profile: ProfileView) => {

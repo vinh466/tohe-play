@@ -227,6 +227,7 @@ function ProfileForm({ profile, onDone }: { profile: ProfileView | null; onDone(
   const [ageBand, setAgeBand] = useState(profile?.ageBand ?? '6-8');
   const [pin, setPin] = useState('');
   const [removePin, setRemovePin] = useState(false);
+  const [playWithOthers, setPlayWithOthers] = useState(profile?.playWithOthers ?? false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const save = useMeMutation(
@@ -239,6 +240,7 @@ function ProfileForm({ profile, onDone }: { profile: ProfileView | null; onDone(
             ageBand: isChild ? ageBand : null,
             pin: pin || null,
             removePin: removePin || null,
+            playWithOthers: profile.kind === 'child' ? playWithOthers : null,
           }),
     onDone,
   );
@@ -307,6 +309,14 @@ function ProfileForm({ profile, onDone }: { profile: ProfileView | null; onDone(
           />
           {t('family.removePin')}
         </label>
+      ) : null}
+      {profile?.kind === 'child' ? (
+        <Switch
+          label={t('family.playWithOthers')}
+          hint={t('family.playWithOthersHint')}
+          checked={playWithOthers}
+          onChange={setPlayWithOthers}
+        />
       ) : null}
       {save.isError ? (
         <p role="alert" className="text-danger">

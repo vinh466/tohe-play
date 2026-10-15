@@ -1,0 +1,101 @@
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Link, Navigate, useNavigate, useParams } from '@tanstack/react-router';
+import { useTranslation } from 'react-i18next';
+import { rooms } from '../api/client.ts';
+import { errorKey } from '../api/errors.ts';
+import { gamesQuery } from '../api/queries.ts';
+import { formatCode, normalizeCode } from '../rooms/model.ts';
+import { RequireSession } from '../session/RequireSession.tsx';
+import type { Player } from '../session/session.ts';
+import { Avatar } from '../ui/AvatarGrid.tsx';
+import { Button } from '../ui/Button.tsx';
+import { Screen } from '../ui/Screen.tsx';
+
+/**
+ * A room link, /r/<code> (ADR 0016): sign in and pick a profile first if needed (the link is kept through both),
+ * then a preview of the room and one tap to sit down.
+ */
+export function JoinPage() {
+  const { code } = useParams({ from: '/r/$code' });
+  return (
+    <RequireSession need="player" returnTo={`/r/${normalizeCode(code)}`}>
+      {(session) =>
+        session.status === 'account' ? (
+          <Preview player={session.player} />
+        ) : (
+          <Navigate to="/register" replace />
+        )
+      }
+    </RequireSession>
+  );
+}
+
+function Preview({ player }: { player: Player }) {
+  const { code: raw } = useParams({ from: '/r/$code' });
+  const code = normalizeCode(raw);
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const games = useQuery(gamesQuery(player.id));
+  const room = useQuery({ queryKey: ['room-code', code], queryFn: () => rooms.byCode(code), retry: false });
+  const join = useMutation({
+    mutationFn: (id: string) => rooms.join(id),
+    onSuccess: (view) => void navigate({ to: '/room/$roomId', params: { roomId: view.id }, replace: true }),
+  });
+  const view = room.data;
+  const game = games.data?.find((g) => g.id === view?.gameId);
+  const host = view?.seatList.find((seat) => seat.profileId === view.hostProfileId);
+
+  if (view && view.mySeat !== null)
+    return <Navigate to="/room/$roomId" params={{ roomId: view.id }} replace />;
+
+  return (
+    <Screen narrow>
+      <Link to="/" className="font-semibold text-accent">
+        ← {t('backToGames')}
+      </Link>
+      <h1 className="text-center font-black text-3xl text-brand-ink">
+        {t('rooms.room', { code: formatCode(code) })}
+      </h1>
+      {room.isPending ? <p className="text-center text-ink-soft">{t('loading')}</p> : null}
+      {room.isError ? (
+        <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-center text-danger">
+          {t(errorKey(room.error))}
+        </p>
+      ) : null}
+      {view ? (
+        <section className="flex flex-col items-center gap-4 rounded-3xl bg-surface p-6 text-center shadow-sm">
+          {game?.iconUrl ? <img src={game.iconUrl} alt="" className="size-20 rounded-2xl" /> : null}
+          <p className="font-bold text-ink text-xl">{game?.name ?? view.gameId}</p>
+          <div className="flex items-center gap-2">
+            <Avatar avatar={host?.avatar ?? '🙂'} size="sm" />
+            <span className="font-semibold text-ink">{t('rooms.preview', { host: host?.name ?? '' })}</span>
+          </div>
+          <p className="text-ink-soft">
+            {t('rooms.previewSeats', {
+              taken: view.seatList.filter((seat) => seat.profileId).length,
+              seats: view.seats,
+              status: t(`rooms.status.${view.status}`),
+            })}
+          </p>
+          <Button className="w-full" busy={join.isPending} onClick={() => join.mutate(view.id)}>
+            {t('rooms.sit')}
+          </Button>
+          {join.isError ? (
+            <p role="alert" className="text-danger">
+              {t(errorKey(join.error))}
+            </p>
+          ) : null}
+        </section>
+      ) : null}
+      {view ? (
+        <Link
+          to="/rooms/$gameId"
+          params={{ gameId: view.gameId }}
+          className="text-center font-semibold text-accent"
+        >
+          {t('rooms.backToLobby')}
+        </Link>
+      ) : null}
+    </Screen>
+  );
+}

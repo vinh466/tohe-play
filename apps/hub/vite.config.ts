@@ -44,8 +44,9 @@ export default defineConfig({
   server: {
     port: 4720,
     strictPort: true,
-    proxy: { '/api': 'http://localhost:4740' },
+    // ws: the rooms hub's WebSocket (ADR 0016) goes through the same /api proxy.
+    proxy: { '/api': { target: 'http://localhost:4740', ws: true } },
   },
-  preview: { port: 4720, strictPort: true, proxy: { '/api': 'http://localhost:4740' } },
+  preview: { port: 4720, strictPort: true, proxy: { '/api': { target: 'http://localhost:4740', ws: true } } },
   test: { environment: 'node' },
 });

@@ -13,6 +13,7 @@
     "generate:icons": "node scripts/render-icons.ts"
   },
   "dependencies": {
+    "@microsoft/signalr": "^10.0.11",
     "@tanstack/react-query": "^5.100.0",
     "@tanstack/react-router": "^1.170.0",
     "@tohe/contract": "workspace:*",
@@ -24,6 +25,7 @@
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
     "react-i18next": "^17.0.0",
+    "uqr": "^0.1.3",
     "web-vitals": "^6.2.3"
   },
   "devDependencies": {

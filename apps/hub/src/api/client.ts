@@ -13,6 +13,11 @@ export type CreateProfileRequest = Schemas['CreateProfileRequest'];
 export type UpdateProfileRequest = Schemas['UpdateProfileRequest'];
 export type LeaderboardEntry = Schemas['LeaderboardEntry'];
 export type ScoreInput = Schemas['ScoreInput'];
+export type RoomView = Schemas['RoomView'];
+export type RoomSummary = Schemas['RoomSummary'];
+export type SeatView = Schemas['SeatView'];
+export type CreateRoomRequest = Schemas['CreateRoomRequest'];
+export type UpdateRoomRequest = Schemas['UpdateRoomRequest'];
 
 /** Same origin: the hub serves /api through its reverse proxy (Vite in dev, Caddy in docker/UAT). */
 export const api = createClient<paths>({ baseUrl: '' });
@@ -103,4 +108,20 @@ export const progress = {
   recordScores: (scores: ScoreInput[]) => call(api.POST('/api/progress/scores', { body: { scores } })),
   leaderboard: (gameId: string) =>
     call(api.GET('/api/progress/leaderboard/{gameId}', { params: { path: { gameId } } })),
+};
+
+/** Online rooms (ADR 0016): the lobby and the host's controls. What happens at the table goes through the hub. */
+export const rooms = {
+  list: (game: string) => call(api.GET('/api/rooms', { params: { query: { game } } })),
+  mine: () => call(api.GET('/api/rooms/mine')),
+  create: (body: CreateRoomRequest) => call(api.POST('/api/rooms', { body })),
+  byCode: (code: string) => call(api.GET('/api/rooms/code/{code}', { params: { path: { code } } })),
+  get: (id: string) => call(api.GET('/api/rooms/{id}', { params: { path: { id } } })),
+  join: (id: string) => call(api.POST('/api/rooms/{id}/join', { params: { path: { id } } })),
+  leave: (id: string) => call(api.POST('/api/rooms/{id}/leave', { params: { path: { id } } })),
+  update: (id: string, body: UpdateRoomRequest) =>
+    call(api.PATCH('/api/rooms/{id}', { params: { path: { id } }, body })),
+  setSeat: (id: string, seat: number, bot: string | null) =>
+    call(api.PUT('/api/rooms/{id}/seats/{seat}', { params: { path: { id, seat } }, body: { bot } })),
+  start: (id: string) => call(api.POST('/api/rooms/{id}/start', { params: { path: { id } } })),
 };

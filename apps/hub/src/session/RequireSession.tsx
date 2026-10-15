@@ -2,6 +2,7 @@ import { Navigate } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Loading } from '../ui/Screen.tsx';
+import { rememberNext } from './next.ts';
 import type { Player, SessionState } from './session.ts';
 import { useSession } from './useSession.ts';
 
@@ -11,7 +12,12 @@ type PlayingSession = Extract<SessionState, { status: 'guest' | 'account' }> & {
 type Props =
   | { need: 'signedOut'; children: ReactNode }
   | { need: 'account'; children: (session: AccountSession) => ReactNode }
-  | { need: 'player'; children: (session: PlayingSession) => ReactNode };
+  | {
+      need: 'player';
+      children: (session: PlayingSession) => ReactNode;
+      /** Come back here after signing in and choosing a profile (a room link). */
+      returnTo?: string;
+    };
 
 /**
  * Sends people where they belong: signed-out devices to /welcome, signed-in devices without a chosen player to
@@ -28,6 +34,7 @@ export function RequireSession(props: Props) {
     case 'account':
       return session.status === 'account' ? props.children(session) : <Navigate to="/welcome" replace />;
     case 'player':
+      if ((session.status === 'signedOut' || !session.player) && props.returnTo) rememberNext(props.returnTo);
       if (session.status === 'signedOut') return <Navigate to="/welcome" replace />;
       if (!session.player) return <Navigate to="/profiles" replace />;
       return props.children(session as PlayingSession);
