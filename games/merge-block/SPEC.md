@@ -45,7 +45,10 @@ The game ends when **every column is full**. Then: score, best, "Kỷ lục mớ
    **Chơi tiếp** (the default) and **Ván mới** (asks first; the run ends).
 3. **Playing:** HUD with ⏸, score (counts up), next block and best; board with the current block above it; exit and
    sound buttons come from the hub. **⏸** (or Esc) opens the menu: **Tiếp tục**, **Ván mới** (asks first),
-   **Cách chơi** (the intro hints again).
+   **Cách chơi** (the intro hints again), **Màu khối**.
+   - **Màu khối:** one row per [preset](#block-colours), with its name and sample blocks 2 … 256 in its colours;
+     the chosen one is marked. Tapping a row repaints the board, the current block and the next block at once and
+     keeps the choice; **Quay lại** returns to the menu.
 4. **Paused by the hub:** the hub sends `pause` when the app is hidden or its exit confirmation is open; animations
    and timers stop, and `resume` continues exactly where they were.
 5. **Game over:** board dims and settles, card with score/best, confetti for a record, **Chơi lại**.
@@ -72,16 +75,35 @@ Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013):
 
 - **Board:** a cream board on a cream page in light; a warm-charcoal board on a darker page in dark, with empty
   cells a step lighter than the board. It switches at once when the hub changes theme mid-round.
-- **Blocks:** the same in both themes, so a value keeps its colour. Every number is at least 4.5:1 on its block
-  (checked by `palette.test.ts`): dark text on light blocks, white on the deeper 64–1024 colours. The dark champion
-  block gets a gold ring on the dark board.
+- **Blocks:** in the player's [colour preset](#block-colours), the same in both themes, so a value keeps its colour.
 - **HUD and cards:** the platform's design tokens, through the kit.
+
+## Block colours
+
+Each player picks how the blocks look (⏸ → **Màu khối**), with the same five presets as Chạm Ghép, so the two games
+still look like a family. The owner asked for them on 2026-10-15, after trying them in Chạm Ghép. The choice belongs
+to the player: it is kept in the game's save, so it follows the profile to other devices, and a new player starts
+with **Hoàng hôn**. Each game keeps its own choice (games do not share saves).
+
+| Preset | Look |
+| --- | --- |
+| **Hoàng hôn** (default) | Warm and soft for small numbers, saturated and cool as they grow, so a glance at the board shows how far a game has come. |
+| **Tương phản mạnh** | Two numbers in a row never share a hue: red, blue, yellow, green, purple, orange, pink, teal, then the same round again in other shades. |
+| **Kẹo pastel** | Light, soft colours, a different hue for each number, dark text. |
+| **Neon** | Bright, saturated colours with dark text; they stand out most on the dark board. |
+| **Dễ phân biệt** | Built on the Okabe–Ito palette, which people with red–green colour blindness tell apart; numbers above 256 take its hues again, darker. |
+
+- Every number is at least 4.5:1 on its block, in every preset (`palette.test.ts`).
+- In every preset except Hoàng hôn, two numbers in a row are clearly different colours (`palette.test.ts`
+  measures the distance between them).
+- The champion block (64K and up) is the same in every preset: dark with gold digits, and a gold ring on the
+  dark board.
 
 ## Contract usage
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game, run }` where `game` is the full state (board, current, next, score, PRNG) and `run` its leaderboard id. Opening the game resumes it. |
+| `save` | After every move: `{ best, game, tutorialSeen, run, palette }` where `game` is the full state (board, current, next, score, PRNG), `run` its leaderboard id and `palette` the player's colour preset (also saved when it changes). Opening the game resumes it. |
 | `scores` | A live run (ADR 0014): `session.run(id).update(score)` after each move that scores, so the household leaderboard shows the game in progress; `finish(score)` at game over, or when the player starts a new game (an unfinished game keeps the best score it reached). One run id per game, kept in the save. |
 | settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of a new game. |
