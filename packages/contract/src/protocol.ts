@@ -38,6 +38,8 @@ export const RoomSeat = z
     bot: z.string().max(16).nullable(),
     /** The player's phone is connected (always true for bots). */
     connected: z.boolean(),
+    /** The seat's points over the room's hands so far (the table's score sheet). */
+    score: z.number().int().optional(),
   })
   .strict();
 export type RoomSeat = z.infer<typeof RoomSeat>;

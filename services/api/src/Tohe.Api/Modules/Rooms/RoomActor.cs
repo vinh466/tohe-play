@@ -790,7 +790,7 @@ internal sealed class RoomActor
                 continue;
             }
 
-            var chop = _rules.Bot(_state!, seat, level, _seq * 31 + seat);
+            var chop = BotDecision(seat, level) ?? "null";
             if (chop != "null" && await ApplyAsync(seat, chop) is null)
             {
                 return;
@@ -804,10 +804,26 @@ internal sealed class RoomActor
             return;
         }
 
-        var action = _rules.Bot(_state!, turn, turnLevel, _seq * 31 + turn);
+        var action = BotDecision(turn, turnLevel) ?? "null";
         if (action == "null" || await ApplyAsync(turn, action) is not null)
         {
             await ApplyAsync(turn, _rules.Timeout(_state!, turn));
+        }
+    }
+
+    /// <summary>
+    /// A bot's action, or null when its look-ahead failed or ran out of time (a busy server): the caller then plays the
+    /// turn timer's move, so a table never stops on a slow bot.
+    /// </summary>
+    private string? BotDecision(int seat, string level)
+    {
+        try
+        {
+            return _rules!.Bot(_state!, seat, level, _seq * 31 + seat);
+        }
+        catch (RulesException)
+        {
+            return null;
         }
     }
 

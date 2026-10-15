@@ -18,6 +18,8 @@ export const haptics = {
   },
   play(kind: Haptic) {
     if (!enabled || typeof navigator === 'undefined' || typeof navigator.vibrate !== 'function') return;
+    // Before the first touch in the frame Chrome refuses (and logs an error): e.g. an online table's "your turn".
+    if (navigator.userActivation && !navigator.userActivation.hasBeenActive) return;
     try {
       navigator.vibrate(patterns[kind]);
     } catch {

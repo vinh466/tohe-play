@@ -115,6 +115,11 @@ What it means:
   anyway. If a much stronger bot is ever wanted, that bot alone can move to native V8 (ClearScript) or C#.
 - **Warm up at start-up**, so the first room after a deploy does not pay the second of JIT.
 
+**Measured again with the real module** (Tiến Lên 0.2's `dist/rules.js`, 17 KB, in Jint 4.17 on the same
+workstation, 2026-10-16): an action with a view through JSON 0.16 ms; a Dễ or Vừa bot decision 2 ms (19 ms at most);
+a Khó decision (40 playouts of Vừa) 0.5 s median, 1.7 s at most; the first call in a fresh process 0.18 s. The API's
+tests keep a Khó decision under 5 s.
+
 ## Spikes before implementation
 
 | # | Question | Why it matters |

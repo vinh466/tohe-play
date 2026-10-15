@@ -131,6 +131,11 @@
                   },
                   "connected": {
                     "type": "boolean"
+                  },
+                  "score": {
+                    "type": "integer",
+                    "minimum": -9007199254740991,
+                    "maximum": 9007199254740991
                   }
                 },
                 "required": [
@@ -382,6 +387,11 @@
               },
               "connected": {
                 "type": "boolean"
+              },
+              "score": {
+                "type": "integer",
+                "minimum": -9007199254740991,
+                "maximum": 9007199254740991
               }
             },
             "required": [

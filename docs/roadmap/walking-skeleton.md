@@ -20,7 +20,7 @@ milestone ends with something playable and a green `pnpm verify` + e2e smoke tes
 | M5 | Light & dark themes | *Done (ADR 0013):* design tokens; *Theo máy / Sáng / Tối* per device, shared by the hub, the landing page and the docs; games opt in with `themes` + `settings.theme` (Ghép Khối and Chạm Chấm do); contrast checked in both themes by tests, e2e and conformance. See [Theming](../architecture/theming.md). |
 | M6 | Second real game | *Done:* "Chạm Ghép" (`tap-merge`), the owner's tap-to-merge variant of Ghép Khối, built from the kit in a day: continue / new game, live leaderboard (ADR 0014), drawn textures, light and dark. Next: Lấp Ô ([backlog](game-backlog.md)). |
 | M7 | Device telemetry | *Done (ADR 0015), phases 1–2:* errors, frame times, load times and compatibility from players' devices, technical data only, three switches and a transparency page; a report agents read with `/health-report`. Next: browser crash and CSP reports. See [Device telemetry](../architecture/telemetry.md). |
-| M8 | Online rooms + Tiến lên | *In progress (ADR 0016 accepted):* turn-based rooms owned by the hub and the API (public and private, codes, share links, bots, reconnection), refereed by each game's own rules module. Phase 1 done: Tiến Lên 0.1 offline against bots ([SPEC](../../games/tien-len/SPEC.md)). See [Online rooms](../architecture/rooms.md). |
+| M8 | Online rooms + Tiến lên | *Done (ADR 0016), phases 1–2:* Tiến Lên against bots (0.1), then online tables (0.2): lobby, quick play, private rooms, 6-digit codes, `/r/<code>` links kept through sign-in, QR and sharing, bots for empty seats and lost connections, turn timer, reconnection and rebuilds after a restart, score sheet, preset reactions, the parent switch; refereed by the game's own rules module in Jint. Next: spike S5 on iPhones, then spectators, replays, statistics. See [Online rooms](../architecture/rooms.md). |
 | Later | Production | Only when needed: HTTPS, public hostnames, off-machine backups — new ADR. |
 | Gate | Go / no-go | The criteria in [Vision & scope](../vision.md#go--no-go). |
 
@@ -35,7 +35,7 @@ Short, throw-away experiments that answer one risky question each; results go in
 | S3 | Fullscreen, orientation lock and safe-area insets inside the iframe on iOS and Android. | Layout of every game. |
 | S4 | Size and start-up time of a Godot 4 single-threaded web export inside the iframe. | Validates the "any technology" promise. |
 | S5 | SignalR through the hub into the game iframe on iPhone Safari and the installed PWA: locked screen, network change, a call; reconnect, resync, CSP for the same-origin WebSocket. | Online rooms (ADR 0016). |
-| S6 | Build a game's `rules.ts` into one ES module, run it in Jint, map stack traces back to TypeScript. | Online rooms (ADR 0016). *Speed already measured:* [research](../research/online-rooms.md#evidence-a-spike-on-2026-10-16). |
+| S6 | Build a game's `rules.ts` into one ES module, run it in Jint, map stack traces back to TypeScript. | *Done in M8:* a second Vite build writes `dist/rules.js` and the API runs it ([research](../research/online-rooms.md)). Errors still name the minified module's positions; source maps for them are a later nicety. |
 
 ## Known gaps in M0
 

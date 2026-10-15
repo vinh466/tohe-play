@@ -382,6 +382,8 @@ async function roomRun(run: {
     );
     mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
     await page.screenshot({ path: run.screenshot });
+    // Random taps do not always reach a play (a menu may stay open): the counts are informational; what fails the
+    // check is a crash, a console error or a protocol error at the table.
     return { ok: true, detail: `${accepted} actions accepted, ${refused} refused, ${hands} hands` };
   } finally {
     host.dispose();

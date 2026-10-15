@@ -1,4 +1,6 @@
 # Hub: the PWA plus a same-origin reverse proxy to the API, so the session cookie (M1) stays first-party.
+# connect-src names the hub's own WebSocket (the rooms hub, ADR 0016) as well: CSP3's 'self' covers it, older Safari
+# does not.
 # Env: API_UPSTREAM (host:port of the API), GAMES_ORIGIN (where game iframes come from).
 {
 	admin off
@@ -10,7 +12,7 @@
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self'; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 	}
 
 	handle /api/* {

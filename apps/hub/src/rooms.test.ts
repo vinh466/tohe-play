@@ -25,7 +25,7 @@ const room = (over: Partial<RoomView> = {}): RoomView => ({
     { seat: 2, profileId: 'p-na', name: 'Na', avatar: '🐼', bot: 'normal', connected: false, ready: false },
     { seat: 3, profileId: null, name: null, avatar: null, bot: 'easy', connected: true, ready: false },
   ],
-  scores: [0, 0, 0, 0],
+  scores: [2, 0, -1, -1],
   hand: 1,
   handSeats: [0, 2, 3],
   mySeat: 2,
@@ -47,9 +47,9 @@ describe('a table as the game sees it', () => {
     const { seats, seat } = gameSeats(room());
     expect(seat).toBe(1);
     expect(seats).toEqual([
-      { profile: { id: 'p-bo', name: 'Bố', avatar: '🦊' }, bot: null, connected: true },
-      { profile: { id: 'p-na', name: 'Na', avatar: '🐼' }, bot: 'normal', connected: false },
-      { profile: null, bot: 'easy', connected: true },
+      { profile: { id: 'p-bo', name: 'Bố', avatar: '🦊' }, bot: null, connected: true, score: 2 },
+      { profile: { id: 'p-na', name: 'Na', avatar: '🐼' }, bot: 'normal', connected: false, score: -1 },
+      { profile: null, bot: 'easy', connected: true, score: -1 },
     ]);
   });
 

@@ -86,3 +86,18 @@ Use the `/new-game` skill, or give the agent this brief:
 > docs/contracts/game-contract-v1.md. Start by writing games/<id>/SPEC.md and stop for review. Then implement
 > it with pure logic + tests + a random-play bot, and finish only when `pnpm verify` passes and the conformance
 > screenshot looks right.
+
+## A game for several phones (online rooms)
+
+A turn-based game played at a table online ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md))
+adds three things to the steps above; `games/tien-len` is the reference:
+
+1. **A rules module**: `src/module.ts` exports `rules` with `setup`, `view`, `act`, `status`, `timeout` and `bot`
+   ([the interface](../contracts/game-contract-v1.md#online-rooms)), built on the same pure logic the game uses
+   against bots. A second Vite build (`vite.rules.config.ts`) writes it to `dist/rules.js`.
+2. **`game.json`**: the `rooms` capability and block — seats, bot levels, and the house rules as options the hub
+   draws.
+3. **An online mode** in `main.ts`: when `session.room` is set, draw the views it sends (animate their events), send
+   actions with `session.room.act` and show a refusal's error code in words, and `next()` after a hand.
+
+Conformance then checks the module the way the API runs it, and opens the game at a table refereed by it.

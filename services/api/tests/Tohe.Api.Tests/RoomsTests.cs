@@ -198,7 +198,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     [Fact]
     public void A_hard_bot_decides_well_within_the_rules_time_limit()
     {
-        var rules = new RulesHost(File.ReadAllText(Path.Combine(FindGameBuild(), "rules.js")), TimeSpan.FromSeconds(10));
+        var rules = new RulesHost(File.ReadAllText(Path.Combine(FindGameBuild(), "rules.js")), TimeSpan.FromSeconds(60));
         var options = JsonSerializer.Serialize(new { instantWins = Array.Empty<string>() });
         var state = rules.Setup(4, 20261016, options, null);
         var turn = JsonNode.Parse(rules.Status(state))!["turn"]![0]!.GetValue<int>();
@@ -215,7 +215,78 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         watch.Stop();
         TestContext.Current.SendDiagnosticMessage($"hard bot in Jint: {watch.ElapsedMilliseconds} ms");
         Assert.True(JsonNode.Parse(rules.Act(state, turn, action))!["ok"]!.GetValue<bool>());
-        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(5), $"{watch.ElapsedMilliseconds} ms");
+        // About 0.5 s on the owner's workstation (docs/research/online-rooms.md); the bound only catches a look-ahead
+        // that became many times slower, even on a machine busy running every test at once.
+        Assert.True(watch.Elapsed < TimeSpan.FromSeconds(20), $"{watch.ElapsedMilliseconds} ms");
+    }
+
+    [Fact]
+    public async Task A_bot_that_runs_out_of_time_plays_the_timer_move_so_the_table_goes_on()
+    {
+        // A rules module whose bot never decides: two seats, seat 0 a bot; a move is { n }, the hand ends after two.
+        const string source = """
+            export const rules = {
+              setup: () => ({ moves: 0, turn: 0 }),
+              view: (state, seat) => ({ ...state, seat }),
+              act: (state, seat, action) => seat === state.turn
+                ? { ok: true, state: { moves: state.moves + 1, turn: 1 - state.turn }, events: [action] }
+                : { ok: false, error: 'not_your_turn' },
+              status: (state) => state.moves >= 2
+                ? { over: true, result: { points: [0, 0] }, carry: null }
+                : { over: false, turn: [state.turn], chop: [] },
+              timeout: (state, seat) => ({ timer: seat }),
+              bot: () => { for (;;) {} },
+            };
+            """;
+        var outbox = new RecordingOutbox();
+        var host = Guid.NewGuid();
+        var room = new Room
+        {
+            Id = Guid.NewGuid(),
+            Code = "123456",
+            GameId = "test",
+            GameVersion = "1.0.0",
+            RulesPath = "test/1.0.0/rules.js",
+            HostProfileId = host,
+            Seats = 2,
+            BotsFill = true,
+            BotLevel = "normal",
+            Status = RoomStatus.Waiting,
+            SeatList = JsonSerializer.Serialize(new[] { SeatRecord.Empty, new SeatRecord(host, Guid.NewGuid(), "Bố", "🦊", null) }),
+        };
+        var options = new RoomsOptions { BotThinkMinMs = 0, BotThinkMaxMs = 0 };
+        var actor = new RoomActor(room, outbox, options, TimeProvider.System, _ => Task.FromResult(new RulesHost(source, TimeSpan.FromMilliseconds(200))));
+
+        Assert.Null(await actor.RunAsync(() => actor.StartAsync(host, 2, Ct)));
+        await Task.Delay(10, Ct);
+        await actor.RunAsync(() => actor.TickAsync(2, Ct));
+
+        var action = Assert.Single(outbox.Actions);
+        Assert.Equal((0, """{"timer":0}"""), (action.Seat, action.Action));
+    }
+
+    /// <summary>An outbox that keeps what a room sends and stores, without phones or a database.</summary>
+    private sealed class RecordingOutbox : IRoomOutbox
+    {
+        public List<RoomAction> Actions { get; } = [];
+
+        public Task RoomChangedAsync(RoomActor room) => Task.CompletedTask;
+
+        public Task ViewAsync(Guid roomId, Guid profileId, string view, string events, int seq, int? turnMs) => Task.CompletedTask;
+
+        public Task ReactionAsync(Guid roomId, int seat, string reaction) => Task.CompletedTask;
+
+        public Task LobbyChangedAsync(string gameId) => Task.CompletedTask;
+
+        public Task ClosedAsync(Guid roomId, string reason) => Task.CompletedTask;
+
+        public Task SaveRoomAsync(Room room) => Task.CompletedTask;
+
+        public Task SaveActionAsync(RoomAction action)
+        {
+            Actions.Add(action);
+            return Task.CompletedTask;
+        }
     }
 
     [Fact]

@@ -36,6 +36,7 @@ export function gameSeats(room: RoomView): { seats: RoomSeat[]; seat: number } {
         : null,
       bot: seat?.bot ?? null,
       connected: seat?.connected ?? true,
+      score: room.scores[roomSeat] ?? 0,
     };
   });
   const seat = room.mySeat === null ? -1 : room.handSeats.indexOf(room.mySeat);

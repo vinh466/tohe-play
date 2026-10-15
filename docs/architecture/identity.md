@@ -76,6 +76,7 @@ sequenceDiagram
 | An adult profile can only be edited by its own account | Households module |
 | A PIN is exactly 4 digits and stored hashed; wrong PINs are rate limited | Session endpoints |
 | Children see only games whose `minAge` is at most the lower bound of their age band | Registry, via `IActiveProfile` |
+| A child plays online with other households only when a parent turned on "Chơi online với nhà khác" (`playWithOthers`, off by default); otherwise only at tables the family keeps to itself | Rooms, via `IActiveProfile` ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) |
 | Saves, scores and the leaderboard belong to the active profile and its household | Progress, via `IActiveProfile` and `IHouseholdProfiles` |
 | Unsafe `/api` requests from another origin (`Sec-Fetch-Site` ≠ `same-origin`) are rejected | `SameOriginGuard` middleware |
 | Sign-in, registration, PIN and parent gate: 10 requests per minute per client IP | Rate limiter policy `auth` |
@@ -99,7 +100,7 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `PATCH /api/household` | parent | Rename the household |
 | `POST /api/household/invite` / `DELETE` | parent | Create / revoke the invite code |
 | `POST /api/household/profiles` | parent | Add a child profile |
-| `PATCH` / `DELETE /api/household/profiles/{id}` | parent | Edit / remove a profile |
+| `PATCH` / `DELETE /api/household/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`) / remove a profile |
 
 Errors are problem details; a machine-readable `code` (e.g. `invalid_credentials`, `pin_required`, `pin_invalid`,
 `parent_gate_required`, `username_taken`, `invite_invalid`) lets the hub show a Vietnamese message.
