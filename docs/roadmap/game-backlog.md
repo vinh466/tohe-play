@@ -84,6 +84,18 @@ Shapes or animals instead of digits for the youngest; digits and 9×9 for adults
 - **Proves:** two players on one device (pass-and-play), a turn-based AI in pure logic, and leaderboards that are
   win counts rather than scores.
 
+## Online (rooms, ADR 0016 proposed)
+
+### Tiến Lên (`tien-len`) — Tiến lên miền Nam · ages 6+ *(proposed)* · M offline, L with rooms
+The southern Vietnamese shedding game for 2–4 players: beat the table with a higher single, pair, triple, straight
+or double straight, chop 2s with bombs, go out first.
+- **Owner's request (2026-10-16):** play with other people on the platform on their own phones — public and private
+  rooms, a code or a share link, room options, bots for empty seats — as the reference flow for multiplayer games.
+- **Research for review:** rules, house rules as room options, and the feature list in
+  [Tiến lên research](../research/tien-len.md); rooms in [Online rooms](../architecture/rooms.md).
+- **Proves:** a rules module shared by the phone and the server, bots in pure logic, and the whole rooms platform
+  (lobby, codes, links, seats, reconnection) that later turn-based games reuse.
+
 ## Bigger (later, after a few small ones)
 
 ### Vườn Rau Mini — mini farm · ages 5+ · L
