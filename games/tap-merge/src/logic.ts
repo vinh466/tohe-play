@@ -202,7 +202,17 @@ function settle(state: State, events: GameEvent[]): State {
   return { ...state, over: true, best };
 }
 
-/** Tap a block: its whole group merges into it and it doubles; the board falls and refills from the top. */
+/**
+ * The block that `size` equal blocks merge into: their sum, rounded up to a power of two so every block stays one.
+ * Two 2s make 4; three or four make 8; five to eight make 16; ten add up to 20 and make 32.
+ */
+export function merged(exp: Exponent, size: number): Exponent {
+  let up = 0;
+  while (2 ** up < size) up++;
+  return exp + up;
+}
+
+/** Tap a block: its whole group merges into it (SPEC.md, `merged`); the board falls and refills from the top. */
 export function tap(state: State, cell: Cell): TapResult {
   if (state.over) return { ok: false, reason: 'game_over' };
   if (!inside(cell)) return { ok: false, reason: 'no_such_cell' };
@@ -212,7 +222,7 @@ export function tap(state: State, cell: Cell): TapResult {
 
   const grid = [...state.grid];
   const events: GameEvent[] = [];
-  const exp = (grid[indexOf(cell)] ?? 0) + 1;
+  const exp = merged(grid[indexOf(cell)] ?? 0, same.length + 1);
   for (const n of same) grid[indexOf(n)] = 0;
   grid[indexOf(cell)] = exp;
   const gained = blockValue(exp) * same.length;

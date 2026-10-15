@@ -9,6 +9,7 @@ import {
   isStuck,
   MAX_SHUFFLES,
   matches,
+  merged,
   newGame,
   ROWS,
   restore,
@@ -37,7 +38,7 @@ function play(state: State, cell: Cell) {
 }
 
 describe('a tap', () => {
-  it('absorbs every equal neighbour, diagonals too, and doubles the tapped block once', () => {
+  it('absorbs every equal neighbour, diagonals too, into their sum rounded up to a power of two', () => {
     const start = board([
       [2, 1, 1],
       [1, 0, 1], // diagonal, below left
@@ -54,11 +55,11 @@ describe('a tap', () => {
         { col: 3, row: 2 },
       ],
       steps: [1, 1, 1],
-      exp: 2,
-      gained: 4 * 3,
+      exp: 3, // four 2s: 8
+      gained: 8 * 3,
     });
-    expect(expAt(state, 2, 1)).toBe(2);
-    expect(state.score).toBe(12);
+    expect(expAt(state, 2, 1)).toBe(3);
+    expect(state.score).toBe(24);
     expect(state.moves).toBe(1);
   });
 
@@ -82,10 +83,23 @@ describe('a tap', () => {
         { col: 4, row: 4 },
       ],
       [1, 2, 3, 4],
-      4 * 4,
+      16 * 4,
     ]);
-    expect(expAt(state, 0, 0)).toBe(2);
+    expect(expAt(state, 0, 0)).toBe(4); // five 2s add up to 10: 16
     expect(expAt(state, 4, 0)).toBe(1); // not connected: left alone
+  });
+
+  it('makes the sum of the group, rounded up to a power of two', () => {
+    // From 2s: a pair makes 4, three make 6 → 8, five make 10 → 16, ten make 20 → 32, …
+    const sizes = [2, 3, 4, 5, 8, 9, 10, 16, 17];
+    expect(sizes.map((size) => 2 ** merged(1, size))).toEqual([4, 8, 8, 16, 16, 32, 32, 32, 64]);
+    fc.assert(
+      fc.property(fc.integer({ min: 1, max: 30 }), fc.integer({ min: 2, max: COLS * ROWS }), (exp, size) => {
+        const sum = 2 ** exp * size;
+        const made = 2 ** merged(exp, size);
+        return made >= sum && made < 2 * sum;
+      }),
+    );
   });
 
   it('lets the blocks above fall into the holes and fills the board from the top', () => {
@@ -121,11 +135,12 @@ describe('a tap', () => {
       [0, 0, 6],
       [1, 0, 6],
     ]);
+    // With the pattern's 64 diagonally above, three 64s add up to 192: 256.
     const first = play({ ...start, shuffles: 1 }, { col: 0, row: 0 });
-    expect(first.events).toContainEqual({ type: 'top', exp: 7, shuffles: 2, earned: true });
-    expect(first.state.top).toBe(7);
+    expect(first.events).toContainEqual({ type: 'top', exp: 8, shuffles: 2, earned: true });
+    expect(first.state.top).toBe(8);
     const full = play({ ...start, shuffles: MAX_SHUFFLES }, { col: 0, row: 0 });
-    expect(full.events).toContainEqual({ type: 'top', exp: 7, shuffles: MAX_SHUFFLES, earned: false });
+    expect(full.events).toContainEqual({ type: 'top', exp: 8, shuffles: MAX_SHUFFLES, earned: false });
   });
 });
 
@@ -265,6 +280,12 @@ describe('random play (bot)', () => {
           } else {
             expect(state.moves).toBe(before.moves + 1);
             expect(state.score).toBeGreaterThan(before.score);
+            // The merged block holds at least its group's sum, and less than twice it.
+            const merge = result.events[0];
+            if (merge?.type !== 'merge') throw new Error('a tap starts with a merge');
+            const sum = 2 ** (before.grid[indexOf(act.tap)] as Exponent) * (merge.from.length + 1);
+            expect(2 ** merge.exp).toBeGreaterThanOrEqual(sum);
+            expect(2 ** merge.exp).toBeLessThan(2 * sum);
           }
           // Over exactly when nothing merges and no 🔀 is left; stuck in between.
           expect(state.over).toBe(!hasMove(state.grid) && state.shuffles === 0);
