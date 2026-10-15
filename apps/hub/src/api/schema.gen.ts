@@ -155,7 +155,7 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Rename the household. */
+        /** Rename the household, or turn its telemetry on or off. */
         patch: operations["UpdateHousehold"];
         trace?: never;
     };
@@ -314,6 +314,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/telemetry": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Store a batch of technical telemetry from a device (sent by the hub with sendBeacon). */
+        post: operations["RecordTelemetry"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/telemetry/report": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Errors, frame times, metrics and counts per game version over the last days (operator token). */
+        get: operations["GetTelemetryReport"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -327,12 +361,87 @@ export interface components {
         ClientConfig: {
             gamesOrigin: string;
             apiVersion: string;
+            telemetry: boolean;
+        };
+        CountSummary: {
+            name: string;
+            /** Format: int64 */
+            total: number;
+            /** Format: int32 */
+            sessions: number;
         };
         CreateProfileRequest: {
             name: string;
             avatar: string;
             ageBand: string;
             pin?: null | string;
+        };
+        DailyPoint: {
+            /** Format: date */
+            day: string;
+            gameId: null | string;
+            /** Format: int64 */
+            errors: number;
+            /** Format: int64 */
+            plays: number;
+        };
+        DeviceShare: {
+            os: string;
+            osVersion: string;
+            browser: string;
+            deviceClass: string;
+            /** Format: int32 */
+            devices: number;
+            /** Format: int32 */
+            sessions: number;
+        };
+        ErrorGroup: {
+            source: string;
+            fingerprint: string;
+            message: string;
+            stack: null | string;
+            /** Format: int64 */
+            occurrences: number;
+            /** Format: int32 */
+            sessions: number;
+            /** Format: int32 */
+            devices: number;
+            /** Format: date-time */
+            firstSeen: string;
+            /** Format: date-time */
+            lastSeen: string;
+            new: boolean;
+        };
+        FrameGroup: {
+            os: string;
+            browser: string;
+            deviceClass: string;
+            renderer: null | string;
+            /** Format: int32 */
+            sessions: number;
+            /** Format: int64 */
+            frames: number;
+            /** Format: double */
+            slowShare: number;
+            p95: string;
+            /** Format: double */
+            slowestMs: number;
+            /** Format: double */
+            stepP95Ms: null | number;
+        };
+        GameHealth: {
+            gameId: null | string;
+            gameVersion: null | string;
+            /** Format: int32 */
+            sessions: number;
+            /** Format: int32 */
+            devices: number;
+            /** Format: int32 */
+            sessionsWithErrors: number;
+            errors: components["schemas"]["ErrorGroup"][];
+            frames: components["schemas"]["FrameGroup"][];
+            metrics: components["schemas"]["MetricSummary"][];
+            counts: components["schemas"]["CountSummary"][];
         };
         GameSummary: {
             id: string;
@@ -355,6 +464,7 @@ export interface components {
             name: string;
             members: components["schemas"]["MemberView"][];
             invite: null | components["schemas"]["InviteView"];
+            telemetry: boolean;
         };
         HttpValidationProblemDetails: {
             type?: null | string;
@@ -402,6 +512,17 @@ export interface components {
             accountId: string;
             displayName: string;
             username: string;
+        };
+        MetricSummary: {
+            name: string;
+            /** Format: int32 */
+            samples: number;
+            /** Format: double */
+            p50: number;
+            /** Format: double */
+            p95: number;
+            /** Format: double */
+            max: number;
         };
         ParentGateRequest: {
             password: string;
@@ -468,8 +589,77 @@ export interface components {
             profileId: string;
             pin?: null | string;
         };
+        TelemetryBatch: {
+            /** Format: uuid */
+            deviceId: string;
+            /** Format: uuid */
+            sessionId: string;
+            context: components["schemas"]["TelemetryContext"];
+            events: components["schemas"]["TelemetryEventInput"][];
+        };
+        TelemetryContext: {
+            hubVersion: string;
+            deviceClass: string;
+            /** Format: int32 */
+            viewportWidth: number;
+            /** Format: int32 */
+            viewportHeight: number;
+            /** Format: double */
+            pixelRatio: number;
+            /** Format: int32 */
+            cores?: null | number;
+            /** Format: double */
+            memoryGb?: null | number;
+            /** @default browser */
+            displayMode: string;
+            /** @default light */
+            theme: string;
+            /** @default vi */
+            locale: string;
+        };
+        TelemetryEventInput: {
+            kind: string;
+            /** @default hub */
+            source: string;
+            gameId?: null | string;
+            gameVersion?: null | string;
+            name?: null | string;
+            message?: null | string;
+            stack?: null | string;
+            /** Format: int32 */
+            count?: null | number;
+            /** Format: double */
+            value?: null | number;
+            buckets?: null | number[];
+            /** Format: double */
+            slowestMs?: null | number;
+            /** Format: double */
+            stepP50Ms?: null | number;
+            /** Format: double */
+            stepP95Ms?: null | number;
+            renderer?: null | string;
+        };
+        TelemetryReport: {
+            /** Format: date-time */
+            from: string;
+            /** Format: date-time */
+            to: string;
+            totals: components["schemas"]["TelemetryTotals"];
+            devices: components["schemas"]["DeviceShare"][];
+            games: components["schemas"]["GameHealth"][];
+            daily: components["schemas"]["DailyPoint"][];
+        };
+        TelemetryTotals: {
+            /** Format: int32 */
+            devices: number;
+            /** Format: int32 */
+            sessions: number;
+            /** Format: int32 */
+            events: number;
+        };
         UpdateHouseholdRequest: {
-            name: string;
+            name?: null | string;
+            telemetry?: null | boolean;
         };
         UpdateProfileRequest: {
             name?: null | string;
@@ -1139,6 +1329,85 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RecordTelemetry: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TelemetryBatch"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Payload Too Large */
+            413: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Too Many Requests */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTelemetryReport: {
+        parameters: {
+            query?: {
+                days?: number;
+                includeHeadless?: boolean;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TelemetryReport"];
                 };
             };
         };

@@ -36,7 +36,7 @@ const session = await connect<Saved>({ gameId: 'tap-merge' });
 const t = stringsFor(session.locale);
 document.documentElement.lang = session.locale;
 
-const sfx = createSfx();
+const sfx = createSfx({ telemetry: session.telemetry });
 sfx.setMuted(session.settings.muted);
 session.on('settings', (settings) => sfx.setMuted(settings.muted));
 
@@ -115,6 +115,7 @@ let theme: Theme = session.settings.theme;
 const kit = createGame({
   parent: stage,
   background: BOARD[theme].background,
+  telemetry: session.telemetry,
   createScene: () =>
     new BoardScene(
       sfx,

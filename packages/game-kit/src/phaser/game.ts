@@ -2,7 +2,9 @@
 // device pixels (CSS size × DPR) and shown at CSS size (scale.zoom = 1/DPR); every scene's main camera is zoomed by
 // DPR with its origin at the top-left, so scenes lay out in CSS pixels and pointer.worldX/Y are CSS pixels too.
 // Measured in docs/research/game-tech.md.
+import type { Telemetry } from '@tohe/game-sdk';
 import Phaser from 'phaser';
+import { attachFrameMeter, type FrameMeter } from './frames.ts';
 import { createPerfReadout, perfWanted } from './perf.ts';
 
 export interface Size {
@@ -40,6 +42,11 @@ export interface KitGameOptions<S extends Phaser.Scene> {
   background: string;
   /** Called once, and again if the game has to be restarted with another renderer. */
   createScene(): S;
+  /**
+   * The session's telemetry (`session.telemetry`, ADR 0015). With it the kit reports the renderer, a WebGL fallback
+   * or lost context, how long the first frame took, and a summary of frame times every minute of play.
+   */
+  telemetry?: Telemetry;
 }
 
 const RESIZE = 'tohe-kit-resize';
@@ -50,6 +57,7 @@ export function createGame<S extends Phaser.Scene>({
   parent,
   background: initialBackground,
   createScene,
+  telemetry,
 }: KitGameOptions<S>): KitGame<S> {
   const dpr = Math.min(window.devicePixelRatio || 1, 3);
   let background = initialBackground;
@@ -57,6 +65,21 @@ export function createGame<S extends Phaser.Scene>({
   let renderer: 'webgl' | 'canvas' = webglWorks() ? 'webgl' : 'canvas';
   let scene = createScene();
   let game = boot();
+  // Telemetry: the renderer each game started with, lost WebGL contexts, the first frame, and frame times.
+  let meter: FrameMeter | null = null;
+  const watch = (target: Phaser.Game) => {
+    if (!telemetry?.enabled) return;
+    telemetry.count(`kit.renderer.${renderer}`);
+    target.canvas?.addEventListener('webglcontextlost', () => telemetry.count('kit.webgl.context-lost'));
+    meter?.detach();
+    meter = attachFrameMeter(target, telemetry, renderer);
+  };
+  watch(game);
+  if (telemetry?.enabled) {
+    game.events.once(Phaser.Core.Events.POST_RENDER, () =>
+      telemetry.metric('kit.first-frame-ms', Math.round(performance.now())),
+    );
+  }
   // Opened with #perf: a frame-rate readout for testing on phones (perf.ts).
   const perf = perfWanted() ? createPerfReadout(parent, dpr) : null;
   perf?.attach(game, renderer);
@@ -121,6 +144,8 @@ export function createGame<S extends Phaser.Scene>({
       scene = createScene();
       game = boot();
       perf?.attach(game, renderer);
+      telemetry?.count('kit.renderer.fallback');
+      watch(game);
       for (const listener of restartListeners) listener(scene);
     });
   };
@@ -177,11 +202,14 @@ export function createGame<S extends Phaser.Scene>({
     },
     pause() {
       for (const active of game.scene.getScenes(true)) active.scene.pause();
+      meter?.pause();
     },
     resume() {
       for (const active of game.scene.getScenes(false)) if (active.scene.isPaused()) active.scene.resume();
+      meter?.resume();
     },
     destroy() {
+      meter?.detach();
       observer.disconnect();
       window.removeEventListener('error', onBootError);
       game.destroy(true);

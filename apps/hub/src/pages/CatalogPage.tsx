@@ -6,6 +6,7 @@ import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
+import { DataLink } from '../ui/DataLink.tsx';
 import { LeaderboardButton } from '../ui/Leaderboard.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
@@ -96,6 +97,9 @@ function Catalog({ player, household }: { player: Player; household: string | nu
           ))}
         </ul>
       </section>
+      <footer className="mt-auto flex justify-center">
+        <DataLink />
+      </footer>
     </Screen>
   );
 }

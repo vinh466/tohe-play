@@ -56,6 +56,12 @@ design tokens; `hintList` and `choiceList` for their content), `createLifecycle`
 progress, the ⏸ menu with room for the game's own cards (`menuCards`) — for every game whose runs outlast one
 sitting), `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
 
+**Telemetry comes with it.** Pass the session's telemetry to the kit, `createGame({ …, telemetry: session.telemetry })`
+and `createSfx({ telemetry: session.telemetry })`, and the game reports its renderer, frame times, first frame and
+blocked audio; the SDK reports uncaught errors by itself. Add what only the game knows with
+`session.telemetry.count('game.<id>.…')` or `.metric('game.<id>.…-ms', value)`, and list the name in
+[Device telemetry](../architecture/telemetry.md). Never put anything about the player in a name.
+
 **Draw once, not every frame.** Phaser redraws the scene up to 120 times a second on phones. A `Graphics` object
 rebuilds its shapes on every one of those frames, and a `Text` redraws and re-uploads its canvas on every change.
 Pieces that only change between moves (tiles, blocks with numbers, the board) are textures:

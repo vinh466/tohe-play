@@ -11,6 +11,7 @@ import { hasProgress, moveProgress } from '../storage/repository.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
+import { DataLink } from '../ui/DataLink.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { PinPad } from '../ui/PinPad.tsx';
 import { Screen } from '../ui/Screen.tsx';
@@ -130,6 +131,7 @@ function Picker({ me }: { me: MeView }) {
           {t('profiles.signOut')}
         </Button>
       </footer>
+      <DataLink />
 
       <Modal
         open={pinFor !== null}

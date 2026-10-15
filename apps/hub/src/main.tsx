@@ -5,6 +5,7 @@ import { createRoot } from 'react-dom/client';
 import './i18n.ts';
 import { createAppRouter } from './router.tsx';
 import './styles.css';
+import { startTelemetry } from './telemetry/telemetry.ts';
 import { startTheme } from './theme/theme.ts';
 
 startTheme();
@@ -13,6 +14,7 @@ const queryClient = new QueryClient({
   defaultOptions: { queries: { networkMode: 'offlineFirst', retry: 1 } },
 });
 const router = createAppRouter(queryClient);
+startTelemetry(queryClient);
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>

@@ -1,5 +1,6 @@
 // Synthesised sound effects (Web Audio): no files to download, license or cache, and pitch can follow the game
 // (bigger merges sound higher). The audio context starts on the first touch or key press, as iOS requires.
+import type { Telemetry } from '@tohe/game-sdk';
 
 export type SoundName = 'click' | 'pop' | 'drop' | 'merge' | 'combo' | 'error' | 'fanfare';
 
@@ -29,7 +30,15 @@ interface Tone {
   delay?: number;
 }
 
-export function createSfx(): Sfx {
+export interface SfxOptions {
+  /** The session's telemetry: reports a device whose sound stays off after the first touch (ADR 0015). */
+  telemetry?: Telemetry;
+}
+
+/** How long after the unlocking touch the audio context must be running. */
+const UNLOCK_CHECK_MS = 1000;
+
+export function createSfx({ telemetry }: SfxOptions = {}): Sfx {
   let context: AudioContext | null = null;
   let master: GainNode | null = null;
   let muted = false;
@@ -49,9 +58,13 @@ export function createSfx(): Sfx {
   // Create/resume the context inside a user gesture; later sounds can then play from timers and tweens.
   if (typeof window !== 'undefined') {
     const unlock = () => {
-      ensure();
+      const audio = ensure();
       window.removeEventListener('pointerdown', unlock);
       window.removeEventListener('keydown', unlock);
+      if (!telemetry?.enabled) return;
+      if (!audio) telemetry.count('kit.audio.unsupported');
+      else
+        setTimeout(() => audio.state !== 'running' && telemetry.count('kit.audio.blocked'), UNLOCK_CHECK_MS);
     };
     window.addEventListener('pointerdown', unlock);
     window.addEventListener('keydown', unlock);

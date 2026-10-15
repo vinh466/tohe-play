@@ -35,7 +35,8 @@ deploy/uat/deploy.sh <commit>      # deploys a specific commit (roll back / forw
 
 The script:
 
-1. creates `~/.config/tohe-uat/uat.env` on first run (host + a random database password — keep this file);
+1. creates `~/.config/tohe-uat/uat.env` on first run (host, a random database password and a telemetry report
+   token — keep this file; an older file gets the token added once);
 2. backs up the database if UAT is running ([below](#backups));
 3. exports the exact commit with `git archive` into `~/.local/share/tohe-uat/src` — never a working copy;
 4. builds the images on freshly pulled base images (security patches of the .NET runtime, Node and Caddy) and
@@ -62,6 +63,13 @@ gunzip -c ~/backups/tohe-uat/tohe-YYYYMMDD-HHMMSS.sql.gz \
 docker compose -p tohe-uat ps
 docker compose -p tohe-uat logs -f api
 docker compose -p tohe-uat exec postgres psql -U tohe -d tohe
+```
+
+How the games are doing on the family's devices ([Device telemetry](../architecture/telemetry.md)); the operator
+token is `TOHE_UAT_TELEMETRY_TOKEN` in `~/.config/tohe-uat/uat.env`, added by the first deploy that needs it:
+
+```sh
+pnpm --filter @tohe/telemetry-report report -- --env uat --days 7
 ```
 
 ## Limits (accepted for now)

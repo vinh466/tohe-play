@@ -84,6 +84,8 @@ export const session = {
 
 export const household = {
   rename: (name: string) => call(api.PATCH('/api/household', { body: { name } })),
+  /** Technical telemetry from the household's devices (ADR 0015). */
+  setTelemetry: (telemetry: boolean) => call(api.PATCH('/api/household', { body: { telemetry } })),
   createInvite: () => call(api.POST('/api/household/invite')),
   revokeInvite: () => call(api.DELETE('/api/household/invite')),
   addProfile: (body: CreateProfileRequest) => call(api.POST('/api/household/profiles', { body })),

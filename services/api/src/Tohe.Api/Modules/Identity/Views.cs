@@ -13,7 +13,13 @@ public sealed record MemberView(Guid AccountId, string DisplayName, string Usern
 public sealed record InviteView(string Code, DateTimeOffset ExpiresAt);
 
 /// <param name="Invite">Only while the parent gate is unlocked.</param>
-public sealed record HouseholdView(Guid Id, string Name, IReadOnlyList<MemberView> Members, InviteView? Invite);
+/// <param name="Telemetry">The household's devices send technical telemetry (ADR 0015).</param>
+public sealed record HouseholdView(
+    Guid Id,
+    string Name,
+    IReadOnlyList<MemberView> Members,
+    InviteView? Invite,
+    bool Telemetry);
 
 /// <param name="Kind"><c>adult</c> or <c>child</c>.</param>
 /// <param name="IsMine">The signed-in adult's own profile.</param>
@@ -74,7 +80,7 @@ internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
 
         return new MeView(
             new AccountView(account.Id, account.UserName!, account.DisplayName),
-            new HouseholdView(household.Id, household.Name, members, invite),
+            new HouseholdView(household.Id, household.Name, members, invite, household.TelemetryEnabled),
             profiles,
             active,
             unlocked ? parentUntil : null);

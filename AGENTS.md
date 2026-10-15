@@ -17,7 +17,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
 | `apps/site` | Landing (vi) + docs site (en) |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
-| `tools/` | conformance kit, games-host, e2e smoke, codegen |
+| `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report |
 
 ## Rules that are easy to break
 
@@ -44,7 +44,7 @@ pnpm verify                                    # Definition of Done, run before 
 pnpm --filter @tohe/e2e smoke                  # against a running stack
 ```
 
-Skills: `/new-game`, `/new-adr`, `/verify` (in `.claude/skills/`).
+Skills: `/new-game`, `/new-adr`, `/verify`, `/health-report` (in `.claude/skills/`).
 
 <!-- BEGIN:turborepo-agent-rules -->
 

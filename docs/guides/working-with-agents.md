@@ -36,6 +36,7 @@ across many sessions. `AGENTS.md` at the repository root points here; keep that 
 | `/new-game` | Create a game from an idea: spec → review → logic + tests → view → conformance. |
 | `/new-adr` | Record a decision with the next free number. |
 | `/verify` | Run the full Definition of Done locally and report. |
+| `/health-report` | Read the device telemetry report (ADR 0015) and turn it into findings and proposed fixes. |
 
 ## Environment rules
 

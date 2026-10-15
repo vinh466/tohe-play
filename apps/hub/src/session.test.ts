@@ -8,7 +8,7 @@ import { hasProgress, loadSave, moveProgress, recordScore, storeSave } from './s
 
 const me = (overrides: Partial<MeView> = {}): MeView => ({
   account: { id: 'a1', username: 'bo', displayName: 'Bố' },
-  household: { id: 'h1', name: 'Nhà Bố', members: [], invite: null },
+  household: { id: 'h1', name: 'Nhà Bố', members: [], invite: null, telemetry: true },
   profiles: [
     { id: 'p-adult', name: 'Bố', avatar: '🦊', kind: 'adult', ageBand: null, hasPin: false, isMine: true },
     { id: 'p-kid', name: 'Na', avatar: '🐼', kind: 'child', ageBand: '3-5', hasPin: true, isMine: false },

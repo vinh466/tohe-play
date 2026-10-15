@@ -266,7 +266,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Rename the household.",
+        "summary": "Rename the household, or turn its telemetry on or off.",
         "operationId": "UpdateHousehold",
         "requestBody": {
           "content": {
@@ -776,6 +776,103 @@
           }
         }
       }
+    },
+    "/api/telemetry": {
+      "post": {
+        "tags": [
+          "Telemetry"
+        ],
+        "summary": "Store a batch of technical telemetry from a device (sent by the hub with sendBeacon).",
+        "operationId": "RecordTelemetry",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TelemetryBatch"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Payload Too Large",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/telemetry/report": {
+      "get": {
+        "tags": [
+          "Telemetry"
+        ],
+        "summary": "Errors, frame times, metrics and counts per game version over the last days (operator token).",
+        "operationId": "GetTelemetryReport",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 7
+            }
+          },
+          {
+            "name": "includeHeadless",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryReport"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -803,7 +900,8 @@
       "ClientConfig": {
         "required": [
           "gamesOrigin",
-          "apiVersion"
+          "apiVersion",
+          "telemetry"
         ],
         "type": "object",
         "properties": {
@@ -812,6 +910,30 @@
           },
           "apiVersion": {
             "type": "string"
+          },
+          "telemetry": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CountSummary": {
+        "required": [
+          "name",
+          "total",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -837,6 +959,245 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "DailyPoint": {
+        "required": [
+          "day",
+          "gameId",
+          "errors",
+          "plays"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "gameId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "plays": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DeviceShare": {
+        "required": [
+          "os",
+          "osVersion",
+          "browser",
+          "deviceClass",
+          "devices",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "os": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "deviceClass": {
+            "type": "string"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ErrorGroup": {
+        "required": [
+          "source",
+          "fingerprint",
+          "message",
+          "stack",
+          "occurrences",
+          "sessions",
+          "devices",
+          "firstSeen",
+          "lastSeen",
+          "new"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurrences": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstSeen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "new": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FrameGroup": {
+        "required": [
+          "os",
+          "browser",
+          "deviceClass",
+          "renderer",
+          "sessions",
+          "frames",
+          "slowShare",
+          "p95",
+          "slowestMs",
+          "stepP95Ms"
+        ],
+        "type": "object",
+        "properties": {
+          "os": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "deviceClass": {
+            "type": "string"
+          },
+          "renderer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "frames": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slowShare": {
+            "type": "number",
+            "format": "double"
+          },
+          "p95": {
+            "type": "string"
+          },
+          "slowestMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "stepP95Ms": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "GameHealth": {
+        "required": [
+          "gameId",
+          "gameVersion",
+          "sessions",
+          "devices",
+          "sessionsWithErrors",
+          "errors",
+          "frames",
+          "metrics",
+          "counts"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gameVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessionsWithErrors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorGroup"
+            }
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FrameGroup"
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricSummary"
+            }
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CountSummary"
+            }
           }
         }
       },
@@ -907,7 +1268,8 @@
           "id",
           "name",
           "members",
-          "invite"
+          "invite",
+          "telemetry"
         ],
         "type": "object",
         "properties": {
@@ -933,6 +1295,9 @@
                 "$ref": "#/components/schemas/InviteView"
               }
             ]
+          },
+          "telemetry": {
+            "type": "boolean"
           }
         }
       },
@@ -1102,6 +1467,37 @@
           },
           "username": {
             "type": "string"
+          }
+        }
+      },
+      "MetricSummary": {
+        "required": [
+          "name",
+          "samples",
+          "p50",
+          "p95",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "samples": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "p50": {
+            "type": "number",
+            "format": "double"
+          },
+          "p95": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
           }
         }
       },
@@ -1352,14 +1748,264 @@
           }
         }
       },
-      "UpdateHouseholdRequest": {
+      "TelemetryBatch": {
         "required": [
-          "name"
+          "deviceId",
+          "sessionId",
+          "context",
+          "events"
         ],
         "type": "object",
         "properties": {
-          "name": {
+          "deviceId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sessionId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "context": {
+            "$ref": "#/components/schemas/TelemetryContext"
+          },
+          "events": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/TelemetryEventInput"
+            }
+          }
+        }
+      },
+      "TelemetryContext": {
+        "required": [
+          "hubVersion",
+          "deviceClass",
+          "viewportWidth",
+          "viewportHeight",
+          "pixelRatio"
+        ],
+        "type": "object",
+        "properties": {
+          "hubVersion": {
             "type": "string"
+          },
+          "deviceClass": {
+            "type": "string"
+          },
+          "viewportWidth": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "viewportHeight": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pixelRatio": {
+            "type": "number",
+            "format": "double"
+          },
+          "cores": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "memoryGb": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "displayMode": {
+            "type": "string",
+            "default": "browser"
+          },
+          "theme": {
+            "type": "string",
+            "default": "light"
+          },
+          "locale": {
+            "type": "string",
+            "default": "vi"
+          }
+        }
+      },
+      "TelemetryEventInput": {
+        "required": [
+          "kind"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "source": {
+            "type": "string",
+            "default": "hub"
+          },
+          "gameId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gameVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "message": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "stack": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "count": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "value": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "buckets": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "slowestMs": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "stepP50Ms": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "stepP95Ms": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "renderer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TelemetryReport": {
+        "required": [
+          "from",
+          "to",
+          "totals",
+          "devices",
+          "games",
+          "daily"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TelemetryTotals"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceShare"
+            }
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GameHealth"
+            }
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyPoint"
+            }
+          }
+        }
+      },
+      "TelemetryTotals": {
+        "required": [
+          "devices",
+          "sessions",
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "events": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateHouseholdRequest": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "telemetry": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -1412,6 +2058,9 @@
     },
     {
       "name": "Progress"
+    },
+    {
+      "name": "Telemetry"
     }
   ]
 }

@@ -15,6 +15,9 @@ public sealed class Household
 
     public DateTimeOffset? InviteExpiresAt { get; set; }
 
+    /// <summary>Devices of this household send technical telemetry (ADR 0015); a parent can turn it off.</summary>
+    public bool TelemetryEnabled { get; set; } = true;
+
     public DateTimeOffset CreatedAt { get; set; }
 
     public List<Profile> Profiles { get; set; } = [];
@@ -60,6 +63,7 @@ internal sealed class HouseholdConfiguration : IEntityTypeConfiguration<Househol
         builder.Property(household => household.Name).HasMaxLength(40);
         builder.Property(household => household.InviteCode).HasMaxLength(16);
         builder.HasIndex(household => household.InviteCode).IsUnique();
+        builder.Property(household => household.TelemetryEnabled).HasDefaultValue(true);
         builder.HasMany(household => household.Profiles)
             .WithOne()
             .HasForeignKey(profile => profile.HouseholdId)

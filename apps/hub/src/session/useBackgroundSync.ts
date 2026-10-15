@@ -1,11 +1,32 @@
 import { useEffect } from 'react';
-import { progress } from '../api/client.ts';
+import { ApiError, progress } from '../api/client.ts';
 import { db } from '../storage/db.ts';
-import { createSyncer } from '../storage/sync.ts';
+import { createSyncer, type ProgressApi } from '../storage/sync.ts';
+import { telemetry } from '../telemetry/telemetry.ts';
 import type { Player } from './session.ts';
 
+/**
+ * A failed sync request, counted for telemetry (ADR 0015) by kind: `http-4xx`, `http-5xx` or `network`. Being offline
+ * is normal for a local-first hub, so failures then are not counted.
+ */
+function counted<T>(request: Promise<T>): Promise<T> {
+  return request.catch((error: unknown) => {
+    if (navigator.onLine) {
+      const kind = error instanceof ApiError ? `http-${Math.floor(error.status / 100)}xx` : 'network';
+      telemetry.count(`hub.sync.failed.${kind}`);
+    }
+    throw error;
+  });
+}
+
+const trackedProgress: ProgressApi = {
+  listSaves: () => counted(progress.listSaves()),
+  putSave: (gameId, data) => counted(progress.putSave(gameId, data)),
+  recordScores: (scores) => counted(progress.recordScores(scores)),
+};
+
 /** The hub's one syncer (M2): saves and scores of the playing profile, to and from the API. */
-export const syncer = createSyncer(db, progress);
+export const syncer = createSyncer(db, trackedProgress);
 
 /** Account profiles sync; guests keep everything on the device. */
 export const syncsWithServer = (player: Player | null): player is Player =>

@@ -1,0 +1,16 @@
+{
+  "name": "@tohe/telemetry-report",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Prints the platform's telemetry report (ADR 0015) as Markdown, for agents (/health-report) and people.",
+  "type": "module",
+  "scripts": {
+    "report": "node src/cli.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^5.0.0"
+  }
+}

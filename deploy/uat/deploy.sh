@@ -31,6 +31,11 @@ if [[ ! -f "$ENV_FILE" ]]; then
   )
   log "created $ENV_FILE (keep it; the database password is in it)"
 fi
+# The operator token for the telemetry report (ADR 0015); added once to an existing file, never changed after.
+if ! grep -q '^TOHE_UAT_TELEMETRY_TOKEN=' "$ENV_FILE"; then
+  (umask 077 && echo "TOHE_UAT_TELEMETRY_TOKEN=$(openssl rand -hex 24)" >>"$ENV_FILE")
+  log "added a telemetry report token to $ENV_FILE"
+fi
 set -a
 # shellcheck disable=SC1090
 source "$ENV_FILE"

@@ -17,7 +17,7 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
-                .HasAnnotation("ProductVersion", "10.0.12")
+                .HasAnnotation("ProductVersion", "10.0.13")
                 .HasAnnotation("Relational:MaxIdentifierLength", 63);
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
@@ -249,6 +249,12 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("name");
+
+                    b.Property<bool>("TelemetryEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("telemetry_enabled");
 
                     b.HasKey("Id")
                         .HasName("pk_households");
@@ -497,6 +503,354 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("games", "registry");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryDay", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Browser")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("browser");
+
+                    b.PrimitiveCollection<long[]>("Buckets")
+                        .HasColumnType("bigint[]")
+                        .HasColumnName("buckets");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<string>("DeviceClass")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("device_class");
+
+                    b.Property<int>("Devices")
+                        .HasColumnType("integer")
+                        .HasColumnName("devices");
+
+                    b.Property<string>("Fingerprint")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("fingerprint");
+
+                    b.Property<string>("GameId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("GameVersion")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("game_version");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Os")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("os");
+
+                    b.Property<int>("Sessions")
+                        .HasColumnType("integer")
+                        .HasColumnName("sessions");
+
+                    b.Property<double?>("SlowestMax")
+                        .HasColumnType("double precision")
+                        .HasColumnName("slowest_max");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Stack")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("stack");
+
+                    b.Property<long>("Total")
+                        .HasColumnType("bigint")
+                        .HasColumnName("total");
+
+                    b.Property<double?>("ValueMax")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value_max");
+
+                    b.Property<double?>("ValueP50")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value_p50");
+
+                    b.Property<double?>("ValueP95")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value_p95");
+
+                    b.HasKey("Id")
+                        .HasName("pk_daily");
+
+                    b.HasIndex("Day", "GameId")
+                        .HasDatabaseName("ix_daily_day_game_id");
+
+                    b.HasIndex("Kind", "Fingerprint")
+                        .HasDatabaseName("ix_daily_kind_fingerprint");
+
+                    b.ToTable("daily", "telemetry");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryRecord", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.PrimitiveCollection<int[]>("Buckets")
+                        .HasColumnType("integer[]")
+                        .HasColumnName("buckets");
+
+                    b.Property<int>("Count")
+                        .HasColumnType("integer")
+                        .HasColumnName("count");
+
+                    b.Property<string>("Fingerprint")
+                        .HasMaxLength(400)
+                        .HasColumnType("character varying(400)")
+                        .HasColumnName("fingerprint");
+
+                    b.Property<string>("GameId")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("GameVersion")
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("game_version");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Message")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("message");
+
+                    b.Property<string>("Name")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.Property<DateTimeOffset>("ReceivedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("received_at");
+
+                    b.Property<string>("Renderer")
+                        .HasMaxLength(6)
+                        .HasColumnType("character varying(6)")
+                        .HasColumnName("renderer");
+
+                    b.Property<long>("SessionId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("session_id");
+
+                    b.Property<double?>("SlowestMs")
+                        .HasColumnType("double precision")
+                        .HasColumnName("slowest_ms");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(4)
+                        .HasColumnType("character varying(4)")
+                        .HasColumnName("source");
+
+                    b.Property<string>("Stack")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("stack");
+
+                    b.Property<double?>("StepP50Ms")
+                        .HasColumnType("double precision")
+                        .HasColumnName("step_p50ms");
+
+                    b.Property<double?>("StepP95Ms")
+                        .HasColumnType("double precision")
+                        .HasColumnName("step_p95ms");
+
+                    b.Property<double?>("Value")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_events");
+
+                    b.HasIndex("ReceivedAt")
+                        .HasDatabaseName("ix_events_received_at");
+
+                    b.HasIndex("SessionId")
+                        .HasDatabaseName("ix_events_session_id");
+
+                    b.HasIndex("Kind", "Fingerprint")
+                        .HasDatabaseName("ix_events_kind_fingerprint");
+
+                    b.ToTable("events", "telemetry");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryRollup", b =>
+                {
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<DateTimeOffset>("DoneAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("done_at");
+
+                    b.HasKey("Day")
+                        .HasName("pk_rollups");
+
+                    b.ToTable("rollups", "telemetry");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetrySession", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Browser")
+                        .IsRequired()
+                        .HasMaxLength(30)
+                        .HasColumnType("character varying(30)")
+                        .HasColumnName("browser");
+
+                    b.Property<string>("BrowserVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("browser_version");
+
+                    b.Property<Guid>("ClientSessionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("client_session_id");
+
+                    b.Property<int?>("Cores")
+                        .HasColumnType("integer")
+                        .HasColumnName("cores");
+
+                    b.Property<string>("DeviceClass")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("device_class");
+
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<string>("DisplayMode")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("display_mode");
+
+                    b.Property<DateTimeOffset>("FirstSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("first_seen_at");
+
+                    b.Property<string>("HubVersion")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("hub_version");
+
+                    b.Property<DateTimeOffset>("LastSeenAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("last_seen_at");
+
+                    b.Property<string>("Locale")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("locale");
+
+                    b.Property<double?>("MemoryGb")
+                        .HasColumnType("double precision")
+                        .HasColumnName("memory_gb");
+
+                    b.Property<string>("Os")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("os");
+
+                    b.Property<string>("OsVersion")
+                        .IsRequired()
+                        .HasMaxLength(20)
+                        .HasColumnType("character varying(20)")
+                        .HasColumnName("os_version");
+
+                    b.Property<double>("PixelRatio")
+                        .HasColumnType("double precision")
+                        .HasColumnName("pixel_ratio");
+
+                    b.Property<string>("Theme")
+                        .IsRequired()
+                        .HasMaxLength(5)
+                        .HasColumnType("character varying(5)")
+                        .HasColumnName("theme");
+
+                    b.Property<int>("ViewportHeight")
+                        .HasColumnType("integer")
+                        .HasColumnName("viewport_height");
+
+                    b.Property<int>("ViewportWidth")
+                        .HasColumnType("integer")
+                        .HasColumnName("viewport_width");
+
+                    b.HasKey("Id")
+                        .HasName("pk_sessions");
+
+                    b.HasIndex("LastSeenAt")
+                        .HasDatabaseName("ix_sessions_last_seen_at");
+
+                    b.HasIndex("DeviceId", "ClientSessionId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_sessions_device_id_client_session_id");
+
+                    b.ToTable("sessions", "telemetry");
+                });
+
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityUserClaim<System.Guid>", b =>
                 {
                     b.HasOne("Tohe.Api.Modules.Identity.Account", null)
@@ -547,6 +901,18 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_profiles_households_household_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryRecord", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Telemetry.TelemetrySession", "Session")
+                        .WithMany()
+                        .HasForeignKey("SessionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_events_telemetry_sessions_session_id");
+
+                    b.Navigation("Session");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Identity.Household", b =>
