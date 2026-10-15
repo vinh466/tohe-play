@@ -49,6 +49,11 @@ public sealed class Profile
     /// <summary>Hash of an optional 4-digit PIN that must be entered to play as this profile.</summary>
     public string? PinHash { get; set; }
 
+    /// <summary>
+    /// A parent lets this child play online with other households (ADR 0016). Off by default; adults always may.
+    /// </summary>
+    public bool PlayWithOthers { get; set; }
+
     /// <summary>The adult account this profile belongs to; null for children.</summary>
     public Guid? AccountId { get; set; }
 
@@ -80,6 +85,7 @@ internal sealed class ProfileConfiguration : IEntityTypeConfiguration<Profile>
         builder.Property(profile => profile.Avatar).HasMaxLength(16);
         builder.Property(profile => profile.Kind).HasConversion<string>().HasMaxLength(10);
         builder.Property(profile => profile.AgeBand).HasMaxLength(8);
+        builder.Property(profile => profile.PlayWithOthers).HasDefaultValue(false);
         builder.HasIndex(profile => profile.AccountId).IsUnique();
     }
 }

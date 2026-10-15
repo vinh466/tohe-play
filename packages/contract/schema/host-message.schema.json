@@ -391,12 +391,18 @@
             ],
             "additionalProperties": false
           }
+        },
+        "seat": {
+          "type": "integer",
+          "minimum": -1,
+          "maximum": 7
         }
       },
       "required": [
         "tohe",
         "type",
-        "seats"
+        "seats",
+        "seat"
       ],
       "additionalProperties": false
     },

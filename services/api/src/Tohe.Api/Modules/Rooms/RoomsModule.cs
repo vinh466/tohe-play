@@ -1,0 +1,339 @@
+using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Http.HttpResults;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
+using Tohe.Api.Infrastructure;
+using Tohe.Api.Modules.Identity;
+using Tohe.Api.Modules.Registry;
+
+namespace Tohe.Api.Modules.Rooms;
+
+/// <summary>
+/// Online rooms for turn-based games (ADR 0016): REST for the lobby and the host's controls, SignalR for what happens
+/// at the table. Tables live in memory, one actor each, and every accepted action is stored so a restart rebuilds
+/// them. See docs/architecture/rooms.md.
+/// </summary>
+internal static class RoomsModule
+{
+    public const string CodeRateLimit = "room-codes";
+    public const string HubPath = "/api/rooms/hub";
+
+    public static WebApplicationBuilder AddRoomsModule(this WebApplicationBuilder builder)
+    {
+        var services = builder.Services;
+        services.AddOptions<RoomsOptions>().BindConfiguration(RoomsOptions.Section);
+        services.TryAddSingleton(TimeProvider.System);
+        services.AddHttpClient<RulesSource>(client => client.Timeout = TimeSpan.FromSeconds(10));
+        services.AddSingleton<RoomRegistry>();
+        services.AddSignalR(options => options.MaximumReceiveMessageSize = 16 * 1024);
+        if (builder.Configuration.GetValue($"{RoomsOptions.Section}:ClockEnabled", defaultValue: true) && !BuildTime.IsGeneratingOpenApi)
+        {
+            services.AddHostedService<RoomClock>();
+        }
+
+        services.AddRateLimiter(options => options.AddPolicy(CodeRateLimit, context =>
+        {
+            var limit = context.RequestServices.GetRequiredService<IOptions<RoomsOptions>>().Value.CodeLookupsPerMinute;
+            var key = SessionClaims.ProfileId(context.User)?.ToString() ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown";
+            return RateLimitPartition.GetFixedWindowLimiter(
+                key,
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) });
+        }));
+        return builder;
+    }
+
+    /// <summary>
+    /// The WebSocket to the hub carries the session cookie, and browsers do not stop other pages from opening one: only
+    /// pages of the hub's own origin may (cross-site WebSocket hijacking). Unsafe HTTP requests are covered by
+    /// <c>SameOriginGuard</c>.
+    /// </summary>
+    public static IApplicationBuilder UseRoomsOriginGuard(this IApplicationBuilder app) =>
+        app.Use(async (context, next) =>
+        {
+            var request = context.Request;
+            if (request.Path.StartsWithSegments(HubPath, StringComparison.Ordinal)
+                && request.Headers.Origin is [{ } origin]
+                && (!Uri.TryCreate(origin, UriKind.Absolute, out var uri)
+                    || !string.Equals(uri.Authority, request.Host.Value, StringComparison.OrdinalIgnoreCase)))
+            {
+                context.Response.StatusCode = StatusCodes.Status403Forbidden;
+                return;
+            }
+
+            await next(context);
+        });
+
+    public static IEndpointRouteBuilder MapRoomsEndpoints(this IEndpointRouteBuilder api, WebApplication app)
+    {
+        app.MapHub<RoomsHub>(HubPath, options => options.AllowStatefulReconnects = true);
+
+        var rooms = api.MapGroup("/rooms")
+            .WithTags("Rooms")
+            .RequireAuthorization()
+            .AddEndpointFilter(async (context, next) =>
+            {
+                var reader = context.HttpContext.RequestServices.GetRequiredService<IActiveProfile>();
+                var profile = await reader.GetAsync(context.HttpContext.User, context.HttpContext.RequestAborted);
+                if (profile is null)
+                {
+                    return Problems.Of(StatusCodes.Status403Forbidden, "profile_required", "Choose a profile first");
+                }
+
+                context.HttpContext.Items[typeof(Player)] = Player.From(profile);
+                return await next(context);
+            })
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        rooms.MapGet("/", async (string game, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+            {
+                var player = PlayerOf(http);
+                var known = await games.GetAsync(game, ct);
+                if (known?.Rooms is null || known.MinAge > player.MaxGameMinAge)
+                {
+                    return new List<RoomSummary>();
+                }
+
+                return registry.All
+                    .Where(room => !room.IsClosed && room.Room.GameId == game && (room.SeatOf(player.ProfileId) is not null || Listed(room, player)))
+                    .OrderByDescending(room => room.SeatOf(player.ProfileId) is not null)
+                    .ThenByDescending(room => room.Room.CreatedAt)
+                    .Select(room => room.Summary(player.ProfileId))
+                    .ToList();
+            })
+            .WithName("ListRooms")
+            .WithSummary("Rooms of a game the active profile may see: public ones it may join, and the ones it sits at.");
+
+        rooms.MapGet("/mine", (HttpContext http, RoomRegistry registry) =>
+            {
+                var player = PlayerOf(http);
+                return registry.All
+                    .Where(room => !room.IsClosed && room.SeatOf(player.ProfileId) is not null)
+                    .Select(room => room.Summary(player.ProfileId))
+                    .ToList();
+            })
+            .WithName("ListMyRooms")
+            .WithSummary("Open rooms the active profile sits at, to go back to one.");
+
+        rooms.MapPost("/", CreateAsync)
+            .WithName("CreateRoom")
+            .WithSummary("Open a room for a game; the active profile hosts it and takes the first seat.");
+
+        rooms.MapGet("/code/{code}", Results<Ok<RoomView>, NotFound> (string code, HttpContext http, RoomRegistry registry) =>
+            {
+                var normalized = new string([.. code.Where(char.IsDigit)]);
+                return registry.FindByCode(normalized) is { } room
+                    ? TypedResults.Ok(room.View(PlayerOf(http).ProfileId))
+                    : TypedResults.NotFound();
+            })
+            .RequireRateLimiting(CodeRateLimit)
+            .WithName("FindRoomByCode")
+            .WithSummary("A room by its 6-digit code (spaces ignored), to preview before joining; rate limited.");
+
+        rooms.MapGet("/{id:guid}", Results<Ok<RoomView>, NotFound> (Guid id, HttpContext http, RoomRegistry registry) =>
+            {
+                var player = PlayerOf(http);
+                return registry.Find(id) is { } room && (room.SeatOf(player.ProfileId) is not null || Listed(room, player))
+                    ? TypedResults.Ok(room.View(player.ProfileId))
+                    : TypedResults.NotFound();
+            })
+            .WithName("GetRoom")
+            .WithSummary("A room the active profile sits at, or may see in the lobby.");
+
+        rooms.MapPost("/{id:guid}/join", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
+                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+            {
+                var player = PlayerOf(http);
+                if (registry.Find(id) is not { } room)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                var game = await games.GetAsync(room.Room.GameId, ct);
+                if (game is not null && game.MinAge > player.MaxGameMinAge)
+                {
+                    return Refused(RoomErrors.TooYoung);
+                }
+
+                var problem = await room.RunAsync(() => room.JoinAsync(player));
+                return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
+            })
+            .WithName("JoinRoom")
+            .WithSummary("Sit at a room: an empty seat, or between hands a bot's.");
+
+        rooms.MapPost("/{id:guid}/leave", async Task<Results<NoContent, NotFound, ProblemHttpResult>> (Guid id, HttpContext http, RoomRegistry registry) =>
+            {
+                if (registry.Find(id) is not { } room)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                var problem = await room.RunAsync(() => room.LeaveAsync(PlayerOf(http).ProfileId));
+                return problem is null ? TypedResults.NoContent() : Refused(problem);
+            })
+            .WithName("LeaveRoom")
+            .WithSummary("Leave the seat; during a hand a bot finishes it. The room closes when the last person leaves.");
+
+        rooms.MapPatch("/{id:guid}", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
+                Guid id, UpdateRoomRequest request, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+            {
+                var player = PlayerOf(http);
+                if (registry.Find(id) is not { } room || await games.GetAsync(room.Room.GameId, ct) is not { Rooms: { } spec })
+                {
+                    return TypedResults.NotFound();
+                }
+
+                string? options = null;
+                if (request.Options is { } given)
+                {
+                    var (json, invalid) = spec.Normalize(given);
+                    if (invalid is not null)
+                    {
+                        return Refused(RoomErrors.InvalidOptions);
+                    }
+
+                    options = json;
+                }
+
+                // A child a parent has not allowed keeps the table in the family.
+                var update = player.MayPlayWithOthers ? request : request with { HouseholdOnly = true };
+                var problem = await room.RunAsync(() => room.UpdateAsync(player.ProfileId, update, options, spec.Bots, (spec.MinSeats, spec.MaxSeats)));
+                return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
+            })
+            .WithName("UpdateRoom")
+            .WithSummary("The host changes the room before a hand: seats, visibility, lock, bots, timer, house rules.");
+
+        rooms.MapPut("/{id:guid}/seats/{seat:int}", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
+                Guid id, int seat, SetSeatRequest request, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+            {
+                var player = PlayerOf(http);
+                if (registry.Find(id) is not { } room || await games.GetAsync(room.Room.GameId, ct) is not { Rooms: { } spec })
+                {
+                    return TypedResults.NotFound();
+                }
+
+                var problem = await room.RunAsync(() => room.SetSeatAsync(player.ProfileId, seat, request.Bot, spec.Bots));
+                return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
+            })
+            .WithName("SetRoomSeat")
+            .WithSummary("The host seats a bot, or empties a seat (removing a bot or a player).");
+
+        rooms.MapPost("/{id:guid}/start", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
+                Guid id, HttpContext http, RoomRegistry registry, CancellationToken ct) =>
+            {
+                var player = PlayerOf(http);
+                if (registry.Find(id) is not { } room)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                var problem = await room.RunAsync(() => room.StartAsync(player.ProfileId, registry.MinSeats(id), ct));
+                return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
+            })
+            .WithName("StartRoom")
+            .WithSummary("The host starts the first hand; empty seats get bots if the room fills them.");
+
+        return api;
+    }
+
+    private static Player PlayerOf(HttpContext http) => (Player)http.Items[typeof(Player)]!;
+
+    /// <summary>Shown in the lobby to this player: public, and a table it may join.</summary>
+    private static bool Listed(RoomActor room, Player player)
+    {
+        var settings = room.Room;
+        var sameHousehold = settings.HostHouseholdId == player.HouseholdId;
+        return settings.IsPublic
+            && (!settings.HouseholdOnly || sameHousehold)
+            && (player.MayPlayWithOthers || (settings.HouseholdOnly && sameHousehold));
+    }
+
+    private static async Task<Results<Ok<RoomView>, ValidationProblem, ProblemHttpResult>> CreateAsync(
+        CreateRoomRequest request,
+        HttpContext http,
+        RoomRegistry registry,
+        IRegistryGames games,
+        IOptions<RoomsOptions> options,
+        TimeProvider clock,
+        CancellationToken ct)
+    {
+        var player = PlayerOf(http);
+        var game = await games.GetAsync(request.GameId, ct);
+        if (game?.Rooms is not { } spec)
+        {
+            return Refused(RoomErrors.GameNotRooms);
+        }
+
+        if (game.MinAge > player.MaxGameMinAge)
+        {
+            return Refused(RoomErrors.TooYoung);
+        }
+
+        if (request.Seats < spec.MinSeats || request.Seats > spec.MaxSeats)
+        {
+            return Problems.Field("seats", RoomErrors.InvalidOptions);
+        }
+
+        if (request.BotLevel is { } level && !spec.Bots.Contains(level))
+        {
+            return Problems.Field("botLevel", RoomErrors.InvalidOptions);
+        }
+
+        var (optionsJson, invalid) = spec.Normalize(request.Options);
+        if (invalid is not null)
+        {
+            return Problems.Field($"options.{invalid}", RoomErrors.InvalidOptions);
+        }
+
+        var hosting = registry.All.Count(room => !room.IsClosed && room.Room.HostProfileId == player.ProfileId);
+        if (hosting >= options.Value.MaxRoomsPerHost)
+        {
+            return Refused(RoomErrors.TooManyRooms);
+        }
+
+        var now = clock.GetUtcNow();
+        var seats = Enumerable.Range(0, request.Seats)
+            .Select(index => index == 0
+                ? new SeatRecord(player.ProfileId, player.HouseholdId, player.Name, player.Avatar, null)
+                : SeatRecord.Empty)
+            .ToList();
+        var room = new Room
+        {
+            Id = Guid.CreateVersion7(),
+            Code = "000000",
+            GameId = game.Id,
+            GameVersion = game.Version,
+            RulesPath = game.Path + spec.Rules,
+            HostProfileId = player.ProfileId,
+            HostHouseholdId = player.HouseholdId,
+            IsPublic = request.IsPublic,
+            // A child a parent has not allowed only opens tables for the family.
+            HouseholdOnly = request.HouseholdOnly || !player.MayPlayWithOthers,
+            Seats = request.Seats,
+            BotsFill = request.BotsFill && spec.Bots.Count > 0,
+            BotLevel = request.BotLevel ?? spec.DefaultBot,
+            BotsTakeOver = request.BotsTakeOver && spec.Bots.Count > 0,
+            TurnSeconds = request.TurnSeconds,
+            Options = optionsJson!,
+            SeatList = System.Text.Json.JsonSerializer.Serialize(seats),
+            Status = RoomStatus.Waiting,
+            Scores = System.Text.Json.JsonSerializer.Serialize(new int[request.Seats]),
+            CreatedAt = now,
+            UpdatedAt = now,
+        };
+        var actor = await registry.CreateAsync(room, spec.MinSeats, ct);
+        return TypedResults.Ok(actor.View(player.ProfileId));
+    }
+
+    private static ProblemHttpResult Refused(string code) => Problems.Of(
+        code switch
+        {
+            RoomErrors.Full or RoomErrors.HandInProgress or RoomErrors.NotEnoughPlayers or RoomErrors.TooManyRooms
+                or RoomErrors.Closed => StatusCodes.Status409Conflict,
+            RoomErrors.RulesUnavailable => StatusCodes.Status503ServiceUnavailable,
+            RoomErrors.InvalidOptions or RoomErrors.GameNotRooms => StatusCodes.Status400BadRequest,
+            RoomErrors.NotSeated => StatusCodes.Status404NotFound,
+            _ => StatusCodes.Status403Forbidden,
+        },
+        code,
+        code.Replace('_', ' '));
+}

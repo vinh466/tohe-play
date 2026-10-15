@@ -21,12 +21,14 @@ public sealed record CreateProfileRequest(
 
 /// <param name="Pin">A new 4-digit PIN.</param>
 /// <param name="RemovePin">Remove the PIN.</param>
+/// <param name="PlayWithOthers">Let a child play online with other households (ADR 0016).</param>
 public sealed record UpdateProfileRequest(
     [StringLength(20, MinimumLength = 1)] string? Name = null,
     string? Avatar = null,
     string? AgeBand = null,
     [StringLength(4)] string? Pin = null,
-    bool? RemovePin = null);
+    bool? RemovePin = null,
+    bool? PlayWithOthers = null);
 
 /// <summary>Household management. Every endpoint requires the parent gate (ADR 0011).</summary>
 internal static class HouseholdEndpoints
@@ -170,6 +172,10 @@ internal static class HouseholdEndpoints
 
         profile.Avatar = request.Avatar ?? profile.Avatar;
         profile.AgeBand = request.AgeBand ?? profile.AgeBand;
+        if (request.PlayWithOthers is { } others && profile.Kind == ProfileKind.Child)
+        {
+            profile.PlayWithOthers = others;
+        }
         if (request.RemovePin == true)
         {
             profile.PinHash = null;

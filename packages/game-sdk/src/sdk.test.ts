@@ -199,11 +199,12 @@ describe('rooms (ADR 0016)', () => {
     const seen: string[] = [];
     session.room?.onSeats((next) => seen.push(`seats ${next.length}`));
     session.room?.onReaction((seat, reaction) => seen.push(`${seat} ${reaction}`));
-    host.roomSeats([...seats, { profile: null, bot: null, connected: true }]);
+    host.roomSeats([...seats, { profile: null, bot: null, connected: true }], 2);
     host.roomReaction(1, 'wave');
     await tick();
     expect(seen).toEqual(['seats 3', '1 wave']);
     expect(session.room?.seats).toHaveLength(3);
+    expect(session.room?.seat).toBe(2);
   });
 
   it('refuses room messages from a game without the capability', async () => {

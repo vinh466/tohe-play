@@ -177,10 +177,13 @@ export const RoomViewMessage = z.object({
   turnMs: z.number().int().nonnegative().nullable(),
 });
 
+/** The players at the table changed (someone joined, left, lost the connection, or a bot took a seat). */
 export const RoomSeatsMessage = z.object({
   ...envelope,
   type: z.literal('room.seats'),
   seats: z.array(RoomSeat).max(8),
+  /** This phone's seat, which can move between hands when the table is rearranged; -1 for a spectator. */
+  seat: z.number().int().min(-1).max(7),
 });
 
 export const RoomReactionMessage = z.object({

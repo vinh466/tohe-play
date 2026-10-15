@@ -78,7 +78,7 @@ export interface RoomUpdate<TView = JsonValue> {
 
 export interface RoomSession<TView = JsonValue> {
   readonly id: string;
-  /** The seat this phone plays, or -1 for a spectator. */
+  /** The seat this phone plays, or -1 for a spectator; it can move between hands (updated before `seats` listeners). */
   readonly seat: number;
   /** Players and bots at the table; updated before `seats` listeners run. */
   readonly seats: RoomSeat[];
@@ -243,7 +243,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
           });
           return;
         case 'room.seats':
-          room?.seats(message.seats);
+          room?.seats(message.seats, message.seat);
           return;
         case 'room.reaction':
           room?.reaction(message.seat, message.reaction);
@@ -273,13 +273,16 @@ function roomSession(
   const reactions = new Set<(seat: number, reaction: Reaction) => void>();
   let latest: RoomUpdate | null = null;
   let seats = info.seats;
+  let seat = info.seat;
   const subscribe = <T>(set: Set<T>, listener: T) => {
     set.add(listener);
     return () => set.delete(listener);
   };
   const session: RoomSession = {
     id: info.id,
-    seat: info.seat,
+    get seat() {
+      return seat;
+    },
     get seats() {
       return seats;
     },
@@ -302,8 +305,9 @@ function roomSession(
       latest = update;
       for (const listener of views) listener(update);
     },
-    seats(next: RoomSeat[]) {
+    seats(next: RoomSeat[], mine: number) {
       seats = next;
+      seat = mine;
       for (const listener of seatListeners) listener(next);
     },
     reaction(seat: number, reaction: Reaction) {

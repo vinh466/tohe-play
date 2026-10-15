@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection.Extensions;
@@ -19,9 +20,14 @@ public sealed class RegistryOptions
     public TimeSpan SyncInterval { get; set; } = TimeSpan.FromMinutes(5);
 }
 
+/// <summary>How a game is played at a table (ADR 0016): seats, bot levels, and the options the hub draws.</summary>
+/// <param name="Options">The manifest's <c>rooms.options</c> (see RoomOption in packages/contract).</param>
+public sealed record GameRoomsView(int MinSeats, int MaxSeats, IReadOnlyList<string> Bots, JsonElement Options);
+
 /// <summary>A playable game as shown in the hub.</summary>
 /// <param name="EntryUrl">Absolute URL to load in the game iframe.</param>
 /// <param name="IconUrl">Absolute icon URL, if the game ships one.</param>
+/// <param name="Rooms">Set for games played online at a table.</param>
 public sealed record GameSummary(
     string Id,
     string Name,
@@ -33,7 +39,8 @@ public sealed record GameSummary(
     IReadOnlyList<string> Capabilities,
     IReadOnlyList<string> Tags,
     int MinAge,
-    int SizeKb);
+    int SizeKb,
+    GameRoomsView? Rooms);
 
 internal static class RegistryModule
 {
@@ -42,6 +49,7 @@ internal static class RegistryModule
         builder.Services.AddOptions<RegistryOptions>().BindConfiguration(RegistryOptions.Section);
         builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.AddHttpClient<CatalogSync>(client => client.Timeout = TimeSpan.FromSeconds(10));
+        builder.Services.AddScoped<IRegistryGames, RegistryGames>();
         if (builder.Configuration.GetValue($"{RegistryOptions.Section}:SyncEnabled", defaultValue: true)
             && !BuildTime.IsGeneratingOpenApi)
         {
@@ -101,6 +109,7 @@ internal static class RegistryModule
             game.Capabilities,
             game.Tags,
             game.MinAge,
-            game.SizeKb);
+            game.SizeKb,
+            game.Rooms is { } rooms ? GameRooms.Parse(rooms).ToView() : null);
     }
 }

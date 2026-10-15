@@ -19,6 +19,8 @@ public sealed class Game
     public string[] Tags { get; set; } = [];
     public int MinAge { get; set; }
     public int SizeKb { get; set; }
+    /// <summary>The manifest's <c>rooms</c> block (ADR 0016) as JSON, for games played at a table; otherwise null.</summary>
+    public string? Rooms { get; set; }
     /// <summary>False once the game disappears from the catalog; kept so saves and scores stay valid.</summary>
     public bool Listed { get; set; } = true;
     public DateTimeOffset FirstSeenAt { get; set; }
@@ -39,5 +41,6 @@ internal sealed class GameConfiguration : IEntityTypeConfiguration<Game>
         builder.Property(game => game.Entry).HasMaxLength(200);
         builder.Property(game => game.Icon).HasMaxLength(200);
         builder.Property(game => game.Orientation).HasMaxLength(20);
+        builder.Property(game => game.Rooms).HasColumnType("jsonb");
     }
 }

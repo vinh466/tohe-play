@@ -51,7 +51,8 @@ export interface HostHandle {
   setSettings(settings: Settings): void;
   /** The seat's view after a change (rooms, ADR 0016). */
   roomView(update: { view: JsonValue; events: JsonValue[]; seq: number; turnMs: number | null }): void;
-  roomSeats(seats: RoomSeat[]): void;
+  /** The players at the table, and this phone's seat in it. */
+  roomSeats(seats: RoomSeat[], seat: number): void;
   roomReaction(seat: number, reaction: Reaction): void;
   dispose(): void;
 }
@@ -156,7 +157,8 @@ export function createHost(options: HostOptions): HostHandle {
     resume: () => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'resume' }),
     setSettings: (settings) => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'settings', settings }),
     roomView: (update) => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.view', ...update }),
-    roomSeats: (seats) => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.seats', seats }),
+    roomSeats: (seats, seat) =>
+      handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.seats', seats, seat }),
     roomReaction: (seat, reaction) =>
       handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.reaction', seat, reaction }),
     dispose: () => {

@@ -1,3 +1,4 @@
+using System.Text.Json;
 using System.Text.RegularExpressions;
 
 namespace Tohe.Api.Modules.Registry;
@@ -20,7 +21,8 @@ internal sealed record GameManifestDocument(
     string? Orientation,
     IReadOnlyList<string>? Capabilities,
     int? MinAge,
-    IReadOnlyList<string>? Tags);
+    IReadOnlyList<string>? Tags,
+    JsonElement? Rooms = null);
 
 internal static partial class CatalogRules
 {
