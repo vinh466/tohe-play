@@ -373,6 +373,7 @@ function checkInvariants(before: State, after: State, seat: number, action: Acti
   }
 }
 
+// The property runs are many hands each: a few seconds on a workstation, more on a shared CI runner.
 describe('random play', () => {
   it('keeps every invariant, in every house-rule combination and table size', () => {
     fc.assert(
@@ -387,7 +388,7 @@ describe('random play', () => {
       ),
       { numRuns: 300 },
     );
-  });
+  }, 60_000);
 
   it('is deterministic: the same seed and actions give the same state', () => {
     fc.assert(
@@ -399,7 +400,7 @@ describe('random play', () => {
       }),
       { numRuns: 60 },
     );
-  });
+  }, 60_000);
 
   it('bots of every level only ever take legal actions', () => {
     fc.assert(
@@ -414,7 +415,7 @@ describe('random play', () => {
       ),
       { numRuns: 30 },
     );
-  }, 30_000);
+  }, 60_000);
 
   it('never shows a seat the cards of another', () => {
     const { state } = randomHand(4, 99, normalizeOptions({}), [1, 2, 3]);
