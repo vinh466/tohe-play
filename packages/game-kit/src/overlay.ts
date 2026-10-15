@@ -77,6 +77,39 @@ export function hintList(hints: { icon: string; text: string }[]): HTMLElement {
   return list;
 }
 
+export interface Choice<Id extends string> {
+  id: Id;
+  label: string;
+  /** Shown under the label, e.g. sample blocks in a colour preset. */
+  preview?: HTMLElement;
+}
+
+/**
+ * Rows to pick one of (e.g. a colour preset): the chosen row is marked, and tapping another one marks it and calls
+ * `onChoose` at once, so the game can show the change behind the card.
+ */
+export function choiceList<Id extends string>(
+  choices: Choice<Id>[],
+  chosen: Id,
+  onChoose: (id: Id) => void,
+): HTMLElement {
+  const list = element('div', 'tohe-choices');
+  const buttons = choices.map((choice) => {
+    const button = element('button', 'tohe-choice');
+    button.type = 'button';
+    button.setAttribute('aria-pressed', String(choice.id === chosen));
+    button.append(element('span', 'tohe-choice-label', choice.label));
+    if (choice.preview) button.append(choice.preview);
+    button.addEventListener('click', () => {
+      for (const other of buttons) other.setAttribute('aria-pressed', String(other === button));
+      onChoose(choice.id);
+    });
+    return button;
+  });
+  list.append(...buttons);
+  return list;
+}
+
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) {
   const node = document.createElement(tag);
   node.className = className;

@@ -52,8 +52,9 @@ sidebar:
 What the kit gives you, so you do not write it again: `createGame` (crisp on phones, resize, pause/resume, Canvas
 fallback when WebGL fails), `sfx` (synthesised sounds, iOS unlock), `haptics`, `juice` (`popIn`, `squash`, `pulse`,
 `burst`, `floatText`, `shake`, `confetti`), `drawTexture` + `crispImage` (art drawn once, see below), `overlay` (intro / pause / game-over cards in one shared style, on the
-design tokens), `createLifecycle` (continue / new game when a run is in progress, the ⏸ menu — for every game whose
-runs outlast one sitting), `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
+design tokens; `hintList` and `choiceList` for their content), `createLifecycle` (continue / new game when a run is in
+progress, the ⏸ menu with room for the game's own cards (`menuCards`) — for every game whose runs outlast one
+sitting), `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
 
 **Draw once, not every frame.** Phaser redraws the scene up to 120 times a second on phones. A `Graphics` object
 rebuilds its shapes on every one of those frames, and a `Text` redraws and re-uploads its canvas on every change.

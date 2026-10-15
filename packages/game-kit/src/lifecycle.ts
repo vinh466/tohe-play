@@ -53,6 +53,8 @@ export interface LifecycleOptions {
   onNewGame(): void;
   /** The "how to play" card; its buttons are replaced by one that returns to the menu. */
   howTo(): Omit<OverlayCard, 'actions'>;
+  /** The game's own entries after "how to play" (e.g. a colour choice); each card, too, gets one button back. */
+  menuCards?: { label: string; card(): Omit<OverlayCard, 'actions'> }[];
   /** Called whenever a lifecycle card closes and play goes on. */
   onResume?(): void;
 }
@@ -60,7 +62,7 @@ export interface LifecycleOptions {
 export interface Lifecycle {
   /** On open with a run in progress: "continue" (the default) or "new game". */
   offerContinue(summary: string): void;
-  /** The ⏸ menu: resume, new game, how to play. */
+  /** The ⏸ menu: resume, new game, how to play, then the game's own cards. */
   openMenu(): void;
   /** A round ⏸ button that opens the menu, to put in the game's HUD. */
   menuButton(): HTMLButtonElement;
@@ -113,12 +115,12 @@ export function createLifecycle(options: LifecycleOptions): Lifecycle {
         actions: [
           { label: t.resume, onClick: play },
           { label: t.newGame, variant: 'secondary', onClick: () => confirmNew(lifecycle.openMenu) },
-          {
-            label: t.howTo,
-            variant: 'secondary',
+          ...[{ label: t.howTo, card: options.howTo }, ...(options.menuCards ?? [])].map((entry) => ({
+            label: entry.label,
+            variant: 'secondary' as const,
             onClick: () =>
-              overlay.show({ ...options.howTo(), actions: [{ label: t.back, onClick: lifecycle.openMenu }] }),
-          },
+              overlay.show({ ...entry.card(), actions: [{ label: t.back, onClick: lifecycle.openMenu }] }),
+          })),
         ],
       });
     },

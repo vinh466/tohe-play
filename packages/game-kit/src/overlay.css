@@ -147,6 +147,54 @@
   font-weight: 600;
 }
 
+/* choiceList(): pick one row; the chosen one gets a brand border and a tick. */
+.tohe-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin: 1rem 0 0;
+}
+
+.tohe-choice {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+  padding: 0.55rem 0.7rem;
+  border: 3px solid transparent;
+  border-radius: 1rem;
+  background: var(--tohe-fill);
+  color: var(--tohe-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tohe-choice[aria-pressed="true"] {
+  border-color: var(--tohe-brand);
+}
+
+.tohe-choice:active {
+  transform: scale(0.98);
+}
+
+.tohe-choice:focus-visible {
+  outline: 3px solid var(--tohe-focus);
+  outline-offset: 2px;
+}
+
+.tohe-choice-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.tohe-choice[aria-pressed="true"] .tohe-choice-label::after {
+  content: "✓";
+  color: var(--tohe-accent);
+}
+
 @keyframes tohe-pop {
   from {
     opacity: 0;
