@@ -1,10 +1,12 @@
 /** Short vibrations where the device supports them (Android browsers); a no-op elsewhere (iOS Safari). */
-export type Haptic = 'tap' | 'bump' | 'success' | 'error';
+export type Haptic = 'tap' | 'bump' | 'success' | 'celebrate' | 'error';
 
+/** In tiers like the rest of the feel: `celebrate` is for the rarest moments (a level reached, a record). */
 const patterns: Record<Haptic, number | number[]> = {
   tap: 8,
   bump: 18,
   success: [12, 40, 24],
+  celebrate: [24, 50, 24, 50, 70],
   error: [30, 30, 30],
 };
 

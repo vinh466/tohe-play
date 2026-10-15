@@ -44,7 +44,7 @@ export function pulse(scene: Phaser.Scene, target: Phaser.GameObjects.Components
   return tweenAsync(scene, { targets: target, scale: peak, duration: 90, yoyo: true, ease: 'Sine.easeOut' });
 }
 
-/** "+128"-style text that floats up and fades out. */
+/** "+128"-style text that floats up and fades out; the lines of a longer message are centred. */
 export function floatText(
   scene: Phaser.Scene,
   x: number,
@@ -57,7 +57,12 @@ export function floatText(
     rise = 46,
   }: { color?: string; stroke?: string; size?: number; rise?: number } = {},
 ) {
-  const label = crispText(scene, x, y, text, { fontSize: `${size}px`, fontStyle: '900', color })
+  const label = crispText(scene, x, y, text, {
+    fontSize: `${size}px`,
+    fontStyle: '900',
+    color,
+    align: 'center',
+  })
     .setOrigin(0.5)
     .setDepth(50)
     .setStroke(stroke, Math.max(3, size / 6));

@@ -4,6 +4,7 @@ import {
   type Cell,
   COLS,
   type Exponent,
+  floorOf,
   hasMove,
   indexOf,
   isStuck,
@@ -11,6 +12,7 @@ import {
   matches,
   merged,
   newGame,
+  nextMilestone,
   ROWS,
   restore,
   type State,
@@ -188,7 +190,101 @@ describe('stuck and the end', () => {
   });
 });
 
+describe('the rising floor', () => {
+  it('retires the 2s at the first 4K, then one more value at every second new largest block', () => {
+    const tops = [6, 11, 12, 13, 14, 15, 16, 18, 20, 22];
+    expect(tops.map(floorOf)).toEqual([1, 1, 2, 2, 3, 3, 4, 5, 6, 7]);
+    expect(tops.map((top) => 2 ** nextMilestone(top))).toEqual([
+      4096, 4096, 16384, 16384, 65536, 65536, 262144, 1048576, 4194304, 16777216,
+    ]);
+  });
+
+  it('clears the blocks under the floor when it rises, each scoring the new largest block', () => {
+    // Two 2048s make the first 4K; two 2s on the board leave with it.
+    const start = board(
+      [
+        [0, 0, 11],
+        [1, 0, 11],
+        [3, 3, 1],
+        [0, 5, 1],
+      ],
+      { top: 11 },
+    );
+    const { state, events } = play(start, { col: 0, row: 0 });
+    expect(events.map((e) => e.type)).toEqual(['merge', 'fall', 'fill', 'top', 'floor', 'fall', 'fill']);
+    const floor = events.find((e) => e.type === 'floor');
+    if (floor?.type !== 'floor') throw new Error('no floor event');
+    expect(floor.floor).toBe(2);
+    expect(floor.retired).toEqual([1]);
+    expect(floor.cleared.map((b) => b.exp)).toEqual([1, 1]);
+    expect(floor.gained).toBe(4096 * 2);
+    expect(state.score).toBe(4096 + 4096 * 2);
+    expect(state.grid.every((exp) => exp >= 2)).toBe(true);
+  });
+
+  it('announces the floor even when no block is under it', () => {
+    const start = board(
+      [
+        [0, 0, 11],
+        [1, 0, 11],
+      ],
+      { top: 11 },
+    );
+    const { events } = play(start, { col: 0, row: 0 });
+    const floor = events.find((e) => e.type === 'floor');
+    expect(floor).toEqual({ type: 'floor', floor: 2, retired: [1], cleared: [], gained: 0 });
+    expect(events.at(-1)?.type).not.toBe('fill');
+  });
+
+  it('leaves the floor alone on an ordinary merge', () => {
+    // Two 128s make a 256 with the floor at 4: nothing leaves.
+    const start = board(
+      [
+        [0, 0, 7],
+        [1, 0, 7],
+      ],
+      { top: 13 },
+    );
+    expect(play(start, { col: 0, row: 0 }).events.some((e) => e.type === 'floor')).toBe(false);
+  });
+
+  it('clears blocks left under the floor by a game saved before 0.5.0 at its next tap', () => {
+    // A 32K was made (floor: 8), but 2s and a 4 are still on the board.
+    const start = board(
+      [
+        [0, 0, 1],
+        [1, 0, 1],
+        [4, 6, 2],
+        [3, 3, 1],
+      ],
+      { top: 15 },
+    );
+    const { state, events } = play(start, { col: 0, row: 0 });
+    const floor = events.find((e) => e.type === 'floor');
+    if (floor?.type !== 'floor') throw new Error('no floor event');
+    // The floor stays at 8; the 4 just made, the lone 2 and the old 4 leave.
+    expect(floor.floor).toBe(3);
+    expect(floor.retired).toEqual([1, 2]);
+    expect(floor.cleared.map((b) => b.exp).sort()).toEqual([1, 2, 2]);
+    expect(floor.gained).toBe(32768 * 3);
+    expect(state.grid.every((exp) => exp >= 3)).toBe(true);
+  });
+});
+
 describe('new blocks', () => {
+  it('come from the floor up', () => {
+    const grid = new Array<Exponent>(COLS * ROWS).fill(9);
+    grid[0] = 16;
+    let rng = 11;
+    const seen = new Set<number>();
+    for (let i = 0; i < 2000; i++) {
+      const [exp, next] = spawn(grid, rng, 4);
+      seen.add(exp);
+      rng = next;
+    }
+    expect([...seen].sort((a, b) => a - b)).toEqual([4, 5, 6, 7, 8, 9]);
+  });
+
   it('start at 2, 4 and 8 and grow with the largest block, never above 64', () => {
     const seen = new Set<number>();
     let rng = 7;
@@ -233,6 +329,19 @@ describe('saves', () => {
 
 type Action = { tap: Cell } | 'shuffle';
 
+/** A game from its start, or a late one: any board between just under the floor and its largest block. */
+const startState = fc.oneof(
+  fc.integer().map((seed) => newGame(seed)),
+  fc.record({ seed: fc.integer(), top: fc.integer({ min: 11, max: 24 }) }).chain(({ seed, top }) =>
+    fc
+      .array(fc.integer({ min: Math.max(1, floorOf(top) - 1), max: top }), {
+        minLength: COLS * ROWS,
+        maxLength: COLS * ROWS,
+      })
+      .map((grid): State => ({ ...newGame(seed), grid, top: Math.max(top, ...grid), shuffles: 2 })),
+  ),
+);
+
 describe('random play (bot)', () => {
   it('keeps every invariant from SPEC.md', () => {
     const action = fc.oneof(
@@ -243,8 +352,8 @@ describe('random play (bot)', () => {
       { weight: 1, arbitrary: fc.constant('shuffle' as const) },
     );
     fc.assert(
-      fc.property(fc.integer(), fc.array(action, { maxLength: 300 }), (seed, actions) => {
-        let state = newGame(seed);
+      fc.property(startState, fc.array(action, { maxLength: 300 }), (start, actions) => {
+        let state = start;
         const done: Action[] = [];
         for (const next of actions) {
           // A player taps blocks that merge: aim at the first merging block from the chosen cell on.
@@ -280,6 +389,15 @@ describe('random play (bot)', () => {
           } else {
             expect(state.moves).toBe(before.moves + 1);
             expect(state.score).toBeGreaterThan(before.score);
+            // The score grows by the merge and the floor's bonus; no block is left under the floor.
+            const gained = result.events.reduce(
+              (sum, e) => sum + (e.type === 'merge' || e.type === 'floor' ? e.gained : 0),
+              0,
+            );
+            expect(state.score).toBe(before.score + gained);
+            expect(floorOf(state.top)).toBeGreaterThanOrEqual(floorOf(before.top));
+            expect(Math.min(...state.grid)).toBeGreaterThanOrEqual(floorOf(state.top));
+            expect(nextMilestone(state.top)).toBeGreaterThan(state.top);
             // The merged block holds at least its group's sum, and less than twice it.
             const merge = result.events[0];
             if (merge?.type !== 'merge') throw new Error('a tap starts with a merge');
@@ -294,7 +412,7 @@ describe('random play (bot)', () => {
         }
 
         // Deterministic: the same seed and actions give the same game; a saved game continues identically.
-        let again = newGame(seed);
+        let again = start;
         for (const act of done) {
           const result = act === 'shuffle' ? shuffle(again) : tap(again, act.tap);
           if (!result.ok) throw new Error(result.reason);

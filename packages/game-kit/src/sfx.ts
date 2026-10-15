@@ -2,7 +2,7 @@
 // (bigger merges sound higher). The audio context starts on the first touch or key press, as iOS requires.
 import type { Telemetry } from '@tohe/game-sdk';
 
-export type SoundName = 'click' | 'pop' | 'drop' | 'merge' | 'combo' | 'error' | 'fanfare';
+export type SoundName = 'click' | 'pop' | 'drop' | 'merge' | 'combo' | 'levelUp' | 'error' | 'fanfare';
 
 export interface Sfx {
   /** `step` raises the pitch along a pentatonic scale (e.g. the merged value's exponent). */
@@ -105,6 +105,19 @@ export function createSfx({ telemetry }: SfxOptions = {}): Sfx {
           gain: 0.25,
           delay: i * 0.07,
         });
+    },
+    // A quick run up the scale and a bright chord on top: a level reached.
+    levelUp: () => {
+      for (let i = 0; i < 6; i++)
+        tone({
+          type: 'triangle',
+          frequency: noteFrequency(4 + i * 2),
+          duration: 0.12,
+          gain: 0.22,
+          delay: i * 0.05,
+        });
+      for (const offset of [0, 2, 4])
+        tone({ type: 'sine', frequency: noteFrequency(15 + offset), duration: 0.6, gain: 0.12, delay: 0.32 });
     },
     error: () => tone({ type: 'square', frequency: 150, glideTo: 110, duration: 0.16, gain: 0.08 }),
     fanfare: () => {

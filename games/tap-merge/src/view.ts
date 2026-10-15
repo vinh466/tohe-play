@@ -4,7 +4,7 @@
 // setPalette() redraw everything.
 // The board and every block (with its number) are textures drawn once per value, theme, colours and size (the kit's
 // drawTexture): a frame then costs one quad per block instead of rebuilding rounded rectangles and text.
-import { formatValue, haptics, type Sfx, type Theme } from '@tohe/game-kit';
+import { formatCompact, formatValue, haptics, type Sfx, type Theme } from '@tohe/game-kit';
 import {
   burst,
   confetti,
@@ -26,6 +26,7 @@ import {
   type Cell,
   COLS,
   type Exponent,
+  floorOf,
   type GameEvent,
   indexOf,
   type Move,
@@ -52,17 +53,25 @@ export interface BoardCallbacks {
   onScore(score: number): void;
   /** A new largest block was made; `earned` when it brought a 🔀. */
   onTop(shuffles: number, earned: boolean): void;
+  /** The floor rose: the goal moves on to the next milestone. */
+  onFloor(): void;
 }
 
 type Block = Phaser.GameObjects.Container & { exp: Exponent };
 
 /** Blocks up to this value (2^11 = 2048) are drawn ahead, so a merge never waits for a new texture. */
 const PREDRAWN = 11;
-/** "Gom n!" from this many absorbed blocks on (about 1 tap in 8), and a bigger celebration from HUGE_MERGE. */
+/** "Gom n!" from this many absorbed blocks on (about 1 tap in 20), and a bigger celebration from HUGE_MERGE. */
 const BIG_MERGE = 6;
 const HUGE_MERGE = 9;
+/** A new largest block from 512 on shakes the board: rare (a dozen times a game), so it keeps its meaning. */
+const SHAKE_TOP = 9;
 /** A group is pulled in like a ripple: each step farther from the tapped block starts this much later. */
 const RIPPLE_MS = 45;
+/** Blocks leaving under a rising floor pop one after another, this far apart. */
+const FAREWELL_MS = 70;
+/** Banners wait for the one before to rise this long, so two never cover each other. */
+const BANNER_GAP_MS = 520;
 
 export class BoardScene extends Phaser.Scene {
   private layoutInfo!: Layout;
@@ -79,6 +88,8 @@ export class BoardScene extends Phaser.Scene {
   private pressed: Cell | null = null;
   private lifted: Block[] = [];
   private busy = false;
+  /** When the next banner may start (see `banner`). */
+  private bannerFree = 0;
   private ready: () => void = () => {};
   readonly whenReady = new Promise<void>((resolve) => {
     this.ready = resolve;
@@ -90,6 +101,7 @@ export class BoardScene extends Phaser.Scene {
     private readonly callbacks: BoardCallbacks,
     private theme: Theme,
     private palette: PaletteId,
+    private readonly locale: string,
   ) {
     super('board');
   }
@@ -104,9 +116,11 @@ export class BoardScene extends Phaser.Scene {
     this.dimmer = this.add.rectangle(0, 0, 10, 10, this.colors.dimmer, 0).setOrigin(0).setDepth(30);
 
     // Finger down shows what a tap would merge; letting go on the same block plays it.
-    this.input.on('pointerdown', (p: Phaser.Input.Pointer) => this.aim(this.cellAt(p.worldX, p.worldY)));
+    this.input.on('pointerdown', (p: Phaser.Input.Pointer) =>
+      this.aim(this.cellAt(p.worldX, p.worldY), true),
+    );
     this.input.on('pointermove', (p: Phaser.Input.Pointer) => {
-      if (p.isDown && this.pressed) this.aim(this.cellAt(p.worldX, p.worldY));
+      if (p.isDown && this.pressed) this.aim(this.cellAt(p.worldX, p.worldY), true);
     });
     this.input.on('pointerup', (p: Phaser.Input.Pointer) => {
       const cell = this.cellAt(p.worldX, p.worldY);
@@ -195,13 +209,14 @@ export class BoardScene extends Phaser.Scene {
   private blockTexture(exp: Exponent, size: number): { key: string; originY: number } {
     const inner = size - this.layoutInfo.gap;
     const r = inner * 0.2;
-    const line = Math.max(2, inner * 0.04);
+    const style = blockStyle(exp, this.theme, this.palette);
+    // Blocks from 64K on wear a bold gold ring and a sparkle in the corner.
+    const line = Math.max(2, inner * (style.outline === undefined ? 0.04 : 0.07));
     const pad = Math.ceil(line / 2) + 1;
     const height = inner * 1.06 + pad * 2;
     const key = `tap-merge:block:${this.theme}:${this.palette}:${inner}:${exp}`;
     this.drawn.add(key);
     drawTexture(this, key, inner + pad * 2, height, (ctx) => {
-      const style = blockStyle(exp, this.theme, this.palette);
       const fill = (color: string, x: number, y: number, w: number, h: number, radius: number) => {
         ctx.fillStyle = color;
         ctx.beginPath();
@@ -218,6 +233,20 @@ export class BoardScene extends Phaser.Scene {
         ctx.stroke();
       }
       fill('rgba(255, 255, 255, 0.22)', inner * 0.1, inner * 0.07, inner * 0.8, inner * 0.18, r * 0.6);
+      if (style.outline !== undefined) {
+        // A four-pointed sparkle in the top-right corner, in the ring's gold.
+        const cx = pad + inner * 0.83;
+        const cy = pad + inner * 0.17;
+        const arm = inner * 0.1;
+        ctx.fillStyle = cssHex(style.outline);
+        ctx.beginPath();
+        ctx.moveTo(cx, cy - arm);
+        ctx.quadraticCurveTo(cx, cy, cx + arm, cy);
+        ctx.quadraticCurveTo(cx, cy, cx, cy + arm);
+        ctx.quadraticCurveTo(cx, cy, cx - arm, cy);
+        ctx.quadraticCurveTo(cx, cy, cx, cy - arm);
+        ctx.fill();
+      }
       // The digits' own box is centred (not the font's), a little above the middle like the top face.
       const value = formatValue(2 ** exp);
       const fontSize = Math.round(inner * (value.length <= 2 ? 0.46 : value.length === 3 ? 0.38 : 0.31));
@@ -331,14 +360,18 @@ export class BoardScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ input feedback
 
-  /** Highlight a block and the neighbours a tap would absorb (finger down, or the keyboard's aim). */
-  aim(cell: Cell | null) {
+  /**
+   * Highlight a block and the neighbours a tap would absorb (finger down, or the keyboard's aim). Under a finger
+   * (`touch`), a group that would merge also ticks, like a button giving way.
+   */
+  aim(cell: Cell | null, touch = false) {
     if (this.busy || !this.state || this.state.over) cell = null;
     if (cell && this.pressed && indexOf(cell) === indexOf(this.pressed)) return;
     this.release(false);
     this.pressed = cell;
     if (!cell || !this.state) return;
     const group = [cell, ...matches(this.state.grid, cell)];
+    if (touch && group.length > 1) haptics.play('tap');
     const { cell: size, gap } = this.layoutInfo;
     this.press.lineStyle(Math.max(3, size * 0.05), this.colors.press, 0.9);
     for (const at of group) {
@@ -360,6 +393,16 @@ export class BoardScene extends Phaser.Scene {
 
   get aimed(): Cell | null {
     return this.pressed;
+  }
+
+  /** The smallest value that still comes, before the move being animated. */
+  private get floor(): Exponent {
+    return floorOf(this.state?.top ?? 1);
+  }
+
+  /** "+points" over a block: in full while short, then shortened ("+12,3K") so it never covers the board. */
+  private points(value: number): string {
+    return formatCompact(value, this.locale, 6);
   }
 
   /** Keyboard: move the aim one cell. */
@@ -426,6 +469,12 @@ export class BoardScene extends Phaser.Scene {
           this.announceTop(event.exp, event.earned);
           this.callbacks.onTop(event.shuffles, event.earned);
           break;
+        case 'floor':
+          await this.animateFloor(event);
+          score += event.gained;
+          this.callbacks.onScore(score);
+          this.callbacks.onFloor();
+          break;
         case 'shuffle':
           await this.animateShuffle(event.moves);
           break;
@@ -469,12 +518,13 @@ export class BoardScene extends Phaser.Scene {
     const style = blockStyle(merge.exp, this.theme, this.palette);
     const size = this.layoutInfo.cell;
     burst(this, x, y, style.fill, 8 + Math.min(merge.from.length * 3, 16));
-    floatText(this, x, y - size * 0.45, `+${formatValue(merge.gained)}`, {
+    floatText(this, x, y - size * 0.45, `+${this.points(merge.gained)}`, {
       color: this.colors.scoreText,
       stroke: this.colors.scoreStroke,
       size: Math.round(size * 0.32),
     });
-    this.sfx.play('merge', merge.exp);
+    // The pitch climbs from the floor, so it stays pleasant however big the blocks get.
+    this.sfx.play('merge', merge.exp - this.floor + 1);
     haptics.play('bump');
     if (merge.from.length >= BIG_MERGE) {
       const gathered = merge.from.length + 1;
@@ -484,8 +534,6 @@ export class BoardScene extends Phaser.Scene {
       haptics.play('success');
       if (huge) shake(this, 'small');
     }
-    if (merge.exp >= 11) shake(this, 'medium');
-    else if (merge.exp >= 9) shake(this, 'small');
     // The pulse plays on while the board falls (it changes the scale, the fall changes y).
     void pulse(this, target, 1.22).then(() => target.setDepth(10));
   }
@@ -545,22 +593,88 @@ export class BoardScene extends Phaser.Scene {
     ).then(() => {});
   }
 
-  /** A new largest block: a banner from 64 on, and always when it brought a 🔀. */
+  /**
+   * A new largest block: a banner from 64 on, and always when it brought a 🔀; from 512 on the board shakes and
+   * the phone buzzes too.
+   */
   private announceTop(exp: Exponent, earned: boolean) {
     if (exp < 6 && !earned) return;
     const lines = [this.text.newTop(formatValue(2 ** exp)), ...(earned ? [this.text.earned] : [])];
     this.banner(lines.join('\n'), this.colors.combo);
-    this.sfx.play('combo', Math.min(exp, 10));
+    this.sfx.play('combo', Math.min(exp - this.floor + 1, 12));
+    if (exp >= SHAKE_TOP) {
+      shake(this, 'small');
+      haptics.play('success');
+    }
   }
 
-  private banner(message: string, color: string) {
-    const { width, boardY, cell } = this.layoutInfo;
-    floatText(this, width / 2, boardY + cell * 1.4, message, {
-      color,
-      stroke: this.colors.scoreStroke,
-      size: Math.round(cell * 0.4),
-      rise: cell * 0.9,
-    });
+  /**
+   * The floor rose, the biggest moment of a game (four or five times): "Tạm biệt khối 2!" with the bonus, a run
+   * up the scale, a long buzz, and the blocks under the floor popping one after another to a rising run of notes.
+   * The board falls and refills afterwards (the next events).
+   */
+  private async animateFloor(floor: Extract<GameEvent, { type: 'floor' }>) {
+    const retired = floor.retired.map((exp) => formatValue(2 ** exp));
+    const lines = [
+      this.text.farewell(retired),
+      ...(floor.gained > 0 ? [`+${this.points(floor.gained)}`] : []),
+    ];
+    await delay(this, this.banner(lines.join('\n'), this.colors.bigCombo, true));
+    this.sfx.play('levelUp');
+    haptics.play('celebrate');
+    shake(this, 'medium');
+    await Promise.all(
+      floor.cleared.map(async ({ at, exp }, i) => {
+        const block = this.cells.get(indexOf(at));
+        this.cells.delete(indexOf(at));
+        if (!block) return;
+        await delay(this, 180 + Math.min(i, 10) * FAREWELL_MS);
+        const { x, y } = this.cellCenter(at);
+        burst(this, x, y, blockStyle(exp, this.theme, this.palette).fill, 10);
+        this.sfx.play('merge', 4 + i);
+        block.setDepth(12);
+        await tweenAsync(this, { targets: block, scale: 1.25, duration: 90, ease: 'Sine.easeOut' });
+        await tweenAsync(this, {
+          targets: block,
+          scale: 0,
+          alpha: 0,
+          angle: 90,
+          duration: 170,
+          ease: 'Back.easeIn',
+        });
+        block.destroy();
+      }),
+    );
+  }
+
+  /** The score just passed the best score: once a game, while playing (the game-over card celebrates again). */
+  celebrateRecord() {
+    this.banner(this.text.passedBest, this.colors.bigCombo, true);
+    this.sfx.play('fanfare');
+    haptics.play('celebrate');
+    confetti(this, this.layoutInfo.width, 36);
+  }
+
+  /**
+   * Text rising over the board; `big` ones in the middle of it. A banner waits until the one before has risen out
+   * of the way, so two never cover each other. Returns how long it waits, in ms.
+   */
+  private banner(message: string, color: string, big = false): number {
+    const now = this.time.now;
+    const start = Math.max(now, this.bannerFree);
+    this.bannerFree = start + BANNER_GAP_MS;
+    const show = () => {
+      const { width, boardY, cell } = this.layoutInfo;
+      floatText(this, width / 2, boardY + cell * (big ? ROWS / 2 : 1.4), message, {
+        color,
+        stroke: this.colors.scoreStroke,
+        size: Math.round(cell * (big ? 0.5 : 0.4)),
+        rise: cell * 0.9,
+      });
+    };
+    if (start === now) show();
+    else this.time.delayedCall(start - now, show);
+    return start - now;
   }
 
   private async animateOver(record: boolean) {
