@@ -9,6 +9,14 @@ export {
   lifecycleStrings,
 } from './lifecycle.ts';
 export { prefersReducedMotion } from './motion.ts';
-export { createOverlay, hintList, type Overlay, type OverlayAction, type OverlayCard } from './overlay.ts';
+export {
+  type Choice,
+  choiceList,
+  createOverlay,
+  hintList,
+  type Overlay,
+  type OverlayAction,
+  type OverlayCard,
+} from './overlay.ts';
 export { createSfx, noteFrequency, type Sfx, type SoundName } from './sfx.ts';
 export { followTheme, type Theme } from './theme.ts';

@@ -139,6 +139,23 @@ body {
   display: block;
 }
 
+/* ⏸ → Màu khối: each preset shows sample blocks 2 … 256, coloured from palette.ts. */
+.samples {
+  display: flex;
+  gap: 0.25rem;
+}
+
+.sample {
+  display: grid;
+  flex: 1;
+  place-items: center;
+  aspect-ratio: 1;
+  min-width: 0;
+  border-radius: 22%;
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
 @keyframes bump {
   40% {
     transform: scale(1.18);

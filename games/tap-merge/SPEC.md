@@ -5,7 +5,9 @@
 > "a game to open and play without thinking" — and asked that a tap pull in the whole connected group, not only
 > the 8 cells around (0.2.0). On 2026-10-15 the owner asked that a merge add up the group ("khi merge thì cộng
 > tổng các ô"), and chose to round the sum **up** to a power of two (0.3.0) after seeing how long games last
-> ([Game length](#game-length)). Details the chat left open are marked *(default)*.
+> ([Game length](#game-length)). The same day a friend of the owner found the gradual block colours hard to tell
+> apart; the owner likes them, so each player picks a colour preset (0.4.0, [Block colours](#block-colours)).
+> Details the chat left open are marked *(default)*.
 
 A board always full of number blocks. Tap a block: every equal block connected to it, diagonals included, merges
 into it and their sum, rounded up to a power of two, is the new block; the board falls and new blocks slide in
@@ -97,7 +99,10 @@ directions are one constant (`DIRECTIONS` in `logic.ts`), the rounding one funct
    **Chơi tiếp** (the default) and **Ván mới** (asks first; the run ends).
 3. **Playing:** HUD with ⏸, score (counts up), the 🔀 button with how many are left, and best; the board below.
    Exit and sound buttons come from the hub. **⏸** (or Esc) opens the menu: **Tiếp tục**, **Ván mới** (asks
-   first), **Cách chơi**.
+   first), **Cách chơi**, **Màu khối**.
+   - **Màu khối:** one row per [preset](#block-colours), with its name and sample blocks 2 … 256 (the numbers on
+     the board most of the time) in its colours; the chosen one is marked. Tapping a row repaints the board at once
+     and keeps the choice; **Quay lại** returns to the menu.
 4. **Paused by the hub:** the hub sends `pause` when the app is hidden or its exit confirmation is open; animations
    and timers stop, and `resume` continues exactly where they were.
 5. **Game over:** board dims, card with score/best, confetti for a record, **Chơi lại**.
@@ -125,15 +130,33 @@ The continue card and the ⏸ menu are the kit's standard lifecycle (`createLife
 Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013), like Ghép Khối:
 
 - **Board:** a cream board on a cream page in light; a warm-charcoal board on a darker page in dark.
-- **Blocks:** the same in both themes; every number is at least 4.5:1 on its block (`palette.test.ts`). The dark
-  champion block gets a gold ring on the dark board.
+- **Blocks:** in the player's [colour preset](#block-colours), the same in both themes.
 - **HUD and cards:** the platform's design tokens, through the kit.
+
+## Block colours
+
+Each player picks how the blocks look (⏸ → **Màu khối**). The choice belongs to the player: it is kept in the
+game's save, so it follows the profile to other devices, and a new player starts with **Hoàng hôn**.
+
+| Preset | Look |
+| --- | --- |
+| **Hoàng hôn** (default) | The colours of Ghép Khối: warm and soft for small numbers, saturated and cool as they grow. |
+| **Tương phản mạnh** | Two numbers in a row never share a hue: red, blue, yellow, green, purple, orange, pink, teal, then the same round again in other shades. |
+| **Kẹo pastel** | Light, soft colours, a different hue for each number, dark text. |
+| **Neon** | Bright, saturated colours with dark text; they stand out most on the dark board. |
+| **Dễ phân biệt** | Built on the Okabe–Ito palette, which people with red–green colour blindness tell apart; numbers above 256 take its hues again, darker. |
+
+- Every number is at least 4.5:1 on its block, in every preset (`palette.test.ts`).
+- In every preset except Hoàng hôn, two numbers in a row are clearly different colours (`palette.test.ts`
+  measures the distance between them).
+- The champion block (64K and up) is the same in every preset: dark with gold digits, and a gold ring on the
+  dark board.
 
 ## Contract usage
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game, tutorialSeen, run }` where `game` is the full state (board, score, 🔀, PRNG) and `run` its leaderboard id. Opening the game resumes it. |
+| `save` | After every move: `{ best, game, tutorialSeen, run, palette }` where `game` is the full state (board, score, 🔀, PRNG), `run` its leaderboard id and `palette` the player's colour preset (also saved when it changes). Opening the game resumes it. |
 | `scores` | A live run (ADR 0014): `session.run(id).update(score)` after every move, `finish(score)` at game over or when the player starts a new game. One run id per game, kept in the save. |
 | settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of a new game. |
