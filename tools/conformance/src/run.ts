@@ -437,11 +437,12 @@ const shellOf = (manifest: GameManifest) =>
 const FIRST_SCREEN_MS = 8000;
 
 /**
- * The game shell (ADR 0018, ADR 0019), in a fresh session: the game reports its first screen (its first `menu`) soon
- * after the handshake, opens on its title screen with a way back to Tò He (`data-tohe-exit`), plays from it
- * (`data-tohe-play`, through the first-time how-to), answers the hub's `menu` (Back) by opening its menu within 1.5 s
- * and closing it on the next Back, opens its menu when the hub hides it (`pause`), and the way out of that menu sends
- * `exit`.
+ * The game shell (ADR 0018–0020), in a fresh session: the game reports its first screen (its first `menu`) soon after
+ * the handshake and opens on its title screen — a stage of its own, nothing drawn under it — with a way back to Tò He
+ * (`data-tohe-exit`); it plays from there (`data-tohe-play`, through the first-time how-to), answers the hub's `menu`
+ * (Back) by opening its in-game menu within 1.5 s and closing it on the next Back, opens it when the hub hides the
+ * game (`pause`), shows no way out to Tò He over play, leads from it to the title screen (`data-tohe-main-menu`)
+ * leaving no board behind, and the title screen's way out sends `exit`.
  */
 async function shellRun(run: {
   context: BrowserContext;
@@ -515,6 +516,13 @@ async function shellRun(run: {
     mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
     await page.screenshot({ path: run.screenshot.replace(/\.png$/, '-title.png') }).catch(() => {});
     checks.push({ name: 'shell: opens on its title screen, with play and the way back to Tò He', ok: opens });
+    const canvases = () => frame.evaluate(() => document.querySelectorAll('canvas').length).catch(() => -1);
+    const underTitle = await canvases();
+    checks.push({
+      name: 'shell: the title screen is a stage of its own (no board drawn under it, ADR 0020)',
+      ok: underTitle === 0,
+      detail: underTitle === 0 ? undefined : `${underTitle} canvas element(s) before play`,
+    });
     const played = await playFromTitle(frame);
     await page.waitForTimeout(1500);
     let before = menus.length;
@@ -536,16 +544,40 @@ async function shellRun(run: {
     host.pause();
     const paused = await until(() => menus.slice(before).includes(true), 1500);
     host.resume();
+    const exitInPlay = await frame
+      .locator('[data-tohe-exit]:visible')
+      .count()
+      .catch(() => -1);
+    checks.push({
+      name: 'shell: its in-game menu has no way out to Tò He (that is the title screen’s)',
+      ok: exitInPlay === 0,
+      detail: exitInPlay === 0 ? undefined : `${exitInPlay} visible [data-tohe-exit] over play`,
+    });
     checks.push({
       name: 'shell: opens its menu when the hub hides the game (pause)',
       ok: paused,
       detail: paused ? undefined : `menu states after pause: ${JSON.stringify(menus.slice(before))}`,
     });
+    const toMenu =
+      (await visible(frame, '[data-tohe-main-menu]')) &&
+      (await press(frame, '[data-tohe-main-menu]:visible')) === 'pressed' &&
+      (await visible(frame, '[data-tohe-play]'));
+    await page.waitForTimeout(500);
+    const leftBehind = await canvases();
+    checks.push({
+      name: 'shell: its menu leads to the title screen, and the play stage is gone (no board left)',
+      ok: toMenu && leftBehind === 0,
+      detail: !toMenu
+        ? 'no [data-tohe-main-menu] leading to the title screen'
+        : leftBehind === 0
+          ? undefined
+          : `${leftBehind} canvas element(s) after leaving play`,
+    });
     const out =
       (await visible(frame, '[data-tohe-exit]')) &&
       (await press(frame, '[data-tohe-exit]:visible')) === 'pressed' &&
       (await until(() => exits > 0, 1000));
-    checks.push({ name: 'shell: its menu leads back to Tò He (exit)', ok: out });
+    checks.push({ name: 'shell: the title screen leads back to Tò He (exit)', ok: out });
     return checks;
   } finally {
     host.dispose();

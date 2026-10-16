@@ -163,27 +163,30 @@ Portrait first, landscape supported *(default)*: the player's hand along the bot
 the one opposite at the top, the previous one to the left; each opponent shows an avatar, a name, a card count and
 a ring while it is their turn; the table in the middle.
 
-The kit's game shell and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0019). The catalog card opens
-the game:
+The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020). The
+catalog card opens the game:
 
-0. **Title screen** (every time, over the table as it was left): 🃏 **Tiến Lên**, **🤖 Chơi với máy**, or the chip
-   "Ván đang chơi dở." with **▶ Chơi tiếp** and **🔄 Bàn mới** (the series restarts at 0, asks first); **🌐 Chơi
-   online** (signed-in players: the hub's lobby, whose ← comes back here); tools 🔊, ⚙️ (sound; **Luật nhà** H1–H9
-   and **Bàn chơi**, 2–4 players and the bots' level, between hands; **Bộ bài**, two or four colours, any time), ❓;
-   **← Về Tò He** in the corner.
+0. **Title screen** (the menu stage against bots, every time; no table running): 🃏 **Tiến Lên** on a hint of the
+   felt, **🤖 Chơi với máy**, or the chip "Ván đang chơi dở." with **▶ Chơi tiếp** and **🔄 Bàn mới** (the series
+   restarts at 0, asks first); **🌐 Chơi online** (signed-in players: the hub's lobby, whose ← comes back here); tools
+   🔊 ⚙️ ❓; **← Về Tò He** in the corner. **⚙️ Cài đặt**: 🔊, **📜 Luật nhà** (H1–H9) and **🪑 Bàn chơi** (2–4 players
+   and the bots' level) — from the next hand, said so while a hand is in progress — and **🎴 Bộ bài** (two or four
+   colours).
 1. **How to play** (before the first **Chơi** only, then from ❓): picture hints — the card order (3 lowest, 2
    highest; ♠ ♣ ♦ ♥), beat with the same kind but higher, pass if you cannot or do not want to, bombs chop 2s, first
    out wins. **▶ Bắt đầu** deals a practice hand: the suggestion is shown on every turn with a sentence saying why.
-2. **Table:** the kit's HUD — ☰, the series score, the hand's number, (😀 at a table) and a sort toggle (by rank /
-   by combinations); buttons **Bỏ lượt**, **Gợi ý**, **Đánh**. Tapping a card lifts it (selected); sliding a finger
-   along the hand selects a run. Tapping one card when nothing is selected suggests the smallest play with it that
-   beats the table. **Đánh** is enabled only for a selection that may be played; otherwise the reason is shown
-   ("Phải lớn hơn đôi 7").
+2. **Table** (the play stage, created on play from the save): the kit's HUD — ☰, the series score, the hand's
+   number, (😀 at a table) and a sort toggle (by rank / by combinations); buttons **Bỏ lượt**, **Gợi ý**, **Đánh**.
+   Tapping a card lifts it (selected); sliding a finger along the hand selects a run. Tapping one card when nothing is
+   selected suggests the smallest play with it that beats the table. **Đánh** is enabled only for a selection that
+   may be played; otherwise the reason is shown ("Phải lớn hơn đôi 7").
 3. **Hand results:** places with avatars, the points of the hand line by line (places, chops, thối, cóng), the series
-   score, **Ván tiếp** and **☰ Menu chính** (the shell's end card: Back goes to the title screen).
-4. **☰ menu** (phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**, **🔄 Bàn mới**, **☰ Menu chính** (the
-   hand waits: **Chơi tiếp**), tools 🔊 ⚙️ (Luật nhà and Bàn chơi read only during a hand, Bộ bài) ❓, **← Về Tò
-   He**. Bots stop while it is open.
+   score, **Ván tiếp** and **🏠 Menu chính** (the shell's end card: Back goes to the title screen).
+4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**; 🔊 Âm thanh as a switch;
+   **🎴 Bộ bài** as chips that redraw the cards behind the panel; 🔄 Bàn mới (asks) · ❓ Cách chơi · 🏠 Menu chính
+   (the hand waits: **Chơi tiếp**). Bots stop while it is open. At an online table (no title screen): "Bàn vẫn tiếp
+   tục khi bạn mở menu.", 🔊, 🎴, **📜 Luật của bàn** (read only), ❓, and **Rời bàn** / **Thôi xem**; in a replay,
+   **Về sảnh**.
 
 ## Feel (juice in tiers)
 
@@ -264,6 +267,9 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 
 ## Changelog
 
+- **0.6.0** — two stages (ADR 0020): the title screen runs no table; the table is built on play (its code
+  fetched in the background) and freed on 🏠; the quick panel switches sound and the deck in place, and has no way
+  out to Tò He (at a table and in a replay it keeps the seat's).
 - **0.5.0** — game shell 2 (ADR 0019): a title screen with tools (🔊 ⚙️ ❓), the how-to before the first hand,
   🔄 Bàn mới in the ☰ menu, the menu opens when the hub hides the game against bots, the hand's results are the
   shell's end card (Back → title screen), and the kit's HUD.

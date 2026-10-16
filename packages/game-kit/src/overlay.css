@@ -185,14 +185,11 @@
   outline-offset: 2px;
 }
 
-/* The title screen: the whole screen over the game's art, its picture and name, one big play button, the tools. */
+/* The title screen (the menu stage's first): the game's picture and name, one big play button, the tools. */
 .tohe-overlay-title {
   place-items: stretch;
   padding: max(0.75rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
     max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
-  background: color-mix(in srgb, var(--tohe-page) 84%, transparent);
-  -webkit-backdrop-filter: blur(6px);
-  backdrop-filter: blur(6px);
 }
 
 .tohe-layout-title {
@@ -305,6 +302,318 @@
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
   font-size: 1rem;
   font-weight: 800;
+}
+
+/* The menu stage (ADR 0020): the game's own first screens, opaque, above play. A game may set --tohe-menu-bg to tint it
+   (keep text on it readable: tint the page colour, do not replace it). */
+.tohe-overlay.tohe-menu-stage {
+  z-index: 20;
+  background: var(
+    --tohe-menu-bg,
+    radial-gradient(120% 65% at 50% 0%, var(--tohe-soft) 0%, transparent 62%),
+    radial-gradient(90% 55% at 50% 105%, var(--tohe-soft) 0%, transparent 70%),
+    var(--tohe-page)
+  );
+  background-color: var(--tohe-page);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+/* A few of the game's emoji drifting behind the title screen; decoration only. */
+.tohe-decor {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.tohe-decor-item {
+  position: absolute;
+  font-size: 2.2rem;
+  opacity: 0.2;
+  animation: tohe-drift 9s ease-in-out infinite;
+}
+
+/* A full screen of the menu stage (⚙️ Cài đặt, ❓ Cách chơi): ← and the title on top, the content scrolling. */
+.tohe-overlay-screen {
+  place-items: stretch;
+  padding: max(0.6rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+}
+
+.tohe-layout-screen {
+  display: flex;
+  flex-direction: column;
+  width: min(30rem, 100%);
+  max-height: 100%;
+  margin: 0 auto;
+  padding: 0;
+  overflow: hidden;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  text-align: left;
+  animation: tohe-rise 0.3s ease-out both;
+}
+
+.tohe-screen-head {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0 0 0.75rem;
+}
+
+.tohe-screen-back {
+  width: auto;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+  font-size: 1.25rem;
+}
+
+.tohe-screen-icon {
+  font-size: 1.6rem;
+}
+
+.tohe-layout-screen .tohe-card-title {
+  color: var(--tohe-brand-ink);
+  font-size: 1.6rem;
+}
+
+.tohe-screen-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 1rem;
+  min-height: 0;
+  padding-bottom: 0.5rem;
+  overflow-y: auto;
+}
+
+.tohe-layout-screen .tohe-card-body {
+  margin: 0;
+}
+
+.tohe-layout-screen .tohe-card-actions {
+  margin-top: auto;
+}
+
+/* ⚙️ Cài đặt: one section per setting. */
+.tohe-section {
+  padding: 0.9rem 1rem;
+  border-radius: 1.25rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.tohe-section-title {
+  margin: 0;
+  color: var(--tohe-ink);
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.tohe-section-note {
+  margin: 0.25rem 0 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.9rem;
+}
+
+/* Rows that change something in place: a switch, chips to choose from, a link to a card. */
+.tohe-rows {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  text-align: left;
+}
+
+.tohe-layout-screen .tohe-rows {
+  margin-top: 0;
+}
+
+.tohe-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3rem;
+  padding: 0.45rem 0.9rem;
+  border: 0;
+  border-radius: 1rem;
+  background: var(--tohe-fill);
+  color: var(--tohe-ink);
+  font: inherit;
+  font-weight: 700;
+  text-align: left;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tohe-layout-screen .tohe-row {
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.tohe-row:focus-visible,
+.tohe-chip:focus-visible {
+  outline: 3px solid var(--tohe-focus);
+  outline-offset: 2px;
+}
+
+.tohe-row-label {
+  font-size: 1.05rem;
+}
+
+.tohe-switch {
+  position: relative;
+  flex: none;
+  width: 3rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  background: var(--tohe-line-strong);
+  transition: background 0.15s ease;
+}
+
+.tohe-switch::after {
+  content: "";
+  position: absolute;
+  top: 0.2rem;
+  left: 0.2rem;
+  width: 1.35rem;
+  height: 1.35rem;
+  border-radius: 999px;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 2px rgb(0 0 0 / 0.25);
+  transition: transform 0.15s ease;
+}
+
+.tohe-row-switch[aria-checked="true"] .tohe-switch {
+  background: var(--tohe-brand);
+}
+
+.tohe-row-switch[aria-checked="true"] .tohe-switch::after {
+  transform: translateX(1.25rem);
+}
+
+.tohe-row-choices {
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.45rem;
+  cursor: default;
+}
+
+.tohe-chips {
+  display: flex;
+  gap: 0.4rem;
+  padding-bottom: 0.1rem;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+
+.tohe-chip {
+  display: flex;
+  flex: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.7rem;
+  border: 2px solid transparent;
+  border-radius: 0.9rem;
+  background: var(--tohe-surface);
+  color: var(--tohe-ink);
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tohe-chip[aria-pressed="true"] {
+  border-color: var(--tohe-brand);
+}
+
+.tohe-row-chevron {
+  color: var(--tohe-accent);
+  font-size: 1.4rem;
+}
+
+/* While play gets ready: the game's picture and three dots on the page, covering the board until its first frame.
+   They fade in late, so a quick start shows nothing but the page. */
+.tohe-overlay-loading {
+  background: var(--tohe-page);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.tohe-layout-loading {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.6rem;
+  width: auto;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  animation: tohe-fade 0.2s 0.25s ease-out both;
+}
+
+.tohe-layout-loading .tohe-card-icon {
+  font-size: 4rem;
+  animation: tohe-bob 3s ease-in-out infinite;
+}
+
+.tohe-layout-loading .tohe-card-title {
+  color: var(--tohe-ink-soft);
+  font-size: 1.2rem;
+  font-weight: 700;
+}
+
+.tohe-dots {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.tohe-dot {
+  width: 0.6rem;
+  height: 0.6rem;
+  border-radius: 999px;
+  background: var(--tohe-brand);
+  animation: tohe-dot 1s ease-in-out infinite;
+}
+
+.tohe-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+
+.tohe-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+/* The same screen drawn again after a switch: it changes in place, without its entrance. */
+.tohe-card.tohe-still,
+.tohe-still .tohe-title-hero,
+.tohe-still .tohe-card-actions,
+.tohe-still .tohe-tools {
+  animation: none;
+}
+
+/* Where the play stage builds its HUD and board: the rest of the game's root. */
+.tohe-play-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.tohe-play-stage[hidden] {
+  display: none;
 }
 
 /* 3, 2, 1 before play goes on (a game against the clock). */
@@ -450,6 +759,10 @@
   text-align: left;
 }
 
+.tohe-layout-screen .tohe-hints {
+  margin: 0;
+}
+
 .tohe-hint {
   display: flex;
   align-items: center;
@@ -540,6 +853,25 @@
   }
 }
 
+@keyframes tohe-drift {
+  50% {
+    transform: translateY(-14px) rotate(8deg);
+  }
+}
+
+@keyframes tohe-fade {
+  from {
+    opacity: 0;
+  }
+}
+
+@keyframes tohe-dot {
+  50% {
+    opacity: 0.45;
+    transform: translateY(-6px);
+  }
+}
+
 @keyframes tohe-glow {
   50% {
     opacity: 1;
@@ -573,6 +905,9 @@
 
 @media (prefers-reduced-motion: reduce) {
   .tohe-card,
+  .tohe-decor-item,
+  .tohe-dot,
+  .tohe-layout-loading .tohe-card-icon,
   .tohe-title-hero,
   .tohe-layout-title .tohe-card-icon,
   .tohe-layout-title .tohe-card-actions,

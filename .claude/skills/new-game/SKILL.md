@@ -31,17 +31,26 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
    `burst`, `floatText`, `shake`, `confetti`), `crispText`, `sfx` and `haptics`. Layout in CSS pixels. Tiles,
    blocks and boards are `drawTexture` + `crispImage` (drawn once per value/theme/size, key says which), not
    `Graphics` or a `Text` per piece: those cost every frame on phones.
-6. `src/main.ts`: `connect({ gameId })`; `createGame({ createScene })` from `@tohe/game-kit/phaser` (handle
-   `onRestart`); `settings.muted` → `sfx.setMuted`; save after every move; `submitScore` at the end; Vietnamese
-   strings first, English second. Every game: `"shell"` in game.json's capabilities and the kit's `createShell`
-   (ADR 0018, 0019; `games/merge-block/src/main.ts` is the model) — it brings only content: `title`, `icon`,
-   `inProgress`, `play`, `newGame`, `howTo`, `tutorial: { seen, done }` (the how-to before the first game, kept in the
-   save), `settings` with `when: 'between-games' | 'any-time'`, `leaderboard` / `online`, `onPause`/`onResume` →
-   `kit.pause()/resume()` (the shell calls them for its menu and when the hub hides the game: do not wire
-   `session.on('pause')` yourself), `countdown: true` for a game against the clock. Then `createHud({ shell, parent,
-   locale })` — `hud.score({ score, best })` or `hud.stat(label)`, the game's own piece in `hud.center` — and
-   `shell.overlay` for the game's own cards, `shell.gameOver(card)` at the end, and `shell.start()` once the board is
-   drawn (the hub's loading screen waits for it). No exit button, no HUD layout and no Esc handler of its own. Runs that outlast one sitting (saved mid-run): live scores instead of `submitScore` — `session.run(id).update(score)` after scoring moves,
+6. Three files, two stages (ADR 0020; `games/merge-block/src/` is the model):
+   - `src/app.ts` — what both stages share: `connect({ gameId })`, the strings, `createSfx` (+ `settings.muted` →
+     `sfx.setMuted`), the save in memory (`store`) and `persist()`. No Phaser here.
+   - `src/main.ts` — the menu stage: `followTheme(session)` and the kit's `createShell` (ADR 0018–0020), which brings
+     only content: `title`, `icon`, `decor`, `inProgress`, `best`, `howTo`, `tutorial: { seen, done }` (the how-to
+     before the first game, kept in the save), `settings` (sections of ⚙️: `content()` controls, `when:
+     'between-games' | 'any-time'`), `leaderboard` / `online`, `countdown: true` for a game against the clock, and
+     `stage: () => import('./stage.ts')`; then `shell.start()`. `"shell"` in game.json's capabilities.
+   - `src/stage.ts` — the play stage: `export async function start(ctx)` clones `<template id="play-stage">` into
+     `ctx.root`, makes the HUD with `createHud({ menu: ctx.menuButton(), parent: ctx.root, locale })`
+     (`hud.score({ score, best })` or `hud.stat(label)`, the game's own piece in `hud.center`), creates the engine
+     (`createGame({ createScene })` from `@tohe/game-kit/phaser`, handle `onRestart`), continues `store`'s game or
+     starts a fresh one when `ctx.fresh`, points at a first move when `ctx.firstTime`, uses `ctx.overlay` for its own
+     cards and `ctx.gameOver(card)` at the end, calls `ctx.ready()` once the board is drawn, and returns
+     `{ pause, resume, newGame, leave, quick }` — `pause`/`resume` → `kit.pause()/resume()` (the shell calls them
+     for its panel and when the hub hides the game: do not wire `session.on('pause')` yourself), `newGame` in place,
+     `leave` saves and removes every listener, timer and the engine (`kit.destroy()`), `quick()` the panel's live
+     rows (the game's looks: `choices`, `switch`; `info` cards to read).
+   No exit button, no HUD layout, no Esc handler and no menu of its own; save after every move; `submitScore` at the
+   end; Vietnamese strings first, English second. Runs that outlast one sitting (saved mid-run): live scores instead of `submitScore` — `session.run(id).update(score)` after scoring moves,
    `finish(score)` at game over and when a new game replaces an unfinished one (id kept in the save, ADR 0014).
 7. Themes (with both): `followTheme(session, theme => { scene.setTheme(theme); kit.setBackground(...) })`; art
    colours in a per-theme palette (`palette.ts`), DOM colours from the design tokens (`var(--tohe-*)`); every text

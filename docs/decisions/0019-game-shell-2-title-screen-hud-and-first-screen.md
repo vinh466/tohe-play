@@ -5,7 +5,7 @@ sidebar:
   order: 19
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — the title screen over the game and the in-game menu amended by [ADR 0020](0020-a-game-has-a-menu-stage-and-a-play-stage.md) (menu and play stages)
 - **Date:** 2026-10-16
 - **Amends:** the screens of [ADR 0018](0018-every-game-opens-on-its-own-main-menu.md) (the flow and the contract stay)
 

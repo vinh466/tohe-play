@@ -39,21 +39,22 @@ The game ends when **every column is full**. Then: score, best, "Kỷ lục mớ
 
 ## Screens
 
-The kit's game shell and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0019); this game brings its
-content:
+The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020); this game
+brings its content:
 
-1. **Title screen** (every time the game opens, over the board as it was left): 🧱 **Ghép Khối**, **▶ Chơi**, or the
-   chip "Ván đang chơi dở: n điểm." with **▶ Chơi tiếp** and **🔄 Ván mới** (asks first; the run ends); tools 🔊 ⚙️
-   🏆 (signed-in players) ❓; **← Về Tò He** in the corner.
-2. **How to play** (before the first **Chơi** only, then from ❓): three picture hints — tap a column; equal blocks
-   merge; chains multiply points. **▶ Bắt đầu** starts, and the first move shows a pulsing hint over the columns.
-3. **Playing:** the kit's HUD — ☰, score (counts up), the next block, best (lights up 👑 once the score passes
-   it); the board with the current block above it. **☰** (phone Back, Esc, or the hub hiding the game) opens the
-   menu: **▶ Tiếp tục**, **🔄 Ván mới**, **☰ Menu chính**, tools 🔊 ⚙️ ❓, **← Về Tò He**.
-   - **⚙️ Cài đặt → Màu khối** (any time): one row per [preset](#block-colours), with its name and sample blocks 2 …
-     256 in its colours; the chosen one is marked. Tapping a row repaints the board, the current block and the next
-     block at once and keeps the choice; **Quay lại** returns.
-4. **Game over:** board dims and settles, card with score/best, confetti for a record, **▶ Chơi lại**, **☰ Menu
+1. **Title screen** (the menu stage, every time the game opens, no board running): 🧱 **Ghép Khối** over drifting
+   blocks, the chip "Ván đang chơi dở: n điểm. · 👑 Kỷ lục m", **▶ Chơi** or **▶ Chơi tiếp** and **🔄 Ván mới**
+   (asks first; the run ends); tools 🔊 ⚙️ 🏆 (signed-in players) ❓; **← Về Tò He** in the corner. **⚙️ Cài đặt**:
+   🔊 and **🎨 Màu khối** — one row per [preset](#block-colours), with its name and sample blocks 2 … 256 in its
+   colours. **❓ Cách chơi**: the three picture hints.
+2. **How to play** (before the first **Chơi** only): three picture hints — tap a column; equal blocks merge; chains
+   multiply points. **▶ Bắt đầu** starts, and the first move shows a pulsing hint over the columns.
+3. **Playing** (the play stage, created on play from the save): the kit's HUD — ☰, score (counts up), the next
+   block, best (lights up 👑 once the score passes it); the board with the current block above it.
+4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**; 🔊 Âm thanh as a switch;
+   **🎨 Màu khối** as chips (four sample blocks each) that repaint the board, the current block and the next block
+   behind the panel at once; 🔄 Ván mới (asks) · ❓ Cách chơi · 🏠 Menu chính (saves; the title then offers Chơi tiếp).
+5. **Game over:** board dims and settles, card with score/best, confetti for a record, **▶ Chơi lại**, **🏠 Menu
    chính**; Back goes to the title screen.
 
 ## Feel (juice), in tiers

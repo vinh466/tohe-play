@@ -11,7 +11,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `docs/` | Spec: overview, architecture, contracts, guides, conventions, ADRs, roadmap |
 | `packages/contract` | Game Contract v1 (Zod) — source of truth for game.json, catalog, protocol, CSP |
 | `packages/game-sdk` | Game side (no runtime deps) and host side (`/host`) of the contract |
-| `packages/game-kit` | Game shell (title screen, menus, HUD), Phaser setup, sounds, haptics, juice — use it for every new game (ADR 0012, 0019) |
+| `packages/game-kit` | Game shell (menu stage, play stage, quick panel, HUD), Phaser setup, sounds, haptics, juice — use it for every new game (ADR 0012, 0020) |
 | `packages/design-tokens` | Light and dark colour tokens shared by the hub, the site and the kit (ADR 0013) |
 | `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |

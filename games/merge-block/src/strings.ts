@@ -22,6 +22,7 @@ export const strings = {
     record: 'Kỷ lục mới!',
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
+    bestLine: (score: string) => `👑 Kỷ lục ${score}`,
   },
   en: {
     title: 'Merge Blocks',
@@ -46,6 +47,7 @@ export const strings = {
     record: 'New record!',
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     inProgress: (score: string) => `A game in progress: ${score} points.`,
+    bestLine: (score: string) => `👑 Best ${score}`,
   },
 };
 
