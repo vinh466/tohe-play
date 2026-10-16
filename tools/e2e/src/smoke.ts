@@ -245,6 +245,9 @@ try {
 
   step('phone Back opens the menu (the round waits), Back again goes on playing');
   await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
+  // The play stage is up once its loading view is gone (Back while it loads goes back to the title, ADR 0020).
+  await frame.locator('[data-tohe-menu]').waitFor();
+  await frame.locator('.tohe-overlay-loading').waitFor({ state: 'hidden' });
   await page.evaluate(() => history.back());
   await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor();
   if (!/\/play\/hello$/.test(page.url())) throw new Error(`Back left the game: ${page.url()}`);
