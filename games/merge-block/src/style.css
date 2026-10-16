@@ -26,32 +26,6 @@ body {
     env(safe-area-inset-left);
 }
 
-/* ⏸ | score | next block | best — the next block stays between the scores whatever their width. */
-#hud {
-  display: grid;
-  grid-template-columns: auto 1fr auto 1fr;
-  align-items: start;
-  gap: clamp(0.4rem, 2vw, 0.75rem);
-  padding: 0.6rem 1rem 0;
-}
-
-.stat {
-  justify-self: start;
-  display: flex;
-  flex-direction: column;
-  min-width: 5.5rem;
-  padding: 0.35rem 0.9rem 0.45rem;
-  border-radius: 1rem;
-  background: var(--tohe-soft);
-}
-
-.stat-best {
-  justify-self: end;
-  align-items: flex-end;
-  background: var(--tohe-surface);
-  transition: background 0.3s ease;
-}
-
 .next {
   display: flex;
   flex-direction: column;
@@ -84,39 +58,6 @@ body {
   font-size: 0.85rem;
 }
 
-.mini-block.bump {
-  animation: bump 0.3s ease-out;
-}
-
-.stat-best.is-record {
-  background: var(--tohe-notice);
-}
-
-.stat-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--tohe-accent);
-}
-
-.crown {
-  display: inline-block;
-}
-
-.is-record .crown {
-  animation: wobble 0.8s ease-in-out infinite;
-}
-
-.stat-value {
-  font-size: 1.6rem;
-  font-weight: 900;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-}
-
-.stat-value.bump {
-  animation: bump 0.3s ease-out;
-}
-
 #stage {
   position: relative;
   flex: 1;
@@ -127,7 +68,7 @@ body {
   display: block;
 }
 
-/* ⏸ → Màu khối: each preset shows sample blocks 2 … 256, coloured from palette.ts. */
+/* ⚙️ Cài đặt → Màu khối: each preset shows sample blocks 2 … 256, coloured from palette.ts. */
 .samples {
   display: flex;
   gap: 0.25rem;
@@ -142,24 +83,4 @@ body {
   border-radius: 22%;
   font-size: 0.72rem;
   font-weight: 900;
-}
-
-@keyframes bump {
-  40% {
-    transform: scale(1.18);
-  }
-}
-
-@keyframes wobble {
-  50% {
-    transform: rotate(-12deg) scale(1.15);
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .stat-value.bump,
-  .mini-block.bump,
-  .is-record .crown {
-    animation: none;
-  }
 }

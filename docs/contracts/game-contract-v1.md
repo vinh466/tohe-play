@@ -39,7 +39,7 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `entry` | string | `index.html` | Entry file relative to the build folder. |
 | `icon` | string | — | Icon file relative to the build folder (SVG or PNG, square). |
 | `orientation` | `portrait` \| `landscape` \| `any` | `portrait` | Preferred orientation. |
-| `capabilities` | array of `save`, `scores`, `rooms`, `shell` | `[]` | Platform services the game uses. Undeclared calls are rejected. `shell`: the game draws its own main menu and menu with the way back to Tò He (below). |
+| `capabilities` | array of `save`, `scores`, `rooms`, `shell` | `[]` | Platform services the game uses. Undeclared calls are rejected. `shell`: the game draws its own title screen and menu with the way back to Tò He (below). |
 | `themes` | array of `light`, `dark` | `["light"]` | Looks the game has ([ADR 0013](../decisions/0013-light-and-dark-themes.md)). With both, it follows the hub through `settings.theme`; with one, it keeps that look. |
 | `minAge` | 0–18 | `0` | Hidden from younger profiles (M1). |
 | `tags` | string[] | `[]` | Up to 8 short tags. |
@@ -78,17 +78,23 @@ forward, play and pause.
 
 ### Game shell
 
-Every game opens on its own main menu and has one ☰ menu while playing, with the way back to Tò He inside
-([ADR 0018](../decisions/0018-every-game-opens-on-its-own-main-menu.md), [Game shell](../architecture/game-shell.md)). A
-game declaring `"shell"` gets the whole screen: the hub draws no bar over it. The kit's `createShell` does all of it;
-a game without the kit must:
+Every game opens on its own title screen and has one ☰ menu while playing, with the way back to Tò He inside
+([ADR 0018](../decisions/0018-every-game-opens-on-its-own-main-menu.md),
+[ADR 0019](../decisions/0019-game-shell-2-title-screen-hud-and-first-screen.md), [Game shell](../architecture/game-shell.md)).
+A game declaring `"shell"` gets the whole screen: the hub draws no bar over it. The kit's `createShell` does all of
+it (every game uses the kit, ADR 0012); what it does, and what any `shell` game must do:
 
-- open on a main menu whose play button carries `data-tohe-play` and whose way back to Tò He carries `data-tohe-exit`
-  and calls `exit()`;
+- show its first screen once its board is drawn and say so with `session.shell.menuChanged(…)` — the title screen
+  (`true`), or play when opened straight into a table or a replay (`false`): the hub keeps its loading screen over
+  the game until this first `menu` message, at most 8 s after the handshake;
+- open on a title screen whose play button carries `data-tohe-play` and whose way back to Tò He carries
+  `data-tohe-exit` and calls `exit()`; a first-time how-to before play carries `data-tohe-play` on its start button;
 - while playing, show a ☰ that opens a menu with the same `data-tohe-exit`, pausing what can pause;
-- on `menu` (the player pressed Back): open the menu while playing, close it when open, go back to the main menu from
-  the end of a game, and `exit()` from the main menu — telling the hub with `session.shell.menuChanged(open)` every
-  time a menu opens or closes;
+- on `menu` (the player pressed Back): open the menu while playing, close it when open, go back to the title screen
+  from the end of a game, and `exit()` from the title screen — telling the hub with `session.shell.menuChanged(open)`
+  every time a menu opens or closes;
+- on `pause` (the hub hid the game): open the menu while playing alone, so play waits there; at a table nothing
+  stops;
 - offer sound in its menu (`session.shell.setMuted`), and the leaderboard or online play only when
   `session.shell.can` says the hub can open them (`session.shell.open('leaderboard' | 'rooms')`).
 
@@ -223,9 +229,11 @@ origin, and checks:
    views at most 64 KB) with `Math.random` and `Date.now` throwing, and replays to the same state; then the game is
    opened at a two-seat table refereed by its own module, with a bot in the other seat, under random taps, and opened
    with `init.replay` to play back a hand its own bots played to the end;
-8. with `shell`: it opens on a main menu with `[data-tohe-play]` and `[data-tohe-exit]`, answers `menu` with
-   `menu { open: true }` within 1.5 s once playing, and the `[data-tohe-exit]` of that menu sends `exit`. The random
-   input of check 3 starts from **Chơi**.
+8. with `shell`: it reports its first screen (a `menu` message) within 8 s of the handshake, opens on a title screen
+   with `[data-tohe-play]` and `[data-tohe-exit]`, plays from it (through a first-time how-to), answers `menu` with
+   `menu { open: true }` within 1.5 s once playing and closes the menu on the next `menu`, opens its menu on
+   `pause`, and the `[data-tohe-exit]` of that menu sends `exit`. The random input of check 3 starts from **Chơi**.
+   Screenshots: `<id>-shell-title.png` (the title screen) and `<id>-shell.png` (the menu after Back).
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
 `<id>-<theme>.png` per theme, `<id>-room.png` at a table and `<id>-replay.png` replaying — look at them.

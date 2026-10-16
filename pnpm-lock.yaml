@@ -135,6 +135,9 @@ importers:
       '@tohe/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@tohe/game-kit':
+        specifier: workspace:*
+        version: link:../../packages/game-kit
       '@tohe/game-sdk':
         specifier: workspace:*
         version: link:../../packages/game-sdk

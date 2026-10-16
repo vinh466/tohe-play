@@ -155,7 +155,9 @@ try {
   }
   await shot('catalog');
 
-  step('launch it: the game opens on its main menu, full screen, with no hub bar (ADR 0018)');
+  step(
+    "launch it: the loading screen gives way to the game's title screen, full screen, with no hub bar (ADR 0019)",
+  );
   const catalogEntry = await historyIndex(page);
   await card.tap();
   await page.waitForURL(/\/play\/hello$/);
@@ -164,8 +166,9 @@ try {
   if (!box) throw new Error('game iframe has no layout box');
   mark(`iframe box ${JSON.stringify(box)}`);
   if (box.y > 0) throw new Error(`the game does not fill the screen: iframe at y=${box.y}`);
-  await frame.getByRole('button', { name: '🏆 Bảng xếp hạng' }).waitFor();
-  await frame.getByRole('button', { name: '← Về Tò He' }).waitFor();
+  await frame.getByRole('button', { name: 'Bảng xếp hạng' }).waitFor();
+  await frame.getByRole('button', { name: 'Về Tò He' }).waitFor();
+  await page.waitForTimeout(600); // the title screen rises in
   await shot('main-menu');
 
   step('play one 20 s round');
@@ -176,7 +179,9 @@ try {
   const margin = 24;
   const top = 96;
   await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
-  const again = frame.getByRole('button', { name: 'Chơi lại', exact: true });
+  // The first round starts from the how-to.
+  await frame.getByRole('button', { name: '▶ Bắt đầu' }).tap();
+  const again = frame.getByRole('button', { name: '▶ Chơi lại', exact: true });
   while (Date.now() < end && !(await again.isVisible())) {
     const x = Math.round(box.x + margin + Math.random() * (box.width - 2 * margin));
     const y = Math.round(box.y + top + Math.random() * (box.height - top - margin));
@@ -184,7 +189,7 @@ try {
     await page.touchscreen.tap(x, y);
     await page.waitForTimeout(150);
   }
-  await frame.getByRole('button', { name: 'Chơi lại' }).waitFor({ timeout: 10_000 });
+  await frame.getByRole('button', { name: '▶ Chơi lại' }).waitFor({ timeout: 10_000 });
   await shot('game-over');
 
   step('the game follows the hub live: the device turns dark, "Theo máy" passes it on as settings.theme');
@@ -231,9 +236,9 @@ try {
     await page.waitForTimeout(500);
   }
 
-  step("the game's main menu opens the hub's leaderboard over the game");
+  step("the game's title screen opens the hub's leaderboard over the game");
   await frame.getByRole('button', { name: '☰ Menu chính' }).tap();
-  await frame.getByRole('button', { name: '🏆 Bảng xếp hạng' }).tap();
+  await frame.getByRole('button', { name: 'Bảng xếp hạng' }).tap();
   const board = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await board.getByText('Bé Na (bạn)').waitFor();
   await board.getByRole('button', { name: '✕' }).tap();
@@ -246,6 +251,24 @@ try {
   await shot('in-game-menu');
   await page.evaluate(() => history.back());
   await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor({ state: 'hidden' });
+
+  step('the hub hiding the game (another app, a locked phone) opens its menu, and play waits there');
+  const setHidden = (hidden: boolean) =>
+    page.evaluate((value) => {
+      Object.defineProperty(document, 'hidden', { value, configurable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    }, hidden);
+  // Going on counts 3, 2, 1 first (a game against the clock): wait until play is back before hiding it.
+  await frame.locator('.tohe-overlay').waitFor({ state: 'hidden' });
+  await setHidden(true);
+  await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor();
+  await setHidden(false);
+  await page.waitForTimeout(500);
+  if (!(await frame.getByRole('button', { name: '▶ Tiếp tục' }).isVisible())) {
+    throw new Error('the menu closed by itself when the game came back');
+  }
+  await frame.getByRole('button', { name: '▶ Tiếp tục' }).tap();
+  await frame.locator('.tohe-overlay').waitFor({ state: 'hidden' });
 
   step(
     "leave from the game's own menu: back to the catalog the way the player came (phone Back then leaves Tò He)",

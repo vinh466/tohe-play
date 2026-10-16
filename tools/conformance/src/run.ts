@@ -179,8 +179,9 @@ export async function runConformance(
 
     if (handshake === null) {
       const frame = await gameFrame(page, gameServer.url);
-      // A shell game opens on its main menu: play first, so the random input reaches the game itself.
-      if (hasShell(manifest)) await press(frame, '[data-tohe-play]');
+      // A shell game opens on its title screen: play first (and through the first-time how-to), so the random input
+      // reaches the game itself.
+      if (hasShell(manifest)) await playFromTitle(frame);
       await monkey(page, frame, options.monkeyMs ?? 4000, host, otherTheme);
       const alive = await frame
         .evaluate(() => document.readyState)
@@ -432,10 +433,15 @@ const shellOf = (manifest: GameManifest) =>
     ? { leaderboard: manifest.capabilities.includes('scores'), rooms: manifest.rooms !== undefined }
     : undefined;
 
+/** How long a shell game may take from the handshake to its first screen; the hub's loading screen waits as long. */
+const FIRST_SCREEN_MS = 8000;
+
 /**
- * The game shell (ADR 0018), in a fresh session: the game opens on its main menu with a way back to Tò He
- * (`data-tohe-exit`), plays from it (`data-tohe-play`), answers the hub's `menu` (Back) by reporting its menu open
- * within 1.5 s, and the way out of that menu sends `exit`.
+ * The game shell (ADR 0018, ADR 0019), in a fresh session: the game reports its first screen (its first `menu`) soon
+ * after the handshake, opens on its title screen with a way back to Tò He (`data-tohe-exit`), plays from it
+ * (`data-tohe-play`, through the first-time how-to), answers the hub's `menu` (Back) by opening its menu within 1.5 s
+ * and closing it on the next Back, opens its menu when the hub hides it (`pause`), and the way out of that menu sends
+ * `exit`.
  */
 async function shellRun(run: {
   context: BrowserContext;
@@ -495,15 +501,25 @@ async function shellRun(run: {
   try {
     await page.goto(run.hostUrl);
     await host.ready;
+    const handshaken = Date.now();
+    const firstScreen = await until(() => menus.length > 0, FIRST_SCREEN_MS);
+    checks.push({
+      name: `shell: shows its first screen (reports it) within ${FIRST_SCREEN_MS / 1000} s of the handshake`,
+      ok: firstScreen,
+      detail: firstScreen
+        ? `${Date.now() - handshaken} ms`
+        : 'no menu message: the hub would keep its loading screen up',
+    });
     const frame = await gameFrame(page, run.gameUrl);
     const opens = (await visible(frame, '[data-tohe-play]')) && (await visible(frame, '[data-tohe-exit]'));
-    checks.push({ name: 'shell: opens on its main menu, with play and the way back to Tò He', ok: opens });
-    const played = await press(frame, '[data-tohe-play]');
+    mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
+    await page.screenshot({ path: run.screenshot.replace(/\.png$/, '-title.png') }).catch(() => {});
+    checks.push({ name: 'shell: opens on its title screen, with play and the way back to Tò He', ok: opens });
+    const played = await playFromTitle(frame);
     await page.waitForTimeout(1500);
-    const before = menus.length;
+    let before = menus.length;
     host.menu();
     const answered = await until(() => menus.slice(before).includes(true), 1500);
-    mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
     await page.screenshot({ path: run.screenshot }).catch(() => {});
     checks.push({
       name: 'shell: answers Back with its menu within 1.5 s',
@@ -511,6 +527,19 @@ async function shellRun(run: {
       detail: answered
         ? undefined
         : `${played}; menu states after Back: ${JSON.stringify(menus.slice(before))}, exits: ${exits}`,
+    });
+    before = menus.length;
+    host.menu();
+    const closed = await until(() => menus.slice(before).includes(false), 1500);
+    checks.push({ name: 'shell: Back again closes its menu (play goes on)', ok: closed });
+    before = menus.length;
+    host.pause();
+    const paused = await until(() => menus.slice(before).includes(true), 1500);
+    host.resume();
+    checks.push({
+      name: 'shell: opens its menu when the hub hides the game (pause)',
+      ok: paused,
+      detail: paused ? undefined : `menu states after pause: ${JSON.stringify(menus.slice(before))}`,
     });
     const out =
       (await visible(frame, '[data-tohe-exit]')) &&
@@ -522,6 +551,28 @@ async function shellRun(run: {
     host.dispose();
     await page.close();
   }
+}
+
+/**
+ * From the title screen into play: presses play, and again while a play button shows (the first-time how-to's).
+ * Returns what happened, for a failure's detail.
+ */
+async function playFromTitle(frame: Frame): Promise<string> {
+  let result = 'no play button';
+  for (let step = 0; step < 3; step++) {
+    const shown = await frame
+      .locator('[data-tohe-play]:visible')
+      .first()
+      .waitFor({ state: 'visible', timeout: step === 0 ? 5000 : 800 })
+      .then(
+        () => true,
+        () => false,
+      );
+    if (!shown) break;
+    result = await press(frame, '[data-tohe-play]:visible');
+    await frame.page().waitForTimeout(300);
+  }
+  return result;
 }
 
 /**

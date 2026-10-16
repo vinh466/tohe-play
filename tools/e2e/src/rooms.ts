@@ -176,7 +176,7 @@ try {
   await host.reload();
   await signIn(kid, family, 'Bé Na');
 
-  step("the host opens Tiến Lên: the game's main menu leads to the lobby (ADR 0018)");
+  step("the host opens Tiến Lên: the game's title screen leads to the lobby (ADR 0019)");
   const card = host.getByRole('link', { name: /Tiến Lên/ });
   for (let attempt = 0; !(await card.isVisible()); attempt++) {
     if (attempt === 20) throw new Error('Tiến Lên never appeared in the catalog');

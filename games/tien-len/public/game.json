@@ -2,7 +2,7 @@
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "tien-len",
   "name": "Tiến Lên",
-  "version": "0.4.0",
+  "version": "0.5.0",
   "protocol": 1,
   "description": "Tiến lên miền Nam: chơi với bạn máy hoặc mở phòng chơi với cả nhà. Chặt heo, chặt chồng, tới trắng, luật nhà tự chọn.",
   "icon": "icon.svg",

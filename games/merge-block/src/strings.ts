@@ -4,7 +4,6 @@ export const strings = {
     score: 'Điểm',
     best: 'Kỷ lục',
     next: 'Tiếp',
-    start: 'Bắt đầu',
     hints: [
       { icon: '👆', text: 'Chạm vào một cột để thả khối xuống.' },
       { icon: '🧱', text: 'Hai khối giống nhau chạm nhau sẽ gộp thành số lớn hơn.' },
@@ -22,7 +21,6 @@ export const strings = {
     over: 'Hết chỗ rồi!',
     record: 'Kỷ lục mới!',
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
-    again: 'Chơi lại',
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
   },
   en: {
@@ -30,7 +28,6 @@ export const strings = {
     score: 'Score',
     best: 'Best',
     next: 'Next',
-    start: 'Start',
     hints: [
       { icon: '👆', text: 'Tap a column to drop the block.' },
       { icon: '🧱', text: 'Equal blocks that touch merge into a bigger number.' },
@@ -48,7 +45,6 @@ export const strings = {
     over: 'No more room!',
     record: 'New record!',
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
-    again: 'Play again',
     inProgress: (score: string) => `A game in progress: ${score} points.`,
   },
 };

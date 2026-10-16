@@ -14,17 +14,23 @@ Reference game for the platform: the smallest game that uses every part of the G
 
 ## Screens
 
-The game shell ([ADR 0018](../../docs/decisions/0018-every-game-opens-on-its-own-main-menu.md)), drawn by hand: this
-is the minimal game without the kit, so it shows what any game must do (`data-tohe-play`, `data-tohe-exit`, `menu`).
+The kit's game shell and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0019), with no engine: the
+smallest game shows that a Canvas 2D game gets the same screens as every other one by bringing only its content.
 
-1. **Main menu:** title, one-line explanation (the how-to), **▶ Chơi**, **🏆 Bảng xếp hạng** (signed-in players: the
-   hub's board over the game), **← Về Tò He**.
-2. **Playing:** ☰ top left, HUD `N điểm · Ts`, progress bar, playfield.
-3. **Menu** (☰, phone Back, Esc, or the hub's `pause`): **▶ Tiếp tục**, **🔊 Âm thanh**, **☰ Menu chính**,
-   **← Về Tò He**. Time does not run while it is open.
-4. **Round over:** score and best, **Chơi lại**, **☰ Menu chính**.
+1. **Title screen:** 🟠 **Chạm Chấm**, **▶ Chơi**, tools 🔊 ⚙️ 🏆 (signed-in players: the hub's board over the game)
+   ❓, **← Về Tò He** in the corner.
+2. **How to play** (before the first round only, then from ❓): one card — tap the dot as often as you can in 20
+   seconds; it shrinks as you score; missed taps cost nothing. **▶ Bắt đầu** starts the round.
+3. **Playing:** the kit's HUD — ☰, score, seconds left (⏱, glowing for the last five), best; the progress bar and
+   the playfield.
+4. **Menu** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**, **🔄 Ván mới**, **☰ Menu chính**, tools
+   🔊 ⚙️ ❓, **← Về Tò He**. Time does not run while it is open; **Tiếp tục** counts 3, 2, 1 first.
+5. **Round over:** "Hết giờ!" (or "Kỷ lục mới!"), score and best, **▶ Chơi lại**, **☰ Menu chính**; Back goes to the
+   title screen.
 
-Back steps back: the menu closes, the round's end goes to the main menu, the main menu leaves.
+## Sounds
+
+The kit's synthesised sounds: a pop on every hit, rising with the score; a fanfare for a record.
 
 ## Themes
 
@@ -35,9 +41,9 @@ tokens; the canvas reads the same tokens (`soft` arena, `brand` dot, `accent` sc
 
 | Capability | Use |
 | --- | --- |
-| `save` | `{ best: number }` after every round. |
+| `save` | `{ best, tutorialSeen }` after every round and once the how-to is seen. |
 | `scores` | `submitScore(score)` after every round, board `default`. |
-| settings | Respects `muted` (beep on hit); follows `theme`. |
+| settings | Respects `muted`; follows `theme`. |
 | seed | Dot positions. |
 
 ## Invariants (tested by the random-play bot)

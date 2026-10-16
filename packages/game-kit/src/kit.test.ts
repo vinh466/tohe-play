@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { formatCompact, formatScore, formatValue } from './format.ts';
+import { countUp, fitScore, newRunId } from './hud.ts';
 import { perfWanted } from './phaser/perf.ts';
 import { noteFrequency } from './sfx.ts';
 
@@ -69,5 +70,28 @@ describe('perfWanted', () => {
       false,
       false,
     ]);
+  });
+});
+
+describe('the HUD', () => {
+  it('counts a value up fast first, then settles exactly on it', () => {
+    expect(countUp(0, 1000, 0)).toBe(0);
+    expect(countUp(0, 1000, 0.5)).toBe(875);
+    expect(countUp(0, 1000, 1)).toBe(1000);
+    expect(countUp(500, 0, 2)).toBe(0);
+  });
+
+  it('shows a score in full while it fits its box, then shortened', () => {
+    const fitsIn = (chars: number) => (text: string) => text.length <= chars;
+    expect(fitScore(1_234_567, 'vi', fitsIn(20))).toBe('1.234.567');
+    expect(fitScore(1_234_567, 'vi', fitsIn(5))).toBe('1,23M');
+    expect(fitScore(1_234_567, 'vi', fitsIn(4))).toBe('1,2M');
+    expect(fitScore(56_400_000, 'vi', () => false)).toBe('56M');
+  });
+
+  it('makes a fresh run id every time', () => {
+    const id = newRunId();
+    expect(id).toMatch(/^[0-9a-f]{32}$/);
+    expect(newRunId()).not.toBe(id);
   });
 });

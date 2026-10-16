@@ -108,7 +108,6 @@ export const strings = {
     newTable: 'Bàn mới',
     newTableTitle: 'Mở bàn mới?',
     newTableBody: 'Bảng điểm của bàn này sẽ về 0.',
-    start: 'Chơi thôi',
     practice: 'Tập chơi',
     hints: [
       { icon: '🃏', text: 'Bài nhỏ nhất là 3, lớn nhất là 2 (heo). Cùng số thì ♠ < ♣ < ♦ < ♥.' },
@@ -243,7 +242,6 @@ export const strings = {
     newTable: 'New table',
     newTableTitle: 'Start a new table?',
     newTableBody: "This table's scores go back to 0.",
-    start: "Let's play",
     practice: 'Practice',
     hints: [
       { icon: '🃏', text: 'The lowest card is 3, the highest 2. Same rank: ♠ < ♣ < ♦ < ♥.' },

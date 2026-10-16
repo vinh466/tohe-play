@@ -52,9 +52,12 @@ sidebar:
 What the kit gives you, so you do not write it again: `createGame` (crisp on phones, resize, pause/resume, Canvas
 fallback when WebGL fails), `sfx` (synthesised sounds, iOS unlock), `haptics`, `juice` (`popIn`, `squash`, `pulse`,
 `burst`, `floatText`, `shake`, `confetti`), `drawTexture` + `crispImage` (art drawn once, see below), `overlay` (intro / pause / game-over cards in one shared style, on the
-design tokens; `hintList` and `choiceList` for their content), `createShell` (the game shell, ADR 0018: the main
-menu with play / continue, settings, leaderboard and the way back to Tò He, the ☰ menu that pauses, phone Back, the
-end-of-game card — every game uses it and declares `"shell"` in game.json), `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
+design tokens; `hintList` and `choiceList` for their content), `createShell` (the game shell, ADR 0018 and 0019: the title
+screen with play / continue, sound, settings, leaderboard, how to play and the way back to Tò He, the how-to before
+a first game, the ☰ menu that pauses — also when the hub hides the game — with a new game, phone Back, 3-2-1 for
+games against the clock, the end-of-game card; every game uses it and declares `"shell"` in game.json), `createHud`
+(☰ first, then the game's score, its own middle and the best score: counting up, a record lighting up, scores
+shortened to fit), `bump`, `newRunId`, `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
 
 **Telemetry comes with it.** Pass the session's telemetry to the kit, `createGame({ …, telemetry: session.telemetry })`
 and `createSfx({ telemetry: session.telemetry })`, and the game reports its renderer, frame times, first frame and

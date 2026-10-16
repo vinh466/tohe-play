@@ -1,101 +1,125 @@
 // View + wiring: turns pointer input into logic actions, draws state on a canvas, talks to the hub via the SDK.
-// The minimal game: no kit, so its main menu and ☰ menu (the game shell, ADR 0018) are drawn here by hand.
-import { applyTheme, type Theme } from '@tohe/design-tokens/theme';
+// The minimal game: a Canvas 2D board and no engine, on the kit's engine-free parts like every other game — the game
+// shell (title screen, ☰ menu, how to play, 3-2-1 before a round goes on: ADR 0019), the HUD and the sounds.
+import '@tohe/game-kit/overlay.css';
+import './style.css';
+import { createHud, createSfx, createShell, followTheme } from '@tohe/game-kit';
 import { connect, createRng } from '@tohe/game-sdk';
 import { createState, ROUND_MS, type State, start, tap, tick } from './logic.ts';
 
 interface Saved {
   best: number;
+  /** The how-to was shown before a first round; absent in saves from before 1.3.0. */
+  tutorialSeen?: boolean;
 }
 
 const text = {
   vi: {
     title: 'Chạm Chấm',
     intro: 'Chạm vào chấm tròn càng nhiều càng tốt trong 20 giây!',
-    play: '▶ Chơi',
-    again: 'Chơi lại',
-    exit: '← Về Tò He',
-    paused: 'Tạm dừng',
-    resume: '▶ Tiếp tục',
-    mainMenu: '☰ Menu chính',
-    leaderboard: '🏆 Bảng xếp hạng',
-    sound: (muted: boolean) => (muted ? '🔇 Âm thanh: tắt' : '🔊 Âm thanh: bật'),
-    over: (score: number, best: number) => `Bạn được ${score} điểm · Kỷ lục ${best}`,
-    hud: (score: number, seconds: number) => `${score} điểm · ${seconds}s`,
+    hints: 'Chấm nhỏ dần khi bạn ghi điểm. Chạm trượt không bị trừ điểm.',
+    score: 'Điểm',
+    best: 'Kỷ lục',
+    over: 'Hết giờ!',
+    record: 'Kỷ lục mới!',
+    result: (score: number, best: number) => `Bạn được ${score} điểm · Kỷ lục ${best}`,
   },
   en: {
     title: 'Tap the Dot',
     intro: 'Tap the dot as many times as you can in 20 seconds!',
-    play: '▶ Play',
-    again: 'Play again',
-    exit: '← Back to Tò He',
-    paused: 'Paused',
-    resume: '▶ Resume',
-    mainMenu: '☰ Main menu',
-    leaderboard: '🏆 Leaderboard',
-    sound: (muted: boolean) => (muted ? '🔇 Sound: off' : '🔊 Sound: on'),
-    over: (score: number, best: number) => `You scored ${score} · Best ${best}`,
-    hud: (score: number, seconds: number) => `${score} pts · ${seconds}s`,
+    hints: 'The dot shrinks as you score. Missed taps cost nothing.',
+    score: 'Score',
+    best: 'Best',
+    over: "Time's up!",
+    record: 'New record!',
+    result: (score: number, best: number) => `You scored ${score} · Best ${best}`,
   },
 };
 
 const session = await connect<Saved>({ gameId: 'hello' });
 const t = session.locale.startsWith('vi') ? text.vi : text.en;
+document.documentElement.lang = session.locale;
 const rng = createRng(session.seed);
 
+const sfx = createSfx({ telemetry: session.telemetry });
+sfx.setMuted(session.settings.muted);
+session.on('settings', (settings) => sfx.setMuted(settings.muted));
+
+const app = document.querySelector<HTMLElement>('#app') as HTMLElement;
 const canvas = document.querySelector<HTMLCanvasElement>('#board') as HTMLCanvasElement;
 const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
-const overlay = document.querySelector<HTMLDivElement>('#overlay') as HTMLDivElement;
-const overlayTitle = document.querySelector('#overlay-title') as HTMLElement;
-const overlayDetail = document.querySelector('#overlay-detail') as HTMLElement;
-const actions = document.querySelector('#actions') as HTMLElement;
-const menuButton = document.querySelector<HTMLButtonElement>('#menu') as HTMLButtonElement;
 
 let state: State = createState(session.saved?.best ?? 0);
-/** What is on screen: the main menu, a round, the ☰ menu, or a finished round. */
-let screen: 'main' | 'playing' | 'menu' | 'over' = 'main';
+let tutorialSeen = session.saved?.tutorialSeen ?? false;
+/** The best score when the round began: beating it is a record. */
+let bestBefore = state.best;
+/** The round's clock stops while a shell screen is over it. */
 let paused = true;
 let last = performance.now();
 
+// ------------------------------------------------------------------ shell and HUD
+
+const shell = createShell({
+  session,
+  root: app,
+  icon: '🟠',
+  title: t.title,
+  // A 20-second round is not worth continuing later: the title screen always starts a fresh one.
+  inProgress: () => null,
+  play: () => play(),
+  newGame: () => play(),
+  howTo: () => ({ icon: '🟠', title: t.title, body: `${t.intro} ${t.hints}` }),
+  tutorial: {
+    seen: () => tutorialSeen,
+    done: () => {
+      tutorialSeen = true;
+      void persist();
+    },
+  },
+  leaderboard: true,
+  countdown: true,
+  onPause: () => {
+    paused = true;
+  },
+  onResume: () => {
+    paused = false;
+    last = performance.now();
+  },
+});
+
+// ☰ | score | seconds left | best.
+const hud = createHud({ shell, parent: app, locale: session.locale });
+const scores = hud.score({ score: t.score, best: t.best });
+scores.setBest(state.best);
+const clock = document.createElement('span');
+clock.className = 'clock';
+hud.center.append(clock);
+
+function showClock() {
+  clock.textContent = `⏱ ${Math.ceil(state.timeLeftMs / 1000)}`;
+  clock.classList.toggle('is-low', state.phase === 'playing' && state.timeLeftMs <= 5000);
+}
+
 // ------------------------------------------------------------------ theme
 
-// Light/dark follows the hub (ADR 0013). The page switches through CSS; the canvas reads the same design tokens,
-// once per change.
+// Light/dark follows the hub (ADR 0013): the page and the kit's screens through CSS; the canvas reads the same design
+// tokens, once per change.
 let colors = readColors();
 function readColors() {
   const css = getComputedStyle(document.documentElement);
   const token = (name: string) => css.getPropertyValue(`--tohe-${name}`).trim();
-  return { arena: token('soft'), hud: token('accent'), dot: token('brand'), timer: token('line-strong') };
+  return { arena: token('soft'), dot: token('brand'), timer: token('line-strong') };
 }
-function showTheme(theme: Theme) {
-  applyTheme(theme);
+followTheme(session, () => {
   colors = readColors();
-}
-showTheme(session.settings.theme);
-session.on('settings', (settings) => showTheme(settings.theme));
-
-// ------------------------------------------------------------------ sound
-
-let audio: AudioContext | null = null;
-function beep(): void {
-  if (session.settings.muted) return;
-  audio ??= new AudioContext();
-  const osc = audio.createOscillator();
-  const gain = audio.createGain();
-  osc.frequency.value = 660 + Math.min(state.score, 30) * 20;
-  gain.gain.setValueAtTime(0.15, audio.currentTime);
-  gain.gain.exponentialRampToValueAtTime(0.001, audio.currentTime + 0.12);
-  osc.connect(gain).connect(audio.destination);
-  osc.start();
-  osc.stop(audio.currentTime + 0.12);
-}
+});
 
 // ------------------------------------------------------------------ layout
 
 /** The playfield is the largest centred square that fits; logic works in its 0..1 coordinates. */
 function playfield() {
-  const size = Math.min(canvas.clientWidth, canvas.clientHeight - 64) * 0.94;
-  return { size, left: (canvas.clientWidth - size) / 2, top: 64 + (canvas.clientHeight - 64 - size) / 2 };
+  const size = Math.min(canvas.clientWidth, canvas.clientHeight - 24) * 0.94;
+  return { size, left: (canvas.clientWidth - size) / 2, top: 24 + (canvas.clientHeight - 24 - size) / 2 };
 }
 
 function resize(): void {
@@ -116,12 +140,6 @@ function draw(): void {
   ctx.roundRect(left, top, size, size, 24);
   ctx.fill();
 
-  ctx.fillStyle = colors.hud;
-  ctx.font = '700 22px system-ui, sans-serif';
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText(t.hud(state.score, Math.ceil(state.timeLeftMs / 1000)), canvas.clientWidth / 2, 32);
-
   if (state.dot) {
     ctx.fillStyle = colors.dot;
     ctx.beginPath();
@@ -131,96 +149,20 @@ function draw(): void {
 
   const progress = state.timeLeftMs / ROUND_MS;
   ctx.fillStyle = colors.timer;
-  ctx.fillRect(left, top - 8, size * progress, 4);
+  ctx.fillRect(left, top - 12, size * progress, 4);
 }
 
-interface Action {
-  label: string;
-  onClick(): void;
-  secondary?: boolean;
-  /** `data-tohe-play` / `data-tohe-exit`: what conformance looks for (ADR 0018). */
-  marker?: 'play' | 'exit';
-}
-
-/** A menu card over the board; the hub learns a menu is up (its answer to Back). */
-function show(title: string, detail: string, list: Action[]): void {
-  overlayTitle.textContent = title;
-  overlayDetail.textContent = detail;
-  actions.replaceChildren(
-    ...list.map((action) => {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.textContent = action.label;
-      if (action.secondary) button.className = 'secondary';
-      if (action.marker) button.setAttribute(`data-tohe-${action.marker}`, '');
-      button.addEventListener('click', action.onClick);
-      return button;
-    }),
-  );
-  overlay.hidden = false;
-  menuButton.hidden = true;
-  session.shell.menuChanged(true);
-}
-
-const leave = (): Action[] =>
-  session.mode === 'embedded'
-    ? [{ label: t.exit, secondary: true, marker: 'exit', onClick: () => session.exit() }]
-    : [];
-
-function mainMenu(): void {
-  screen = 'main';
-  paused = true;
-  show(t.title, t.intro, [
-    { label: t.play, marker: 'play', onClick: play },
-    ...(session.shell.can.leaderboard
-      ? [{ label: t.leaderboard, secondary: true, onClick: () => session.shell.open('leaderboard') }]
-      : []),
-    ...leave(),
-  ]);
-}
-
-function backToPlay(): void {
-  overlay.hidden = true;
-  menuButton.hidden = false;
-  screen = 'playing';
-  paused = false;
-  last = performance.now();
-  session.shell.menuChanged(false);
-}
+// ------------------------------------------------------------------ rounds
 
 function play(): void {
-  backToPlay();
   state = start(state, rng);
+  bestBefore = state.best;
+  scores.setBest(state.best);
+  scores.set(0);
+  paused = false;
+  last = performance.now();
+  showClock();
 }
-
-function openMenu(): void {
-  if (screen !== 'playing' && screen !== 'menu') return;
-  screen = 'menu';
-  paused = true;
-  show(t.paused, '', [
-    { label: t.resume, onClick: backToPlay },
-    {
-      label: t.sound(session.settings.muted),
-      secondary: true,
-      onClick: () => {
-        session.shell.setMuted(!session.settings.muted);
-        openMenu();
-      },
-    },
-    { label: t.mainMenu, secondary: true, onClick: mainMenu },
-    ...leave(),
-  ]);
-}
-
-/** Phone Back and Escape: one step back, and out from the main menu. */
-function back(): void {
-  if (screen === 'playing') openMenu();
-  else if (screen === 'menu') backToPlay();
-  else if (screen === 'over') mainMenu();
-  else if (session.mode === 'embedded') session.exit();
-}
-
-// ------------------------------------------------------------------ loop
 
 function frame(now: number): void {
   const dt = now - last;
@@ -228,6 +170,7 @@ function frame(now: number): void {
   if (!paused) {
     const before = state.phase;
     state = tick(state, dt);
+    showClock();
     if (before === 'playing' && state.phase === 'over') void finish();
   }
   draw();
@@ -235,46 +178,42 @@ function frame(now: number): void {
 }
 
 async function finish(): Promise<void> {
-  screen = 'over';
-  paused = true;
-  show(t.title, t.over(state.score, state.best), [
-    { label: t.again, onClick: play },
-    { label: t.mainMenu, secondary: true, onClick: mainMenu },
-  ]);
+  const record = state.score > bestBefore;
+  sfx.play(record ? 'fanfare' : 'drop');
+  shell.gameOver({
+    icon: record ? '🏆' : '🟠',
+    title: record ? t.record : t.over,
+    body: t.result(state.score, state.best),
+  });
   try {
     await session.submitScore(state.score);
-    await session.save({ best: state.best });
+    await persist();
   } catch (error) {
     session.log('warn', `could not store result: ${String(error)}`);
   }
 }
 
+function persist(): Promise<void> {
+  return session.save({ best: state.best, tutorialSeen });
+}
+
 // ------------------------------------------------------------------ input
 
 canvas.addEventListener('pointerdown', (event) => {
-  if (paused) return;
+  if (paused || !shell.playing) return;
+  const rect = canvas.getBoundingClientRect();
   const { size, left, top } = playfield();
-  const result = tap(state, { x: (event.clientX - left) / size, y: (event.clientY - top) / size }, rng);
+  const point = { x: (event.clientX - rect.left - left) / size, y: (event.clientY - rect.top - top) / size };
+  const result = tap(state, point, rng);
   state = result.state;
-  if (result.hit) beep();
-});
-
-menuButton.addEventListener('click', openMenu);
-session.on('menu', back);
-window.addEventListener('keydown', (event) => {
-  if (event.key === 'Escape') back();
-});
-
-// The hub hid the game (another app, a locked screen): the round waits in the menu.
-session.on('pause', () => {
-  if (screen === 'playing') openMenu();
-});
-session.on('resume', () => {
-  // Stay paused until the player taps "resume" so nobody loses time on return.
-  last = performance.now();
+  if (result.hit) {
+    sfx.play('pop', Math.min(state.score, 20));
+    scores.set(state.score, true);
+  }
 });
 
 window.addEventListener('resize', resize);
 resize();
-mainMenu();
+showClock();
 requestAnimationFrame(frame);
+shell.start();

@@ -26,64 +26,6 @@ body {
     env(safe-area-inset-left);
 }
 
-/* ⏸ | score | 🔀 | best — the shuffle button stays between the scores whatever their width: the score columns
-   never grow past their share (minmax(0, 1fr)), and main.ts shortens a score that does not fit (formatCompact). */
-#hud {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
-  align-items: start;
-  gap: clamp(0.4rem, 2vw, 0.75rem);
-  padding: 0.6rem 1rem 0;
-}
-
-.stat {
-  justify-self: start;
-  display: flex;
-  flex-direction: column;
-  min-width: min(5.5rem, 100%);
-  max-width: 100%;
-  /* Narrow phones give the digits a little more room. */
-  padding: 0.35rem clamp(0.6rem, 2.4vw, 0.9rem) 0.45rem;
-  border-radius: 1rem;
-  background: var(--tohe-soft);
-}
-
-.stat-best {
-  justify-self: end;
-  align-items: flex-end;
-  background: var(--tohe-surface);
-  transition: background 0.3s ease;
-}
-
-.stat-best.is-record {
-  background: var(--tohe-notice);
-}
-
-.stat-label {
-  font-size: 0.8rem;
-  font-weight: 700;
-  color: var(--tohe-accent);
-  white-space: nowrap;
-}
-
-.crown {
-  display: inline-block;
-}
-
-.is-record .crown {
-  animation: wobble 0.8s ease-in-out infinite;
-}
-
-.stat-value {
-  font-size: clamp(1.3rem, 6.4vw, 1.6rem);
-  font-weight: 900;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
-  /* The last guard: a score main.ts could not shorten enough is cut, never drawn over its neighbours. */
-  overflow: hidden;
-}
-
 /* 🎯 the next milestone and the value it retires (SPEC.md, "Rising floor"). */
 .goal {
   display: flex;
@@ -103,10 +45,6 @@ body {
 
 .goal.is-near {
   background: var(--tohe-notice);
-}
-
-.goal.bump {
-  animation: bump 0.3s ease-out;
 }
 
 .goal-label {
@@ -133,10 +71,6 @@ body {
   gap: 0.5rem;
   margin: 0;
   font-weight: 700;
-}
-
-.stat-value.bump {
-  animation: bump 0.3s ease-out;
 }
 
 .rescue {
@@ -182,8 +116,8 @@ body {
   animation: pulse 0.9s ease-in-out infinite;
 }
 
-.shuffle.bump {
-  animation: bump 0.3s ease-out;
+.shuffle.tohe-bump {
+  animation: tohe-bump 0.3s ease-out;
 }
 
 #stage {
@@ -196,7 +130,7 @@ body {
   display: block;
 }
 
-/* ⏸ → Màu khối: each preset shows sample blocks 2 … 256, coloured from palette.ts. */
+/* ⚙️ Cài đặt → Màu khối: each preset shows sample blocks 2 … 256, coloured from palette.ts. */
 .samples {
   display: flex;
   gap: 0.25rem;
@@ -213,30 +147,15 @@ body {
   font-weight: 900;
 }
 
-@keyframes bump {
-  40% {
-    transform: scale(1.18);
-  }
-}
-
 @keyframes pulse {
   50% {
     transform: scale(1.12);
   }
 }
 
-@keyframes wobble {
-  50% {
-    transform: rotate(-12deg) scale(1.15);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
-  .goal.bump,
-  .stat-value.bump,
-  .shuffle.bump,
-  .shuffle.is-urgent,
-  .is-record .crown {
+  .shuffle.tohe-bump,
+  .shuffle.is-urgent {
     animation: none;
   }
 }

@@ -58,6 +58,8 @@ Four kinds of event, in the Game Contract (`packages/contract/src/telemetry.ts`)
 | `hub.room.refused` | count | hub | the server refused a move (another phone acted first, the timer ran out) |
 | `hub.play.duration.under-1m` … `over-60m` | count | hub | a game closes |
 | `hub.game.ready-ms` | metric | hub | the game answered the handshake |
+| `hub.game.first-screen-ms` | metric | hub | the loading screen lifted: a `shell` game showed its first screen ([ADR 0019](../decisions/0019-game-shell-2-title-screen-hud-and-first-screen.md)), any other answered |
+| `hub.game.first-screen-late` | count | hub | a `shell` game showed no first screen within 8 s of the handshake; the hub lifted its loading screen anyway |
 | `hub.game.failed` | count | hub | the game never answered |
 | `hub.sync.failed.http-4xx` / `http-5xx` / `network` | count | hub | a save or score did not reach the server while online |
 | `hub.vitals.lcp-ms`, `hub.vitals.inp-ms`, `hub.vitals.cls` | metric | hub (`web-vitals`) | the hub's own pages; Safari from 26.2, and its INP is still unreliable |

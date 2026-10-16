@@ -6,7 +6,6 @@ export const strings = {
     shuffle: 'Xáo trộn',
     shuffleNow: 'Chạm 🔀!',
     shuffleLabel: (left: number) => `Xáo trộn, còn ${left}`,
-    start: 'Bắt đầu',
     hints: [
       { icon: '👆', text: 'Chạm vào một khối số.' },
       {
@@ -37,7 +36,6 @@ export const strings = {
     record: 'Kỷ lục mới!',
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     largest: (value: string) => `Khối lớn nhất: ${value}`,
-    again: 'Chơi lại',
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
   },
   en: {
@@ -47,7 +45,6 @@ export const strings = {
     shuffle: 'Shuffle',
     shuffleNow: 'Tap 🔀!',
     shuffleLabel: (left: number) => `Shuffle, ${left} left`,
-    start: 'Start',
     hints: [
       { icon: '👆', text: 'Tap a number block.' },
       {
@@ -78,7 +75,6 @@ export const strings = {
     record: 'New record!',
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     largest: (value: string) => `Largest block: ${value}`,
-    again: 'Play again',
     inProgress: (score: string) => `A game in progress: ${score} points.`,
   },
 };
