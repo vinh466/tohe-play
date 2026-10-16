@@ -8,13 +8,11 @@
   </head>
   <body>
     <canvas id="board"></canvas>
+    <button id="menu" type="button" class="menu" aria-label="Menu" data-tohe-menu hidden>☰</button>
     <div id="overlay" hidden>
       <p id="overlay-title"></p>
       <p id="overlay-detail"></p>
-      <div class="actions">
-        <button id="primary" type="button"></button>
-        <button id="exit" type="button" class="secondary"></button>
-      </div>
+      <div class="actions" id="actions"></div>
     </div>
     <script type="module" src="./src/main.ts"></script>
   </body>

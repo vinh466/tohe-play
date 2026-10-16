@@ -73,6 +73,23 @@ export const Replay = z
   .strict();
 export type Replay = z.infer<typeof Replay>;
 
+// ---------------------------------------------------------------- game shell (ADR 0018)
+
+/** What the hub can open for this player right now, on a `shell` game's request (ADR 0018). */
+export const ShellInfo = z
+  .object({
+    /** The household's leaderboard for this game (signed in, and the game keeps scores). */
+    leaderboard: z.boolean(),
+    /** The game's rooms lobby (a signed-in profile, and the game has rooms). */
+    rooms: z.boolean(),
+  })
+  .strict();
+export type ShellInfo = z.infer<typeof ShellInfo>;
+
+export const SHELL_TARGETS = ['leaderboard', 'rooms'] as const;
+export const ShellTarget = z.enum(SHELL_TARGETS);
+export type ShellTarget = z.infer<typeof ShellTarget>;
+
 // ---------------------------------------------------------------- game -> host
 
 export const ReadyMessage = z.object({
@@ -133,6 +150,15 @@ export const RoomNextMessage = z.object({ ...envelope, type: z.literal('room.nex
 
 export const RoomReactMessage = z.object({ ...envelope, type: z.literal('room.react'), reaction: Reaction });
 
+/** A `shell` game's menu opened or closed; it answers the hub's `menu` (the player pressed Back). */
+export const MenuStateMessage = z.object({ ...envelope, type: z.literal('menu'), open: z.boolean() });
+
+/** A `shell` game asks the hub for one of its screens: the leaderboard over the game, or the rooms lobby. */
+export const OpenMessage = z.object({ ...envelope, type: z.literal('open'), what: ShellTarget });
+
+/** A `shell` game's player switched sound in the game; the hub remembers it for the device. */
+export const GameSettingsMessage = z.object({ ...envelope, type: z.literal('settings'), muted: z.boolean() });
+
 export const GameMessage = z.discriminatedUnion('type', [
   ReadyMessage,
   SaveMessage,
@@ -143,6 +169,9 @@ export const GameMessage = z.discriminatedUnion('type', [
   RoomActMessage,
   RoomNextMessage,
   RoomReactMessage,
+  MenuStateMessage,
+  OpenMessage,
+  GameSettingsMessage,
 ]);
 export type GameMessage = z.infer<typeof GameMessage>;
 export type GameMessageInput = z.input<typeof GameMessage>;
@@ -165,9 +194,13 @@ export const InitMessage = z.object({
   room: RoomInfo.optional(),
   /** A finished hand to replay instead of playing (ADR 0016); never together with `room`. */
   replay: Replay.optional(),
+  /** For a `shell` game (ADR 0018): what the hub can open for this player. */
+  shell: ShellInfo.optional(),
 });
 
 export const PauseMessage = z.object({ ...envelope, type: z.literal('pause') });
+/** The player pressed Back (ADR 0018): a `shell` game opens its menu, closes it, or leaves from its main menu. */
+export const MenuMessage = z.object({ ...envelope, type: z.literal('menu') });
 export const ResumeMessage = z.object({ ...envelope, type: z.literal('resume') });
 
 export const SettingsMessage = z.object({
@@ -218,6 +251,7 @@ export const HostMessage = z.discriminatedUnion('type', [
   InitMessage,
   PauseMessage,
   ResumeMessage,
+  MenuMessage,
   SettingsMessage,
   ResultMessage,
   RoomViewMessage,

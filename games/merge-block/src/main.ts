@@ -3,15 +3,13 @@ import '@tohe/game-kit/overlay.css';
 import './style.css';
 import {
   choiceList,
-  createLifecycle,
-  createOverlay,
   createSfx,
+  createShell,
   followTheme,
   formatScore,
   formatValue,
   haptics,
   hintList,
-  lifecycleStrings,
   type Theme,
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
@@ -167,22 +165,34 @@ kit.onRestart(async (scene) => {
 session.on('pause', () => kit.pause());
 session.on('resume', () => kit.resume());
 
-const overlay = createOverlay(app);
-
-// Continue or start over when a game in progress is opened, and the ⏸ menu while playing (kit lifecycle).
-const lifecycle = createLifecycle({
-  overlay,
-  strings: lifecycleStrings(session.locale),
+// The game shell (ADR 0018): the main menu, ☰ and phone Back. The colours change any time.
+const shell = createShell({
+  session,
+  root: app,
   icon: '🧱',
   title: t.title,
-  howTo: () => ({ icon: '🧱', title: t.title, content: hintList(t.hints) }),
-  menuCards: [{ label: t.colours, card: () => ({ icon: '🎨', title: t.colours, content: palettePicker() }) }],
-  onNewGame: () => {
+  inProgress: () =>
+    state.moves > 0 && !state.over ? t.inProgress(formatScore(state.score, session.locale)) : null,
+  play: () => {
+    if (state.over) startNewGame();
+    if (!tutorialSeen) showTutorial();
+  },
+  newGame: () => {
     sfx.play('click');
     startNewGame();
   },
+  howTo: () => ({ icon: '🧱', title: t.title, content: hintList(t.hints) }),
+  settings: [
+    {
+      label: t.colours,
+      when: 'any-time',
+      card: () => ({ icon: '🎨', title: t.colours, content: palettePicker() }),
+    },
+  ],
+  leaderboard: true,
 });
-document.querySelector('#hud')?.prepend(lifecycle.menuButton());
+const overlay = shell.overlay;
+document.querySelector('#hud')?.prepend(shell.menuButton());
 
 /** Sample blocks 2 … 256 of a preset, drawn like the board's blocks. */
 const SAMPLES = 8;
@@ -203,7 +213,7 @@ function samples(id: PaletteId): HTMLElement {
   return row;
 }
 
-/** ⏸ → Màu khối: the board and the next block take the new colours at once; the choice is saved with the player. */
+/** Cài đặt → Màu khối: the board and the next block take the new colours at once; the choice is saved with the player. */
 function palettePicker(): HTMLElement {
   const choices = PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id) }));
   return choiceList(choices, palette, (id) => {
@@ -283,23 +293,10 @@ function startNewGame() {
 }
 
 function showGameOver(record: boolean) {
-  overlay.show({
+  shell.gameOver({
     icon: record ? '🏆' : '🧱',
     title: record ? t.record : t.over,
     body: t.result(formatScore(state.score, session.locale), formatScore(best, session.locale)),
-    actions: [
-      {
-        label: t.again,
-        onClick: () => {
-          sfx.play('click');
-          overlay.hide();
-          startNewGame();
-        },
-      },
-      ...(session.mode === 'embedded'
-        ? [{ label: t.exit, variant: 'secondary' as const, onClick: () => session.exit() }]
-        : []),
-    ],
   });
 }
 
@@ -326,8 +323,7 @@ function showTutorial() {
 
 window.addEventListener('keydown', (event) => {
   if (overlay.visible) return;
-  if (event.key === 'Escape') lifecycle.openMenu();
-  else if (event.key === 'ArrowLeft') board.nudge(-1);
+  if (event.key === 'ArrowLeft') board.nudge(-1);
   else if (event.key === 'ArrowRight') board.nudge(1);
   else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
     if (!event.repeat) requestMove(board.aimedColumn); // holding the key down drops once
@@ -339,5 +335,4 @@ await board.whenReady;
 board.relayout(kit.size().width, kit.size().height);
 board.setBoard(state);
 showScore(state.score, false);
-if (!tutorialSeen) showTutorial();
-else if (state.moves > 0) lifecycle.offerContinue(t.inProgress(formatScore(state.score, session.locale)));
+shell.mainMenu();

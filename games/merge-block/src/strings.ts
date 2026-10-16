@@ -23,7 +23,6 @@ export const strings = {
     record: 'Kỷ lục mới!',
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     again: 'Chơi lại',
-    exit: 'Thoát',
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
   },
   en: {
@@ -50,7 +49,6 @@ export const strings = {
     record: 'New record!',
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     again: 'Play again',
-    exit: 'Exit',
     inProgress: (score: string) => `A game in progress: ${score} points.`,
   },
 };

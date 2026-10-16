@@ -25,10 +25,28 @@ export function LeaderboardButton({ game, player }: { game: GameSummary; player:
       >
         <span aria-hidden>🏆</span>
       </button>
-      <Modal open={open} title={t('leaderboard.title', { game: game.name })} onClose={() => setOpen(false)}>
-        <Ranking gameId={game.id} player={player} />
-      </Modal>
+      <LeaderboardSheet game={game} player={player} open={open} onClose={() => setOpen(false)} />
     </>
+  );
+}
+
+/** The household's board for a game in a sheet: from its catalog card, or over the game when it asks (ADR 0018). */
+export function LeaderboardSheet({
+  game,
+  player,
+  open,
+  onClose,
+}: {
+  game: GameSummary;
+  player: Player;
+  open: boolean;
+  onClose(): void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <Modal open={open} title={t('leaderboard.title', { game: game.name })} onClose={onClose}>
+      {open ? <Ranking gameId={game.id} player={player} /> : null}
+    </Modal>
   );
 }
 

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, type GameSummary, type RoomSummary, rooms } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
+import { hasShell } from '../launcher/manifest.ts';
 import { ensureConnected, onReconnected } from '../rooms/connection.ts';
 import { formatCode, normalizeCode, quickPick } from '../rooms/model.ts';
 import { RoomResults } from '../rooms/RoomResults.tsx';
@@ -143,13 +144,25 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
   return (
     <Screen narrow>
       <header className="flex items-center gap-3">
-        <Link
-          to="/"
-          aria-label={t('backToGames')}
-          className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
-        >
-          ←
-        </Link>
+        {/* A shell game's lobby is reached from its main menu (ADR 0018): ← goes back there. */}
+        {game && hasShell(game) ? (
+          <Link
+            to="/play/$gameId"
+            params={{ gameId }}
+            aria-label={t('rooms.backToGame', { game: game.name })}
+            className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
+          >
+            ←
+          </Link>
+        ) : (
+          <Link
+            to="/"
+            aria-label={t('backToGames')}
+            className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
+          >
+            ←
+          </Link>
+        )}
         {game?.iconUrl ? <img src={game.iconUrl} alt="" className="size-12 rounded-2xl" /> : null}
         <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink">{game?.name ?? gameId}</h1>
       </header>

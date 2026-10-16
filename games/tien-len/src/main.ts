@@ -7,13 +7,12 @@ import './style.css';
 import {
   type Choice,
   choiceList,
-  createLifecycle,
-  createOverlay,
   createSfx,
+  createShell,
   followTheme,
   haptics,
   hintList,
-  lifecycleStrings,
+  shellStrings,
   type Theme,
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
@@ -119,6 +118,8 @@ let busy = false;
 let selected = new Set<Card>();
 let hintIndex = 0;
 let paused = false;
+/** A hand is on this table (resumed, or dealt in this visit): "Chơi tiếp" continues it. */
+let dealt = false;
 
 function players(): Player[] {
   if (replay) return replay.seats.map(seatPlayer);
@@ -315,7 +316,99 @@ session.on('resume', () => {
   if (!overlay.visible) kit.resume();
 });
 
-const overlay = createOverlay(app);
+// The game shell (ADR 0018): the main menu against bots, ☰ and phone Back everywhere. At a table and in a replay
+// there is no main menu: the menu holds the table's rules, the deck and the way out.
+const shell = createShell({
+  session,
+  root: app,
+  icon: '🃏',
+  title: t.title,
+  strings: {
+    play: t.playBots,
+    newGame: t.newTable,
+    confirmTitle: t.newTableTitle,
+    confirmBody: t.newTableBody,
+  },
+  inProgress: () => (dealt && !state.over ? t.handInProgress : null),
+  play: () => {
+    if (tutorialSeen) start();
+    else showTutorial();
+  },
+  newGame: () => {
+    sfx.play('click');
+    void newTable();
+  },
+  howTo: () => ({ icon: '🃏', title: t.title, content: hintList(t.hints) }),
+  settings: room
+    ? [
+        {
+          label: t.menu.tableRules,
+          when: 'any-time',
+          card: () => ({
+            icon: '📜',
+            title: t.menu.tableRules,
+            content: tableRules(normalizeOptions(room?.options)),
+          }),
+        },
+        {
+          label: t.menu.deck,
+          when: 'any-time',
+          card: () => ({ icon: '🎴', title: t.menu.deck, content: deckPicker() }),
+        },
+      ]
+    : replay
+      ? [
+          {
+            label: t.menu.deck,
+            when: 'any-time',
+            card: () => ({ icon: '🎴', title: t.menu.deck, content: deckPicker() }),
+          },
+        ]
+      : [
+          {
+            label: t.menu.rules,
+            when: 'between-games',
+            card: (readOnly) => ({
+              icon: '📜',
+              title: t.menu.rules,
+              content: readOnly ? tableRules(options) : houseRules(),
+            }),
+          },
+          {
+            label: t.menu.table,
+            when: 'between-games',
+            card: (readOnly) => ({
+              icon: '🪑',
+              title: t.menu.table,
+              content: readOnly ? tableSummary() : tableSettings(),
+            }),
+          },
+          {
+            label: t.menu.deck,
+            when: 'any-time',
+            card: () => ({ icon: '🎴', title: t.menu.deck, content: deckPicker() }),
+          },
+        ],
+  online: true,
+  // Against bots everything stops for the menu; a table goes on (its views keep animating), a replay stops playing.
+  onPause: () => {
+    if (room) return;
+    if (replay) {
+      replayPlaying = false;
+      showControls();
+    }
+    kit.pause();
+  },
+  onResume: () => {
+    if (!room && !paused) kit.resume();
+  },
+  direct: room
+    ? { exitLabel: meSeat() < 0 ? t.stopWatching : t.leaveTable, goesOn: true }
+    : replay
+      ? { exitLabel: t.replay.leave, goesOn: false }
+      : undefined,
+});
+const overlay = shell.overlay;
 
 function drawAll() {
   board.setPlayers(players());
@@ -577,19 +670,27 @@ function showResults() {
       } else void nextHand();
     },
   };
-  overlay.show({
+  const card = {
     icon: won ? '🏆' : '🃏',
     title: result.instant ? `${t.instant}` : t.results,
     body: result.instant ? t.instantWins[result.instant.win] : undefined,
     content: table,
-    actions: [
-      // A spectator has no hand to be ready for: the table goes on by itself.
-      ...(room && me < 0 ? [] : [nextAction]),
-      ...(session.mode === 'embedded'
-        ? [{ label: t.exit, variant: 'secondary' as const, onClick: () => session.exit() }]
-        : []),
-    ],
-  });
+  };
+  if (replay) {
+    shell.gameOver(card, nextAction);
+    return;
+  }
+  const mainMenu = {
+    label: shellStrings(session.locale).mainMenu,
+    variant: 'secondary' as const,
+    onClick: () => {
+      overlay.hide();
+      shell.mainMenu();
+    },
+  };
+  // A spectator has no hand to be ready for: the table goes on by itself.
+  const leave = { label: t.stopWatching, variant: 'secondary' as const, onClick: () => session.exit() };
+  overlay.show({ ...card, actions: room ? (me < 0 ? [leave] : [nextAction]) : [nextAction, mainMenu] });
 }
 
 /** Deals the next hand at this table, or a new table when the number of players changed. */
@@ -611,6 +712,7 @@ async function newTable() {
 
 async function deal(next: State) {
   version++;
+  dealt = true;
   state = next;
   selected.clear();
   hintIndex = 0;
@@ -646,99 +748,7 @@ function persist(): Promise<void> {
 
 // ------------------------------------------------------------------ menu
 
-const lifecycle = createLifecycle({
-  overlay,
-  strings: {
-    ...lifecycleStrings(session.locale),
-    newGame: t.newTable,
-    confirmTitle: t.newTableTitle,
-    confirmBody: t.newTableBody,
-  },
-  icon: '🃏',
-  title: t.title,
-  howTo: () => ({ icon: '🃏', title: t.title, content: hintList(t.hints) }),
-  menuCards: [
-    { label: t.menu.rules, card: () => ({ icon: '📜', title: t.menu.rules, content: houseRules() }) },
-    { label: t.menu.table, card: () => ({ icon: '🪑', title: t.menu.table, content: tableSettings() }) },
-    { label: t.menu.deck, card: () => ({ icon: '🎴', title: t.menu.deck, content: deckPicker() }) },
-  ],
-  onNewGame: () => {
-    sfx.play('click');
-    kit.resume();
-    void newTable();
-  },
-  onResume: () => {
-    if (!paused) kit.resume();
-  },
-});
-
-const menuButton = document.createElement('button');
-menuButton.type = 'button';
-menuButton.className = 'tohe-icon-button';
-menuButton.setAttribute('aria-label', lifecycleStrings(session.locale).menu);
-menuButton.textContent = '⏸';
-menuButton.addEventListener('click', () => openMenu());
-document.querySelector('#menu-slot')?.append(menuButton);
-
-function openMenu() {
-  if (overlay.visible) return;
-  if (room) {
-    openTableMenu();
-    return;
-  }
-  kit.pause();
-  lifecycle.openMenu();
-}
-
-/**
- * The ⏸ menu at an online table: the table goes on (nothing to pause), the room's house rules are the host's, and
- * leaving goes through the hub (it asks whether to give the seat up).
- */
-function openTableMenu() {
-  const life = lifecycleStrings(session.locale);
-  const back = () => openTableMenu();
-  overlay.show({
-    icon: '🃏',
-    title: t.title,
-    actions: [
-      { label: life.resume, onClick: () => overlay.hide() },
-      {
-        label: life.howTo,
-        variant: 'secondary',
-        onClick: () =>
-          overlay.show({
-            icon: '🃏',
-            title: t.title,
-            content: hintList(t.hints),
-            actions: [{ label: life.back, onClick: back }],
-          }),
-      },
-      {
-        label: t.menu.tableRules,
-        variant: 'secondary',
-        onClick: () =>
-          overlay.show({
-            icon: '📜',
-            title: t.menu.tableRules,
-            content: tableRules(normalizeOptions(room?.options)),
-            actions: [{ label: life.back, onClick: back }],
-          }),
-      },
-      {
-        label: t.menu.deck,
-        variant: 'secondary',
-        onClick: () =>
-          overlay.show({
-            icon: '🎴',
-            title: t.menu.deck,
-            content: deckPicker(),
-            actions: [{ label: life.back, onClick: back }],
-          }),
-      },
-      { label: t.leaveTable, variant: 'secondary', onClick: () => session.exit() },
-    ],
-  });
-}
+document.querySelector('#menu-slot')?.append(shell.menuButton());
 
 /** The room's house rules, as the host chose them (read only). */
 function tableRules(rules: Options): HTMLElement {
@@ -786,7 +796,15 @@ function note(text: string): HTMLElement {
   return p;
 }
 
-/** ⏸ → Luật nhà: H1–H9, from the next hand on (SPEC.md, "House rules"). */
+/** ☰ → Cài đặt → Bàn chơi during a hand: who plays and how well, read only. */
+function tableSummary(): HTMLElement {
+  return hintList([
+    { icon: '🪑', text: t.menu.players(seats) },
+    { icon: '🤖', text: `${t.menu.level}: ${t.menu.levels[level]}` },
+  ]);
+}
+
+/** Menu chính → Cài đặt → Luật nhà: H1–H9, from the next hand on (SPEC.md, "House rules"). */
 function houseRules(): HTMLElement {
   const box = document.createElement('div');
   box.className = 'tohe-choices';
@@ -817,7 +835,7 @@ function houseRules(): HTMLElement {
   return box;
 }
 
-/** ⏸ → Bàn chơi: players (a new table from the next hand) and the bots' level (at once). */
+/** Menu chính → Cài đặt → Bàn chơi: players (a new table from the next hand) and the bots' level. */
 function tableSettings(): HTMLElement {
   const box = document.createElement('div');
   const counts: Choice<'2' | '3' | '4'>[] = (['2', '3', '4'] as const).map((n) => ({
@@ -842,7 +860,7 @@ function tableSettings(): HTMLElement {
   return box;
 }
 
-/** ⏸ → Bộ bài: two or four suit colours, at once. */
+/** Cài đặt → Bộ bài: two or four suit colours, at once. */
 function deckPicker(): HTMLElement {
   const choices: Choice<Deck>[] = DECKS.map((id) => ({ id, label: t.menu.decks[id] }));
   return choiceList(choices, deck, (id) => {
@@ -855,8 +873,7 @@ function deckPicker(): HTMLElement {
 
 window.addEventListener('keydown', (event) => {
   if (overlay.visible || event.target instanceof HTMLButtonElement) return;
-  if (event.key === 'Escape') openMenu();
-  else if (event.key === 'Enter') void play();
+  if (event.key === 'Enter') void play();
   else if (event.key.toLowerCase() === 'p') void pass();
   else if (event.key.toLowerCase() === 'h') hint();
   else return;
@@ -964,7 +981,7 @@ function openReactions() {
     title: t.react,
     content: grid,
     actions: [
-      { label: lifecycleStrings(session.locale).back, variant: 'secondary', onClick: () => overlay.hide() },
+      { label: shellStrings(session.locale).back, variant: 'secondary', onClick: () => overlay.hide() },
     ],
   });
 }
@@ -1075,19 +1092,17 @@ if (replay) {
   if (room.latest) onRoomView(room.latest);
 }
 
-function begin() {
-  if (fresh) void (resumed?.over ? nextHand() : deal(state));
-  else {
+/** Main menu → Chơi: continue the hand on the table, deal the next one of the series, or the first one. */
+function start() {
+  if (dealt && !state.over) {
     drawAll();
     schedule();
-  }
+  } else if (state.over) void nextHand();
+  else void deal(state);
 }
 
-if (room || replay) {
-  // Online the table is the server's, and a replay plays itself: no intro to wait on.
-} else if (!tutorialSeen) {
-  board.setPlayers(players());
-  showHud();
+/** The first time: how to play, then the first hand. */
+function showTutorial() {
   overlay.show({
     icon: '🃏',
     title: t.title,
@@ -1100,17 +1115,21 @@ if (room || replay) {
           haptics.play('tap');
           overlay.hide();
           tutorialSeen = true;
-          begin();
+          start();
         },
       },
     ],
   });
-} else if (!fresh && state.moves > 0) {
-  drawAll();
-  lifecycle.offerContinue(t.inProgress);
-  const waitForChoice = async () => {
-    while (overlay.visible) await board.wait(150);
-    schedule();
-  };
-  void waitForChoice();
-} else begin();
+}
+
+if (!room && !replay) {
+  // Online the table is the server's, and a replay plays itself: they open straight in. Against bots, the main menu
+  // over the table as it was left.
+  dealt = !fresh && state.moves > 0;
+  if (dealt) drawAll();
+  else {
+    board.setPlayers(players());
+    showHud();
+  }
+  shell.mainMenu();
+}

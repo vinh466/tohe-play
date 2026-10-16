@@ -372,6 +372,73 @@
         "type",
         "reaction"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "menu"
+        },
+        "open": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "open"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "open"
+        },
+        "what": {
+          "type": "string",
+          "enum": [
+            "leaderboard",
+            "rooms"
+          ]
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "what"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "settings"
+        },
+        "muted": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "muted"
+      ]
     }
   ],
   "$defs": {

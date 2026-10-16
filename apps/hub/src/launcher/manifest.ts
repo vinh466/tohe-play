@@ -1,4 +1,4 @@
-import { type Capability, type GameManifest, PROTOCOL_VERSION, type RoomOption } from '@tohe/contract';
+import { Capability, type GameManifest, PROTOCOL_VERSION, type RoomOption } from '@tohe/contract';
 import type { GameSummary } from '../api/client.ts';
 
 /** The host bridge enforces capabilities from the manifest; rebuild the parts it needs from the API view. */
@@ -12,9 +12,7 @@ export function manifestFrom(game: GameSummary): GameManifest {
     description: game.description,
     entry: entryUrl.pathname.split('/').pop() || 'index.html',
     orientation: game.orientation as GameManifest['orientation'],
-    capabilities: game.capabilities.filter(
-      (c): c is Capability => c === 'save' || c === 'scores' || c === 'rooms',
-    ),
+    capabilities: game.capabilities.filter((c): c is Capability => Capability.safeParse(c).success),
     // Online rooms (ADR 0016): the host bridge only checks the capability; the API referees with the rules module.
     rooms: game.rooms
       ? {
@@ -31,6 +29,9 @@ export function manifestFrom(game: GameSummary): GameManifest {
     sizeBudgetKb: Math.max(game.sizeKb, 1),
   };
 }
+
+/** The game draws its own main menu and menu with the way back to Tò He (ADR 0018): the hub draws no bar over it. */
+export const hasShell = (game: GameSummary) => game.capabilities.includes('shell');
 
 /** Same seed for everyone on the same local day: the basis for daily challenges. */
 export function dailySeed(date = new Date()): number {

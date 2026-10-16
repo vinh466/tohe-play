@@ -1,4 +1,13 @@
-export type { Profile, Reaction, Replay, RoomSeat, Settings, TelemetryEvent } from '@tohe/contract';
+export type {
+  Profile,
+  Reaction,
+  Replay,
+  RoomSeat,
+  Settings,
+  ShellInfo,
+  ShellTarget,
+  TelemetryEvent,
+} from '@tohe/contract';
 export {
   type ConnectOptions,
   connect,
@@ -11,6 +20,7 @@ export {
   type ScoreRun,
   SDK_VERSION,
   type SessionEvent,
+  type ShellSession,
 } from './game.ts';
 export { REACTIONS } from './reactions.ts';
 export { createRng, type Rng } from './rng.ts';

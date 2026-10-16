@@ -68,7 +68,8 @@ A combination is compared by its **top card**: its highest card, rank first, the
 
 ## House rules
 
-Chosen per table (in 0.1, in the ⏸ menu; online, when the room is created). A change applies from the next hand.
+Chosen per table: against bots from the main menu (**⚙️ Cài đặt → Luật nhà**; during a hand the menu shows them
+read only), online when the room is created. A change applies from the next hand.
 
 | # | Rule | Default |
 | --- | --- | --- |
@@ -162,18 +163,24 @@ Portrait first, landscape supported *(default)*: the player's hand along the bot
 the one opposite at the top, the previous one to the left; each opponent shows an avatar, a name, a card count and
 a ring while it is their turn; the table in the middle.
 
-1. **Intro** (first time): picture hints — the card order (3 lowest, 2 highest; ♠ ♣ ♦ ♥), beat with the same kind
+The kit's game shell ([Game shell](../../docs/architecture/game-shell.md), ADR 0018). The catalog card opens the game:
+
+0. **Main menu** (every time, over the table as it was left): **🤖 Chơi với máy**, or "Ván đang chơi dở." with
+   **▶ Chơi tiếp** and **Bàn mới** (the series restarts at 0, asks first); **🌐 Chơi online** (signed-in players: the
+   hub's lobby, whose ← comes back here), **⚙️ Cài đặt** (sound; **Luật nhà** H1–H9 and **Bàn chơi**, 2–4 players
+   and the bots' level, between hands; **Bộ bài**, two or four colours, any time), **❓ Cách chơi**, **← Về Tò He**.
+1. **Intro** (the first **Chơi** only): picture hints — the card order (3 lowest, 2 highest; ♠ ♣ ♦ ♥), beat with the same kind
    but higher, pass if you cannot or do not want to, bombs chop 2s, first out wins. Then a practice hand: the
    suggestion is shown on every turn with a sentence saying why.
-2. **Continue** (a hand in progress on opening): "Ván đang chơi dở" with **Chơi tiếp** and **Ván mới**.
-3. **Table:** HUD with ⏸ and the series score; buttons **Bỏ lượt**, **Gợi ý**, **Đánh**, and a sort toggle
+2. **Table:** HUD with ☰ and the series score; buttons **Bỏ lượt**, **Gợi ý**, **Đánh**, and a sort toggle
    (by rank / by combinations). Tapping a card lifts it (selected); sliding a finger along the hand selects a run.
    Tapping one card when nothing is selected suggests the smallest play with it that beats the table. **Đánh** is
    enabled only for a selection that may be played; otherwise the reason is shown ("Phải lớn hơn đôi 7").
-4. **Hand results:** places with avatars, the points of the hand line by line (places, chops, thối, cóng), the series
-   score, **Ván tiếp** (and **Thoát** in the hub).
-5. **⏸ menu:** Tiếp tục, Ván mới (the series restarts at 0, asks first), Cách chơi, Luật nhà (H1–H9, applied from the
-   next hand), Bàn chơi (2–4 players, bot level), Bộ bài (two or four colours).
+3. **Hand results:** places with avatars, the points of the hand line by line (places, chops, thối, cóng), the series
+   score, **Ván tiếp** and **☰ Menu chính**.
+4. **☰ menu** (phone Back, Esc): **▶ Tiếp tục**, **🔊 Âm thanh**, **❓ Cách chơi**, **⚙️ Cài đặt** (Luật nhà and Bàn
+   chơi read only during a hand, Bộ bài), **☰ Menu chính** (the hand waits: **Chơi tiếp**), **← Về Tò He**. Bots
+   stop while it is open.
 
 ## Feel (juice in tiers)
 
@@ -209,8 +216,10 @@ the server referees with this module: the game sends actions (`session.room.act`
 - **Results** come from the hand's view; **Ván tiếp** tells the room this phone is ready and shows "Đang chờ mọi
   người…" until the next hand is dealt (when everyone is ready, or after 30 s).
 - **😀** sends one of the eight preset reactions; others' appear as bubbles at their seats.
-- **⏸** at a table: Tiếp tục, Cách chơi, Luật của bàn (the host's house rules, read only), Bộ bài, Rời bàn (the hub
-  asks whether to give the seat up). There is no "new table" and nothing to pause: the table goes on.
+- **☰** at a table (phone Back, Esc): "Bàn vẫn tiếp tục khi bạn mở menu." — **▶ Tiếp tục**, **🔊 Âm thanh**, **❓ Cách
+  chơi**, **⚙️ Cài đặt** (Luật của bàn, the host's house rules, read only; Bộ bài), **Rời bàn** (the hub asks whether to
+  give the seat up). There is no main menu at a table and nothing pauses: the table goes on, and so do its
+  animations.
 - The practice hints of the first hand also show online.
 - **Watching** (seat -1, when the room allows spectators): the HUD says "Đang xem" without a score or the sort
   button, the table shows card counts and plays but no hand, and there are no buttons and no 😀. The results show
@@ -252,6 +261,9 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 
 ## Changelog
 
+- **0.4.0** — the game shell (ADR 0018): the main menu on open (Chơi với máy / Chơi tiếp, Bàn mới, Chơi online,
+  Cài đặt, Cách chơi, Về Tò He), one ☰ menu with the way out (Rời bàn / Thôi xem / Về sảnh at a table, watching and
+  in a replay), house rules and players fixed during a hand, phone Back.
 - **0.3.1** — the deal lands the player's cards where they will lie and turns them over there, instead of
   spreading backs, removing them and showing the hand.
 - **0.3.0** — replays of finished online hands (`init.replay`, SDK 0.6.0) and the spectator view.

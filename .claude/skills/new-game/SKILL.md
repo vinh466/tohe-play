@@ -34,8 +34,10 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
 6. `src/main.ts`: `connect({ gameId })`; `createGame({ createScene })` from `@tohe/game-kit/phaser` (handle
    `onRestart`); `pause`/`resume` → `kit.pause()/resume()`; `settings.muted` → `sfx.setMuted`; save after every move;
    `submitScore` at the end; intro/game-over with the kit's `overlay`; Vietnamese strings first, English second.
-   Runs that outlast one sitting (saved mid-run): `createLifecycle` for "continue / new game" on open and the ⏸
-   menu in the HUD, and live scores instead of `submitScore` — `session.run(id).update(score)` after scoring moves,
+   Every game: `"shell"` in game.json's capabilities and the kit's `createShell` (ADR 0018) — the main menu on open
+   (`inProgress`, `play`, `newGame`, `howTo`, `settings` with `when: 'between-games' | 'any-time'`, `leaderboard`),
+   `shell.menuButton()` in the HUD, `shell.overlay` for the game's own cards, `shell.gameOver(card)` at the end; no
+   exit button and no Esc handler of its own. Runs that outlast one sitting (saved mid-run): live scores instead of `submitScore` — `session.run(id).update(score)` after scoring moves,
    `finish(score)` at game over and when a new game replaces an unfinished one (id kept in the save, ADR 0014).
 7. Themes (with both): `followTheme(session, theme => { scene.setTheme(theme); kit.setBackground(...) })`; art
    colours in a per-theme palette (`palette.ts`), DOM colours from the design tokens (`var(--tohe-*)`); every text

@@ -9,7 +9,11 @@ export const GameId = z
 
 export const SemVer = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 'semantic version, e.g. 1.2.0');
 
-export const Capability = z.enum(['save', 'scores', 'rooms']);
+/**
+ * What a game uses: `save`, `scores`, `rooms` (online tables, ADR 0016), `shell` (it draws its own main menu and
+ * in-game menu with the way back to Tò He, ADR 0018).
+ */
+export const Capability = z.enum(['save', 'scores', 'rooms', 'shell']);
 export type Capability = z.infer<typeof Capability>;
 
 /** Light or dark (ADR 0013). */

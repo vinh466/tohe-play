@@ -38,7 +38,6 @@ export const strings = {
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     largest: (value: string) => `Khối lớn nhất: ${value}`,
     again: 'Chơi lại',
-    exit: 'Thoát',
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
   },
   en: {
@@ -80,7 +79,6 @@ export const strings = {
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     largest: (value: string) => `Largest block: ${value}`,
     again: 'Play again',
-    exit: 'Exit',
     inProgress: (score: string) => `A game in progress: ${score} points.`,
   },
 };

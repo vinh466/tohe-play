@@ -1,7 +1,8 @@
 // Conformance kit: decides whether a built game honours the Game Contract, whatever it is written in.
 // It serves the build on its own origin with the production CSP, embeds it in a fake hub on a second
 // origin, drives the protocol from Node through @tohe/game-sdk/host, and throws random input at it.
-// Then it shows the game in every theme it declares and checks its text contrast (ADR 0013).
+// Then it shows the game in every theme it declares and checks its text contrast (ADR 0013). A game with the
+// `shell` capability (ADR 0018) is checked for its main menu, its answer to Back and its way out.
 
 import {
   existsSync,
@@ -134,6 +135,7 @@ export async function runConformance(
       if (message.type() === 'error') errors.push(`console: ${message.text()}`);
     });
     page.on('pageerror', (error) => errors.push(`uncaught: ${error.message}`));
+    page.on('crash', () => errors.push('the page crashed'));
 
     const listeners = new Set<(message: unknown) => void>();
     await page.exposeFunction('__toNode', (message: unknown) => {
@@ -158,6 +160,7 @@ export async function runConformance(
         save: null,
         seed: 20261013,
         telemetry: true,
+        shell: shellOf(manifest),
       }),
       onSave: () => void traffic.saves++,
       onScore: () => void traffic.scores++,
@@ -176,6 +179,8 @@ export async function runConformance(
 
     if (handshake === null) {
       const frame = await gameFrame(page, gameServer.url);
+      // A shell game opens on its main menu: play first, so the random input reaches the game itself.
+      if (hasShell(manifest)) await press(frame, '[data-tohe-play]');
       await monkey(page, frame, options.monkeyMs ?? 4000, host, otherTheme);
       const alive = await frame
         .evaluate(() => document.readyState)
@@ -220,6 +225,21 @@ export async function runConformance(
       host.resume();
     }
     host.dispose();
+    await page.close();
+
+    if (hasShell(manifest) && handshake === null) {
+      for (const result of await shellRun({
+        context,
+        manifest,
+        hostUrl: hostServer.url,
+        gameUrl: gameServer.url,
+        errors,
+        protocolErrors,
+        screenshot: join(resolve(options.outDir ?? 'test-results/conformance'), `${manifest.id}-shell.png`),
+      }).catch((error: Error) => [{ name: 'game shell runs', ok: false, detail: error.message }])) {
+        check(result.name, result.ok, result.detail);
+      }
+    }
 
     if (manifest.rooms && handshake === null) {
       const outDir = resolve(options.outDir ?? 'test-results/conformance');
@@ -303,6 +323,7 @@ async function roomRun(run: {
     if (message.type() === 'error') run.errors.push(`console (room): ${message.text()}`);
   });
   page.on('pageerror', (error) => run.errors.push(`uncaught (room): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (room)'));
   const listeners = new Set<(message: unknown) => void>();
   await page.exposeFunction('__toNode', (message: unknown) => {
     for (const listener of listeners) listener(message);
@@ -403,6 +424,130 @@ async function roomRun(run: {
   }
 }
 
+const hasShell = (manifest: GameManifest) => manifest.capabilities.includes('shell');
+
+/** What a hub would offer this game's player (ADR 0018): everything the game has, so every entry shows. */
+const shellOf = (manifest: GameManifest) =>
+  hasShell(manifest)
+    ? { leaderboard: manifest.capabilities.includes('scores'), rooms: manifest.rooms !== undefined }
+    : undefined;
+
+/**
+ * The game shell (ADR 0018), in a fresh session: the game opens on its main menu with a way back to Tò He
+ * (`data-tohe-exit`), plays from it (`data-tohe-play`), answers the hub's `menu` (Back) by reporting its menu open
+ * within 1.5 s, and the way out of that menu sends `exit`.
+ */
+async function shellRun(run: {
+  context: BrowserContext;
+  manifest: GameManifest;
+  hostUrl: string;
+  gameUrl: string;
+  errors: string[];
+  protocolErrors: string[];
+  /** The game's menu after Back, to look at. */
+  screenshot: string;
+}): Promise<Check[]> {
+  const page = await run.context.newPage();
+  page.on('console', (message) => {
+    if (message.type() === 'error') run.errors.push(`console (shell): ${message.text()}`);
+  });
+  page.on('pageerror', (error) => run.errors.push(`uncaught (shell): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (shell)'));
+  const listeners = new Set<(message: unknown) => void>();
+  await page.exposeFunction('__toNode', (message: unknown) => {
+    for (const listener of listeners) listener(message);
+  });
+  const menus: boolean[] = [];
+  let exits = 0;
+  const host = createHost({
+    transport: {
+      post: (message) =>
+        void page.evaluate((m) => (window as unknown as Bridge).__toGame(m), message).catch(() => {}),
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    manifest: run.manifest,
+    readyTimeoutMs: 10_000,
+    init: () => ({
+      profile: { id: 'conformance', name: 'Tester' },
+      locale: 'vi',
+      settings: { muted: true, theme: run.manifest.themes[0] ?? 'light' },
+      save: null,
+      seed: 20261016,
+      shell: shellOf(run.manifest),
+    }),
+    onMenu: (open) => void menus.push(open),
+    onExit: () => void exits++,
+    onProtocolError: (error) => run.protocolErrors.push(`shell: ${error}`),
+  });
+  const visible = (frame: Frame, selector: string) =>
+    frame
+      .locator(selector)
+      .first()
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(
+        () => true,
+        () => false,
+      );
+  const checks: Check[] = [];
+  try {
+    await page.goto(run.hostUrl);
+    await host.ready;
+    const frame = await gameFrame(page, run.gameUrl);
+    const opens = (await visible(frame, '[data-tohe-play]')) && (await visible(frame, '[data-tohe-exit]'));
+    checks.push({ name: 'shell: opens on its main menu, with play and the way back to Tò He', ok: opens });
+    const played = await press(frame, '[data-tohe-play]');
+    await page.waitForTimeout(1500);
+    const before = menus.length;
+    host.menu();
+    const answered = await until(() => menus.slice(before).includes(true), 1500);
+    mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
+    await page.screenshot({ path: run.screenshot }).catch(() => {});
+    checks.push({
+      name: 'shell: answers Back with its menu within 1.5 s',
+      ok: answered,
+      detail: answered
+        ? undefined
+        : `${played}; menu states after Back: ${JSON.stringify(menus.slice(before))}, exits: ${exits}`,
+    });
+    const out =
+      (await visible(frame, '[data-tohe-exit]')) &&
+      (await press(frame, '[data-tohe-exit]:visible')) === 'pressed' &&
+      (await until(() => exits > 0, 1000));
+    checks.push({ name: 'shell: its menu leads back to Tò He (exit)', ok: out });
+    return checks;
+  } finally {
+    host.dispose();
+    await page.close();
+  }
+}
+
+/**
+ * Presses a button of the game's menu with a DOM click. Visibility is checked on its own; Playwright's own click also
+ * waits for the page to draw two frames, which a WebGL game drawn in software on a CI machine may not do in time.
+ */
+function press(frame: Frame, selector: string): Promise<string> {
+  return frame
+    .locator(selector)
+    .first()
+    .evaluate((button) => (button as HTMLElement).click(), undefined, { timeout: 5000 })
+    .then(
+      () => 'pressed',
+      (error: Error) => `${selector} was not pressed: ${error.message.split('\n')[0]}`,
+    );
+}
+
+async function until(condition: () => boolean, timeoutMs: number): Promise<boolean> {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    if (condition()) return true;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return condition();
+}
+
 /**
  * The game opened with `init.replay` (ADR 0016): a hand that Node played to the end with the module's own bots,
  * played back by the game for seat 0. Checks that it opens and plays back without errors.
@@ -443,6 +588,7 @@ async function replayRun(run: {
     if (message.type() === 'error') run.errors.push(`console (replay): ${message.text()}`);
   });
   page.on('pageerror', (error) => run.errors.push(`uncaught (replay): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (replay)'));
   const listeners = new Set<(message: unknown) => void>();
   await page.exposeFunction('__toNode', (message: unknown) => {
     for (const listener of listeners) listener(message);

@@ -10,6 +10,7 @@ import {
   type Reaction,
   type RoomSeat,
   type Settings,
+  type ShellTarget,
   type TelemetryEvent,
 } from '@tohe/contract';
 import type { JsonValue } from './game.ts';
@@ -37,6 +38,12 @@ export interface HostOptions {
   /** The player is ready for the next hand. */
   onRoomNext?(): void | Promise<void>;
   onRoomReact?(reaction: Reaction): void;
+  /** A `shell` game's menu opened or closed (ADR 0018): its answer to `menu()`. */
+  onMenu?(open: boolean): void;
+  /** A `shell` game asks for the hub's leaderboard over it, or for its rooms lobby. */
+  onOpen?(what: ShellTarget): void;
+  /** A `shell` game's player switched sound in the game. */
+  onSettings?(change: { muted: boolean }): void;
   /** A message that failed validation or broke the protocol. */
   onProtocolError?(error: string, raw: unknown): void;
   /** Rejects `ready` if the game does not say ready in time. Default 10000 ms. */
@@ -54,6 +61,8 @@ export interface HostHandle {
   /** The players at the table, and this phone's seat in it. */
   roomSeats(seats: RoomSeat[], seat: number): void;
   roomReaction(seat: number, reaction: Reaction): void;
+  /** The player pressed Back: a `shell` game opens or closes its menu, or leaves from its main menu (ADR 0018). */
+  menu(): void;
   dispose(): void;
 }
 
@@ -137,6 +146,15 @@ export function createHost(options: HostOptions): HostHandle {
       case 'room.react':
         if (!can('rooms')) return fail('room.react without the "rooms" capability', raw);
         return options.onRoomReact?.(message.reaction);
+      case 'menu':
+        if (!can('shell')) return fail('menu without the "shell" capability', raw);
+        return options.onMenu?.(message.open);
+      case 'open':
+        if (!can('shell')) return fail('open without the "shell" capability', raw);
+        return options.onOpen?.(message.what);
+      case 'settings':
+        if (!can('shell')) return fail('settings without the "shell" capability', raw);
+        return options.onSettings?.({ muted: message.muted });
     }
   };
 
@@ -161,6 +179,7 @@ export function createHost(options: HostOptions): HostHandle {
       handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.seats', seats, seat }),
     roomReaction: (seat, reaction) =>
       handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.reaction', seat, reaction }),
+    menu: () => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'menu' }),
     dispose: () => {
       clearTimeout(timer);
       unsubscribe();

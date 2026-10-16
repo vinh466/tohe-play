@@ -2,7 +2,7 @@ import 'fake-indexeddb/auto';
 import { GameManifest } from '@tohe/contract';
 import { describe, expect, it } from 'vitest';
 import type { GameSummary } from './api/client.ts';
-import { dailySeed, isTrustedEntry, manifestFrom } from './launcher/manifest.ts';
+import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './launcher/manifest.ts';
 import { openDb } from './storage/db.ts';
 import {
   bestScore,
@@ -33,6 +33,13 @@ describe('launcher', () => {
     const manifest = manifestFrom(hello);
     expect(GameManifest.safeParse(manifest).success).toBe(true);
     expect(manifest.capabilities).toEqual(['save', 'scores']);
+  });
+
+  it('keeps the shell capability: the game draws its own menus and the hub no bar (ADR 0018)', () => {
+    const shelled = { ...hello, capabilities: ['save', 'scores', 'shell'] };
+    expect(manifestFrom(shelled).capabilities).toEqual(['save', 'scores', 'shell']);
+    expect(hasShell(shelled)).toBe(true);
+    expect(hasShell(hello)).toBe(false);
   });
 
   it('only trusts entries on the games origin', () => {

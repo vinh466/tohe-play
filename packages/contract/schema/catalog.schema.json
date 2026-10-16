@@ -65,7 +65,8 @@
                   "enum": [
                     "save",
                     "scores",
-                    "rooms"
+                    "rooms",
+                    "shell"
                   ]
                 }
               },

@@ -246,6 +246,60 @@ describe('rooms (ADR 0016)', () => {
   });
 });
 
+describe('game shell (ADR 0018)', () => {
+  const shellManifest: GameManifest = { ...manifest, capabilities: ['save', 'scores', 'shell'] };
+  const shellInit = () => ({
+    profile: { id: 'p1', name: 'Na' },
+    locale: 'vi',
+    settings: { muted: false, theme: 'light' as const },
+    save: null,
+    seed: 1,
+    shell: { leaderboard: true, rooms: false },
+  });
+
+  it('tells the game what the hub can open, and passes Back on as `menu`', async () => {
+    const [gameSide, hostSide] = memoryTransportPair();
+    const host = createHost({ transport: hostSide, manifest: shellManifest, init: shellInit });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    await host.ready;
+    expect(session.shell.can).toEqual({ leaderboard: true, rooms: false });
+    const back = vi.fn();
+    session.on('menu', back);
+    host.menu();
+    await vi.waitFor(() => expect(back).toHaveBeenCalledTimes(1));
+  });
+
+  it('sends the menu state, what to open and the sound switch to the hub', async () => {
+    const onMenu = vi.fn();
+    const onOpen = vi.fn();
+    const onSettings = vi.fn();
+    const [gameSide, hostSide] = memoryTransportPair();
+    createHost({ transport: hostSide, manifest: shellManifest, init: shellInit, onMenu, onOpen, onSettings });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    const heard: boolean[] = [];
+    session.on('settings', (settings) => heard.push(settings.muted));
+    session.shell.menuChanged(true);
+    session.shell.open('leaderboard');
+    session.shell.setMuted(true);
+    expect(session.settings.muted).toBe(true);
+    expect(heard).toEqual([true]);
+    await vi.waitFor(() => expect(onSettings).toHaveBeenCalledWith({ muted: true }));
+    expect(onMenu).toHaveBeenCalledWith(true);
+    expect(onOpen).toHaveBeenCalledWith('leaderboard');
+  });
+
+  it('refuses shell messages from a game without the capability', async () => {
+    const onProtocolError = vi.fn();
+    const onOpen = vi.fn();
+    const { gameSide } = setup({ onProtocolError, onOpen });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    expect(session.shell.can).toEqual({ leaderboard: false, rooms: false });
+    session.shell.open('leaderboard');
+    await vi.waitFor(() => expect(onProtocolError).toHaveBeenCalled());
+    expect(onOpen).not.toHaveBeenCalled();
+  });
+});
+
 describe('createRng', () => {
   it('is deterministic per seed', () => {
     const a = createRng(123);
