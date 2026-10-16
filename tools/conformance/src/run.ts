@@ -1,7 +1,8 @@
 // Conformance kit: decides whether a built game honours the Game Contract, whatever it is written in.
 // It serves the build on its own origin with the production CSP, embeds it in a fake hub on a second
 // origin, drives the protocol from Node through @tohe/game-sdk/host, and throws random input at it.
-// Then it shows the game in every theme it declares and checks its text contrast (ADR 0013).
+// Then it shows the game in every theme it declares and checks its text contrast (ADR 0013). A game with the
+// `shell` capability (ADR 0018) is checked for its main menu, its answer to Back and its way out.
 
 import {
   existsSync,
@@ -158,6 +159,7 @@ export async function runConformance(
         save: null,
         seed: 20261013,
         telemetry: true,
+        shell: shellOf(manifest),
       }),
       onSave: () => void traffic.saves++,
       onScore: () => void traffic.scores++,
@@ -176,6 +178,13 @@ export async function runConformance(
 
     if (handshake === null) {
       const frame = await gameFrame(page, gameServer.url);
+      // A shell game opens on its main menu: play first, so the random input reaches the game itself.
+      if (hasShell(manifest)) {
+        await frame
+          .locator('[data-tohe-play]')
+          .click({ timeout: 5000 })
+          .catch(() => {});
+      }
       await monkey(page, frame, options.monkeyMs ?? 4000, host, otherTheme);
       const alive = await frame
         .evaluate(() => document.readyState)
@@ -220,6 +229,19 @@ export async function runConformance(
       host.resume();
     }
     host.dispose();
+
+    if (hasShell(manifest) && handshake === null) {
+      for (const result of await shellRun({
+        context,
+        manifest,
+        hostUrl: hostServer.url,
+        gameUrl: gameServer.url,
+        errors,
+        protocolErrors,
+      }).catch((error: Error) => [{ name: 'game shell runs', ok: false, detail: error.message }])) {
+        check(result.name, result.ok, result.detail);
+      }
+    }
 
     if (manifest.rooms && handshake === null) {
       const outDir = resolve(options.outDir ?? 'test-results/conformance');
@@ -401,6 +423,116 @@ async function roomRun(run: {
     host.dispose();
     await page.close();
   }
+}
+
+const hasShell = (manifest: GameManifest) => manifest.capabilities.includes('shell');
+
+/** What a hub would offer this game's player (ADR 0018): everything the game has, so every entry shows. */
+const shellOf = (manifest: GameManifest) =>
+  hasShell(manifest)
+    ? { leaderboard: manifest.capabilities.includes('scores'), rooms: manifest.rooms !== undefined }
+    : undefined;
+
+/**
+ * The game shell (ADR 0018), in a fresh session: the game opens on its main menu with a way back to Tò He
+ * (`data-tohe-exit`), plays from it (`data-tohe-play`), answers the hub's `menu` (Back) by reporting its menu open
+ * within 1.5 s, and the way out of that menu sends `exit`.
+ */
+async function shellRun(run: {
+  context: BrowserContext;
+  manifest: GameManifest;
+  hostUrl: string;
+  gameUrl: string;
+  errors: string[];
+  protocolErrors: string[];
+}): Promise<Check[]> {
+  const page = await run.context.newPage();
+  page.on('console', (message) => {
+    if (message.type() === 'error') run.errors.push(`console (shell): ${message.text()}`);
+  });
+  page.on('pageerror', (error) => run.errors.push(`uncaught (shell): ${error.message}`));
+  const listeners = new Set<(message: unknown) => void>();
+  await page.exposeFunction('__toNode', (message: unknown) => {
+    for (const listener of listeners) listener(message);
+  });
+  const menus: boolean[] = [];
+  let exits = 0;
+  const host = createHost({
+    transport: {
+      post: (message) =>
+        void page.evaluate((m) => (window as unknown as Bridge).__toGame(m), message).catch(() => {}),
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    manifest: run.manifest,
+    readyTimeoutMs: 10_000,
+    init: () => ({
+      profile: { id: 'conformance', name: 'Tester' },
+      locale: 'vi',
+      settings: { muted: true, theme: run.manifest.themes[0] ?? 'light' },
+      save: null,
+      seed: 20261016,
+      shell: shellOf(run.manifest),
+    }),
+    onMenu: (open) => void menus.push(open),
+    onExit: () => void exits++,
+    onProtocolError: (error) => run.protocolErrors.push(`shell: ${error}`),
+  });
+  const visible = (frame: Frame, selector: string) =>
+    frame
+      .locator(selector)
+      .first()
+      .waitFor({ state: 'visible', timeout: 5000 })
+      .then(
+        () => true,
+        () => false,
+      );
+  const checks: Check[] = [];
+  try {
+    await page.goto(run.hostUrl);
+    await host.ready;
+    const frame = await gameFrame(page, run.gameUrl);
+    const opens = (await visible(frame, '[data-tohe-play]')) && (await visible(frame, '[data-tohe-exit]'));
+    checks.push({ name: 'shell: opens on its main menu, with play and the way back to Tò He', ok: opens });
+    await frame
+      .locator('[data-tohe-play]')
+      .first()
+      .click({ timeout: 5000 })
+      .catch(() => {});
+    await page.waitForTimeout(1500);
+    const before = menus.length;
+    host.menu();
+    const answered = await until(() => menus.slice(before).includes(true), 1500);
+    checks.push({
+      name: 'shell: answers Back with its menu within 1.5 s',
+      ok: answered,
+      detail: answered ? undefined : `menu states after Back: ${JSON.stringify(menus.slice(before))}`,
+    });
+    const out = (await visible(frame, '[data-tohe-exit]'))
+      ? await frame
+          .locator('[data-tohe-exit]:visible')
+          .first()
+          .click({ timeout: 2000 })
+          .then(() => until(() => exits > 0, 1000))
+          .catch(() => false)
+      : false;
+    checks.push({ name: 'shell: its menu leads back to Tò He (exit)', ok: out });
+    return checks;
+  } finally {
+    host.dispose();
+    await page.close();
+  }
+}
+
+async function until(condition: () => boolean, timeoutMs: number): Promise<boolean> {
+  const end = Date.now() + timeoutMs;
+  while (Date.now() < end) {
+    if (condition()) return true;
+    await new Promise((resolve) => setTimeout(resolve, 50));
+  }
+  return condition();
 }
 
 /**

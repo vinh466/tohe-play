@@ -93,7 +93,27 @@
   color: var(--tohe-accent);
 }
 
-/* Round icon button for the game's HUD, e.g. the lifecycle's ⏸ menu. */
+/* A menu (the game shell's, ADR 0018): up to seven buttons fit a small phone. The primary stays large: white on
+   brand needs large text. */
+.tohe-card-menu {
+  padding: 1.25rem;
+}
+
+.tohe-card-menu .tohe-card-icon {
+  font-size: 2.6rem;
+}
+
+.tohe-card-menu .tohe-card-actions {
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.tohe-card-menu .tohe-button-secondary {
+  min-height: 3rem;
+  font-size: 1.1rem;
+}
+
+/* Round icon button for the game's HUD, e.g. the shell's ☰ menu. */
 .tohe-icon-button {
   display: grid;
   place-items: center;

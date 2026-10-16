@@ -141,27 +141,28 @@ ending; the sum rounded down to a power of two, about 6,000; **rounded up (0.3.0
 
 ## Screens
 
-1. **Intro** (first time only): four picture hints — tap a block; equal blocks connected to it, diagonals too,
-   merge into it; making the goal block (4K, 16K, …) retires the smallest blocks, with points; when nothing merges,
-   🔀 shuffles.
-2. **Continue** (opening with a game in progress, after the intro was seen): "Ván đang chơi dở: n điểm" with
-   **Chơi tiếp** (the default) and **Ván mới** (asks first; the run ends).
-3. **Playing:** HUD with ⏸, score (counts up), the 🔀 button with how many are left, and best; under it the goal,
+The kit's game shell ([Game shell](../../docs/architecture/game-shell.md), ADR 0018):
+
+1. **Main menu** (every time the game opens, over the board as it was left): **▶ Chơi**, or "Ván đang chơi dở: n
+   điểm" with **▶ Chơi tiếp** and **Ván mới** (asks first; the run ends); **⚙️ Cài đặt**, **🏆 Bảng xếp hạng**
+   (signed-in players), **❓ Cách chơi**, **← Về Tò He**.
+2. **Intro** (the first **Chơi** only): four picture hints — tap a block; equal blocks connected to it, diagonals
+   too, merge into it; making the goal block (4K, 16K, …) retires the smallest blocks, with points; when nothing
+   merges, 🔀 shuffles.
+3. **Playing:** HUD with ☰, score (counts up), the 🔀 button with how many are left, and best; under it the goal,
    "🎯 Mục tiêu [4K] tạm biệt [2]" with both blocks drawn small in the player's colours; the board below.
    - **Scores never cover the HUD:** each score box keeps its share of the row; a score is shown in full while it
      fits ("812.345") and otherwise in its own unit with as many decimals as fit ("812,3K", "23,45M"), cut and never
      rounded up (the kit's `formatCompact`). The game-over card shows scores in full.
-   Exit and sound buttons come from the hub. **⏸** (or Esc) opens the menu: **Tiếp tục**, **Ván mới** (asks
-   first), **Cách chơi**, **Màu khối**.
-   - **Màu khối:** one row per [preset](#block-colours), with its name and sample blocks 2 … 256 (the numbers on
-     the board most of the time) in its colours; the chosen one is marked. Tapping a row repaints the board at once
-     and keeps the choice; **Quay lại** returns to the menu.
-4. **Paused by the hub:** the hub sends `pause` when the app is hidden or its exit confirmation is open; animations
-   and timers stop, and `resume` continues exactly where they were.
+   **☰** (phone Back, Esc) opens the menu: **▶ Tiếp tục**, **🔊 Âm thanh**, **❓ Cách chơi**, **⚙️ Cài đặt**,
+   **☰ Menu chính**, **← Về Tò He**.
+   - **Cài đặt → Màu khối** (any time): one row per [preset](#block-colours), with its name and sample blocks 2 …
+     256 (the numbers on the board most of the time) in its colours; the chosen one is marked. Tapping a row
+     repaints the board at once and keeps the choice; **Quay lại** returns.
+4. **Paused by the hub:** the hub sends `pause` when the app is hidden; animations and timers stop, and `resume`
+   continues exactly where they were.
 5. **Game over:** board dims, card with score/best and the largest block made ("Khối lớn nhất [512K]"),
-   confetti for a record, **Chơi lại**.
-
-The continue card and the ⏸ menu are the kit's standard lifecycle (`createLifecycle`).
+   confetti for a record, **Chơi lại**, **☰ Menu chính**.
 
 ## Feel (juice), in tiers
 
@@ -201,7 +202,7 @@ Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013), lik
 
 ## Block colours
 
-Each player picks how the blocks look (⏸ → **Màu khối**). The choice belongs to the player: it is kept in the
+Each player picks how the blocks look (**⚙️ Cài đặt → Màu khối**). The choice belongs to the player: it is kept in the
 game's save, so it follows the profile to other devices, and a new player starts with **Hoàng hôn**.
 
 | Preset | Look |

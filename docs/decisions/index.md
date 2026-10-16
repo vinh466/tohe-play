@@ -31,4 +31,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0015](0015-device-telemetry.md) | Collect technical telemetry from players' devices, first-party and visible | Accepted |
 | [0016](0016-online-rooms-for-turn-based-games.md) | Online rooms for turn-based games, refereed by the API with the game's own rules | Accepted; the seed's secrecy amended by 0017 |
 | [0017](0017-replays-of-finished-online-hands.md) | Replay finished online hands with the game's own rules module | Accepted |
-| [0018](0018-every-game-opens-on-its-own-main-menu.md) | Every game opens on its own main menu and has one menu button | Proposed |
+| [0018](0018-every-game-opens-on-its-own-main-menu.md) | Every game opens on its own main menu and has one menu button | Accepted |

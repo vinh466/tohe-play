@@ -39,7 +39,7 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `entry` | string | `index.html` | Entry file relative to the build folder. |
 | `icon` | string | — | Icon file relative to the build folder (SVG or PNG, square). |
 | `orientation` | `portrait` \| `landscape` \| `any` | `portrait` | Preferred orientation. |
-| `capabilities` | array of `save`, `scores`, `rooms` | `[]` | Platform services the game uses. Undeclared calls are rejected. |
+| `capabilities` | array of `save`, `scores`, `rooms`, `shell` | `[]` | Platform services the game uses. Undeclared calls are rejected. `shell`: the game draws its own main menu and menu with the way back to Tò He (below). |
 | `themes` | array of `light`, `dark` | `["light"]` | Looks the game has ([ADR 0013](../decisions/0013-light-and-dark-themes.md)). With both, it follows the hub through `settings.theme`; with one, it keeps that look. |
 | `minAge` | 0–18 | `0` | Hidden from younger profiles (M1). |
 | `tags` | string[] | `[]` | Up to 8 short tags. |
@@ -75,6 +75,22 @@ A rooms game also **replays** a finished hand ([ADR 0017](../decisions/0017-repl
 opened with `init.replay` instead of `init.room`, it calls `setup` with the hand's seed, options and carry, then
 `act` for each recorded action, and draws `view(state, seat)` for the seat that asked, with controls to step back,
 forward, play and pause.
+
+### Game shell
+
+Every game opens on its own main menu and has one ☰ menu while playing, with the way back to Tò He inside
+([ADR 0018](../decisions/0018-every-game-opens-on-its-own-main-menu.md), [Game shell](../architecture/game-shell.md)). A
+game declaring `"shell"` gets the whole screen: the hub draws no bar over it. The kit's `createShell` does all of it;
+a game without the kit must:
+
+- open on a main menu whose play button carries `data-tohe-play` and whose way back to Tò He carries `data-tohe-exit`
+  and calls `exit()`;
+- while playing, show a ☰ that opens a menu with the same `data-tohe-exit`, pausing what can pause;
+- on `menu` (the player pressed Back): open the menu while playing, close it when open, go back to the main menu from
+  the end of a game, and `exit()` from the main menu — telling the hub with `session.shell.menuChanged(open)` every
+  time a menu opens or closes;
+- offer sound in its menu (`session.shell.setMuted`), and the leaderboard or online play only when
+  `session.shell.can` says the hub can open them (`session.shell.open('leaderboard' | 'rooms')`).
 
 ## 3. Runtime rules
 
@@ -134,6 +150,8 @@ run.finish(score);                               // at game over, or when the pl
 | `seed` | Integer; same for everybody on the same day. |
 | `saved` | Last saved state or `null`. |
 | `settings` | `{ muted, theme }`, kept up to date. `theme` is the hub's `light` or `dark`. |
+| `on('menu', fn)` | The player pressed Back (shell games, ADR 0018, SDK 0.7.0). |
+| `shell` | For `shell` games (SDK 0.7.0): `can` (`{ leaderboard, rooms }`: what the hub can open for this player), `menuChanged(open)`, `open('leaderboard' \| 'rooms')`, `setMuted(muted)` (updates `settings` at once). |
 | `on(event, fn)` | `pause`, `resume`, `settings`. Returns an unsubscribe function. |
 | `save(data)` | JSON, ≤ 64 KB. Resolves when the hub stored it; rejects with the hub's reason. |
 | `submitScore(value, board?)` | Finite number; board defaults to `default`. |
@@ -159,13 +177,17 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | Direction | `type` | Fields | Notes |
 | --- | --- | --- | --- |
 | game → host | `ready` | `gameId`, `sdkVersion` | First message. Sent to `*` because the host is not known yet; carries no data. |
-| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?`, `replay?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table; `replay` (`seats`, `seat`, `seed`, `options`, `carry`, `actions` ≤ 5000) when opened to replay a finished hand. |
+| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?`, `replay?`, `shell?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table; `replay` (`seats`, `seat`, `seed`, `options`, `carry`, `actions` ≤ 5000) when opened to replay a finished hand. `shell` (`leaderboard`, `rooms`) for `shell` games: what the hub can open now. |
 | game → host | `save` | `id`, `data` | Request; answered by `result`. |
 | game → host | `score` | `id`, `value`, `board`, `run?`, `final` | Request; answered by `result`. `run` groups the reports of one run; `final` (default `true`) is `false` while it goes on. |
 | host → game | `result` | `replyTo`, `ok`, `error?` | Answer to a request. |
 | host → game | `pause` / `resume` | — | Tab hidden / shown, system dialogs. |
 | host → game | `settings` | `settings` | `{ muted, theme }`: mute or theme changed. |
 | game → host | `exit` | — | Close the game. |
+| host → game | `menu` | — | Shell: the player pressed Back. |
+| game → host | `menu` | `open` | Shell: the game's menu opened or closed — the answer to `menu`; without one (or `exit`) within 1.5 s the hub offers its own way out. |
+| game → host | `open` | `what` | Shell: `leaderboard` (the hub's board over the game) or `rooms` (the game's lobby). |
+| game → host | `settings` | `muted` | Shell: the player switched sound in the game; the hub remembers it for the device. |
 | game → host | `log` | `level`, `message` | Diagnostics. |
 | host → game | `room.view` | `view`, `events` (≤ 200), `seq`, `turnMs` | Rooms: the seat's view after a change and the events since the last one; drop a `seq` lower than the newest. |
 | host → game | `room.seats` | `seats`, `seat` | Rooms: the players changed; `seat` is this phone's. |
@@ -200,7 +222,10 @@ origin, and checks:
    platform function, plays bot tables of every declared size to the end (states, views and actions survive JSON;
    views at most 64 KB) with `Math.random` and `Date.now` throwing, and replays to the same state; then the game is
    opened at a two-seat table refereed by its own module, with a bot in the other seat, under random taps, and opened
-   with `init.replay` to play back a hand its own bots played to the end.
+   with `init.replay` to play back a hand its own bots played to the end;
+8. with `shell`: it opens on a main menu with `[data-tohe-play]` and `[data-tohe-exit]`, answers `menu` with
+   `menu { open: true }` within 1.5 s once playing, and the `[data-tohe-exit]` of that menu sends `exit`. The random
+   input of check 3 starts from **Chơi**.
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
 `<id>-<theme>.png` per theme, `<id>-room.png` at a table and `<id>-replay.png` replaying — look at them.
@@ -211,7 +236,8 @@ It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` aft
   Example: `themes` and `settings.theme` (ADR 0013) — older builds ignore the field; SDK 0.2.0 assumes `light` when
   a host does not send it. Likewise `run` and `final` on `score` (ADR 0014): a score without them is final, as in
   older builds; `rooms` (ADR 0016), a capability older games do not declare; and `init.replay` (ADR 0017), sent only
-  to games that declare `rooms`.
+  to games that declare `rooms`; `shell` (ADR 0018), its messages and `init.shell`, which only `shell` games send or
+  get.
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;
   games are migrated before N−1 is dropped.
 - The SDK follows semver independently; its major version changes only with the protocol.

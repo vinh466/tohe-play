@@ -10,14 +10,21 @@ Reference game for the platform: the smallest game that uses every part of the G
 - The dot shrinks as the score grows: radius = max(0.05, 0.12 − 0.003 × score) of the playfield side.
 - Missed taps do nothing.
 - When time runs out the round ends: show the score and the best score, with **Chơi lại** (play again) and
-  **Thoát** (exit).
+  **☰ Menu chính**.
 
 ## Screens
 
-1. Intro overlay: title, one-line explanation, **Chơi**.
-2. Playing: HUD `N điểm · Ts`, progress bar, playfield.
-3. Paused overlay (hub sent `pause`): **Tiếp tục**. Time does not run while paused.
-4. Game over overlay.
+The game shell ([ADR 0018](../../docs/decisions/0018-every-game-opens-on-its-own-main-menu.md)), drawn by hand: this
+is the minimal game without the kit, so it shows what any game must do (`data-tohe-play`, `data-tohe-exit`, `menu`).
+
+1. **Main menu:** title, one-line explanation (the how-to), **▶ Chơi**, **🏆 Bảng xếp hạng** (signed-in players: the
+   hub's board over the game), **← Về Tò He**.
+2. **Playing:** ☰ top left, HUD `N điểm · Ts`, progress bar, playfield.
+3. **Menu** (☰, phone Back, Esc, or the hub's `pause`): **▶ Tiếp tục**, **🔊 Âm thanh**, **☰ Menu chính**,
+   **← Về Tò He**. Time does not run while it is open.
+4. **Round over:** score and best, **Chơi lại**, **☰ Menu chính**.
+
+Back steps back: the menu closes, the round's end goes to the main menu, the main menu leaves.
 
 ## Themes
 

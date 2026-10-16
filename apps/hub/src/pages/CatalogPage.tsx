@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { gamesQuery } from '../api/queries.ts';
+import { hasShell } from '../launcher/manifest.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
@@ -83,7 +84,7 @@ function Catalog({ player, household }: { player: Player; household: string | nu
               style={{ animationDelay: `${index * 40}ms` }}
             >
               <Link
-                to={game.rooms ? '/rooms/$gameId' : '/play/$gameId'}
+                to={game.rooms && !hasShell(game) ? '/rooms/$gameId' : '/play/$gameId'}
                 params={{ gameId: game.id }}
                 className="flex h-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 text-center shadow-sm transition active:scale-95"
               >

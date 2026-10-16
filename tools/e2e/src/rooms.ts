@@ -171,7 +171,7 @@ try {
   await host.reload();
   await signIn(kid, family, 'Bé Na');
 
-  step('the host opens Tiến Lên: its card leads to the lobby');
+  step("the host opens Tiến Lên: the game's main menu leads to the lobby (ADR 0018)");
   const card = host.getByRole('link', { name: /Tiến Lên/ });
   for (let attempt = 0; !(await card.isVisible()); attempt++) {
     if (attempt === 20) throw new Error('Tiến Lên never appeared in the catalog');
@@ -179,6 +179,9 @@ try {
     await host.reload();
   }
   await card.tap();
+  await host.waitForURL(/\/play\/tien-len$/);
+  const menu = await gameFrame(host);
+  await menu.getByRole('button', { name: '🌐 Chơi online' }).tap();
   await host.waitForURL(/\/rooms\/tien-len$/);
   await shot(host, 'lobby');
 
@@ -242,11 +245,9 @@ try {
   await kid.screenshot({ path: 'test-results/rooms-spectator.png' });
 
   // Three games drawing at once on a CI machine's CPU slow every tap to seconds: the child stops watching.
-  step('the child stops watching without being asked anything, and lands in the lobby');
-  await kid
-    .getByRole('button', { name: /Rời phòng/ })
-    .first()
-    .tap();
+  step("the child stops watching from the game's menu, without being asked anything, and lands in the lobby");
+  await kidGame.locator('[data-tohe-menu]').tap();
+  await kidGame.getByRole('button', { name: 'Thôi xem' }).tap();
   await kid.waitForURL(/\/rooms\/tien-len$/);
 
   step('both play a whole hand with the hints, next to two bots');
@@ -263,11 +264,9 @@ try {
   await host.screenshot({ path: 'test-results/rooms-results-host.png' });
   await guest.screenshot({ path: 'test-results/rooms-results-guest.png' });
 
-  step('the guest leaves (the hub asks first) and lands in the lobby');
-  await guest
-    .getByRole('button', { name: /Rời phòng/ })
-    .first()
-    .tap();
+  step("the guest leaves from the game's menu (the hub asks first) and lands in the lobby");
+  await guestGame.locator('[data-tohe-menu]').tap();
+  await guestGame.getByRole('button', { name: 'Rời bàn' }).tap();
   await guest.getByRole('dialog').getByRole('button', { name: 'Rời phòng' }).tap();
   await guest.waitForURL(/\/rooms\/tien-len$/);
 

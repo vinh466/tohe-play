@@ -71,7 +71,7 @@ stateDiagram-v2
 
 ### 1. The lobby
 
-Tapping an online game in the catalog opens its lobby (a hub page, `/play/<game>/rooms`), not the game:
+The lobby is a hub page (`/rooms/<game>`). The game's catalog card opens the game on its main menu, whose **🌐 Chơi online** leads here, and the lobby's ← goes back to it ([Game shell](game-shell.md), ADR 0018):
 
 ```text
 ┌──────────────────────────────┐

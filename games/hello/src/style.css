@@ -83,3 +83,20 @@ button:focus-visible {
   outline: 3px solid var(--tohe-focus);
   outline-offset: 2px;
 }
+
+/* ☰: the only button while playing (ADR 0018). */
+.menu {
+  position: fixed;
+  top: max(0.5rem, env(safe-area-inset-top));
+  left: 0.75rem;
+  width: 3rem;
+  min-height: 3rem;
+  border-radius: 50%;
+  background: var(--tohe-surface);
+  color: var(--tohe-accent);
+  font-size: 1.4rem;
+}
+
+.menu[hidden] {
+  display: none;
+}

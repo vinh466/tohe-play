@@ -155,26 +155,30 @@ try {
   }
   await shot('catalog');
 
-  step('launch it');
+  step('launch it: the game opens on its main menu, full screen, with no hub bar (ADR 0018)');
   await card.tap();
   await page.waitForURL(/\/play\/hello$/);
   const frame = await gameFrame(page);
   const box = await page.locator('iframe').boundingBox();
   if (!box) throw new Error('game iframe has no layout box');
   mark(`iframe box ${JSON.stringify(box)}`);
+  if (box.y > 0) throw new Error(`the game does not fill the screen: iframe at y=${box.y}`);
+  await frame.getByRole('button', { name: '🏆 Bảng xếp hạng' }).waitFor();
+  await frame.getByRole('button', { name: '← Về Tò He' }).waitFor();
+  await shot('main-menu');
 
   step('play one 20 s round');
-  // Random taps must never reach the game-over overlay: its "Thoát" (exit) button would close the game.
-  // So the deadline is taken *before* the round starts (slow CI must not stretch it past 20 s), and tapping
-  // also stops as soon as any overlay button is visible again. Taps also keep a margin from the iframe's edges:
-  // Chromium's touch adjustment snaps a tap near the hub's top bar onto its buttons.
+  // Random taps must never reach the menu (☰, top left), whose "Về Tò He" would close the game: they stay in the
+  // playfield, below the HUD. The deadline is taken *before* the round starts (slow CI must not stretch it past
+  // 20 s), and tapping stops as soon as the round's end card shows.
   const end = Date.now() + 17_000;
   const margin = 24;
-  await frame.getByRole('button', { name: 'Chơi', exact: true }).tap();
-  const exitButton = frame.getByRole('button', { name: 'Thoát', exact: true });
-  while (Date.now() < end && !(await exitButton.isVisible())) {
+  const top = 96;
+  await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
+  const again = frame.getByRole('button', { name: 'Chơi lại', exact: true });
+  while (Date.now() < end && !(await again.isVisible())) {
     const x = Math.round(box.x + margin + Math.random() * (box.width - 2 * margin));
-    const y = Math.round(box.y + margin + Math.random() * (box.height - 2 * margin));
+    const y = Math.round(box.y + top + Math.random() * (box.height - top - margin));
     mark(`tap ${x},${y}`);
     await page.touchscreen.tap(x, y);
     await page.waitForTimeout(150);
@@ -226,10 +230,25 @@ try {
     await page.waitForTimeout(500);
   }
 
-  step('exit back to the catalog (the hub asks first)');
-  await page.getByRole('button', { name: /Thoát/ }).first().tap();
-  const confirm = page.getByRole('dialog');
-  await confirm.getByRole('button', { name: 'Thoát', exact: true }).tap();
+  step("the game's main menu opens the hub's leaderboard over the game");
+  await frame.getByRole('button', { name: '☰ Menu chính' }).tap();
+  await frame.getByRole('button', { name: '🏆 Bảng xếp hạng' }).tap();
+  const board = page.getByRole('dialog', { name: /Chạm Chấm/ });
+  await board.getByText('Bé Na (bạn)').waitFor();
+  await board.getByRole('button', { name: '✕' }).tap();
+
+  step('phone Back opens the menu (the round waits), Back again goes on playing');
+  await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
+  await page.evaluate(() => history.back());
+  await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor();
+  if (!/\/play\/hello$/.test(page.url())) throw new Error(`Back left the game: ${page.url()}`);
+  await shot('in-game-menu');
+  await page.evaluate(() => history.back());
+  await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor({ state: 'hidden' });
+
+  step("leave from the game's own menu: straight back to the catalog");
+  await frame.locator('[data-tohe-menu]').tap();
+  await frame.getByRole('button', { name: '← Về Tò He' }).tap();
   await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`);
 
   step('the household leaderboard lists the child');

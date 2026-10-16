@@ -5,6 +5,8 @@ export interface OverlayAction {
   label: string;
   onClick(): void;
   variant?: 'primary' | 'secondary';
+  /** Extra attributes for the button, e.g. `data-tohe-exit` (what conformance looks for, ADR 0018). */
+  attributes?: Record<string, string>;
 }
 
 export interface OverlayCard {
@@ -15,6 +17,8 @@ export interface OverlayCard {
   /** Extra content between the body and the buttons (e.g. a score table or hints). */
   content?: HTMLElement;
   actions: OverlayAction[];
+  /** A menu: many buttons, so the secondary ones are a little smaller and fit a small phone. */
+  menu?: boolean;
 }
 
 export interface Overlay {
@@ -32,7 +36,7 @@ export function createOverlay(root: HTMLElement): Overlay {
   return {
     show(card) {
       const box = document.createElement('div');
-      box.className = 'tohe-card';
+      box.className = card.menu ? 'tohe-card tohe-card-menu' : 'tohe-card';
       box.setAttribute('role', 'dialog');
       box.setAttribute('aria-modal', 'true');
       if (card.icon) box.append(element('div', 'tohe-card-icon', card.icon));
@@ -48,6 +52,7 @@ export function createOverlay(root: HTMLElement): Overlay {
           action.label,
         );
         button.type = 'button';
+        for (const [name, value] of Object.entries(action.attributes ?? {})) button.setAttribute(name, value);
         button.addEventListener('click', action.onClick);
         actions.append(button);
       }

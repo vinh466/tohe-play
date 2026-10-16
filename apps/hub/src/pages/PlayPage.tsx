@@ -5,6 +5,7 @@ import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame } from '../launcher/GameFrame.tsx';
+import { hasShell } from '../launcher/manifest.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
@@ -13,7 +14,7 @@ export function PlayPage() {
   return <RequireSession need="player">{({ player }) => <Launcher player={player} />}</RequireSession>;
 }
 
-/** A game on its own (for a game with rooms, "Chơi với máy" from its lobby). */
+/** A game on its own: from its catalog card, or "Chơi với máy" in a rooms lobby. */
 function Launcher({ player }: { player: Player }) {
   const { gameId } = useParams({ from: '/play/$gameId' });
   const { t } = useTranslation();
@@ -22,10 +23,14 @@ function Launcher({ player }: { player: Player }) {
   const config = useQuery(configQuery);
   const game = games.data?.find((g) => g.id === gameId);
   const gamesOrigin = config.data?.gamesOrigin;
-  const back = game?.rooms ? ({ to: '/rooms/$gameId', params: { gameId } } as const) : ({ to: '/' } as const);
+  const shell = game ? hasShell(game) : false;
+  // A shell game (ADR 0018) is entered from its card and left from its own main menu: back to the catalog.
+  const back =
+    game?.rooms && !shell ? ({ to: '/rooms/$gameId', params: { gameId } } as const) : ({ to: '/' } as const);
 
-  // Leaving is confirmed: the bar sits right above the game, and touch adjustment on phones snaps taps near the
-  // top edge of the game onto this button. A child must not be thrown out of a round by a stray tap.
+  // Leaving through the hub's bar is confirmed: the bar sits right above the game, and touch adjustment on phones
+  // snaps taps near the top edge of the game onto it. A child must not be thrown out of a round by a stray tap. A
+  // shell game has no bar; its "Về Tò He" is a choice made in its menu, so it leaves at once.
   const [confirmingExit, setConfirmingExit] = useState(false);
   const paused = useRef<HostHandle | null>(null);
   const keepPlaying = () => {
@@ -45,6 +50,10 @@ function Launcher({ player }: { player: Player }) {
         gamesOrigin={gamesOrigin}
         player={player}
         onExit={(host) => {
+          if (shell) {
+            void navigate(back);
+            return;
+          }
           paused.current = host;
           setConfirmingExit(true);
         }}

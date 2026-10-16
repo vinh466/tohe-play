@@ -9,11 +9,13 @@ import type {
   RoomInfo,
   RoomSeat,
   Settings,
+  ShellInfo,
+  ShellTarget,
 } from '@tohe/contract';
 import { createTelemetry, disabledTelemetry, type Telemetry } from './telemetry.ts';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.6.0';
+export const SDK_VERSION = '0.7.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
@@ -28,7 +30,7 @@ export interface ConnectOptions {
   transport?: Transport;
 }
 
-export type SessionEvent = 'pause' | 'resume' | 'settings';
+export type SessionEvent = 'pause' | 'resume' | 'menu' | 'settings';
 
 export interface GameSession<TSave = JsonValue> {
   /** `embedded` inside the hub, `standalone` when the game page is opened directly (local dev). */
@@ -40,7 +42,8 @@ export interface GameSession<TSave = JsonValue> {
   readonly saved: TSave | null;
   /** Current settings; updated before `settings` listeners run. */
   readonly settings: Settings;
-  on(event: 'pause' | 'resume', listener: () => void): () => void;
+  /** `menu`: the player pressed Back (ADR 0018) — open the menu, close it, or leave from the main menu. */
+  on(event: 'pause' | 'resume' | 'menu', listener: () => void): () => void;
   on(event: 'settings', listener: (settings: Settings) => void): () => void;
   /** Persist the game state (must be JSON-serialisable, max 64 KB). Resolves once the hub has stored it. */
   save(data: TSave): Promise<void>;
@@ -70,6 +73,20 @@ export interface GameSession<TSave = JsonValue> {
    * `options` and `carry`, then play `actions` back, showing `seat`'s view.
    */
   readonly replay: Replay | null;
+  /** The game shell's side of the hub (ADR 0018), for games that declare `shell`. */
+  readonly shell: ShellSession;
+}
+
+/** What a `shell` game asks of the hub (ADR 0018). The kit's `createShell` uses it; games rarely call it directly. */
+export interface ShellSession {
+  /** What the hub can open for this player now. Both false in standalone mode and for older hubs. */
+  readonly can: ShellInfo;
+  /** The game's menu opened or closed: the answer to the hub's `menu` (Back), so the hub knows the game is alive. */
+  menuChanged(open: boolean): void;
+  /** Show the hub's leaderboard for this game over it, or go to the game's rooms lobby. */
+  open(what: ShellTarget): void;
+  /** The player switched sound in the game: `settings` changes here at once, and the hub remembers it. */
+  setMuted(muted: boolean): void;
 }
 
 /** One view of the table for this seat, with what happened since the last one. */
@@ -218,6 +235,16 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
             telemetry,
             room: null,
             replay: message.replay ?? null,
+            shell: {
+              can: message.shell ?? { leaderboard: false, rooms: false },
+              menuChanged: (open) => send({ tohe: PROTOCOL, type: 'menu', open }),
+              open: (what) => send({ tohe: PROTOCOL, type: 'open', what }),
+              setMuted: (muted) => {
+                settings = { ...settings, muted };
+                emitter.emit('settings', settings);
+                send({ tohe: PROTOCOL, type: 'settings', muted });
+              },
+            },
           };
           if (message.room) {
             room = roomSession(message.room, {
@@ -231,6 +258,9 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
           resolve(created);
           return;
         }
+        case 'menu':
+          emitter.emit('menu');
+          return;
         case 'pause':
         case 'resume':
           emitter.emit(message.type);
@@ -366,5 +396,15 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     telemetry: disabledTelemetry,
     room: null,
     replay: null,
+    shell: {
+      can: { leaderboard: false, rooms: false },
+      menuChanged: () => {},
+      open: (what) =>
+        console.info(`[tohe] open("${what}") — the hub's screens are not there in standalone mode`),
+      setMuted: (muted) => {
+        settings = normalizeSettings({ ...settings, muted });
+        emitter.emit('settings', settings);
+      },
+    },
   };
 }

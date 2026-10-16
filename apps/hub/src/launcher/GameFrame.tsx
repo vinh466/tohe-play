@@ -1,4 +1,5 @@
-import type { Reaction, Replay, RoomSeat } from '@tohe/contract';
+import { useBlocker, useNavigate } from '@tanstack/react-router';
+import type { Reaction, Replay, RoomSeat, ShellTarget } from '@tohe/contract';
 import type { JsonValue } from '@tohe/game-sdk';
 import { createHost, type HostHandle, iframeTransport } from '@tohe/game-sdk/host';
 import { useEffect, useRef, useState } from 'react';
@@ -11,9 +12,24 @@ import { loadSave, recordScore, storeSave } from '../storage/repository.ts';
 import { durationBucket } from '../telemetry/collector.ts';
 import { telemetry, telemetryOn } from '../telemetry/telemetry.ts';
 import { useTheme } from '../theme/useTheme.ts';
-import { dailySeed, isTrustedEntry, manifestFrom } from './manifest.ts';
+import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
+import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
+import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './manifest.ts';
 
 type Status = 'loading' | 'ready' | 'failed' | 'untrusted';
+
+/** Sound on or off for this device, whichever game switched it (ADR 0018). */
+const MUTED_KEY = 'tohe:muted';
+const readMuted = () => {
+  try {
+    return localStorage.getItem(MUTED_KEY) === '1';
+  } catch {
+    return false;
+  }
+};
+
+/** How long a shell game has to answer Back before the hub offers its own way out. */
+const BACK_ANSWER_MS = 1500;
 
 export interface RoomUpdate {
   view: JsonValue;
@@ -43,7 +59,9 @@ export interface RoomBridge {
 
 /**
  * The game in its sandboxed iframe with the host side of the contract: the top bar (exit, mute), the handshake,
- * saves and scores to the device (synced later), telemetry, and with `room` the relay of a table.
+ * saves and scores to the device (synced later), telemetry, and with `room` the relay of a table. A game with the
+ * `shell` capability (ADR 0018) gets the whole screen: its own menu holds the way out, phone Back opens that menu, and
+ * the hub only steps in when the game does not load or does not answer.
  */
 export function GameFrame({
   game,
@@ -70,8 +88,38 @@ export function GameFrame({
   const iframe = useRef<HTMLIFrameElement>(null);
   const host = useRef<HostHandle | null>(null);
   const [status, setStatus] = useState<Status>('loading');
-  const [muted, setMuted] = useState(false);
+  const [muted, setMuted] = useState(readMuted);
   const { theme } = useTheme();
+  const navigate = useNavigate();
+  const shell = hasShell(game);
+  const [board, setBoard] = useState(false);
+  const [stuck, setStuck] = useState(false);
+  /** When the game last answered Back (a menu state, or leaving). */
+  const answered = useRef(0);
+
+  // The device remembers sound, whichever game or bar switched it.
+  useEffect(() => {
+    try {
+      localStorage.setItem(MUTED_KEY, muted ? '1' : '0');
+    } catch {
+      // Private mode: sound stays as it is for this visit.
+    }
+  }, [muted]);
+
+  // Phone Back (or the browser's) on a shell game opens its menu instead of leaving the page. Leaving the game goes
+  // through its own way out, which navigates forward.
+  useBlocker({
+    shouldBlockFn: ({ action }) => {
+      if (!shell || action !== 'BACK' || status !== 'ready' || !host.current) return false;
+      const asked = Date.now();
+      host.current.menu();
+      setTimeout(() => {
+        if (answered.current < asked) setStuck(true);
+      }, BACK_ANSWER_MS);
+      return true;
+    },
+    enableBeforeUnload: false,
+  });
 
   // The session restarts only for a different game build, origin, profile or room. Everything else is read from
   // `latest` at start; later mute and theme changes are sent as `settings` messages.
@@ -112,6 +160,13 @@ export function GameFrame({
           telemetry: telemetryOn(),
           room: room && table ? { id: room.id, ...table } : undefined,
           replay,
+          // What the game's menu may offer (ADR 0018): signed-in profiles have boards and rooms; guests do not.
+          shell: hasShell(game)
+            ? {
+                leaderboard: synced && game.capabilities.includes('scores'),
+                rooms: synced && game.rooms !== null && game.rooms !== undefined,
+              }
+            : undefined,
         };
       },
       onSave: async (data) => {
@@ -125,7 +180,18 @@ export function GameFrame({
       onRoomAct: (action) => room?.act(action),
       onRoomNext: () => room?.next(),
       onRoomReact: (reaction) => room?.react(reaction),
-      onExit: () => latest.current.onExit(session),
+      onExit: () => {
+        answered.current = Date.now();
+        latest.current.onExit(session);
+      },
+      onMenu: () => {
+        answered.current = Date.now();
+      },
+      onOpen: (what: ShellTarget) => {
+        if (what === 'leaderboard') setBoard(true);
+        else void navigate({ to: '/rooms/$gameId', params: { gameId: game.id } });
+      },
+      onSettings: (change) => setMuted(change.muted),
       onLog: ({ level, message }) => {
         console[level](`[game:${game.id}] ${message}`);
         if (level !== 'info') {
@@ -190,32 +256,36 @@ export function GameFrame({
     host.current?.setSettings({ muted, theme });
   }, [muted, theme]);
 
+  const leave = () => {
+    host.current?.pause();
+    onExit(host.current);
+  };
+
   return (
     <div className="fixed inset-0 flex flex-col bg-page">
-      <nav className="flex h-14 shrink-0 items-center justify-between border-line border-b-2 px-2 pt-[env(safe-area-inset-top)]">
-        <button
-          type="button"
-          onClick={() => {
-            host.current?.pause();
-            onExit(host.current);
-          }}
-          className="rounded-full px-3 py-1.5 font-semibold text-accent active:bg-soft"
-        >
-          ← {exitLabel ?? t('exit')}
-        </button>
-        <span className="truncate font-bold text-ink">{game.name}</span>
-        <span className="flex items-center gap-1">
-          {topRight}
+      {shell ? null : (
+        <nav className="flex h-14 shrink-0 items-center justify-between border-line border-b-2 px-2 pt-[env(safe-area-inset-top)]">
           <button
             type="button"
-            onClick={() => setMuted((value) => !value)}
-            aria-label={muted ? t('unmute') : t('mute')}
-            className="rounded-full px-3 py-1.5 text-xl active:bg-soft"
+            onClick={leave}
+            className="rounded-full px-3 py-1.5 font-semibold text-accent active:bg-soft"
           >
-            {muted ? '🔇' : '🔊'}
+            ← {exitLabel ?? t('exit')}
           </button>
-        </span>
-      </nav>
+          <span className="truncate font-bold text-ink">{game.name}</span>
+          <span className="flex items-center gap-1">
+            {topRight}
+            <button
+              type="button"
+              onClick={() => setMuted((value) => !value)}
+              aria-label={muted ? t('unmute') : t('mute')}
+              className="rounded-full px-3 py-1.5 text-xl active:bg-soft"
+            >
+              {muted ? '🔇' : '🔊'}
+            </button>
+          </span>
+        </nav>
+      )}
       <div className="relative min-h-0 flex-1">
         <iframe
           ref={iframe}
@@ -235,8 +305,42 @@ export function GameFrame({
           {status === 'loading' && t('loading')}
           {status === 'failed' && t('gameFailed')}
           {status === 'untrusted' && t('untrusted')}
+          {/* A shell game holds the way out in its own menu; until it is up (or if it never is), the hub's. */}
+          {shell && status !== 'ready' ? (
+            <button
+              type="button"
+              onClick={leave}
+              className="absolute top-[max(0.5rem,env(safe-area-inset-top))] left-2 rounded-full px-3 py-1.5 font-semibold text-accent active:bg-soft"
+            >
+              {t('shell.leave')}
+            </button>
+          ) : null}
         </div>
+        {shell && topRight ? (
+          <div className="pointer-events-none absolute inset-x-0 top-[max(0.5rem,env(safe-area-inset-top))] flex justify-center">
+            <span className="rounded-full bg-notice px-3 py-1 text-notice-ink text-sm">{topRight}</span>
+          </div>
+        ) : null}
       </div>
+      {shell ? (
+        <>
+          <LeaderboardSheet game={game} player={player} open={board} onClose={() => setBoard(false)} />
+          <ConfirmDialog
+            open={stuck}
+            title={t('shell.stuckTitle')}
+            body={t('shell.stuckBody')}
+            primary={{ label: t('shell.wait'), onClick: () => setStuck(false) }}
+            secondary={{
+              label: t('shell.leave'),
+              onClick: () => {
+                setStuck(false);
+                leave();
+              },
+            }}
+            onDismiss={() => setStuck(false)}
+          />
+        </>
+      ) : null}
     </div>
   );
 }

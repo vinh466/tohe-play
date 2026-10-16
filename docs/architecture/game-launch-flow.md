@@ -31,7 +31,8 @@ sequenceDiagram
   Note over H,A: M2: background sync pushes unsynced rows to the API
   P->>H: switches tab
   H->>G: pause
-  P->>H: taps Exit (or game sends exit)
+  P->>G: ☰ → Về Tò He (shell games, ADR 0018)
+  G->>H: exit
   H->>H: dispose host, iframe → about:blank
 ```
 

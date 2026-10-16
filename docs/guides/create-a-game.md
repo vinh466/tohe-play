@@ -52,9 +52,9 @@ sidebar:
 What the kit gives you, so you do not write it again: `createGame` (crisp on phones, resize, pause/resume, Canvas
 fallback when WebGL fails), `sfx` (synthesised sounds, iOS unlock), `haptics`, `juice` (`popIn`, `squash`, `pulse`,
 `burst`, `floatText`, `shake`, `confetti`), `drawTexture` + `crispImage` (art drawn once, see below), `overlay` (intro / pause / game-over cards in one shared style, on the
-design tokens; `hintList` and `choiceList` for their content), `createLifecycle` (continue / new game when a run is in
-progress, the ⏸ menu with room for the game's own cards (`menuCards`) — for every game whose runs outlast one
-sitting), `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
+design tokens; `hintList` and `choiceList` for their content), `createShell` (the game shell, ADR 0018: the main
+menu with play / continue, settings, leaderboard and the way back to Tò He, the ☰ menu that pauses, phone Back, the
+end-of-game card — every game uses it and declares `"shell"` in game.json), `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
 
 **Telemetry comes with it.** Pass the session's telemetry to the kit, `createGame({ …, telemetry: session.telemetry })`
 and `createSfx({ telemetry: session.telemetry })`, and the game reports its renderer, frame times, first frame and

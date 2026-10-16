@@ -1,4 +1,5 @@
 // View + wiring: turns pointer input into logic actions, draws state on a canvas, talks to the hub via the SDK.
+// The minimal game: no kit, so its main menu and ☰ menu (the game shell, ADR 0018) are drawn here by hand.
 import { applyTheme, type Theme } from '@tohe/design-tokens/theme';
 import { connect, createRng } from '@tohe/game-sdk';
 import { createState, ROUND_MS, type State, start, tap, tick } from './logic.ts';
@@ -11,22 +12,28 @@ const text = {
   vi: {
     title: 'Chạm Chấm',
     intro: 'Chạm vào chấm tròn càng nhiều càng tốt trong 20 giây!',
-    play: 'Chơi',
+    play: '▶ Chơi',
     again: 'Chơi lại',
-    exit: 'Thoát',
+    exit: '← Về Tò He',
     paused: 'Tạm dừng',
-    resume: 'Tiếp tục',
+    resume: '▶ Tiếp tục',
+    mainMenu: '☰ Menu chính',
+    leaderboard: '🏆 Bảng xếp hạng',
+    sound: (muted: boolean) => (muted ? '🔇 Âm thanh: tắt' : '🔊 Âm thanh: bật'),
     over: (score: number, best: number) => `Bạn được ${score} điểm · Kỷ lục ${best}`,
     hud: (score: number, seconds: number) => `${score} điểm · ${seconds}s`,
   },
   en: {
     title: 'Tap the Dot',
     intro: 'Tap the dot as many times as you can in 20 seconds!',
-    play: 'Play',
+    play: '▶ Play',
     again: 'Play again',
-    exit: 'Exit',
+    exit: '← Back to Tò He',
     paused: 'Paused',
-    resume: 'Resume',
+    resume: '▶ Resume',
+    mainMenu: '☰ Main menu',
+    leaderboard: '🏆 Leaderboard',
+    sound: (muted: boolean) => (muted ? '🔇 Sound: off' : '🔊 Sound: on'),
     over: (score: number, best: number) => `You scored ${score} · Best ${best}`,
     hud: (score: number, seconds: number) => `${score} pts · ${seconds}s`,
   },
@@ -41,11 +48,13 @@ const ctx = canvas.getContext('2d') as CanvasRenderingContext2D;
 const overlay = document.querySelector<HTMLDivElement>('#overlay') as HTMLDivElement;
 const overlayTitle = document.querySelector('#overlay-title') as HTMLElement;
 const overlayDetail = document.querySelector('#overlay-detail') as HTMLElement;
-const primary = document.querySelector<HTMLButtonElement>('#primary') as HTMLButtonElement;
-const exit = document.querySelector<HTMLButtonElement>('#exit') as HTMLButtonElement;
+const actions = document.querySelector('#actions') as HTMLElement;
+const menuButton = document.querySelector<HTMLButtonElement>('#menu') as HTMLButtonElement;
 
 let state: State = createState(session.saved?.best ?? 0);
-let paused = false;
+/** What is on screen: the main menu, a round, the ☰ menu, or a finished round. */
+let screen: 'main' | 'playing' | 'menu' | 'over' = 'main';
+let paused = true;
 let last = performance.now();
 
 // ------------------------------------------------------------------ theme
@@ -125,13 +134,90 @@ function draw(): void {
   ctx.fillRect(left, top - 8, size * progress, 4);
 }
 
-function showOverlay(title: string, detail: string, action: string): void {
+interface Action {
+  label: string;
+  onClick(): void;
+  secondary?: boolean;
+  /** `data-tohe-play` / `data-tohe-exit`: what conformance looks for (ADR 0018). */
+  marker?: 'play' | 'exit';
+}
+
+/** A menu card over the board; the hub learns a menu is up (its answer to Back). */
+function show(title: string, detail: string, list: Action[]): void {
   overlayTitle.textContent = title;
   overlayDetail.textContent = detail;
-  primary.textContent = action;
-  exit.textContent = t.exit;
-  exit.hidden = session.mode === 'standalone';
+  actions.replaceChildren(
+    ...list.map((action) => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.textContent = action.label;
+      if (action.secondary) button.className = 'secondary';
+      if (action.marker) button.setAttribute(`data-tohe-${action.marker}`, '');
+      button.addEventListener('click', action.onClick);
+      return button;
+    }),
+  );
   overlay.hidden = false;
+  menuButton.hidden = true;
+  session.shell.menuChanged(true);
+}
+
+const leave = (): Action[] =>
+  session.mode === 'embedded'
+    ? [{ label: t.exit, secondary: true, marker: 'exit', onClick: () => session.exit() }]
+    : [];
+
+function mainMenu(): void {
+  screen = 'main';
+  paused = true;
+  show(t.title, t.intro, [
+    { label: t.play, marker: 'play', onClick: play },
+    ...(session.shell.can.leaderboard
+      ? [{ label: t.leaderboard, secondary: true, onClick: () => session.shell.open('leaderboard') }]
+      : []),
+    ...leave(),
+  ]);
+}
+
+function backToPlay(): void {
+  overlay.hidden = true;
+  menuButton.hidden = false;
+  screen = 'playing';
+  paused = false;
+  last = performance.now();
+  session.shell.menuChanged(false);
+}
+
+function play(): void {
+  backToPlay();
+  state = start(state, rng);
+}
+
+function openMenu(): void {
+  if (screen !== 'playing' && screen !== 'menu') return;
+  screen = 'menu';
+  paused = true;
+  show(t.paused, '', [
+    { label: t.resume, onClick: backToPlay },
+    {
+      label: t.sound(session.settings.muted),
+      secondary: true,
+      onClick: () => {
+        session.shell.setMuted(!session.settings.muted);
+        openMenu();
+      },
+    },
+    { label: t.mainMenu, secondary: true, onClick: mainMenu },
+    ...leave(),
+  ]);
+}
+
+/** Phone Back and Escape: one step back, and out from the main menu. */
+function back(): void {
+  if (screen === 'playing') openMenu();
+  else if (screen === 'menu') backToPlay();
+  else if (screen === 'over') mainMenu();
+  else if (session.mode === 'embedded') session.exit();
 }
 
 // ------------------------------------------------------------------ loop
@@ -149,7 +235,12 @@ function frame(now: number): void {
 }
 
 async function finish(): Promise<void> {
-  showOverlay(t.title, t.over(state.score, state.best), t.again);
+  screen = 'over';
+  paused = true;
+  show(t.title, t.over(state.score, state.best), [
+    { label: t.again, onClick: play },
+    { label: t.mainMenu, secondary: true, onClick: mainMenu },
+  ]);
   try {
     await session.submitScore(state.score);
     await session.save({ best: state.best });
@@ -168,21 +259,15 @@ canvas.addEventListener('pointerdown', (event) => {
   if (result.hit) beep();
 });
 
-primary.addEventListener('click', () => {
-  overlay.hidden = true;
-  if (paused) {
-    paused = false;
-    return;
-  }
-  state = start(state, rng);
+menuButton.addEventListener('click', openMenu);
+session.on('menu', back);
+window.addEventListener('keydown', (event) => {
+  if (event.key === 'Escape') back();
 });
 
-exit.addEventListener('click', () => session.exit());
-
+// The hub hid the game (another app, a locked screen): the round waits in the menu.
 session.on('pause', () => {
-  if (state.phase !== 'playing' || paused) return;
-  paused = true;
-  showOverlay(t.paused, '', t.resume);
+  if (screen === 'playing') openMenu();
 });
 session.on('resume', () => {
   // Stay paused until the player taps "resume" so nobody loses time on return.
@@ -191,5 +276,5 @@ session.on('resume', () => {
 
 window.addEventListener('resize', resize);
 resize();
-showOverlay(t.title, t.intro, t.play);
+mainMenu();
 requestAnimationFrame(frame);
