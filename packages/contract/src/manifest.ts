@@ -9,12 +9,67 @@ export const GameId = z
 
 export const SemVer = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 'semantic version, e.g. 1.2.0');
 
-export const Capability = z.enum(['save', 'scores']);
+export const Capability = z.enum(['save', 'scores', 'rooms']);
 export type Capability = z.infer<typeof Capability>;
 
 /** Light or dark (ADR 0013). */
 export const Theme = z.enum(['light', 'dark']);
 export type Theme = z.infer<typeof Theme>;
+
+/** Text the hub shows for a game in its own screens (room options), in each language of the hub. */
+export const LocalizedText = z
+  .object({ vi: z.string().min(1).max(60), en: z.string().min(1).max(60) })
+  .strict();
+export type LocalizedText = z.infer<typeof LocalizedText>;
+
+const OptionId = z
+  .string()
+  .regex(/^[a-zA-Z][a-zA-Z0-9]{0,31}$/, 'letters and digits, starting with a letter');
+const ChoiceId = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$/, 'letters, digits and dashes');
+const RoomChoice = z.object({ id: ChoiceId, label: LocalizedText }).strict();
+
+/** One game option of a room (house rules), drawn by the hub when a room is created (ADR 0016). */
+export const RoomOption = z.discriminatedUnion('type', [
+  z.object({ id: OptionId, type: z.literal('boolean'), label: LocalizedText, default: z.boolean() }).strict(),
+  z
+    .object({
+      id: OptionId,
+      type: z.literal('choice'),
+      label: LocalizedText,
+      choices: z.array(RoomChoice).min(2).max(12),
+      default: ChoiceId,
+    })
+    .strict(),
+  z
+    .object({
+      id: OptionId,
+      type: z.literal('multi'),
+      label: LocalizedText,
+      choices: z.array(RoomChoice).min(1).max(12),
+      default: z.array(ChoiceId).max(12),
+    })
+    .strict(),
+]);
+export type RoomOption = z.infer<typeof RoomOption>;
+
+/** A game played at a table of several phones (ADR 0016): its rules module, seats, bots and options. */
+export const RoomsManifest = z
+  .object({
+    rules: z
+      .string()
+      .regex(/^[\w-]+(?:\/[\w-]+)*\.m?js$/, 'a relative path to an ES module in the build')
+      .default('rules.js')
+      .describe('ES module in the build that exports `rules`; the API referees with it'),
+    seats: z.object({ min: z.number().int().min(2).max(8), max: z.number().int().min(2).max(8) }).strict(),
+    bots: z
+      .array(z.string().regex(/^[a-z]{2,16}$/))
+      .max(5)
+      .default([])
+      .describe('Bot levels the rules module plays, easiest first; empty if it has no bots'),
+    options: z.array(RoomOption).max(24).default([]),
+  })
+  .strict();
+export type RoomsManifest = z.infer<typeof RoomsManifest>;
 
 /** `game.json` — shipped next to every game build. */
 export const GameManifest = z
@@ -39,8 +94,40 @@ export const GameManifest = z
     minAge: z.number().int().min(0).max(18).default(0),
     tags: z.array(z.string().max(20)).max(8).default([]),
     sizeBudgetKb: z.number().int().positive().max(50_000).default(3000),
+    rooms: RoomsManifest.optional().describe('Online rooms (ADR 0016); required with the "rooms" capability'),
   })
-  .strict();
+  .strict()
+  .superRefine((manifest, context) => {
+    const rooms = manifest.rooms;
+    if (manifest.capabilities.includes('rooms') !== (rooms !== undefined)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['rooms'],
+        message: 'the "rooms" capability and block go together',
+      });
+    }
+    if (!rooms) return;
+    if (rooms.seats.min > rooms.seats.max) {
+      context.addIssue({ code: 'custom', path: ['rooms', 'seats'], message: 'min is more than max' });
+    }
+    const ids = new Set<string>();
+    rooms.options.forEach((option, index) => {
+      if (ids.has(option.id)) {
+        context.addIssue({ code: 'custom', path: ['rooms', 'options', index], message: 'repeated id' });
+      }
+      ids.add(option.id);
+      if (option.type === 'boolean') return;
+      const known = new Set(option.choices.map((choice) => choice.id));
+      const defaults = option.type === 'choice' ? [option.default] : option.default;
+      if (!defaults.every((id) => known.has(id))) {
+        context.addIssue({
+          code: 'custom',
+          path: ['rooms', 'options', index],
+          message: 'default is not a choice',
+        });
+      }
+    });
+  });
 export type GameManifest = z.infer<typeof GameManifest>;
 export type GameManifestInput = z.input<typeof GameManifest>;
 

@@ -1,5 +1,7 @@
 // Wiring: SDK session, kit game, HUD, controls, overlays, saving, and the bots' turns. Rules live in rules.ts (via
-// the rules module), bots in bots.ts, drawing in view.ts. Version 0.1 plays one phone against bots (SPEC.md).
+// the rules module), bots in bots.ts, drawing in view.ts. Two modes (SPEC.md): one phone against bots, where this
+// file referees with the rules module; and a table online (ADR 0016), where the server referees and this file sends
+// actions and draws the views it receives.
 import '@tohe/game-kit/overlay.css';
 import './style.css';
 import {
@@ -15,17 +17,27 @@ import {
   type Theme,
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
-import { connect } from '@tohe/game-sdk';
+import {
+  connect,
+  type JsonValue,
+  REACTIONS,
+  type Reaction,
+  type RoomSeat,
+  type RoomSession,
+  type RoomUpdate,
+} from '@tohe/game-sdk';
 import { isLevel, LEVELS, type Level, rank } from './bots.ts';
 import { cardName, RANK_LABELS } from './cardArt.ts';
 import { type Card, type Combo, classify, rankOf } from './cards.ts';
 import { rules } from './module.ts';
 import { DECKS, type Deck, isDeck, TABLE } from './palette.ts';
 import {
+  type ActError,
   type Action,
   type Carry,
   check,
   DEFAULT_OPTIONS,
+  type GameEvent,
   INSTANT_WINS,
   legalPlays,
   normalizeOptions,
@@ -68,6 +80,14 @@ sfx.setMuted(session.settings.muted);
 session.on('settings', (settings) => sfx.setMuted(settings.muted));
 
 const saved = session.saved;
+/** Online (ADR 0016): the table this phone sits at; null against bots. */
+const room = session.room as RoomSession<View> | null;
+/** Online: the newest view from the server. */
+let roomView: View | null = null;
+/** Online: when the turn timer of the current turn runs out (ms since epoch), or null. */
+let turnEndsAt: number | null = null;
+/** Online: "next hand" was tapped, waiting for the others. */
+let waitingNext = false;
 let seats = saved?.seats && saved.seats >= 2 && saved.seats <= 4 ? saved.seats : 4;
 let level: Level = isLevel(saved?.level) ? saved.level : 'normal';
 let options: Options = normalizeOptions(saved?.options ?? DEFAULT_OPTIONS);
@@ -96,11 +116,25 @@ let hintIndex = 0;
 let paused = false;
 
 function players(): Player[] {
+  if (room) return room.seats.map(seatPlayer);
   const me: Player = { name: session.profile.name || t.you, avatar: session.profile.avatar || '🙂' };
   return [me, ...t.bots.slice(0, state.seats - 1)];
 }
 
-const mine = (): View => rules.view(state, ME);
+/** A seat at an online table: a person (🤖 while a bot plays for them, … while their phone is gone), or a bot. */
+function seatPlayer(seat: RoomSeat): Player {
+  if (seat.profile) {
+    const mark = seat.bot ? ' 🤖' : seat.connected ? '' : ' …';
+    return { name: `${seat.profile.name || t.you}${mark}`, avatar: seat.profile.avatar || '🙂' };
+  }
+  const level = seat.bot && seat.bot in t.menu.levels ? t.menu.levels[seat.bot as Level] : (seat.bot ?? '');
+  return { name: t.botSeat(level), avatar: '🤖' };
+}
+
+/** This phone's seat: always 0 against bots; online, the seat the server gave it. */
+const meSeat = (): number => (room ? (roomView?.seat ?? room.seat) : ME);
+
+const mine = (): View => (room && roomView ? roomView : rules.view(state, ME));
 
 // ------------------------------------------------------------------ DOM
 
@@ -120,8 +154,9 @@ hintButton.textContent = `💡 ${t.hint}`;
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 function showHud() {
-  scoreValue.textContent = signed(series[ME] ?? 0);
-  handNo.textContent = t.handNo(handsPlayed + (state.over ? 0 : 1));
+  const score = room ? (room.seats[meSeat()]?.score ?? 0) : (series[ME] ?? 0);
+  scoreValue.textContent = signed(score);
+  handNo.textContent = room ? t.online : t.handNo(handsPlayed + (state.over ? 0 : 1));
   sortButton.textContent = sortBy === 'rank' ? t.sortCombos : t.sortRank;
 }
 
@@ -143,8 +178,14 @@ function describe(combo: Combo): string {
 
 /** Buttons and the status line follow the view and the selection (SPEC.md, "Screens"). */
 function showControls() {
+  if (room && !roomView) {
+    playButton.disabled = passButton.disabled = hintButton.disabled = true;
+    status.textContent = '…';
+    return;
+  }
   const v = mine();
-  const myTurn = !v.over && v.turn === ME && !v.cong.includes(ME) && v.hand.length > 0;
+  const me = meSeat();
+  const myTurn = !v.over && v.turn === me && !v.cong.includes(me) && v.hand.length > 0;
   const cards = [...selected];
   const error = cards.length > 0 ? check(v, cards) : null;
   const canChop = !myTurn && legalPlays(v).length > 0;
@@ -157,13 +198,18 @@ function showControls() {
   if (v.over) line = '';
   else if (cards.length > 0 && error) {
     line =
-      error === 'must_beat' && v.table && (v.turn === ME || canChop)
+      error === 'must_beat' && v.table && (v.turn === me || canChop)
         ? t.mustBeat(describe(v.table))
         : t.errors[error];
   } else if (cards.length > 0) line = describe(classify(cards) as Combo);
   else if (myTurn) line = teaching(v) ?? t.yourTurn;
   else if (canChop) line = t.teach.chop;
   else line = `${players()[v.turn]?.name ?? ''} …`;
+  // Online, the turn timer counts down on the status line (SPEC.md, "Screens").
+  if (room && turnEndsAt !== null && !v.over && cards.length === 0) {
+    line = `${line} · ${Math.max(0, Math.ceil((turnEndsAt - Date.now()) / 1000))}s`;
+  }
+  if (room && v.over && waitingNext) line = t.waitingOthers;
   status.textContent = line;
 }
 
@@ -230,7 +276,7 @@ kit.onRestart(async (scene) => {
   board.relayout(kit.size().width, kit.size().height);
   drawAll();
   busy = false;
-  schedule();
+  if (!room) schedule();
 });
 
 session.on('pause', () => {
@@ -247,7 +293,7 @@ const overlay = createOverlay(app);
 function drawAll() {
   board.setPlayers(players());
   board.setSort(sortBy);
-  board.render(mine());
+  if (!room || roomView) board.render(mine());
   board.setSelected(selected);
   showHud();
   showControls();
@@ -255,7 +301,7 @@ function drawAll() {
 
 /** A tap on a card: toggles it; with nothing selected, picks the smallest play with it that beats the table. */
 function tap(card: Card) {
-  if (state.over) return;
+  if (mine().over) return;
   sfx.play('click');
   haptics.play('tap');
   const v = mine();
@@ -323,9 +369,10 @@ function schedule() {
 }
 
 async function play() {
-  if (busy || state.over) return;
+  const v = mine();
+  if (busy || v.over) return;
   const cards = [...selected];
-  const error = check(mine(), cards);
+  const error = check(v, cards);
   if (error) {
     board.reject();
     sfx.play('error');
@@ -333,13 +380,39 @@ async function play() {
     showControls();
     return;
   }
-  await apply(ME, { type: 'play', cards });
+  if (room) await sendOnline({ type: 'play', cards });
+  else await apply(ME, { type: 'play', cards });
 }
 
 async function pass() {
-  if (busy || state.over || state.turn !== ME || !state.table) return;
+  const v = mine();
+  if (busy || v.over || v.turn !== meSeat() || !v.table) return;
   setSelected([]);
-  await apply(ME, { type: 'pass' });
+  if (room) await sendOnline({ type: 'pass' });
+  else await apply(ME, { type: 'pass' });
+}
+
+/** Online: the server referees; a refusal comes back with the rules' error code, shown in words. */
+async function sendOnline(action: Action) {
+  if (!room) return;
+  busy = true;
+  showControls();
+  try {
+    await room.act(action as unknown as JsonValue);
+    hintIndex = 0;
+    board.setHint([]);
+  } catch (error) {
+    const code = (error instanceof Error ? error.message : '') as ActError;
+    board.reject();
+    sfx.play('error');
+    haptics.play('error');
+    busy = false;
+    showControls();
+    status.textContent = t.errors[code] ?? code;
+    return;
+  }
+  busy = false;
+  showControls();
 }
 
 /** 💡 cycles through the plays the normal bot would make, best first. */
@@ -393,8 +466,9 @@ async function endHand() {
 }
 
 function showResults() {
-  const result = state.result;
+  const result = room ? roomView?.result : state.result;
   if (!result) return;
+  const me = meSeat();
   const names = players();
   const table = document.createElement('div');
   table.className = 'results';
@@ -413,7 +487,7 @@ function showResults() {
   table.append(header);
   result.ranking.forEach((seat, place) => {
     const row = document.createElement('div');
-    row.className = `result-row${seat === ME ? ' is-me' : ''}`;
+    row.className = `result-row${seat === me ? ' is-me' : ''}`;
     const who = document.createElement('span');
     who.className = 'result-who';
     who.textContent = `${t.medals[place] ?? ''} ${names[seat]?.avatar ?? ''} ${names[seat]?.name ?? ''}`;
@@ -422,7 +496,7 @@ function showResults() {
     hand.textContent = signed(result.points[seat] ?? 0);
     const total = document.createElement('span');
     total.className = 'result-total';
-    total.textContent = signed(series[seat] ?? 0);
+    total.textContent = signed(room ? (room.seats[seat]?.score ?? 0) : (series[seat] ?? 0));
     row.append(who, hand, total);
     table.append(row);
   });
@@ -437,7 +511,7 @@ function showResults() {
     }
     table.append(list);
   }
-  const won = result.ranking[0] === ME;
+  const won = result.ranking[0] === me;
   overlay.show({
     icon: won ? '🏆' : '🃏',
     title: result.instant ? `${t.instant}` : t.results,
@@ -449,7 +523,12 @@ function showResults() {
         onClick: () => {
           sfx.play('click');
           overlay.hide();
-          void nextHand();
+          if (room) {
+            // The next hand starts when everyone is ready, or after a countdown (docs/architecture/rooms.md).
+            waitingNext = true;
+            showControls();
+            void room.next().catch((error) => session.log('warn', `next failed: ${String(error)}`));
+          } else void nextHand();
         },
       },
       ...(session.mode === 'embedded'
@@ -544,12 +623,88 @@ menuButton.type = 'button';
 menuButton.className = 'tohe-icon-button';
 menuButton.setAttribute('aria-label', lifecycleStrings(session.locale).menu);
 menuButton.textContent = '⏸';
-menuButton.addEventListener('click', () => {
+menuButton.addEventListener('click', () => openMenu());
+document.querySelector('#menu-slot')?.append(menuButton);
+
+function openMenu() {
   if (overlay.visible) return;
+  if (room) {
+    openTableMenu();
+    return;
+  }
   kit.pause();
   lifecycle.openMenu();
-});
-document.querySelector('#menu-slot')?.append(menuButton);
+}
+
+/**
+ * The ⏸ menu at an online table: the table goes on (nothing to pause), the room's house rules are the host's, and
+ * leaving goes through the hub (it asks whether to give the seat up).
+ */
+function openTableMenu() {
+  const life = lifecycleStrings(session.locale);
+  const back = () => openTableMenu();
+  overlay.show({
+    icon: '🃏',
+    title: t.title,
+    actions: [
+      { label: life.resume, onClick: () => overlay.hide() },
+      {
+        label: life.howTo,
+        variant: 'secondary',
+        onClick: () =>
+          overlay.show({
+            icon: '🃏',
+            title: t.title,
+            content: hintList(t.hints),
+            actions: [{ label: life.back, onClick: back }],
+          }),
+      },
+      {
+        label: t.menu.tableRules,
+        variant: 'secondary',
+        onClick: () =>
+          overlay.show({
+            icon: '📜',
+            title: t.menu.tableRules,
+            content: tableRules(normalizeOptions(room?.options)),
+            actions: [{ label: life.back, onClick: back }],
+          }),
+      },
+      {
+        label: t.menu.deck,
+        variant: 'secondary',
+        onClick: () =>
+          overlay.show({
+            icon: '🎴',
+            title: t.menu.deck,
+            content: deckPicker(),
+            actions: [{ label: life.back, onClick: back }],
+          }),
+      },
+      { label: t.leaveTable, variant: 'secondary', onClick: () => session.exit() },
+    ],
+  });
+}
+
+/** The room's house rules, as the host chose them (read only). */
+function tableRules(rules: Options): HTMLElement {
+  const h = t.houseRules;
+  const rows: [string, boolean][] = [
+    [h.firstLeadThree, rules.firstLeadThree],
+    [h.chopOutOfTurn, rules.chopOutOfTurn],
+    [h.chopChain, rules.chopChain],
+    [h.leftovers, rules.leftovers],
+    [h.cong, rules.cong],
+    [h.endAtFirstOut, rules.endAtFirstOut],
+    [h.placesOnly, rules.points === 'places'],
+    [h.pairsBeatTwoPair, rules.pairsBeatTwoPair],
+    ...INSTANT_WINS.map((win): [string, boolean] => [
+      `${t.instant} ${t.instantWins[win]}`,
+      rules.instantWins.includes(win),
+    ]),
+  ];
+  return hintList(rows.map(([text, on]) => ({ icon: on ? '✅' : '➖', text })));
+}
 
 /** A row that switches on and off. */
 function toggle(label: string, on: boolean, onChange: (on: boolean) => void): HTMLElement {
@@ -646,10 +801,8 @@ function deckPicker(): HTMLElement {
 
 window.addEventListener('keydown', (event) => {
   if (overlay.visible || event.target instanceof HTMLButtonElement) return;
-  if (event.key === 'Escape') {
-    kit.pause();
-    lifecycle.openMenu();
-  } else if (event.key === 'Enter') void play();
+  if (event.key === 'Escape') openMenu();
+  else if (event.key === 'Enter') void play();
   else if (event.key.toLowerCase() === 'p') void pass();
   else if (event.key.toLowerCase() === 'h') hint();
   else return;
@@ -662,6 +815,130 @@ await board.whenReady;
 board.relayout(kit.size().width, kit.size().height);
 const fresh = !resumed || resumed.over || resumed.seats !== seats;
 
+// ------------------------------------------------------------------ online (ADR 0016)
+
+/** Views are drawn one at a time, each with its events animated, in the order they came. */
+const updates: RoomUpdate<View>[] = [];
+let drawing = false;
+
+function onRoomView(update: RoomUpdate<View>) {
+  updates.push(update);
+  if (drawing) return;
+  drawing = true;
+  void (async () => {
+    while (updates.length > 0) await showRoomView(updates.shift() as RoomUpdate<View>);
+    drawing = false;
+  })();
+}
+
+async function showRoomView(update: RoomUpdate<View>) {
+  const view = update.view;
+  const before = roomView;
+  roomView = view;
+  turnEndsAt = update.turnMs === null ? null : Date.now() + update.turnMs;
+  const newHand =
+    !before ||
+    view.moves < before.moves ||
+    (before.over && view.moves === 0) ||
+    (view.moves === 0 && before.hand.join() !== view.hand.join());
+  if (newHand) {
+    waitingNext = false;
+    if (before) overlay.hide();
+    selected.clear();
+    hintIndex = 0;
+    board.setPlayers(players());
+    if (view.moves === 0 && !view.over) {
+      busy = true;
+      await board.deal(view);
+      busy = false;
+    } else board.render(view);
+  } else if (update.events.length > 0) {
+    busy = true;
+    showControls();
+    await board.play(update.events as unknown as GameEvent[], view);
+    busy = false;
+  } else board.render(view);
+  selected = new Set([...selected].filter((card) => view.hand.includes(card)));
+  board.setSelected(selected);
+  showHud();
+  showControls();
+  const me = meSeat();
+  if (!view.over && view.turn === me && (newHand || before?.turn !== me)) {
+    sfx.play('pop', 4);
+    haptics.play('tap');
+  }
+  if (view.over && (newHand || !before?.over)) await endOnlineHand(view);
+}
+
+async function endOnlineHand(view: View) {
+  const result = view.result;
+  if (!result) return;
+  stats.hands++;
+  const place = result.ranking.indexOf(meSeat());
+  if (place >= 0) stats.places[place] = (stats.places[place] ?? 0) + 1;
+  if (!practiced) practiced = true;
+  void persist();
+  if (result.instant) {
+    board.banner(`${t.instant} ${t.instantWins[result.instant.win]}`);
+    board.celebrate();
+    sfx.play('fanfare');
+  }
+  // The room's score sheet arrives just after the last view: wait for it before showing totals.
+  await board.wait(900);
+  showResults();
+}
+
+/** 😀: a preset reaction for the table (no typed text). */
+function openReactions() {
+  if (!room || overlay.visible) return;
+  const grid = document.createElement('div');
+  grid.className = 'reactions';
+  for (const reaction of Object.keys(REACTIONS) as Reaction[]) {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'reaction';
+    button.textContent = `${REACTIONS[reaction]} ${t.reactions[reaction]}`;
+    button.addEventListener('click', () => {
+      sfx.play('click');
+      room.react(reaction);
+      overlay.hide();
+    });
+    grid.append(button);
+  }
+  overlay.show({
+    icon: '😀',
+    title: t.react,
+    content: grid,
+    actions: [
+      { label: lifecycleStrings(session.locale).back, variant: 'secondary', onClick: () => overlay.hide() },
+    ],
+  });
+}
+
+if (room) {
+  const reactButton = document.createElement('button');
+  reactButton.type = 'button';
+  reactButton.className = 'tohe-icon-button';
+  reactButton.setAttribute('aria-label', t.react);
+  reactButton.textContent = '😀';
+  reactButton.addEventListener('click', () => openReactions());
+  sortButton.before(reactButton);
+  room.onSeats(() => {
+    board.setPlayers(players());
+    showHud();
+    showControls();
+  });
+  room.onReaction((seat, reaction) => board.bubble(seat, `${REACTIONS[reaction]} ${t.reactions[reaction]}`));
+  room.onView((update) => onRoomView(update));
+  setInterval(() => {
+    if (turnEndsAt !== null && !busy) showControls();
+  }, 1000);
+  board.setPlayers(players());
+  showHud();
+  showControls();
+  if (room.latest) onRoomView(room.latest);
+}
+
 function begin() {
   if (fresh) void (resumed?.over ? nextHand() : deal(state));
   else {
@@ -670,7 +947,9 @@ function begin() {
   }
 }
 
-if (!tutorialSeen) {
+if (room) {
+  // Online the table is the server's: no intro to wait on, the practice hints still help (SPEC.md).
+} else if (!tutorialSeen) {
   board.setPlayers(players());
   showHud();
   overlay.show({

@@ -12,6 +12,19 @@ const byCode: Record<string, string> = {
   password_invalid: 'errors.passwordInvalid',
   too_many_profiles: 'errors.tooManyProfiles',
   not_your_profile: 'errors.notYourProfile',
+  room_not_found: 'rooms.errors.notFound',
+  room_closed: 'rooms.errors.closed',
+  room_full: 'rooms.errors.full',
+  room_locked: 'rooms.errors.locked',
+  room_household_only: 'rooms.errors.householdOnly',
+  parent_permission: 'rooms.errors.parentPermission',
+  game_too_young: 'rooms.errors.tooYoung',
+  not_host: 'rooms.errors.notHost',
+  hand_in_progress: 'rooms.errors.handInProgress',
+  not_enough_players: 'rooms.errors.notEnoughPlayers',
+  too_many_rooms: 'rooms.errors.tooManyRooms',
+  options_invalid: 'rooms.errors.optionsInvalid',
+  rules_unavailable: 'rooms.errors.rulesUnavailable',
 };
 
 /** The i18n key to show for a failed request. */
@@ -20,6 +33,7 @@ export function errorKey(error: unknown): string {
     const code = error.code ?? Object.values(error.fields)[0]?.[0];
     if (code && byCode[code]) return byCode[code];
     if (error.status === 429) return 'errors.tooManyRequests';
+    if (error.status === 404) return 'rooms.errors.notFound';
     if (error.status === 400) return 'errors.invalidInput';
     return 'errors.generic';
   }

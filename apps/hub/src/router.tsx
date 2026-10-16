@@ -57,6 +57,23 @@ const playRoute = createRoute({
   component: lazyRouteComponent(() => import('./pages/PlayPage.tsx'), 'PlayPage'),
 });
 
+/** Online rooms (ADR 0016): a game's lobby, a room link, and a room. Loaded on demand (SignalR, QR codes). */
+const roomsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/rooms/$gameId',
+  component: lazyRouteComponent(() => import('./pages/RoomsPage.tsx'), 'RoomsPage'),
+});
+const joinRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/r/$code',
+  component: lazyRouteComponent(() => import('./pages/JoinPage.tsx'), 'JoinPage'),
+});
+const roomRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/room/$roomId',
+  component: lazyRouteComponent(() => import('./pages/RoomPage.tsx'), 'RoomPage'),
+});
+
 export function createAppRouter(queryClient: QueryClient) {
   return createRouter({
     routeTree: rootRoute.addChildren([
@@ -67,6 +84,9 @@ export function createAppRouter(queryClient: QueryClient) {
       familyRoute,
       dataRoute,
       playRoute,
+      roomsRoute,
+      joinRoute,
+      roomRoute,
     ]),
     context: { queryClient },
     defaultPreload: 'intent',

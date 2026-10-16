@@ -21,8 +21,10 @@ import {
   gameContentSecurityPolicy,
   type Theme,
 } from '@tohe/contract';
+import type { JsonValue } from '@tohe/game-sdk';
 import { createHost, type Transport } from '@tohe/game-sdk/host';
-import { type Browser, chromium, type Frame, type Page } from 'playwright';
+import { type Browser, type BrowserContext, chromium, type Frame, type Page } from 'playwright';
+import { checkRules, defaultOptions, loadRules, pure } from './rules.ts';
 import { serveStatic } from './static-server.ts';
 
 export interface Check {
@@ -79,6 +81,11 @@ export async function runConformance(
     sizeKb <= manifest.sizeBudgetKb,
     `${sizeKb} KB of ${manifest.sizeBudgetKb} KB`,
   );
+
+  // A game played at a table (ADR 0016): its rules module, checked the way the API will run it.
+  if (manifest.rooms) {
+    for (const result of await checkRules(dist, manifest.rooms)) check(result.name, result.ok, result.detail);
+  }
 
   // ---------------------------------------------------------------- runtime checks
   const hostDir = mkdtempSync(join(tmpdir(), 'tohe-conformance-'));
@@ -214,6 +221,23 @@ export async function runConformance(
     }
     host.dispose();
 
+    if (manifest.rooms && handshake === null) {
+      const outDir = resolve(options.outDir ?? 'test-results/conformance');
+      const room = await roomRun({
+        context,
+        manifest,
+        dist,
+        hostUrl: hostServer.url,
+        gameUrl: gameServer.url,
+        errors,
+        protocolErrors,
+        monkeyMs: options.monkeyMs ?? 4000,
+        screenshot: join(outDir, `${manifest.id}-room.png`),
+      }).catch((error: Error) => ({ ok: false, detail: error.message }));
+      check('plays at a table, refereed by its rules module', room.ok, room.detail);
+      if (room.ok) screenshots.push(join(outDir, `${manifest.id}-room.png`));
+    }
+
     check('no console errors or uncaught exceptions', errors.length === 0, errors.slice(0, 5).join('\n'));
     check(
       'no requests outside the game origin',
@@ -240,6 +264,131 @@ export async function runConformance(
     await hostServer.close();
   }
   return done(manifest.id, screenshots);
+}
+
+/**
+ * The game opened at a two-seat table, as the hub opens it online: Node referees with the game's own rules module,
+ * a bot holds the other seat, and random taps play the game's seat. Its actions go through `room.act`.
+ */
+async function roomRun(run: {
+  context: BrowserContext;
+  manifest: GameManifest;
+  dist: string;
+  hostUrl: string;
+  gameUrl: string;
+  errors: string[];
+  protocolErrors: string[];
+  monkeyMs: number;
+  screenshot: string;
+}): Promise<{ ok: boolean; detail: string }> {
+  const rooms = run.manifest.rooms;
+  if (!rooms) return { ok: false, detail: 'no rooms block' };
+  const rules = await loadRules(run.dist, rooms);
+  const options = defaultOptions(rooms);
+  const level = rooms.bots[0] ?? null;
+  const page = await run.context.newPage();
+  page.on('console', (message) => {
+    if (message.type() === 'error') run.errors.push(`console (room): ${message.text()}`);
+  });
+  page.on('pageerror', (error) => run.errors.push(`uncaught (room): ${error.message}`));
+  const listeners = new Set<(message: unknown) => void>();
+  await page.exposeFunction('__toNode', (message: unknown) => {
+    for (const listener of listeners) listener(message);
+  });
+  const transport: Transport = {
+    post: (message) =>
+      void page.evaluate((m) => (window as unknown as Bridge).__toGame(m), message).catch(() => {}),
+    subscribe: (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+  };
+  let state = pure(() => rules.setup({ seats: 2, seed: 7, options, carry: null }));
+  let seq = 0;
+  let accepted = 0;
+  let refused = 0;
+  let hands = 1;
+  const seats = [
+    { profile: { id: 'conformance', name: 'Tester' }, bot: null, connected: true },
+    { profile: null, bot: level, connected: true },
+  ];
+  const push = (events: unknown[]) =>
+    host.roomView({
+      view: pure(() => rules.view(state, 0)) as JsonValue,
+      events: events as JsonValue[],
+      seq: ++seq,
+      turnMs: 20_000,
+    });
+  // The bot plays until it is the game's turn again or the hand is over.
+  const advance = () => {
+    for (let i = 0; i < 300; i++) {
+      const status = pure(() => rules.status(state));
+      if (status.over || status.turn[0] === 0) return;
+      const seat = status.turn[0] as number;
+      const action = pure(
+        () => (level ? rules.bot(state, seat, level, seq) : null) ?? rules.timeout(state, seat),
+      );
+      const result = pure(() => rules.act(state, seat, action));
+      if (!result.ok) throw new Error(`the bot's action was refused: ${result.error}`);
+      state = result.state;
+      push(result.events);
+    }
+  };
+  const host = createHost({
+    transport,
+    manifest: run.manifest,
+    readyTimeoutMs: 10_000,
+    init: () => ({
+      profile: { id: 'conformance', name: 'Tester' },
+      locale: 'vi',
+      settings: { muted: true, theme: run.manifest.themes[0] ?? 'light' },
+      save: null,
+      seed: 20261016,
+      room: { id: 'conformance-room', seat: 0, seats, options: options as Record<string, JsonValue> },
+    }),
+    onRoomAct: (action) => {
+      const result = pure(() => rules.act(state, 0, action));
+      if (!result.ok) {
+        refused++;
+        throw new Error(result.error);
+      }
+      accepted++;
+      state = result.state;
+      push(result.events);
+      setTimeout(advance, 30);
+    },
+    onRoomNext: () => {
+      const status = pure(() => rules.status(state));
+      if (!status.over) return;
+      hands++;
+      state = pure(() => rules.setup({ seats: 2, seed: 7 + hands, options, carry: status.carry ?? null }));
+      push([]);
+      setTimeout(advance, 30);
+    },
+    onProtocolError: (error) => run.protocolErrors.push(`room: ${error}`),
+  });
+  try {
+    await page.goto(run.hostUrl);
+    await host.ready;
+    push([]);
+    advance();
+    const frame = await gameFrame(page, run.gameUrl);
+    await monkey(
+      page,
+      frame,
+      run.monkeyMs,
+      host,
+      run.manifest.themes[1] ?? run.manifest.themes[0] ?? 'light',
+    );
+    mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
+    await page.screenshot({ path: run.screenshot });
+    // Random taps do not always reach a play (a menu may stay open): the counts are informational; what fails the
+    // check is a crash, a console error or a protocol error at the table.
+    return { ok: true, detail: `${accepted} actions accepted, ${refused} refused, ${hands} hands` };
+  } finally {
+    host.dispose();
+    await page.close();
+  }
 }
 
 /** A telemetry message from a game stays small; the hub adds them up before sending. */

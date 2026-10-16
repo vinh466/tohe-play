@@ -8,7 +8,8 @@
 
 The southern Vietnamese shedding game for 2–4 players. Everyone gets 13 cards; in turn, beat what lies on the table
 with a higher card or combination of the same kind, or pass; bombs chop 2s; the first to play all their cards wins.
-Version 0.1 is played on one phone against bots ("Chơi với máy"); the same rules module will referee online rooms.
+It is played on one phone against bots ("Chơi với máy", 0.1) and at an online table with other people and bots
+([Online](#online), 0.2); the same rules module referees both.
 
 ## Cards
 
@@ -140,16 +141,15 @@ about 50–70 moves):
 | Khó whose playouts use a quick greedy player | 60 | 23 % | 0.00 | about 34 ms |
 
 So 40 playouts of the Vừa player are the budget: four times the playouts add nothing, and cheaper playouts lose the
-edge. In the API's interpreter (Jint, 25–45× slower than a phone's V8,
-[research](../../docs/research/online-rooms.md#evidence-a-spike-on-2026-10-16)) a Khó decision takes about 1.5–2 s,
-hidden behind the thinking delay.
+edge. In the API's interpreter (Jint, [research](../../docs/research/online-rooms.md)) this module was measured at 0.16 ms
+an action, 2 ms a Dễ or Vừa decision and 0.5 s a Khó decision (1.7 s at most), hidden behind the thinking delay.
 
 ## The rules module
 
 `src/rules.ts` is the referee for both modes and stays pure: no DOM, timers, network or `Math.random`. Its shape is
-the rules-module interface of [Online rooms](../../docs/architecture/rooms.md#the-contract-additive-sketch):
-`setup`, `view`, `act` (returns the new state and events, or an error code), `status`, `timeout`, `bot`. Version 0.1
-calls it directly; online, the API runs the same module from the build.
+the rules-module interface of [Online rooms](../../docs/architecture/rooms.md#the-contract):
+`setup`, `view`, `act` (returns the new state and events, or an error code), `status`, `timeout`, `bot`. Against bots
+the game calls it directly; online, the API runs the same module, built to `dist/rules.js` from `src/module.ts`.
 
 Error codes for refused actions (shown to the player in words): `not_your_turn`, `not_your_cards`, `not_a_combo`,
 `must_include` (3♠), `must_beat`, `must_lead` (passing on a lead), `passed` (locked out of the round), `over`.
@@ -193,10 +193,31 @@ a ring while it is their turn; the table in the middle.
 | Cóng, thối | A banner in the results, a low sound |
 | Instant win | Confetti, fanfare, the winning hand shown face up |
 
+## Online
+
+At a table ([Online rooms](../../docs/architecture/rooms.md), ADR 0016) the hub opens the game with `init.room`, and
+the server referees with this module: the game sends actions (`session.room.act`) and draws the views it receives.
+
+- **Seats** come from the room: people with their name and avatar (🤖 after the name while a bot plays for them, "…"
+  while their phone is gone), and bots as "Máy · Vừa". The HUD shows "Bàn online" and this seat's table score from
+  the room's score sheet.
+- **Views** are drawn one at a time in the order they came, each with its events animated as against bots; a view
+  with fewer moves than the last, or a fresh deal, is a new hand and is dealt.
+- **A refused action** (another phone acted first, the timer ran out) shakes the selection and says why, from the
+  rules' error code.
+- **The turn timer** counts down on the status line.
+- **Results** come from the hand's view; **Ván tiếp** tells the room this phone is ready and shows "Đang chờ mọi
+  người…" until the next hand is dealt (when everyone is ready, or after 30 s).
+- **😀** sends one of the eight preset reactions; others' appear as bubbles at their seats.
+- **⏸** at a table: Tiếp tục, Cách chơi, Luật của bàn (the host's house rules, read only), Bộ bài, Rời bàn (the hub
+  asks whether to give the seat up). There is no "new table" and nothing to pause: the table goes on.
+- The practice hints of the first hand also show online.
+
 ## What is saved
 
 After every action: the hand in progress (state), the series score, the table's settings (house rules, players,
-bot level, deck), whether the intro was seen, and simple statistics (hands, places). JSON, far below 64 KB.
+bot level, deck), whether the intro was seen, and simple statistics (hands, places). JSON, far below 64 KB. Online,
+the table is the server's: only the preferences (deck, sort) and the statistics change.
 
 ## Themes
 
@@ -215,3 +236,9 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 6. The same seed and the same actions give the same state (deterministic replays and saves).
 7. A seat's view never contains another seat's cards, and bots only ever return legal actions.
 8. A saved state restores to the same game.
+
+## Changelog
+
+- **0.2.0** — online tables (ADR 0016): `rooms` capability and options in game.json, `dist/rules.js` built from
+  `src/module.ts`, the online mode above.
+- **0.1.0** — against bots on one phone.

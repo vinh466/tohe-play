@@ -80,7 +80,7 @@ function Catalog({ player, household }: { player: Player; household: string | nu
               style={{ animationDelay: `${index * 40}ms` }}
             >
               <Link
-                to="/play/$gameId"
+                to={game.rooms ? '/rooms/$gameId' : '/play/$gameId'}
                 params={{ gameId: game.id }}
                 className="flex h-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 text-center shadow-sm transition active:scale-95"
               >

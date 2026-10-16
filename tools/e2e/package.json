@@ -6,6 +6,7 @@
   "type": "module",
   "scripts": {
     "smoke": "mkdir -p test-results && node src/smoke.ts",
+    "rooms": "mkdir -p test-results && node src/rooms.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {

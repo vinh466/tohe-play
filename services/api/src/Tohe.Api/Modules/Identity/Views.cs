@@ -23,6 +23,7 @@ public sealed record HouseholdView(
 
 /// <param name="Kind"><c>adult</c> or <c>child</c>.</param>
 /// <param name="IsMine">The signed-in adult's own profile.</param>
+/// <param name="PlayWithOthers">May play online with other households: adults, and children a parent allowed.</param>
 public sealed record ProfileView(
     Guid Id,
     string Name,
@@ -30,7 +31,8 @@ public sealed record ProfileView(
     string Kind,
     string? AgeBand,
     bool HasPin,
-    bool IsMine);
+    bool IsMine,
+    bool PlayWithOthers);
 
 /// <summary>Everything the hub needs about the device session.</summary>
 /// <param name="ActiveProfileId">The profile playing on this device, if one was chosen.</param>
@@ -93,5 +95,6 @@ internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
         profile.Kind == ProfileKind.Adult ? "adult" : "child",
         profile.AgeBand,
         profile.PinHash is not null,
-        profile.AccountId == accountId);
+        profile.AccountId == accountId,
+        profile.Kind == ProfileKind.Adult || profile.PlayWithOthers);
 }

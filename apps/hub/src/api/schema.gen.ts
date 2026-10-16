@@ -348,6 +348,144 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rooms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Rooms of a game the active profile may see: public ones it may join, and the ones it sits at. */
+        get: operations["ListRooms"];
+        put?: never;
+        /** Open a room for a game; the active profile hosts it and takes the first seat. */
+        post: operations["CreateRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/mine": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Open rooms the active profile sits at, to go back to one. */
+        get: operations["ListMyRooms"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/code/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A room by its 6-digit code (spaces ignored), to preview before joining; rate limited. */
+        get: operations["FindRoomByCode"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A room the active profile sits at, or may see in the lobby. */
+        get: operations["GetRoom"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** The host changes the room before a hand: seats, visibility, lock, bots, timer, house rules. */
+        patch: operations["UpdateRoom"];
+        trace?: never;
+    };
+    "/api/rooms/{id}/join": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Sit at a room: an empty seat, or between hands a bot's. */
+        post: operations["JoinRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{id}/leave": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Leave the seat; during a hand a bot finishes it. The room closes when the last person leaves. */
+        post: operations["LeaveRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{id}/seats/{seat}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** The host seats a bot, or empties a seat (removing a bot or a player). */
+        put: operations["SetRoomSeat"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{id}/start": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The host starts the first hand; empty seats get bots if the room fills them. */
+        post: operations["StartRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -375,6 +513,29 @@ export interface components {
             avatar: string;
             ageBand: string;
             pin?: null | string;
+        };
+        CreateRoomRequest: {
+            gameId: string;
+            /**
+             * Format: int32
+             * @default 4
+             */
+            seats: number;
+            /** @default true */
+            isPublic: boolean;
+            /** @default false */
+            householdOnly: boolean;
+            /** @default true */
+            botsFill: boolean;
+            botLevel?: null | string;
+            /** @default true */
+            botsTakeOver: boolean;
+            /**
+             * Format: int32
+             * @default 20
+             */
+            turnSeconds: number;
+            options?: unknown;
         };
         DailyPoint: {
             /** Format: date */
@@ -443,6 +604,14 @@ export interface components {
             metrics: components["schemas"]["MetricSummary"][];
             counts: components["schemas"]["CountSummary"][];
         };
+        GameRoomsView: {
+            /** Format: int32 */
+            minSeats: number;
+            /** Format: int32 */
+            maxSeats: number;
+            bots: string[];
+            options: components["schemas"]["JsonElement"];
+        };
         GameSummary: {
             id: string;
             name: string;
@@ -457,6 +626,7 @@ export interface components {
             minAge: number;
             /** Format: int32 */
             sizeKb: number;
+            rooms: null | components["schemas"]["GameRoomsView"];
         };
         HouseholdView: {
             /** Format: uuid */
@@ -548,6 +718,7 @@ export interface components {
             ageBand: null | string;
             hasPin: boolean;
             isMine: boolean;
+            playWithOthers: boolean;
         };
         PutSaveRequest: {
             data: components["schemas"]["JsonElement"];
@@ -565,6 +736,50 @@ export interface components {
             password: string;
             householdName?: null | string;
             inviteCode?: null | string;
+        };
+        RoomSummary: {
+            /** Format: uuid */
+            id: string;
+            gameId: string;
+            status: string;
+            hostName: string;
+            hostAvatar: string;
+            /** Format: int32 */
+            taken: number;
+            /** Format: int32 */
+            seats: number;
+            locked: boolean;
+            /** Format: int32 */
+            turnSeconds: number;
+            mine: boolean;
+        };
+        RoomView: {
+            /** Format: uuid */
+            id: string;
+            code: string;
+            gameId: string;
+            gameVersion: string;
+            status: string;
+            /** Format: uuid */
+            hostProfileId: string;
+            isPublic: boolean;
+            householdOnly: boolean;
+            locked: boolean;
+            /** Format: int32 */
+            seats: number;
+            botsFill: boolean;
+            botLevel: null | string;
+            botsTakeOver: boolean;
+            /** Format: int32 */
+            turnSeconds: number;
+            options: components["schemas"]["JsonElement"];
+            seatList: components["schemas"]["SeatView"][];
+            scores: number[];
+            /** Format: int32 */
+            hand: number;
+            handSeats: number[];
+            /** Format: int32 */
+            mySeat: null | number;
         };
         SavedGameView: {
             gameId: string;
@@ -584,10 +799,24 @@ export interface components {
             /** @default true */
             final: boolean;
         };
+        SeatView: {
+            /** Format: int32 */
+            seat: number;
+            /** Format: uuid */
+            profileId: null | string;
+            name: null | string;
+            avatar: null | string;
+            bot: null | string;
+            connected: boolean;
+            ready: boolean;
+        };
         SelectProfileRequest: {
             /** Format: uuid */
             profileId: string;
             pin?: null | string;
+        };
+        SetSeatRequest: {
+            bot: null | string;
         };
         TelemetryBatch: {
             /** Format: uuid */
@@ -667,6 +896,20 @@ export interface components {
             ageBand?: null | string;
             pin?: null | string;
             removePin?: null | boolean;
+            playWithOthers?: null | boolean;
+        };
+        UpdateRoomRequest: {
+            /** Format: int32 */
+            seats?: null | number;
+            isPublic?: null | boolean;
+            householdOnly?: null | boolean;
+            locked?: null | boolean;
+            botsFill?: null | boolean;
+            botLevel?: null | string;
+            botsTakeOver?: null | boolean;
+            /** Format: int32 */
+            turnSeconds?: null | number;
+            options?: unknown;
         };
     };
     responses: never;
@@ -1409,6 +1652,381 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["TelemetryReport"];
                 };
+            };
+        };
+    };
+    ListRooms: {
+        parameters: {
+            query: {
+                game: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomSummary"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateRoomRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMyRooms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomSummary"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    FindRoomByCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    UpdateRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateRoomRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    JoinRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    LeaveRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    SetRoomSeat: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                seat: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SetSeatRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StartRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

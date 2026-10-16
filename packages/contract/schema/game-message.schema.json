@@ -291,6 +291,87 @@
         "type",
         "events"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "room.act"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "action": {
+          "$ref": "#/$defs/__schema1"
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "id",
+        "action"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "room.next"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "id"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "room.react"
+        },
+        "reaction": {
+          "type": "string",
+          "enum": [
+            "wave",
+            "laugh",
+            "wow",
+            "clap",
+            "hurry",
+            "gg",
+            "sad",
+            "heart"
+          ]
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "reaction"
+      ]
     }
   ],
   "$defs": {
@@ -321,6 +402,37 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/__schema0"
+          }
+        }
+      ]
+    },
+    "__schema1": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema1"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema1"
           }
         }
       ]

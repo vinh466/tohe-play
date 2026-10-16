@@ -7,6 +7,8 @@ import {
   type InitPayload,
   MAX_SAVE_BYTES,
   PROTOCOL_VERSION,
+  type Reaction,
+  type RoomSeat,
   type Settings,
   type TelemetryEvent,
 } from '@tohe/contract';
@@ -27,6 +29,14 @@ export interface HostOptions {
   onLog?(entry: { level: 'info' | 'warn' | 'error'; message: string }): void;
   /** Telemetry from the game, already validated; only sent when `init` set `telemetry` (ADR 0015). */
   onTelemetry?(events: TelemetryEvent[]): void;
+  /**
+   * An action at the table (ADR 0016), for the server to referee. Throw an Error whose message is the rules' error
+   * code to refuse it; resolve when the server accepted it.
+   */
+  onRoomAct?(action: JsonValue): void | Promise<void>;
+  /** The player is ready for the next hand. */
+  onRoomNext?(): void | Promise<void>;
+  onRoomReact?(reaction: Reaction): void;
   /** A message that failed validation or broke the protocol. */
   onProtocolError?(error: string, raw: unknown): void;
   /** Rejects `ready` if the game does not say ready in time. Default 10000 ms. */
@@ -39,6 +49,11 @@ export interface HostHandle {
   pause(): void;
   resume(): void;
   setSettings(settings: Settings): void;
+  /** The seat's view after a change (rooms, ADR 0016). */
+  roomView(update: { view: JsonValue; events: JsonValue[]; seq: number; turnMs: number | null }): void;
+  /** The players at the table, and this phone's seat in it. */
+  roomSeats(seats: RoomSeat[], seat: number): void;
+  roomReaction(seat: number, reaction: Reaction): void;
   dispose(): void;
 }
 
@@ -113,6 +128,15 @@ export function createHost(options: HostOptions): HostHandle {
         return options.onLog?.({ level: message.level, message: message.message });
       case 'telemetry':
         return options.onTelemetry?.(message.events);
+      case 'room.act':
+        if (!can('rooms')) return reply(message.id, 'capability "rooms" not declared in game.json');
+        return settle(message.id, () => options.onRoomAct?.(message.action as JsonValue));
+      case 'room.next':
+        if (!can('rooms')) return reply(message.id, 'capability "rooms" not declared in game.json');
+        return settle(message.id, () => options.onRoomNext?.());
+      case 'room.react':
+        if (!can('rooms')) return fail('room.react without the "rooms" capability', raw);
+        return options.onRoomReact?.(message.reaction);
     }
   };
 
@@ -132,6 +156,11 @@ export function createHost(options: HostOptions): HostHandle {
     pause: () => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'pause' }),
     resume: () => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'resume' }),
     setSettings: (settings) => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'settings', settings }),
+    roomView: (update) => handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.view', ...update }),
+    roomSeats: (seats, seat) =>
+      handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.seats', seats, seat }),
+    roomReaction: (seat, reaction) =>
+      handshaken && send({ tohe: PROTOCOL_VERSION, type: 'room.reaction', seat, reaction }),
     dispose: () => {
       clearTimeout(timer);
       unsubscribe();

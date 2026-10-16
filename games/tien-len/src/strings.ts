@@ -1,3 +1,4 @@
+import type { Reaction } from '@tohe/game-sdk';
 import type { Level } from './bots.ts';
 import type { Kind } from './cards.ts';
 import type { ActError, InstantWin, Line } from './rules.ts';
@@ -22,6 +23,21 @@ export const strings = {
     sortRank: '⇅ Xếp số',
     sortCombos: '⇅ Xếp bộ',
     tableScore: 'Điểm bàn',
+    online: 'Bàn online',
+    botSeat: (level: string) => `Máy · ${level}`,
+    waitingOthers: 'Đang chờ mọi người…',
+    leaveTable: 'Rời bàn',
+    react: 'Gửi cảm xúc',
+    reactions: {
+      wave: 'Chào cả nhà!',
+      laugh: 'Haha!',
+      wow: 'Wow!',
+      clap: 'Hay quá!',
+      hurry: 'Nhanh lên nào!',
+      gg: 'Ván hay!',
+      sad: 'Huhu',
+      heart: 'Thương!',
+    } satisfies Record<Reaction, string>,
     handNo: (n: number) => `Ván ${n}`,
     you: 'Bạn',
     bots: [
@@ -99,6 +115,7 @@ export const strings = {
     },
     menu: {
       rules: 'Luật nhà',
+      tableRules: 'Luật của bàn',
       table: 'Bàn chơi',
       deck: 'Bộ bài',
       nextHandNote: 'Áp dụng từ ván sau.',
@@ -129,6 +146,21 @@ export const strings = {
     sortRank: '⇅ By rank',
     sortCombos: '⇅ By set',
     tableScore: 'Table score',
+    online: 'Online table',
+    botSeat: (level: string) => `Bot · ${level}`,
+    waitingOthers: 'Waiting for everyone…',
+    leaveTable: 'Leave the table',
+    react: 'Send a reaction',
+    reactions: {
+      wave: 'Hi all!',
+      laugh: 'Haha!',
+      wow: 'Wow!',
+      clap: 'Nice one!',
+      hurry: 'Hurry up!',
+      gg: 'Good game!',
+      sad: 'Aww',
+      heart: 'Love it!',
+    } satisfies Record<Reaction, string>,
     handNo: (n: number) => `Hand ${n}`,
     you: 'You',
     bots: [
@@ -209,6 +241,7 @@ export const strings = {
     },
     menu: {
       rules: 'House rules',
+      tableRules: 'Table rules',
       table: 'Table',
       deck: 'Deck',
       nextHandNote: 'From the next hand on.',

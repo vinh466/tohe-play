@@ -39,11 +39,37 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `entry` | string | `index.html` | Entry file relative to the build folder. |
 | `icon` | string | — | Icon file relative to the build folder (SVG or PNG, square). |
 | `orientation` | `portrait` \| `landscape` \| `any` | `portrait` | Preferred orientation. |
-| `capabilities` | array of `save`, `scores` | `[]` | Platform services the game uses. Undeclared calls are rejected. |
+| `capabilities` | array of `save`, `scores`, `rooms` | `[]` | Platform services the game uses. Undeclared calls are rejected. |
 | `themes` | array of `light`, `dark` | `["light"]` | Looks the game has ([ADR 0013](../decisions/0013-light-and-dark-themes.md)). With both, it follows the hub through `settings.theme`; with one, it keeps that look. |
 | `minAge` | 0–18 | `0` | Hidden from younger profiles (M1). |
 | `tags` | string[] | `[]` | Up to 8 short tags. |
 | `sizeBudgetKb` | integer | `3000` | Upper bound for the build size (source maps excluded). Conformance fails above it. |
+| `rooms` | object | — | A game played online at a table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); required with the `rooms` capability, and only with it. See [Online rooms](#online-rooms). |
+
+### Online rooms
+
+A turn-based game for several phones declares `"rooms"` in `capabilities` and a `rooms` block. The hub draws the
+lobby and the room screens; the API referees every action with the game's own **rules module**; the game sends
+actions and draws the views it receives. Design: [Online rooms](../architecture/rooms.md).
+
+| `rooms` field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `rules` | string | `rules.js` | ES module in the build that exports `rules` (below). |
+| `seats` | `{ min, max }` | — | Players at a table, 2–8. |
+| `bots` | string[] | `[]` | Bot levels the module plays (`a-z`), easiest first; empty if it has none. |
+| `options` | array | `[]` | Up to 24 game options (house rules) the hub draws when a room is created: `boolean`, `choice` (one of `choices`) or `multi` (any of `choices`), each with `id`, `label: { vi, en }` and a `default`. |
+
+The rules module is pure and deterministic — no DOM, timers, network, `Math.random` or `Date.now` (the API runs it in
+Jint, where those throw) — and states, views and actions are JSON:
+
+| Function | Returns |
+| --- | --- |
+| `setup({ seats, seed, options, carry })` | A hand's state. `options` are the room's game options by id; `carry` is the last hand's (null for the first). |
+| `view(state, seat)` | What `seat` may see (`null`: a spectator). Never another seat's hidden cards. |
+| `act(state, seat, action)` | `{ ok: true, state, events }` or `{ ok: false, error }` with an error code the game can put in words. |
+| `status(state)` | `{ over: false, turn: [seat], chop: [seats that may act out of turn] }` or `{ over: true, result: { points, … }, carry }`; `points` add up on the room's score sheet. |
+| `timeout(state, seat)` | What the turn timer plays. |
+| `bot(state, seat, level, seed)` | A bot's action, or `null` (nothing out of turn). |
 
 ## 3. Runtime rules
 
@@ -109,6 +135,7 @@ run.finish(score);                               // at game over, or when the pl
 | `run(id, board?)` | A run that lasts across sittings: `update(value)` while it goes on, `finish(value)` when it ends. The hub keeps one score per run, its highest. |
 | `exit()` | Ask the hub to close the game. |
 | `log(level, message)` | Forward a diagnostic line to the hub's console; `warn` and `error` lines also reach [telemetry](../architecture/telemetry.md). |
+| `room` | At an online table (ADR 0016, SDK 0.5.0), else `null`: `id`, `seat` (-1: spectator; may move between hands), `seats` (`{ profile, bot, connected, score }` in the rules module's order), `options`, `latest` (the newest view, which may arrive before the game listens), `onView(fn)` (`{ view, events, seq, turnMs }`; empty `events` after a reconnection: redraw), `onSeats(fn)`, `onReaction(fn)`, `act(action)` (rejects with the rules' error code), `next()` (ready for the next hand), `react(reaction)` (`wave`, `laugh`, `wow`, `clap`, `hurry`, `gg`, `sad`, `heart`; `REACTIONS` maps each to its emoji). |
 | `telemetry` | Technical telemetry (ADR 0015, SDK 0.4.0): `count(name, n?)`, `metric(name, value)`, `error(error)`, `frames(summary)`, `flush()`, `enabled`. Uncaught errors are reported without calling it; pass it to the kit (`createGame({ telemetry })`, `createSfx({ telemetry })`) for frame times and renderer events. A no-op when the hub does not collect telemetry, and in standalone mode. |
 
 In **standalone** mode (opening the game's dev server directly) the SDK fakes the host with `localStorage`, so a
@@ -126,7 +153,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | Direction | `type` | Fields | Notes |
 | --- | --- | --- | --- |
 | game → host | `ready` | `gameId`, `sdkVersion` | First message. Sent to `*` because the host is not known yet; carries no data. |
-| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. |
+| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table. |
 | game → host | `save` | `id`, `data` | Request; answered by `result`. |
 | game → host | `score` | `id`, `value`, `board`, `run?`, `final` | Request; answered by `result`. `run` groups the reports of one run; `final` (default `true`) is `false` while it goes on. |
 | host → game | `result` | `replyTo`, `ok`, `error?` | Answer to a request. |
@@ -134,6 +161,12 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | host → game | `settings` | `settings` | `{ muted, theme }`: mute or theme changed. |
 | game → host | `exit` | — | Close the game. |
 | game → host | `log` | `level`, `message` | Diagnostics. |
+| host → game | `room.view` | `view`, `events` (≤ 200), `seq`, `turnMs` | Rooms: the seat's view after a change and the events since the last one; drop a `seq` lower than the newest. |
+| host → game | `room.seats` | `seats`, `seat` | Rooms: the players changed; `seat` is this phone's. |
+| host → game | `room.reaction` | `seat`, `reaction` | Rooms: a preset reaction. |
+| game → host | `room.act` | `id`, `action` | Rooms: request; `result.error` is the rules' error code when refused. |
+| game → host | `room.next` | `id` | Rooms: request; ready for the next hand. |
+| game → host | `room.react` | `reaction` | Rooms: one of the preset reactions. |
 | game → host | `telemetry` | `events` (1–50) | Only when `init.telemetry` is true. Events are `error` (`message`, `stack?`, `count`), `count` (`name`, `count`), `metric` (`name`, `value`) or `frames` (`buckets`, `slowestMs`, `stepP50Ms?`, `stepP95Ms?`, `renderer?`); names are lower-case words joined by dots. See [Device telemetry](../architecture/telemetry.md). |
 
 ## Conformance
@@ -156,17 +189,21 @@ origin, and checks:
    checked), and a game that lists both looks different in each;
 5. no console errors or uncaught exceptions, no requests outside the game origin, no protocol errors;
 6. with `init.telemetry` on, as in the hub, its `telemetry` messages stay within budget: about one a minute plus one
-   per pause, each at most 8 KB.
+   per pause, each at most 8 KB;
+7. with `rooms`: the rules module exists, is at most 256 KB and mentions no browser API, loads on its own with every
+   platform function, plays bot tables of every declared size to the end (states, views and actions survive JSON;
+   views at most 64 KB) with `Math.random` and `Date.now` throwing, and replays to the same state; then the game is
+   opened at a two-seat table refereed by its own module, with a bot in the other seat, under random taps.
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
-`<id>-<theme>.png` per theme — look at them.
+`<id>-<theme>.png` per theme, and `<id>-room.png` at a table — look at them.
 
 ## Versioning
 
 - `protocol` is an integer. Additive, optional changes (a new optional field, a new capability) keep the number.
   Example: `themes` and `settings.theme` (ADR 0013) — older builds ignore the field; SDK 0.2.0 assumes `light` when
   a host does not send it. Likewise `run` and `final` on `score` (ADR 0014): a score without them is final, as in
-  older builds.
+  older builds; and `rooms` (ADR 0016), a capability older games do not declare.
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;
   games are migrated before N−1 is dropped.
 - The SDK follows semver independently; its major version changes only with the protocol.

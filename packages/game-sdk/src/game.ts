@@ -1,10 +1,18 @@
 // Game side of the contract. Must stay dependency-free at runtime: only `import type` from @tohe/contract,
 // so that a game bundle never pulls in Zod.
-import type { GameMessageInput, HostMessage, Profile, Settings } from '@tohe/contract';
+import type {
+  GameMessageInput,
+  HostMessage,
+  Profile,
+  Reaction,
+  RoomInfo,
+  RoomSeat,
+  Settings,
+} from '@tohe/contract';
 import { createTelemetry, disabledTelemetry, type Telemetry } from './telemetry.ts';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.4.0';
+export const SDK_VERSION = '0.5.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
@@ -51,6 +59,42 @@ export interface GameSession<TSave = JsonValue> {
    * events when given this object. A no-op when the hub does not collect telemetry, and in standalone mode.
    */
   readonly telemetry: Telemetry;
+  /**
+   * The table this game was opened at (online rooms, ADR 0016), or null when it plays on its own. The server
+   * referees: the game sends actions and draws the views it receives.
+   */
+  readonly room: RoomSession | null;
+}
+
+/** One view of the table for this seat, with what happened since the last one. */
+export interface RoomUpdate<TView = JsonValue> {
+  view: TView;
+  /** Public events since the previous view, to animate; empty after a (re)connection: redraw from the view. */
+  events: JsonValue[];
+  seq: number;
+  /** Milliseconds left on the turn timer, or null. */
+  turnMs: number | null;
+}
+
+export interface RoomSession<TView = JsonValue> {
+  readonly id: string;
+  /** The seat this phone plays, or -1 for a spectator; it can move between hands (updated before `seats` listeners). */
+  readonly seat: number;
+  /** Players and bots at the table; updated before `seats` listeners run. */
+  readonly seats: RoomSeat[];
+  /** The room's game options (house rules), as declared in game.json's `rooms.options`. */
+  readonly options: Record<string, JsonValue>;
+  /** The newest view, or null before the first one arrives. */
+  readonly latest: RoomUpdate<TView> | null;
+  onView(listener: (update: RoomUpdate<TView>) => void): () => void;
+  onSeats(listener: (seats: RoomSeat[]) => void): () => void;
+  onReaction(listener: (seat: number, reaction: Reaction) => void): () => void;
+  /** Sends an action to the referee; rejects with the rules' error code (e.g. `must_beat`) if refused. */
+  act(action: JsonValue): Promise<void>;
+  /** The player is ready for the next hand. */
+  next(): Promise<void>;
+  /** One of the preset reactions (no typed text). */
+  react(reaction: Reaction): void;
 }
 
 export interface ScoreRun {
@@ -99,7 +143,9 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
   const request = (
     message:
       | { type: 'save'; data: JsonValue }
-      | { type: 'score'; value: number; board: string; run?: string; final?: boolean },
+      | { type: 'score'; value: number; board: string; run?: string; final?: boolean }
+      | { type: 'room.act'; action: JsonValue }
+      | { type: 'room.next' },
   ) =>
     new Promise<void>((resolve, reject) => {
       const id = `r${++nextId}`;
@@ -122,6 +168,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
 
   return new Promise((resolve, reject) => {
     let session: GameSession<TSave> | null = null;
+    let room: ReturnType<typeof roomSession> | null = null;
     let settings = normalizeSettings(undefined);
     let telemetry: Telemetry = disabledTelemetry;
 
@@ -163,7 +210,16 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
             },
             log: (level, text) => send({ tohe: PROTOCOL, type: 'log', level, message: text.slice(0, 2000) }),
             telemetry,
+            room: null,
           };
+          if (message.room) {
+            room = roomSession(message.room, {
+              act: (action) => request({ type: 'room.act', action }),
+              next: () => request({ type: 'room.next' }),
+              react: (reaction) => send({ tohe: PROTOCOL, type: 'room.react', reaction }),
+            });
+            Object.assign(created, { room: room.session });
+          }
           session = created;
           resolve(created);
           return;
@@ -178,6 +234,20 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
           settings = normalizeSettings(message.settings);
           emitter.emit('settings', settings);
           return;
+        case 'room.view':
+          room?.view({
+            view: message.view,
+            events: message.events,
+            seq: message.seq,
+            turnMs: message.turnMs,
+          });
+          return;
+        case 'room.seats':
+          room?.seats(message.seats, message.seat);
+          return;
+        case 'room.reaction':
+          room?.reaction(message.seat, message.reaction);
+          return;
         case 'result': {
           const entry = pending.get(message.replyTo);
           if (!entry) return;
@@ -191,6 +261,59 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
 
     send({ tohe: PROTOCOL, type: 'ready', gameId: options.gameId, sdkVersion: SDK_VERSION });
   });
+}
+
+/** The game's side of a table: keeps the newest view (it may arrive before the game listens) and the seats. */
+function roomSession(
+  info: RoomInfo,
+  send: { act(action: JsonValue): Promise<void>; next(): Promise<void>; react(reaction: Reaction): void },
+) {
+  const views = new Set<(update: RoomUpdate) => void>();
+  const seatListeners = new Set<(seats: RoomSeat[]) => void>();
+  const reactions = new Set<(seat: number, reaction: Reaction) => void>();
+  let latest: RoomUpdate | null = null;
+  let seats = info.seats;
+  let seat = info.seat;
+  const subscribe = <T>(set: Set<T>, listener: T) => {
+    set.add(listener);
+    return () => set.delete(listener);
+  };
+  const session: RoomSession = {
+    id: info.id,
+    get seat() {
+      return seat;
+    },
+    get seats() {
+      return seats;
+    },
+    options: info.options as Record<string, JsonValue>,
+    get latest() {
+      return latest;
+    },
+    onView: (listener) => subscribe(views, listener),
+    onSeats: (listener) => subscribe(seatListeners, listener),
+    onReaction: (listener) => subscribe(reactions, listener),
+    act: send.act,
+    next: send.next,
+    react: send.react,
+  };
+  return {
+    session,
+    view(update: RoomUpdate) {
+      // A view older than the newest one (a late delivery) is dropped.
+      if (latest && update.seq < latest.seq) return;
+      latest = update;
+      for (const listener of views) listener(update);
+    },
+    seats(next: RoomSeat[], mine: number) {
+      seats = next;
+      seat = mine;
+      for (const listener of seatListeners) listener(next);
+    },
+    reaction(seat: number, reaction: Reaction) {
+      for (const listener of reactions) listener(seat, reaction);
+    },
+  };
 }
 
 function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
@@ -234,5 +357,6 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     exit: () => console.info('[tohe] exit() called — ignored in standalone mode'),
     log: (level, message) => console[level](`[tohe] ${message}`),
     telemetry: disabledTelemetry,
+    room: null,
   };
 }

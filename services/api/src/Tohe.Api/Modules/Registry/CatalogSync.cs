@@ -67,6 +67,10 @@ internal sealed partial class CatalogSync(
             game.Tags = [.. manifest.Tags ?? []];
             game.MinAge = manifest.MinAge ?? 0;
             game.SizeKb = entry.SizeKb;
+            game.Rooms = manifest.Rooms is { ValueKind: System.Text.Json.JsonValueKind.Object } rooms
+                && (manifest.Capabilities ?? []).Contains("rooms")
+                ? rooms.GetRawText()
+                : null;
             game.Listed = true;
             game.UpdatedAt = now;
         }

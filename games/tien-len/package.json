@@ -1,11 +1,11 @@
 {
   "name": "@tohe/game-tien-len",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev:standalone": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.rules.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "conformance": "tohe-conformance dist",

@@ -1,7 +1,7 @@
-import { type GameManifest, PROTOCOL_VERSION } from '@tohe/contract';
+import { REACTIONS as CONTRACT_REACTIONS, type GameManifest, PROTOCOL_VERSION } from '@tohe/contract';
 import { describe, expect, it, vi } from 'vitest';
 import { createHost, type HostOptions } from './host.ts';
-import { connect, createRng, memoryTransportPair, normalizeSettings, PROTOCOL } from './index.ts';
+import { connect, createRng, memoryTransportPair, normalizeSettings, PROTOCOL, REACTIONS } from './index.ts';
 
 const manifest: GameManifest = {
   id: 'hello',
@@ -121,6 +121,100 @@ describe('game <-> host handshake', () => {
 
   it('keeps the SDK protocol constant in sync with the contract', () => {
     expect(PROTOCOL).toBe(PROTOCOL_VERSION);
+  });
+});
+
+describe('rooms (ADR 0016)', () => {
+  const roomManifest: GameManifest = {
+    ...manifest,
+    id: 'hello',
+    capabilities: ['rooms'],
+    rooms: { rules: 'rules.js', seats: { min: 2, max: 4 }, bots: ['normal'], options: [] },
+  };
+  const seats = [
+    { profile: { id: 'p1', name: 'Na' }, bot: null, connected: true },
+    { profile: null, bot: 'normal', connected: true },
+  ];
+
+  function table(overrides: Partial<HostOptions> = {}) {
+    const [gameSide, hostSide] = memoryTransportPair();
+    const host = createHost({
+      transport: hostSide,
+      manifest: roomManifest,
+      init: () => ({
+        profile: { id: 'p1', name: 'Na' },
+        locale: 'vi',
+        settings: { muted: false, theme: 'light' },
+        save: null,
+        seed: 1,
+        room: { id: 'room-1', seat: 0, seats, options: { chopChain: true } },
+      }),
+      ...overrides,
+    });
+    return { host, gameSide };
+  }
+  const tick = () => new Promise((r) => setTimeout(r, 0));
+
+  it('gives the game its seat and keeps the newest view, even one sent before it listens', async () => {
+    const { host, gameSide } = table();
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    await host.ready;
+    host.roomView({ view: { hand: [1, 2] }, events: [], seq: 1, turnMs: 20_000 });
+    await tick();
+    const room = session.room;
+    expect(room?.seat).toBe(0);
+    expect(room?.options).toEqual({ chopChain: true });
+    expect(room?.latest).toEqual({ view: { hand: [1, 2] }, events: [], seq: 1, turnMs: 20_000 });
+    const views: number[] = [];
+    room?.onView((update) => views.push(update.seq));
+    host.roomView({ view: {}, events: [{ type: 'pass' }], seq: 3, turnMs: null });
+    host.roomView({ view: {}, events: [], seq: 2, turnMs: null }); // late: dropped
+    await tick();
+    expect(views).toEqual([3]);
+  });
+
+  it('sends actions to the referee and rejects with its error code', async () => {
+    const onRoomAct = vi.fn((action: unknown) => {
+      if ((action as { type: string }).type === 'pass') throw new Error('must_lead');
+    });
+    const onRoomNext = vi.fn();
+    const onRoomReact = vi.fn();
+    const { host, gameSide } = table({ onRoomAct, onRoomNext, onRoomReact });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    await host.ready;
+    await session.room?.act({ type: 'play', cards: [0] });
+    await expect(session.room?.act({ type: 'pass' })).rejects.toThrow('must_lead');
+    await session.room?.next();
+    session.room?.react('clap');
+    await tick();
+    expect(onRoomAct).toHaveBeenCalledTimes(2);
+    expect(onRoomNext).toHaveBeenCalledOnce();
+    expect(onRoomReact).toHaveBeenCalledWith('clap');
+  });
+
+  it('passes on seats and reactions', async () => {
+    const { host, gameSide } = table();
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    await host.ready;
+    const seen: string[] = [];
+    session.room?.onSeats((next) => seen.push(`seats ${next.length}`));
+    session.room?.onReaction((seat, reaction) => seen.push(`${seat} ${reaction}`));
+    host.roomSeats([...seats, { profile: null, bot: null, connected: true }], 2);
+    host.roomReaction(1, 'wave');
+    await tick();
+    expect(seen).toEqual(['seats 3', '1 wave']);
+    expect(session.room?.seats).toHaveLength(3);
+    expect(session.room?.seat).toBe(2);
+  });
+
+  it('refuses room messages from a game without the capability', async () => {
+    const { gameSide } = setup();
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    expect(session.room).toBeNull();
+  });
+
+  it('has a picture for every reaction of the contract', () => {
+    expect(Object.keys(REACTIONS).sort()).toEqual([...CONTRACT_REACTIONS].sort());
   });
 });
 

@@ -64,7 +64,8 @@
                   "type": "string",
                   "enum": [
                     "save",
-                    "scores"
+                    "scores",
+                    "rooms"
                   ]
                 }
               },
@@ -104,6 +105,279 @@
                 "type": "integer",
                 "exclusiveMinimum": 0,
                 "maximum": 50000
+              },
+              "rooms": {
+                "description": "Online rooms (ADR 0016); required with the \"rooms\" capability",
+                "type": "object",
+                "properties": {
+                  "rules": {
+                    "default": "rules.js",
+                    "description": "ES module in the build that exports `rules`; the API referees with it",
+                    "type": "string",
+                    "pattern": "^[\\w-]+(?:\\/[\\w-]+)*\\.m?js$"
+                  },
+                  "seats": {
+                    "type": "object",
+                    "properties": {
+                      "min": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 8
+                      },
+                      "max": {
+                        "type": "integer",
+                        "minimum": 2,
+                        "maximum": 8
+                      }
+                    },
+                    "required": [
+                      "min",
+                      "max"
+                    ],
+                    "additionalProperties": false
+                  },
+                  "bots": {
+                    "default": [],
+                    "description": "Bot levels the rules module plays, easiest first; empty if it has no bots",
+                    "maxItems": 5,
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "pattern": "^[a-z]{2,16}$"
+                    }
+                  },
+                  "options": {
+                    "default": [],
+                    "maxItems": 24,
+                    "type": "array",
+                    "items": {
+                      "oneOf": [
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,31}$"
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "boolean"
+                            },
+                            "label": {
+                              "type": "object",
+                              "properties": {
+                                "vi": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 60
+                                },
+                                "en": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 60
+                                }
+                              },
+                              "required": [
+                                "vi",
+                                "en"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "default": {
+                              "type": "boolean"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "type",
+                            "label",
+                            "default"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,31}$"
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "choice"
+                            },
+                            "label": {
+                              "type": "object",
+                              "properties": {
+                                "vi": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 60
+                                },
+                                "en": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 60
+                                }
+                              },
+                              "required": [
+                                "vi",
+                                "en"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "choices": {
+                              "minItems": 2,
+                              "maxItems": 12,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$"
+                                  },
+                                  "label": {
+                                    "type": "object",
+                                    "properties": {
+                                      "vi": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 60
+                                      },
+                                      "en": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 60
+                                      }
+                                    },
+                                    "required": [
+                                      "vi",
+                                      "en"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "label"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "default": {
+                              "type": "string",
+                              "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$"
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "type",
+                            "label",
+                            "choices",
+                            "default"
+                          ],
+                          "additionalProperties": false
+                        },
+                        {
+                          "type": "object",
+                          "properties": {
+                            "id": {
+                              "type": "string",
+                              "pattern": "^[a-zA-Z][a-zA-Z0-9]{0,31}$"
+                            },
+                            "type": {
+                              "type": "string",
+                              "const": "multi"
+                            },
+                            "label": {
+                              "type": "object",
+                              "properties": {
+                                "vi": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 60
+                                },
+                                "en": {
+                                  "type": "string",
+                                  "minLength": 1,
+                                  "maxLength": 60
+                                }
+                              },
+                              "required": [
+                                "vi",
+                                "en"
+                              ],
+                              "additionalProperties": false
+                            },
+                            "choices": {
+                              "minItems": 1,
+                              "maxItems": 12,
+                              "type": "array",
+                              "items": {
+                                "type": "object",
+                                "properties": {
+                                  "id": {
+                                    "type": "string",
+                                    "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$"
+                                  },
+                                  "label": {
+                                    "type": "object",
+                                    "properties": {
+                                      "vi": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 60
+                                      },
+                                      "en": {
+                                        "type": "string",
+                                        "minLength": 1,
+                                        "maxLength": 60
+                                      }
+                                    },
+                                    "required": [
+                                      "vi",
+                                      "en"
+                                    ],
+                                    "additionalProperties": false
+                                  }
+                                },
+                                "required": [
+                                  "id",
+                                  "label"
+                                ],
+                                "additionalProperties": false
+                              }
+                            },
+                            "default": {
+                              "maxItems": 12,
+                              "type": "array",
+                              "items": {
+                                "type": "string",
+                                "pattern": "^[a-zA-Z0-9][a-zA-Z0-9-]{0,31}$"
+                              }
+                            }
+                          },
+                          "required": [
+                            "id",
+                            "type",
+                            "label",
+                            "choices",
+                            "default"
+                          ],
+                          "additionalProperties": false
+                        }
+                      ]
+                    }
+                  }
+                },
+                "required": [
+                  "rules",
+                  "seats",
+                  "bots",
+                  "options"
+                ],
+                "additionalProperties": false
               }
             },
             "required": [

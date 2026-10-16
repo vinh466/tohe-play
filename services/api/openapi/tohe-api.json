@@ -873,6 +873,467 @@
           }
         }
       }
+    },
+    "/api/rooms": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Rooms of a game the active profile may see: public ones it may join, and the ones it sits at.",
+        "operationId": "ListRooms",
+        "parameters": [
+          {
+            "name": "game",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoomSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Open a room for a game; the active profile hosts it and takes the first seat.",
+        "operationId": "CreateRoom",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateRoomRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/mine": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Open rooms the active profile sits at, to go back to one.",
+        "operationId": "ListMyRooms",
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoomSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/code/{code}": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "A room by its 6-digit code (spaces ignored), to preview before joining; rate limited.",
+        "operationId": "FindRoomByCode",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "A room the active profile sits at, or may see in the lobby.",
+        "operationId": "GetRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "The host changes the room before a hand: seats, visibility, lock, bots, timer, house rules.",
+        "operationId": "UpdateRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateRoomRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/join": {
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Sit at a room: an empty seat, or between hands a bot's.",
+        "operationId": "JoinRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/leave": {
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Leave the seat; during a hand a bot finishes it. The room closes when the last person leaves.",
+        "operationId": "LeaveRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/seats/{seat}": {
+      "put": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "The host seats a bot, or empties a seat (removing a bot or a player).",
+        "operationId": "SetRoomSeat",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "seat",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetSeatRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/start": {
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "The host starts the first hand; empty seats get bots if the room fills them.",
+        "operationId": "StartRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -960,6 +1421,50 @@
               "string"
             ]
           }
+        }
+      },
+      "CreateRoomRequest": {
+        "required": [
+          "gameId"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "seats": {
+            "type": "integer",
+            "format": "int32",
+            "default": 4
+          },
+          "isPublic": {
+            "type": "boolean",
+            "default": true
+          },
+          "householdOnly": {
+            "type": "boolean",
+            "default": false
+          },
+          "botsFill": {
+            "type": "boolean",
+            "default": true
+          },
+          "botLevel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "botsTakeOver": {
+            "type": "boolean",
+            "default": true
+          },
+          "turnSeconds": {
+            "type": "integer",
+            "format": "int32",
+            "default": 20
+          },
+          "options": { }
         }
       },
       "DailyPoint": {
@@ -1201,6 +1706,34 @@
           }
         }
       },
+      "GameRoomsView": {
+        "required": [
+          "minSeats",
+          "maxSeats",
+          "bots",
+          "options"
+        ],
+        "type": "object",
+        "properties": {
+          "minSeats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "maxSeats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "bots": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "options": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
       "GameSummary": {
         "required": [
           "id",
@@ -1213,7 +1746,8 @@
           "capabilities",
           "tags",
           "minAge",
-          "sizeKb"
+          "sizeKb",
+          "rooms"
         ],
         "type": "object",
         "properties": {
@@ -1260,6 +1794,16 @@
           "sizeKb": {
             "type": "integer",
             "format": "int32"
+          },
+          "rooms": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/GameRoomsView"
+              }
+            ]
           }
         }
       },
@@ -1577,7 +2121,8 @@
           "kind",
           "ageBand",
           "hasPin",
-          "isMine"
+          "isMine",
+          "playWithOthers"
         ],
         "type": "object",
         "properties": {
@@ -1604,6 +2149,9 @@
             "type": "boolean"
           },
           "isMine": {
+            "type": "boolean"
+          },
+          "playWithOthers": {
             "type": "boolean"
           }
         }
@@ -1676,6 +2224,167 @@
           }
         }
       },
+      "RoomSummary": {
+        "required": [
+          "id",
+          "gameId",
+          "status",
+          "hostName",
+          "hostAvatar",
+          "taken",
+          "seats",
+          "locked",
+          "turnSeconds",
+          "mine"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "hostName": {
+            "type": "string"
+          },
+          "hostAvatar": {
+            "type": "string"
+          },
+          "taken": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "turnSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "mine": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RoomView": {
+        "required": [
+          "id",
+          "code",
+          "gameId",
+          "gameVersion",
+          "status",
+          "hostProfileId",
+          "isPublic",
+          "householdOnly",
+          "locked",
+          "seats",
+          "botsFill",
+          "botLevel",
+          "botsTakeOver",
+          "turnSeconds",
+          "options",
+          "seatList",
+          "scores",
+          "hand",
+          "handSeats",
+          "mySeat"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "gameVersion": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "hostProfileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "isPublic": {
+            "type": "boolean"
+          },
+          "householdOnly": {
+            "type": "boolean"
+          },
+          "locked": {
+            "type": "boolean"
+          },
+          "seats": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "botsFill": {
+            "type": "boolean"
+          },
+          "botLevel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "botsTakeOver": {
+            "type": "boolean"
+          },
+          "turnSeconds": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "options": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "seatList": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SeatView"
+            }
+          },
+          "scores": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "hand": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "handSeats": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "format": "int32"
+            }
+          },
+          "mySeat": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
       "SavedGameView": {
         "required": [
           "gameId",
@@ -1730,6 +2439,55 @@
           }
         }
       },
+      "SeatView": {
+        "required": [
+          "seat",
+          "profileId",
+          "name",
+          "avatar",
+          "bot",
+          "connected",
+          "ready"
+        ],
+        "type": "object",
+        "properties": {
+          "seat": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "profileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "avatar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bot": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "connected": {
+            "type": "boolean"
+          },
+          "ready": {
+            "type": "boolean"
+          }
+        }
+      },
       "SelectProfileRequest": {
         "required": [
           "profileId"
@@ -1741,6 +2499,20 @@
             "format": "uuid"
           },
           "pin": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SetSeatRequest": {
+        "required": [
+          "bot"
+        ],
+        "type": "object",
+        "properties": {
+          "bot": {
             "type": [
               "null",
               "string"
@@ -2041,7 +2813,69 @@
               "null",
               "boolean"
             ]
+          },
+          "playWithOthers": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
+        }
+      },
+      "UpdateRoomRequest": {
+        "type": "object",
+        "properties": {
+          "seats": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "isPublic": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "householdOnly": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "locked": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "botsFill": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "botLevel": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "botsTakeOver": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "turnSeconds": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "options": { }
         }
       }
     }
@@ -2061,6 +2895,9 @@
     },
     {
       "name": "Telemetry"
+    },
+    {
+      "name": "Rooms"
     }
   ]
 }

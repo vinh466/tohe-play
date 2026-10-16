@@ -5,10 +5,10 @@ sidebar:
   order: 7
 ---
 
-> **Status: accepted, being built in [phases](#phases)** ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)).
+> **Status: built, [phases](#phases) 1–2** ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)).
 > The owner accepted the proposed answers to the [open questions](#decisions-on-the-proposals-open-questions).
-> Technology and evidence: [Online rooms research](../research/online-rooms.md). First game:
-> [Tiến lên](../research/tien-len.md).
+> Technology and evidence: [Online rooms research](../research/online-rooms.md). First game: Tiến Lên
+> ([research](../research/tien-len.md), [SPEC](../../games/tien-len/SPEC.md)).
 
 ## Why
 
@@ -103,8 +103,9 @@ for that game, so creating the next room is one tap.
 └──────────────────────────────┘
 ```
 
-- **Chia sẻ** uses the Web Share API (Zalo, Messenger, SMS on the phone) with the link and a line of text; where it
-  is missing, it copies the link and says so.
+- **Chia sẻ** uses the Web Share API (Zalo, Messenger, SMS on the phone) with the link and a line of text. Browsers
+  only offer it, and the Clipboard API, on HTTPS: on the home server's plain HTTP the button copies the text and the
+  link the old way and says so.
 - **QR** encodes the link, for family sitting together.
 - The host can add or remove a bot per seat, remove a player, change options, pass the host role, or lock the room
   (nobody new may join).
@@ -138,8 +139,9 @@ sequenceDiagram
   H->>P: waiting room, or the table if a hand is between deals
 ```
 
-- The hub today has no way back to a page after sign-in or the profile picker; a `next` parameter (same-origin paths
-  only) is new work for this flow.
+- The way back survives signing in, registering and the profile picker: the page that needs a player remembers its
+  path in `sessionStorage` (`session/next.ts`, paths of the hub only), and the profile picker goes there instead of
+  the catalog.
 - On iOS a link opens in Safari, not in the installed PWA; the session cookie of the PWA is separate
   ([ADR 0004](../decisions/0004-identity-households-and-profiles.md)), so the player may sign in once in Safari.
   Android Chrome can open links in the installed app.
@@ -167,8 +169,8 @@ sequenceDiagram
   timeout action (Tiến lên: pass, or play the lowest legal card when leading).
 - **Disconnects:** the seat shows "mất kết nối"; after the grace period a bot plays it (if bots are allowed) and the
   player takes it back the moment they return. Without bots, the timer keeps passing for them.
-- **Reactions:** a small fixed set of emoji and short phrases ("Hay quá!", "Nhanh lên nào", "😂"), rate limited. No
-  typed text.
+- **Reactions:** 😀 in the game's HUD opens a fixed set of eight (👋 Chào cả nhà!, 😂 Haha!, 👏 Hay quá!, ⏰ Nhanh lên
+  nào!…), at most one every 1.5 s per seat; they appear as a bubble at the seat. No typed text.
 
 ### 7. Between hands
 
@@ -208,23 +210,26 @@ the hub draws the form, so no game builds its own room screen. Tiến lên's hou
 Playing with another household shows a child's profile name and avatar to people outside the family; that is new
 (today only the household leaderboard shows them) and is why the parent switch exists.
 
-## The contract (additive sketch)
+## The contract
 
-Changing `packages/contract` needs this ADR, the docs and conformance in the same pull request. The sketch keeps
-protocol 1, like `themes` and `telemetry`: a game without `rooms` is untouched.
+Game Contract v1, additively (protocol 1, like `themes` and `telemetry`): a game without `rooms` is untouched. Full
+reference: [Game Contract v1](../contracts/game-contract-v1.md).
 
-**Manifest:**
+**Manifest:** the `rooms` capability and block go together (Tiến Lên's, abridged):
 
 ```jsonc
 {
-  "capabilities": ["save", "scores", "rooms"],
+  "capabilities": ["save", "rooms"],
   "rooms": {
-    "rules": "rules.js",              // pure ES module inside the build
+    "rules": "rules.js",                 // ES module in the build, exporting `rules`
     "seats": { "min": 2, "max": 4 },
-    "bots": ["easy", "normal", "hard"],
-    "options": [                       // the hub draws these
-      { "id": "chopChain", "type": "boolean", "default": true, "label": { "vi": "Chặt chồng", "en": "Stacked chops" } },
-      { "id": "instantWins", "type": "multi", "choices": ["dragon", "fourTwos", "fivePairs", "sixPairs"], "default": ["dragon", "fourTwos"] }
+    "bots": ["easy", "normal", "hard"],  // easiest first; the middle one is the default
+    "options": [                          // the hub draws these when a room is created
+      { "id": "chopChain", "type": "boolean", "label": { "vi": "Chặt chồng", "en": "Stacked chops" }, "default": true },
+      { "id": "points", "type": "choice", "label": { "vi": "Tính điểm", "en": "Points" },
+        "choices": [{ "id": "full", "label": {…} }, { "id": "places", "label": {…} }], "default": "full" },
+      { "id": "instantWins", "type": "multi", "label": {…}, "choices": [{ "id": "dragon", "label": {…} }, …],
+        "default": ["dragon", "fourTwos", "fivePairs", "sixPairs"] }
     ]
   }
 }
@@ -234,48 +239,65 @@ protocol 1, like `themes` and `telemetry`: a game without `rooms` is untouched.
 
 | Direction | `type` | Fields | Notes |
 | --- | --- | --- | --- |
-| host → game | `init` | `room?: { id, seat, seats, options }` | Present when launched at a table; absent means offline or solo. |
-| host → game | `room.view` | `view`, `seq` | The seat's whole view after every change; opaque JSON from the rules' `view()`. |
-| host → game | `room.event` | `event` | Seat joined, left, disconnected, bot took over, reaction, timer. |
-| game → host | `room.action` | `id`, `action` | Request; answered by `result` with the rules' error code (`not_your_turn`, `must_beat`…) if refused. |
-| game → host | `room.react` | `reaction` | One of the preset reactions. |
+| host → game | `init` | `room?: { id, seat, seats, options }` | Present at a table. `seat` is this phone's (-1: spectator); `seats` are `{ profile, bot, connected, score }` in the rules module's order. |
+| host → game | `room.view` | `view`, `events`, `seq`, `turnMs` | The seat's whole view after a change, the public events since the last one (empty after a reconnection: redraw), and the turn timer. |
+| host → game | `room.seats` | `seats`, `seat` | Someone joined, left, lost the connection, or a bot took a seat; this phone's seat may move between hands. |
+| host → game | `room.reaction` | `seat`, `reaction` | A preset reaction. |
+| game → host | `room.act` | `id`, `action` | Answered by `result`, with the rules module's error code (`must_beat`, `not_your_turn`…) when refused. |
+| game → host | `room.next` | `id` | Ready for the next hand. |
+| game → host | `room.react` | `reaction` | One of `wave laugh wow clap hurry gg sad heart`. |
 
-**The rules module** (TypeScript in the game's folder, built to `rules.js`; pure, deterministic, no DOM, timers,
-network or `Math.random`):
+The SDK's `session.room` (SDK 0.5.0) keeps the newest view, which may arrive before the game listens: `latest`,
+`onView`, `onSeats`, `onReaction`, `act`, `next`, `react`.
+
+**The rules module** (TypeScript in the game's folder, `src/module.ts` built to `rules.js` by a second Vite build;
+pure and deterministic: no DOM, timers, network, `Math.random` or `Date.now`):
 
 ```ts
-export interface Rules<State, Action, View, Options> {
-  setup(ctx: { seats: number; options: Options; seed: number; carry?: unknown }): State;
-  view(state: State, seat: number | null): View;           // null = spectator
-  act(state: State, seat: number, action: Action): { state: State } | { error: string };
-  status(state: State): { turn: number[] } | { over: true; result: HandResult; carry?: unknown };
-  timeout(state: State, seat: number): Action;              // what the timer plays
-  bot(state: State, seat: number, level: string, seed: number): Action;
-}
+export const rules = {
+  setup(ctx: { seats: number; seed: number; options?: unknown; carry?: Carry | null }): State,
+  view(state: State, seat: number | null): View,              // null: a spectator
+  act(state: State, seat: number, action: Action):
+    { ok: true; state: State; events: GameEvent[] } | { ok: false; error: string },
+  status(state: State):
+    { over: false; turn: number[]; chop: number[] }            // chop: seats that may act out of turn (bots)
+    | { over: true; result: { points: number[]; … }; carry: Carry },
+  timeout(state: State, seat: number): Action,                  // what the turn timer plays
+  bot(state: State, seat: number, level: string, seed: number): Action | null,  // null: nothing out of turn
+};
 ```
 
-`carry` passes what the next hand needs from the last one (Tiến lên: the winner leads). The platform keeps the series
-score from each `HandResult`.
+States, views and actions are JSON (the server stores and relays them). `carry` passes what the next hand needs from
+the last one (Tiến Lên: its winner leads); the room adds each hand's `result.points` to its score sheet.
 
 ## The server
 
-A `Rooms` module in the API, own `rooms` schema ([ADR 0003](../decisions/0003-backend-dotnet-modular-monolith-postgres.md)).
+A `Rooms` module in the API with its own `rooms` schema
+([ADR 0003](../decisions/0003-backend-dotnet-modular-monolith-postgres.md)), reading games through the registry's
+`IRegistryGames` and profiles through `IActiveProfile`.
 
 | Endpoint | Purpose |
 | --- | --- |
-| `GET /api/rooms?game=` | Public rooms the active profile may join |
-| `POST /api/rooms` | Create (options validated against the game's manifest and rules) |
-| `GET /api/rooms/by-code/{code}` | Preview by code (rate limited) |
-| `POST /api/rooms/{id}/seats` / `DELETE` | Sit / leave |
-| `/api/rooms/hub` (SignalR) | Lobby updates, room state, views, actions, reactions, presence |
+| `GET /api/rooms?game=` | Rooms the active profile may see: public ones it may join, and the ones it sits at |
+| `GET /api/rooms/mine` | Open rooms it sits at |
+| `POST /api/rooms` | Open a room; the host takes seat 1. Options are checked against the game's `rooms.options` |
+| `GET /api/rooms/code/{code}` | Preview by code, spaces ignored; 20 lookups a minute per profile |
+| `GET /api/rooms/{id}` | A room it sits at, or may see |
+| `POST /api/rooms/{id}/join` · `/leave` | Sit (an empty seat, or between hands a bot that only filled one) · leave (a bot finishes the hand) |
+| `PATCH /api/rooms/{id}` · `PUT …/seats/{seat}` · `POST …/start` | The host's controls, before a hand |
+| `/api/rooms/hub` (SignalR) | `Enter`, `Exit`, `Act`, `Next`, `React`, `WatchLobby`; pushes `Room`, `View`, `Reaction`, `Closed`, `LobbyChanged` |
 
-- **One actor per room** serialises everything that happens to it: actions, timers, bots, joins. No locks across
-  rooms.
-- **Rules engine:** one Jint engine per game version, warmed at start-up, with limits per call (an action, a bot
-  decision). `Math.random` and `Date` are replaced, so the module cannot be non-deterministic by accident.
-- **Durable enough:** every accepted action is appended to `rooms.actions` and the state snapshotted at each hand's
-  start. After a restart (a UAT deploy) rooms are rebuilt by replaying from the snapshot, and phones reconnect to
-  the same table. Finished hands keep their seed and actions, which makes replays possible.
+- **One actor per room** runs everything that happens to it one at a time: joins, actions, bots, timers. A clock
+  ticks every room five times a second, each on its own task, and skips a room whose last tick (a bot thinking) has
+  not finished.
+- **Rules engine:** one Jint engine per room, with the room's build of the rules module fetched from the games origin
+  and kept (builds are immutable, so a room keeps its version after a deploy). `Math.random` and `Date.now` throw;
+  calls are limited in time (10 s), recursion and allocations. Measured with Tiến Lên's module: an action 0.16 ms,
+  an easy or normal bot 2 ms, a hard bot 0.5 s (1.7 s at most) — [research](../research/online-rooms.md).
+- **Durable without snapshots:** a room stores its seats, options, score sheet, the hand's seed and starting carry;
+  every accepted action is appended to `rooms.actions`. When the API starts, open rooms are rebuilt by replaying the
+  hand's actions from its setup (the rules module is deterministic), and phones that reconnect get the same table. A
+  room whose build is gone closes.
 - **One API instance.** Several instances would need room affinity; not planned at this scale.
 
 ## Reconnection
@@ -284,13 +306,14 @@ A `Rooms` module in the API, own `rooms` schema ([ADR 0003](../decisions/0003-ba
   becomes visible again: iOS closes sockets of suspended pages and does not always fire `onclose`.
 - On every (re)connection the server sends the seat's full current view. Views are snapshots with a sequence number,
   so the game redraws from the snapshot and nothing has to be replayed.
-- The seat is held for the grace period (proposed 30 s), then a bot plays it if the room allows; coming back takes
-  it over at once.
+- The seat is held for the grace period (30 s), then a bot plays it if the room allows; coming back takes it over
+  at once. After an API restart everyone gets the grace period again.
 
 ## Security
 
-- **Same-origin only:** the WebSocket upgrade carries the session cookie, so the hub endpoint checks `Origin` as
-  `SameOriginGuard` does for unsafe requests (cross-site WebSocket hijacking).
+- **Same-origin only:** the WebSocket upgrade carries the session cookie, so `/api/rooms/hub` refuses an `Origin`
+  other than the hub's own host (cross-site WebSocket hijacking); unsafe requests are covered by `SameOriginGuard`.
+  The hub's CSP names its own `ws://` and `wss://` host next to `'self'` for browsers older than CSP3.
 - A signed-in profile is required; children's access follows the age filter and the parent switch.
 - Every action goes through the rules; the server never trusts a phone's idea of the state.
 - Codes come from a CSPRNG, are unique among open rooms, and die with the room; lookups by code are rate limited per
@@ -307,17 +330,30 @@ A `Rooms` module in the API, own `rooms` schema ([ADR 0003](../decisions/0003-ba
 
 ## Telemetry
 
-Following [ADR 0015](../decisions/0015-device-telemetry.md): counts of reconnects, refused actions and failed
-joins, and a metric for round-trip time, per game version; nothing about who played with whom.
+Following [ADR 0015](../decisions/0015-device-telemetry.md): the hub counts sessions at a table
+(`hub.room.session`) next to solo plays, with the game's own telemetry as for any game; nothing about who played with
+whom. Reconnects and refused actions are the next counts to add.
+
+## Tests
+
+| Where | What |
+| --- | --- |
+| `games/tien-len` | The rules: unit tests and a fast-check random-play bot over every house-rule combination and table size |
+| Conformance | A rooms game's module loaded on its own: platform functions, bot tables to the end at every size, determinism, JSON round trips, view sizes, no browser APIs; then the game at a two-seat table refereed by its own module |
+| API (`RoomsTests`) | Lobby visibility, codes, joining and refusals, the parent switch, host controls, options, a whole hand over SignalR with bots, refused actions, a restart rebuilding the hand, Jint limits and a hard bot's time, the hub's origin check |
+| Hub | Codes, seats as the game sees them, quick play, defaults, the way back after sign-in |
+| e2e (`pnpm --filter @tohe/e2e rooms`, CI) | Two phones: create, join by link, start, a whole hand with hints, results on both, leave |
+
 
 ## Phases
 
-1. **Tiến lên offline** — the game against three bots on one phone, built with the rules module and bots that the
-   server will reuse. No platform change; the family plays and confirms the house rules.
-2. **Rooms** — this ADR accepted; contract, SDK and conformance; the `Rooms` module; lobby, create, code, link, QR,
-   share; seats, bots, timer, reconnection, series score; the parent switch.
-3. **Polish** — reactions, spectators, hand history and replays, statistics and leaderboards, inviting a household
-   member directly.
+1. **Tiến lên offline** — *done:* the game against three bots on one phone, built with the rules module and bots
+   the server reuses (Tiến Lên 0.1).
+2. **Rooms** — *done:* contract, SDK 0.5.0 and conformance; the `Rooms` module; lobby, quick play, create, code, link,
+   QR, share; seats, bots, turn timer, reconnection, score sheet, preset reactions; the parent switch (Tiến Lên 0.2).
+3. **Next:** spike S5 on iPhones (locked screen, network changes) before telling the family; spectators; hand history
+   and replays (every hand's seed and actions are kept); statistics and leaderboards; inviting a household member from
+   the room.
 
 ## Open questions
 

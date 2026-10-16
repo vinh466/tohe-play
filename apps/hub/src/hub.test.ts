@@ -25,6 +25,7 @@ const hello: GameSummary = {
   tags: [],
   minAge: 3,
   sizeKb: 10,
+  rooms: null,
 };
 
 describe('launcher', () => {

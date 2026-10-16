@@ -131,3 +131,95 @@ describe('telemetry message', () => {
     expect(init({ telemetry: 'yes' }).success).toBe(false);
   });
 });
+
+describe('rooms (ADR 0016)', () => {
+  const base = { id: 'tien-len', name: 'Tiến Lên', version: '0.2.0', protocol: 1 };
+  const label = { vi: 'Chặt chồng', en: 'Stacked chops' };
+  const rooms = {
+    seats: { min: 2, max: 4 },
+    bots: ['easy', 'normal', 'hard'],
+    options: [
+      { id: 'chopChain', type: 'boolean', label, default: true },
+      {
+        id: 'points',
+        type: 'choice',
+        label,
+        choices: [
+          { id: 'full', label },
+          { id: 'places', label },
+        ],
+        default: 'full',
+      },
+      { id: 'instantWins', type: 'multi', label, choices: [{ id: 'dragon', label }], default: ['dragon'] },
+    ],
+  };
+
+  it('accepts a game with the rooms capability and block, defaulting the rules file', () => {
+    const manifest = GameManifest.parse({ ...base, capabilities: ['save', 'rooms'], rooms });
+    expect(manifest.rooms?.rules).toBe('rules.js');
+    expect(manifest.rooms?.options).toHaveLength(3);
+  });
+
+  it.each([
+    ['the capability without the block', { capabilities: ['rooms'] }],
+    ['the block without the capability', { rooms }],
+    [
+      'more seats at least than at most',
+      { capabilities: ['rooms'], rooms: { ...rooms, seats: { min: 4, max: 2 } } },
+    ],
+    [
+      'a default that is not a choice',
+      {
+        capabilities: ['rooms'],
+        rooms: { ...rooms, options: [{ ...rooms.options[1], default: 'nope' }] },
+      },
+    ],
+    [
+      'a repeated option id',
+      { capabilities: ['rooms'], rooms: { ...rooms, options: [rooms.options[0], rooms.options[0]] } },
+    ],
+    ['a rules file outside the build', { capabilities: ['rooms'], rooms: { ...rooms, rules: '../x.js' } }],
+  ])('rejects %s', (_label, extra) => {
+    expect(GameManifest.safeParse({ ...base, ...extra }).success).toBe(false);
+  });
+
+  it('carries the table in init, views and seats to the game, and actions and reactions back', () => {
+    const seat = { profile: { id: 'p1', name: 'Na' }, bot: null, connected: true };
+    const init = HostMessage.parse({
+      tohe: 1,
+      type: 'init',
+      profile: { id: 'p1', name: 'Na' },
+      locale: 'vi',
+      settings: { muted: false, theme: 'light' },
+      save: null,
+      seed: 1,
+      room: {
+        id: 'r1',
+        seat: 0,
+        seats: [seat, { profile: null, bot: 'normal', connected: true }],
+        options: {},
+      },
+    });
+    expect(init.type === 'init' && init.room?.seats[1]?.bot).toBe('normal');
+    expect(
+      HostMessage.parse({
+        tohe: 1,
+        type: 'room.view',
+        view: { hand: [1] },
+        events: [],
+        seq: 3,
+        turnMs: null,
+      }),
+    ).toMatchObject({ seq: 3 });
+    expect(
+      HostMessage.safeParse({ tohe: 1, type: 'room.reaction', seat: 1, reaction: 'shout' }).success,
+    ).toBe(false);
+    expect(
+      GameMessage.parse({ tohe: 1, type: 'room.act', id: 'r1', action: { type: 'pass' } }),
+    ).toMatchObject({
+      action: { type: 'pass' },
+    });
+    expect(GameMessage.safeParse({ tohe: 1, type: 'room.react', reaction: 'clap' }).success).toBe(true);
+    expect(GameMessage.safeParse({ tohe: 1, type: 'room.react', reaction: 'free text' }).success).toBe(false);
+  });
+});

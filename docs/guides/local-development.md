@@ -88,6 +88,7 @@ context: the service worker and "Add to Home Screen" only work on `localhost` or
 | `pnpm test` | Unit tests (Vitest) and API tests (xUnit + PostgreSQL in Docker). |
 | `pnpm conformance` | Conformance kit for every game. |
 | `pnpm --filter @tohe/e2e smoke` | End-to-end smoke test against a running stack (`HUB_URL` to override). |
+| `pnpm --filter @tohe/e2e rooms` | Online rooms end to end: two phones open, join and play a Tiến Lên table (ADR 0016). |
 | `pnpm --filter @tohe/hub generate:api` | Regenerate the hub's API types after an API change. |
 | `pnpm --filter @tohe/telemetry-report report` | Telemetry report of the dev stack (token `tohe-dev-only`); `-- --env uat` for UAT. |
 | `dotnet ef migrations add <Name> --project services/api/src/Tohe.Api --output-dir Infrastructure/Database/Migrations` | New migration. |

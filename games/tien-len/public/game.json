@@ -2,14 +2,158 @@
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "tien-len",
   "name": "Tiến Lên",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "protocol": 1,
-  "description": "Tiến lên miền Nam với ba bạn máy: đánh bài lớn hơn, chặt heo, chặt chồng, tới trắng. Luật nhà tự chọn.",
+  "description": "Tiến lên miền Nam: chơi với bạn máy hoặc mở phòng chơi với cả nhà. Chặt heo, chặt chồng, tới trắng, luật nhà tự chọn.",
   "icon": "icon.svg",
   "orientation": "portrait",
-  "capabilities": ["save"],
+  "capabilities": ["save", "rooms"],
   "themes": ["light", "dark"],
   "minAge": 6,
   "tags": ["cards", "classic"],
-  "sizeBudgetKb": 2500
+  "sizeBudgetKb": 2500,
+  "rooms": {
+    "rules": "rules.js",
+    "seats": {
+      "min": 2,
+      "max": 4
+    },
+    "bots": ["easy", "normal", "hard"],
+    "options": [
+      {
+        "id": "firstLeadThree",
+        "type": "boolean",
+        "label": {
+          "vi": "Ván đầu phải đánh có 3♠",
+          "en": "The first play must include 3♠"
+        },
+        "default": true
+      },
+      {
+        "id": "chopOutOfTurn",
+        "type": "boolean",
+        "label": {
+          "vi": "4 đôi thông chặt không cần vòng",
+          "en": "4 double straight chops out of turn"
+        },
+        "default": true
+      },
+      {
+        "id": "chopChain",
+        "type": "boolean",
+        "label": {
+          "vi": "Chặt chồng",
+          "en": "Stacked chops"
+        },
+        "default": true
+      },
+      {
+        "id": "leftovers",
+        "type": "boolean",
+        "label": {
+          "vi": "Thối heo, thối hàng",
+          "en": "2s and bombs left in hand cost points"
+        },
+        "default": true
+      },
+      {
+        "id": "cong",
+        "type": "boolean",
+        "label": {
+          "vi": "Cóng chịu gấp đôi",
+          "en": "Burned players pay double"
+        },
+        "default": true
+      },
+      {
+        "id": "instantWins",
+        "type": "multi",
+        "label": {
+          "vi": "Tới trắng khi được chia",
+          "en": "Instant wins on the deal"
+        },
+        "choices": [
+          {
+            "id": "dragon",
+            "label": {
+              "vi": "Sảnh rồng",
+              "en": "Dragon"
+            }
+          },
+          {
+            "id": "fourTwos",
+            "label": {
+              "vi": "Tứ quý heo",
+              "en": "Four 2s"
+            }
+          },
+          {
+            "id": "fivePairs",
+            "label": {
+              "vi": "5 đôi thông",
+              "en": "Five pairs in a row"
+            }
+          },
+          {
+            "id": "sixPairs",
+            "label": {
+              "vi": "6 đôi",
+              "en": "Six pairs"
+            }
+          },
+          {
+            "id": "threeTriples",
+            "label": {
+              "vi": "3 sám liên tiếp",
+              "en": "Three triples in a row"
+            }
+          }
+        ],
+        "default": ["dragon", "fourTwos", "fivePairs", "sixPairs"]
+      },
+      {
+        "id": "endAtFirstOut",
+        "type": "boolean",
+        "label": {
+          "vi": "Có người về nhất là hết ván",
+          "en": "The hand ends at the first out"
+        },
+        "default": false
+      },
+      {
+        "id": "points",
+        "type": "choice",
+        "label": {
+          "vi": "Tính điểm",
+          "en": "Points"
+        },
+        "choices": [
+          {
+            "id": "full",
+            "label": {
+              "vi": "Hạng, chặt, thối, cóng",
+              "en": "Places, chops, leftovers, burned"
+            }
+          },
+          {
+            "id": "places",
+            "label": {
+              "vi": "Chỉ tính hạng",
+              "en": "Places only"
+            }
+          }
+        ],
+        "default": "full"
+      },
+      {
+        "id": "pairsBeatTwoPair",
+        "type": "boolean",
+        "label": {
+          "vi": "3 đôi thông chặt được đôi heo",
+          "en": "3 double straight chops a pair of 2s"
+        },
+        "default": false
+      }
+    ]
+  }
 }
