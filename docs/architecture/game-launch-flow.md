@@ -66,6 +66,9 @@ other for the same reason.
   `<BackLink>` (`navigation/leave.tsx`) go back to the target or replace with it. Going back skips a game's Back
   handling (`useBlocker`), which only catches the player's own Back.
 - After a reload the older entries are unknown, so leaving replaces rather than guessing.
+- Phone Back in a shell game is blocked (the browser steps back, the router steps forward again) and sent to the
+  game; when the game answers by leaving (Back on its title screen), the hub waits for that forward step to land
+  (at most 500 ms) before going back to the catalog — two history traversals at once and the browser drops one.
 - Going deeper (a game card, **Chơi online**, a room, a replay) pushes as usual, so Back returns.
 
 ## Offline
