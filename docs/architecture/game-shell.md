@@ -52,8 +52,8 @@ and destroyed on the way back. "Vòng đời này giúp rõ ràng về luồng c
 
 ```
 ┌──────────────────────────────┐
-│ (← Về Tò He)          🂡      │  corner: leaves the game (data-tohe-exit)
-│      ♠       ┌─────┐         │
+│      ♠                🂡      │
+│              ┌─────┐         │
 │              │ 🃏  │      ♥  │  the game's picture, gently bobbing
 │              └─────┘         │
 │           Tiến Lên           │
@@ -64,6 +64,7 @@ and destroyed on the way back. "Vòng đời này giúp rõ ràng về luồng c
 │  [ 🔄 Ván mới ]              │  with a game in progress; asks first
 │  [ 🌐 Chơi online ]          │  games with rooms, signed-in profiles: the hub's lobby
 │   (🔊)   (⚙️)   (🏆)   (❓)    │  sound · settings · leaderboard (signed-in, games with scores) · how to play
+│        ( ← Về Tò He )        │  the last of the buttons: leaves the game (data-tohe-exit)
 └──────────────────────────────┘
 ```
 
@@ -91,8 +92,7 @@ only seen when the stage was not fetched yet or takes a while to draw.
 │  ┃       ▶ Tiếp tục       ┃  │  3, 2, 1 first for a game against the clock
 │  ┗━━━━━━━━━━━━━━━━━━━━━━━━┛  │
 │  🔊 Âm thanh          [ ◯━ ] │  a switch, at once
-│  🎨 Màu khối                 │  the game's looks: chips, the board repaints behind the panel
-│  [Hoàng hôn] [Tương phản] …  │
+│  🎨 Màu khối    Hoàng hôn ›  │  the game's looks: opens the list over the panel; a tap repaints the board behind
 │  📜 Luật của bàn           ›  │  a table's rules to read (Tiến Lên online)
 │   (🔄)      (❓)      (🏠)     │  Ván mới (asks) · Cách chơi · Menu chính (data-tohe-main-menu)
 │        Rời bàn               │  only at a table (Rời bàn / Thôi xem) or in a replay (Về sảnh)
@@ -115,9 +115,9 @@ title screen → Tò He.
 | Game | Title screen | ⚙️ Cài đặt | Quick panel rows | HUD (start · middle · end) |
 | --- | --- | --- | --- | --- |
 | Chạm Chấm (`hello`) | ▶ Chơi, 👑 best, 🔊 ⚙️ 🏆 ❓ | sound | sound | score · ⏱ seconds · best; 3-2-1 before a round goes on |
-| Ghép Khối (`merge-block`) | ▶ Chơi / Chơi tiếp, Ván mới, 👑 best, 🔊 ⚙️ 🏆 ❓ | sound, 🎨 Màu khối | sound, 🎨 Màu khối | score · next block · best |
-| Chạm Ghép (`tap-merge`) | as Ghép Khối | sound, 🎨 Màu khối | sound, 🎨 Màu khối | score · 🔀 · best, the goal row under it |
-| Tiến Lên (`tien-len`) | 🤖 Chơi với máy / Chơi tiếp, Bàn mới, 🌐 Chơi online, 🔊 ⚙️ ❓ | sound, 📜 Luật nhà, 🪑 Bàn chơi (from the next hand), 🎴 Bộ bài | sound, 🎴 Bộ bài; at a table also 📜 Luật của bàn | table score · hand number · (😀) sort |
+| Ghép Khối (`merge-block`) | ▶ Chơi / Chơi tiếp, Ván mới, 👑 best, 🔊 ⚙️ 🏆 ❓ | sound, 🎨 Màu khối | sound, 🎨 Màu khối › (the presets) | score · next block · best |
+| Chạm Ghép (`tap-merge`) | as Ghép Khối | sound, 🎨 Màu khối | sound, 🎨 Màu khối › (the presets) | score · 🔀 · best, the goal row under it |
+| Tiến Lên (`tien-len`) | 🤖 Chơi với máy / Chơi tiếp, Bàn mới, 🌐 Chơi online, 🔊 ⚙️ ❓ | sound, 📜 Luật nhà, 🪑 Bàn chơi (from the next hand), 🎴 Bộ bài | sound, 🎴 Bộ bài › (the decks); at a table also 📜 Luật của bàn › | table score · hand number · (😀) sort |
 
 At an online table and in a replay Tiến Lên has no menu stage: it opens straight into play (`direct`), and its panel
 keeps the seat's way out. Tiến Lên's catalog card opens the game; **🌐 Chơi online** leads to the hub's lobby, whose ←
@@ -188,7 +188,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   return {
     pause: () => kit.pause(), resume: () => kit.resume(),
     newGame: () => startNewGame(),
-    quick: () => [{ kind: 'choices', icon: '🎨', label: 'Màu khối', choices, chosen, onChoose }],
+    quick: () => [{ kind: 'card', icon: '🎨', label: 'Màu khối', value: 'Hoàng hôn',
+      card: () => ({ title: 'Màu khối', content: choiceList(presets, chosen, setPalette) }) }],
     leave() { save(); removeListeners(); kit.destroy(); },
   };
 }
@@ -199,7 +200,9 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 - `StageContext`: `root` (empty, the stage builds in it), `fresh` (🔄 from the title), `firstTime` (after the how-to),
   `menuButton()`, `overlay` (the game's own cards), `gameOver(card, again?)`, `ready()`.
 - `PlayStage`: `pause`, `resume`, `newGame` (in place), `leave` (save, then stop everything the stage started: the
-  engine, listeners, timers — the shell empties the root), `quick()` (rows: `switch`, `choices`, `info`).
+  engine, listeners, timers — the shell empties the root), `quick()` (rows: a `switch` applied at once, or a `card`
+  with its current `value` that opens over the panel — a `choiceList` that applies as the player taps, or text to
+  read — and goes back to it).
 - `createHud({ menu, parent, locale })`: ☰ first, then `start`, `center`, `end`; `hud.score({ score, best })` counts
   up and lights up a record; `hud.stat(label, { place, format })` is one number; scores shorten to fit.
 - `bump(element)`, `newRunId()`, `choiceList`, `hintList`, `followTheme`; looks in `overlay.css` on the design tokens,

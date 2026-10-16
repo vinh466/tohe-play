@@ -1,7 +1,13 @@
 import type { ShellInfo } from '@tohe/game-sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { Overlay, OverlayAction, OverlayCard, OverlayRow } from './overlay.ts';
-import { createShell, type ShellOptions, type StageContext, type StageModule } from './shell.ts';
+import {
+  createShell,
+  type QuickRow,
+  type ShellOptions,
+  type StageContext,
+  type StageModule,
+} from './shell.ts';
 
 function layer() {
   let card: OverlayCard | null = null;
@@ -58,19 +64,13 @@ function setup(overrides: Partial<ShellOptions> = {}, can: ShellInfo = { leaderb
         resume: () => calls.push('resume'),
         newGame: () => calls.push('newGame'),
         leave: () => void calls.push('leave'),
-        quick: (): OverlayRow[] => [
+        quick: (): QuickRow[] => [
           {
-            kind: 'choices',
+            kind: 'card',
+            icon: '🎨',
             label: 'Màu khối',
-            choices: [
-              { id: 'a', label: 'A' },
-              { id: 'b', label: 'B' },
-            ],
-            chosen: colour,
-            onChoose: (id) => {
-              colour = id;
-              calls.push(`colour ${id}`);
-            },
+            value: colour.toUpperCase(),
+            card: () => ({ title: 'Chọn màu khối' }),
           },
         ],
       };
@@ -101,10 +101,16 @@ function setup(overrides: Partial<ShellOptions> = {}, can: ShellInfo = { leaderb
     action.onClick();
   };
   const fire = (event: string) => listeners.get(event)?.();
+  /** What the colour card's list does when a colour is tapped (the real one is a choiceList). */
+  const choose = (id: string) => {
+    colour = id;
+    calls.push(`colour ${id}`);
+  };
   return {
     shell,
     session,
     calls,
+    choose,
     menu: menu.card,
     play: play.card,
     labels: () => top()?.actions.map((action) => action.label) ?? [],
@@ -139,7 +145,9 @@ describe('the menu stage (ADR 0020)', () => {
     expect(labels()).toEqual(['▶ Chơi']);
     expect(menu()?.actions[0]?.attributes).toEqual({ 'data-tohe-play': '' });
     expect(tools()).toEqual(['Âm thanh: bật', 'Cài đặt', 'Cách chơi']);
-    expect(menu()?.corner?.attributes).toEqual({ 'data-tohe-exit': '' });
+    // The way back to Tò He is the last of the title's buttons, not a corner.
+    expect(menu()?.footer).toMatchObject({ label: '← Về Tò He', attributes: { 'data-tohe-exit': '' } });
+    expect(menu()?.corner).toBeUndefined();
     expect(calls).toEqual([]);
     expect(reported()).toEqual([true]);
   });
@@ -271,17 +279,22 @@ describe('the play stage (ADR 0020)', () => {
     expect(calls.at(-1)).toBe('resume');
   });
 
-  it("changes the game's looks in place from the panel, without leaving it", async () => {
-    const { shell, tap, back, rows, play, calls } = setup();
+  it("opens the game's looks as a list over the panel; a choice applies at once, Back returns", async () => {
+    const { shell, tap, back, rows, play, calls, choose } = setup();
     shell.start();
     tap('▶ Chơi');
     await settle();
     back();
-    const colours = rows()[1] as Extract<OverlayRow, { kind: 'choices' }>;
-    colours.onChoose('b');
+    const colours = rows()[1] as Extract<OverlayRow, { kind: 'link' }>;
+    expect(colours).toMatchObject({ kind: 'link', icon: '🎨', label: 'Màu khối', value: 'A' });
+    colours.onClick();
+    expect(play()?.title).toBe('Chọn màu khối');
+    expect(play()?.actions.map((action) => action.label)).toEqual(['Quay lại']);
+    choose('b');
     expect(calls.at(-1)).toBe('colour b');
+    back();
     expect(play()?.title).toBe('Tạm dừng');
-    expect((rows()[1] as Extract<OverlayRow, { kind: 'choices' }>).chosen).toBe('b');
+    expect((rows()[1] as Extract<OverlayRow, { kind: 'link' }>).value).toBe('B');
   });
 
   it('goes back to the menu stage from the panel: the title at once, the stage left and its element emptied', async () => {
@@ -456,7 +469,7 @@ describe('the play stage (ADR 0020)', () => {
 });
 
 describe('the panel’s cards to read', () => {
-  it('opens an info row as a card over the panel, and Back returns to the panel', async () => {
+  it('opens a card to read over the panel, and Back returns to the panel', async () => {
     const { shell, tap, back, play, rows } = setup({
       stage: async () => ({
         start: (ctx) => {
@@ -467,7 +480,7 @@ describe('the panel’s cards to read', () => {
             newGame: () => {},
             leave: () => {},
             quick: () => [
-              { kind: 'info', icon: '📜', label: 'Luật của bàn', card: () => ({ title: 'Luật' }) },
+              { kind: 'card', icon: '📜', label: 'Luật của bàn', card: () => ({ title: 'Luật' }) },
             ],
           };
         },

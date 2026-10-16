@@ -200,7 +200,9 @@
   width: min(26rem, 100%);
   max-height: 100%;
   margin: 0 auto;
-  padding: 3.25rem 0 0.5rem;
+  /* Room under the last buttons: their entrance (tohe-rise) never pushes them out of the box, so no scrollbar
+     flashes while the screen comes in. */
+  padding: 1.25rem 0 1.25rem;
   border-radius: 0;
   background: none;
   box-shadow: none;
@@ -269,6 +271,8 @@
 .tohe-button-hero {
   position: relative;
   min-height: 4.4rem;
+  /* Clear of the button under it, ring included. */
+  margin-bottom: 0.6rem;
   border-radius: 1.4rem;
   font-size: 1.65rem;
   box-shadow:
@@ -276,32 +280,39 @@
     0 14px 30px var(--tohe-glow);
 }
 
-/* A ring that glows and fades around the play button: only its opacity moves (cheap on phones), and the button
-   itself stays still under the finger. */
+/* A ring that glows and fades around the play button, hugging its whole shape — the 6px edge under it too — so it
+   never looks shifted. Only its opacity moves (cheap on phones), and the button stays still under the finger. With
+   the keyboard, the same ring shows the focus instead of an outline. */
 .tohe-button-hero::after {
   content: "";
   position: absolute;
-  inset: -0.4rem;
-  border-radius: 1.75rem;
-  box-shadow: 0 0 0 0.3rem var(--tohe-glow);
+  inset: -6px -6px -12px;
+  border: 3px solid var(--tohe-glow);
+  border-radius: calc(1.4rem + 6px);
   opacity: 0;
   pointer-events: none;
   animation: tohe-glow 2.6s ease-in-out infinite;
 }
 
-.tohe-corner {
-  position: absolute;
-  top: max(0.6rem, env(safe-area-inset-top));
-  left: max(0.6rem, env(safe-area-inset-left));
+.tohe-button-hero:focus-visible {
+  outline: none;
+}
+
+.tohe-button-hero:focus-visible::after {
+  border-color: var(--tohe-focus);
+  opacity: 1;
+  animation: none;
+}
+
+/* The title screen's way back to Tò He: the last of its buttons, a small pill under the tools. */
+.tohe-layout-title .tohe-button-quiet {
   width: auto;
-  min-height: 2.75rem;
-  margin: 0;
-  padding: 0 1rem;
+  margin-top: 0;
+  padding: 0 1.25rem;
   border-radius: 999px;
   background: var(--tohe-surface);
-  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
-  font-size: 1rem;
-  font-weight: 800;
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
+  animation: tohe-rise 0.45s 0.22s ease-out both;
 }
 
 /* The menu stage (ADR 0020): the game's own first screens, opaque, above play. A game may set --tohe-menu-bg to tint it
@@ -460,8 +471,7 @@
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
 }
 
-.tohe-row:focus-visible,
-.tohe-chip:focus-visible {
+.tohe-row:focus-visible {
   outline: 3px solid var(--tohe-focus);
   outline-offset: 2px;
 }
@@ -501,42 +511,21 @@
   transform: translateX(1.25rem);
 }
 
-.tohe-row-choices {
-  flex-direction: column;
-  align-items: stretch;
-  gap: 0.45rem;
-  cursor: default;
-}
-
-.tohe-chips {
+.tohe-row-end {
   display: flex;
-  gap: 0.4rem;
-  padding-bottom: 0.1rem;
-  overflow-x: auto;
-  scrollbar-width: none;
-}
-
-.tohe-chip {
-  display: flex;
-  flex: none;
-  flex-direction: column;
   align-items: center;
-  gap: 0.25rem;
-  min-height: 2.75rem;
-  padding: 0.35rem 0.7rem;
-  border: 2px solid transparent;
-  border-radius: 0.9rem;
-  background: var(--tohe-surface);
-  color: var(--tohe-ink);
-  font: inherit;
-  font-size: 0.9rem;
-  font-weight: 700;
-  cursor: pointer;
-  -webkit-tap-highlight-color: transparent;
+  gap: 0.5rem;
+  min-width: 0;
 }
 
-.tohe-chip[aria-pressed="true"] {
-  border-color: var(--tohe-brand);
+/* The current choice in a link row ("Hoàng hôn"). */
+.tohe-row-value {
+  overflow: hidden;
+  color: var(--tohe-ink-soft);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tohe-row-chevron {
@@ -913,6 +902,7 @@
   .tohe-layout-title .tohe-card-actions,
   .tohe-layout-title .tohe-tools,
   .tohe-button-hero::after,
+  .tohe-layout-title .tohe-button-quiet,
   .tohe-layout-count .tohe-card-title,
   .tohe-bump,
   .is-record .tohe-stat-crown {

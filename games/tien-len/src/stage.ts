@@ -4,6 +4,7 @@
 // everything start() started. Rules live in rules.ts (via the rules module), bots in bots.ts, drawing in view.ts,
 // the save in app.ts.
 import {
+  choiceList,
   createHud,
   haptics,
   type PlayStage,
@@ -18,7 +19,7 @@ import { type Level, rank } from './bots.ts';
 import { cardName, RANK_LABELS } from './cardArt.ts';
 import { type Card, type Combo, classify, rankOf } from './cards.ts';
 import { rules } from './module.ts';
-import { DECKS, type Deck, TABLE } from './palette.ts';
+import { DECKS, TABLE } from './palette.ts';
 import {
   type ActError,
   type Action,
@@ -868,24 +869,32 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       sfx.play('click');
       void newTable();
     },
+    // 🎴 Bộ bài opens the decks over the panel; a tap redraws the cards behind it at once.
     quick: () => [
       {
-        kind: 'choices',
+        kind: 'card',
         icon: '🎴',
         label: t.menu.deck,
-        choices: DECKS.map((id) => ({ id, label: t.menu.decks[id] })),
-        chosen: deck,
-        onChoose: (id) => {
-          sfx.play('click');
-          deck = id as Deck;
-          board.setDeck(deck);
-          void persist();
-        },
+        value: t.menu.decks[deck],
+        card: () => ({
+          icon: '🎴',
+          title: t.menu.deck,
+          content: choiceList(
+            DECKS.map((id) => ({ id, label: t.menu.decks[id] })),
+            deck,
+            (id) => {
+              sfx.play('click');
+              deck = id;
+              board.setDeck(deck);
+              void persist();
+            },
+          ),
+        }),
       },
       ...(room
         ? [
             {
-              kind: 'info' as const,
+              kind: 'card' as const,
               icon: '📜',
               label: t.menu.tableRules,
               card: () => ({

@@ -9,24 +9,19 @@ export interface OverlayAction {
   variant?: 'primary' | 'secondary' | 'quiet';
   /** A tool's picture (⚙️), shown large above its label. */
   icon?: string;
-  /** The accessible name when the visible label is short (a tool's caption, a corner button). */
+  /** The accessible name when the visible label is short (a tool's caption, a screen's ←). */
   ariaLabel?: string;
   /** Extra attributes for the button, e.g. `data-tohe-exit` (what conformance looks for, ADR 0018). */
   attributes?: Record<string, string>;
 }
 
-/** A row of a panel that changes something where it is (ADR 0020): a switch, a choice, or a link to a card. */
+/**
+ * A row of a panel or a screen (ADR 0020): a switch that changes something at once, or a link that opens a card —
+ * with the current choice (`value`) shown before ›, e.g. "🎨 Màu khối · Hoàng hôn ›".
+ */
 export type OverlayRow =
   | { kind: 'switch'; label: string; icon?: string; on: boolean; onChange(on: boolean): void }
-  | {
-      kind: 'choices';
-      label: string;
-      icon?: string;
-      choices: { id: string; label: string; preview?: HTMLElement }[];
-      chosen: string;
-      onChoose(id: string): void;
-    }
-  | { kind: 'link'; label: string; icon?: string; onClick(): void };
+  | { kind: 'link'; label: string; icon?: string; value?: string; onClick(): void };
 
 export interface OverlaySection {
   title: string;
@@ -43,15 +38,15 @@ export interface OverlayCard {
   /** Extra content between the body and the buttons (e.g. a score table or hints). */
   content?: HTMLElement;
   actions: OverlayAction[];
-  /** Rows that change something in place (switches, choices), between the actions and the tools. */
+  /** Rows: switches that change something at once, links to cards (a list to choose from, rules to read). */
   rows?: OverlayRow[];
   /** A screen's sections (⚙️ Cài đặt: one per setting), each with a title over its content. */
   sections?: OverlaySection[];
   /** Round picture buttons in a row: sound, settings, leaderboard, how to play. */
   tools?: OverlayAction[];
-  /** The quiet button at the bottom of a panel: the seat's way out at a table. */
+  /** The last button, under the tools: the way out (back to Tò He on the title screen, the seat's at a table). */
   footer?: OverlayAction;
-  /** Top-left: the title screen's way back to Tò He, or a screen's ← back. */
+  /** A screen's ← back, in its header. */
   corner?: OverlayAction;
   /** A few emoji drifting behind the title screen, in the game's spirit. */
   decor?: string[];
@@ -131,9 +126,6 @@ export function createOverlay(root: HTMLElement, { stage = false }: { stage?: bo
         body.append(tools);
       }
       if (card.footer) body.append(button({ variant: 'quiet', ...card.footer }, false));
-      if (card.corner && layout !== 'screen') {
-        children.push(button({ variant: 'quiet', ...card.corner }, false, 'tohe-corner'));
-      }
       children.push(box);
       layer.replaceChildren(...children);
       layer.hidden = false;
@@ -189,28 +181,15 @@ function rowsOf(rows: OverlayRow[]): HTMLElement {
       node.append(label, knob);
       node.addEventListener('click', () => row.onChange(!row.on));
       list.append(node);
-    } else if (row.kind === 'choices') {
-      const node = element('div', 'tohe-row tohe-row-choices');
-      node.setAttribute('role', 'group');
-      node.setAttribute('aria-label', row.label);
-      const chips = element('div', 'tohe-chips');
-      for (const choice of row.choices) {
-        const chip = element('button', 'tohe-chip');
-        chip.type = 'button';
-        chip.setAttribute('aria-pressed', String(choice.id === row.chosen));
-        chip.append(element('span', 'tohe-chip-label', choice.label));
-        if (choice.preview) chip.append(choice.preview);
-        chip.addEventListener('click', () => row.onChoose(choice.id));
-        chips.append(chip);
-      }
-      node.append(label, chips);
-      list.append(node);
     } else {
       const node = element('button', 'tohe-row tohe-row-link');
       node.type = 'button';
+      const end = element('span', 'tohe-row-end');
+      if (row.value) end.append(element('span', 'tohe-row-value', row.value));
       const chevron = element('span', 'tohe-row-chevron', '›');
       chevron.setAttribute('aria-hidden', 'true');
-      node.append(label, chevron);
+      end.append(chevron);
+      node.append(label, end);
       node.addEventListener('click', row.onClick);
       list.append(node);
     }
