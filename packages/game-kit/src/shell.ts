@@ -150,12 +150,13 @@ export interface StageContext {
 }
 
 /**
- * A row of the in-game panel from the play stage: a switch or a choice applied in place, or `info` — a card to read
- * (the table's rules) that opens over the panel and goes back to it.
+ * A row of the in-game panel from the play stage: a `switch` applied at once, or a `card` that opens over the panel
+ * and goes back to it — a list to choose from (block colours, the deck: it applies as the player taps, with the game
+ * behind) or something to read (the table's rules). `value` shows the current choice in the row.
  */
 export type QuickRow =
-  | OverlayRow
-  | { kind: 'info'; label: string; icon?: string; card(): Omit<OverlayCard, 'actions'> };
+  | Extract<OverlayRow, { kind: 'switch' }>
+  | { kind: 'card'; label: string; icon?: string; value?: string; card(): Omit<OverlayCard, 'actions'> };
 
 /** A running play stage, as the game's `start(ctx)` returns it. */
 export interface PlayStage {
@@ -353,7 +354,7 @@ export function createShell(options: ShellOptions): Shell {
       title: options.title,
       body: [summary, options.best?.()].filter(Boolean).join(' · ') || undefined,
       decor: options.decor ?? [options.icon],
-      corner: embedded ? { ...exitAction(), ariaLabel: t.exit.replace(/^←\s*/, '') } : undefined,
+      footer: embedded ? exitAction() : undefined,
       actions: [
         {
           label: summary ? t.continue : t.play,
@@ -598,22 +599,13 @@ export function createShell(options: ShellOptions): Shell {
                 panel();
               },
             }
-          : row.kind === 'choices'
-            ? {
-                ...row,
-                onChoose: (id) => {
-                  row.onChoose(id);
-                  panel();
-                },
-              }
-            : row.kind === 'info'
-              ? {
-                  kind: 'link',
-                  label: row.label,
-                  icon: row.icon,
-                  onClick: () => panelCard({ ...row.card(), actions: [{ label: t.back, onClick: panel }] }),
-                }
-              : row,
+          : {
+              kind: 'link',
+              label: row.label,
+              icon: row.icon,
+              value: row.value,
+              onClick: () => panelCard({ ...row.card(), actions: [{ label: t.back, onClick: panel }] }),
+            },
     );
     playLayer.show({
       layout: 'menu',

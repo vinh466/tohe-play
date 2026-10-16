@@ -169,7 +169,7 @@ catalog card opens the game:
 0. **Title screen** (the menu stage against bots, every time; no table running): 🃏 **Tiến Lên** on a hint of the
    felt, **🤖 Chơi với máy**, or the chip "Ván đang chơi dở." with **▶ Chơi tiếp** and **🔄 Bàn mới** (the series
    restarts at 0, asks first); **🌐 Chơi online** (signed-in players: the hub's lobby, whose ← comes back here); tools
-   🔊 ⚙️ ❓; **← Về Tò He** in the corner. **⚙️ Cài đặt**: 🔊, **📜 Luật nhà** (H1–H9) and **🪑 Bàn chơi** (2–4 players
+   🔊 ⚙️ ❓; **← Về Tò He** last, under the tools. **⚙️ Cài đặt**: 🔊, **📜 Luật nhà** (H1–H9) and **🪑 Bàn chơi** (2–4 players
    and the bots' level) — from the next hand, said so while a hand is in progress — and **🎴 Bộ bài** (two or four
    colours).
 1. **How to play** (before the first **Chơi** only, then from ❓): picture hints — the card order (3 lowest, 2
@@ -183,7 +183,7 @@ catalog card opens the game:
 3. **Hand results:** places with avatars, the points of the hand line by line (places, chops, thối, cóng), the series
    score, **Ván tiếp** and **🏠 Menu chính** (the shell's end card: Back goes to the title screen).
 4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**; 🔊 Âm thanh as a switch;
-   **🎴 Bộ bài** as chips that redraw the cards behind the panel; 🔄 Bàn mới (asks) · ❓ Cách chơi · 🏠 Menu chính
+   **🎴 Bộ bài · (the deck) ›**, which opens the two decks over the panel (a tap redraws the cards behind it); 🔄 Bàn mới (asks) · ❓ Cách chơi · 🏠 Menu chính
    (the hand waits: **Chơi tiếp**). Bots stop while it is open. At an online table (no title screen): "Bàn vẫn tiếp
    tục khi bạn mở menu.", 🔊, 🎴, **📜 Luật của bàn** (read only), ❓, and **Rời bàn** / **Thôi xem**; in a replay,
    **Về sảnh**.
@@ -267,6 +267,8 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 
 ## Changelog
 
+- **0.6.1** — 🎴 Bộ bài in the panel opens the decks as a list (the chips cut the long names); the title screen's
+  way back to Tò He is its last button; the play button's ring hugs it.
 - **0.6.0** — two stages (ADR 0020): the title screen runs no table; the table is built on play (its code
   fetched in the background) and freed on 🏠; the quick panel switches sound and the deck in place, and has no way
   out to Tò He (at a table and in a replay it keeps the seat's).

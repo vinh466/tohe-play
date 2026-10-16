@@ -146,7 +146,7 @@ brings its content:
 
 1. **Title screen** (the menu stage, every time the game opens, no board running): 👆 **Chạm Ghép**, the chip "Ván
    đang chơi dở: n điểm. · 👑 Kỷ lục m", **▶ Chơi** or **▶ Chơi tiếp** and **🔄 Ván mới** (asks first; the run
-   ends); tools 🔊 ⚙️ 🏆 (signed-in players) ❓; **← Về Tò He** in the corner. **⚙️ Cài đặt**: 🔊 and **🎨 Màu khối**
+   ends); tools 🔊 ⚙️ 🏆 (signed-in players) ❓; **← Về Tò He** last, under the tools. **⚙️ Cài đặt**: 🔊 and **🎨 Màu khối**
    — one row per [preset](#block-colours), with sample blocks 2 … 256 (the numbers on the board most of the time).
 2. **How to play** (before the first **Chơi** only): four picture hints — tap a block; equal blocks connected to it,
    diagonals too, merge into it; making the goal block (4K, 16K, …) retires the smallest blocks, with points; when
@@ -158,7 +158,8 @@ brings its content:
      it fits ("812.345") and otherwise in its own unit with as many decimals as fit ("812,3K", "23,45M"), cut and
      never rounded up (`formatCompact`). The game-over card shows scores in full.
 4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**; 🔊 Âm thanh as a switch;
-   **🎨 Màu khối** as chips that repaint the board and the goal behind the panel at once; 🔄 Ván mới (asks) ·
+   **🎨 Màu khối · (the preset) ›**, which opens the presets with their sample blocks over the panel — a tap repaints
+   the board and the goal behind it at once, **Quay lại** returns to the panel; 🔄 Ván mới (asks) ·
    ❓ Cách chơi · 🏠 Menu chính (saves; the title then offers Chơi tiếp).
 5. **Game over:** board dims, card with score/best and the largest block made ("Khối lớn nhất [512K]"),
    confetti for a record, **▶ Chơi lại**, **🏠 Menu chính**; Back goes to the title screen.

@@ -3,6 +3,7 @@
 // logic.ts, drawing in view.ts, the save in app.ts.
 import {
   bump,
+  choiceList,
   createHud,
   formatScore,
   formatValue,
@@ -227,14 +228,22 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       sfx.play('click');
       startNewGame();
     },
+    // 🎨 Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
     quick: () => [
       {
-        kind: 'choices',
+        kind: 'card',
         icon: '🎨',
         label: t.colours,
-        choices: PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id, theme, 4) })),
-        chosen: store.palette,
-        onChoose: (id) => setPalette(id as PaletteId),
+        value: t.palettes[store.palette],
+        card: () => ({
+          icon: '🎨',
+          title: t.colours,
+          content: choiceList(
+            PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id, theme) })),
+            store.palette,
+            (id) => setPalette(id),
+          ),
+        }),
       },
     ],
     leave() {

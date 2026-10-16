@@ -19,7 +19,7 @@ engine: the smallest game shows that a Canvas 2D game gets the same screens as e
 content.
 
 1. **Title screen** (the menu stage, no playfield running): 🟠 **Chạm Chấm**, the chip "👑 Kỷ lục n", **▶ Chơi**,
-   tools 🔊 ⚙️ 🏆 (signed-in players: the hub's board over the game) ❓, **← Về Tò He** in the corner.
+   tools 🔊 ⚙️ 🏆 (signed-in players: the hub's board over the game) ❓, **← Về Tò He** last, under the tools.
 2. **How to play** (before the first round only, then from ❓): tap the dot as often as you can in 20 seconds; it
    shrinks as you score; missed taps cost nothing. **▶ Bắt đầu** starts the round.
 3. **Playing** (the play stage, created on play): the kit's HUD — ☰, score, seconds left (⏱, glowing for the last
