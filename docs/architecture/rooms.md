@@ -5,7 +5,8 @@ sidebar:
   order: 7
 ---
 
-> **Status: built, [phases](#phases) 1–2** ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)).
+> **Status: built, [phases](#phases) 1–3** ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md),
+> replays: [ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)).
 > The owner accepted the proposed answers to the [open questions](#decisions-on-the-proposals-open-questions).
 > Technology and evidence: [Online rooms research](../research/online-rooms.md). First game: Tiến Lên
 > ([research](../research/tien-len.md), [SPEC](../../games/tien-len/SPEC.md)).
@@ -41,6 +42,8 @@ flow should be built once, properly, so that later turn-based games (Cờ caro, 
 | Hand | Ván | One deal played to the end. |
 | Series | Bảng điểm | The running score of a room across its hands. |
 | Spectator | Người xem | Watches public information only (if the room allows). |
+| Invitation | Lời mời | A player asks a member of their household to the table; it shows on that profile's catalog for 10 minutes. |
+| Replay | Xem lại | A finished hand played back in the game, for the people who played it. |
 | Code | Mã phòng | 6 digits, unique among open rooms. |
 | Link | Link mời | `https://<hub>/r/<code>`: the same code, one tap. |
 
@@ -177,6 +180,28 @@ sequenceDiagram
 Results (places, penalties, points), the series score, then the next hand when everyone taps **Ván tiếp** or after a
 countdown. Players can leave; the host can change seats and options; empty seats can take a bot or a newcomer.
 
+### 8. Watching
+
+When the host allows it (**Cho người khác vào xem**, off by default), a room is marked 👁 in the lobby. Tapping a
+full or locked table watches it instead of joining; a code or link preview offers **👁 Xem** next to joining. The same doors apply as for sitting (household-only, the parent switch). A spectator gets the view
+of seat `null`: the table, card counts and places, never a hand; the waiting room says **Bạn đang xem phòng này**,
+and the game hides its buttons and reactions. Leaving gives up nothing.
+
+### 9. Inviting the family
+
+**Mời người trong nhà** in the waiting room lists the household's profiles that are not at the table. An invitation
+shows as a banner on that profile's catalog (checked every 20 s) with **Vào phòng**, which opens the room's preview.
+It lasts 10 minutes, opens a locked room for that profile, and never gets round the parent switch or a full table.
+Invitations live in the room's memory: an API restart forgets them.
+
+### 10. Results and looking back
+
+The lobby shows the active profile's own results in the game (hands, wins, points: all time and the last 7 days),
+the household's board for the last 7 days, and its last 20 hands. **Xem lại** opens a hand in the game, which deals
+it again from its seed with its own rules module and plays it back from the player's seat: back, forward, play and
+pause ([ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)). A hand played with an older version than
+the catalog's says it cannot be replayed: the games image only holds current builds.
+
 ## Options
 
 **Platform options** (every online game):
@@ -201,8 +226,10 @@ the hub draws the form, so no game builds its own room screen. Tiến lên's hou
 
 | Data | Seen by |
 | --- | --- |
-| A seat's hand | That seat only (and everyone in the replay, once the hand is over) |
+| A seat's hand | That seat only; once the hand is over, the people who played it (its replay carries the seed) |
 | Card counts, the table, passes, places | Everyone at the table and spectators |
+| A finished hand: seats, seed, actions, result | The profiles that played it — not spectators |
+| Personal results and the household's board | The profile itself; its household's profiles on the board |
 | Profile name and avatar | Everyone in the room, and the lobby list (host only) |
 | Household, account, age band | Nobody else — the server uses the age band to filter, never shows it |
 | The deck and seed | The server only |
@@ -250,6 +277,11 @@ reference: [Game Contract v1](../contracts/game-contract-v1.md).
 The SDK's `session.room` (SDK 0.5.0) keeps the newest view, which may arrive before the game listens: `latest`,
 `onView`, `onSeats`, `onReaction`, `act`, `next`, `react`.
 
+**Replays** ([ADR 0017](../decisions/0017-replays-of-finished-online-hands.md), SDK 0.6.0): `init.replay` instead of
+`init.room` carries `{ seats, seat, seed, options, carry, actions }`; `session.replay` hands it to the game, which
+calls `setup` with the seed, options and carry, then `act` for each action, drawing `view(state, seat)`. Nothing goes
+back to the hub but telemetry.
+
 **The rules module** (TypeScript in the game's folder, `src/module.ts` built to `rules.js` by a second Vite build;
 pure and deterministic: no DOM, timers, network, `Math.random` or `Date.now`):
 
@@ -285,6 +317,10 @@ A `Rooms` module in the API with its own `rooms` schema
 | `GET /api/rooms/{id}` | A room it sits at, or may see |
 | `POST /api/rooms/{id}/join` · `/leave` | Sit (an empty seat, or between hands a bot that only filled one) · leave (a bot finishes the hand) |
 | `PATCH /api/rooms/{id}` · `PUT …/seats/{seat}` · `POST …/start` | The host's controls, before a hand |
+| `POST /api/rooms/{id}/watch` | Watch without a seat, when the room allows spectators |
+| `POST /api/rooms/{id}/invite` · `GET /api/rooms/invites` | Ask a household profile to the table · the active profile's invitations |
+| `GET /api/rooms/stats?game=` | Its results (all time, last 7 days) and the household's 7-day board |
+| `GET /api/rooms/history?game=` · `GET /api/rooms/{id}/hands/{hand}` | Its last 20 hands · one hand to replay, only for the profiles that played it |
 | `/api/rooms/hub` (SignalR) | `Enter`, `Exit`, `Act`, `Next`, `React`, `WatchLobby`; pushes `Room`, `View`, `Reaction`, `Closed`, `LobbyChanged` |
 
 - **One actor per room** runs everything that happens to it one at a time: joins, actions, bots, timers. A clock
@@ -298,6 +334,9 @@ A `Rooms` module in the API with its own `rooms` schema
   every accepted action is appended to `rooms.actions`. When the API starts, open rooms are rebuilt by replaying the
   hand's actions from its setup (the rules module is deterministic), and phones that reconnect get the same table. A
   room whose build is gone closes.
+- **Every finished hand is kept:** `rooms.hands` (build version, seed, options, carry, who sat where, result) and
+  `rooms.results` (one row per seat: profile and household, place, points) next to its actions. Statistics, the board
+  and replays read them; rooms are closed, never deleted.
 - **One API instance.** Several instances would need room affinity; not planned at this scale.
 
 ## Reconnection
@@ -331,17 +370,18 @@ A `Rooms` module in the API with its own `rooms` schema
 ## Telemetry
 
 Following [ADR 0015](../decisions/0015-device-telemetry.md): the hub counts sessions at a table
-(`hub.room.session`) next to solo plays, with the game's own telemetry as for any game; nothing about who played with
-whom. Reconnects and refused actions are the next counts to add.
+(`hub.room.session`), replays (`hub.room.replay`), reconnections of the rooms hub (`hub.room.reconnect`) and moves the
+server refused (`hub.room.refused`), with the game's own telemetry as for any game; nothing about who played with
+whom.
 
 ## Tests
 
 | Where | What |
 | --- | --- |
 | `games/tien-len` | The rules: unit tests and a fast-check random-play bot over every house-rule combination and table size |
-| Conformance | A rooms game's module loaded on its own: platform functions, bot tables to the end at every size, determinism, JSON round trips, view sizes, no browser APIs; then the game at a two-seat table refereed by its own module |
-| API (`RoomsTests`) | Lobby visibility, codes, joining and refusals, the parent switch, host controls, options, a whole hand over SignalR with bots, refused actions, a restart rebuilding the hand, Jint limits and a hard bot's time, the hub's origin check |
-| Hub | Codes, seats as the game sees them, quick play, defaults, the way back after sign-in |
+| Conformance | A rooms game's module loaded on its own: platform functions, bot tables to the end at every size, determinism, JSON round trips, view sizes, no browser APIs; then the game at a two-seat table refereed by its own module, and replaying a hand its bots played |
+| API (`RoomsTests`) | Lobby visibility, codes, joining and refusals, the parent switch, host controls, options, a whole hand over SignalR with bots, refused actions, a restart rebuilding the hand, Jint limits and a hard bot's time, the hub's origin check; results, statistics and a replay that the rules module plays back to the same result; spectators; invitations |
+| Hub | Codes, seats as the game sees them, quick play, defaults, the way back after sign-in, the replay handed to the game |
 | e2e (`pnpm --filter @tohe/e2e rooms`, CI) | Two phones: create, join by link, start, a whole hand with hints, results on both, leave |
 
 
@@ -351,9 +391,10 @@ whom. Reconnects and refused actions are the next counts to add.
    the server reuses (Tiến Lên 0.1).
 2. **Rooms** — *done:* contract, SDK 0.5.0 and conformance; the `Rooms` module; lobby, quick play, create, code, link,
    QR, share; seats, bots, turn timer, reconnection, score sheet, preset reactions; the parent switch (Tiến Lên 0.2).
-3. **Next:** spike S5 on iPhones (locked screen, network changes) before telling the family; spectators; hand history
-   and replays (every hand's seed and actions are kept); statistics and leaderboards; inviting a household member from
-   the room.
+3. **History and family** — *done:* results, personal statistics and the household's board; the last 20 hands and
+   their replays (SDK 0.6.0, [ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)); spectators;
+   invitations to household members; telemetry counts (Tiến Lên 0.3).
+4. **Next:** spike S5 on iPhones (locked screen, network changes) before telling the family.
 
 ## Open questions
 

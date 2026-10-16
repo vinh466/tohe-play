@@ -56,6 +56,23 @@ export const RoomInfo = z
   .strict();
 export type RoomInfo = z.infer<typeof RoomInfo>;
 
+/**
+ * A finished hand to replay (ADR 0016): the game sets it up with its own rules module and plays the actions back,
+ * showing `seat`'s view. Only for the build that played it: builds are immutable, so the same module replays it exactly.
+ */
+export const Replay = z
+  .object({
+    seats: z.array(RoomSeat).min(2).max(8),
+    /** Whose view to show: the seat of the person who asked. */
+    seat: z.number().int().min(0).max(7),
+    seed: z.number().int(),
+    options: z.record(z.string(), z.json()),
+    carry: z.json().nullable(),
+    actions: z.array(z.object({ seat: z.number().int().min(0).max(7), action: z.json() }).strict()).max(5000),
+  })
+  .strict();
+export type Replay = z.infer<typeof Replay>;
+
 // ---------------------------------------------------------------- game -> host
 
 export const ReadyMessage = z.object({
@@ -146,6 +163,8 @@ export const InitMessage = z.object({
   telemetry: z.boolean().optional(),
   /** The table this game was opened at (ADR 0016); absent when it plays on its own. */
   room: RoomInfo.optional(),
+  /** A finished hand to replay instead of playing (ADR 0016); never together with `room`. */
+  replay: Replay.optional(),
 });
 
 export const PauseMessage = z.object({ ...envelope, type: z.literal('pause') });

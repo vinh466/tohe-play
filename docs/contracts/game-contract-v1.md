@@ -71,6 +71,11 @@ Jint, where those throw) — and states, views and actions are JSON:
 | `timeout(state, seat)` | What the turn timer plays. |
 | `bot(state, seat, level, seed)` | A bot's action, or `null` (nothing out of turn). |
 
+A rooms game also **replays** a finished hand ([ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)):
+opened with `init.replay` instead of `init.room`, it calls `setup` with the hand's seed, options and carry, then
+`act` for each recorded action, and draws `view(state, seat)` for the seat that asked, with controls to step back,
+forward, play and pause.
+
 ## 3. Runtime rules
 
 A game **must**:
@@ -136,6 +141,7 @@ run.finish(score);                               // at game over, or when the pl
 | `exit()` | Ask the hub to close the game. |
 | `log(level, message)` | Forward a diagnostic line to the hub's console; `warn` and `error` lines also reach [telemetry](../architecture/telemetry.md). |
 | `room` | At an online table (ADR 0016, SDK 0.5.0), else `null`: `id`, `seat` (-1: spectator; may move between hands), `seats` (`{ profile, bot, connected, score }` in the rules module's order), `options`, `latest` (the newest view, which may arrive before the game listens), `onView(fn)` (`{ view, events, seq, turnMs }`; empty `events` after a reconnection: redraw), `onSeats(fn)`, `onReaction(fn)`, `act(action)` (rejects with the rules' error code), `next()` (ready for the next hand), `react(reaction)` (`wave`, `laugh`, `wow`, `clap`, `hurry`, `gg`, `sad`, `heart`; `REACTIONS` maps each to its emoji). |
+| `replay` | A finished hand to replay (ADR 0017, SDK 0.6.0), else `null`: `seats` (as in `room`), `seat` (whose view to show), `seed`, `options`, `carry`, `actions` (`{ seat, action }` in order). Never together with `room`. |
 | `telemetry` | Technical telemetry (ADR 0015, SDK 0.4.0): `count(name, n?)`, `metric(name, value)`, `error(error)`, `frames(summary)`, `flush()`, `enabled`. Uncaught errors are reported without calling it; pass it to the kit (`createGame({ telemetry })`, `createSfx({ telemetry })`) for frame times and renderer events. A no-op when the hub does not collect telemetry, and in standalone mode. |
 
 In **standalone** mode (opening the game's dev server directly) the SDK fakes the host with `localStorage`, so a
@@ -153,7 +159,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | Direction | `type` | Fields | Notes |
 | --- | --- | --- | --- |
 | game → host | `ready` | `gameId`, `sdkVersion` | First message. Sent to `*` because the host is not known yet; carries no data. |
-| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table. |
+| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?`, `replay?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table; `replay` (`seats`, `seat`, `seed`, `options`, `carry`, `actions` ≤ 5000) when opened to replay a finished hand. |
 | game → host | `save` | `id`, `data` | Request; answered by `result`. |
 | game → host | `score` | `id`, `value`, `board`, `run?`, `final` | Request; answered by `result`. `run` groups the reports of one run; `final` (default `true`) is `false` while it goes on. |
 | host → game | `result` | `replyTo`, `ok`, `error?` | Answer to a request. |
@@ -193,17 +199,19 @@ origin, and checks:
 7. with `rooms`: the rules module exists, is at most 256 KB and mentions no browser API, loads on its own with every
    platform function, plays bot tables of every declared size to the end (states, views and actions survive JSON;
    views at most 64 KB) with `Math.random` and `Date.now` throwing, and replays to the same state; then the game is
-   opened at a two-seat table refereed by its own module, with a bot in the other seat, under random taps.
+   opened at a two-seat table refereed by its own module, with a bot in the other seat, under random taps, and opened
+   with `init.replay` to play back a hand its own bots played to the end.
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
-`<id>-<theme>.png` per theme, and `<id>-room.png` at a table — look at them.
+`<id>-<theme>.png` per theme, `<id>-room.png` at a table and `<id>-replay.png` replaying — look at them.
 
 ## Versioning
 
 - `protocol` is an integer. Additive, optional changes (a new optional field, a new capability) keep the number.
   Example: `themes` and `settings.theme` (ADR 0013) — older builds ignore the field; SDK 0.2.0 assumes `light` when
   a host does not send it. Likewise `run` and `final` on `score` (ADR 0014): a score without them is final, as in
-  older builds; and `rooms` (ADR 0016), a capability older games do not declare.
+  older builds; `rooms` (ADR 0016), a capability older games do not declare; and `init.replay` (ADR 0017), sent only
+  to games that declare `rooms`.
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;
   games are migrated before N−1 is dropped.
 - The SDK follows semver independently; its major version changes only with the protocol.

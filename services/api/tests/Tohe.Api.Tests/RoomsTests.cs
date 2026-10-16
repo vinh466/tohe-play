@@ -154,6 +154,108 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     }
 
     [Fact]
+    public async Task A_finished_hand_counts_in_the_stats_and_replays_to_the_same_result()
+    {
+        var bo = await PersonAsync("Bố");
+        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, botLevel = "easy", turnSeconds = 0 });
+        await using (var table = await TableAsync(bo, room.Id))
+        {
+            await bo.Client.PostAsync(Url($"/api/rooms/{room.Id}/start"), null, Ct);
+            await WaitForAsync(bo, room.Id, r => r.Status == "between", TimeSpan.FromSeconds(60));
+        }
+
+        var stats = await bo.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct);
+        Assert.Equal(1, stats!.AllTime.Hands);
+        Assert.Equal(stats.AllTime, stats.Week);
+        var row = Assert.Single(stats.Household);
+        Assert.Equal((bo.ProfileId, "Bố", 1), (row.ProfileId, row.Name, row.Hands));
+
+        var history = await bo.Client.GetFromJsonAsync<List<HandSummary>>(Url("/api/rooms/history?game=tien-len"), Ct);
+        var played = Assert.Single(history!);
+        Assert.Equal((room.Id, 1, 2), (played.RoomId, played.Hand, played.Players));
+
+        var replay = await bo.Client.GetFromJsonAsync<HandReplay>(Url($"/api/rooms/{room.Id}/hands/1"), Ct);
+        Assert.Equal(played.Seat, replay!.MySeat);
+        Assert.Equal(2, replay.Seats.Count);
+
+        // The game's own rules module, given the seed, options, carry and actions, ends the hand the same way.
+        var rules = new RulesHost(File.ReadAllText(Path.Combine(FindGameBuild(), "rules.js")), TimeSpan.FromSeconds(10));
+        var state = rules.Setup(replay.Seats.Count, replay.Seed, replay.Options.GetRawText(), replay.Carry.GetRawText());
+        foreach (var action in replay.Actions)
+        {
+            var step = JsonNode.Parse(rules.Act(state, action.Seat, action.Action.GetRawText()))!;
+            Assert.True(step["ok"]!.GetValue<bool>());
+            state = step["state"]!.ToJsonString();
+        }
+
+        var status = JsonNode.Parse(rules.Status(state))!;
+        Assert.True(status["over"]!.GetValue<bool>());
+        Assert.Equal(replay.Result.GetProperty("points").GetRawText(), status["result"]!["points"]!.ToJsonString());
+
+        // Nobody else sees the hand again: its seed reveals every card.
+        var chu = await PersonAsync("Chú");
+        Assert.Equal(HttpStatusCode.NotFound, (await chu.Client.GetAsync(Url($"/api/rooms/{room.Id}/hands/1"), Ct)).StatusCode);
+        Assert.Empty((await chu.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct))!.Household);
+    }
+
+    [Fact]
+    public async Task Spectators_see_the_table_without_any_hand_when_the_host_allows_them()
+    {
+        var bo = await PersonAsync("Bố");
+        var closed = await CreateAsync(bo, new { gameId = "tien-len", seats = 2 });
+        var open = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, botLevel = "easy", turnSeconds = 0, spectators = true });
+        var chu = await PersonAsync("Chú");
+
+        var refused = await chu.Client.PostAsync(Url($"/api/rooms/{closed.Id}/watch"), null, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "spectators_off"), (refused.StatusCode, await CodeAsync(refused)));
+        var watching = await chu.Client.PostAsync(Url($"/api/rooms/{open.Id}/watch"), null, Ct);
+        var room = (await watching.Content.ReadFromJsonAsync<RoomView>(Ct))!;
+        Assert.Equal(((int?)null, true), (room.MySeat, room.Watchers.Contains(chu.ProfileId)));
+
+        await using var player = await TableAsync(bo, open.Id);
+        await using var watcher = await TableAsync(chu, open.Id, autoplay: false);
+        await bo.Client.PostAsync(Url($"/api/rooms/{open.Id}/start"), null, Ct);
+        var seen = await watcher.NextViewAsync(_ => true);
+        Assert.Null(seen["seat"]?.GetValue<int?>());
+        Assert.Empty(seen["hand"]!.AsArray());
+        // Leaving as a watcher gives up nothing at the table.
+        Assert.Equal(HttpStatusCode.NoContent, (await chu.Client.PostAsync(Url($"/api/rooms/{open.Id}/leave"), null, Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task An_invitation_opens_a_locked_door_for_the_family_but_never_the_parent_switch()
+    {
+        var bo = await PersonAsync("Bố");
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, householdOnly = true });
+        var others = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
+        foreach (var id in new[] { family.Id, others.Id })
+        {
+            Assert.Equal(HttpStatusCode.OK, (await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{id}"), new { locked = true }, Ct)).StatusCode);
+        }
+
+        var na = await ChildAsync(bo, "Na");
+        await PlayAsAsync(bo, bo.ProfileId);
+        var chu = await PersonAsync("Chú");
+        var stranger = await bo.Client.PostAsJsonAsync(Url($"/api/rooms/{family.Id}/invite"), new { profileId = chu.ProfileId }, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "not_in_household"), (stranger.StatusCode, await CodeAsync(stranger)));
+        foreach (var id in new[] { family.Id, others.Id })
+        {
+            var invited = await bo.Client.PostAsJsonAsync(Url($"/api/rooms/{id}/invite"), new { profileId = na.ProfileId }, Ct);
+            Assert.Equal(HttpStatusCode.NoContent, invited.StatusCode);
+        }
+
+        await PlayAsAsync(bo, na.ProfileId);
+        var invites = await bo.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct);
+        Assert.Equal(2, invites!.Count);
+        Assert.All(invites, invite => Assert.Equal("Bố", invite.FromName));
+        Assert.Equal(1, (await JoinAsync(bo, family.Id)).MySeat);
+        // The other table has people from other households: a child without the parent switch stays out.
+        var blocked = await bo.Client.PostAsync(Url($"/api/rooms/{others.Id}/join"), null, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (blocked.StatusCode, await CodeAsync(blocked)));
+        Assert.Single((await bo.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct))!);
+    }
+
+    [Fact]
     public async Task A_refused_action_comes_back_with_the_rules_error_code()
     {
         var bo = await PersonAsync("Bố");
@@ -265,6 +367,15 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal((0, """{"timer":0}"""), (action.Seat, action.Action));
     }
 
+    /// <summary>The person's cookie jar for a hub connection, which disposes its handler when it closes.</summary>
+    private sealed class Borrowed(HttpMessageHandler inner) : DelegatingHandler(inner)
+    {
+        // The jar stays with the person: their HTTP client keeps using it after the table closes.
+        protected override void Dispose(bool disposing)
+        {
+        }
+    }
+
     /// <summary>An outbox that keeps what a room sends and stores, without phones or a database.</summary>
     private sealed class RecordingOutbox : IRoomOutbox
     {
@@ -287,6 +398,8 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
             Actions.Add(action);
             return Task.CompletedTask;
         }
+
+        public Task SaveHandAsync(RoomHand hand, IReadOnlyList<RoomResult> results) => Task.CompletedTask;
     }
 
     [Fact]
@@ -345,7 +458,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var hub = new HubConnectionBuilder()
             .WithUrl(new Uri(factory.Server.BaseAddress, "api/rooms/hub"), options =>
             {
-                options.HttpMessageHandlerFactory = _ => person.Jar;
+                options.HttpMessageHandlerFactory = _ => new Borrowed(person.Jar);
                 options.Transports = HttpTransportType.LongPolling;
             })
             .Build();

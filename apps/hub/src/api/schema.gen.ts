@@ -383,6 +383,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rooms/stats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The active profile's online results in a game, and its household's board over the last 7 days. */
+        get: operations["GetRoomStats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/history": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The active profile's last 20 finished online hands of a game, newest first. */
+        get: operations["ListMyHands"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{id}/hands/{hand}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A finished hand the active profile played, with its seed and actions, to replay it in the game. */
+        get: operations["GetHandReplay"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rooms/code/{code}": {
         parameters: {
             query?: never;
@@ -429,6 +480,57 @@ export interface paths {
         put?: never;
         /** Sit at a room: an empty seat, or between hands a bot's. */
         post: operations["JoinRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{id}/watch": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Watch a table without a seat, if its host allows spectators: only what is public is shown. */
+        post: operations["WatchRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/{id}/invite": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a member of one's household to the table: it shows in their hub for 10 minutes. */
+        post: operations["InviteToRoom"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/rooms/invites": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Tables household members asked the active profile to, for the next 10 minutes. */
+        get: operations["ListRoomInvites"];
+        put?: never;
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -536,6 +638,8 @@ export interface components {
              */
             turnSeconds: number;
             options?: unknown;
+            /** @default false */
+            spectators: boolean;
         };
         DailyPoint: {
             /** Format: date */
@@ -628,6 +732,41 @@ export interface components {
             sizeKb: number;
             rooms: null | components["schemas"]["GameRoomsView"];
         };
+        HandReplay: {
+            /** Format: uuid */
+            roomId: string;
+            /** Format: int32 */
+            hand: number;
+            gameId: string;
+            gameVersion: string;
+            /** Format: int32 */
+            seed: number;
+            options: components["schemas"]["JsonElement"];
+            carry: components["schemas"]["JsonElement"];
+            seats: components["schemas"]["ReplaySeat"][];
+            actions: components["schemas"]["ReplayAction"][];
+            result: components["schemas"]["JsonElement"];
+            /** Format: int32 */
+            mySeat: number;
+            /** Format: date-time */
+            finishedAt: string;
+        };
+        HandSummary: {
+            /** Format: uuid */
+            roomId: string;
+            /** Format: int32 */
+            hand: number;
+            /** Format: date-time */
+            finishedAt: string;
+            /** Format: int32 */
+            seat: number;
+            /** Format: int32 */
+            place: number;
+            /** Format: int32 */
+            points: number;
+            /** Format: int32 */
+            players: number;
+        };
         HouseholdView: {
             /** Format: uuid */
             id: string;
@@ -647,12 +786,28 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        InviteRequest: {
+            /** Format: uuid */
+            profileId: string;
+        };
         InviteView: {
             code: string;
             /** Format: date-time */
             expiresAt: string;
         };
         JsonElement: unknown;
+        LeaderRow: {
+            /** Format: uuid */
+            profileId: string;
+            name: string;
+            avatar: string;
+            /** Format: int32 */
+            hands: number;
+            /** Format: int32 */
+            firsts: number;
+            /** Format: int32 */
+            points: number;
+        };
         LeaderboardEntry: {
             /** Format: uuid */
             profileId: string;
@@ -697,6 +852,14 @@ export interface components {
         ParentGateRequest: {
             password: string;
         };
+        PlayerStats: {
+            /** Format: int32 */
+            hands: number;
+            /** Format: int32 */
+            firsts: number;
+            /** Format: int32 */
+            points: number;
+        };
         ProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -737,6 +900,33 @@ export interface components {
             householdName?: null | string;
             inviteCode?: null | string;
         };
+        ReplayAction: {
+            /** Format: int32 */
+            seat: number;
+            action: components["schemas"]["JsonElement"];
+        };
+        ReplaySeat: {
+            /** Format: uuid */
+            profileId: null | string;
+            name: null | string;
+            avatar: null | string;
+            bot: null | string;
+        };
+        RoomInvite: {
+            /** Format: uuid */
+            roomId: string;
+            gameId: string;
+            code: string;
+            fromName: string;
+            fromAvatar: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        RoomStatsView: {
+            allTime: components["schemas"]["PlayerStats"];
+            week: components["schemas"]["PlayerStats"];
+            household: components["schemas"]["LeaderRow"][];
+        };
         RoomSummary: {
             /** Format: uuid */
             id: string;
@@ -752,6 +942,7 @@ export interface components {
             /** Format: int32 */
             turnSeconds: number;
             mine: boolean;
+            spectators: boolean;
         };
         RoomView: {
             /** Format: uuid */
@@ -780,6 +971,8 @@ export interface components {
             handSeats: number[];
             /** Format: int32 */
             mySeat: null | number;
+            spectators: boolean;
+            watchers: string[];
         };
         SavedGameView: {
             gameId: string;
@@ -910,6 +1103,7 @@ export interface components {
             /** Format: int32 */
             turnSeconds?: null | number;
             options?: unknown;
+            spectators?: null | boolean;
         };
     };
     responses: never;
@@ -1757,6 +1951,107 @@ export interface operations {
             };
         };
     };
+    GetRoomStats: {
+        parameters: {
+            query: {
+                game: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomStatsView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListMyHands: {
+        parameters: {
+            query: {
+                game: string;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandSummary"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetHandReplay: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                hand: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["HandReplay"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     FindRoomByCode: {
         parameters: {
             query?: never;
@@ -1910,6 +2205,113 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    WatchRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InviteToRoom: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteRequest"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ListRoomInvites: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoomInvite"][];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

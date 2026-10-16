@@ -15,6 +15,7 @@ export interface RoomSettingsValue {
   botLevel: string | null;
   botsTakeOver: boolean;
   turnSeconds: number;
+  spectators: boolean;
   options: Record<string, unknown>;
 }
 
@@ -29,6 +30,7 @@ export function defaultSettings(game: GameSummary): RoomSettingsValue {
     botLevel: bots[Math.floor((bots.length - 1) / 2)] ?? null,
     botsTakeOver: bots.length > 0,
     turnSeconds: 20,
+    spectators: false,
     options: withDefaults((rooms?.options ?? []) as unknown as RoomOption[]),
   };
 }
@@ -170,6 +172,12 @@ export function RoomSettings({
         }))}
         value={value.turnSeconds as (typeof TURN_CHOICES)[number]}
         onChange={(turnSeconds) => set({ turnSeconds })}
+      />
+      <Switch
+        label={t('rooms.spectators')}
+        hint={t('rooms.spectatorsHint')}
+        checked={value.spectators}
+        onChange={(spectators) => set({ spectators })}
       />
       {options.length > 0 ? (
         <section className="flex flex-col gap-2">

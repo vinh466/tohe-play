@@ -39,6 +39,10 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
 
     public DbSet<RoomAction> RoomActions => Set<RoomAction>();
 
+    public DbSet<RoomHand> RoomHands => Set<RoomHand>();
+
+    public DbSet<RoomResult> RoomResults => Set<RoomResult>();
+
     /// <summary>Keys that encrypt session cookies; persisted so restarts and deploys keep people signed in.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

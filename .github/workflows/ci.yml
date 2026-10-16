@@ -76,7 +76,7 @@ jobs:
           exit 1
       - run: pnpm --filter @tohe/e2e exec playwright install --with-deps chromium
       - run: pnpm --filter @tohe/e2e smoke
-      - name: Online rooms, two phones (ADR 0016)
+      - name: Online rooms, three phones (ADR 0016, 0017)
         run: pnpm --filter @tohe/e2e rooms
       - name: Site is served
         run: curl -fsS http://localhost:4710/docs/ | grep -q "Tò He"

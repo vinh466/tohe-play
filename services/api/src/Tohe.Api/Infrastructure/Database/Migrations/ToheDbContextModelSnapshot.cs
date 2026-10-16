@@ -520,6 +520,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<bool>("AllowSpectators")
+                        .HasColumnType("boolean")
+                        .HasColumnName("allow_spectators");
+
                     b.Property<string>("BotLevel")
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
@@ -691,6 +695,134 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasDatabaseName("ix_actions_room_id_hand_id");
 
                     b.ToTable("actions", "rooms");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomHand", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Carry")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("carry");
+
+                    b.Property<DateTimeOffset>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("GameVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("game_version");
+
+                    b.Property<int>("Hand")
+                        .HasColumnType("integer")
+                        .HasColumnName("hand");
+
+                    b.Property<string>("Options")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("options");
+
+                    b.Property<string>("Result")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("result");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("room_id");
+
+                    b.Property<string>("Seats")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("seats");
+
+                    b.Property<int>("Seed")
+                        .HasColumnType("integer")
+                        .HasColumnName("seed");
+
+                    b.HasKey("Id")
+                        .HasName("pk_hands");
+
+                    b.HasIndex("RoomId", "Hand")
+                        .IsUnique()
+                        .HasDatabaseName("ix_hands_room_id_hand");
+
+                    b.ToTable("hands", "rooms");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomResult", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<int>("Hand")
+                        .HasColumnType("integer")
+                        .HasColumnName("hand");
+
+                    b.Property<Guid?>("HouseholdId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("household_id");
+
+                    b.Property<int>("Place")
+                        .HasColumnType("integer")
+                        .HasColumnName("place");
+
+                    b.Property<int>("Points")
+                        .HasColumnType("integer")
+                        .HasColumnName("points");
+
+                    b.Property<Guid?>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<Guid>("RoomId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("room_id");
+
+                    b.Property<int>("Seat")
+                        .HasColumnType("integer")
+                        .HasColumnName("seat");
+
+                    b.HasKey("Id")
+                        .HasName("pk_results");
+
+                    b.HasIndex("RoomId")
+                        .HasDatabaseName("ix_results_room_id");
+
+                    b.HasIndex("HouseholdId", "GameId", "At")
+                        .HasDatabaseName("ix_results_household_id_game_id_at");
+
+                    b.HasIndex("ProfileId", "GameId", "At")
+                        .HasDatabaseName("ix_results_profile_id_game_id_at");
+
+                    b.ToTable("results", "rooms");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryDay", b =>
@@ -1101,6 +1233,26 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_actions_rooms_room_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomHand", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Rooms.Room", null)
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_hands_rooms_room_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomResult", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Rooms.Room", null)
+                        .WithMany()
+                        .HasForeignKey("RoomId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_results_rooms_room_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryRecord", b =>

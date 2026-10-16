@@ -5,7 +5,7 @@ import type { JsonValue } from '@tohe/game-sdk';
 import type { HostHandle } from '@tohe/game-sdk/host';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type GameSummary, type RoomView, rooms } from '../api/client.ts';
+import { type GameSummary, type ProfileView, type RoomView, rooms } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame, type RoomBridge, type RoomUpdate } from '../launcher/GameFrame.tsx';
@@ -14,6 +14,7 @@ import { formatCode, gameSeats, joinLink } from '../rooms/model.ts';
 import { RoomSettings, type RoomSettingsValue } from '../rooms/RoomSettings.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
+import { telemetry } from '../telemetry/telemetry.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
@@ -30,6 +31,7 @@ export function RoomPage() {
         session.status === 'account' ? (
           <Room
             player={session.player}
+            household={session.me.profiles}
             mayPlayWithOthers={
               session.me.profiles.find((p) => p.id === session.player.id)?.playWithOthers ?? false
             }
@@ -48,7 +50,15 @@ const forPlayer = (room: RoomView, playerId: string): RoomView => {
   return { ...room, mySeat: index < 0 ? null : index };
 };
 
-function Room({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers: boolean }) {
+function Room({
+  player,
+  household,
+  mayPlayWithOthers,
+}: {
+  player: Player;
+  household: ProfileView[];
+  mayPlayWithOthers: boolean;
+}) {
   const { roomId } = useParams({ from: '/room/$roomId' });
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -67,7 +77,7 @@ function Room({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers
     const hub = roomsHub();
     const show = (view: RoomView) => {
       const next = forPlayer(view, player.id);
-      if (next.mySeat === null) setGone('notSeated');
+      if (next.mySeat === null && !next.watchers.includes(player.id)) setGone('notSeated');
       latestRoom.current = next;
       setRoom(next);
       if (next.status === 'playing' || next.status === 'between') {
@@ -109,7 +119,12 @@ function Room({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers
       }
     };
     void enter();
-    const off = onReconnected(() => void enter());
+    const off = onReconnected(() => {
+      // Telemetry (ADR 0015): how often phones lose the table and come back, per game build.
+      const room = latestRoom.current;
+      if (room) telemetry.count('hub.room.reconnect', { gameId: room.gameId, gameVersion: room.gameVersion });
+      void enter();
+    });
     return () => {
       stopped = true;
       off();
@@ -132,7 +147,12 @@ function Room({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers
       },
       act: async (action) => {
         const error = await roomsHub().invoke<string | null>('Act', roomId, action);
-        if (error) throw new Error(error);
+        if (error) {
+          const room = latestRoom.current;
+          if (room)
+            telemetry.count('hub.room.refused', { gameId: room.gameId, gameVersion: room.gameVersion });
+          throw new Error(error);
+        }
       },
       next: async () => {
         const error = await roomsHub().invoke<string | null>('Next', roomId);
@@ -177,6 +197,8 @@ function Room({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers
   }
   if (!room || !game) return <Screen narrow>{t('loading')}</Screen>;
 
+  // A spectator gives up nothing by leaving: no question to ask.
+  const askToLeave = () => (room.mySeat === null ? leave.mutate() : setAskLeave(true));
   const leaveDialog = (
     <ConfirmDialog
       open={askLeave}
@@ -215,7 +237,7 @@ function Room({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers
           }
           onExit={(host) => {
             paused.current = host;
-            setAskLeave(true);
+            askToLeave();
           }}
         />
         {leaveDialog}
@@ -229,8 +251,9 @@ function Room({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers
         room={room}
         game={game}
         player={player}
+        household={household}
         familyOnly={!mayPlayWithOthers}
-        onLeave={() => setAskLeave(true)}
+        onLeave={askToLeave}
       />
       {reconnecting ? (
         <p
@@ -271,17 +294,28 @@ function WaitingRoom({
   room,
   game,
   player,
+  household,
   familyOnly,
   onLeave,
 }: {
   room: RoomView;
   game: GameSummary;
   player: Player;
+  household: ProfileView[];
   familyOnly: boolean;
   onLeave(): void;
 }) {
   const { t } = useTranslation();
   const [editing, setEditing] = useState(false);
+  const [inviting, setInviting] = useState(false);
+  const [invited, setInvited] = useState<Set<string>>(new Set());
+  const watching = room.mySeat === null;
+  const invite = useMutation({
+    mutationFn: (profileId: string) => rooms.invite(room.id, profileId),
+    onSuccess: (_, profileId) => setInvited((current) => new Set(current).add(profileId)),
+  });
+  const seated = new Set(room.seatList.map((s) => s.profileId).filter(Boolean));
+  const invitable = household.filter((profile) => profile.id !== player.id && !seated.has(profile.id));
   const [copied, setCopied] = useState(false);
   const isHost = room.hostProfileId === player.id;
   const link = joinLink(room.code);
@@ -392,6 +426,14 @@ function WaitingRoom({
         </p>
       ) : null}
 
+      {watching ? (
+        <p className="rounded-2xl bg-notice px-4 py-3 text-center text-notice-ink">{t('rooms.watching')}</p>
+      ) : (
+        <Button variant="secondary" onClick={() => setInviting(true)}>
+          {t('rooms.invite')}
+        </Button>
+      )}
+
       {isHost ? (
         <div className="flex flex-col gap-3">
           <Button className="min-h-16 text-2xl" busy={start.isPending} onClick={() => start.mutate()}>
@@ -401,12 +443,39 @@ function WaitingRoom({
             {t('rooms.settingsTitle')}
           </Button>
         </div>
-      ) : (
+      ) : watching ? null : (
         <p className="text-center font-semibold text-ink">{t('rooms.waitingHost')}</p>
       )}
       <Button variant="ghost" onClick={onLeave}>
         {t('rooms.leave')}
       </Button>
+
+      <Modal open={inviting} title={t('rooms.invite')} onClose={() => setInviting(false)}>
+        {invitable.length === 0 ? <p className="text-ink-soft">{t('rooms.inviteNone')}</p> : null}
+        <ul className="flex flex-col gap-2">
+          {invitable.map((profile) => (
+            <li key={profile.id}>
+              <button
+                type="button"
+                disabled={invited.has(profile.id) || invite.isPending}
+                onClick={() => invite.mutate(profile.id)}
+                className="flex w-full items-center gap-3 rounded-2xl bg-surface p-3 text-left disabled:opacity-60"
+              >
+                <Avatar avatar={profile.avatar} size="sm" />
+                <span className="flex-1 font-bold text-ink">{profile.name}</span>
+                <span className="font-semibold text-accent text-sm">
+                  {invited.has(profile.id) ? `✓ ${t('rooms.invited')}` : t('rooms.invite')}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+        {invite.isError ? (
+          <p role="alert" className="mt-3 text-danger">
+            {t(errorKey(invite.error))}
+          </p>
+        ) : null}
+      </Modal>
 
       <Modal open={editing} title={t('rooms.settingsTitle')} onClose={() => setEditing(false)}>
         <RoomSettings
@@ -419,6 +488,7 @@ function WaitingRoom({
             botLevel: room.botLevel,
             botsTakeOver: room.botsTakeOver,
             turnSeconds: room.turnSeconds,
+            spectators: room.spectators,
             options: room.options as Record<string, unknown>,
           }}
           familyOnly={familyOnly}

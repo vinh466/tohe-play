@@ -177,6 +177,15 @@ internal sealed class RoomOutbox(IServiceScopeFactory scopes, IHubContext<RoomsH
         db.Entry(room).State = EntityState.Detached;
     }
 
+    public async Task SaveHandAsync(RoomHand hand, IReadOnlyList<RoomResult> results)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        db.RoomHands.Add(hand);
+        db.RoomResults.AddRange(results);
+        await db.SaveChangesAsync();
+    }
+
     public async Task SaveActionAsync(RoomAction action)
     {
         await using var scope = scopes.CreateAsyncScope();

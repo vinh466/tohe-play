@@ -2,11 +2,12 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate, useParams } from '@tanstack/react-router';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type GameSummary, type RoomSummary, rooms } from '../api/client.ts';
+import { ApiError, type GameSummary, type RoomSummary, rooms } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
 import { ensureConnected, onReconnected } from '../rooms/connection.ts';
 import { formatCode, normalizeCode, quickPick } from '../rooms/model.ts';
+import { RoomResults } from '../rooms/RoomResults.tsx';
 import { defaultSettings, RoomSettings, type RoomSettingsValue } from '../rooms/RoomSettings.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
@@ -115,8 +116,18 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
   }, [gameId, queryClient]);
 
   const open = (roomId: string) => void navigate({ to: '/room/$roomId', params: { roomId } });
+  // A full table, or a hand going on, can still be watched when its host allows it.
   const join = useMutation({
-    mutationFn: (room: RoomSummary) => (room.mine ? Promise.resolve(null) : rooms.join(room.id)),
+    mutationFn: async (room: RoomSummary) => {
+      if (room.mine) return null;
+      try {
+        return await rooms.join(room.id);
+      } catch (error) {
+        const code = error instanceof ApiError ? error.code : null;
+        if (room.spectators && (code === 'room_full' || code === 'room_locked')) return rooms.watch(room.id);
+        throw error;
+      }
+    },
     onSuccess: (_, room) => open(room.id),
   });
   const quick = useMutation({
@@ -198,6 +209,7 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
                     {t('rooms.seatsTaken', { taken: room.taken, seats: room.seats })} ·{' '}
                     {t(`rooms.status.${room.status}`)}
                     {room.mine ? ` · ${t('rooms.yours')}` : ''}
+                    {room.spectators ? ' · 👁' : ''}
                   </span>
                 </span>
                 <span aria-hidden className="text-accent text-xl">
@@ -208,6 +220,8 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
           ))}
         </ul>
       </section>
+
+      <RoomResults gameId={gameId} playerId={player.id} />
 
       {game ? (
         <CreateRoom
@@ -231,6 +245,7 @@ export const settingsBody = (value: RoomSettingsValue) => ({
   botLevel: value.botLevel,
   botsTakeOver: value.botsTakeOver,
   turnSeconds: value.turnSeconds,
+  spectators: value.spectators,
   options: value.options as never,
 });
 

@@ -114,6 +114,8 @@ internal static class RoomsModule
             .WithName("ListMyRooms")
             .WithSummary("Open rooms the active profile sits at, to go back to one.");
 
+        RoomStats.Map(rooms, PlayerOf);
+
         rooms.MapPost("/", CreateAsync)
             .WithName("CreateRoom")
             .WithSummary("Open a room for a game; the active profile hosts it and takes the first seat.");
@@ -132,7 +134,7 @@ internal static class RoomsModule
         rooms.MapGet("/{id:guid}", Results<Ok<RoomView>, NotFound> (Guid id, HttpContext http, RoomRegistry registry) =>
             {
                 var player = PlayerOf(http);
-                return registry.Find(id) is { } room && (room.SeatOf(player.ProfileId) is not null || Listed(room, player))
+                return registry.Find(id) is { } room && (room.IsMember(player.ProfileId) || Listed(room, player) || room.InvitationFor(player.ProfileId) is not null)
                     ? TypedResults.Ok(room.View(player.ProfileId))
                     : TypedResults.NotFound();
             })
@@ -159,6 +161,67 @@ internal static class RoomsModule
             })
             .WithName("JoinRoom")
             .WithSummary("Sit at a room: an empty seat, or between hands a bot's.");
+
+        rooms.MapPost("/{id:guid}/watch", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
+                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+            {
+                var player = PlayerOf(http);
+                if (registry.Find(id) is not { } room)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                var game = await games.GetAsync(room.Room.GameId, ct);
+                if (game is not null && game.MinAge > player.MaxGameMinAge)
+                {
+                    return Refused(RoomErrors.TooYoung);
+                }
+
+                var problem = await room.RunAsync(() => room.WatchAsync(player));
+                return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
+            })
+            .WithName("WatchRoom")
+            .WithSummary("Watch a table without a seat, if its host allows spectators: only what is public is shown.");
+
+        rooms.MapPost("/{id:guid}/invite", async Task<Results<NoContent, NotFound, ProblemHttpResult>> (
+                Guid id, InviteRequest request, HttpContext http, RoomRegistry registry, IHouseholdProfiles profiles, CancellationToken ct) =>
+            {
+                var player = PlayerOf(http);
+                if (registry.Find(id) is not { } room)
+                {
+                    return TypedResults.NotFound();
+                }
+
+                // Only one's own household: the invitation shows in their hub, by name.
+                var household = await profiles.ListAsync(player.HouseholdId, ct);
+                if (household.All(profile => profile.Id != request.ProfileId) || request.ProfileId == player.ProfileId)
+                {
+                    return Refused(RoomErrors.NotInHousehold);
+                }
+
+                var problem = await room.RunAsync(() => Task.FromResult(room.Invite(player.ProfileId, request.ProfileId)));
+                return problem is null ? TypedResults.NoContent() : Refused(problem);
+            })
+            .WithName("InviteToRoom")
+            .WithSummary("Ask a member of one's household to the table: it shows in their hub for 10 minutes.");
+
+        rooms.MapGet("/invites", (HttpContext http, RoomRegistry registry) =>
+            {
+                var player = PlayerOf(http);
+                return registry.All
+                    .Select(room => (Room: room, From: room.InvitationFor(player.ProfileId)))
+                    .Where(entry => entry.From is not null)
+                    .Select(entry => new RoomInvite(
+                        entry.Room.Id,
+                        entry.Room.Room.GameId,
+                        entry.Room.Room.Code,
+                        entry.From!.Name ?? "",
+                        entry.From.Avatar ?? "",
+                        entry.Room.InvitationUntil(player.ProfileId) ?? DateTimeOffset.MinValue))
+                    .ToList();
+            })
+            .WithName("ListRoomInvites")
+            .WithSummary("Tables household members asked the active profile to, for the next 10 minutes.");
 
         rooms.MapPost("/{id:guid}/leave", async Task<Results<NoContent, NotFound, ProblemHttpResult>> (Guid id, HttpContext http, RoomRegistry registry) =>
             {
@@ -313,6 +376,7 @@ internal static class RoomsModule
             BotLevel = request.BotLevel ?? spec.DefaultBot,
             BotsTakeOver = request.BotsTakeOver && spec.Bots.Count > 0,
             TurnSeconds = request.TurnSeconds,
+            AllowSpectators = request.Spectators,
             Options = optionsJson!,
             SeatList = System.Text.Json.JsonSerializer.Serialize(seats),
             Status = RoomStatus.Waiting,
@@ -332,6 +396,7 @@ internal static class RoomsModule
             RoomErrors.RulesUnavailable => StatusCodes.Status503ServiceUnavailable,
             RoomErrors.InvalidOptions or RoomErrors.GameNotRooms => StatusCodes.Status400BadRequest,
             RoomErrors.NotSeated => StatusCodes.Status404NotFound,
+            RoomErrors.SpectatorsOff or RoomErrors.NotInHousehold => StatusCodes.Status403Forbidden,
             _ => StatusCodes.Status403Forbidden,
         },
         code,
