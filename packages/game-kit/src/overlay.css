@@ -270,13 +270,26 @@
 }
 
 .tohe-button-hero {
+  position: relative;
   min-height: 4.4rem;
   border-radius: 1.4rem;
   font-size: 1.65rem;
   box-shadow:
     0 6px 0 var(--tohe-brand-strong),
     0 14px 30px var(--tohe-glow);
-  animation: tohe-breathe 2.6s ease-in-out infinite;
+}
+
+/* A ring that glows and fades around the play button: only its opacity moves (cheap on phones), and the button
+   itself stays still under the finger. */
+.tohe-button-hero::after {
+  content: "";
+  position: absolute;
+  inset: -0.4rem;
+  border-radius: 1.75rem;
+  box-shadow: 0 0 0 0.3rem var(--tohe-glow);
+  opacity: 0;
+  pointer-events: none;
+  animation: tohe-glow 2.6s ease-in-out infinite;
 }
 
 .tohe-corner {
@@ -527,9 +540,9 @@
   }
 }
 
-@keyframes tohe-breathe {
+@keyframes tohe-glow {
   50% {
-    transform: scale(1.03);
+    opacity: 1;
   }
 }
 
@@ -564,7 +577,7 @@
   .tohe-layout-title .tohe-card-icon,
   .tohe-layout-title .tohe-card-actions,
   .tohe-layout-title .tohe-tools,
-  .tohe-button-hero,
+  .tohe-button-hero::after,
   .tohe-layout-count .tohe-card-title,
   .tohe-bump,
   .is-record .tohe-stat-crown {
