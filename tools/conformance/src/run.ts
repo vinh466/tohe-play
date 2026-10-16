@@ -135,6 +135,7 @@ export async function runConformance(
       if (message.type() === 'error') errors.push(`console: ${message.text()}`);
     });
     page.on('pageerror', (error) => errors.push(`uncaught: ${error.message}`));
+    page.on('crash', () => errors.push('the page crashed'));
 
     const listeners = new Set<(message: unknown) => void>();
     await page.exposeFunction('__toNode', (message: unknown) => {
@@ -229,6 +230,7 @@ export async function runConformance(
       host.resume();
     }
     host.dispose();
+    await page.close();
 
     if (hasShell(manifest) && handshake === null) {
       for (const result of await shellRun({
@@ -238,6 +240,7 @@ export async function runConformance(
         gameUrl: gameServer.url,
         errors,
         protocolErrors,
+        screenshot: join(resolve(options.outDir ?? 'test-results/conformance'), `${manifest.id}-shell.png`),
       }).catch((error: Error) => [{ name: 'game shell runs', ok: false, detail: error.message }])) {
         check(result.name, result.ok, result.detail);
       }
@@ -325,6 +328,7 @@ async function roomRun(run: {
     if (message.type() === 'error') run.errors.push(`console (room): ${message.text()}`);
   });
   page.on('pageerror', (error) => run.errors.push(`uncaught (room): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (room)'));
   const listeners = new Set<(message: unknown) => void>();
   await page.exposeFunction('__toNode', (message: unknown) => {
     for (const listener of listeners) listener(message);
@@ -445,12 +449,15 @@ async function shellRun(run: {
   gameUrl: string;
   errors: string[];
   protocolErrors: string[];
+  /** The game's menu after Back, to look at. */
+  screenshot: string;
 }): Promise<Check[]> {
   const page = await run.context.newPage();
   page.on('console', (message) => {
     if (message.type() === 'error') run.errors.push(`console (shell): ${message.text()}`);
   });
   page.on('pageerror', (error) => run.errors.push(`uncaught (shell): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (shell)'));
   const listeners = new Set<(message: unknown) => void>();
   await page.exposeFunction('__toNode', (message: unknown) => {
     for (const listener of listeners) listener(message);
@@ -496,19 +503,26 @@ async function shellRun(run: {
     const frame = await gameFrame(page, run.gameUrl);
     const opens = (await visible(frame, '[data-tohe-play]')) && (await visible(frame, '[data-tohe-exit]'));
     checks.push({ name: 'shell: opens on its main menu, with play and the way back to Tò He', ok: opens });
-    await frame
+    const played = await frame
       .locator('[data-tohe-play]')
       .first()
       .click({ timeout: 5000 })
-      .catch(() => {});
+      .then(
+        () => 'played',
+        (error: Error) => `play was not tapped: ${error.message.split('\n')[0]}`,
+      );
     await page.waitForTimeout(1500);
     const before = menus.length;
     host.menu();
     const answered = await until(() => menus.slice(before).includes(true), 1500);
+    mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
+    await page.screenshot({ path: run.screenshot }).catch(() => {});
     checks.push({
       name: 'shell: answers Back with its menu within 1.5 s',
       ok: answered,
-      detail: answered ? undefined : `menu states after Back: ${JSON.stringify(menus.slice(before))}`,
+      detail: answered
+        ? undefined
+        : `${played}; menu states after Back: ${JSON.stringify(menus.slice(before))}, exits: ${exits}`,
     });
     const out = (await visible(frame, '[data-tohe-exit]'))
       ? await frame
@@ -575,6 +589,7 @@ async function replayRun(run: {
     if (message.type() === 'error') run.errors.push(`console (replay): ${message.text()}`);
   });
   page.on('pageerror', (error) => run.errors.push(`uncaught (replay): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (replay)'));
   const listeners = new Set<(message: unknown) => void>();
   await page.exposeFunction('__toNode', (message: unknown) => {
     for (const listener of listeners) listener(message);
