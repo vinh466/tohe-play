@@ -156,6 +156,7 @@ try {
   await shot('catalog');
 
   step('launch it: the game opens on its main menu, full screen, with no hub bar (ADR 0018)');
+  const catalogEntry = await historyIndex(page);
   await card.tap();
   await page.waitForURL(/\/play\/hello$/);
   const frame = await gameFrame(page);
@@ -246,10 +247,18 @@ try {
   await page.evaluate(() => history.back());
   await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor({ state: 'hidden' });
 
-  step("leave from the game's own menu: straight back to the catalog");
+  step(
+    "leave from the game's own menu: back to the catalog the way the player came (phone Back then leaves Tò He)",
+  );
   await frame.locator('[data-tohe-menu]').tap();
   await frame.getByRole('button', { name: '← Về Tò He' }).tap();
   await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`);
+  const leftTo = await historyIndex(page);
+  if (leftTo !== catalogEntry) {
+    throw new Error(
+      `leaving stacked the catalog on top of the game (history entry ${leftTo}, not ${catalogEntry})`,
+    );
+  }
 
   step('the household leaderboard lists the child');
   await page.getByRole('button', { name: 'Bảng xếp hạng Chạm Chấm' }).tap();
@@ -280,6 +289,11 @@ try {
   process.exitCode = 1;
 } finally {
   await browser.close();
+}
+
+/** The hub's place in the browser history (TanStack Router numbers its entries). */
+function historyIndex(page: Page): Promise<number> {
+  return page.evaluate(() => (history.state as { __TSR_index: number }).__TSR_index);
 }
 
 async function gameFrame(target: Page): Promise<Frame> {

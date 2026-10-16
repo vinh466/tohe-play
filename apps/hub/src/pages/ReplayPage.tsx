@@ -1,5 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import type { Replay } from '@tohe/contract';
 import type { JsonValue } from '@tohe/game-sdk';
 import { useMemo } from 'react';
@@ -8,6 +8,7 @@ import { type HandReplay, rooms } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame } from '../launcher/GameFrame.tsx';
+import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { Screen } from '../ui/Screen.tsx';
@@ -38,7 +39,7 @@ export function replayFor(hand: HandReplay): Replay {
 function Replayer({ player }: { player: Player }) {
   const { roomId, hand } = useParams({ from: '/replay/$roomId/$hand' });
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const leaveTo = useLeaveTo();
   const games = useQuery(gamesQuery(player.id));
   const config = useQuery(configQuery);
   const record = useQuery({
@@ -49,7 +50,7 @@ function Replayer({ player }: { player: Player }) {
   });
   const game = games.data?.find((g) => g.id === record.data?.gameId);
   const replay = useMemo(() => (record.data ? replayFor(record.data) : undefined), [record.data]);
-  const back = () => void navigate({ to: '/rooms/$gameId', params: { gameId: record.data?.gameId ?? '' } });
+  const back = () => leaveTo({ to: '/rooms/$gameId', params: { gameId: record.data?.gameId ?? '' } });
 
   if (record.isError || (record.data && games.isSuccess && !game)) {
     return (
@@ -57,9 +58,9 @@ function Replayer({ player }: { player: Player }) {
         <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-center text-danger">
           {record.isError ? t(errorKey(record.error)) : t('gameNotFound')}
         </p>
-        <Link to="/" className="text-center font-semibold text-accent">
+        <BackLink to="/" className="text-center font-semibold text-accent">
           {t('backToGames')}
-        </Link>
+        </BackLink>
       </Screen>
     );
   }
@@ -70,13 +71,13 @@ function Replayer({ player }: { player: Player }) {
         <p className="rounded-2xl bg-notice px-4 py-3 text-center text-notice-ink">
           {t('rooms.replayOldVersion', { version: record.data.gameVersion })}
         </p>
-        <Link
+        <BackLink
           to="/rooms/$gameId"
           params={{ gameId: game.id }}
           className="text-center font-semibold text-accent"
         >
           {t('rooms.backToLobby')}
-        </Link>
+        </BackLink>
       </Screen>
     );
   }

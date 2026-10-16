@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import type { Reaction, RoomSeat } from '@tohe/contract';
 import type { JsonValue } from '@tohe/game-sdk';
 import type { HostHandle } from '@tohe/game-sdk/host';
@@ -9,6 +9,7 @@ import { type GameSummary, type ProfileView, type RoomView, rooms } from '../api
 import { errorKey } from '../api/errors.ts';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame, type RoomBridge, type RoomUpdate } from '../launcher/GameFrame.tsx';
+import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected, roomsHub } from '../rooms/connection.ts';
 import { formatCode, gameSeats, joinLink } from '../rooms/model.ts';
 import { RoomSettings, type RoomSettingsValue } from '../rooms/RoomSettings.tsx';
@@ -61,7 +62,7 @@ function Room({
 }) {
   const { roomId } = useParams({ from: '/room/$roomId' });
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const leaveTo = useLeaveTo();
   const games = useQuery(gamesQuery(player.id));
   const config = useQuery(configQuery);
   const [room, setRoom] = useState<RoomView | null>(null);
@@ -175,7 +176,7 @@ function Room({
   const paused = useRef<HostHandle | null>(null);
   const leave = useMutation({
     mutationFn: () => rooms.leave(roomId),
-    onSettled: () => void navigate({ to: '/rooms/$gameId', params: { gameId: room?.gameId ?? '' } }),
+    onSettled: () => leaveTo({ to: '/rooms/$gameId', params: { gameId: room?.gameId ?? '' } }),
   });
   const game = games.data?.find((g) => g.id === room?.gameId);
 
@@ -185,13 +186,13 @@ function Room({
         <p className="rounded-2xl bg-notice px-4 py-3 text-center text-notice-ink">
           {gone === 'closed' ? t('rooms.closed') : t('rooms.errors.notFound')}
         </p>
-        <Link
+        <BackLink
           to={room ? '/rooms/$gameId' : '/'}
           params={room ? { gameId: room.gameId } : undefined}
           className="text-center font-semibold text-accent"
         >
           {room ? t('rooms.backToLobby') : t('backToGames')}
-        </Link>
+        </BackLink>
       </Screen>
     );
   }
@@ -348,14 +349,14 @@ function WaitingRoom({
   return (
     <Screen narrow>
       <header className="flex items-center justify-between gap-3">
-        <Link
+        <BackLink
           to="/rooms/$gameId"
           params={{ gameId: room.gameId }}
           aria-label={t('rooms.backToLobby')}
           className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
         >
           ←
-        </Link>
+        </BackLink>
         <h1 className="font-bold text-ink text-xl">{game.name}</h1>
         <Button variant="secondary" onClick={() => void share()}>
           {t('rooms.share')}

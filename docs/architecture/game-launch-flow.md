@@ -33,7 +33,7 @@ sequenceDiagram
   H->>G: pause
   P->>G: ☰ → Về Tò He (shell games, ADR 0018)
   G->>H: exit
-  H->>H: dispose host, iframe → about:blank
+  H->>H: back to the catalog in the history, dispose host, iframe → about:blank
 ```
 
 ## Rules
@@ -47,6 +47,21 @@ sequenceDiagram
 - Saves are limited to 64 KB of JSON. Larger saves are rejected with `ok: false`.
 - The seed is the local date (`YYYYMMDD`), so everybody gets the same randomness on the same day — the basis for
   daily challenges.
+
+## Leaving and phone Back
+
+The hub's history is the way the player walked: catalog → game → lobby → table → replay. Leaving a screen (its ←,
+a game's "Về Tò He", leaving a table, a profile chosen) goes **back** to its target when the player came from there,
+and **replaces** the screen otherwise (a room link opened from a chat, a reload); it never pushes the target on top.
+So phone Back on the catalog leaves Tò He instead of reopening the game just left, and the lobby's ← returns to the
+game's main menu without stacking another copy of it. Steps of signing in (welcome → profiles → catalog) replace each
+other for the same reason.
+
+- `apps/hub/src/navigation/trail.ts` remembers the path of every history entry of the visit; `useLeaveTo()` and
+  `<BackLink>` (`navigation/leave.tsx`) go back to the target or replace with it. Going back skips a game's Back
+  handling (`useBlocker`), which only catches the player's own Back.
+- After a reload the older entries are unknown, so leaving replaces rather than guessing.
+- Going deeper (a game card, **Chơi online**, a room, a replay) pushes as usual, so Back returns.
 
 ## Offline
 

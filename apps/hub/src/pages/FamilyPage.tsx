@@ -1,10 +1,11 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import { Link, useSearch } from '@tanstack/react-router';
 import { type FormEvent, type ReactNode, useEffect, useReducer, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, household, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery, profileOptionsQuery } from '../api/queries.ts';
+import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { parentUnlocked } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
@@ -41,7 +42,7 @@ function useMeMutation<T>(run: (input: T) => Promise<MeView>, onDone?: () => voi
 
 function Family({ me }: { me: MeView }) {
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const leaveTo = useLeaveTo();
   const { add } = useSearch({ from: '/family' });
   const unlocked = parentUnlocked(me);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
@@ -57,19 +58,19 @@ function Family({ me }: { me: MeView }) {
 
   const lock = useMeMutation(
     () => session.lockParentGate(),
-    () => void navigate({ to: '/profiles' }),
+    () => leaveTo({ to: '/profiles' }),
   );
 
   return (
     <Screen>
       <header className="flex items-center gap-3">
-        <Link
+        <BackLink
           to="/profiles"
           aria-label={t('back')}
           className="grid size-11 place-items-center rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
         >
           ←
-        </Link>
+        </BackLink>
         <h1 className="min-w-0 flex-1 font-black text-3xl text-brand-ink">{t('family.title')}</h1>
         <ThemeButton />
       </header>

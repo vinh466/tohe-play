@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { useParams } from '@tanstack/react-router';
 import type { HostHandle } from '@tohe/game-sdk/host';
 import { useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame } from '../launcher/GameFrame.tsx';
 import { hasShell } from '../launcher/manifest.ts';
+import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
@@ -18,7 +19,7 @@ export function PlayPage() {
 function Launcher({ player }: { player: Player }) {
   const { gameId } = useParams({ from: '/play/$gameId' });
   const { t } = useTranslation();
-  const navigate = useNavigate();
+  const leaveTo = useLeaveTo();
   const games = useQuery(gamesQuery(player.id));
   const config = useQuery(configQuery);
   const game = games.data?.find((g) => g.id === gameId);
@@ -51,7 +52,7 @@ function Launcher({ player }: { player: Player }) {
         player={player}
         onExit={(host) => {
           if (shell) {
-            void navigate(back);
+            leaveTo(back);
             return;
           }
           paused.current = host;
@@ -63,7 +64,7 @@ function Launcher({ player }: { player: Player }) {
         title={t('confirmExitTitle')}
         body={t('confirmExitBody')}
         primary={{ label: t('keepPlaying'), onClick: keepPlaying }}
-        secondary={{ label: t('exit'), onClick: () => void navigate(back) }}
+        secondary={{ label: t('exit'), onClick: () => leaveTo(back) }}
         onDismiss={keepPlaying}
       />
     </>
@@ -75,12 +76,12 @@ export function Message({ text, back }: { text: string; back: string }) {
     <main className="grid min-h-dvh place-items-center p-6 text-center">
       <div className="flex flex-col items-center gap-4">
         <p className="text-ink text-lg">{text}</p>
-        <Link
+        <BackLink
           to="/"
           className="rounded-2xl bg-brand px-5 py-3 font-bold text-on-brand text-xl active:bg-brand-strong"
         >
           {back}
-        </Link>
+        </BackLink>
       </div>
     </main>
   );

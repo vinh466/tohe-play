@@ -112,7 +112,8 @@ SDK 0.7.0: `session.on('menu', …)` and `session.shell` (`can`, `menuChanged`, 
 - **No bar** over a `shell` game: the iframe has the whole screen (56 px more on a phone). The reconnecting notice of
   a table floats at the top instead.
 - **Back** is caught by the router (`useBlocker`) and sent to the game as `menu`; leaving goes through the game's
-  own way out, which navigates forward. If neither `menu` nor `exit` comes back within 1.5 s, the hub's sheet offers
+  own way out, which goes back to the catalog the way the player came ([history](game-launch-flow.md#leaving-and-phone-back)),
+  so Back on the catalog then leaves Tò He. If neither `menu` nor `exit` comes back within 1.5 s, the hub's sheet offers
   **← Về Tò He** or **Chờ thêm**.
 - **Before the game is ready** (loading, failed, refused origin) the hub shows its own **← Về Tò He**.
 - **Leaving from the game's menu** goes at once: a choice made in a menu needs no question. (The hub's bar still asks:
