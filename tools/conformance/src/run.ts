@@ -180,12 +180,7 @@ export async function runConformance(
     if (handshake === null) {
       const frame = await gameFrame(page, gameServer.url);
       // A shell game opens on its main menu: play first, so the random input reaches the game itself.
-      if (hasShell(manifest)) {
-        await frame
-          .locator('[data-tohe-play]')
-          .click({ timeout: 5000 })
-          .catch(() => {});
-      }
+      if (hasShell(manifest)) await press(frame, '[data-tohe-play]');
       await monkey(page, frame, options.monkeyMs ?? 4000, host, otherTheme);
       const alive = await frame
         .evaluate(() => document.readyState)
@@ -503,14 +498,7 @@ async function shellRun(run: {
     const frame = await gameFrame(page, run.gameUrl);
     const opens = (await visible(frame, '[data-tohe-play]')) && (await visible(frame, '[data-tohe-exit]'));
     checks.push({ name: 'shell: opens on its main menu, with play and the way back to Tò He', ok: opens });
-    const played = await frame
-      .locator('[data-tohe-play]')
-      .first()
-      .click({ timeout: 5000 })
-      .then(
-        () => 'played',
-        (error: Error) => `play was not tapped: ${error.message.split('\n')[0]}`,
-      );
+    const played = await press(frame, '[data-tohe-play]');
     await page.waitForTimeout(1500);
     const before = menus.length;
     host.menu();
@@ -524,20 +512,31 @@ async function shellRun(run: {
         ? undefined
         : `${played}; menu states after Back: ${JSON.stringify(menus.slice(before))}, exits: ${exits}`,
     });
-    const out = (await visible(frame, '[data-tohe-exit]'))
-      ? await frame
-          .locator('[data-tohe-exit]:visible')
-          .first()
-          .click({ timeout: 2000 })
-          .then(() => until(() => exits > 0, 1000))
-          .catch(() => false)
-      : false;
+    const out =
+      (await visible(frame, '[data-tohe-exit]')) &&
+      (await press(frame, '[data-tohe-exit]:visible')) === 'pressed' &&
+      (await until(() => exits > 0, 1000));
     checks.push({ name: 'shell: its menu leads back to Tò He (exit)', ok: out });
     return checks;
   } finally {
     host.dispose();
     await page.close();
   }
+}
+
+/**
+ * Presses a button of the game's menu with a DOM click. Visibility is checked on its own; Playwright's own click also
+ * waits for the page to draw two frames, which a WebGL game drawn in software on a CI machine may not do in time.
+ */
+function press(frame: Frame, selector: string): Promise<string> {
+  return frame
+    .locator(selector)
+    .first()
+    .evaluate((button) => (button as HTMLElement).click(), undefined, { timeout: 5000 })
+    .then(
+      () => 'pressed',
+      (error: Error) => `${selector} was not pressed: ${error.message.split('\n')[0]}`,
+    );
 }
 
 async function until(condition: () => boolean, timeoutMs: number): Promise<boolean> {
