@@ -31,6 +31,8 @@ const readMuted = () => {
 
 /** How long a shell game has to answer Back before the hub offers its own way out. */
 const BACK_ANSWER_MS = 1500;
+/** At most how long the browser takes to put back the page a blocked Back left. */
+const BACK_RESTORE_MS = 500;
 /** How long the loading screen waits for a shell game's first screen after the handshake before it lifts anyway. */
 const FIRST_SCREEN_MS = 8000;
 
@@ -99,6 +101,12 @@ export function GameFrame({
   const [stuck, setStuck] = useState(false);
   /** When the game last answered Back (a menu state, or leaving). */
   const answered = useRef(0);
+  /**
+   * Settles once the browser has put back the page a blocked Back left (the router goes forward again). Leaving the
+   * game before that — a game answers Back on its title screen by leaving — would start a second history traversal
+   * while the first is pending, and the browser drops one: the player stayed in the game, or the catalog was stacked.
+   */
+  const backRestored = useRef<Promise<void>>(Promise.resolve());
 
   // The device remembers sound, whichever game or bar switched it.
   useEffect(() => {
@@ -114,6 +122,15 @@ export function GameFrame({
   useBlocker({
     shouldBlockFn: ({ action }) => {
       if (!shell || action !== 'BACK' || status !== 'ready' || !host.current) return false;
+      backRestored.current = new Promise((resolve) => {
+        const done = () => {
+          window.removeEventListener('popstate', done);
+          clearTimeout(timer);
+          resolve();
+        };
+        const timer = setTimeout(done, BACK_RESTORE_MS);
+        window.addEventListener('popstate', done);
+      });
       const asked = Date.now();
       host.current.menu();
       setTimeout(() => {
@@ -196,7 +213,7 @@ export function GameFrame({
       onRoomReact: (reaction) => room?.react(reaction),
       onExit: () => {
         answered.current = Date.now();
-        latest.current.onExit(session);
+        void backRestored.current.then(() => latest.current.onExit(session));
       },
       onMenu: () => {
         answered.current = Date.now();

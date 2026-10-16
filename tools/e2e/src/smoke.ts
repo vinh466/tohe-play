@@ -283,6 +283,23 @@ try {
     );
   }
 
+  step(
+    'phone Back on the title screen leaves the game too, to the same history entry (no race with the router)',
+  );
+  await card.tap();
+  await page.waitForURL(/\/play\/hello$/);
+  const reopened = await gameFrame(page);
+  await reopened.locator('[data-tohe-play]').first().waitFor();
+  await page.evaluate(() => history.back());
+  await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`, { timeout: 5000 });
+  await page.waitForTimeout(400);
+  const backTo = await historyIndex(page);
+  if (backTo !== catalogEntry) {
+    throw new Error(
+      `Back on the title screen left history entry ${backTo}, not the catalog's ${catalogEntry}`,
+    );
+  }
+
   step('the household leaderboard lists the child');
   await page.getByRole('button', { name: 'Bảng xếp hạng Chạm Chấm' }).tap();
   const leaderboard = page.getByRole('dialog', { name: /Chạm Chấm/ });
