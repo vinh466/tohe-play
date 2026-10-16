@@ -1,9 +1,10 @@
 import { useMutation } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { useNavigate } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, auth } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { BackLink } from '../navigation/leave.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
@@ -58,7 +59,7 @@ function Register() {
     onSuccess: async (me) => {
       guestMode.disable();
       await setMe(me);
-      await navigate({ to: '/profiles' });
+      await navigate({ to: '/profiles', replace: true });
     },
   });
 
@@ -168,9 +169,9 @@ function Register() {
           {t('register.submit')}
         </Button>
       </form>
-      <Link to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
+      <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
         {t('register.haveAccount')}
-      </Link>
+      </BackLink>
     </Screen>
   );
 }

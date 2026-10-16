@@ -49,7 +49,7 @@ function SignIn() {
     onSuccess: async (me) => {
       guestMode.disable();
       await setMe(me);
-      await navigate({ to: '/profiles' });
+      await navigate({ to: '/profiles', replace: true });
     },
   });
 
@@ -61,7 +61,7 @@ function SignIn() {
   const tryAsGuest = async () => {
     guestMode.enable();
     await queryClient.invalidateQueries({ queryKey: ['me'] });
-    await navigate({ to: '/' });
+    await navigate({ to: '/', replace: true });
   };
 
   return (

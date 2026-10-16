@@ -1,9 +1,10 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Link, Navigate, useNavigate, useParams } from '@tanstack/react-router';
+import { Navigate, useNavigate, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { rooms } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
+import { BackLink } from '../navigation/leave.tsx';
 import { formatCode, normalizeCode } from '../rooms/model.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
@@ -54,9 +55,9 @@ function Preview({ player }: { player: Player }) {
 
   return (
     <Screen narrow>
-      <Link to="/" className="font-semibold text-accent">
+      <BackLink to="/" className="font-semibold text-accent">
         ← {t('backToGames')}
-      </Link>
+      </BackLink>
       <h1 className="text-center font-black text-3xl text-brand-ink">
         {t('rooms.room', { code: formatCode(code) })}
       </h1>
@@ -102,13 +103,13 @@ function Preview({ player }: { player: Player }) {
         </section>
       ) : null}
       {view ? (
-        <Link
+        <BackLink
           to="/rooms/$gameId"
           params={{ gameId: view.gameId }}
           className="text-center font-semibold text-accent"
         >
           {t('rooms.backToLobby')}
-        </Link>
+        </BackLink>
       ) : null}
     </Screen>
   );

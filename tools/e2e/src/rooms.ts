@@ -117,6 +117,11 @@ async function shot(page: Page, name: string) {
   }
 }
 
+/** The hub's place in the browser history (TanStack Router numbers its entries). */
+function historyIndex(page: Page): Promise<number> {
+  return page.evaluate(() => (history.state as { __TSR_index: number }).__TSR_index);
+}
+
 async function gameFrame(page: Page): Promise<Frame> {
   for (let i = 0; i < 100; i++) {
     const frame = page.frames().find((f) => f.url().includes('/tien-len/'));
@@ -180,10 +185,21 @@ try {
   }
   await card.tap();
   await host.waitForURL(/\/play\/tien-len$/);
-  const menu = await gameFrame(host);
+  const gameEntry = await historyIndex(host);
+  let menu = await gameFrame(host);
   await menu.getByRole('button', { name: '🌐 Chơi online' }).tap();
   await host.waitForURL(/\/rooms\/tien-len$/);
   await shot(host, 'lobby');
+
+  step("the lobby's ← goes back to the game the way the host came, and Chơi online leads there again");
+  await host.getByRole('link', { name: 'Về menu Tiến Lên' }).tap();
+  await host.waitForURL(/\/play\/tien-len$/);
+  const backAt = await historyIndex(host);
+  if (backAt !== gameEntry)
+    throw new Error(`the lobby's ← stacked the game again (entry ${backAt}, not ${gameEntry})`);
+  menu = await gameFrame(host);
+  await menu.getByRole('button', { name: '🌐 Chơi online' }).tap();
+  await host.waitForURL(/\/rooms\/tien-len$/);
 
   step('the host creates a room: easy bots, 15 s a turn, spectators welcome');
   await host

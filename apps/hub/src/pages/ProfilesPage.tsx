@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, auth, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { useLeaveTo } from '../navigation/leave.tsx';
 import { takeNext } from '../session/next.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { useSetMe } from '../session/useSession.ts';
@@ -27,6 +28,7 @@ const GUEST_PROGRESS_OFFERED = 'tohe:guest-progress-offered';
 function Picker({ me }: { me: MeView }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
+  const leaveTo = useLeaveTo();
   const setMe = useSetMe();
   const [pinFor, setPinFor] = useState<ProfileView | null>(null);
   const [pinErrors, setPinErrors] = useState(0);
@@ -35,7 +37,7 @@ function Picker({ me }: { me: MeView }) {
   // Back to a room link that needed a player (session/next.ts), or to the catalog.
   const goOn = async () => {
     const next = takeNext();
-    await navigate({ to: next ?? '/' });
+    leaveTo({ to: next ?? '/' });
   };
 
   const select = useMutation({
@@ -61,7 +63,7 @@ function Picker({ me }: { me: MeView }) {
     mutationFn: () => auth.logout(),
     onSettled: async () => {
       await setMe(null);
-      await navigate({ to: '/welcome' });
+      await navigate({ to: '/welcome', replace: true });
     },
   });
 

@@ -1,6 +1,6 @@
-import { Link } from '@tanstack/react-router';
 import { type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BackLink } from '../navigation/leave.tsx';
 import { statusOf } from '../telemetry/collector.ts';
 import { setDeviceTelemetry, telemetry, useTelemetryState } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
@@ -21,13 +21,13 @@ export function DataPage() {
   return (
     <Screen narrow>
       <header className="flex items-center gap-3">
-        <Link
+        <BackLink
           to="/"
           aria-label={t('back')}
           className="grid size-11 place-items-center rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
         >
           ←
-        </Link>
+        </BackLink>
         <h1 className="min-w-0 flex-1 font-black text-3xl text-brand-ink">{t('data.title')}</h1>
         <ThemeButton />
       </header>

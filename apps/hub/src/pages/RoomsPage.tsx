@@ -6,6 +6,7 @@ import { ApiError, type GameSummary, type RoomSummary, rooms } from '../api/clie
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
 import { hasShell } from '../launcher/manifest.ts';
+import { BackLink } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected } from '../rooms/connection.ts';
 import { formatCode, normalizeCode, quickPick } from '../rooms/model.ts';
 import { RoomResults } from '../rooms/RoomResults.tsx';
@@ -44,16 +45,16 @@ function GuestLobby() {
   const { t } = useTranslation();
   return (
     <Screen narrow>
-      <Link to="/" className="font-semibold text-accent">
+      <BackLink to="/" className="font-semibold text-accent">
         ← {t('backToGames')}
-      </Link>
-      <Link
+      </BackLink>
+      <BackLink
         to="/play/$gameId"
         params={{ gameId }}
         className="rounded-3xl bg-brand px-5 py-4 text-center font-bold text-on-brand text-xl"
       >
         {t('rooms.playBots')}
-      </Link>
+      </BackLink>
       <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
         {t('guest.banner')}{' '}
         <Link to="/register" className="font-bold underline underline-offset-4">
@@ -146,22 +147,22 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
       <header className="flex items-center gap-3">
         {/* A shell game's lobby is reached from its main menu (ADR 0018): ← goes back there. */}
         {game && hasShell(game) ? (
-          <Link
+          <BackLink
             to="/play/$gameId"
             params={{ gameId }}
             aria-label={t('rooms.backToGame', { game: game.name })}
             className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
           >
             ←
-          </Link>
+          </BackLink>
         ) : (
-          <Link
+          <BackLink
             to="/"
             aria-label={t('backToGames')}
             className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
           >
             ←
-          </Link>
+          </BackLink>
         )}
         {game?.iconUrl ? <img src={game.iconUrl} alt="" className="size-12 rounded-2xl" /> : null}
         <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink">{game?.name ?? gameId}</h1>
@@ -186,13 +187,13 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
         <Button variant="secondary" disabled={!online} onClick={() => setEntering(true)}>
           {t('rooms.enterCode')}
         </Button>
-        <Link
+        <BackLink
           to="/play/$gameId"
           params={{ gameId }}
           className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl bg-surface px-5 font-bold text-accent text-xl active:scale-[0.97]"
         >
           {t('rooms.playBots')}
-        </Link>
+        </BackLink>
       </div>
       {quick.isError || join.isError ? (
         <p role="alert" className="text-danger">
