@@ -128,7 +128,16 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     public async Task A_hand_is_played_to_the_end_with_bots_then_the_next_one_starts()
     {
         var bo = await PersonAsync("Bố");
-        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 4, botLevel = "easy", turnSeconds = 0 });
+        // No instant wins, so both hands are played: about 3 % of four-seat deals end at once otherwise (the game's
+        // own tests cover them).
+        var room = await CreateAsync(bo, new
+        {
+            gameId = "tien-len",
+            seats = 4,
+            botLevel = "easy",
+            turnSeconds = 0,
+            options = new { instantWins = Array.Empty<string>() },
+        });
         await using var table = await TableAsync(bo, room.Id);
 
         var started = await bo.Client.PostAsync(Url($"/api/rooms/{room.Id}/start"), null, Ct);
