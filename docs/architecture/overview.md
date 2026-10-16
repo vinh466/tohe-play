@@ -75,6 +75,7 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | Saves & Scores | M2 | per-profile saves, score boards |
 | Parental | later | play-time limits, per-profile game visibility |
 | Telemetry | done ([ADR 0015](../decisions/0015-device-telemetry.md)) | `/api/telemetry`, `/api/telemetry/report` — see [Device telemetry](telemetry.md) |
+| Rooms | in progress ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | `/api/rooms/*`, SignalR `/api/rooms/hub` — see [Online rooms](rooms.md) |
 
 Generated reference: [Platform API](/docs/reference/api/).
 

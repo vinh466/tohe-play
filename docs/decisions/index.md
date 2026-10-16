@@ -29,3 +29,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0013](0013-light-and-dark-themes.md) | Light and dark themes from shared design tokens | Accepted |
 | [0014](0014-live-scores-for-long-runs.md) | Live scores for runs that last across sittings | Accepted |
 | [0015](0015-device-telemetry.md) | Collect technical telemetry from players' devices, first-party and visible | Accepted |
+| [0016](0016-online-rooms-for-turn-based-games.md) | Online rooms for turn-based games, refereed by the API with the game's own rules | Accepted |

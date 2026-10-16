@@ -21,6 +21,7 @@ Ideas to pick from, not commitments. Each game still starts as a `SPEC.md` revie
 | Ghép Khối (`merge-block`) | Drop number blocks into columns; equal blocks merge and chain | [SPEC](../../games/merge-block/SPEC.md) |
 | Chạm Ghép (`tap-merge`) | The owner's variant of Ghép Khối: tap a block on a full board, and its whole group of equal blocks (connected in 8 directions) adds up into it, rounded up to a power of two; a long, relaxed game; 🔀 rescues a stuck board | [SPEC](../../games/tap-merge/SPEC.md) |
 | Chạm Chấm (`hello`) | The minimal sample game: tap the dots | [SPEC](../../games/hello/SPEC.md) |
+| Tiến Lên (`tien-len`) | Tiến lên miền Nam against three bots (Dễ, Vừa, Khó), house rules H1–H9, a practice hand; online rooms next ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | [SPEC](../../games/tien-len/SPEC.md) |
 
 ## Next
 
@@ -83,6 +84,18 @@ Shapes or animals instead of digits for the youngest; digits and 9×9 for adults
 3×3 for kids, 15×15 five-in-a-row for adults. Play on one device against each other, or against a simple AI.
 - **Proves:** two players on one device (pass-and-play), a turn-based AI in pure logic, and leaderboards that are
   win counts rather than scores.
+
+## Online (rooms, ADR 0016)
+
+### Tiến Lên (`tien-len`) — Tiến lên miền Nam · ages 6+ · M offline, L with rooms
+The southern Vietnamese shedding game for 2–4 players: beat the table with a higher single, pair, triple, straight
+or double straight, chop 2s with bombs, go out first.
+- **Owner's request (2026-10-16):** play with other people on the platform on their own phones — public and private
+  rooms, a code or a share link, room options, bots for empty seats — as the reference flow for multiplayer games.
+- **Built offline (0.1):** [SPEC](../../games/tien-len/SPEC.md). Online rooms are next. Rules, house rules as room options, and the feature list in
+  [Tiến lên research](../research/tien-len.md); rooms in [Online rooms](../architecture/rooms.md).
+- **Proves:** a rules module shared by the phone and the server, bots in pure logic, and the whole rooms platform
+  (lobby, codes, links, seats, reconnection) that later turn-based games reuse.
 
 ## Bigger (later, after a few small ones)
 
