@@ -1,10 +1,16 @@
-// DOM screens over the game canvas (intro, pause, game over) with one look shared by every game: big rounded
-// buttons, a card that pops in, safe-area aware. Styles: import '@tohe/game-kit/overlay.css' once.
+// DOM screens over the game canvas with one look shared by every game: the game shell's title screen and menus
+// (shell.ts), and the game's own cards (hints, results). Big rounded buttons, safe-area aware, on the design tokens.
+// Styles: import '@tohe/game-kit/overlay.css' once.
 
 export interface OverlayAction {
   label: string;
   onClick(): void;
-  variant?: 'primary' | 'secondary';
+  /** `quiet`: a low-key button, e.g. the way out at the bottom of a menu. */
+  variant?: 'primary' | 'secondary' | 'quiet';
+  /** A tool's picture (⚙️), shown large above its label. */
+  icon?: string;
+  /** The accessible name when the visible label is short (a tool's caption, a corner button). */
+  ariaLabel?: string;
   /** Extra attributes for the button, e.g. `data-tohe-exit` (what conformance looks for, ADR 0018). */
   attributes?: Record<string, string>;
 }
@@ -17,8 +23,17 @@ export interface OverlayCard {
   /** Extra content between the body and the buttons (e.g. a score table or hints). */
   content?: HTMLElement;
   actions: OverlayAction[];
-  /** A menu: many buttons, so the secondary ones are a little smaller and fit a small phone. */
-  menu?: boolean;
+  /** Round picture buttons in a row under the actions: sound, settings, leaderboard, how to play. */
+  tools?: OverlayAction[];
+  /** The quiet button at the bottom of a menu: the way out of the game. */
+  footer?: OverlayAction;
+  /** A small button in the top-left corner of the screen (the title screen's way back to Tò He). */
+  corner?: OverlayAction;
+  /**
+   * `card` (default): a card over the game. `menu`: a card with many buttons, a little tighter. `title`: a game's
+   * title screen, the whole screen over its art. `count`: a big number alone (3, 2, 1 before play goes on).
+   */
+  layout?: 'card' | 'menu' | 'title' | 'count';
 }
 
 export interface Overlay {
@@ -35,29 +50,45 @@ export function createOverlay(root: HTMLElement): Overlay {
 
   return {
     show(card) {
-      const box = document.createElement('div');
-      box.className = card.menu ? 'tohe-card tohe-card-menu' : 'tohe-card';
-      box.setAttribute('role', 'dialog');
-      box.setAttribute('aria-modal', 'true');
-      if (card.icon) box.append(element('div', 'tohe-card-icon', card.icon));
-      const title = element('h2', 'tohe-card-title', card.title);
-      box.append(title);
-      if (card.body) box.append(element('p', 'tohe-card-body', card.body));
+      const layout = card.layout ?? 'card';
+      layer.className = `tohe-overlay tohe-overlay-${layout}`;
+      const box = element('div', `tohe-card tohe-layout-${layout}`);
+      if (layout !== 'count') {
+        box.setAttribute('role', 'dialog');
+        box.setAttribute('aria-modal', 'true');
+      }
+      const title = element(layout === 'title' ? 'h1' : 'h2', 'tohe-card-title', card.title);
+      title.id = 'tohe-card-title';
+      box.setAttribute('aria-labelledby', title.id);
+      if (layout === 'count') {
+        box.setAttribute('role', 'status');
+        box.append(title);
+        layer.replaceChildren(box);
+        layer.hidden = false;
+        return;
+      }
+      const hero = layout === 'title' ? element('div', 'tohe-title-hero') : box;
+      if (card.icon) hero.append(element('div', 'tohe-card-icon', card.icon));
+      hero.append(title);
+      if (card.body) hero.append(element('p', 'tohe-card-body', card.body));
+      if (hero !== box) box.append(hero);
       if (card.content) box.append(card.content);
       const actions = element('div', 'tohe-card-actions');
-      for (const action of card.actions) {
-        const button = element(
-          'button',
-          `tohe-button tohe-button-${action.variant ?? 'primary'}`,
-          action.label,
-        );
-        button.type = 'button';
-        for (const [name, value] of Object.entries(action.attributes ?? {})) button.setAttribute(name, value);
-        button.addEventListener('click', action.onClick);
-        actions.append(button);
-      }
+      for (const action of card.actions) actions.append(button(action, layout === 'title'));
       box.append(actions);
-      layer.replaceChildren(box);
+      if (card.tools?.length) {
+        const tools = element('div', 'tohe-tools');
+        for (const tool of card.tools) tools.append(toolButton(tool));
+        box.append(tools);
+      }
+      if (card.footer) box.append(button({ variant: 'quiet', ...card.footer }, false));
+      const children: HTMLElement[] = [box];
+      if (card.corner) {
+        const corner = button({ variant: 'quiet', ...card.corner }, false);
+        corner.classList.add('tohe-corner');
+        children.unshift(corner);
+      }
+      layer.replaceChildren(...children);
       layer.hidden = false;
       (actions.querySelector('button') as HTMLButtonElement | null)?.focus({ preventScroll: true });
     },
@@ -69,6 +100,32 @@ export function createOverlay(root: HTMLElement): Overlay {
       return !layer.hidden;
     },
   };
+}
+
+function button(action: OverlayAction, hero: boolean): HTMLButtonElement {
+  const variant = action.variant ?? 'primary';
+  const node = element('button', `tohe-button tohe-button-${variant}`, action.label);
+  if (hero && variant === 'primary') node.classList.add('tohe-button-hero');
+  node.type = 'button';
+  if (action.ariaLabel) node.setAttribute('aria-label', action.ariaLabel);
+  for (const [name, value] of Object.entries(action.attributes ?? {})) node.setAttribute(name, value);
+  node.addEventListener('click', action.onClick);
+  return node;
+}
+
+/** A round picture with its caption under it; the picture is decoration, the caption (or `ariaLabel`) its name. */
+function toolButton(action: OverlayAction): HTMLButtonElement {
+  const node = element('button', 'tohe-tool');
+  node.type = 'button';
+  node.append(
+    element('span', 'tohe-tool-icon', action.icon ?? '•'),
+    element('span', 'tohe-tool-label', action.label),
+  );
+  (node.firstChild as HTMLElement).setAttribute('aria-hidden', 'true');
+  if (action.ariaLabel) node.setAttribute('aria-label', action.ariaLabel);
+  for (const [name, value] of Object.entries(action.attributes ?? {})) node.setAttribute(name, value);
+  node.addEventListener('click', action.onClick);
+  return node;
 }
 
 /** A list of "picture + sentence" rows, used for first-time hints. */

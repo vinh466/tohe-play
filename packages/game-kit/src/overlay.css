@@ -93,24 +93,228 @@
   color: var(--tohe-accent);
 }
 
-/* A menu (the game shell's, ADR 0018): up to seven buttons fit a small phone. The primary stays large: white on
-   brand needs large text. */
-.tohe-card-menu {
+/* A menu (the game shell's, ADR 0019): a few buttons, a row of tools, the quiet way out. The primary stays large:
+   white on brand needs large text. */
+.tohe-layout-menu {
   padding: 1.25rem;
 }
 
-.tohe-card-menu .tohe-card-icon {
+.tohe-layout-menu .tohe-card-icon {
   font-size: 2.6rem;
 }
 
-.tohe-card-menu .tohe-card-actions {
+.tohe-layout-menu .tohe-card-actions {
   gap: 0.55rem;
   margin-top: 1rem;
 }
 
-.tohe-card-menu .tohe-button-secondary {
+.tohe-layout-menu .tohe-button-secondary {
   min-height: 3rem;
   font-size: 1.1rem;
+}
+
+/* The quiet button: the way out at the bottom of a menu, the title screen's corner. */
+.tohe-button-quiet {
+  min-height: 2.75rem;
+  width: 100%;
+  margin-top: 0.5rem;
+  background: none;
+  color: var(--tohe-accent);
+  font-size: 1.05rem;
+  font-weight: 700;
+}
+
+/* Tools: round pictures with a caption, in a row (sound, settings, leaderboard, how to play). */
+.tohe-tools {
+  display: flex;
+  justify-content: center;
+  gap: clamp(0.6rem, 4vw, 1.25rem);
+  margin-top: 1rem;
+}
+
+.tohe-tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 3.75rem;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--tohe-ink);
+  font: inherit;
+  cursor: pointer;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.tohe-tool-icon {
+  display: grid;
+  place-items: center;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: 999px;
+  background: var(--tohe-surface);
+  box-shadow:
+    0 3px 0 var(--tohe-line),
+    0 6px 14px rgb(0 0 0 / 0.08);
+  font-size: 1.6rem;
+  line-height: 1;
+  transition: transform 0.08s ease;
+}
+
+.tohe-layout-menu .tohe-tool-icon {
+  background: var(--tohe-soft);
+  box-shadow: none;
+}
+
+.tohe-tool-label {
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.tohe-tool:active .tohe-tool-icon {
+  transform: scale(0.92);
+}
+
+.tohe-tool:focus-visible {
+  outline: none;
+}
+
+.tohe-tool:focus-visible .tohe-tool-icon {
+  outline: 3px solid var(--tohe-focus);
+  outline-offset: 2px;
+}
+
+/* The title screen: the whole screen over the game's art, its picture and name, one big play button, the tools. */
+.tohe-overlay-title {
+  place-items: stretch;
+  padding: max(0.75rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
+    max(1rem, env(safe-area-inset-bottom)) max(1rem, env(safe-area-inset-left));
+  background: color-mix(in srgb, var(--tohe-page) 84%, transparent);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+
+.tohe-layout-title {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1.25rem;
+  width: min(26rem, 100%);
+  max-height: 100%;
+  margin: 0 auto;
+  padding: 3.25rem 0 0.5rem;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.tohe-title-hero {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  animation: tohe-rise 0.45s ease-out both;
+}
+
+.tohe-layout-title .tohe-card-icon {
+  display: grid;
+  place-items: center;
+  width: 8.5rem;
+  height: 8.5rem;
+  margin-bottom: 0.6rem;
+  border-radius: 2.4rem;
+  background: var(--tohe-surface);
+  box-shadow:
+    inset 0 -0.45rem 0 var(--tohe-soft),
+    0 16px 36px var(--tohe-glow);
+  font-size: 4.75rem;
+  animation: tohe-bob 3s ease-in-out infinite;
+}
+
+.tohe-layout-title .tohe-card-title {
+  color: var(--tohe-brand-ink);
+  font-size: clamp(2.4rem, 12vw, 3.25rem);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+}
+
+/* The game in progress, as a chip under the name. */
+.tohe-layout-title .tohe-card-body {
+  margin-top: 0.4rem;
+  padding: 0.3rem 0.95rem;
+  border-radius: 999px;
+  background: var(--tohe-notice);
+  color: var(--tohe-notice-ink);
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.tohe-layout-title .tohe-card-actions {
+  width: min(20rem, 100%);
+  margin-top: 0;
+  animation: tohe-rise 0.45s 0.08s ease-out both;
+}
+
+.tohe-layout-title .tohe-button-secondary {
+  min-height: 3.1rem;
+  font-size: 1.15rem;
+}
+
+.tohe-layout-title .tohe-tools {
+  margin-top: 0.25rem;
+  animation: tohe-rise 0.45s 0.16s ease-out both;
+}
+
+.tohe-button-hero {
+  min-height: 4.4rem;
+  border-radius: 1.4rem;
+  font-size: 1.65rem;
+  box-shadow:
+    0 6px 0 var(--tohe-brand-strong),
+    0 14px 30px var(--tohe-glow);
+  animation: tohe-breathe 2.6s ease-in-out infinite;
+}
+
+.tohe-corner {
+  position: absolute;
+  top: max(0.6rem, env(safe-area-inset-top));
+  left: max(0.6rem, env(safe-area-inset-left));
+  width: auto;
+  min-height: 2.75rem;
+  margin: 0;
+  padding: 0 1rem;
+  border-radius: 999px;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+/* 3, 2, 1 before play goes on (a game against the clock). */
+.tohe-overlay-count {
+  background: color-mix(in srgb, var(--tohe-page) 45%, transparent);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
+.tohe-layout-count {
+  width: auto;
+  padding: 0;
+  background: none;
+  box-shadow: none;
+  animation: none;
+}
+
+.tohe-layout-count .tohe-card-title {
+  color: var(--tohe-brand-ink);
+  font-size: 7rem;
+  line-height: 1;
+  text-shadow: 0 5px 0 var(--tohe-surface);
+  animation: tohe-count 0.65s ease-out both;
 }
 
 /* Round icon button for the game's HUD, e.g. the shell's ☰ menu. */
@@ -137,6 +341,90 @@
 .tohe-icon-button:focus-visible {
   outline: 3px solid var(--tohe-focus);
   outline-offset: 2px;
+}
+
+/* The HUD (hud.ts): ☰ | the start (a score) | the centre (the game's own) | the end (the best score, a button). The
+   centre stays between the sides whatever their width: they never grow past their share. */
+.tohe-hud {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
+  align-items: start;
+  gap: clamp(0.4rem, 2vw, 0.75rem);
+  padding: 0.6rem 1rem 0;
+}
+
+.tohe-hud-start,
+.tohe-hud-end {
+  display: flex;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.tohe-hud-center {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+}
+
+.tohe-hud-end {
+  justify-content: flex-end;
+}
+
+.tohe-stat {
+  display: flex;
+  flex-direction: column;
+  min-width: min(5.5rem, 100%);
+  max-width: 100%;
+  /* Narrow phones give the digits a little more room. */
+  padding: 0.35rem clamp(0.6rem, 2.4vw, 0.9rem) 0.45rem;
+  border-radius: 1rem;
+  background: var(--tohe-soft);
+  color: var(--tohe-ink);
+}
+
+.tohe-hud-end .tohe-stat {
+  align-items: flex-end;
+}
+
+.tohe-stat-best {
+  background: var(--tohe-surface);
+  transition: background 0.3s ease;
+}
+
+.tohe-stat-best.is-record {
+  background: var(--tohe-notice);
+}
+
+.tohe-stat-label {
+  color: var(--tohe-accent);
+  font-size: 0.8rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.tohe-stat-crown {
+  display: inline-block;
+  margin-right: 0.25rem;
+}
+
+.is-record .tohe-stat-crown {
+  animation: tohe-wobble 0.8s ease-in-out infinite;
+}
+
+.tohe-stat-value {
+  font-size: clamp(1.3rem, 6.4vw, 1.6rem);
+  font-weight: 900;
+  line-height: 1.1;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+  /* The last guard: a value the HUD could not shorten enough is cut, never drawn over its neighbours. */
+  overflow: hidden;
+}
+
+/* bump(): a short pop when something in the HUD changes. */
+.tohe-bump {
+  animation: tohe-bump 0.3s ease-out;
 }
 
 .tohe-hints {
@@ -226,8 +514,60 @@
   }
 }
 
+@keyframes tohe-rise {
+  from {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+}
+
+@keyframes tohe-bob {
+  50% {
+    transform: translateY(-7px) rotate(-3deg);
+  }
+}
+
+@keyframes tohe-breathe {
+  50% {
+    transform: scale(1.03);
+  }
+}
+
+@keyframes tohe-count {
+  from {
+    opacity: 0;
+    transform: scale(1.7);
+  }
+  45% {
+    opacity: 1;
+  }
+  to {
+    transform: scale(1);
+  }
+}
+
+@keyframes tohe-bump {
+  40% {
+    transform: scale(1.18);
+  }
+}
+
+@keyframes tohe-wobble {
+  50% {
+    transform: rotate(-12deg) scale(1.15);
+  }
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tohe-card {
+  .tohe-card,
+  .tohe-title-hero,
+  .tohe-layout-title .tohe-card-icon,
+  .tohe-layout-title .tohe-card-actions,
+  .tohe-layout-title .tohe-tools,
+  .tohe-button-hero,
+  .tohe-layout-count .tohe-card-title,
+  .tohe-bump,
+  .is-record .tohe-stat-crown {
     animation: none;
   }
 }

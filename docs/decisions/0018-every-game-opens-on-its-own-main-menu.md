@@ -5,7 +5,7 @@ sidebar:
   order: 18
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — the screens amended by [ADR 0019](0019-game-shell-2-title-screen-hud-and-first-screen.md) (title screen, HUD, pause)
 - **Date:** 2026-10-16
 
 ## Context

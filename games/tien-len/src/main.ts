@@ -7,6 +7,7 @@ import './style.css';
 import {
   type Choice,
   choiceList,
+  createHud,
   createSfx,
   createShell,
   followTheme,
@@ -150,14 +151,10 @@ const mine = (): View => {
 
 const app = document.querySelector<HTMLElement>('#app') as HTMLElement;
 const stage = document.querySelector<HTMLElement>('#stage') as HTMLElement;
-const scoreValue = document.querySelector('#score') as HTMLElement;
-const handNo = document.querySelector('#hand-no') as HTMLElement;
-const sortButton = document.querySelector('#sort') as HTMLButtonElement;
 const status = document.querySelector('#status') as HTMLElement;
 const passButton = document.querySelector('#pass') as HTMLButtonElement;
 const hintButton = document.querySelector('#hint') as HTMLButtonElement;
 const playButton = document.querySelector('#play') as HTMLButtonElement;
-(document.querySelector('#score-label') as HTMLElement).textContent = t.tableScore;
 passButton.textContent = t.pass;
 hintButton.textContent = `💡 ${t.hint}`;
 
@@ -165,7 +162,7 @@ const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 function showHud() {
   const score = replay ? 0 : room ? (room.seats[meSeat()]?.score ?? 0) : (series[ME] ?? 0);
-  scoreValue.textContent = signed(score);
+  tableScore.set(score);
   handNo.textContent = replay
     ? t.replay.title
     : room
@@ -307,17 +304,21 @@ kit.onRestart(async (scene) => {
   if (!room) schedule();
 });
 
-session.on('pause', () => {
-  paused = true;
-  kit.pause();
-});
-session.on('resume', () => {
-  paused = false;
-  if (!overlay.visible) kit.resume();
-});
+// At a table the menu stops nothing, so the shell leaves the table on screen when the hub hides this phone: drawing
+// waits until it is back (the views queue up). Against bots and in a replay the shell opens its menu instead.
+if (room) {
+  session.on('pause', () => {
+    paused = true;
+    kit.pause();
+  });
+  session.on('resume', () => {
+    paused = false;
+    if (!overlay.visible) kit.resume();
+  });
+}
 
-// The game shell (ADR 0018): the main menu against bots, ☰ and phone Back everywhere. At a table and in a replay
-// there is no main menu: the menu holds the table's rules, the deck and the way out.
+// The game shell (ADR 0019): the title screen against bots, ☰ and phone Back everywhere, how to play the first time.
+// At a table and in a replay there is no title screen: the menu holds the table's rules, the deck and the way out.
 const shell = createShell({
   session,
   root: app,
@@ -325,20 +326,26 @@ const shell = createShell({
   title: t.title,
   strings: {
     play: t.playBots,
-    newGame: t.newTable,
+    newGame: `🔄 ${t.newTable}`,
     confirmTitle: t.newTableTitle,
     confirmBody: t.newTableBody,
   },
   inProgress: () => (dealt && !state.over ? t.handInProgress : null),
-  play: () => {
-    if (tutorialSeen) start();
-    else showTutorial();
-  },
+  play: () => start(),
   newGame: () => {
     sfx.play('click');
     void newTable();
   },
   howTo: () => ({ icon: '🃏', title: t.title, content: hintList(t.hints) }),
+  tutorial: {
+    seen: () => tutorialSeen,
+    done: () => {
+      sfx.play('pop');
+      haptics.play('tap');
+      tutorialSeen = true;
+      void persist();
+    },
+  },
   settings: room
     ? [
         {
@@ -400,7 +407,7 @@ const shell = createShell({
     kit.pause();
   },
   onResume: () => {
-    if (!room && !paused) kit.resume();
+    if (!room) kit.resume();
   },
   direct: room
     ? { exitLabel: meSeat() < 0 ? t.stopWatching : t.leaveTable, goesOn: true }
@@ -409,6 +416,17 @@ const shell = createShell({
       : undefined,
 });
 const overlay = shell.overlay;
+
+// ☰ | table score | hand number | (😀) sort — the kit's HUD.
+const hud = createHud({ shell, parent: app, locale: session.locale });
+const tableScore = hud.stat(t.tableScore, { format: signed });
+const handNo = document.createElement('span');
+handNo.className = 'hand-no';
+hud.center.append(handNo);
+const sortButton = document.createElement('button');
+sortButton.type = 'button';
+sortButton.className = 'sort';
+hud.end.append(sortButton);
 
 function drawAll() {
   board.setPlayers(players());
@@ -676,21 +694,14 @@ function showResults() {
     body: result.instant ? t.instantWins[result.instant.win] : undefined,
     content: table,
   };
-  if (replay) {
+  // Against bots and in a replay the hand is over: the shell's end card (Back goes to the title screen). At a table
+  // the table goes on: the next hand, or for a spectator the way out, on the game's own card.
+  if (!room) {
     shell.gameOver(card, nextAction);
     return;
   }
-  const mainMenu = {
-    label: shellStrings(session.locale).mainMenu,
-    variant: 'secondary' as const,
-    onClick: () => {
-      overlay.hide();
-      shell.mainMenu();
-    },
-  };
-  // A spectator has no hand to be ready for: the table goes on by itself.
   const leave = { label: t.stopWatching, variant: 'secondary' as const, onClick: () => session.exit() };
-  overlay.show({ ...card, actions: room ? (me < 0 ? [leave] : [nextAction]) : [nextAction, mainMenu] });
+  overlay.show({ ...card, actions: me < 0 ? [leave] : [nextAction] });
 }
 
 /** Deals the next hand at this table, or a new table when the number of players changed. */
@@ -747,8 +758,6 @@ function persist(): Promise<void> {
 }
 
 // ------------------------------------------------------------------ menu
-
-document.querySelector('#menu-slot')?.append(shell.menuButton());
 
 /** The room's house rules, as the host chose them (read only). */
 function tableRules(rules: Options): HTMLElement {
@@ -1101,27 +1110,6 @@ function start() {
   else void deal(state);
 }
 
-/** The first time: how to play, then the first hand. */
-function showTutorial() {
-  overlay.show({
-    icon: '🃏',
-    title: t.title,
-    content: hintList(t.hints),
-    actions: [
-      {
-        label: t.start,
-        onClick: () => {
-          sfx.play('pop');
-          haptics.play('tap');
-          overlay.hide();
-          tutorialSeen = true;
-          start();
-        },
-      },
-    ],
-  });
-}
-
 if (!room && !replay) {
   // Online the table is the server's, and a replay plays itself: they open straight in. Against bots, the main menu
   // over the table as it was left.
@@ -1131,5 +1119,5 @@ if (!room && !replay) {
     board.setPlayers(players());
     showHud();
   }
-  shell.mainMenu();
 }
+shell.start();

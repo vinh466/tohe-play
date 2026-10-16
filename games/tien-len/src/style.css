@@ -40,44 +40,43 @@ body {
   background: var(--felt);
 }
 
-/* ⏸ | table score | hand number | sort */
-#hud {
-  display: grid;
-  grid-auto-flow: column;
-  grid-template-columns: auto auto 1fr;
-  grid-auto-columns: auto;
+/* ☰ | table score | hand number | 😀 sort: the kit's HUD (hud.ts) on the felt, a little smaller than in the puzzles.
+   The sides differ in width (one score, up to two buttons), so they take what they need and the hand number the
+   rest, shortened rather than drawn under the buttons. */
+.tohe-hud {
+  grid-template-columns: auto auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.6rem;
   padding: 0.5rem 0.75rem 0.25rem;
 }
 
-.stat {
-  display: flex;
-  flex-direction: column;
+.tohe-hud-center {
+  min-width: 0;
+}
+
+.tohe-stat {
+  min-width: 0;
   padding: 0.25rem 0.75rem 0.3rem;
   border-radius: 0.9rem;
   background: var(--tohe-surface);
-  color: var(--tohe-ink);
 }
 
-.stat-label {
+.tohe-stat-label {
   font-size: 0.72rem;
   font-weight: 800;
-  color: var(--tohe-accent);
-  white-space: nowrap;
 }
 
-.stat-value {
+.tohe-stat-value {
   font-size: 1.25rem;
-  font-weight: 900;
-  line-height: 1.1;
-  font-variant-numeric: tabular-nums;
 }
 
 .hand-no {
+  min-width: 0;
+  overflow: hidden;
   font-size: 0.9rem;
   font-weight: 800;
   color: var(--felt-ink);
+  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -191,7 +190,7 @@ body {
 
 /* A phone on its side: the status line and the buttons share one row, so the table keeps its height. */
 @media (orientation: landscape) and (max-height: 520px) {
-  #hud {
+  .tohe-hud {
     padding-block: 0.3rem 0;
   }
 
@@ -303,13 +302,8 @@ body {
 
 /* A spectator at an online table: no hand, so no buttons to play it, nothing to sort and no score of its own. */
 .is-watching .buttons,
-.is-watching #sort,
-.is-watching .stat,
-.is-replay .stat {
+.is-watching .sort,
+.is-watching .tohe-stat,
+.is-replay .tohe-stat {
   display: none;
-}
-
-.is-watching #hud,
-.is-replay #hud {
-  grid-template-columns: auto 1fr;
 }

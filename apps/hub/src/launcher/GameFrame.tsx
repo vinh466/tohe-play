@@ -16,7 +16,8 @@ import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
 import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './manifest.ts';
 
-type Status = 'loading' | 'ready' | 'failed' | 'untrusted';
+/** `starting`: the game answered, but a shell game has not shown its first screen yet (ADR 0019). */
+type Status = 'loading' | 'starting' | 'ready' | 'failed' | 'untrusted';
 
 /** Sound on or off for this device, whichever game switched it (ADR 0018). */
 const MUTED_KEY = 'tohe:muted';
@@ -30,6 +31,8 @@ const readMuted = () => {
 
 /** How long a shell game has to answer Back before the hub offers its own way out. */
 const BACK_ANSWER_MS = 1500;
+/** How long the loading screen waits for a shell game's first screen after the handshake before it lifts anyway. */
+const FIRST_SCREEN_MS = 8000;
 
 export interface RoomUpdate {
   view: JsonValue;
@@ -144,6 +147,17 @@ export function GameFrame({
     const scope = { gameId: game.id, gameVersion: game.version };
     const started = performance.now();
     telemetry.count(room ? 'hub.room.session' : replay ? 'hub.room.replay' : 'hub.play.session', scope);
+    // A shell game draws its board, then its title screen, after the handshake: the loading screen stays until that
+    // first screen reports itself (its first `menu`), so the player never sees a half-drawn game (ADR 0019).
+    let late: ReturnType<typeof setTimeout> | undefined;
+    let shown = false;
+    const firstScreen = () => {
+      if (shown) return;
+      shown = true;
+      clearTimeout(late);
+      setStatus('ready');
+      telemetry.metric('hub.game.first-screen-ms', Math.round(performance.now() - started), scope);
+    };
     const session = createHost({
       transport: iframeTransport(frame, new URL(gamesOrigin).origin),
       manifest: manifestFrom(game),
@@ -186,6 +200,7 @@ export function GameFrame({
       },
       onMenu: () => {
         answered.current = Date.now();
+        firstScreen();
       },
       onOpen: (what: ShellTarget) => {
         if (what === 'leaderboard') setBoard(true);
@@ -218,8 +233,14 @@ export function GameFrame({
     let unsubscribe = () => {};
     session.ready.then(
       () => {
-        setStatus('ready');
         telemetry.metric('hub.game.ready-ms', Math.round(performance.now() - started), scope);
+        if (hasShell(game) && !shown) {
+          setStatus('starting');
+          late = setTimeout(() => {
+            telemetry.count('hub.game.first-screen-late', scope);
+            firstScreen();
+          }, FIRST_SCREEN_MS);
+        } else firstScreen();
         // The table's views reach the game only after its handshake.
         if (room) {
           unsubscribe = room.subscribe({
@@ -242,6 +263,7 @@ export function GameFrame({
     const onVisibility = () => (document.hidden ? session.pause() : session.resume());
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
+      clearTimeout(late);
       telemetry.count(`hub.play.duration.${durationBucket(performance.now() - started)}`, scope);
       document.removeEventListener('visibilitychange', onVisibility);
       unsubscribe();
@@ -294,15 +316,36 @@ export function GameFrame({
           allow="autoplay; fullscreen"
           className="absolute inset-0 size-full border-0"
         />
-        {/* Fades out once the game is ready, covering its first frames while it applies its theme. Then hidden, so
-            the compositor has no layer over the game while it plays. */}
+        {/* The game's card, carried on from the catalog while it loads; fades out once the game shows its first
+            screen (a shell game) or answers (any other). Then hidden, so the compositor has no layer over the game
+            while it plays. */}
         <div
           aria-hidden={status === 'ready'}
           className={`absolute inset-0 grid place-items-center bg-page p-6 text-center text-ink transition-[opacity,visibility] duration-300 ${
             status === 'ready' ? 'pointer-events-none invisible opacity-0' : ''
           }`}
         >
-          {status === 'loading' && t('loading')}
+          {status === 'loading' || status === 'starting' ? (
+            <div className="flex flex-col items-center gap-3">
+              {game.iconUrl ? (
+                <img src={game.iconUrl} alt="" className="size-24 rounded-3xl shadow-sm" />
+              ) : (
+                <span className="grid size-24 place-items-center rounded-3xl bg-soft text-5xl">🎲</span>
+              )}
+              <span className="font-black text-2xl text-brand-ink">{game.name}</span>
+              <span role="status" className="flex h-6 items-end gap-1.5">
+                <span className="sr-only">{t('loading')}</span>
+                {[0, 1, 2].map((dot) => (
+                  <span
+                    key={dot}
+                    aria-hidden="true"
+                    className="size-2.5 animate-bounce rounded-full bg-brand motion-reduce:animate-none"
+                    style={{ animationDelay: `${dot * 150}ms` }}
+                  />
+                ))}
+              </span>
+            </div>
+          ) : null}
           {status === 'failed' && t('gameFailed')}
           {status === 'untrusted' && t('untrusted')}
           {/* A shell game holds the way out in its own menu; until it is up (or if it never is), the hub's. */}

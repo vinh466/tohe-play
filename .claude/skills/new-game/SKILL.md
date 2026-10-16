@@ -32,12 +32,16 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
    blocks and boards are `drawTexture` + `crispImage` (drawn once per value/theme/size, key says which), not
    `Graphics` or a `Text` per piece: those cost every frame on phones.
 6. `src/main.ts`: `connect({ gameId })`; `createGame({ createScene })` from `@tohe/game-kit/phaser` (handle
-   `onRestart`); `pause`/`resume` → `kit.pause()/resume()`; `settings.muted` → `sfx.setMuted`; save after every move;
-   `submitScore` at the end; intro/game-over with the kit's `overlay`; Vietnamese strings first, English second.
-   Every game: `"shell"` in game.json's capabilities and the kit's `createShell` (ADR 0018) — the main menu on open
-   (`inProgress`, `play`, `newGame`, `howTo`, `settings` with `when: 'between-games' | 'any-time'`, `leaderboard`),
-   `shell.menuButton()` in the HUD, `shell.overlay` for the game's own cards, `shell.gameOver(card)` at the end; no
-   exit button and no Esc handler of its own. Runs that outlast one sitting (saved mid-run): live scores instead of `submitScore` — `session.run(id).update(score)` after scoring moves,
+   `onRestart`); `settings.muted` → `sfx.setMuted`; save after every move; `submitScore` at the end; Vietnamese
+   strings first, English second. Every game: `"shell"` in game.json's capabilities and the kit's `createShell`
+   (ADR 0018, 0019; `games/merge-block/src/main.ts` is the model) — it brings only content: `title`, `icon`,
+   `inProgress`, `play`, `newGame`, `howTo`, `tutorial: { seen, done }` (the how-to before the first game, kept in the
+   save), `settings` with `when: 'between-games' | 'any-time'`, `leaderboard` / `online`, `onPause`/`onResume` →
+   `kit.pause()/resume()` (the shell calls them for its menu and when the hub hides the game: do not wire
+   `session.on('pause')` yourself), `countdown: true` for a game against the clock. Then `createHud({ shell, parent,
+   locale })` — `hud.score({ score, best })` or `hud.stat(label)`, the game's own piece in `hud.center` — and
+   `shell.overlay` for the game's own cards, `shell.gameOver(card)` at the end, and `shell.start()` once the board is
+   drawn (the hub's loading screen waits for it). No exit button, no HUD layout and no Esc handler of its own. Runs that outlast one sitting (saved mid-run): live scores instead of `submitScore` — `session.run(id).update(score)` after scoring moves,
    `finish(score)` at game over and when a new game replaces an unfinished one (id kept in the save, ADR 0014).
 7. Themes (with both): `followTheme(session, theme => { scene.setTheme(theme); kit.setBackground(...) })`; art
    colours in a per-theme palette (`palette.ts`), DOM colours from the design tokens (`var(--tohe-*)`); every text

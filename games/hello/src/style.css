@@ -1,6 +1,4 @@
-/* Colours are the platform's design tokens, so the page follows the hub's light/dark theme (ADR 0013). */
-@import "@tohe/design-tokens/tokens.css";
-
+/* The page uses the design tokens (from the kit's overlay.css), so it follows the hub's light/dark theme (ADR 0013). */
 * {
   box-sizing: border-box;
 }
@@ -11,6 +9,7 @@ body {
   height: 100%;
   overflow: hidden;
   background: var(--tohe-page);
+  color: var(--tohe-ink);
   font-family: system-ui, sans-serif;
   touch-action: none;
   user-select: none;
@@ -19,84 +18,35 @@ body {
   overscroll-behavior: none;
 }
 
+/* The kit's HUD, then the board. */
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
 #board {
   display: block;
-  width: 100vw;
-  height: 100dvh;
+  flex: 1;
+  width: 100%;
+  min-height: 0;
 }
 
-#overlay {
-  position: fixed;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 0.5rem;
-  background: color-mix(in srgb, var(--tohe-page) 92%, transparent);
-  text-align: center;
-  padding: env(safe-area-inset-top) 1.5rem env(safe-area-inset-bottom);
-}
-
-#overlay[hidden] {
-  display: none;
-}
-
-#overlay-title {
-  margin: 0;
-  font-size: 2.25rem;
-  font-weight: 800;
-  color: var(--tohe-brand-ink);
-}
-
-#overlay-detail {
-  margin: 0 0 1rem;
-  font-size: 1.125rem;
-  color: var(--tohe-ink-soft);
-}
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  width: min(18rem, 100%);
-}
-
-/* 1.25rem bold: white on brand meets WCAG AA as large text only. */
-button {
-  font-family: inherit;
-  min-height: 3.5rem;
-  border: 0;
-  border-radius: 1rem;
-  font-size: 1.25rem;
-  font-weight: 700;
-  background: var(--tohe-brand);
-  color: var(--tohe-on-brand);
-}
-
-button.secondary {
-  background: var(--tohe-soft);
-  color: var(--tohe-accent);
-}
-
-button:focus-visible {
-  outline: 3px solid var(--tohe-focus);
-  outline-offset: 2px;
-}
-
-/* ☰: the only button while playing (ADR 0018). */
-.menu {
-  position: fixed;
-  top: max(0.5rem, env(safe-area-inset-top));
-  left: 0.75rem;
-  width: 3rem;
-  min-height: 3rem;
-  border-radius: 50%;
+/* Seconds left, between the scores; the last five glow. */
+.clock {
+  padding: 0.35rem 0.8rem;
+  border-radius: 999px;
   background: var(--tohe-surface);
   color: var(--tohe-accent);
-  font-size: 1.4rem;
+  font-size: 1.25rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 
-.menu[hidden] {
-  display: none;
+.clock.is-low {
+  background: var(--tohe-notice);
+  color: var(--tohe-notice-ink);
 }

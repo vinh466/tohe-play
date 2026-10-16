@@ -81,7 +81,10 @@ export interface GameSession<TSave = JsonValue> {
 export interface ShellSession {
   /** What the hub can open for this player now. Both false in standalone mode and for older hubs. */
   readonly can: ShellInfo;
-  /** The game's menu opened or closed: the answer to the hub's `menu` (Back), so the hub knows the game is alive. */
+  /**
+   * The game's menu opened or closed: the answer to the hub's `menu` (Back), so the hub knows the game is alive. The
+   * first one also says the game's first screen is up: the hub keeps its loading screen until then (ADR 0019).
+   */
   menuChanged(open: boolean): void;
   /** Show the hub's leaderboard for this game over it, or go to the game's rooms lobby. */
   open(what: ShellTarget): void;

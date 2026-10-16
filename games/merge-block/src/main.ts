@@ -2,7 +2,9 @@
 import '@tohe/game-kit/overlay.css';
 import './style.css';
 import {
+  bump,
   choiceList,
+  createHud,
   createSfx,
   createShell,
   followTheme,
@@ -10,6 +12,7 @@ import {
   formatValue,
   haptics,
   hintList,
+  newRunId,
   type Theme,
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
@@ -45,56 +48,69 @@ let state: State = resumed && !resumed.over ? resumed : newGame(session.seed, be
 let tutorialSeen = saved?.tutorialSeen ?? false;
 let palette: PaletteId = isPalette(saved?.palette) ? saved.palette : DEFAULT_PALETTE;
 
-/** A fresh id per game. `crypto.randomUUID` needs a secure context, which a home server on plain HTTP is not. */
-function newRunId(): string {
-  const bytes = crypto.getRandomValues(new Uint8Array(16));
-  return Array.from(bytes, (b) => b.toString(16).padStart(2, '0')).join('');
-}
 // The leaderboard shows the game in progress as it grows, and its best score stays when it ends.
 let runId = (resumed && !resumed.over && saved?.run) || newRunId();
 let run = session.run(runId);
 const scoreFailed = (error: unknown) => session.log('warn', `score not stored: ${String(error)}`);
 
-// ------------------------------------------------------------------ HUD
+// ------------------------------------------------------------------ shell and HUD
 
 const app = document.querySelector<HTMLElement>('#app') as HTMLElement;
 const stage = document.querySelector<HTMLElement>('#stage') as HTMLElement;
-const scoreLabel = document.querySelector('#score-label') as HTMLElement;
-const bestLabel = document.querySelector('#best-label') as HTMLElement;
-const scoreValue = document.querySelector('#score') as HTMLElement;
-const bestValue = document.querySelector('#best') as HTMLElement;
-const bestBox = document.querySelector('#best-box') as HTMLElement;
-const nextBox = document.querySelector('#next-box') as HTMLElement;
-const nextBlock = document.querySelector('#next-block') as HTMLElement;
-scoreLabel.textContent = t.score;
-bestLabel.textContent = t.best;
-(document.querySelector('#next-label') as HTMLElement).textContent = t.next;
 
-let shownScore = state.score;
-let scoreAnimation = 0;
-function showScore(target: number, animate = true) {
-  cancelAnimationFrame(scoreAnimation);
-  const from = shownScore;
-  const started = performance.now();
-  const duration = animate ? 380 : 0;
-  const step = (now: number) => {
-    const progress = duration === 0 ? 1 : Math.min(1, (now - started) / duration);
-    shownScore = Math.round(from + (target - from) * (1 - (1 - progress) ** 3));
-    scoreValue.textContent = formatScore(shownScore, session.locale);
-    const leading = shownScore > best && best > 0;
-    bestValue.textContent = formatScore(Math.max(best, shownScore), session.locale);
-    bestBox.classList.toggle('is-record', leading);
-    if (progress < 1) scoreAnimation = requestAnimationFrame(step);
-  };
-  scoreAnimation = requestAnimationFrame(step);
-  if (animate && target > from) bump(scoreValue);
-}
+// The game shell (ADR 0019): the title screen, ☰ and its menu, phone Back, how to play the first time. The colours
+// change any time.
+const shell = createShell({
+  session,
+  root: app,
+  icon: '🧱',
+  title: t.title,
+  inProgress: () =>
+    state.moves > 0 && !state.over ? t.inProgress(formatScore(state.score, session.locale)) : null,
+  play: () => {
+    if (state.over) startNewGame();
+  },
+  newGame: () => {
+    sfx.play('click');
+    startNewGame();
+  },
+  howTo: () => ({ icon: '🧱', title: t.title, content: hintList(t.hints) }),
+  tutorial: {
+    seen: () => tutorialSeen,
+    done: () => {
+      sfx.play('pop');
+      haptics.play('tap');
+      tutorialSeen = true;
+      board.showHint(true);
+      void persist();
+    },
+  },
+  settings: [
+    {
+      label: t.colours,
+      when: 'any-time',
+      card: () => ({ icon: '🎨', title: t.colours, content: palettePicker() }),
+    },
+  ],
+  leaderboard: true,
+  onPause: () => kit.pause(),
+  onResume: () => kit.resume(),
+});
+const overlay = shell.overlay;
 
-function bump(element: HTMLElement) {
-  element.classList.remove('bump');
-  void element.offsetWidth; // restart the CSS animation
-  element.classList.add('bump');
-}
+// ☰ | score | next block | best — the kit's HUD; the next block sits between the scores.
+const hud = createHud({ shell, parent: app, locale: session.locale });
+const scores = hud.score({ score: t.score, best: t.best });
+scores.setBest(best);
+const nextBox = document.createElement('div');
+nextBox.className = 'next';
+const nextLabel = document.createElement('span');
+nextLabel.className = 'tohe-stat-label';
+nextLabel.textContent = t.next;
+const nextBlock = document.createElement('span');
+nextBlock.className = 'mini-block';
+nextBox.append(nextLabel, nextBlock);
+hud.center.append(nextBox);
 
 const cssColor = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
 
@@ -115,6 +131,8 @@ function showNext(exp: Exponent | null, animate: boolean) {
   nextBlock.style.setProperty('--text', style.text);
   if (animate) bump(nextBlock);
 }
+
+const showScore = (score: number, animate = true) => scores.set(score, animate);
 
 // ------------------------------------------------------------------ game
 
@@ -161,38 +179,6 @@ kit.onRestart(async (scene) => {
   moving = false;
   queued = null;
 });
-
-session.on('pause', () => kit.pause());
-session.on('resume', () => kit.resume());
-
-// The game shell (ADR 0018): the main menu, ☰ and phone Back. The colours change any time.
-const shell = createShell({
-  session,
-  root: app,
-  icon: '🧱',
-  title: t.title,
-  inProgress: () =>
-    state.moves > 0 && !state.over ? t.inProgress(formatScore(state.score, session.locale)) : null,
-  play: () => {
-    if (state.over) startNewGame();
-    if (!tutorialSeen) showTutorial();
-  },
-  newGame: () => {
-    sfx.play('click');
-    startNewGame();
-  },
-  howTo: () => ({ icon: '🧱', title: t.title, content: hintList(t.hints) }),
-  settings: [
-    {
-      label: t.colours,
-      when: 'any-time',
-      card: () => ({ icon: '🎨', title: t.colours, content: palettePicker() }),
-    },
-  ],
-  leaderboard: true,
-});
-const overlay = shell.overlay;
-document.querySelector('#hud')?.prepend(shell.menuButton());
 
 /** Sample blocks 2 … 256 of a preset, drawn like the board's blocks. */
 const SAMPLES = 8;
@@ -287,7 +273,7 @@ function startNewGame() {
   // The next game continues the PRNG sequence, so every new game differs but stays reproducible.
   state = newGame(state.rng, best);
   board.setBoard(state);
-  shownScore = 0;
+  scores.setBest(best);
   showScore(0, false);
   void persist();
 }
@@ -297,27 +283,6 @@ function showGameOver(record: boolean) {
     icon: record ? '🏆' : '🧱',
     title: record ? t.record : t.over,
     body: t.result(formatScore(state.score, session.locale), formatScore(best, session.locale)),
-  });
-}
-
-function showTutorial() {
-  overlay.show({
-    icon: '🧱',
-    title: t.title,
-    content: hintList(t.hints),
-    actions: [
-      {
-        label: t.start,
-        onClick: () => {
-          sfx.play('pop');
-          haptics.play('tap');
-          overlay.hide();
-          tutorialSeen = true;
-          board.showHint(true);
-          void persist();
-        },
-      },
-    ],
   });
 }
 
@@ -335,4 +300,4 @@ await board.whenReady;
 board.relayout(kit.size().width, kit.size().height);
 board.setBoard(state);
 showScore(state.score, false);
-shell.mainMenu();
+shell.start();

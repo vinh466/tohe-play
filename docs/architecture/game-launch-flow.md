@@ -21,6 +21,8 @@ sequenceDiagram
   G->>H: ready {gameId, sdkVersion}
   H->>L: load save (profile, game)
   H->>G: init {profile, locale, settings, save, seed}
+  G->>H: menu {open} — a shell game's first screen is up (ADR 0019)
+  H->>H: lift the loading screen (icon and name of the game)
   Note over G: game plays
   G->>H: save {id, data}
   H->>L: put save (synced = 0)
@@ -39,6 +41,9 @@ sequenceDiagram
 ## Rules
 
 - The hub **starts listening before** it sets `iframe.src`, so `ready` can never be missed.
+- While the game loads, the hub shows the game's icon and name. For a `shell` game it keeps them up until the game's
+  first `menu` message — its title screen, or play at a table — so a half-drawn game never shows; at most 8 s after
+  the handshake ([ADR 0019](../decisions/0019-game-shell-2-title-screen-hud-and-first-screen.md)).
 - The hub only accepts messages whose `source` is that iframe's window **and** whose `origin` is the games
   origin; everything else is ignored.
 - Every incoming message is validated with the Zod schemas from `@tohe/contract`. Invalid messages are dropped

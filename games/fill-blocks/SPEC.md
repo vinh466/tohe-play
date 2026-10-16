@@ -48,16 +48,19 @@ The game ends when **none of the pieces left in the tray fits anywhere** on the 
 
 ## Screens
 
-1. **Intro** (first time only), with three picture hints:
+The kit's game shell and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0019): the title screen, ☰
+and its menu, the end card and phone Back come with the kit; this game brings its content.
+
+1. **How to play** (before the first **Chơi**, then from ❓), with three picture hints:
    - drag or tap a piece onto the board;
    - a full row or column clears;
    - clear again and again for a streak.
 2. **Playing:**
-   - HUD with the score (counts up) and the best;
+   - the kit's HUD: ☰, the score (counts up) and the best;
    - the board;
    - the tray, with pieces that fit nowhere dimmed, so a child sees what is still possible.
-3. **Game over:** the board settles and greys, then the card with score and best, confetti for a record, and
-   **Chơi lại**.
+3. **Game over:** the board settles and greys, then the shell's end card with score and best, confetti for a
+   record, **▶ Chơi lại** and **☰ Menu chính**.
 
 ## Feel (juice), in tiers
 
