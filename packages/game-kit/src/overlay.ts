@@ -1,11 +1,11 @@
-// DOM screens over the game canvas with one look shared by every game: the game shell's title screen and menus
-// (shell.ts), and the game's own cards (hints, results). Big rounded buttons, safe-area aware, on the design tokens.
-// Styles: import '@tohe/game-kit/overlay.css' once.
+// DOM screens with one look shared by every game: the game shell's menu stage (title screen and its full screens)
+// and the panels over play (the in-game menu, the game's own cards, the end of a game). Big rounded buttons,
+// safe-area aware, on the design tokens. Styles: import '@tohe/game-kit/overlay.css' once.
 
 export interface OverlayAction {
   label: string;
   onClick(): void;
-  /** `quiet`: a low-key button, e.g. the way out at the bottom of a menu. */
+  /** `quiet`: a low-key button, e.g. the seat's way out at the bottom of a table's menu. */
   variant?: 'primary' | 'secondary' | 'quiet';
   /** A tool's picture (⚙️), shown large above its label. */
   icon?: string;
@@ -13,6 +13,26 @@ export interface OverlayAction {
   ariaLabel?: string;
   /** Extra attributes for the button, e.g. `data-tohe-exit` (what conformance looks for, ADR 0018). */
   attributes?: Record<string, string>;
+}
+
+/** A row of a panel that changes something where it is (ADR 0020): a switch, a choice, or a link to a card. */
+export type OverlayRow =
+  | { kind: 'switch'; label: string; icon?: string; on: boolean; onChange(on: boolean): void }
+  | {
+      kind: 'choices';
+      label: string;
+      icon?: string;
+      choices: { id: string; label: string; preview?: HTMLElement }[];
+      chosen: string;
+      onChoose(id: string): void;
+    }
+  | { kind: 'link'; label: string; icon?: string; onClick(): void };
+
+export interface OverlaySection {
+  title: string;
+  /** Under the title, e.g. "Đổi ở menu chính, áp dụng từ ván sau." */
+  note?: string;
+  content: HTMLElement;
 }
 
 export interface OverlayCard {
@@ -23,17 +43,24 @@ export interface OverlayCard {
   /** Extra content between the body and the buttons (e.g. a score table or hints). */
   content?: HTMLElement;
   actions: OverlayAction[];
-  /** Round picture buttons in a row under the actions: sound, settings, leaderboard, how to play. */
+  /** Rows that change something in place (switches, choices), between the actions and the tools. */
+  rows?: OverlayRow[];
+  /** A screen's sections (⚙️ Cài đặt: one per setting), each with a title over its content. */
+  sections?: OverlaySection[];
+  /** Round picture buttons in a row: sound, settings, leaderboard, how to play. */
   tools?: OverlayAction[];
-  /** The quiet button at the bottom of a menu: the way out of the game. */
+  /** The quiet button at the bottom of a panel: the seat's way out at a table. */
   footer?: OverlayAction;
-  /** A small button in the top-left corner of the screen (the title screen's way back to Tò He). */
+  /** Top-left: the title screen's way back to Tò He, or a screen's ← back. */
   corner?: OverlayAction;
+  /** A few emoji drifting behind the title screen, in the game's spirit. */
+  decor?: string[];
   /**
-   * `card` (default): a card over the game. `menu`: a card with many buttons, a little tighter. `title`: a game's
-   * title screen, the whole screen over its art. `count`: a big number alone (3, 2, 1 before play goes on).
+   * `card` (default): a card over the game. `menu`: the in-game panel. `title`: a game's title screen.
+   * `screen`: a full screen of the menu stage (⚙️, ❓) with ← in its header. `count`: a big number alone (3, 2, 1).
+   * `loading`: the game's picture and a few dots while play gets ready.
    */
-  layout?: 'card' | 'menu' | 'title' | 'count';
+  layout?: 'card' | 'menu' | 'title' | 'screen' | 'count' | 'loading';
 }
 
 export interface Overlay {
@@ -42,58 +69,79 @@ export interface Overlay {
   readonly visible: boolean;
 }
 
-export function createOverlay(root: HTMLElement): Overlay {
+/** `stage`: an opaque layer for the menu stage (the title screen and its screens), not a scrim over play. */
+export function createOverlay(root: HTMLElement, { stage = false }: { stage?: boolean } = {}): Overlay {
   const layer = document.createElement('div');
-  layer.className = 'tohe-overlay';
+  const base = stage ? 'tohe-overlay tohe-menu-stage' : 'tohe-overlay';
+  layer.className = base;
   layer.hidden = true;
   root.append(layer);
 
   return {
     show(card) {
       const layout = card.layout ?? 'card';
-      layer.className = `tohe-overlay tohe-overlay-${layout}`;
-      const box = element('div', `tohe-card tohe-layout-${layout}`);
-      if (layout !== 'count') {
-        box.setAttribute('role', 'dialog');
-        box.setAttribute('aria-modal', 'true');
-      }
+      // The same screen drawn again (a switch flipped): no entrance animation, it only changes in place.
+      const again = !layer.hidden && layer.dataset.title === `${layout}:${card.title}`;
+      layer.dataset.title = `${layout}:${card.title}`;
+      layer.className = `${base} tohe-overlay-${layout}`;
+      const box = element('div', `tohe-card tohe-layout-${layout}${again ? ' tohe-still' : ''}`);
       const title = element(layout === 'title' ? 'h1' : 'h2', 'tohe-card-title', card.title);
-      title.id = 'tohe-card-title';
+      title.id = `tohe-title-${stage ? 'stage' : 'play'}`;
       box.setAttribute('aria-labelledby', title.id);
-      if (layout === 'count') {
+      if (layout === 'count' || layout === 'loading') {
         box.setAttribute('role', 'status');
+        if (card.icon) box.append(element('div', 'tohe-card-icon', card.icon));
         box.append(title);
+        if (layout === 'loading') box.append(dots());
         layer.replaceChildren(box);
         layer.hidden = false;
         return;
       }
-      const hero = layout === 'title' ? element('div', 'tohe-title-hero') : box;
-      if (card.icon) hero.append(element('div', 'tohe-card-icon', card.icon));
-      hero.append(title);
-      if (card.body) hero.append(element('p', 'tohe-card-body', card.body));
-      if (hero !== box) box.append(hero);
-      if (card.content) box.append(card.content);
+      box.setAttribute('role', 'dialog');
+      box.setAttribute('aria-modal', 'true');
+      const children: HTMLElement[] = [];
+      if (card.decor?.length) children.push(decor(card.decor));
+      if (layout === 'screen') {
+        const head = element('header', 'tohe-screen-head');
+        if (card.corner) head.append(button({ variant: 'quiet', ...card.corner }, false, 'tohe-screen-back'));
+        if (card.icon) head.append(element('span', 'tohe-screen-icon', card.icon));
+        head.append(title);
+        box.append(head);
+      } else {
+        const hero = layout === 'title' ? element('div', 'tohe-title-hero') : box;
+        if (card.icon) hero.append(element('div', 'tohe-card-icon', card.icon));
+        hero.append(title);
+        if (hero !== box) box.append(hero);
+      }
+      const body = layout === 'screen' ? element('div', 'tohe-screen-body') : box;
+      if (body !== box) box.append(body);
+      if (card.body) body.append(element('p', 'tohe-card-body', card.body));
+      if (card.content) body.append(card.content);
+      // A screen (⚙️) puts its switches first, then its sections; a panel puts its actions (▶ Tiếp tục) first.
+      const rows = card.rows?.length ? rowsOf(card.rows) : null;
+      if (rows && layout === 'screen') body.append(rows);
+      for (const section of card.sections ?? []) body.append(sectionOf(section));
       const actions = element('div', 'tohe-card-actions');
       for (const action of card.actions) actions.append(button(action, layout === 'title'));
-      box.append(actions);
+      if (card.actions.length > 0) body.append(actions);
+      if (rows && layout !== 'screen') body.append(rows);
       if (card.tools?.length) {
         const tools = element('div', 'tohe-tools');
         for (const tool of card.tools) tools.append(toolButton(tool));
-        box.append(tools);
+        body.append(tools);
       }
-      if (card.footer) box.append(button({ variant: 'quiet', ...card.footer }, false));
-      const children: HTMLElement[] = [box];
-      if (card.corner) {
-        const corner = button({ variant: 'quiet', ...card.corner }, false);
-        corner.classList.add('tohe-corner');
-        children.unshift(corner);
+      if (card.footer) body.append(button({ variant: 'quiet', ...card.footer }, false));
+      if (card.corner && layout !== 'screen') {
+        children.push(button({ variant: 'quiet', ...card.corner }, false, 'tohe-corner'));
       }
+      children.push(box);
       layer.replaceChildren(...children);
       layer.hidden = false;
       (actions.querySelector('button') as HTMLButtonElement | null)?.focus({ preventScroll: true });
     },
     hide() {
       layer.hidden = true;
+      delete layer.dataset.title;
       layer.replaceChildren();
     },
     get visible() {
@@ -102,10 +150,11 @@ export function createOverlay(root: HTMLElement): Overlay {
   };
 }
 
-function button(action: OverlayAction, hero: boolean): HTMLButtonElement {
+function button(action: OverlayAction, hero: boolean, extra?: string): HTMLButtonElement {
   const variant = action.variant ?? 'primary';
   const node = element('button', `tohe-button tohe-button-${variant}`, action.label);
   if (hero && variant === 'primary') node.classList.add('tohe-button-hero');
+  if (extra) node.classList.add(extra);
   node.type = 'button';
   if (action.ariaLabel) node.setAttribute('aria-label', action.ariaLabel);
   for (const [name, value] of Object.entries(action.attributes ?? {})) node.setAttribute(name, value);
@@ -117,15 +166,95 @@ function button(action: OverlayAction, hero: boolean): HTMLButtonElement {
 function toolButton(action: OverlayAction): HTMLButtonElement {
   const node = element('button', 'tohe-tool');
   node.type = 'button';
-  node.append(
-    element('span', 'tohe-tool-icon', action.icon ?? '•'),
-    element('span', 'tohe-tool-label', action.label),
-  );
-  (node.firstChild as HTMLElement).setAttribute('aria-hidden', 'true');
+  const icon = element('span', 'tohe-tool-icon', action.icon ?? '•');
+  icon.setAttribute('aria-hidden', 'true');
+  node.append(icon, element('span', 'tohe-tool-label', action.label));
   if (action.ariaLabel) node.setAttribute('aria-label', action.ariaLabel);
   for (const [name, value] of Object.entries(action.attributes ?? {})) node.setAttribute(name, value);
   node.addEventListener('click', action.onClick);
   return node;
+}
+
+function rowsOf(rows: OverlayRow[]): HTMLElement {
+  const list = element('div', 'tohe-rows');
+  for (const row of rows) {
+    const label = element('span', 'tohe-row-label', row.icon ? `${row.icon} ${row.label}` : row.label);
+    if (row.kind === 'switch') {
+      const node = element('button', 'tohe-row tohe-row-switch');
+      node.type = 'button';
+      node.setAttribute('role', 'switch');
+      node.setAttribute('aria-checked', String(row.on));
+      const knob = element('span', 'tohe-switch');
+      knob.setAttribute('aria-hidden', 'true');
+      node.append(label, knob);
+      node.addEventListener('click', () => row.onChange(!row.on));
+      list.append(node);
+    } else if (row.kind === 'choices') {
+      const node = element('div', 'tohe-row tohe-row-choices');
+      node.setAttribute('role', 'group');
+      node.setAttribute('aria-label', row.label);
+      const chips = element('div', 'tohe-chips');
+      for (const choice of row.choices) {
+        const chip = element('button', 'tohe-chip');
+        chip.type = 'button';
+        chip.setAttribute('aria-pressed', String(choice.id === row.chosen));
+        chip.append(element('span', 'tohe-chip-label', choice.label));
+        if (choice.preview) chip.append(choice.preview);
+        chip.addEventListener('click', () => row.onChoose(choice.id));
+        chips.append(chip);
+      }
+      node.append(label, chips);
+      list.append(node);
+    } else {
+      const node = element('button', 'tohe-row tohe-row-link');
+      node.type = 'button';
+      const chevron = element('span', 'tohe-row-chevron', '›');
+      chevron.setAttribute('aria-hidden', 'true');
+      node.append(label, chevron);
+      node.addEventListener('click', row.onClick);
+      list.append(node);
+    }
+  }
+  return list;
+}
+
+function sectionOf(section: OverlaySection): HTMLElement {
+  const node = element('section', 'tohe-section');
+  node.append(element('h3', 'tohe-section-title', section.title));
+  if (section.note) node.append(element('p', 'tohe-section-note', section.note));
+  node.append(section.content);
+  return node;
+}
+
+/** Emoji spread over the title screen at fixed places (no randomness: the screen looks the same each time). */
+function decor(items: string[]): HTMLElement {
+  const layer = element('div', 'tohe-decor');
+  layer.setAttribute('aria-hidden', 'true');
+  const spots = [
+    [8, 14],
+    [82, 10],
+    [16, 44],
+    [88, 38],
+    [6, 76],
+    [78, 70],
+    [44, 6],
+    [52, 88],
+  ];
+  spots.forEach(([left, top], index) => {
+    const item = element('span', 'tohe-decor-item', items[index % items.length]);
+    item.style.left = `${left}%`;
+    item.style.top = `${top}%`;
+    item.style.animationDelay = `${-index * 1.3}s`;
+    layer.append(item);
+  });
+  return layer;
+}
+
+function dots(): HTMLElement {
+  const row = element('span', 'tohe-dots');
+  row.setAttribute('aria-hidden', 'true');
+  for (let i = 0; i < 3; i++) row.append(element('span', 'tohe-dot'));
+  return row;
 }
 
 /** A list of "picture + sentence" rows, used for first-time hints. */

@@ -20,15 +20,21 @@ export {
   type Overlay,
   type OverlayAction,
   type OverlayCard,
+  type OverlayRow,
+  type OverlaySection,
 } from './overlay.ts';
 export { createSfx, noteFrequency, type Sfx, type SoundName } from './sfx.ts';
 export {
   createShell,
+  type PlayStage,
+  type QuickRow,
   type Shell,
   type ShellOptions,
   type ShellSessionLike,
   type ShellSetting,
   type ShellStrings,
+  type StageContext,
+  type StageModule,
   shellStrings,
 } from './shell.ts';
 export { followTheme, type Theme } from './theme.ts';

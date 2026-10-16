@@ -78,25 +78,29 @@ forward, play and pause.
 
 ### Game shell
 
-Every game opens on its own title screen and has one ☰ menu while playing, with the way back to Tò He inside
-([ADR 0018](../decisions/0018-every-game-opens-on-its-own-main-menu.md),
-[ADR 0019](../decisions/0019-game-shell-2-title-screen-hud-and-first-screen.md), [Game shell](../architecture/game-shell.md)).
+Every game has two stages — its own menu stage (the title screen, its option screens, the only way back to Tò He) and
+a play stage with one ☰ whose quick panel pauses play ([ADR 0018](../decisions/0018-every-game-opens-on-its-own-main-menu.md),
+[ADR 0019](../decisions/0019-game-shell-2-title-screen-hud-and-first-screen.md),
+[ADR 0020](../decisions/0020-a-game-has-a-menu-stage-and-a-play-stage.md), [Game shell](../architecture/game-shell.md)).
 A game declaring `"shell"` gets the whole screen: the hub draws no bar over it. The kit's `createShell` does all of
 it (every game uses the kit, ADR 0012); what it does, and what any `shell` game must do:
 
-- show its first screen once its board is drawn and say so with `session.shell.menuChanged(…)` — the title screen
-  (`true`), or play when opened straight into a table or a replay (`false`): the hub keeps its loading screen over
-  the game until this first `menu` message, at most 8 s after the handshake;
-- open on a title screen whose play button carries `data-tohe-play` and whose way back to Tò He carries
-  `data-tohe-exit` and calls `exit()`; a first-time how-to before play carries `data-tohe-play` on its start button;
-- while playing, show a ☰ that opens a menu with the same `data-tohe-exit`, pausing what can pause;
-- on `menu` (the player pressed Back): open the menu while playing, close it when open, go back to the title screen
-  from the end of a game, and `exit()` from the title screen — telling the hub with `session.shell.menuChanged(open)`
-  every time a menu opens or closes;
-- on `pause` (the hub hid the game): open the menu while playing alone, so play waits there; at a table nothing
+- show its first screen and say so with `session.shell.menuChanged(…)` — the title screen (`true`), or play when
+  opened straight into a table or a replay: the hub keeps its loading screen over the game until this first `menu`
+  message, at most 8 s after the handshake;
+- open on a title screen that runs nothing of the game (no board, no `<canvas>`), whose play button carries
+  `data-tohe-play` and whose way back to Tò He carries `data-tohe-exit` and calls `exit()`; a first-time how-to before
+  play carries `data-tohe-play` on its start button;
+- while playing, show a ☰ (`data-tohe-menu`) that opens a panel pausing what can pause, with **no**
+  `data-tohe-exit` — except at a table or in a replay, which have no title screen — and a way to the title screen
+  marked `data-tohe-main-menu` (also on the end-of-game card), which saves the game and frees the play stage;
+- on `menu` (the player pressed Back): open the panel while playing, close it when open, go to the title screen from
+  the end of a game, and `exit()` from the title screen — telling the hub with `session.shell.menuChanged(open)`
+  every time a menu or screen opens or closes;
+- on `pause` (the hub hid the game): open the panel while playing alone, so play waits there; at a table nothing
   stops;
-- offer sound in its menu (`session.shell.setMuted`), and the leaderboard or online play only when
-  `session.shell.can` says the hub can open them (`session.shell.open('leaderboard' | 'rooms')`).
+- offer sound (`session.shell.setMuted`), and the leaderboard or online play only when `session.shell.can` says the
+  hub can open them (`session.shell.open('leaderboard' | 'rooms')`).
 
 ## 3. Runtime rules
 
@@ -230,10 +234,12 @@ origin, and checks:
    opened at a two-seat table refereed by its own module, with a bot in the other seat, under random taps, and opened
    with `init.replay` to play back a hand its own bots played to the end;
 8. with `shell`: it reports its first screen (a `menu` message) within 8 s of the handshake, opens on a title screen
-   with `[data-tohe-play]` and `[data-tohe-exit]`, plays from it (through a first-time how-to), answers `menu` with
-   `menu { open: true }` within 1.5 s once playing and closes the menu on the next `menu`, opens its menu on
-   `pause`, and the `[data-tohe-exit]` of that menu sends `exit`. The random input of check 3 starts from **Chơi**.
-   Screenshots: `<id>-shell-title.png` (the title screen) and `<id>-shell.png` (the menu after Back).
+   with `[data-tohe-play]` and `[data-tohe-exit]` and no `<canvas>` under it, plays from it (through a first-time
+   how-to), answers `menu` with `menu { open: true }` within 1.5 s once playing and closes the panel on the next
+   `menu`, opens its panel on `pause`, shows no `[data-tohe-exit]` over play, leads from the panel's
+   `[data-tohe-main-menu]` to the title screen leaving no `<canvas>` behind, and the title screen's
+   `[data-tohe-exit]` sends `exit`. The random input of check 3 starts from **Chơi**. Screenshots:
+   `<id>-shell-title.png` (the title screen) and `<id>-shell.png` (the panel after Back).
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
 `<id>-<theme>.png` per theme, `<id>-room.png` at a table and `<id>-replay.png` replaying — look at them.

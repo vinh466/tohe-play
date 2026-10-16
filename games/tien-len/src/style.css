@@ -12,6 +12,22 @@
   --felt-ink: #f3efe8;
 }
 
+/* The menu stage (ADR 0020) takes a hint of the felt; its text stays on the page colour, so it reads as well. */
+:root {
+  --tohe-menu-bg:
+    radial-gradient(
+      120% 65% at 50% 0%,
+      color-mix(in srgb, var(--felt) 24%, var(--tohe-page)) 0%,
+      transparent 62%
+    ),
+    radial-gradient(
+      90% 55% at 50% 105%,
+      color-mix(in srgb, var(--felt) 18%, var(--tohe-page)) 0%,
+      transparent 70%
+    ),
+    var(--tohe-page);
+}
+
 * {
   box-sizing: border-box;
 }

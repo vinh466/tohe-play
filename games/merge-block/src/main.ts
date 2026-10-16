@@ -1,303 +1,66 @@
-// Wiring: SDK session, kit game, HUD, overlays, saving. Rules live in logic.ts, drawing in view.ts.
+// The menu stage (ADR 0020): Ghép Khối's own first screen — title, play, ⚙️ (block colours), ❓, 🏆 — with no engine
+// running. Play loads stage.ts (fetched in the background meanwhile). Shared state lives in app.ts.
 import '@tohe/game-kit/overlay.css';
 import './style.css';
 import {
-  bump,
   choiceList,
-  createHud,
-  createSfx,
   createShell,
   followTheme,
   formatScore,
-  formatValue,
   haptics,
   hintList,
-  newRunId,
   type Theme,
 } from '@tohe/game-kit';
-import { createGame } from '@tohe/game-kit/phaser';
-import { connect } from '@tohe/game-sdk';
-import { blockValue, drop, type Exponent, newGame, restore, type State } from './logic.ts';
-import { BOARD, blockStyle, DEFAULT_PALETTE, isPalette, PALETTE_IDS, type PaletteId } from './palette.ts';
-import { stringsFor } from './strings.ts';
-import { BoardScene } from './view.ts';
+import { persist, session, sfx, store, t } from './app.ts';
+import { PALETTE_IDS } from './palette.ts';
+import { samples } from './swatches.ts';
 
-interface Saved {
-  best: number;
-  /** The game in progress, resumed when the game opens again. */
-  game: State | null;
-  tutorialSeen: boolean;
-  /** The id the game in progress reports its score under on the household leaderboard (ADR 0014). */
-  run?: string;
-  /** The player's block colours (SPEC.md, "Block colours"); absent in saves from before 1.5.0. */
-  palette?: PaletteId;
-}
-
-const session = await connect<Saved>({ gameId: 'merge-block' });
-const t = stringsFor(session.locale);
 document.documentElement.lang = session.locale;
+let theme: Theme = session.settings.theme;
+followTheme(session, (next) => {
+  theme = next;
+});
 
-const sfx = createSfx({ telemetry: session.telemetry });
-sfx.setMuted(session.settings.muted);
-session.on('settings', (settings) => sfx.setMuted(settings.muted));
-
-const saved = session.saved;
-let best = saved?.best ?? 0;
-const resumed = restore(saved?.game);
-let state: State = resumed && !resumed.over ? resumed : newGame(session.seed, best);
-let tutorialSeen = saved?.tutorialSeen ?? false;
-let palette: PaletteId = isPalette(saved?.palette) ? saved.palette : DEFAULT_PALETTE;
-
-// The leaderboard shows the game in progress as it grows, and its best score stays when it ends.
-let runId = (resumed && !resumed.over && saved?.run) || newRunId();
-let run = session.run(runId);
-const scoreFailed = (error: unknown) => session.log('warn', `score not stored: ${String(error)}`);
-
-// ------------------------------------------------------------------ shell and HUD
-
-const app = document.querySelector<HTMLElement>('#app') as HTMLElement;
-const stage = document.querySelector<HTMLElement>('#stage') as HTMLElement;
-
-// The game shell (ADR 0019): the title screen, ☰ and its menu, phone Back, how to play the first time. The colours
-// change any time.
 const shell = createShell({
   session,
-  root: app,
+  root: document.querySelector<HTMLElement>('#app') as HTMLElement,
   icon: '🧱',
+  decor: ['🧱', '🟧', '🟨', '🟩', '🟦'],
   title: t.title,
-  inProgress: () =>
-    state.moves > 0 && !state.over ? t.inProgress(formatScore(state.score, session.locale)) : null,
-  play: () => {
-    if (state.over) startNewGame();
+  inProgress: () => {
+    const game = store.game;
+    return game && game.moves > 0 && !game.over
+      ? t.inProgress(formatScore(game.score, session.locale))
+      : null;
   },
-  newGame: () => {
-    sfx.play('click');
-    startNewGame();
-  },
+  best: () => (store.best > 0 ? t.bestLine(formatScore(store.best, session.locale)) : null),
   howTo: () => ({ icon: '🧱', title: t.title, content: hintList(t.hints) }),
   tutorial: {
-    seen: () => tutorialSeen,
+    seen: () => store.tutorialSeen,
     done: () => {
       sfx.play('pop');
       haptics.play('tap');
-      tutorialSeen = true;
-      board.showHint(true);
+      store.tutorialSeen = true;
       void persist();
     },
   },
   settings: [
     {
-      label: t.colours,
+      label: `🎨 ${t.colours}`,
       when: 'any-time',
-      card: () => ({ icon: '🎨', title: t.colours, content: palettePicker() }),
+      content: () =>
+        choiceList(
+          PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id, theme) })),
+          store.palette,
+          (id) => {
+            sfx.play('click');
+            store.palette = id;
+            void persist();
+          },
+        ),
     },
   ],
   leaderboard: true,
-  onPause: () => kit.pause(),
-  onResume: () => kit.resume(),
+  stage: () => import('./stage.ts'),
 });
-const overlay = shell.overlay;
-
-// ☰ | score | next block | best — the kit's HUD; the next block sits between the scores.
-const hud = createHud({ shell, parent: app, locale: session.locale });
-const scores = hud.score({ score: t.score, best: t.best });
-scores.setBest(best);
-const nextBox = document.createElement('div');
-nextBox.className = 'next';
-const nextLabel = document.createElement('span');
-nextLabel.className = 'tohe-stat-label';
-nextLabel.textContent = t.next;
-const nextBlock = document.createElement('span');
-nextBlock.className = 'mini-block';
-nextBox.append(nextLabel, nextBlock);
-hud.center.append(nextBox);
-
-const cssColor = (color: number) => `#${color.toString(16).padStart(6, '0')}`;
-
-/** The next block shown in the HUD, kept to repaint it when the player picks other colours. */
-let shownNext: Exponent | null = null;
-
-/** The next block sits in the HUD, so the current block can hover over any column without covering it. */
-function showNext(exp: Exponent | null, animate: boolean) {
-  shownNext = exp;
-  nextBox.classList.toggle('is-hidden', exp === null);
-  if (exp === null) return;
-  const style = blockStyle(exp, theme, palette);
-  const value = formatValue(blockValue(exp));
-  nextBlock.textContent = value;
-  nextBlock.classList.toggle('is-long', value.length > 2);
-  nextBlock.style.setProperty('--fill', cssColor(style.fill));
-  nextBlock.style.setProperty('--edge', cssColor(style.edge));
-  nextBlock.style.setProperty('--text', style.text);
-  if (animate) bump(nextBlock);
-}
-
-const showScore = (score: number, animate = true) => scores.set(score, animate);
-
-// ------------------------------------------------------------------ game
-
-let moving = false;
-/** A tap made while a move still animates, played as soon as it ends (children tap ahead); the latest wins. */
-let queued: number | null = null;
-let lastTap = Number.NEGATIVE_INFINITY;
-/** Taps closer together than this are one bouncing finger, not two drops. */
-const DOUBLE_TAP_MS = 150;
-
-let theme: Theme = session.settings.theme;
-const kit = createGame({
-  parent: stage,
-  background: BOARD[theme].background,
-  telemetry: session.telemetry,
-  createScene: () =>
-    new BoardScene(
-      sfx,
-      t,
-      {
-        onDrop: (col) => requestMove(col),
-        onScore: (score) => showScore(score),
-        onUpcoming: (next, animate) => showNext(next, animate),
-      },
-      theme,
-      palette,
-    ),
-});
-/** The current scene; replaced if the kit restarts the game with the Canvas renderer. */
-let board = kit.scene;
-
-// Light/dark follows the hub (ADR 0013): the HUD and cards through data-theme, the board through setTheme.
-followTheme(session, (next) => {
-  theme = next;
-  board.setTheme(next);
-  kit.setBackground(BOARD[next].background);
-});
-kit.onResize((size) => board.relayout(size.width, size.height));
-kit.onRestart(async (scene) => {
-  board = scene;
-  await board.whenReady;
-  board.relayout(kit.size().width, kit.size().height);
-  board.setBoard(state);
-  moving = false;
-  queued = null;
-});
-
-/** Sample blocks 2 … 256 of a preset, drawn like the board's blocks. */
-const SAMPLES = 8;
-function samples(id: PaletteId): HTMLElement {
-  const row = document.createElement('span');
-  row.className = 'samples';
-  row.setAttribute('aria-hidden', 'true');
-  for (let exp = 1; exp <= SAMPLES; exp++) {
-    const style = blockStyle(exp, theme, id);
-    const block = document.createElement('span');
-    block.className = 'sample';
-    block.textContent = formatValue(blockValue(exp));
-    block.style.backgroundColor = cssColor(style.fill);
-    block.style.color = style.text;
-    block.style.boxShadow = `inset 0 -0.2rem 0 ${cssColor(style.edge)}`;
-    row.append(block);
-  }
-  return row;
-}
-
-/** Cài đặt → Màu khối: the board and the next block take the new colours at once; the choice is saved with the player. */
-function palettePicker(): HTMLElement {
-  const choices = PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id) }));
-  return choiceList(choices, palette, (id) => {
-    sfx.play('click');
-    palette = id;
-    board.setPalette(id);
-    showNext(shownNext, false);
-    void persist();
-  });
-}
-
-function requestMove(col: number) {
-  if (overlay.visible) return;
-  const now = performance.now();
-  if (now - lastTap < DOUBLE_TAP_MS) return;
-  lastTap = now;
-  if (moving) queued = col;
-  else void move(col);
-}
-
-async function move(col: number) {
-  if (moving || overlay.visible) return;
-  const result = drop(state, col);
-  if (!result.ok) {
-    if (result.reason === 'column_full') board.reject(col);
-    return;
-  }
-  moving = true;
-  const before = state.score;
-  state = result.state;
-  await board.play(result.events, state, before);
-  showScore(state.score);
-  moving = false;
-  if (!state.over && state.score > before) void run.update(state.score).catch(scoreFailed);
-
-  if (!state.over && queued !== null) {
-    const nextCol = queued;
-    queued = null;
-    void persist();
-    void move(nextCol);
-    return;
-  }
-  queued = null;
-  if (state.over) {
-    const record = state.score > best;
-    best = Math.max(best, state.score);
-    void persist();
-    void run.finish(state.score).catch(scoreFailed);
-    showGameOver(record);
-  } else {
-    void persist();
-  }
-}
-
-function persist(): Promise<void> {
-  const data: Saved = {
-    best: Math.max(best, state.best),
-    game: state.over ? null : state,
-    tutorialSeen,
-    run: runId,
-    palette,
-  };
-  return session.save(data).catch((error) => session.log('warn', `save failed: ${String(error)}`));
-}
-
-function startNewGame() {
-  // A game left unfinished ends here and keeps the best score it reached on the leaderboard.
-  if (!state.over && state.score > 0) void run.finish(state.score).catch(scoreFailed);
-  runId = newRunId();
-  run = session.run(runId);
-  // The next game continues the PRNG sequence, so every new game differs but stays reproducible.
-  state = newGame(state.rng, best);
-  board.setBoard(state);
-  scores.setBest(best);
-  showScore(0, false);
-  void persist();
-}
-
-function showGameOver(record: boolean) {
-  shell.gameOver({
-    icon: record ? '🏆' : '🧱',
-    title: record ? t.record : t.over,
-    body: t.result(formatScore(state.score, session.locale), formatScore(best, session.locale)),
-  });
-}
-
-window.addEventListener('keydown', (event) => {
-  if (overlay.visible) return;
-  if (event.key === 'ArrowLeft') board.nudge(-1);
-  else if (event.key === 'ArrowRight') board.nudge(1);
-  else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
-    if (!event.repeat) requestMove(board.aimedColumn); // holding the key down drops once
-  } else return;
-  event.preventDefault();
-});
-
-await board.whenReady;
-board.relayout(kit.size().width, kit.size().height);
-board.setBoard(state);
-showScore(state.score, false);
 shell.start();

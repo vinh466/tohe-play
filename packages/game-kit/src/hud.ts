@@ -4,7 +4,6 @@
 // The sides share the row equally; a game whose sides differ in width (a score on one, buttons on the other) sets its
 // own `grid-template-columns` on `.tohe-hud` (Tiến Lên does).
 import { formatCompact, formatScore } from './format.ts';
-import type { Shell } from './shell.ts';
 
 export interface StatOptions {
   /** Where the box goes: the start (after ☰) or the end. Default: the start. */
@@ -43,8 +42,8 @@ export interface Hud {
 }
 
 export interface HudOptions {
-  /** The shell, for its ☰. */
-  shell: Pick<Shell, 'menuButton'>;
+  /** ☰, from the play stage's context (`ctx.menuButton()`): always first. */
+  menu: HTMLButtonElement;
   /** The game's root: the HUD goes first in it. */
   parent: HTMLElement;
   locale: string;
@@ -53,12 +52,12 @@ export interface HudOptions {
 /** How long a value counts up. */
 const COUNT_MS = 380;
 
-export function createHud({ shell, parent, locale }: HudOptions): Hud {
+export function createHud({ menu, parent, locale }: HudOptions): Hud {
   const element = node('header', 'tohe-hud');
   const start = node('div', 'tohe-hud-start');
   const center = node('div', 'tohe-hud-center');
   const end = node('div', 'tohe-hud-end');
-  element.append(shell.menuButton(), start, center, end);
+  element.append(menu, start, center, end);
   parent.prepend(element);
 
   const stat = (label: string, options: StatOptions = {}, best = false): Stat => {

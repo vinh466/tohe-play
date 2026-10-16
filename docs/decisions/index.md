@@ -31,5 +31,6 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0015](0015-device-telemetry.md) | Collect technical telemetry from players' devices, first-party and visible | Accepted |
 | [0016](0016-online-rooms-for-turn-based-games.md) | Online rooms for turn-based games, refereed by the API with the game's own rules | Accepted; the seed's secrecy amended by 0017 |
 | [0017](0017-replays-of-finished-online-hands.md) | Replay finished online hands with the game's own rules module | Accepted |
-| [0018](0018-every-game-opens-on-its-own-main-menu.md) | Every game opens on its own main menu and has one menu button | Accepted; the screens amended by 0019 |
-| [0019](0019-game-shell-2-title-screen-hud-and-first-screen.md) | Give every game a title screen, a HUD and a pause that holds, from the kit | Accepted |
+| [0018](0018-every-game-opens-on-its-own-main-menu.md) | Every game opens on its own main menu and has one menu button | Accepted; the screens amended by 0019 and 0020 |
+| [0019](0019-game-shell-2-title-screen-hud-and-first-screen.md) | Give every game a title screen, a HUD and a pause that holds, from the kit | Accepted; stages amended by 0020 |
+| [0020](0020-a-game-has-a-menu-stage-and-a-play-stage.md) | Give every game a menu stage and a play stage | Accepted |

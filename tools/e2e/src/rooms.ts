@@ -122,10 +122,11 @@ function historyIndex(page: Page): Promise<number> {
   return page.evaluate(() => (history.state as { __TSR_index: number }).__TSR_index);
 }
 
+/** The game's frame once it shows something: its title screen (the menu stage) or a table (the play stage, ADR 0020). */
 async function gameFrame(page: Page): Promise<Frame> {
   for (let i = 0; i < 100; i++) {
     const frame = page.frames().find((f) => f.url().includes('/tien-len/'));
-    if (frame && (await frame.locator('#play').count()) > 0) return frame;
+    if (frame && (await frame.locator('[data-tohe-play], #play').count()) > 0) return frame;
     await page.waitForTimeout(200);
   }
   throw new Error('the game never appeared');
@@ -176,7 +177,7 @@ try {
   await host.reload();
   await signIn(kid, family, 'Bé Na');
 
-  step("the host opens Tiến Lên: the game's title screen leads to the lobby (ADR 0019)");
+  step("the host opens Tiến Lên: the game's title screen leads to the lobby (ADR 0020)");
   const card = host.getByRole('link', { name: /Tiến Lên/ });
   for (let attempt = 0; !(await card.isVisible()); attempt++) {
     if (attempt === 20) throw new Error('Tiến Lên never appeared in the catalog');

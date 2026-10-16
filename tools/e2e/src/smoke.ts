@@ -156,7 +156,7 @@ try {
   await shot('catalog');
 
   step(
-    "launch it: the loading screen gives way to the game's title screen, full screen, with no hub bar (ADR 0019)",
+    "launch it: the loading screen gives way to the game's own title screen, full screen, with no hub bar (ADR 0020)",
   );
   const catalogEntry = await historyIndex(page);
   await card.tap();
@@ -172,7 +172,7 @@ try {
   await shot('main-menu');
 
   step('play one 20 s round');
-  // Random taps must never reach the menu (☰, top left), whose "Về Tò He" would close the game: they stay in the
+  // Random taps must never reach the menu (☰, top left), whose 🏠 would leave the round: they stay in the
   // playfield, below the HUD. The deadline is taken *before* the round starts (slow CI must not stretch it past
   // 20 s), and tapping stops as soon as the round's end card shows.
   const end = Date.now() + 17_000;
@@ -237,7 +237,7 @@ try {
   }
 
   step("the game's title screen opens the hub's leaderboard over the game");
-  await frame.getByRole('button', { name: '☰ Menu chính' }).tap();
+  await frame.getByRole('button', { name: '🏠 Menu chính' }).tap();
   await frame.getByRole('button', { name: 'Bảng xếp hạng' }).tap();
   const board = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await board.getByText('Bé Na (bạn)').waitFor();
@@ -259,7 +259,7 @@ try {
       document.dispatchEvent(new Event('visibilitychange'));
     }, hidden);
   // Going on counts 3, 2, 1 first (a game against the clock): wait until play is back before hiding it.
-  await frame.locator('.tohe-overlay').waitFor({ state: 'hidden' });
+  await frame.locator('.tohe-overlay:not(.tohe-menu-stage)').waitFor({ state: 'hidden' });
   await setHidden(true);
   await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor();
   await setHidden(false);
@@ -268,13 +268,19 @@ try {
     throw new Error('the menu closed by itself when the game came back');
   }
   await frame.getByRole('button', { name: '▶ Tiếp tục' }).tap();
-  await frame.locator('.tohe-overlay').waitFor({ state: 'hidden' });
+  await frame.locator('.tohe-overlay:not(.tohe-menu-stage)').waitFor({ state: 'hidden' });
 
   step(
-    "leave from the game's own menu: back to the catalog the way the player came (phone Back then leaves Tò He)",
+    'leave: ☰ → 🏠 Menu chính → ← Về Tò He, back to the catalog the way the player came (phone Back then leaves Tò He)',
   );
   await frame.locator('[data-tohe-menu]').tap();
-  await frame.getByRole('button', { name: '← Về Tò He' }).tap();
+  // Over play there is no way out to Tò He (ADR 0020): it is one level up, on the title screen.
+  if (await frame.getByRole('button', { name: /Về Tò He/ }).isVisible()) {
+    throw new Error('the in-game menu offers a way out to Tò He');
+  }
+  await frame.getByRole('button', { name: 'Menu chính' }).tap();
+  await frame.getByRole('button', { name: '▶ Chơi', exact: true }).waitFor();
+  await frame.getByRole('button', { name: 'Về Tò He' }).tap();
   await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`);
   const leftTo = await historyIndex(page);
   if (leftTo !== catalogEntry) {

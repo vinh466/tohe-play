@@ -48,8 +48,9 @@ The game ends when **none of the pieces left in the tray fits anywhere** on the 
 
 ## Screens
 
-The kit's game shell and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0019): the title screen, ☰
-and its menu, the end card and phone Back come with the kit; this game brings its content.
+The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020): the title
+screen and its screens, the play stage's ☰ and quick panel, the end card and phone Back come with the kit; this game
+brings its content (`main.ts`, `stage.ts`).
 
 1. **How to play** (before the first **Chơi**, then from ❓), with three picture hints:
    - drag or tap a piece onto the board;

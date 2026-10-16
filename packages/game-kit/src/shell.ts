@@ -1,15 +1,26 @@
-// The game shell (ADR 0018, ADR 0019): every game opens on its title screen, plays with one ☰ button whose menu
-// pauses what can pause and holds the way back to Tò He, and comes back to the title screen. A game brings its
-// content (name, picture, how to play, settings, scores or rooms); the kit owns the screens, their order, words and
-// look, so every game behaves the same and a new game inherits all of it.
+// The game shell (ADR 0018–0020). Every game has two stages:
 //
-//   start() ─▶ title ──Chơi──▶ (how to play, the first time) ──▶ playing ──☰ / Back / hidden──▶ menu ─┐
-//                ▲                                                  │  ▲                                │
-//                │                                                  │  └──── Tiếp tục (3-2-1 if timed) ┘
-//                └────── Menu chính / Back ◀── game over ◀──────────┘
-//   Back steps back one screen; from the title screen it leaves Tò He's game (session.exit()).
+// - the MENU STAGE, its own first screen: the title, play, its options as full screens, the leaderboard and online
+//   play, and the only way back to Tò He. It runs no engine and draws no board;
+// - the PLAY STAGE, created when the player presses play (its module is fetched in the background while the menu is
+//   up), saved and destroyed when the player goes back to the menu. Over it, one ☰ opens a quick panel with what fits
+//   a game in progress — resume, sound and the game's looks applied in place, a new game, how to play, the menu.
+//
+//   menu stage                                        play stage
+//   title ─⚙️/❓/🔄─▶ full screen (Back ◀)              loading ─▶ playing ◀─▶ panel (☰, Back, the hub hiding it;
+//     │ Chơi (the how-to first, the first time) ─────▶   │                    3-2-1 before a timed game goes on)
+//     ◀──────────── 🏠 Menu chính / the end of a game ───┘
+//     └─ Back / ← Về Tò He ─▶ Tò He
+//
+// A game brings its content; the kit owns the stages, their screens, words and look.
 import type { GameSession } from '@tohe/game-sdk';
-import { createOverlay, type Overlay, type OverlayAction, type OverlayCard } from './overlay.ts';
+import {
+  createOverlay,
+  type Overlay,
+  type OverlayAction,
+  type OverlayCard,
+  type OverlayRow,
+} from './overlay.ts';
 
 export interface ShellStrings {
   play: string;
@@ -17,6 +28,8 @@ export interface ShellStrings {
   /** The first-time how-to's button. */
   start: string;
   newGame: string;
+  /** The caption of 🔄 in the in-game panel. */
+  newGameShort: string;
   confirmTitle: string;
   confirmBody: string;
   back: string;
@@ -34,8 +47,12 @@ export interface ShellStrings {
   resume: string;
   menu: string;
   mainMenu: string;
+  /** The caption of 🏠 in the in-game panel. */
+  mainMenuShort: string;
   again: string;
-  /** Under a setting that changes how a game plays, opened during one. */
+  loading: string;
+  failed: string;
+  /** Under a setting that changes how a game plays, while one is in progress. */
   betweenGames: string;
   /** In the menu at an online table, which does not stop for anyone. */
   goesOn: string;
@@ -47,6 +64,7 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     continue: '▶ Chơi tiếp',
     start: '▶ Bắt đầu',
     newGame: '🔄 Ván mới',
+    newGameShort: 'Ván mới',
     confirmTitle: 'Bắt đầu ván mới?',
     confirmBody: 'Ván đang chơi sẽ kết thúc. Điểm đã đạt vẫn được tính.',
     back: 'Quay lại',
@@ -62,9 +80,12 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     paused: 'Tạm dừng',
     resume: '▶ Tiếp tục',
     menu: 'Menu',
-    mainMenu: '☰ Menu chính',
+    mainMenu: '🏠 Menu chính',
+    mainMenuShort: 'Menu chính',
     again: '▶ Chơi lại',
-    betweenGames: 'Đổi ở menu chính, áp dụng từ ván sau.',
+    loading: 'Đang vào ván…',
+    failed: 'Chưa mở được ván chơi. Thử lại nhé.',
+    betweenGames: 'Đang có ván dở: áp dụng từ ván sau.',
     goesOn: 'Bàn vẫn tiếp tục khi bạn mở menu.',
   },
   en: {
@@ -72,6 +93,7 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     continue: '▶ Continue',
     start: '▶ Start',
     newGame: '🔄 New game',
+    newGameShort: 'New game',
     confirmTitle: 'Start a new game?',
     confirmBody: 'The game in progress will end. The points you scored still count.',
     back: 'Back',
@@ -87,9 +109,12 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     paused: 'Paused',
     resume: '▶ Resume',
     menu: 'Menu',
-    mainMenu: '☰ Main menu',
+    mainMenu: '🏠 Main menu',
+    mainMenuShort: 'Main menu',
     again: '▶ Play again',
-    betweenGames: 'Change it from the main menu; it applies from the next game.',
+    loading: 'Getting the game ready…',
+    failed: 'The game could not start. Please try again.',
+    betweenGames: 'A game is in progress: this applies from the next one.',
     goesOn: 'The table goes on while your menu is open.',
   },
 };
@@ -97,184 +122,173 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
 export const shellStrings = (locale: string): ShellStrings =>
   locale.startsWith('vi') ? STRINGS.vi : STRINGS.en;
 
+/** A section of the menu stage's ⚙️ Cài đặt screen. */
 export interface ShellSetting {
   label: string;
-  /** `between-games` changes how a game plays: read-only while one is on. `any-time`: looks, at once. */
+  /** `between-games` changes how a game plays: it applies from the next game. `any-time`: looks, at once. */
   when: 'between-games' | 'any-time';
-  /** The setting's card; `readOnly` when it cannot change now. Its buttons are the shell's. */
-  card(readOnly: boolean): Omit<OverlayCard, 'actions'>;
+  /** The section's controls (toggles, a `choiceList`), built each time the screen opens. */
+  content(): HTMLElement;
+}
+
+/** What the shell hands the play stage when it creates it. */
+export interface StageContext {
+  /** The stage's own element, empty, filling the game's root: the stage builds its HUD and board in it. */
+  readonly root: HTMLElement;
+  /** The player asked for a fresh game (🔄 Ván mới on the title screen); otherwise continue the saved one. */
+  readonly fresh: boolean;
+  /** The how-to was just shown: point at a first move. */
+  readonly firstTime: boolean;
+  /** ☰ for the HUD (`createHud` puts it first). */
+  menuButton(): HTMLButtonElement;
+  /** The game's own cards over play (hints, a hand's results): they come back after the panel closes. */
+  readonly overlay: Overlay;
+  /** A finished game: its card with ▶ Chơi lại (or `again`) and 🏠 Menu chính; Back goes to the menu. */
+  gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction): void;
+  /** The board is drawn: the loading view lifts. Call it once, after the first frame's state is set. */
+  ready(): void;
+}
+
+/**
+ * A row of the in-game panel from the play stage: a switch or a choice applied in place, or `info` — a card to read
+ * (the table's rules) that opens over the panel and goes back to it.
+ */
+export type QuickRow =
+  | OverlayRow
+  | { kind: 'info'; label: string; icon?: string; card(): Omit<OverlayCard, 'actions'> };
+
+/** A running play stage, as the game's `start(ctx)` returns it. */
+export interface PlayStage {
+  /** Stop what runs (clock, bots, animations): the panel or the hub is over it. */
+  pause(): void;
+  resume(): void;
+  /** 🔄 Ván mới / ▶ Chơi lại: a fresh game in place. */
+  newGame(): void;
+  /** Back to the menu: save, then stop timers and listeners and free the engine. The shell empties the root after. */
+  leave(): void | Promise<void>;
+  /** The panel's live rows (the game's looks: block colours, the deck), read each time it opens. */
+  quick?(): QuickRow[];
+}
+
+export interface StageModule {
+  start(ctx: StageContext): PlayStage | Promise<PlayStage>;
 }
 
 /** The parts of the session the shell uses; any game's session fits, whatever its save. */
 export type ShellSessionLike = Pick<
   GameSession<never>,
-  'mode' | 'locale' | 'settings' | 'shell' | 'exit' | 'on'
+  'mode' | 'locale' | 'settings' | 'shell' | 'exit' | 'on' | 'log'
 >;
 
 export interface ShellOptions {
   session: ShellSessionLike;
-  /** Where the shell's overlay goes (usually the game's root element). */
+  /** The game's root element: the shell puts its two stages and its panels in it. */
   root: HTMLElement;
   title: string;
-  /** Emoji shown large on the title screen. */
+  /** Emoji shown large on the title screen and the loading view. */
   icon: string;
+  /** A few emoji drifting behind the title screen, in the game's spirit (default: the icon). */
+  decor?: string[];
   strings?: Partial<ShellStrings>;
-  /** The game in progress in a few words (e.g. "Điểm 1.234"), or null: decides "Chơi" or "Chơi tiếp". */
+  /** The game in progress in a few words (e.g. "Ván đang chơi dở: 1.234 điểm."), or null: "Chơi" or "Chơi tiếp". */
   inProgress(): string | null;
-  /** Leave the title screen and play: continue the game in progress, or start one when there is none. */
-  play(): void;
-  /** The player chose a fresh game over the one in progress (or after a game ended): start it. */
-  newGame(): void;
+  /** The best result in a few words (e.g. "👑 Kỷ lục 12.345"), shown under the title. */
+  best?(): string | null;
   howTo(): Omit<OverlayCard, 'actions'>;
-  /**
-   * First-time help: the how-to card shows before the first play until `seen()`; `done()` runs once play has
-   * started from it (remember it in the save, point at a first move).
-   */
+  /** First-time help: the how-to screen shows before the first game until `seen()`; `done()` when it is passed. */
   tutorial?: { seen(): boolean; done(): void };
+  /** The sections of ⚙️ Cài đặt (sound comes first by itself). */
   settings?: ShellSetting[];
   /** The game has online rooms: "Chơi online" when the hub can open the lobby. */
   online?: boolean;
   /** The game keeps scores: the leaderboard when the hub can show it. */
   leaderboard?: boolean;
-  /** Play stops (clock, bots, animations) while a shell screen covers it; `onResume` when play goes on. */
-  onPause?(): void;
-  onResume?(): void;
-  /** Play runs against the clock: going on from the menu counts 3, 2, 1 first. */
+  /** Play runs against the clock: going on from the panel counts 3, 2, 1 first. */
   countdown?: boolean;
+  /** The play stage's module, e.g. `() => import('./stage.ts')`: fetched while the menu is up, started on play. */
+  stage(): Promise<StageModule>;
   /**
-   * Opened straight into play, with no title screen: an online table, a replay. `goesOn` when nothing stops for the
-   * menu (a table); `exitLabel` names the way out (the hub asks before giving a seat up).
+   * Opened straight into play, with no menu stage: an online table, a replay. `goesOn` when nothing stops for the
+   * panel (a table); `exitLabel` names the way out, which the panel keeps (the hub asks before giving a seat up).
    */
   direct?: { exitLabel: string; goesOn: boolean };
-  /** Draws the cards; by default the kit's overlay in `root`. Tests pass their own. */
-  overlay?: Overlay;
+  /** Tests: the two layers and the play stage's element, instead of real ones in `root`. */
+  layers?: { menu: Overlay; play: Overlay; stage: HTMLElement };
 }
 
 export interface Shell {
-  /** For the game's own cards (first-time hints, results): they come back when a menu over them closes. */
-  readonly overlay: Overlay;
+  /** Shows the first screen — the title, or play when opened directly — and tells the hub it is up. Call it once. */
+  start(): void;
   /** True while the game is on screen with nothing over it. */
   readonly playing: boolean;
-  /**
-   * The game's first frame is ready: show the title screen (or play, when opened directly). This is also the hub's
-   * sign to lift its loading screen, so call it once the board is drawn, not before.
-   */
-  start(): void;
-  /** The title screen (the game in progress stays: "Chơi tiếp"). */
-  mainMenu(): void;
-  /** The in-game menu (☰, phone Back, Escape, the hub hiding the game). */
-  menu(): void;
-  /** ☰ for the game's HUD (createHud puts it first). */
-  menuButton(): HTMLButtonElement;
-  /** A finished game: its card with "Chơi lại" (or `again`) and "Menu chính"; Back goes to the title screen. */
-  gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction): void;
 }
 
-type Screen = 'boot' | 'title' | 'intro' | 'playing' | 'menu' | 'sub' | 'count' | 'over';
+type Screen =
+  | 'boot'
+  | 'title'
+  | 'screen'
+  | 'loading'
+  | 'playing'
+  | 'panel'
+  | 'card'
+  | 'count'
+  | 'over'
+  | 'failed';
 
 /** One number of the 3-2-1 before play goes on. */
 const COUNT_MS = 650;
+/** A stage that never says its first frame is ready is shown anyway after this long. */
+const READY_MS = 8000;
 
 export function createShell(options: ShellOptions): Shell {
   const { session, direct } = options;
   const t: ShellStrings = { ...shellStrings(session.locale), ...options.strings };
-  const raw = options.overlay ?? createOverlay(options.root);
   const embedded = session.mode === 'embedded';
+  const stageRoot = options.layers?.stage ?? element('div', 'tohe-play-stage');
+  if (!options.layers) {
+    stageRoot.hidden = true;
+    options.root.append(stageRoot);
+  }
+  const playLayer = options.layers?.play ?? createOverlay(options.root);
+  const menuLayer = options.layers?.menu ?? createOverlay(options.root, { stage: true });
+
   let screen: Screen = 'boot';
-  /** Play is stopped for a shell screen: onPause ran, onResume has not yet. */
+  let stage: PlayStage | null = null;
+  /** Bumped by every entry into play and every way out of it: a slow load that lost the race is dropped. */
+  let entry = 0;
+  /** The previous stage still cleaning up: a new one waits for it. */
+  let leaving: Promise<void> = Promise.resolve();
+  /** Play is stopped for the panel (or a card over it): stage.pause() ran, resume() has not yet. */
   let paused = false;
-  /** Where a card opened from a menu goes back to. */
+  /** Where Back goes from a full screen of the menu stage, or from a card opened over the panel. */
   let parent: () => void = () => {};
-  /** The game's own card, shown while playing and brought back after a menu. */
+  /** The game's own card, shown while playing and brought back after the panel. */
   let gameCard: OverlayCard | null = null;
-  /** A game that ended while a menu was open: its card shows when play would go on. */
+  /** A game that ended while the panel was open: its card shows when play would go on. */
   let ended: OverlayCard | null = null;
-  /** The end card on screen, kept while a menu opens over it (a replay's). */
+  /** The end card on screen, kept while the panel opens over it (a replay's). */
   let shownOver: OverlayCard | null = null;
   let counting: ReturnType<typeof setTimeout> | null = null;
+  let warmed = false;
 
-  /** Tells the hub whether a shell screen is up; every step answers its Back, so the hub knows the game is alive. */
+  /** Tells the hub whether a menu or screen is up; every step answers its Back, so the hub knows the game is alive. */
   const report = (open: boolean) => session.shell.menuChanged(open);
-  const pause = () => {
-    if (paused) return;
-    paused = true;
-    options.onPause?.();
-  };
-  const resume = () => {
-    if (!paused) return;
-    paused = false;
-    options.onResume?.();
-  };
   const stopCounting = () => {
     if (counting !== null) clearTimeout(counting);
     counting = null;
   };
+  const pauseStage = () => {
+    if (paused || !stage) return;
+    paused = true;
+    stage.pause();
+  };
+  const resumeStage = () => {
+    if (!paused || !stage) return;
+    paused = false;
+    stage.resume();
+  };
 
-  /** A shell screen: play stops under it. */
-  const show = (next: Screen, card: OverlayCard) => {
-    stopCounting();
-    pause();
-    screen = next;
-    raw.show(card);
-    report(true);
-  };
-  const showOver = (card: OverlayCard) => {
-    stopCounting();
-    shownOver = card;
-    screen = 'over';
-    raw.show(card);
-    report(true);
-  };
-  const enterPlaying = () => {
-    stopCounting();
-    if (ended) {
-      const card = ended;
-      ended = null;
-      resume();
-      showOver(card);
-      return;
-    }
-    screen = 'playing';
-    if (gameCard) raw.show(gameCard);
-    else raw.hide();
-    report(false);
-    resume();
-  };
-  /** From the menu back to play: 3, 2, 1 first for a game against the clock. */
-  const goOn = () => {
-    if (!options.countdown || ended || gameCard || !paused) return enterPlaying();
-    const count = (n: number) => {
-      screen = 'count';
-      raw.show({ layout: 'count', title: String(n), actions: [] });
-      report(false);
-      counting = setTimeout(() => (n > 1 ? count(n - 1) : enterPlaying()), COUNT_MS);
-    };
-    count(3);
-  };
-  /** Play from the title screen (or a new game): the how-to first, the first time. */
-  const begin = (startPlay: () => void) => {
-    const tutorial = options.tutorial;
-    if (tutorial && !tutorial.seen()) {
-      parent = titleScreen;
-      show('intro', {
-        ...options.howTo(),
-        actions: [
-          {
-            label: t.start,
-            attributes: { 'data-tohe-play': '' },
-            onClick: () => {
-              enterPlaying();
-              startPlay();
-              tutorial.done();
-            },
-          },
-        ],
-      });
-      return;
-    }
-    enterPlaying();
-    startPlay();
-  };
+  // ------------------------------------------------------------------ menu stage
 
   const exitAction = (): OverlayAction => ({
     label: direct?.exitLabel ?? t.exit,
@@ -282,112 +296,85 @@ export function createShell(options: ShellOptions): Shell {
     attributes: { 'data-tohe-exit': '' },
     onClick: () => session.exit(),
   });
-  const sub = (card: Omit<OverlayCard, 'actions'>, back: () => void) => {
-    parent = back;
-    show('sub', { ...card, actions: [{ label: t.back, onClick: back }] });
-  };
   const toggleSound = (again: () => void) => {
     session.shell.setMuted(!session.settings.muted);
     again();
   };
-  const soundTool = (again: () => void): OverlayAction => ({
+  const soundRow = (again: () => void): OverlayRow => ({
+    kind: 'switch',
     icon: session.settings.muted ? '🔇' : '🔊',
     label: t.sound,
-    ariaLabel: session.settings.muted ? t.soundOff : t.soundOn,
-    onClick: () => toggleSound(again),
+    on: !session.settings.muted,
+    onChange: () => toggleSound(again),
   });
-  const settingsTool = (from: () => void, during: boolean): OverlayAction => ({
-    icon: '⚙️',
-    label: t.settings,
-    onClick: () => settingsCard(from, during),
-  });
-  const howToTool = (from: () => void): OverlayAction => ({
-    icon: '❓',
-    label: t.howTo,
-    onClick: () => sub(options.howTo(), from),
-  });
-
-  /** `during`: opened from the in-game menu, so settings that change how a game plays are read-only. */
-  const settingsCard = (from: () => void, during: boolean) => {
-    const open = () => settingsCard(from, during);
-    parent = from;
-    const muted = session.settings.muted;
-    show('sub', {
-      icon: '⚙️',
-      title: t.settings,
-      layout: 'menu',
-      actions: [
-        {
-          label: `${muted ? '🔇' : '🔊'} ${muted ? t.soundOff : t.soundOn}`,
-          variant: 'secondary',
-          onClick: () => toggleSound(open),
-        },
-        ...(options.settings ?? []).map(
-          (setting): OverlayAction => ({
-            label: setting.label,
-            variant: 'secondary',
-            onClick: () => {
-              const readOnly = during && setting.when === 'between-games';
-              const card = setting.card(readOnly);
-              const body = card.body ? `${card.body} ${t.betweenGames}` : t.betweenGames;
-              sub(readOnly ? { ...card, body } : card, open);
-            },
-          }),
-        ),
-        { label: t.back, onClick: from },
-      ],
-    });
-  };
-
-  const confirmNew = (back: () => void) => {
+  /** A full screen of the menu stage, with ← back in its header. */
+  const menuScreen = (card: Omit<OverlayCard, 'layout' | 'corner'>, back: () => void) => {
     parent = back;
-    show('sub', {
-      icon: '🔄',
-      title: t.confirmTitle,
-      body: t.confirmBody,
-      actions: [
-        { label: t.back, onClick: back },
-        {
-          label: t.newGame,
-          variant: 'secondary',
-          onClick: () => {
-            gameCard = null;
-            ended = null;
-            begin(options.newGame);
-          },
-        },
-      ],
-    });
+    screen = 'screen';
+    menuLayer.show({ ...card, layout: 'screen', corner: { label: '←', ariaLabel: t.back, onClick: back } });
+    report(true);
+  };
+  const howToScreen = (back: () => void) => menuScreen({ ...options.howTo(), actions: [] }, back);
+  function settingsScreen() {
+    const inProgress = options.inProgress() !== null;
+    menuScreen(
+      {
+        icon: '⚙️',
+        title: t.settings,
+        actions: [],
+        rows: [soundRow(settingsScreen)],
+        sections: (options.settings ?? []).map((setting) => ({
+          title: setting.label,
+          note: setting.when === 'between-games' && inProgress ? t.betweenGames : undefined,
+          content: setting.content(),
+        })),
+      },
+      titleScreen,
+    );
+  }
+
+  /** Fetches the play stage while the player looks at the menu, so play starts without a download (Apple HIG). */
+  const warm = () => {
+    if (warmed) return;
+    warmed = true;
+    const fetchStage = () => void options.stage().catch(() => {});
+    if (typeof requestIdleCallback === 'function') requestIdleCallback(fetchStage, { timeout: 2000 });
+    else setTimeout(fetchStage, 300);
   };
 
   function titleScreen() {
-    if (direct) return pauseMenu();
-    // A game that ended under the menu is behind the player now: Chơi starts the next one.
+    screen = 'title';
     ended = null;
     const summary = options.inProgress();
     const can = session.shell.can;
-    show('title', {
+    menuLayer.show({
       layout: 'title',
       icon: options.icon,
       title: options.title,
-      body: summary ?? undefined,
+      body: [summary, options.best?.()].filter(Boolean).join(' · ') || undefined,
+      decor: options.decor ?? [options.icon],
       corner: embedded ? { ...exitAction(), ariaLabel: t.exit.replace(/^←\s*/, '') } : undefined,
       actions: [
         {
           label: summary ? t.continue : t.play,
           attributes: { 'data-tohe-play': '' },
-          onClick: () => begin(options.play),
+          onClick: () => begin(false),
         },
         ...(summary
-          ? [{ label: t.newGame, variant: 'secondary' as const, onClick: () => confirmNew(titleScreen) }]
+          ? [{ label: t.newGame, variant: 'secondary' as const, onClick: () => confirmFromTitle() }]
           : []),
         ...(options.online && can.rooms
           ? [{ label: t.online, variant: 'secondary' as const, onClick: () => session.shell.open('rooms') }]
           : []),
       ],
       tools: [
-        soundTool(titleScreen),
-        settingsTool(titleScreen, false),
+        {
+          icon: session.settings.muted ? '🔇' : '🔊',
+          label: t.sound,
+          ariaLabel: session.settings.muted ? t.soundOff : t.soundOn,
+          onClick: () => toggleSound(titleScreen),
+        },
+        { icon: '⚙️', label: t.settings, onClick: settingsScreen },
         ...(options.leaderboard && can.leaderboard
           ? [
               {
@@ -398,111 +385,359 @@ export function createShell(options: ShellOptions): Shell {
               },
             ]
           : []),
-        howToTool(titleScreen),
+        { icon: '❓', label: t.howTo, onClick: () => howToScreen(titleScreen) },
       ],
     });
+    report(true);
+    warm();
   }
 
-  function pauseMenu() {
-    // Over an end card (a replay's), the menu goes back to it.
+  const confirmFromTitle = () =>
+    menuScreen(
+      {
+        icon: '🔄',
+        title: t.confirmTitle,
+        body: t.confirmBody,
+        actions: [
+          { label: t.back, onClick: titleScreen },
+          { label: t.newGame, variant: 'secondary', onClick: () => begin(true) },
+        ],
+      },
+      titleScreen,
+    );
+
+  /** Play from the title screen: the how-to first, the first time. */
+  function begin(fresh: boolean) {
+    const tutorial = options.tutorial;
+    if (tutorial && !tutorial.seen()) {
+      menuScreen(
+        {
+          ...options.howTo(),
+          actions: [
+            {
+              label: t.start,
+              attributes: { 'data-tohe-play': '' },
+              onClick: () => {
+                tutorial.done();
+                void enterPlay(fresh, true);
+              },
+            },
+          ],
+        },
+        titleScreen,
+      );
+      return;
+    }
+    void enterPlay(fresh, false);
+  }
+
+  // ------------------------------------------------------------------ play stage
+
+  const gameOverlay: Overlay = {
+    show(card) {
+      gameCard = card;
+      if (screen === 'playing') playLayer.show(card);
+    },
+    hide() {
+      gameCard = null;
+      if (screen === 'playing') playLayer.hide();
+    },
+    get visible() {
+      return playLayer.visible;
+    },
+  };
+
+  const menuButton = () => {
+    const button = element('button', 'tohe-icon-button tohe-menu-button', '☰');
+    button.type = 'button';
+    button.setAttribute('aria-label', t.menu);
+    button.dataset.toheMenu = '';
+    button.addEventListener('click', () => {
+      if (screen === 'playing' || screen === 'count') panel();
+    });
+    return button;
+  };
+
+  async function enterPlay(fresh: boolean, firstTime: boolean) {
+    const mine = ++entry;
+    screen = 'loading';
+    menuLayer.hide();
+    playLayer.show({ layout: 'loading', icon: options.icon, title: t.loading, actions: [] });
+    report(true);
+    // The previous stage may still be cleaning up its element.
+    await leaving;
+    if (mine !== entry) return;
+    stageRoot.hidden = false;
+    let markReady = () => {};
+    const ready = new Promise<void>((resolve) => {
+      markReady = resolve;
+      setTimeout(resolve, READY_MS);
+    });
+    try {
+      const module = await options.stage();
+      if (mine !== entry) return;
+      const created = await module.start({
+        root: stageRoot,
+        fresh,
+        firstTime,
+        menuButton,
+        overlay: gameOverlay,
+        gameOver,
+        ready: () => markReady(),
+      });
+      if (mine !== entry) {
+        // Back while it loaded: the player is on the menu already.
+        await created.leave();
+        return;
+      }
+      stage = created;
+      paused = false;
+      await ready;
+      if (mine !== entry) return;
+      enterPlaying();
+    } catch (error) {
+      if (mine !== entry) return;
+      session.log('error', `play stage failed: ${String(error)}`);
+      screen = 'failed';
+      playLayer.show({
+        icon: '😕',
+        title: options.title,
+        body: t.failed,
+        actions: [{ label: t.back, onClick: () => void leavePlay() }],
+      });
+      report(true);
+    }
+  }
+
+  /** Back to the menu stage: the title shows at once, the stage saves and frees itself under it. */
+  async function leavePlay() {
+    entry++;
+    stopCounting();
+    const leavingStage = stage;
+    stage = null;
+    paused = false;
+    gameCard = null;
+    ended = null;
+    shownOver = null;
+    playLayer.hide();
+    if (direct) {
+      session.exit();
+      return;
+    }
+    titleScreen();
+    leaving = (async () => {
+      try {
+        await leavingStage?.leave();
+      } catch (error) {
+        session.log('warn', `play stage did not leave cleanly: ${String(error)}`);
+      }
+      stageRoot.replaceChildren();
+      stageRoot.hidden = true;
+    })();
+    await leaving;
+  }
+
+  const showOver = (card: OverlayCard) => {
+    stopCounting();
+    shownOver = card;
+    screen = 'over';
+    playLayer.show(card);
+    report(true);
+  };
+
+  function enterPlaying() {
+    stopCounting();
+    if (ended) {
+      const card = ended;
+      ended = null;
+      resumeStage();
+      showOver(card);
+      return;
+    }
+    screen = 'playing';
+    if (gameCard) playLayer.show(gameCard);
+    else playLayer.hide();
+    report(false);
+    resumeStage();
+  }
+
+  /** From the panel back to play: 3, 2, 1 first for a game against the clock. */
+  function goOn() {
+    if (!options.countdown || ended || gameCard || !paused) return enterPlaying();
+    const count = (n: number) => {
+      screen = 'count';
+      playLayer.show({ layout: 'count', title: String(n), actions: [] });
+      report(false);
+      counting = setTimeout(() => (n > 1 ? count(n - 1) : enterPlaying()), COUNT_MS);
+    };
+    count(3);
+  }
+
+  /** A card over the panel (how to play, a new game?), whose Back returns to the panel. */
+  const panelCard = (card: OverlayCard) => {
+    parent = panel;
+    screen = 'card';
+    playLayer.show(card);
+    report(true);
+  };
+
+  /** The quick panel over play (ADR 0020): resume, what changes in place, a new game, how to play, the menu. */
+  function panel() {
     if (screen === 'over' && shownOver) ended = shownOver;
+    stopCounting();
+    pauseStage();
+    screen = 'panel';
     const goesOn = direct?.goesOn ?? false;
-    show('menu', {
+    const quick = (stage?.quick?.() ?? []).map(
+      (row): OverlayRow =>
+        row.kind === 'switch'
+          ? {
+              ...row,
+              onChange: (on) => {
+                row.onChange(on);
+                panel();
+              },
+            }
+          : row.kind === 'choices'
+            ? {
+                ...row,
+                onChoose: (id) => {
+                  row.onChoose(id);
+                  panel();
+                },
+              }
+            : row.kind === 'info'
+              ? {
+                  kind: 'link',
+                  label: row.label,
+                  icon: row.icon,
+                  onClick: () => panelCard({ ...row.card(), actions: [{ label: t.back, onClick: panel }] }),
+                }
+              : row,
+    );
+    playLayer.show({
       layout: 'menu',
       icon: goesOn ? '☰' : '⏸️',
       title: goesOn ? t.menu : t.paused,
       body: goesOn ? t.goesOn : undefined,
-      actions: [
-        { label: t.resume, onClick: goOn },
+      actions: [{ label: t.resume, onClick: goOn }],
+      rows: [soundRow(panel), ...quick],
+      tools: [
         ...(direct
           ? []
           : [
-              { label: t.newGame, variant: 'secondary' as const, onClick: () => confirmNew(pauseMenu) },
-              { label: t.mainMenu, variant: 'secondary' as const, onClick: titleScreen },
+              {
+                icon: '🔄',
+                label: t.newGameShort,
+                onClick: () =>
+                  panelCard({
+                    icon: '🔄',
+                    title: t.confirmTitle,
+                    body: t.confirmBody,
+                    actions: [
+                      { label: t.back, onClick: panel },
+                      {
+                        label: t.newGame,
+                        variant: 'secondary',
+                        onClick: () => {
+                          gameCard = null;
+                          ended = null;
+                          enterPlaying();
+                          stage?.newGame();
+                        },
+                      },
+                    ],
+                  }),
+              },
+            ]),
+        {
+          icon: '❓',
+          label: t.howTo,
+          onClick: () => panelCard({ ...options.howTo(), actions: [{ label: t.back, onClick: panel }] }),
+        },
+        ...(direct
+          ? []
+          : [
+              {
+                icon: '🏠',
+                label: t.mainMenuShort,
+                attributes: { 'data-tohe-main-menu': '' },
+                onClick: () => void leavePlay(),
+              },
             ]),
       ],
-      tools: [soundTool(pauseMenu), settingsTool(pauseMenu, true), howToTool(pauseMenu)],
-      footer: embedded || direct ? exitAction() : undefined,
+      footer: direct ? exitAction() : undefined,
     });
+    report(true);
   }
 
-  const shell: Shell = {
-    overlay: {
-      show(card) {
-        gameCard = card;
-        if (screen === 'playing') raw.show(card);
-      },
-      hide() {
-        gameCard = null;
-        if (screen === 'playing') raw.hide();
-      },
-      get visible() {
-        return raw.visible;
-      },
-    },
-    get playing() {
-      return screen === 'playing' && !raw.visible;
-    },
-    start() {
-      if (screen !== 'boot') return;
-      if (direct) enterPlaying();
-      else titleScreen();
-    },
-    mainMenu() {
-      if (screen === 'boot') return shell.start();
-      titleScreen();
-    },
-    menu() {
-      if (screen === 'playing' || screen === 'menu' || screen === 'count' || (screen === 'over' && direct)) {
-        pauseMenu();
-      }
-    },
-    menuButton() {
-      const button = document.createElement('button');
-      button.type = 'button';
-      button.className = 'tohe-icon-button tohe-menu-button';
-      button.setAttribute('aria-label', t.menu);
-      button.dataset.toheMenu = '';
-      button.textContent = '☰';
-      button.addEventListener('click', () => shell.menu());
-      return button;
-    },
-    gameOver(card, again) {
-      gameCard = null;
-      const over: OverlayCard = {
-        ...card,
-        actions: [
-          again
-            ? {
-                ...again,
-                onClick: () => {
-                  enterPlaying();
-                  again.onClick();
-                },
-              }
-            : { label: t.again, onClick: () => begin(options.newGame) },
-          direct ? exitAction() : { label: t.mainMenu, variant: 'secondary', onClick: titleScreen },
-        ],
-      };
-      if (screen === 'playing' || screen === 'count') showOver(over);
-      else ended = over;
-    },
-  };
+  function gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction) {
+    gameCard = null;
+    const over: OverlayCard = {
+      ...card,
+      actions: [
+        again
+          ? {
+              ...again,
+              onClick: () => {
+                enterPlaying();
+                again.onClick();
+              },
+            }
+          : {
+              label: t.again,
+              onClick: () => {
+                enterPlaying();
+                stage?.newGame();
+              },
+            },
+        direct
+          ? { ...exitAction(), variant: 'secondary' }
+          : {
+              label: t.mainMenu,
+              variant: 'secondary',
+              attributes: { 'data-tohe-main-menu': '' },
+              onClick: () => void leavePlay(),
+            },
+      ],
+    };
+    if (screen === 'playing' || screen === 'count') showOver(over);
+    else ended = over;
+  }
 
-  /** Phone Back and Escape: one step back, and out from the title screen. */
+  // ------------------------------------------------------------------ Back, the hub hiding the game, Escape
+
+  /** One level back: play → the panel → play; a screen → the menu; the menu → Tò He. */
   const back = () => {
-    if (screen === 'playing' || screen === 'count') pauseMenu();
-    else if (screen === 'menu') goOn();
-    else if (screen === 'sub' || screen === 'intro') parent();
-    else if (screen === 'over') {
-      if (direct) pauseMenu();
-      else titleScreen();
-    } else if (screen === 'title' && embedded) session.exit();
+    switch (screen) {
+      case 'title':
+        if (embedded) session.exit();
+        break;
+      case 'screen':
+      case 'card':
+        parent();
+        break;
+      case 'loading':
+      case 'failed':
+        void leavePlay();
+        break;
+      case 'playing':
+      case 'count':
+        panel();
+        break;
+      case 'panel':
+        goOn();
+        break;
+      case 'over':
+        if (direct) panel();
+        else void leavePlay();
+        break;
+    }
   };
   session.on('menu', back);
-  // The hub hid the game (another app, a locked phone): play waits in the menu, like any game. A table goes on.
+  // The hub hid the game (another app, a locked phone): play waits in the panel, like any game. A table goes on.
   session.on('pause', () => {
-    if ((screen === 'playing' && !direct?.goesOn) || screen === 'count') pauseMenu();
+    if ((screen === 'playing' && !direct?.goesOn) || screen === 'count') panel();
   });
   if (typeof window !== 'undefined') {
     window.addEventListener('keydown', (event) => {
@@ -511,5 +746,22 @@ export function createShell(options: ShellOptions): Shell {
       back();
     });
   }
-  return shell;
+
+  return {
+    start() {
+      if (screen !== 'boot') return;
+      if (direct) void enterPlay(false, false);
+      else titleScreen();
+    },
+    get playing() {
+      return screen === 'playing' && !playLayer.visible;
+    },
+  };
+}
+
+function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
 }

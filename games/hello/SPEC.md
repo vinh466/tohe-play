@@ -14,18 +14,19 @@ Reference game for the platform: the smallest game that uses every part of the G
 
 ## Screens
 
-The kit's game shell and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0019), with no engine: the
-smallest game shows that a Canvas 2D game gets the same screens as every other one by bringing only its content.
+The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020), with no
+engine: the smallest game shows that a Canvas 2D game gets the same screens as every other one by bringing only its
+content.
 
-1. **Title screen:** 🟠 **Chạm Chấm**, **▶ Chơi**, tools 🔊 ⚙️ 🏆 (signed-in players: the hub's board over the game)
-   ❓, **← Về Tò He** in the corner.
-2. **How to play** (before the first round only, then from ❓): one card — tap the dot as often as you can in 20
-   seconds; it shrinks as you score; missed taps cost nothing. **▶ Bắt đầu** starts the round.
-3. **Playing:** the kit's HUD — ☰, score, seconds left (⏱, glowing for the last five), best; the progress bar and
-   the playfield.
-4. **Menu** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**, **🔄 Ván mới**, **☰ Menu chính**, tools
-   🔊 ⚙️ ❓, **← Về Tò He**. Time does not run while it is open; **Tiếp tục** counts 3, 2, 1 first.
-5. **Round over:** "Hết giờ!" (or "Kỷ lục mới!"), score and best, **▶ Chơi lại**, **☰ Menu chính**; Back goes to the
+1. **Title screen** (the menu stage, no playfield running): 🟠 **Chạm Chấm**, the chip "👑 Kỷ lục n", **▶ Chơi**,
+   tools 🔊 ⚙️ 🏆 (signed-in players: the hub's board over the game) ❓, **← Về Tò He** in the corner.
+2. **How to play** (before the first round only, then from ❓): tap the dot as often as you can in 20 seconds; it
+   shrinks as you score; missed taps cost nothing. **▶ Bắt đầu** starts the round.
+3. **Playing** (the play stage, created on play): the kit's HUD — ☰, score, seconds left (⏱, glowing for the last
+   five), best; the progress bar and the playfield.
+4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục** (3, 2, 1 first), 🔊 Âm thanh
+   as a switch, 🔄 Ván mới · ❓ Cách chơi · 🏠 Menu chính. Time does not run while it is open.
+5. **Round over:** "Hết giờ!" (or "Kỷ lục mới!"), score and best, **▶ Chơi lại**, **🏠 Menu chính**; Back goes to the
    title screen.
 
 ## Sounds

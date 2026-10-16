@@ -23,9 +23,14 @@ sidebar:
 4. **Write the rules as pure functions** in `src/logic.ts` — state in, state out; no DOM, no timers,
    no `Math.random` (take an `Rng`). Test them in `src/logic.test.ts`, including a random-play bot with
    `fast-check` that asserts the invariants of your game.
-5. **Write the view** in `src/main.ts` (or a framework of your choice): read input, call the logic, draw. Connect
-   with `connect({ gameId })`, honour `pause` and `muted`, `save` and `submitScore` at the end of a round (a run saved mid-way reports with `session.run(id)`, ADR 0014). With
-   both themes, follow `settings.theme` (`followTheme` from the kit) and keep a palette per theme for your art.
+5. **Write the two stages** ([ADR 0020](../decisions/0020-a-game-has-a-menu-stage-and-a-play-stage.md)): `src/app.ts`
+   connects (`connect({ gameId })`) and holds what both share (strings, sounds, the save and `persist()`);
+   `src/main.ts` is the menu stage — the kit's `createShell` with the game's content and
+   `stage: () => import('./stage.ts')`; `src/stage.ts` is the play stage — `start(ctx)` reads input, calls the
+   logic, draws, and returns `pause`, `resume`, `newGame`, `leave` (free everything) and `quick` (the panel's live
+   rows). Honour `muted`, `save` after every move and `submitScore` at the end of a round (a run saved mid-way reports
+   with `session.run(id)`, ADR 0014). With both themes, follow `settings.theme` (`followTheme` from the kit) and keep
+   a palette per theme for your art. [Game shell](../architecture/game-shell.md#kit) has the skeleton.
 6. **Verify**:
    ```sh
    pnpm --filter @tohe/game-<id> test
@@ -40,7 +45,7 @@ sidebar:
 
 **Default: Phaser 4 through `@tohe/game-kit`** ([ADR 0012](../decisions/0012-phaser-and-the-game-kit.md),
 [research](../research/game-tech.md)). `games/merge-block` is the reference: copy its `logic.ts` / `view.ts` /
-`main.ts` split.
+`app.ts` / `main.ts` / `stage.ts` split.
 
 | Game type | Choice |
 | --- | --- |
@@ -52,10 +57,11 @@ sidebar:
 What the kit gives you, so you do not write it again: `createGame` (crisp on phones, resize, pause/resume, Canvas
 fallback when WebGL fails), `sfx` (synthesised sounds, iOS unlock), `haptics`, `juice` (`popIn`, `squash`, `pulse`,
 `burst`, `floatText`, `shake`, `confetti`), `drawTexture` + `crispImage` (art drawn once, see below), `overlay` (intro / pause / game-over cards in one shared style, on the
-design tokens; `hintList` and `choiceList` for their content), `createShell` (the game shell, ADR 0018 and 0019: the title
-screen with play / continue, sound, settings, leaderboard, how to play and the way back to Tò He, the how-to before
-a first game, the ☰ menu that pauses — also when the hub hides the game — with a new game, phone Back, 3-2-1 for
-games against the clock, the end-of-game card; every game uses it and declares `"shell"` in game.json), `createHud`
+design tokens; `hintList` and `choiceList` for their content), `createShell` (the game shell, ADR 0018–0020: the menu stage —
+title screen with play / continue, sound, settings and how-to screens, leaderboard, the way back to Tò He, the how-to
+before a first game — and the play stage, loaded in the background and created on play, with ☰ and its quick panel
+(resume, sound and the game's looks in place, a new game, the menu), phone Back, 3-2-1 for games against the clock,
+the end-of-game card; every game uses it and declares `"shell"` in game.json), `createHud`
 (☰ first, then the game's score, its own middle and the best score: counting up, a record lighting up, scores
 shortened to fit), `bump`, `newRunId`, `followTheme` + `setBackground` (light/dark from the hub), `formatValue` / `formatScore`.
 
@@ -100,7 +106,7 @@ adds three things to the steps above; `games/tien-len` is the reference:
    against bots. A second Vite build (`vite.rules.config.ts`) writes it to `dist/rules.js`.
 2. **`game.json`**: the `rooms` capability and block — seats, bot levels, and the house rules as options the hub
    draws.
-3. **An online mode** in `main.ts`: when `session.room` is set, draw the views it sends (animate their events), send
+3. **An online mode** in `stage.ts`: when `session.room` is set, draw the views it sends (animate their events), send
    actions with `session.room.act` and show a refusal's error code in words, and `next()` after a hand.
 
 Conformance then checks the module the way the API runs it, and opens the game at a table refereed by it.

@@ -37,6 +37,7 @@ export const strings = {
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     largest: (value: string) => `Khối lớn nhất: ${value}`,
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
+    bestLine: (score: string) => `👑 Kỷ lục ${score}`,
   },
   en: {
     title: 'Tap Merge',
@@ -76,6 +77,7 @@ export const strings = {
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     largest: (value: string) => `Largest block: ${value}`,
     inProgress: (score: string) => `A game in progress: ${score} points.`,
+    bestLine: (score: string) => `👑 Best ${score}`,
   },
 };
 
