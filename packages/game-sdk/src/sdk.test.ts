@@ -213,6 +213,34 @@ describe('rooms (ADR 0016)', () => {
     expect(session.room).toBeNull();
   });
 
+  it('gives a game a finished hand to replay', async () => {
+    const replay = {
+      seats,
+      seat: 0,
+      seed: 7,
+      options: { chopChain: true },
+      carry: null,
+      actions: [{ seat: 0, action: { type: 'play', cards: [0] } }],
+    };
+    const [gameSide, hostSide] = memoryTransportPair();
+    const host = createHost({
+      transport: hostSide,
+      manifest: roomManifest,
+      init: () => ({
+        profile: { id: 'p1', name: 'Na' },
+        locale: 'vi',
+        settings: { muted: false, theme: 'light' },
+        save: null,
+        seed: 1,
+        replay,
+      }),
+    });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    await host.ready;
+    expect(session.replay).toEqual(replay);
+    expect(session.room).toBeNull();
+  });
+
   it('has a picture for every reaction of the contract', () => {
     expect(Object.keys(REACTIONS).sort()).toEqual([...CONTRACT_REACTIONS].sort());
   });

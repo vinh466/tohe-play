@@ -5,7 +5,7 @@ sidebar:
   order: 16
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — the seed's secrecy amended by [ADR 0017](0017-replays-of-finished-online-hands.md) (replays of finished hands)
 - **Date:** 2026-10-16
 
 ## Context

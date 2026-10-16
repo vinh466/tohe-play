@@ -236,6 +236,18 @@ export async function runConformance(
       }).catch((error: Error) => ({ ok: false, detail: error.message }));
       check('plays at a table, refereed by its rules module', room.ok, room.detail);
       if (room.ok) screenshots.push(join(outDir, `${manifest.id}-room.png`));
+      const replayed = await replayRun({
+        context,
+        manifest,
+        dist,
+        hostUrl: hostServer.url,
+        gameUrl: gameServer.url,
+        errors,
+        protocolErrors,
+        screenshot: join(outDir, `${manifest.id}-replay.png`),
+      }).catch((error: Error) => ({ ok: false, detail: error.message }));
+      check('replays a finished hand with its rules module', replayed.ok, replayed.detail);
+      if (replayed.ok) screenshots.push(join(outDir, `${manifest.id}-replay.png`));
     }
 
     check('no console errors or uncaught exceptions', errors.length === 0, errors.slice(0, 5).join('\n'));
@@ -385,6 +397,96 @@ async function roomRun(run: {
     // Random taps do not always reach a play (a menu may stay open): the counts are informational; what fails the
     // check is a crash, a console error or a protocol error at the table.
     return { ok: true, detail: `${accepted} actions accepted, ${refused} refused, ${hands} hands` };
+  } finally {
+    host.dispose();
+    await page.close();
+  }
+}
+
+/**
+ * The game opened with `init.replay` (ADR 0016): a hand that Node played to the end with the module's own bots,
+ * played back by the game for seat 0. Checks that it opens and plays back without errors.
+ */
+async function replayRun(run: {
+  context: BrowserContext;
+  manifest: GameManifest;
+  dist: string;
+  hostUrl: string;
+  gameUrl: string;
+  errors: string[];
+  protocolErrors: string[];
+  screenshot: string;
+}): Promise<{ ok: boolean; detail: string }> {
+  const rooms = run.manifest.rooms;
+  if (!rooms) return { ok: false, detail: 'no rooms block' };
+  const rules = await loadRules(run.dist, rooms);
+  const options = defaultOptions(rooms);
+  const level = rooms.bots[0] ?? null;
+  const seats = rooms.seats.min;
+  const seed = 11;
+  let state = pure(() => rules.setup({ seats, seed, options, carry: null }));
+  const actions: { seat: number; action: JsonValue }[] = [];
+  for (let i = 0; i < 3000; i++) {
+    const status = pure(() => rules.status(state));
+    if (status.over) break;
+    const seat = status.turn[0] as number;
+    const action = pure(
+      () => (level ? rules.bot(state, seat, level, i) : null) ?? rules.timeout(state, seat),
+    );
+    const result = pure(() => rules.act(state, seat, action));
+    if (!result.ok) throw new Error(`a bot's action was refused: ${result.error}`);
+    state = result.state;
+    actions.push({ seat, action: action as JsonValue });
+  }
+  const page = await run.context.newPage();
+  page.on('console', (message) => {
+    if (message.type() === 'error') run.errors.push(`console (replay): ${message.text()}`);
+  });
+  page.on('pageerror', (error) => run.errors.push(`uncaught (replay): ${error.message}`));
+  const listeners = new Set<(message: unknown) => void>();
+  await page.exposeFunction('__toNode', (message: unknown) => {
+    for (const listener of listeners) listener(message);
+  });
+  const host = createHost({
+    transport: {
+      post: (message) =>
+        void page.evaluate((m) => (window as unknown as Bridge).__toGame(m), message).catch(() => {}),
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    manifest: run.manifest,
+    readyTimeoutMs: 10_000,
+    init: () => ({
+      profile: { id: 'conformance', name: 'Tester' },
+      locale: 'vi',
+      settings: { muted: true, theme: run.manifest.themes[0] ?? 'light' },
+      save: null,
+      seed: 20261016,
+      replay: {
+        seats: Array.from({ length: seats }, (_, s) =>
+          s === 0
+            ? { profile: { id: 'conformance', name: 'Tester' }, bot: null, connected: true }
+            : { profile: null, bot: level, connected: true },
+        ),
+        seat: 0,
+        seed,
+        options: options as Record<string, JsonValue>,
+        carry: null,
+        actions,
+      },
+    }),
+    onProtocolError: (error) => run.protocolErrors.push(`replay: ${error}`),
+  });
+  try {
+    await page.goto(run.hostUrl);
+    await host.ready;
+    await gameFrame(page, run.gameUrl);
+    await page.waitForTimeout(4000);
+    mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
+    await page.screenshot({ path: run.screenshot });
+    return { ok: true, detail: `${actions.length} actions` };
   } finally {
     host.dispose();
     await page.close();

@@ -1,4 +1,4 @@
-import type { Reaction, RoomSeat } from '@tohe/contract';
+import type { Reaction, Replay, RoomSeat } from '@tohe/contract';
 import type { JsonValue } from '@tohe/game-sdk';
 import { createHost, type HostHandle, iframeTransport } from '@tohe/game-sdk/host';
 import { useEffect, useRef, useState } from 'react';
@@ -50,6 +50,7 @@ export function GameFrame({
   gamesOrigin,
   player,
   room,
+  replay,
   onExit,
   exitLabel,
   topRight,
@@ -58,6 +59,8 @@ export function GameFrame({
   gamesOrigin: string;
   player: Player;
   room?: RoomBridge;
+  /** A finished hand for the game to replay with its own rules module (ADR 0016). */
+  replay?: Replay;
   /** The player asked to leave (exit button or the game's `exit()`); the game is paused meanwhile. */
   onExit(host: HostHandle | null): void;
   exitLabel?: string;
@@ -73,14 +76,14 @@ export function GameFrame({
   // The session restarts only for a different game build, origin, profile or room. Everything else is read from
   // `latest` at start; later mute and theme changes are sent as `settings` messages.
   const buildKey = `${game.id}@${game.version}`;
-  const latest = useRef({ game, player, muted, theme, locale: i18n.language, onExit, room });
-  latest.current = { game, player, muted, theme, locale: i18n.language, onExit, room };
+  const latest = useRef({ game, player, muted, theme, locale: i18n.language, onExit, room, replay });
+  latest.current = { game, player, muted, theme, locale: i18n.language, onExit, room, replay };
   const roomId = room?.id;
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: restarts only for the keys above, on purpose.
   useEffect(() => {
     const frame = iframe.current;
-    const { game, player, muted, theme, locale, room } = latest.current;
+    const { game, player, muted, theme, locale, room, replay } = latest.current;
     if (!frame) return;
     if (!isTrustedEntry(game.entryUrl, gamesOrigin)) {
       setStatus('untrusted');
@@ -92,7 +95,7 @@ export function GameFrame({
     // Telemetry (ADR 0015): a play, how long the game took to answer, its reports, and how long it was played.
     const scope = { gameId: game.id, gameVersion: game.version };
     const started = performance.now();
-    telemetry.count(room ? 'hub.room.session' : 'hub.play.session', scope);
+    telemetry.count(room ? 'hub.room.session' : replay ? 'hub.room.replay' : 'hub.play.session', scope);
     const session = createHost({
       transport: iframeTransport(frame, new URL(gamesOrigin).origin),
       manifest: manifestFrom(game),
@@ -108,6 +111,7 @@ export function GameFrame({
           seed: dailySeed(),
           telemetry: telemetryOn(),
           room: room && table ? { id: room.id, ...table } : undefined,
+          replay,
         };
       },
       onSave: async (data) => {

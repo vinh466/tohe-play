@@ -5,6 +5,7 @@ import type {
   HostMessage,
   Profile,
   Reaction,
+  Replay,
   RoomInfo,
   RoomSeat,
   Settings,
@@ -12,7 +13,7 @@ import type {
 import { createTelemetry, disabledTelemetry, type Telemetry } from './telemetry.ts';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.5.0';
+export const SDK_VERSION = '0.6.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
@@ -64,6 +65,11 @@ export interface GameSession<TSave = JsonValue> {
    * referees: the game sends actions and draws the views it receives.
    */
   readonly room: RoomSession | null;
+  /**
+   * A finished hand to replay with the game's own rules module (ADR 0016), or null: set up the hand from `seed`,
+   * `options` and `carry`, then play `actions` back, showing `seat`'s view.
+   */
+  readonly replay: Replay | null;
 }
 
 /** One view of the table for this seat, with what happened since the last one. */
@@ -211,6 +217,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
             log: (level, text) => send({ tohe: PROTOCOL, type: 'log', level, message: text.slice(0, 2000) }),
             telemetry,
             room: null,
+            replay: message.replay ?? null,
           };
           if (message.room) {
             room = roomSession(message.room, {
@@ -358,5 +365,6 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     log: (level, message) => console[level](`[tohe] ${message}`),
     telemetry: disabledTelemetry,
     room: null,
+    replay: null,
   };
 }

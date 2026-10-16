@@ -18,6 +18,10 @@ export type RoomSummary = Schemas['RoomSummary'];
 export type SeatView = Schemas['SeatView'];
 export type CreateRoomRequest = Schemas['CreateRoomRequest'];
 export type UpdateRoomRequest = Schemas['UpdateRoomRequest'];
+export type RoomStatsView = Schemas['RoomStatsView'];
+export type HandSummary = Schemas['HandSummary'];
+export type HandReplay = Schemas['HandReplay'];
+export type RoomInvite = Schemas['RoomInvite'];
 
 /** Same origin: the hub serves /api through its reverse proxy (Vite in dev, Caddy in docker/UAT). */
 export const api = createClient<paths>({ baseUrl: '' });
@@ -124,4 +128,15 @@ export const rooms = {
   setSeat: (id: string, seat: number, bot: string | null) =>
     call(api.PUT('/api/rooms/{id}/seats/{seat}', { params: { path: { id, seat } }, body: { bot } })),
   start: (id: string) => call(api.POST('/api/rooms/{id}/start', { params: { path: { id } } })),
+  /** Online results of a game: the profile's, and its household's board over the last 7 days. */
+  stats: (game: string) => call(api.GET('/api/rooms/stats', { params: { query: { game } } })),
+  history: (game: string) => call(api.GET('/api/rooms/history', { params: { query: { game } } })),
+  /** Watch a table without a seat (when the host allows spectators). */
+  watch: (id: string) => call(api.POST('/api/rooms/{id}/watch', { params: { path: { id } } })),
+  /** Ask a member of the household to the table; it shows in their hub for 10 minutes. */
+  invite: (id: string, profileId: string) =>
+    call(api.POST('/api/rooms/{id}/invite', { params: { path: { id } }, body: { profileId } })),
+  invites: () => call(api.GET('/api/rooms/invites')),
+  replay: (id: string, hand: number) =>
+    call(api.GET('/api/rooms/{id}/hands/{hand}', { params: { path: { id, hand } } })),
 };

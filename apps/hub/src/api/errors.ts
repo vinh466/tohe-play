@@ -25,6 +25,8 @@ const byCode: Record<string, string> = {
   too_many_rooms: 'rooms.errors.tooManyRooms',
   options_invalid: 'rooms.errors.optionsInvalid',
   rules_unavailable: 'rooms.errors.rulesUnavailable',
+  spectators_off: 'rooms.errors.spectatorsOff',
+  not_in_household: 'rooms.errors.notInHousehold',
 };
 
 /** The i18n key to show for a failed request. */

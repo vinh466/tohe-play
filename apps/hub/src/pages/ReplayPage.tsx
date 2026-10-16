@@ -1,0 +1,94 @@
+import { useQuery } from '@tanstack/react-query';
+import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import type { Replay } from '@tohe/contract';
+import type { JsonValue } from '@tohe/game-sdk';
+import { useMemo } from 'react';
+import { useTranslation } from 'react-i18next';
+import { type HandReplay, rooms } from '../api/client.ts';
+import { errorKey } from '../api/errors.ts';
+import { configQuery, gamesQuery } from '../api/queries.ts';
+import { GameFrame } from '../launcher/GameFrame.tsx';
+import { RequireSession } from '../session/RequireSession.tsx';
+import type { Player } from '../session/session.ts';
+import { Screen } from '../ui/Screen.tsx';
+
+/** A finished online hand played back in the game (ADR 0016), from the seat of the person watching it. */
+export function ReplayPage() {
+  return <RequireSession need="player">{({ player }) => <Replayer player={player} />}</RequireSession>;
+}
+
+/** The replay as the game receives it in `init.replay`. */
+export function replayFor(hand: HandReplay): Replay {
+  return {
+    seats: hand.seats.map((seat) => ({
+      profile: seat.profileId
+        ? { id: seat.profileId, name: seat.name ?? '', avatar: seat.avatar ?? undefined }
+        : null,
+      bot: seat.bot,
+      connected: true,
+    })),
+    seat: hand.mySeat,
+    seed: hand.seed,
+    options: hand.options as Record<string, JsonValue>,
+    carry: hand.carry as JsonValue,
+    actions: hand.actions.map((step) => ({ seat: step.seat, action: step.action as JsonValue })),
+  };
+}
+
+function Replayer({ player }: { player: Player }) {
+  const { roomId, hand } = useParams({ from: '/replay/$roomId/$hand' });
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  const games = useQuery(gamesQuery(player.id));
+  const config = useQuery(configQuery);
+  const record = useQuery({
+    queryKey: ['replay', roomId, hand],
+    queryFn: () => rooms.replay(roomId, Number(hand)),
+    retry: false,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+  const game = games.data?.find((g) => g.id === record.data?.gameId);
+  const replay = useMemo(() => (record.data ? replayFor(record.data) : undefined), [record.data]);
+  const back = () => void navigate({ to: '/rooms/$gameId', params: { gameId: record.data?.gameId ?? '' } });
+
+  if (record.isError || (record.data && games.isSuccess && !game)) {
+    return (
+      <Screen narrow>
+        <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-center text-danger">
+          {record.isError ? t(errorKey(record.error)) : t('gameNotFound')}
+        </p>
+        <Link to="/" className="text-center font-semibold text-accent">
+          {t('backToGames')}
+        </Link>
+      </Screen>
+    );
+  }
+  // A build replays only its own hands: a newer rules module could tell the story differently.
+  if (record.data && game && record.data.gameVersion !== game.version) {
+    return (
+      <Screen narrow>
+        <p className="rounded-2xl bg-notice px-4 py-3 text-center text-notice-ink">
+          {t('rooms.replayOldVersion', { version: record.data.gameVersion })}
+        </p>
+        <Link
+          to="/rooms/$gameId"
+          params={{ gameId: game.id }}
+          className="text-center font-semibold text-accent"
+        >
+          {t('rooms.backToLobby')}
+        </Link>
+      </Screen>
+    );
+  }
+  if (!game || !replay || !config.data) return <Screen narrow>{t('loading')}</Screen>;
+  return (
+    <GameFrame
+      game={game}
+      gamesOrigin={config.data.gamesOrigin}
+      player={player}
+      replay={replay}
+      exitLabel={t('rooms.backToLobby')}
+      onExit={back}
+    />
+  );
+}

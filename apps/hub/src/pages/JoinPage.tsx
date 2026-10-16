@@ -41,11 +41,15 @@ function Preview({ player }: { player: Player }) {
     mutationFn: (id: string) => rooms.join(id),
     onSuccess: (view) => void navigate({ to: '/room/$roomId', params: { roomId: view.id }, replace: true }),
   });
+  const watch = useMutation({
+    mutationFn: (id: string) => rooms.watch(id),
+    onSuccess: (view) => void navigate({ to: '/room/$roomId', params: { roomId: view.id }, replace: true }),
+  });
   const view = room.data;
   const game = games.data?.find((g) => g.id === view?.gameId);
   const host = view?.seatList.find((seat) => seat.profileId === view.hostProfileId);
 
-  if (view && view.mySeat !== null)
+  if (view && (view.mySeat !== null || view.watchers.includes(player.id)))
     return <Navigate to="/room/$roomId" params={{ roomId: view.id }} replace />;
 
   return (
@@ -80,9 +84,19 @@ function Preview({ player }: { player: Player }) {
           <Button className="w-full" busy={join.isPending} onClick={() => join.mutate(view.id)}>
             {t('rooms.sit')}
           </Button>
-          {join.isError ? (
+          {view.spectators ? (
+            <Button
+              variant="secondary"
+              className="w-full"
+              busy={watch.isPending}
+              onClick={() => watch.mutate(view.id)}
+            >
+              {t('rooms.watch')}
+            </Button>
+          ) : null}
+          {join.isError || watch.isError ? (
             <p role="alert" className="text-danger">
-              {t(errorKey(join.error))}
+              {t(errorKey(watch.error ?? join.error))}
             </p>
           ) : null}
         </section>

@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { gamesQuery } from '../api/queries.ts';
+import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync.ts';
@@ -60,6 +61,8 @@ function Catalog({ player, household }: { player: Player; household: string | nu
           </Link>
         </p>
       ) : null}
+
+      {syncsWithServer(player) ? <RoomInvites player={player} /> : null}
 
       {!navigator.onLine && (
         <p className="rounded-xl bg-notice px-4 py-2 text-notice-ink text-sm">{t('offline')}</p>

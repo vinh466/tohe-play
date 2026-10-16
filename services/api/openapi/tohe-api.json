@@ -1001,6 +1001,145 @@
         }
       }
     },
+    "/api/rooms/stats": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "The active profile's online results in a game, and its household's board over the last 7 days.",
+        "operationId": "GetRoomStats",
+        "parameters": [
+          {
+            "name": "game",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomStatsView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/history": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "The active profile's last 20 finished online hands of a game, newest first.",
+        "operationId": "ListMyHands",
+        "parameters": [
+          {
+            "name": "game",
+            "in": "query",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/HandSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/hands/{hand}": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "A finished hand the active profile played, with its seed and actions, to replay it in the game.",
+        "operationId": "GetHandReplay",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "hand",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int32"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HandReplay"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/rooms/code/{code}": {
       "get": {
         "tags": [
@@ -1184,6 +1323,133 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/watch": {
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Watch a table without a seat, if its host allows spectators: only what is public is shown.",
+        "operationId": "WatchRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RoomView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/rooms/{id}/invite": {
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Ask a member of one's household to the table: it shows in their hub for 10 minutes.",
+        "operationId": "InviteToRoom",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/rooms/invites": {
+      "get": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Tables household members asked the active profile to, for the next 10 minutes.",
+        "operationId": "ListRoomInvites",
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/RoomInvite"
+                  }
+                }
+              }
+            }
           }
         }
       }
@@ -1464,7 +1730,11 @@
             "format": "int32",
             "default": 20
           },
-          "options": { }
+          "options": { },
+          "spectators": {
+            "type": "boolean",
+            "default": false
+          }
         }
       },
       "DailyPoint": {
@@ -1807,6 +2077,114 @@
           }
         }
       },
+      "HandReplay": {
+        "required": [
+          "roomId",
+          "hand",
+          "gameId",
+          "gameVersion",
+          "seed",
+          "options",
+          "carry",
+          "seats",
+          "actions",
+          "result",
+          "mySeat",
+          "finishedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hand": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "gameVersion": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "options": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "carry": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "seats": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplaySeat"
+            }
+          },
+          "actions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReplayAction"
+            }
+          },
+          "result": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "mySeat": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "HandSummary": {
+        "required": [
+          "roomId",
+          "hand",
+          "finishedAt",
+          "seat",
+          "place",
+          "points",
+          "players"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "hand": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "finishedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "seat": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "place": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "points": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "players": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "HouseholdView": {
         "required": [
           "id",
@@ -1890,6 +2268,18 @@
           }
         }
       },
+      "InviteRequest": {
+        "required": [
+          "profileId"
+        ],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
       "InviteView": {
         "required": [
           "code",
@@ -1907,6 +2297,41 @@
         }
       },
       "JsonElement": { },
+      "LeaderRow": {
+        "required": [
+          "profileId",
+          "name",
+          "avatar",
+          "hands",
+          "firsts",
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "hands": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firsts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "points": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "LeaderboardEntry": {
         "required": [
           "profileId",
@@ -2053,6 +2478,28 @@
         "properties": {
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "PlayerStats": {
+        "required": [
+          "hands",
+          "firsts",
+          "points"
+        ],
+        "type": "object",
+        "properties": {
+          "hands": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firsts": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "points": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -2224,6 +2671,113 @@
           }
         }
       },
+      "ReplayAction": {
+        "required": [
+          "seat",
+          "action"
+        ],
+        "type": "object",
+        "properties": {
+          "seat": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "action": {
+            "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "ReplaySeat": {
+        "required": [
+          "profileId",
+          "name",
+          "avatar",
+          "bot"
+        ],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "avatar": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bot": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "RoomInvite": {
+        "required": [
+          "roomId",
+          "gameId",
+          "code",
+          "fromName",
+          "fromAvatar",
+          "expiresAt"
+        ],
+        "type": "object",
+        "properties": {
+          "roomId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "code": {
+            "type": "string"
+          },
+          "fromName": {
+            "type": "string"
+          },
+          "fromAvatar": {
+            "type": "string"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RoomStatsView": {
+        "required": [
+          "allTime",
+          "week",
+          "household"
+        ],
+        "type": "object",
+        "properties": {
+          "allTime": {
+            "$ref": "#/components/schemas/PlayerStats"
+          },
+          "week": {
+            "$ref": "#/components/schemas/PlayerStats"
+          },
+          "household": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/LeaderRow"
+            }
+          }
+        }
+      },
       "RoomSummary": {
         "required": [
           "id",
@@ -2235,7 +2789,8 @@
           "seats",
           "locked",
           "turnSeconds",
-          "mine"
+          "mine",
+          "spectators"
         ],
         "type": "object",
         "properties": {
@@ -2272,6 +2827,9 @@
           },
           "mine": {
             "type": "boolean"
+          },
+          "spectators": {
+            "type": "boolean"
           }
         }
       },
@@ -2296,7 +2854,9 @@
           "scores",
           "hand",
           "handSeats",
-          "mySeat"
+          "mySeat",
+          "spectators",
+          "watchers"
         ],
         "type": "object",
         "properties": {
@@ -2382,6 +2942,16 @@
               "integer"
             ],
             "format": "int32"
+          },
+          "spectators": {
+            "type": "boolean"
+          },
+          "watchers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
           }
         }
       },
@@ -2875,7 +3445,13 @@
             ],
             "format": "int32"
           },
-          "options": { }
+          "options": { },
+          "spectators": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
         }
       }
     }

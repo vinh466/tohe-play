@@ -64,6 +64,9 @@ public sealed class Room
     /// <summary>Seconds per turn for a person; 0 for no timer.</summary>
     public int TurnSeconds { get; set; }
 
+    /// <summary>People may watch the table without a seat (they see only what is public).</summary>
+    public bool AllowSpectators { get; set; }
+
     /// <summary>The game's options (house rules), JSON by option id.</summary>
     public string Options { get; set; } = "{}";
 

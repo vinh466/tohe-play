@@ -212,6 +212,19 @@ the server referees with this module: the game sends actions (`session.room.act`
 - **⏸** at a table: Tiếp tục, Cách chơi, Luật của bàn (the host's house rules, read only), Bộ bài, Rời bàn (the hub
   asks whether to give the seat up). There is no "new table" and nothing to pause: the table goes on.
 - The practice hints of the first hand also show online.
+- **Watching** (seat -1, when the room allows spectators): the HUD says "Đang xem" without a score or the sort
+  button, the table shows card counts and plays but no hand, and there are no buttons and no 😀. The results show
+  the room's score sheet, without **Ván tiếp**.
+
+## Replay
+
+Opened with `init.replay` ([ADR 0017](../../docs/decisions/0017-replays-of-finished-online-hands.md)), the game deals
+the hand again from its seed, options and carry with this module and plays the recorded actions back from the
+asking seat, animated as they were played. The HUD says "Xem lại", without a score; the three buttons become **◀ Lùi** (one action
+back: the hand is rebuilt from its deal), **Tới ▶** (one action forward) and **▶ Phát / ⏸ Dừng** (one action every
+0.65 s); the status line says "Xem lại ván · bước 3/23". At the end the hand's results show (its points only: a
+replay has no score sheet) with **Xem lại từ đầu**.
+Nothing is saved and nothing goes to the room.
 
 ## What is saved
 
@@ -239,6 +252,7 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 
 ## Changelog
 
+- **0.3.0** — replays of finished online hands (`init.replay`, SDK 0.6.0) and the spectator view.
 - **0.2.0** — online tables (ADR 0016): `rooms` capability and options in game.json, `dist/rules.js` built from
   `src/module.ts`, the online mode above.
 - **0.1.0** — against bots on one phone.

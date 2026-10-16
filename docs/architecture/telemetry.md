@@ -52,7 +52,10 @@ Four kinds of event, in the Game Contract (`packages/contract/src/telemetry.ts`)
 | frame summary | frames | kit | every minute of play and when paused |
 | `kit.audio.blocked` / `kit.audio.unsupported` | count | kit | sound still off a second after the first tap (the finger lifted) / no Web Audio |
 | `sdk.errors-dropped`, `sdk.metrics-dropped` | count | SDK | a game went over its budget |
-| `hub.play.session` | count | hub | a game opens |
+| `hub.play.session` | count | hub | a game opens on its own |
+| `hub.room.session` / `hub.room.replay` | count | hub | a game opens at an online table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) / to replay a finished hand ([ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)) |
+| `hub.room.reconnect` | count | hub | the rooms hub's connection came back at a table |
+| `hub.room.refused` | count | hub | the server refused a move (another phone acted first, the timer ran out) |
 | `hub.play.duration.under-1m` … `over-60m` | count | hub | a game closes |
 | `hub.game.ready-ms` | metric | hub | the game answered the handshake |
 | `hub.game.failed` | count | hub | the game never answered |

@@ -1,4 +1,4 @@
-export type { Profile, Reaction, RoomSeat, Settings, TelemetryEvent } from '@tohe/contract';
+export type { Profile, Reaction, Replay, RoomSeat, Settings, TelemetryEvent } from '@tohe/contract';
 export {
   type ConnectOptions,
   connect,

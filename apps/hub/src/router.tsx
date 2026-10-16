@@ -74,6 +74,12 @@ const roomRoute = createRoute({
   component: lazyRouteComponent(() => import('./pages/RoomPage.tsx'), 'RoomPage'),
 });
 
+const replayRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/replay/$roomId/$hand',
+  component: lazyRouteComponent(() => import('./pages/ReplayPage.tsx'), 'ReplayPage'),
+});
+
 export function createAppRouter(queryClient: QueryClient) {
   return createRouter({
     routeTree: rootRoute.addChildren([
@@ -87,6 +93,7 @@ export function createAppRouter(queryClient: QueryClient) {
       roomsRoute,
       joinRoute,
       roomRoute,
+      replayRoute,
     ]),
     context: { queryClient },
     defaultPreload: 'intent',

@@ -31,6 +31,9 @@ internal interface IRoomOutbox
     Task SaveRoomAsync(Room room);
 
     Task SaveActionAsync(RoomAction action);
+
+    /// <summary>A hand ended: its record (for replays) and one result per seat (for statistics).</summary>
+    Task SaveHandAsync(RoomHand hand, IReadOnlyList<RoomResult> results);
 }
 
 /// <summary>
@@ -57,6 +60,10 @@ internal sealed class RoomActor
     private readonly HashSet<int> _takenOver = [];
     private readonly HashSet<int> _ready = [];
     private readonly Dictionary<int, DateTimeOffset> _lastReaction = [];
+    /// <summary>Profiles watching without a seat.</summary>
+    private readonly HashSet<Guid> _watchers = [];
+    /// <summary>Household members asked to the table: who asked, and until when.</summary>
+    private readonly Dictionary<Guid, (Guid From, DateTimeOffset Until)> _invites = [];
     private DateTimeOffset? _turnDeadline;
     private DateTimeOffset? _botAt;
     private DateTimeOffset? _nextHandAt;
@@ -158,8 +165,15 @@ internal sealed class RoomActor
             [.. Enumerable.Range(0, Room.Seats).Select(i => i < _scores.Length ? _scores[i] : 0)],
             Room.Hand,
             Room.Status is RoomStatus.Playing or RoomStatus.Between ? _handSeats : [],
-            viewer is { } id ? SeatOf(id) : null);
+            viewer is { } id ? SeatOf(id) : null,
+            Room.AllowSpectators,
+            [.. _watchers]);
     }
+
+    public bool IsWatcher(Guid profileId) => _watchers.Contains(profileId);
+
+    /// <summary>Seated, or watching: may enter the room's live connection.</summary>
+    public bool IsMember(Guid profileId) => SeatOf(profileId) is not null || _watchers.Contains(profileId);
 
     public RoomSummary Summary(Guid viewer)
     {
@@ -174,7 +188,8 @@ internal sealed class RoomActor
             Room.Seats,
             Room.Locked,
             Room.TurnSeconds,
-            SeatOf(viewer) is not null);
+            SeatOf(viewer) is not null || _watchers.Contains(viewer),
+            Room.AllowSpectators);
     }
 
     // ------------------------------------------------------------------ joining and leaving
@@ -204,13 +219,89 @@ internal sealed class RoomActor
             return RoomErrors.ParentPermission;
         }
 
-        if (Room.Locked)
+        // An invitation from someone at the table opens a locked door (never the parent switch above).
+        if (Room.Locked && InvitationFor(player.ProfileId) is null)
         {
             return RoomErrors.Locked;
         }
 
         return FreeSeat() is null ? RoomErrors.Full : null;
     }
+
+    /// <summary>Why <paramref name="player"/> may not watch, or null.</summary>
+    public string? WhyNotWatch(Player player)
+    {
+        if (IsClosed)
+        {
+            return RoomErrors.Closed;
+        }
+
+        if (IsMember(player.ProfileId))
+        {
+            return null;
+        }
+
+        if (!Room.AllowSpectators)
+        {
+            return RoomErrors.SpectatorsOff;
+        }
+
+        var sameHousehold = player.HouseholdId == Room.HostHouseholdId;
+        if (Room.HouseholdOnly && !sameHousehold)
+        {
+            return RoomErrors.HouseholdOnly;
+        }
+
+        return !player.MayPlayWithOthers && !(sameHousehold && Room.HouseholdOnly) ? RoomErrors.ParentPermission : null;
+    }
+
+    public async Task<string?> WatchAsync(Player player)
+    {
+        if (WhyNotWatch(player) is { } problem)
+        {
+            return problem;
+        }
+
+        if (_watchers.Add(player.ProfileId))
+        {
+            Touch();
+            await _outbox.RoomChangedAsync(this);
+        }
+
+        return null;
+    }
+
+    /// <summary>A player at the table asks a member of their household to it.</summary>
+    public string? Invite(Guid from, Guid to)
+    {
+        if (IsClosed)
+        {
+            return RoomErrors.Closed;
+        }
+
+        if (SeatOf(from) is null)
+        {
+            return RoomErrors.NotSeated;
+        }
+
+        _invites[to] = (from, _clock.GetUtcNow().AddMinutes(10));
+        return null;
+    }
+
+    /// <summary>The seat of whoever asked this profile to the table, while the invitation holds and it has no seat.</summary>
+    public SeatRecord? InvitationFor(Guid profileId)
+    {
+        if (IsClosed || SeatOf(profileId) is not null || !_invites.TryGetValue(profileId, out var invite)
+            || invite.Until < _clock.GetUtcNow())
+        {
+            return null;
+        }
+
+        return _seats.FirstOrDefault(seat => seat.ProfileId == invite.From);
+    }
+
+    public DateTimeOffset? InvitationUntil(Guid profileId) =>
+        _invites.TryGetValue(profileId, out var invite) ? invite.Until : null;
 
     /// <summary>An empty seat, or between hands a bot that only filled one; null when the table is full.</summary>
     private int? FreeSeat()
@@ -247,6 +338,8 @@ internal sealed class RoomActor
 
         var seat = FreeSeat()!.Value;
         _seats[seat] = new SeatRecord(player.ProfileId, player.HouseholdId, player.Name, player.Avatar, null);
+        _invites.Remove(player.ProfileId);
+        _watchers.Remove(player.ProfileId);
         Touch();
         await SaveAsync();
         await _outbox.RoomChangedAsync(this);
@@ -256,6 +349,13 @@ internal sealed class RoomActor
 
     public async Task<string?> LeaveAsync(Guid profileId)
     {
+        if (_watchers.Remove(profileId))
+        {
+            _connections.Remove(profileId);
+            await _outbox.RoomChangedAsync(this);
+            return null;
+        }
+
         if (SeatOf(profileId) is not { } seat)
         {
             return RoomErrors.NotSeated;
@@ -396,6 +496,11 @@ internal sealed class RoomActor
         Room.BotsFill = request.BotsFill ?? Room.BotsFill;
         Room.BotsTakeOver = request.BotsTakeOver ?? Room.BotsTakeOver;
         Room.TurnSeconds = request.TurnSeconds ?? Room.TurnSeconds;
+        Room.AllowSpectators = request.Spectators ?? Room.AllowSpectators;
+        if (!Room.AllowSpectators)
+        {
+            _watchers.Clear();
+        }
         Room.Options = optionsJson ?? Room.Options;
         Touch();
         await SaveAsync();
@@ -584,6 +689,7 @@ internal sealed class RoomActor
                 _scores[_handSeats[rulesSeat]] += points?[rulesSeat]?.GetValue<int>() ?? 0;
             }
 
+            await RecordHandAsync(status["result"]!);
             Room.Carry = status["carry"]?.ToJsonString();
             Room.Scores = JsonSerializer.Serialize(_scores);
             Room.Status = RoomStatus.Between;
@@ -607,6 +713,42 @@ internal sealed class RoomActor
 
         PlanTurn(status);
         await SendViewsAsync(events);
+    }
+
+    /// <summary>Keeps the finished hand for replays and its seats' outcomes for statistics.</summary>
+    private async Task RecordHandAsync(JsonNode result)
+    {
+        var now = _clock.GetUtcNow();
+        var seats = _handSeats.Select(roomSeat => _seats[roomSeat]).ToList();
+        var points = result["points"]?.AsArray();
+        var ranking = result["ranking"]?.AsArray().Select(node => node!.GetValue<int>()).ToList() ?? [];
+        var results = seats.Select((seat, rulesSeat) => new RoomResult
+        {
+            RoomId = Room.Id,
+            GameId = Room.GameId,
+            Hand = Room.Hand,
+            Seat = rulesSeat,
+            ProfileId = seat.ProfileId,
+            HouseholdId = seat.HouseholdId,
+            Place = ranking.IndexOf(rulesSeat) is var place and >= 0 ? place : rulesSeat,
+            Points = points?[rulesSeat]?.GetValue<int>() ?? 0,
+            At = now,
+        }).ToList();
+        await _outbox.SaveHandAsync(
+            new RoomHand
+            {
+                RoomId = Room.Id,
+                GameId = Room.GameId,
+                GameVersion = Room.GameVersion,
+                Hand = Room.Hand,
+                Seed = Room.Seed,
+                Options = Room.Options,
+                Carry = Room.HandCarry,
+                Seats = JsonSerializer.Serialize(seats),
+                Result = result.ToJsonString(),
+                FinishedAt = now,
+            },
+            results);
     }
 
     private void PlanTurn(JsonNode status)
@@ -663,6 +805,12 @@ internal sealed class RoomActor
             {
                 await SendViewAsync(profileId, events);
             }
+        }
+
+        // Watchers get the public view (no hand), as the rules module gives a spectator.
+        foreach (var watcher in _watchers)
+        {
+            await SendViewAsync(watcher, events);
         }
     }
 

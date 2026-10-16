@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { RoomView } from './api/client.ts';
+import { replayFor } from './pages/ReplayPage.tsx';
 import { formatCode, gameSeats, normalizeCode, quickPick, withDefaults } from './rooms/model.ts';
 import { isLocalPath } from './session/next.ts';
 
@@ -29,6 +30,8 @@ const room = (over: Partial<RoomView> = {}): RoomView => ({
   hand: 1,
   handSeats: [0, 2, 3],
   mySeat: 2,
+  spectators: false,
+  watchers: [],
   ...over,
 });
 
@@ -94,5 +97,38 @@ describe('the way back after signing in', () => {
     expect(isLocalPath('//evil.example/r/1')).toBe(false);
     expect(isLocalPath('https://evil.example')).toBe(false);
     expect(isLocalPath('javascript:alert(1)')).toBe(false);
+  });
+});
+
+describe('a replay', () => {
+  it('hands the game the seats, its own seat, the seed and the actions', () => {
+    const replay = replayFor({
+      roomId: 'r1',
+      hand: 2,
+      gameId: 'tien-len',
+      gameVersion: '0.3.0',
+      seed: 42,
+      options: { chopChain: true },
+      carry: { leader: 1 },
+      seats: [
+        { profileId: 'p-bo', name: 'Bố', avatar: '🦊', bot: null },
+        { profileId: null, name: null, avatar: null, bot: 'easy' },
+      ],
+      actions: [{ seat: 1, action: { type: 'pass' } }],
+      result: { points: [2, -2] },
+      mySeat: 0,
+      finishedAt: '2026-10-16T10:00:00Z',
+    });
+    expect(replay).toEqual({
+      seats: [
+        { profile: { id: 'p-bo', name: 'Bố', avatar: '🦊' }, bot: null, connected: true },
+        { profile: null, bot: 'easy', connected: true },
+      ],
+      seat: 0,
+      seed: 42,
+      options: { chopChain: true },
+      carry: { leader: 1 },
+      actions: [{ seat: 1, action: { type: 'pass' } }],
+    });
   });
 });

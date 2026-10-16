@@ -20,7 +20,8 @@ public sealed record CreateRoomRequest(
     [StringLength(16)] string? BotLevel = null,
     bool BotsTakeOver = true,
     [Range(0, 120)] int TurnSeconds = 20,
-    JsonElement? Options = null);
+    JsonElement? Options = null,
+    bool Spectators = false);
 
 /// <summary>What the host may change before a hand starts; fields left out stay as they are.</summary>
 public sealed record UpdateRoomRequest(
@@ -32,7 +33,8 @@ public sealed record UpdateRoomRequest(
     [StringLength(16)] string? BotLevel = null,
     bool? BotsTakeOver = null,
     [Range(0, 120)] int? TurnSeconds = null,
-    JsonElement? Options = null);
+    JsonElement? Options = null,
+    bool? Spectators = null);
 
 /// <param name="Bot">A bot level to seat a bot; null to empty the seat (removing a bot or a player).</param>
 public sealed record SetSeatRequest([StringLength(16)] string? Bot);
@@ -54,6 +56,8 @@ public sealed record SeatView(
 /// <param name="Status"><c>waiting</c>, <c>playing</c>, <c>between</c> or <c>closed</c>.</param>
 /// <param name="Scores">Points of each seat over the room's hands.</param>
 /// <param name="HandSeats">The room seat of each seat of the game's current (or last) hand, in the game's order.</param>
+/// <param name="Spectators">People may watch without a seat.</param>
+/// <param name="Watchers">Profiles watching the table now.</param>
 /// <param name="MySeat">The active profile's seat, or null if it is not at the table.</param>
 public sealed record RoomView(
     Guid Id,
@@ -75,7 +79,9 @@ public sealed record RoomView(
     IReadOnlyList<int> Scores,
     int Hand,
     IReadOnlyList<int> HandSeats,
-    int? MySeat);
+    int? MySeat,
+    bool Spectators,
+    IReadOnlyList<Guid> Watchers);
 
 /// <summary>A room in the lobby list.</summary>
 public sealed record RoomSummary(
@@ -88,7 +94,14 @@ public sealed record RoomSummary(
     int Seats,
     bool Locked,
     int TurnSeconds,
-    bool Mine);
+    bool Mine,
+    bool Spectators);
+
+/// <param name="ProfileId">A profile of the inviting player's household.</param>
+public sealed record InviteRequest(Guid ProfileId);
+
+/// <summary>A household member asked the active profile to their table; valid for 10 minutes.</summary>
+public sealed record RoomInvite(Guid RoomId, string GameId, string Code, string FromName, string FromAvatar, DateTimeOffset ExpiresAt);
 
 /// <summary>Machine-readable reasons a room operation is refused, shown by the hub in Vietnamese.</summary>
 public static class RoomErrors
@@ -109,4 +122,6 @@ public static class RoomErrors
     public const string InvalidOptions = "options_invalid";
     public const string RulesUnavailable = "rules_unavailable";
     public const string ActionInvalid = "action_invalid";
+    public const string SpectatorsOff = "spectators_off";
+    public const string NotInHousehold = "not_in_household";
 }

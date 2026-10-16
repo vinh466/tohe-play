@@ -88,6 +88,11 @@ let roomView: View | null = null;
 let turnEndsAt: number | null = null;
 /** Online: "next hand" was tapped, waiting for the others. */
 let waitingNext = false;
+/** A finished online hand to replay (ADR 0016): set up and played back with this rules module. */
+const replay = session.replay;
+let replayState: State | null = null;
+let replayStep = 0;
+let replayPlaying = false;
 let seats = saved?.seats && saved.seats >= 2 && saved.seats <= 4 ? saved.seats : 4;
 let level: Level = isLevel(saved?.level) ? saved.level : 'normal';
 let options: Options = normalizeOptions(saved?.options ?? DEFAULT_OPTIONS);
@@ -116,6 +121,7 @@ let hintIndex = 0;
 let paused = false;
 
 function players(): Player[] {
+  if (replay) return replay.seats.map(seatPlayer);
   if (room) return room.seats.map(seatPlayer);
   const me: Player = { name: session.profile.name || t.you, avatar: session.profile.avatar || '🙂' };
   return [me, ...t.bots.slice(0, state.seats - 1)];
@@ -132,9 +138,12 @@ function seatPlayer(seat: RoomSeat): Player {
 }
 
 /** This phone's seat: always 0 against bots; online, the seat the server gave it. */
-const meSeat = (): number => (room ? (roomView?.seat ?? room.seat) : ME);
+const meSeat = (): number => (replay ? replay.seat : room ? (roomView?.seat ?? room.seat) : ME);
 
-const mine = (): View => (room && roomView ? roomView : rules.view(state, ME));
+const mine = (): View => {
+  if (replay && replayState) return rules.view(replayState, replay.seat);
+  return room && roomView ? roomView : rules.view(state, ME);
+};
 
 // ------------------------------------------------------------------ DOM
 
@@ -154,9 +163,15 @@ hintButton.textContent = `💡 ${t.hint}`;
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 function showHud() {
-  const score = room ? (room.seats[meSeat()]?.score ?? 0) : (series[ME] ?? 0);
+  const score = replay ? 0 : room ? (room.seats[meSeat()]?.score ?? 0) : (series[ME] ?? 0);
   scoreValue.textContent = signed(score);
-  handNo.textContent = room ? t.online : t.handNo(handsPlayed + (state.over ? 0 : 1));
+  handNo.textContent = replay
+    ? t.replay.title
+    : room
+      ? meSeat() < 0
+        ? t.watching
+        : t.online
+      : t.handNo(handsPlayed + (state.over ? 0 : 1));
   sortButton.textContent = sortBy === 'rank' ? t.sortCombos : t.sortRank;
 }
 
@@ -178,6 +193,18 @@ function describe(combo: Combo): string {
 
 /** Buttons and the status line follow the view and the selection (SPEC.md, "Screens"). */
 function showControls() {
+  if (replay) {
+    // The three buttons drive the replay: back, forward, play / pause.
+    const total = replay.actions.length;
+    passButton.textContent = `◀ ${t.replay.back}`;
+    hintButton.textContent = `${t.replay.forward} ▶`;
+    playButton.textContent = replayPlaying ? `⏸ ${t.replay.pause}` : `▶ ${t.replay.play}`;
+    passButton.disabled = busy || replayStep === 0;
+    hintButton.disabled = busy || replayStep >= total;
+    playButton.disabled = replayStep >= total && !replayPlaying;
+    status.textContent = t.replay.step(replayStep, total);
+    return;
+  }
   if (room && !roomView) {
     playButton.disabled = passButton.disabled = hintButton.disabled = true;
     status.textContent = '…';
@@ -301,7 +328,7 @@ function drawAll() {
 
 /** A tap on a card: toggles it; with nothing selected, picks the smallest play with it that beats the table. */
 function tap(card: Card) {
-  if (mine().over) return;
+  if (mine().over || replay) return;
   sfx.play('click');
   haptics.play('tap');
   const v = mine();
@@ -369,6 +396,12 @@ function schedule() {
 }
 
 async function play() {
+  if (replay) {
+    replayPlaying = !replayPlaying;
+    showControls();
+    if (replayPlaying) void runReplay();
+    return;
+  }
   const v = mine();
   if (busy || v.over) return;
   const cards = [...selected];
@@ -385,6 +418,11 @@ async function play() {
 }
 
 async function pass() {
+  if (replay) {
+    replayPlaying = false;
+    await replayBack();
+    return;
+  }
   const v = mine();
   if (busy || v.over || v.turn !== meSeat() || !v.table) return;
   setSelected([]);
@@ -417,6 +455,11 @@ async function sendOnline(action: Action) {
 
 /** 💡 cycles through the plays the normal bot would make, best first. */
 function hint() {
+  if (replay) {
+    replayPlaying = false;
+    void replayForward();
+    return;
+  }
   const v = mine();
   const ranked = rank(v, legalPlays(v));
   if (ranked.length === 0) return;
@@ -466,7 +509,7 @@ async function endHand() {
 }
 
 function showResults() {
-  const result = room ? roomView?.result : state.result;
+  const result = replay ? replayState?.result : room ? roomView?.result : state.result;
   if (!result) return;
   const me = meSeat();
   const names = players();
@@ -474,11 +517,13 @@ function showResults() {
   table.className = 'results';
   const header = document.createElement('div');
   header.className = 'result-row result-header';
-  for (const [text, name] of [
+  // A replay has no score sheet: only the hand's points.
+  const columns = [
     ['', 'result-who'],
     [t.columnHand, 'result-points'],
-    [t.columnTable, 'result-total'],
-  ]) {
+    ...(replay ? [] : [[t.columnTable, 'result-total']]),
+  ];
+  for (const [text, name] of columns) {
     const cell = document.createElement('span');
     cell.className = name as string;
     cell.textContent = text as string;
@@ -494,10 +539,13 @@ function showResults() {
     const hand = document.createElement('span');
     hand.className = 'result-points';
     hand.textContent = signed(result.points[seat] ?? 0);
-    const total = document.createElement('span');
-    total.className = 'result-total';
-    total.textContent = signed(room ? (room.seats[seat]?.score ?? 0) : (series[seat] ?? 0));
-    row.append(who, hand, total);
+    row.append(who, hand);
+    if (!replay) {
+      const total = document.createElement('span');
+      total.className = 'result-total';
+      total.textContent = signed(room ? (room.seats[seat]?.score ?? 0) : (series[seat] ?? 0));
+      row.append(total);
+    }
     table.append(row);
   });
   const extras = result.lines.filter((line) => line.kind !== 'place');
@@ -512,25 +560,31 @@ function showResults() {
     table.append(list);
   }
   const won = result.ranking[0] === me;
+  const nextAction = {
+    label: replay ? t.replay.again : t.nextHand,
+    onClick: () => {
+      sfx.play('click');
+      overlay.hide();
+      if (replay) {
+        void replayFromStart();
+        return;
+      }
+      if (room) {
+        // The next hand starts when everyone is ready, or after a countdown (docs/architecture/rooms.md).
+        waitingNext = true;
+        showControls();
+        void room.next().catch((error) => session.log('warn', `next failed: ${String(error)}`));
+      } else void nextHand();
+    },
+  };
   overlay.show({
     icon: won ? '🏆' : '🃏',
     title: result.instant ? `${t.instant}` : t.results,
     body: result.instant ? t.instantWins[result.instant.win] : undefined,
     content: table,
     actions: [
-      {
-        label: t.nextHand,
-        onClick: () => {
-          sfx.play('click');
-          overlay.hide();
-          if (room) {
-            // The next hand starts when everyone is ready, or after a countdown (docs/architecture/rooms.md).
-            waitingNext = true;
-            showControls();
-            void room.next().catch((error) => session.log('warn', `next failed: ${String(error)}`));
-          } else void nextHand();
-        },
-      },
+      // A spectator has no hand to be ready for: the table goes on by itself.
+      ...(room && me < 0 ? [] : [nextAction]),
       ...(session.mode === 'embedded'
         ? [{ label: t.exit, variant: 'secondary' as const, onClick: () => session.exit() }]
         : []),
@@ -915,14 +969,96 @@ function openReactions() {
   });
 }
 
-if (room) {
+// ------------------------------------------------------------------ replay (ADR 0016)
+
+/** The hand as it was dealt. */
+function replayStart(): State {
+  if (!replay) return state;
+  return rules.setup({
+    seats: replay.seats.length,
+    seed: replay.seed,
+    options: replay.options,
+    carry: replay.carry as Carry | null,
+  });
+}
+
+async function replayFromStart() {
+  replayState = replayStart();
+  replayStep = 0;
+  replayPlaying = true;
+  board.setPlayers(players());
+  busy = true;
+  showHud();
+  showControls();
+  await board.deal(mine());
+  busy = false;
+  showControls();
+  void runReplay();
+}
+
+/** One action forward, animated as it was played. */
+async function replayForward(): Promise<boolean> {
+  if (!replay || !replayState || busy) return false;
+  const next = replay.actions[replayStep];
+  if (!next) return false;
+  const result = rules.act(replayState, next.seat, next.action as unknown as Action);
+  if (!result.ok) {
+    session.log('error', `replay refused step ${replayStep}: ${result.error}`);
+    replayPlaying = false;
+    showControls();
+    return false;
+  }
+  replayState = result.state;
+  replayStep++;
+  busy = true;
+  showControls();
+  await board.play(result.events, mine());
+  busy = false;
+  showControls();
+  if (replayState.over) {
+    replayPlaying = false;
+    showControls();
+    await board.wait(700);
+    showResults();
+  }
+  return true;
+}
+
+/** One action back: the hand is rebuilt from its deal (the rules module is deterministic). */
+async function replayBack() {
+  if (!replay || replayStep === 0 || busy) return;
+  let rebuilt = replayStart();
+  for (const step of replay.actions.slice(0, replayStep - 1)) {
+    const result = rules.act(rebuilt, step.seat, step.action as unknown as Action);
+    if (result.ok) rebuilt = result.state;
+  }
+  replayState = rebuilt;
+  replayStep--;
+  board.render(mine());
+  showControls();
+}
+
+async function runReplay() {
+  while (replayPlaying && (await replayForward())) {
+    await board.wait(650);
+  }
+  replayPlaying = false;
+  showControls();
+}
+
+if (replay) {
+  document.body.classList.add('is-replay');
+  void replayFromStart();
+} else if (room) {
+  if (meSeat() < 0) document.body.classList.add('is-watching');
   const reactButton = document.createElement('button');
   reactButton.type = 'button';
   reactButton.className = 'tohe-icon-button';
   reactButton.setAttribute('aria-label', t.react);
   reactButton.textContent = '😀';
   reactButton.addEventListener('click', () => openReactions());
-  sortButton.before(reactButton);
+  // Spectators watch: they have no seat to react from.
+  if (meSeat() >= 0) sortButton.before(reactButton);
   room.onSeats(() => {
     board.setPlayers(players());
     showHud();
@@ -947,8 +1083,8 @@ function begin() {
   }
 }
 
-if (room) {
-  // Online the table is the server's: no intro to wait on, the practice hints still help (SPEC.md).
+if (room || replay) {
+  // Online the table is the server's, and a replay plays itself: no intro to wait on.
 } else if (!tutorialSeen) {
   board.setPlayers(players());
   showHud();

@@ -41,7 +41,7 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
     public async Task<RoomView?> Enter(Guid roomId)
     {
         var profile = await ProfileAsync();
-        if (registry.Find(roomId) is not { } room || room.SeatOf(profile.Id) is null)
+        if (registry.Find(roomId) is not { } room || !room.IsMember(profile.Id))
         {
             return null;
         }
