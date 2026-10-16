@@ -21,7 +21,10 @@ const phones = new Map<string, Page>();
 async function phone(name: string, target: Browser): Promise<Page> {
   const context = await target.newContext({
     viewport: { width: 390, height: 844 },
-    deviceScaleFactor: 2,
+    // CI machines draw the games in software: at a phone's density of 2, two or three tables at once (and other CI
+    // runs on the same machine) slowed every tap to seconds and the hand past its deadline. Layout and contrast do
+    // not depend on density; the smoke test keeps 2.
+    deviceScaleFactor: 1,
     isMobile: true,
     hasTouch: true,
     locale: 'vi-VN',
