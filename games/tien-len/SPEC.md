@@ -179,7 +179,7 @@ a ring while it is their turn; the table in the middle.
 
 | Event | Feel |
 | --- | --- |
-| Deal | Cards fly to every seat in turn; the player's cards flip and sort |
+| Deal | Cards fly to every seat in turn; the player's land full size on the spots of the sorted hand, left to right, and turn over there one after another |
 | Select | The card lifts with a tick |
 | A play | Cards slide to the table with a soft thud; the previous play slides aside and dims |
 | A refused play | The selection wobbles, soft error sound and vibration, the reason in words |
@@ -252,6 +252,8 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 
 ## Changelog
 
+- **0.3.1** — the deal lands the player's cards where they will lie and turns them over there, instead of
+  spreading backs, removing them and showing the hand.
 - **0.3.0** — replays of finished online hands (`init.replay`, SDK 0.6.0) and the spectator view.
 - **0.2.0** — online tables (ADR 0016): `rooms` capability and options in game.json, `dist/rules.js` built from
   `src/module.ts`, the online mode above.

@@ -527,26 +527,39 @@ export class TableScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ animations
 
-  /** The deal: backs fly to every seat, then the player's cards turn over. */
+  /**
+   * The deal: backs fly to every seat. The player's land full size on the spots their cards will lie on, left to
+   * right, and stay there until each turns over in place: nothing vanishes between the deal and the hand.
+   */
   async deal(v: View) {
     this.selected.clear();
     this.hinted.clear();
     this.current = { ...v, hand: [], table: null };
     this.render({ ...v, hand: [], counts: v.counts.map(() => 0), table: null });
     this.current = v;
-    const { tableX, tableY, cardW } = this.layoutInfo;
+    const { tableX, tableY, cardW, handY } = this.layoutInfo;
     const backW = Math.round(cardW * 0.6);
     const flights: Promise<void>[] = [];
     const xs = this.handPositions(v.hand.length);
+    // The backs on the player's spots, by spot, until they turn over.
+    const landed: Phaser.GameObjects.Image[] = [];
     const rounds = Math.max(...v.counts);
     let n = 0;
     for (let round = 0; round < rounds; round++) {
       for (let k = 0; k < v.seats; k++) {
         const seat = ((v.seat ?? 0) + 1 + k) % v.seats;
         if (round >= (v.counts[seat] ?? 0)) continue;
-        const target =
-          seat === v.seat ? { x: xs[round] ?? tableX, y: this.layoutInfo.handY } : this.spotOf(seat);
-        const back = crispImage(this, tableX, tableY, this.backTexture(backW)).setDepth(DEPTH.flying + n);
+        const mine = seat === v.seat;
+        const target = mine ? { x: xs[round] ?? tableX, y: handY } : this.spotOf(seat);
+        const back = crispImage(this, tableX, tableY, this.backTexture(mine ? cardW : backW)).setDepth(
+          DEPTH.flying + n,
+        );
+        // Leaves the deck at the deck's size and grows into a card of the hand on the way.
+        const scale = back.scaleX;
+        if (mine) {
+          back.setScale(scale * 0.6);
+          landed[round] = back;
+        }
         const wait = n * 16;
         n++;
         flights.push(
@@ -557,25 +570,34 @@ export class TableScene extends Phaser.Scene {
               x: target.x,
               y: target.y,
               angle: { from: -20, to: 0 },
+              ...(mine ? { scaleX: scale, scaleY: scale } : {}),
               duration: 200,
               ease: 'Cubic.easeOut',
             });
-            back.destroy();
+            if (mine) back.setDepth(DEPTH.hand + round);
+            else back.destroy();
           }),
         );
       }
     }
     await Promise.all(flights);
+    // The cards take the spots under their backs (in the hand's order), hidden edge-on until they turn over.
     this.render(v);
-    // The player's cards turn over.
+    const faces = this.order.map((card) => this.hand.get(card));
+    for (const face of faces) if (face) face.scaleX = 0;
     await Promise.all(
-      [...this.hand.values()].map((image, i) => {
-        image.scaleX = 0;
-        return delay(this, i * 18).then(() =>
-          tweenAsync(this, { targets: image, scaleX: 1, duration: 140, ease: 'Quad.easeOut' }),
-        );
-      }),
+      faces.map((face, i) =>
+        delay(this, i * 22).then(async () => {
+          const back = landed[i];
+          if (back) {
+            await tweenAsync(this, { targets: back, scaleX: 0, duration: 80, ease: 'Quad.easeIn' });
+            back.destroy();
+          }
+          if (face) await tweenAsync(this, { targets: face, scaleX: 1, duration: 90, ease: 'Quad.easeOut' });
+        }),
+      ),
     );
+    for (const back of landed) back?.destroy();
   }
 
   /** Animates the events of one action, then shows `after`. */
