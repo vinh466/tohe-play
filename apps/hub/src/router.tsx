@@ -6,9 +6,9 @@ import {
   lazyRouteComponent,
   Outlet,
 } from '@tanstack/react-router';
+import { AccountPage } from './pages/AccountPage.tsx';
 import { CatalogPage } from './pages/CatalogPage.tsx';
 import { DataPage } from './pages/DataPage.tsx';
-import { FamilyPage } from './pages/FamilyPage.tsx';
 import { ProfilesPage } from './pages/ProfilesPage.tsx';
 import { RegisterPage } from './pages/RegisterPage.tsx';
 import { WelcomePage } from './pages/WelcomePage.tsx';
@@ -35,16 +35,21 @@ const registerRoute = createRoute({
 const profilesRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/profiles',
+  // ?auto=true when the hub sent someone here to pick a player: an account with one profile and no PIN plays at once
+  // (D-01). Opened by hand ("Đổi người chơi"), the picker always shows, to add profiles or manage the account.
+  validateSearch: (search: Record<string, unknown>): { auto?: boolean } => ({
+    auto: search.auto === true || search.auto === 'true' ? true : undefined,
+  }),
   component: ProfilesPage,
 });
-const familyRoute = createRoute({
+const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/family',
-  // ?add=true opens the "new child profile" form right after the parent gate.
+  path: '/account',
+  // ?add=true opens the "new profile" form right after the parent gate.
   validateSearch: (search: Record<string, unknown>): { add: boolean } => ({
     add: search.add === true || search.add === 'true',
   }),
-  component: FamilyPage,
+  component: AccountPage,
 });
 
 /** What telemetry sends, this device's switch and the last batch (ADR 0015); open to everyone. */
@@ -87,7 +92,7 @@ export function createAppRouter(queryClient: QueryClient) {
       welcomeRoute,
       registerRoute,
       profilesRoute,
-      familyRoute,
+      accountRoute,
       dataRoute,
       playRoute,
       roomsRoute,

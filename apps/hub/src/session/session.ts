@@ -54,7 +54,7 @@ export function resolveSession(
   return { status: 'signedOut' };
 }
 
-/** True while household management is unlocked (the API is the authority; this only drives the UI). */
+/** True while account management is unlocked (the API is the authority; this only drives the UI). */
 export function parentUnlocked(me: MeView, now = new Date()): boolean {
   return me.parentUnlockedUntil !== null && new Date(me.parentUnlockedUntil) > now;
 }

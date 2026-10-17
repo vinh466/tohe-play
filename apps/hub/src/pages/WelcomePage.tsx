@@ -49,7 +49,7 @@ function SignIn() {
     onSuccess: async (me) => {
       guestMode.disable();
       await setMe(me);
-      await navigate({ to: '/profiles', replace: true });
+      await navigate({ to: '/profiles', search: { auto: true }, replace: true });
     },
   });
 
@@ -102,7 +102,7 @@ function SignIn() {
         <p className="text-ink-soft">
           {t('welcome.noAccount')}{' '}
           <Link to="/register" className="font-bold text-brand-ink underline underline-offset-4">
-            {t('welcome.createFamily')}
+            {t('welcome.createAccount')}
           </Link>
         </p>
         <Button variant="ghost" onClick={() => void tryAsGuest()}>

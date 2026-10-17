@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, auth } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { BackLink } from '../navigation/leave.tsx';
+import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
@@ -24,42 +25,39 @@ export function RegisterPage() {
 const USERNAME = /^[a-z0-9._-]{3,32}$/;
 
 function Register() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const setMe = useSetMe();
-  const [form, setForm] = useState({
-    displayName: '',
+  // The first profile's name is public, so it starts as a fun one rather than anyone's real name (D-17).
+  const [form, setForm] = useState(() => ({
+    displayName: funName(i18n.language),
     username: '',
     password: '',
     confirm: '',
-    householdName: '',
-    inviteCode: '',
-  });
-  const [withInvite, setWithInvite] = useState(false);
+  }));
   const [showErrors, setShowErrors] = useState(false);
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: event.target.value }));
 
   const username = form.username.trim().toLowerCase();
+  const displayName = cleanName(form.displayName);
   const local = {
+    displayName: !displayName
+      ? t('errors.nameRequired')
+      : visibleLength(displayName) > MAX_NAME_LENGTH
+        ? t('errors.nameTooLong')
+        : null,
     username: username && !USERNAME.test(username) ? t('errors.usernameInvalid') : null,
     password: form.password && form.password.length < 8 ? t('errors.passwordTooShort') : null,
     confirm: form.confirm && form.confirm !== form.password ? t('register.passwordsDiffer') : null,
   };
 
   const register = useMutation({
-    mutationFn: () =>
-      auth.register({
-        displayName: form.displayName.trim(),
-        username,
-        password: form.password,
-        householdName: withInvite ? null : form.householdName.trim() || null,
-        inviteCode: withInvite ? form.inviteCode : null,
-      }),
+    mutationFn: () => auth.register({ displayName, username, password: form.password }),
     onSuccess: async (me) => {
       guestMode.disable();
       await setMe(me);
-      await navigate({ to: '/profiles', replace: true });
+      await navigate({ to: '/profiles', search: { auto: true }, replace: true });
     },
   });
 
@@ -78,16 +76,28 @@ function Register() {
       <Brand subtitle={t('register.subtitle')} />
       <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm" noValidate>
         <h2 className="font-bold text-ink text-xl">{t('register.title')}</h2>
-        <TextField
-          label={t('register.displayName')}
-          hint={t('register.displayNameHint')}
-          name="displayName"
-          autoComplete="name"
-          required
-          maxLength={40}
-          value={form.displayName}
-          onChange={set('displayName')}
-        />
+        <div className="flex items-end gap-2">
+          <TextField
+            className="flex-1"
+            label={t('register.displayName')}
+            hint={t('register.displayNameHint')}
+            name="displayName"
+            autoComplete="off"
+            required
+            maxLength={128}
+            value={form.displayName}
+            onChange={set('displayName')}
+            error={(showErrors && local.displayName) || fieldError('displayName')}
+          />
+          <Button
+            variant="secondary"
+            aria-label={t('register.anotherName')}
+            title={t('register.anotherName')}
+            onClick={() => setForm((f) => ({ ...f, displayName: funName(i18n.language) }))}
+          >
+            🎲
+          </Button>
+        </div>
         <TextField
           label={t('register.username')}
           hint={t('register.usernameHint')}
@@ -124,42 +134,9 @@ function Register() {
           error={showErrors ? local.confirm : null}
         />
 
-        <label className="flex items-center gap-3 rounded-2xl bg-fill p-3 font-semibold text-ink">
-          <input
-            type="checkbox"
-            checked={withInvite}
-            onChange={(e) => setWithInvite(e.target.checked)}
-            className="size-6 accent-brand"
-          />
-          {t('register.haveInvite')}
-        </label>
-        {withInvite ? (
-          <TextField
-            label={t('register.inviteCode')}
-            hint={t('register.inviteCodeHint')}
-            name="inviteCode"
-            autoCapitalize="characters"
-            autoCorrect="off"
-            spellCheck={false}
-            required
-            value={form.inviteCode}
-            onChange={set('inviteCode')}
-            error={fieldError('inviteCode')}
-          />
-        ) : (
-          <TextField
-            label={t('register.householdName')}
-            hint={t('register.householdNameHint', { name: form.displayName.trim() || '…' })}
-            name="householdName"
-            maxLength={40}
-            value={form.householdName}
-            onChange={set('householdName')}
-          />
-        )}
-
         {register.isError &&
+        !server?.field('displayName') &&
         !server?.field('username') &&
-        !server?.field('inviteCode') &&
         !server?.field('password') ? (
           <p role="alert" className="text-danger">
             {t(errorKey(register.error))}

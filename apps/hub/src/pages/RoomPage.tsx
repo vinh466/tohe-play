@@ -19,6 +19,7 @@ import { telemetry } from '../telemetry/telemetry.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
+import { copyText } from '../ui/copyText.ts';
 import { Modal } from '../ui/Modal.tsx';
 import { QrCode } from '../ui/QrCode.tsx';
 import { Screen } from '../ui/Screen.tsx';
@@ -32,7 +33,7 @@ export function RoomPage() {
         session.status === 'account' ? (
           <Room
             player={session.player}
-            household={session.me.profiles}
+            accountProfiles={session.me.profiles}
             mayPlayWithOthers={
               session.me.profiles.find((p) => p.id === session.player.id)?.playWithOthers ?? false
             }
@@ -53,11 +54,11 @@ const forPlayer = (room: RoomView, playerId: string): RoomView => {
 
 function Room({
   player,
-  household,
+  accountProfiles,
   mayPlayWithOthers,
 }: {
   player: Player;
-  household: ProfileView[];
+  accountProfiles: ProfileView[];
   mayPlayWithOthers: boolean;
 }) {
   const { roomId } = useParams({ from: '/room/$roomId' });
@@ -252,8 +253,8 @@ function Room({
         room={room}
         game={game}
         player={player}
-        household={household}
-        familyOnly={!mayPlayWithOthers}
+        accountProfiles={accountProfiles}
+        ownAccountOnly={!mayPlayWithOthers}
         onLeave={askToLeave}
       />
       {reconnecting ? (
@@ -269,41 +270,19 @@ function Room({
   );
 }
 
-/** Copies a text even on a plain-HTTP home server, where the Clipboard API is missing. */
-async function copyText(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    // fall back below
-  }
-  const field = document.createElement('textarea');
-  field.value = text;
-  field.setAttribute('readonly', '');
-  field.style.position = 'fixed';
-  field.style.opacity = '0';
-  document.body.append(field);
-  field.select();
-  const ok = document.execCommand('copy');
-  field.remove();
-  return ok;
-}
-
 function WaitingRoom({
   room,
   game,
   player,
-  household,
-  familyOnly,
+  accountProfiles,
+  ownAccountOnly,
   onLeave,
 }: {
   room: RoomView;
   game: GameSummary;
   player: Player;
-  household: ProfileView[];
-  familyOnly: boolean;
+  accountProfiles: ProfileView[];
+  ownAccountOnly: boolean;
   onLeave(): void;
 }) {
   const { t } = useTranslation();
@@ -316,7 +295,7 @@ function WaitingRoom({
     onSuccess: (_, profileId) => setInvited((current) => new Set(current).add(profileId)),
   });
   const seated = new Set(room.seatList.map((s) => s.profileId).filter(Boolean));
-  const invitable = household.filter((profile) => profile.id !== player.id && !seated.has(profile.id));
+  const invitable = accountProfiles.filter((profile) => profile.id !== player.id && !seated.has(profile.id));
   const [copied, setCopied] = useState(false);
   const isHost = room.hostProfileId === player.id;
   const link = joinLink(room.code);
@@ -484,7 +463,7 @@ function WaitingRoom({
           initial={{
             seats: room.seats,
             isPublic: room.isPublic,
-            householdOnly: room.householdOnly,
+            accountOnly: room.accountOnly,
             botsFill: room.botsFill,
             botLevel: room.botLevel,
             botsTakeOver: room.botsTakeOver,
@@ -492,7 +471,7 @@ function WaitingRoom({
             spectators: room.spectators,
             options: room.options as Record<string, unknown>,
           }}
-          familyOnly={familyOnly}
+          ownAccountOnly={ownAccountOnly}
           submitLabel={t('rooms.saveSettings')}
           busy={update.isPending}
           error={update.isError ? t(errorKey(update.error)) : null}

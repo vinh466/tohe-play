@@ -7,8 +7,8 @@ import { Avatar } from '../ui/AvatarGrid.tsx';
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
 /**
- * A game's online results in its lobby (ADR 0016, phase 3): the profile's own, the household's board over the last 7
- * days (per household only, like every board on Tò He), and the last hands, each with a replay.
+ * A game's online results in its lobby (ADR 0016, phase 3): the profile's own, the account's board over the last 7
+ * days (the account's profiles only, like every board on Tò He so far), and the last hands, each with a replay.
  */
 export function RoomResults({ gameId, playerId }: { gameId: string; playerId: string }) {
   const { t } = useTranslation();
@@ -19,7 +19,7 @@ export function RoomResults({ gameId, playerId }: { gameId: string; playerId: st
   });
   const places = t('rooms.places', { returnObjects: true }) as string[];
   if (!stats.data) return null;
-  const { week, allTime, household } = stats.data;
+  const { week, allTime, account } = stats.data;
 
   return (
     <section aria-labelledby="room-results" className="flex flex-col gap-3">
@@ -41,9 +41,9 @@ export function RoomResults({ gameId, playerId }: { gameId: string; playerId: st
       </dl>
 
       <h3 className="font-bold text-ink">{t('rooms.board')}</h3>
-      {household.length === 0 ? <p className="text-ink-soft">{t('rooms.boardEmpty')}</p> : null}
+      {account.length === 0 ? <p className="text-ink-soft">{t('rooms.boardEmpty')}</p> : null}
       <ol className="flex flex-col gap-2">
-        {household.map((row, index) => (
+        {account.map((row, index) => (
           <li
             key={row.profileId}
             className={`flex items-center gap-3 rounded-2xl p-3 ${row.profileId === playerId ? 'bg-notice text-notice-ink' : 'bg-surface text-ink'}`}

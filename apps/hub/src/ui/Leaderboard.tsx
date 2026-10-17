@@ -11,7 +11,7 @@ import { Modal } from './Modal.tsx';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-/** 🏆 in the corner of a game card: the household's best scores for that game (M2). */
+/** 🏆 in the corner of a game card: the best scores of the account's profiles for that game (M2). */
 export function LeaderboardButton({ game, player }: { game: GameSummary; player: Player }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -30,7 +30,7 @@ export function LeaderboardButton({ game, player }: { game: GameSummary; player:
   );
 }
 
-/** The household's board for a game in a sheet: from its catalog card, or over the game when it asks (ADR 0018). */
+/** The account's board for a game in a sheet: from its catalog card, or over the game when it asks (ADR 0018). */
 export function LeaderboardSheet({
   game,
   player,

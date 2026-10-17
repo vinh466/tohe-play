@@ -86,15 +86,15 @@ try {
   await page.waitForURL(/\/welcome$/);
   await shot('welcome');
 
-  step(`register a family account (${username})`);
-  await page.getByRole('link', { name: 'Tạo tài khoản gia đình' }).tap();
-  await page.getByLabel('Tên của bạn').fill('Bố E2E');
+  step(`register an account (${username}): its only profile plays at once`);
+  await page.getByRole('link', { name: 'Tạo tài khoản' }).tap();
+  await page.getByLabel('Tên khi chơi').fill('Bố E2E');
   await page.getByLabel('Tên đăng nhập').fill(username);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByLabel('Nhập lại mật khẩu').fill(password);
   await shot('register');
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
-  await page.waitForURL(/\/profiles$/);
+  await page.waitForURL((url) => url.pathname === '/');
 
   step('choose the dark theme in "Giao diện": it applies at once and survives a reload');
   await page.getByRole('button', { name: /^Giao diện/ }).tap();
@@ -115,12 +115,16 @@ try {
   await expectTheme('light');
   await themes.getByRole('button', { name: '✕' }).tap();
 
-  step('add a child profile with a PIN (behind the parent gate)');
+  step(
+    '"Đổi người chơi" opens the picker, where a child profile with a PIN is added (behind the parent gate)',
+  );
+  await page.getByRole('link', { name: 'Đổi người chơi' }).tap();
+  await page.waitForURL((url) => url.pathname === '/profiles');
   await page.getByRole('button', { name: /Thêm hồ sơ/ }).tap();
-  await page.waitForURL(/\/family/);
+  await page.waitForURL(/\/account/);
   await page.getByLabel('Mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Mở khoá' }).tap();
-  const form = page.getByRole('dialog', { name: 'Hồ sơ mới cho bé' });
+  const form = page.getByRole('dialog', { name: 'Hồ sơ mới' });
   await form.getByLabel('Tên').fill('Bé Na');
   await form.getByRole('button', { name: '🐼' }).tap();
   await form.getByRole('button', { name: '3-5 tuổi' }).tap();
@@ -128,11 +132,13 @@ try {
   await shot('new-child');
   await form.getByRole('button', { name: 'Lưu' }).tap();
   await page.getByRole('button', { name: /Bé Na/ }).waitFor();
-  await shot('family');
+  const publicIds = await page.getByText(/ID hồ sơ \d{4} \d{4} \d{4}/).count();
+  if (publicIds !== 2) throw new Error(`expected a public ID on both profiles, saw ${publicIds}`);
+  await shot('account');
 
   step('pick the child and enter the PIN');
   await page.getByRole('link', { name: 'Quay lại' }).tap();
-  await page.waitForURL(/\/profiles$/);
+  await page.waitForURL((url) => url.pathname === '/profiles');
   await shot('profiles');
   await page.getByRole('button', { name: /Bé Na/ }).tap();
   const pinPad = page.getByRole('dialog', { name: /Nhập mã PIN/ });
@@ -309,7 +315,7 @@ try {
     );
   }
 
-  step('the household leaderboard lists the child');
+  step("the account's leaderboard lists the child");
   await page.getByRole('button', { name: 'Bảng xếp hạng Chạm Chấm' }).tap();
   const leaderboard = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await leaderboard.getByText('Bé Na (bạn)').waitFor();
