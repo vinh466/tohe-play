@@ -255,10 +255,14 @@ sequenceDiagram
   U->>H: the code and a new password
   H->>A: POST /api/auth/password/reset {attemptId, code, password}
   A->>A: password rules first — a weak one costs no try — then the code
-  A->>A: the new password, a new security stamp, any lockout ended
-  A->>A: a pending email change is cancelled
-  A->>M: "Mật khẩu Tò He của bạn đã đổi"
-  A-->>H: 200 + a fresh session here — every other one ends within 5 minutes
+  alt the account is suspended (ADR 0027)
+    A-->>H: 403 account_suspended, said now that the code proved the address — nothing changes
+  else not suspended
+    A->>A: the new password, a new security stamp, any lockout ended
+    A->>A: a pending email change is cancelled
+    A->>M: "Mật khẩu Tò He của bạn đã đổi"
+    A-->>H: 200 + a fresh session here — every other one ends within 5 minutes
+  end
 ```
 
 ## A new sign-in email
@@ -336,6 +340,7 @@ page. Signing in, the password just typed counts as level 2 for adding a first e
 | In the cookie | the active profile, and until when step-up level 1 and level 2 are open — and the admin console, after its two-factor check ([Admin console](admin.md#two-factor-authentication)) |
 | Checked against the account's security stamp | every 5 minutes (`Identity:SessionCheckInterval`) |
 | The stamp changes when | the password is reset or changed · the sign-in email changes · a provider is unlinked · an admin suspends the account or signs it out everywhere ([Admin console](admin.md#users)) |
+| Never written for | a suspended account: whatever would re-issue its session — choosing who plays, a step-up — answers `403 account_suspended` and ends the session at once, so it cannot renew itself before the check |
 
 ## A device's life
 
@@ -399,7 +404,7 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | A sign-in back from a provider waits on the browser that came back, in a sealed cookie (`tohe.external`, path `/api/auth/external`) — never in a link — for 15 minutes | `ExternalEndpoints` |
 | Linking and unlinking need step-up level 2; a link starts only from the hub's page (`Sec-Fetch-Site`); unlinking never removes the last way in and ends the other sessions; the account's address hears of both | `ExternalEndpoints` |
 | Providers answer with a GET (OpenID Connect in the query), and every one of them uses PKCE | `ExternalProviders` |
-| A suspended account has no way in — password, provider, finishing a link — and hears why only after proving it is theirs; its sessions end with the new security stamp | `AuthEndpoints`, `ExternalEndpoints`, `AccountsAdmin` |
+| A suspended account has no way in — password, provider, finishing a link, a new password by email — and hears why only after proving it is theirs; its sessions end with the new security stamp, and none is written for it | `AuthEndpoints`, `ExternalEndpoints`, `SessionWriter`, `AccountsAdmin` |
 | Every name a profile had is kept, whoever renamed it | The `profiles_name_history` trigger on `identity.profiles` |
 | Managing the account's profiles needs step-up level 1: the manage PIN within the last 10 minutes, or level 2 | The parent-gate endpoint filter on `/api/account` and `/api/profiles/*` (`ProfileEndpoints.Gated`) |
 | The manage PIN is six digits, hashed; five wrong in a row lock it for five minutes | `SessionEndpoints`, `ManagePins` |

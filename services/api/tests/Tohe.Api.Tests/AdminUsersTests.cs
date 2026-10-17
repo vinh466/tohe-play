@@ -79,6 +79,38 @@ public sealed class AdminUsersTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     [Fact]
+    public async Task A_suspended_account_neither_renews_a_session_it_still_holds_nor_resets_its_way_back_in()
+    {
+        var admin = await Admins.NewAsync(factory, "admin");
+        var email = Accounts.NewEmail();
+        // The usual session check: the phone's session is not checked again for a few minutes.
+        var phone = factory.CreateClient();
+        var player = await Accounts.SignUpAsync(factory, phone, "Người chơi", email);
+        await admin.Client.PostAsJsonAsync(Url($"/api/admin/users/{player.Account.Id}/suspend"), new { reason = "Thử" }, Ct);
+
+        // Anything that would re-issue the session ends it instead.
+        var renew = await phone.DeleteAsync(Url("/api/session/profile"), Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "account_suspended"), (renew.StatusCode, await CodeOfAsync(renew)));
+        Assert.Equal(HttpStatusCode.NoContent, (await phone.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
+
+        // A new password by email is no way in either: it says why once the code proved the address, and changes nothing.
+        await AgeAttemptsAsync(email);
+        var laptop = factory.CreateClient();
+        var forgot = await laptop.PostAsJsonAsync(Url("/api/auth/password/forgot"), new { email }, Ct);
+        var attempt = (await forgot.Content.ReadFromJsonAsync<AttemptView>(Ct))!.AttemptId;
+        var reset = await laptop.PostAsJsonAsync(
+            Url("/api/auth/password/reset"),
+            new { attemptId = attempt, code = await factory.CodeSentToAsync(email), password = "mat-khau-moi-cua-bo" },
+            Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "account_suspended"), (reset.StatusCode, await CodeOfAsync(reset)));
+        Assert.Equal(HttpStatusCode.NoContent, (await laptop.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
+
+        await admin.Client.DeleteAsync(Url($"/api/admin/users/{player.Account.Id}/suspend"), Ct);
+        var login = await factory.CreateClient().PostAsJsonAsync(Url("/api/auth/login"), new { email, password = Accounts.Password }, Ct);
+        Assert.Equal(HttpStatusCode.OK, login.StatusCode);
+    }
+
+    [Fact]
     public async Task Signing_out_everywhere_ends_every_session_of_the_account()
     {
         var admin = await Admins.NewAsync(factory, "admin", _strict);
@@ -162,6 +194,15 @@ public sealed class AdminUsersTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     // ------------------------------------------------------------------ helpers
+
+    /// <summary>Moves the address's attempts two minutes back, past the minute between codes.</summary>
+    private async Task AgeAttemptsAsync(string email)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        await scope.ServiceProvider.GetRequiredService<ToheDbContext>().AuthAttempts
+            .Where(a => a.NormalizedEmail == email.ToUpperInvariant())
+            .ExecuteUpdateAsync(s => s.SetProperty(a => a.CreatedAt, DateTimeOffset.UtcNow.AddMinutes(-2)), Ct);
+    }
 
     private async Task<List<string>> AuditAsync(string email)
     {

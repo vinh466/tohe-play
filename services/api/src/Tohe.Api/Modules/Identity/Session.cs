@@ -1,6 +1,7 @@
 using System.Globalization;
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication;
+using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 
 namespace Tohe.Api.Modules.Identity;
@@ -70,11 +71,20 @@ public sealed record DeviceSession(
         SessionClaims.AdminOpenUntil(user));
 }
 
-/// <summary>Re-issues the session cookie with the given session claims.</summary>
+/// <summary>
+/// Re-issues the session cookie with the given session claims. Never for a suspended account (ADR 0027): the cookie would
+/// carry the security stamp the suspension gave the account, and a session it still holds would outlive the suspension by
+/// renewing itself before the session check.
+/// </summary>
 public sealed class SessionWriter(SignInManager<Account> signIn)
 {
     public Task WriteAsync(Account account, DeviceSession session)
     {
+        if (account.SuspendedAt is not null)
+        {
+            throw new AccountSuspendedException();
+        }
+
         var claims = new List<Claim>();
         if (session.ProfileId is { } profile)
         {
@@ -100,4 +110,26 @@ public sealed class SessionWriter(SignInManager<Account> signIn)
     }
 
     private static string Seconds(DateTimeOffset at) => at.ToUnixTimeSeconds().ToString(CultureInfo.InvariantCulture);
+}
+
+/// <summary>A session was about to be written for a suspended account; see <see cref="SessionWriter"/>.</summary>
+public sealed class AccountSuspendedException() : InvalidOperationException("The account is suspended");
+
+/// <summary>
+/// The answer to <see cref="AccountSuspendedException"/>: the one a sign-in gets, and the session on this browser ends now
+/// rather than at the next session check.
+/// </summary>
+internal sealed class AccountSuspendedHandler : IExceptionHandler
+{
+    public async ValueTask<bool> TryHandleAsync(HttpContext http, Exception exception, CancellationToken ct)
+    {
+        if (exception is not AccountSuspendedException)
+        {
+            return false;
+        }
+
+        await http.SignOutAsync(IdentityConstants.ApplicationScheme);
+        await Problems.AccountSuspended().ExecuteAsync(http);
+        return true;
+    }
 }

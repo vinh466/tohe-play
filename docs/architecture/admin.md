@@ -167,8 +167,10 @@ ID; nothing typed lists the newest. An account's page shows how it signs in, its
 whether it is suspended and why, and each profile with the names it had. What may be done to it, behind step-up
 level 2 and in the audit log:
 
-- **Suspend**, with a reason only admins see: no way in — the password, a provider, finishing a link — and a new
-  security stamp, so its sessions end within the session check. A sign-in with the right password is told
+- **Suspend**, with a reason only admins see: no way in — the password, a provider, finishing a link, a new password
+  by email — and a new security stamp, so its sessions end within the session check. Until then a session it still
+  holds cannot renew itself: whatever would re-issue it answers `account_suspended` and ends it. A sign-in with the
+  right password is told
   `account_suspended`; a wrong one hears `invalid_credentials` as always, so nobody learns which accounts are
   suspended. With a provider, the hub shows the same at `/welcome?external=suspended`. **Lift** undoes it.
 - **Sign out everywhere**: a new security stamp alone.
