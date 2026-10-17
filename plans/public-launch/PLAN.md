@@ -4,7 +4,7 @@
   Google/GitHub, admin console, bảng xếp hạng đáng tin, chạy trên cluster `platform-infra` bằng chart của chính nó.
 - Phase: **Frame** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)); nhiều item
   đã decided, track T1 graduate được ngay.
-- Started: 2026-10-17 · Branch: `plan/public-launch` · PR: (draft — điền khi mở)
+- Started: 2026-10-17 · Branch: `plan/public-launch` · PR: [tohe-play#42](https://github.com/vinh466/tohe-play/pull/42) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** · Log: [log.md](log.md)
 - Research: [R-01 auth & liên kết](research/R-01-auth-linking.md) · [R-02 admin đầu tiên](research/R-02-first-admin.md) ·
   [R-03 bảng xếp hạng](research/R-03-leaderboards.md) · [R-04 hồ sơ & handle](research/R-04-profiles-handles.md) ·
