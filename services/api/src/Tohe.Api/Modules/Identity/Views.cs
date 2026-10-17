@@ -13,6 +13,7 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="Logins">The providers it signs in with besides its email (ADR 0026): <c>google</c>, <c>github</c>, <c>oidc</c>.</param>
 /// <param name="Role">Its platform role (ADR 0027) — <c>owner</c>, <c>admin</c>, <c>moderator</c> or <c>viewer</c> — which opens
 /// the admin console; none for players.</param>
+/// <param name="Community">The community it came with by an invite code (ADR 0028): its board is one of the public ones.</param>
 public sealed record AccountView(
     Guid Id,
     string? Email,
@@ -23,11 +24,13 @@ public sealed record AccountView(
     bool HasManagePin,
     string? TermsVersion,
     IReadOnlyList<string> Logins,
-    string? Role);
+    string? Role,
+    string? Community);
 
 /// <param name="PublicId">12 digits, the profile's public identifier (ADR 0023).</param>
 /// <param name="Kind"><c>adult</c> or <c>child</c>.</param>
 /// <param name="PlayWithOthers">May play online with other accounts: adults, and children the owner allowed.</param>
+/// <param name="OnPublicBoards">On the public boards — a community's and the server's (ADR 0029).</param>
 public sealed record ProfileView(
     Guid Id,
     string PublicId,
@@ -36,7 +39,8 @@ public sealed record ProfileView(
     string Kind,
     string? AgeBand,
     bool HasPin,
-    bool PlayWithOthers);
+    bool PlayWithOthers,
+    bool OnPublicBoards);
 
 /// <summary>Everything the hub needs about the device session.</summary>
 /// <param name="Profiles">The account's profiles, its first (created with it) first.</param>
@@ -71,6 +75,9 @@ internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, TimeProvi
             .OrderBy(provider => provider)
             .ToListAsync(cancellationToken);
         var role = await roles.RoleOfAsync(accountId, cancellationToken);
+        var community = account.CommunityId is { } communityId
+            ? await db.Communities.AsNoTracking().Where(c => c.Id == communityId).Select(c => c.Name).FirstOrDefaultAsync(cancellationToken)
+            : null;
         var active = views.Any(p => p.Id == session.ProfileId) ? session.ProfileId : null;
         var now = clock.GetUtcNow();
 
@@ -85,7 +92,8 @@ internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, TimeProvi
                 account.ManagePinHash is not null,
                 account.TermsVersion,
                 logins,
-                role is { } held ? PlatformRoles.NameOf(held) : null),
+                role is { } held ? PlatformRoles.NameOf(held) : null,
+                community),
             views,
             active,
             session.ParentUntil > now ? session.ParentUntil : null,
@@ -100,5 +108,6 @@ internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, TimeProvi
         profile.Kind == ProfileKind.Adult ? "adult" : "child",
         profile.AgeBand,
         profile.PinHash is not null,
-        profile.Kind == ProfileKind.Adult || profile.PlayWithOthers);
+        profile.Kind == ProfileKind.Adult || profile.PlayWithOthers,
+        profile.OnPublicBoards);
 }

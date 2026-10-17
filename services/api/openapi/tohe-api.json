@@ -1364,6 +1364,84 @@
         }
       }
     },
+    "/api/boards/{gameId}/public": {
+      "get": {
+        "tags": [
+          "Boards"
+        ],
+        "summary": "A community's or the server's board of a game: the first 50 and the viewer's place, by trust.",
+        "operationId": "GetPublicBoard",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "server"
+            }
+          },
+          {
+            "name": "board",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "default"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "week"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBoardView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/telemetry": {
       "post": {
         "tags": [
@@ -2236,7 +2314,8 @@
           "hasManagePin",
           "termsVersion",
           "logins",
-          "role"
+          "role",
+          "community"
         ],
         "type": "object",
         "properties": {
@@ -2281,6 +2360,12 @@
             }
           },
           "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "community": {
             "type": [
               "null",
               "string"
@@ -3408,7 +3493,8 @@
           "kind",
           "ageBand",
           "hasPin",
-          "playWithOthers"
+          "playWithOthers",
+          "onPublicBoards"
         ],
         "type": "object",
         "properties": {
@@ -3438,6 +3524,136 @@
             "type": "boolean"
           },
           "playWithOthers": {
+            "type": "boolean"
+          },
+          "onPublicBoards": {
+            "type": "boolean"
+          }
+        }
+      },
+      "PublicBoardView": {
+        "required": [
+          "gameId",
+          "board",
+          "scope",
+          "period",
+          "since",
+          "hands",
+          "reproducible",
+          "listed",
+          "players",
+          "top",
+          "me",
+          "around"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "since": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "hands": {
+            "type": "boolean"
+          },
+          "reproducible": {
+            "type": "boolean"
+          },
+          "listed": {
+            "type": "boolean"
+          },
+          "players": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "top": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRow"
+            }
+          },
+          "me": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicRow"
+              }
+            ]
+          },
+          "around": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRow"
+            }
+          }
+        }
+      },
+      "PublicRow": {
+        "required": [
+          "rank",
+          "profileId",
+          "name",
+          "avatar",
+          "publicId",
+          "value",
+          "hands",
+          "firsts",
+          "verified"
+        ],
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "hands": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "firsts": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "verified": {
             "type": "boolean"
           }
         }
@@ -4265,6 +4481,18 @@
             ]
           },
           "playWithOthers": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "onPublicBoards": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "askedChild": {
             "type": [
               "null",
               "boolean"
