@@ -1,6 +1,6 @@
 ---
 title: Saves, scores and sync
-description: How a game's saves and scores reach every device of a profile, and the household leaderboard (M2).
+description: How a game's saves and scores reach every device of a profile, and the account's leaderboard (M2).
 ---
 
 Decision: [ADR 0005 — offline first](../decisions/0005-offline-first.md). Games know nothing of this: they call
@@ -47,10 +47,10 @@ A game whose run lasts across sittings reports it as it grows (`run(id).update`)
 | `GET /api/progress/saves` | Every save of the active profile, with the server time of its last write. |
 | `PUT /api/progress/saves/{gameId}` | Stores a save (any JSON, at most 64 KB as in the contract); the last write wins. |
 | `POST /api/progress/scores` | Records runs (up to 200 per call). A known `clientId` raises that run's score or makes it final; otherwise it is ignored. |
-| `GET /api/progress/leaderboard/{gameId}?board=default` | Best score of each household member, highest first. |
+| `GET /api/progress/leaderboard/{gameId}?board=default` | Best score of each of the account's profiles, highest first. |
 
 All need a session with a chosen profile (`403 profile_required` otherwise). The leaderboard reads names and
-avatars through Identity's `IHouseholdProfiles`, never its tables. Scores of a deleted profile stay in the table
+avatars through Identity's `IAccountProfiles`, never its tables. Scores of a deleted profile stay in the table
 but no longer appear on the leaderboard.
 
 ## In the hub
