@@ -276,7 +276,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "A code goes to the new email. Needs the parent gate, or the password with the request.",
+        "summary": "A code goes to the new email. Needs step-up level 2, or the password with the request.",
         "operationId": "ChangeEmail",
         "requestBody": {
           "content": {
@@ -343,6 +343,129 @@
         }
       }
     },
+    "/api/account/manage-pin": {
+      "put": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Set or change the manage PIN (needs step-up level 2); opens profile management.",
+        "operationId": "SetManagePin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagePinRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/password": {
+      "put": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Set or change the password (needs step-up level 2); every other session ends.",
+        "operationId": "SetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/terms": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Accept the terms and privacy notice in the version the hub shows.",
+        "operationId": "AcceptTerms",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TermsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/session/profile": {
       "put": {
         "tags": [
@@ -401,7 +524,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Re-enter the password to manage the account's profiles for a few minutes.",
+        "summary": "The manage PIN opens profile management on this device for 10 minutes (step-up level 1).",
         "operationId": "UnlockParentGate",
         "requestBody": {
           "content": {
@@ -432,6 +555,89 @@
         ],
         "summary": "Lock profile management again.",
         "operationId": "LockParentGate",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/session/step-up": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The password opens account security, and profile management, for 10 minutes (level 2).",
+        "operationId": "StepUp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StepUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/session/step-up/code": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A code to the account's email, for stepping up without the password.",
+        "operationId": "StepUpCode",
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/session/step-up/confirm": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code opens account security, and profile management, for 10 minutes (level 2).",
+        "operationId": "ConfirmStepUp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -1735,7 +1941,10 @@
           "email",
           "username",
           "displayName",
-          "telemetry"
+          "telemetry",
+          "hasPassword",
+          "hasManagePin",
+          "termsVersion"
         ],
         "type": "object",
         "properties": {
@@ -1760,6 +1969,18 @@
           },
           "telemetry": {
             "type": "boolean"
+          },
+          "hasPassword": {
+            "type": "boolean"
+          },
+          "hasManagePin": {
+            "type": "boolean"
+          },
+          "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2528,12 +2749,24 @@
           }
         }
       },
+      "ManagePinRequest": {
+        "required": [
+          "pin"
+        ],
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string"
+          }
+        }
+      },
       "MeView": {
         "required": [
           "account",
           "profiles",
           "activeProfileId",
-          "parentUnlockedUntil"
+          "parentUnlockedUntil",
+          "secureUntil"
         ],
         "type": "object",
         "properties": {
@@ -2554,6 +2787,13 @@
             "format": "uuid"
           },
           "parentUnlockedUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "secureUntil": {
             "type": [
               "null",
               "string"
@@ -2594,6 +2834,17 @@
         }
       },
       "ParentGateRequest": {
+        "required": [
+          "pin"
+        ],
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string"
+          }
+        }
+      },
+      "PasswordRequest": {
         "required": [
           "password"
         ],
@@ -3211,7 +3462,9 @@
         "required": [
           "email",
           "password",
-          "displayName"
+          "displayName",
+          "acceptTerms",
+          "termsVersion"
         ],
         "type": "object",
         "properties": {
@@ -3222,6 +3475,26 @@
             "type": "string"
           },
           "displayName": {
+            "type": "string"
+          },
+          "acceptTerms": {
+            "type": "boolean"
+          },
+          "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "StepUpRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
             "type": "string"
           }
         }
@@ -3467,6 +3740,17 @@
           "events": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "TermsRequest": {
+        "required": [
+          "version"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
           }
         }
       },

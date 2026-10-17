@@ -95,6 +95,7 @@ try {
   await page.getByLabel('Tên khi chơi').fill('Bố E2E');
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByLabel('Nhập lại mật khẩu').fill(password);
+  await page.getByRole('checkbox', { name: /16 tuổi/ }).check();
   await shot('register');
   await page.getByRole('button', { name: 'Gửi mã xác nhận' }).tap();
   await page.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
@@ -122,14 +123,14 @@ try {
   await themes.getByRole('button', { name: '✕' }).tap();
 
   step(
-    '"Đổi người chơi" opens the picker, where a child profile with a PIN is added (behind the parent gate)',
+    '"Đổi người chơi" opens the picker, where a child profile with a PIN is added (the owner confirms with the password)',
   );
   await page.getByRole('link', { name: 'Đổi người chơi' }).tap();
   await page.waitForURL((url) => url.pathname === '/profiles');
   await page.getByRole('button', { name: /Thêm hồ sơ/ }).tap();
   await page.waitForURL(/\/account/);
   await page.getByLabel('Mật khẩu').fill(password);
-  await page.getByRole('button', { name: 'Mở khoá' }).tap();
+  await page.getByRole('button', { name: 'Xác nhận' }).tap();
   const form = page.getByRole('dialog', { name: 'Hồ sơ mới' });
   await form.getByLabel('Tên').fill('Bé Na');
   await form.getByRole('button', { name: '🐼' }).tap();

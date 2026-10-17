@@ -76,6 +76,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     [InlineData("bo@localhost", "mat-khau-cua-bo", "Bố", "email", "email_invalid")]
     [InlineData("{0}", "ngan", "Bố", "password", "password_too_short")]
     [InlineData("{0}", "mat-khau-cua-bo", "   ", "displayName", "name_required")]
+    [InlineData("{0}", "mat-khau-cua-bo", "Bố", "acceptTerms", "terms_required")] // 16 or older, and the terms
     public async Task Invalid_input_is_rejected_before_anything_is_sent(
         string email, string password, string displayName, string field, string error)
     {
@@ -101,7 +102,9 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Equal(HttpStatusCode.Forbidden, locked.StatusCode);
         Assert.Equal("parent_gate_required", await CodeAsync(locked));
 
-        var wrong = await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = "khong-dung" }, Ct);
+        var noPin = await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { pin = "123456" }, Ct);
+        Assert.Equal("manage_pin_not_set", await CodeAsync(noPin));
+        var wrong = await client.PostAsJsonAsync(Url("/api/session/step-up"), new { password = "khong-dung" }, Ct);
         Assert.Equal("password_invalid", await CodeAsync(wrong));
 
         var unlocked = await UnlockAsync(client);
@@ -319,9 +322,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
 
     private static async Task<MeView> UnlockAsync(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await response.Content.ReadFromJsonAsync<MeView>(Ct))!;
+        return await Accounts.StepUpAsync(client);
     }
 
     private static async Task<ProfileView> AddChildAsync(HttpClient client, string name, string? pin = null, string? expectedName = null)

@@ -58,3 +58,8 @@ export function resolveSession(
 export function parentUnlocked(me: MeView, now = new Date()): boolean {
   return me.parentUnlockedUntil !== null && new Date(me.parentUnlockedUntil) > now;
 }
+
+/** True while account security (step-up level 2, ADR 0025) is open on this device; the API decides. */
+export function isSecure(me: MeView, now = new Date()): boolean {
+  return me.secureUntil !== null && new Date(me.secureUntil) > now;
+}

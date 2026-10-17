@@ -166,7 +166,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** A code goes to the new email. Needs the parent gate, or the password with the request. */
+        /** A code goes to the new email. Needs step-up level 2, or the password with the request. */
         post: operations["ChangeEmail"];
         delete?: never;
         options?: never;
@@ -185,6 +185,57 @@ export interface paths {
         put?: never;
         /** The code makes the new email the one that signs in; every other session ends. */
         post: operations["ConfirmEmailChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/manage-pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or change the manage PIN (needs step-up level 2); opens profile management. */
+        put: operations["SetManagePin"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or change the password (needs step-up level 2); every other session ends. */
+        put: operations["SetPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept the terms and privacy notice in the version the hub shows. */
+        post: operations["AcceptTerms"];
         delete?: never;
         options?: never;
         head?: never;
@@ -218,10 +269,61 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Re-enter the password to manage the account's profiles for a few minutes. */
+        /** The manage PIN opens profile management on this device for 10 minutes (step-up level 1). */
         post: operations["UnlockParentGate"];
         /** Lock profile management again. */
         delete: operations["LockParentGate"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/session/step-up": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The password opens account security, and profile management, for 10 minutes (level 2). */
+        post: operations["StepUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/session/step-up/code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code to the account's email, for stepping up without the password. */
+        post: operations["StepUpCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/session/step-up/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code opens account security, and profile management, for 10 minutes (level 2). */
+        post: operations["ConfirmStepUp"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -666,6 +768,9 @@ export interface components {
             username: null | string;
             displayName: string;
             telemetry: boolean;
+            hasPassword: boolean;
+            hasManagePin: boolean;
+            termsVersion: null | string;
         };
         AttemptView: {
             /** Format: uuid */
@@ -896,6 +1001,9 @@ export interface components {
             email: string;
             password: string;
         };
+        ManagePinRequest: {
+            pin: string;
+        };
         MeView: {
             account: components["schemas"]["AccountView"];
             profiles: components["schemas"]["ProfileView"][];
@@ -903,6 +1011,8 @@ export interface components {
             activeProfileId: null | string;
             /** Format: date-time */
             parentUnlockedUntil: null | string;
+            /** Format: date-time */
+            secureUntil: null | string;
         };
         MetricSummary: {
             name: string;
@@ -916,6 +1026,9 @@ export interface components {
             max: number;
         };
         ParentGateRequest: {
+            pin: string;
+        };
+        PasswordRequest: {
             password: string;
         };
         PlayerStats: {
@@ -1082,6 +1195,11 @@ export interface components {
             email: string;
             password: string;
             displayName: string;
+            acceptTerms: boolean;
+            termsVersion: null | string;
+        };
+        StepUpRequest: {
+            password: string;
         };
         TelemetryBatch: {
             /** Format: uuid */
@@ -1150,6 +1268,9 @@ export interface components {
             sessions: number;
             /** Format: int32 */
             events: number;
+        };
+        TermsRequest: {
+            version: string;
         };
         UpdateAccountRequest: {
             telemetry?: null | boolean;
@@ -1474,6 +1595,105 @@ export interface operations {
             };
         };
     };
+    SetManagePin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManagePinRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    SetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    AcceptTerms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
     SelectProfile: {
         parameters: {
             query?: never;
@@ -1557,6 +1777,74 @@ export interface operations {
             cookie?: never;
         };
         requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+        };
+    };
+    StepUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StepUpRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+        };
+    };
+    StepUpCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+        };
+    };
+    ConfirmStepUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCodeRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {

@@ -111,7 +111,7 @@ internal static class IdentityModule
                 options.OnRefreshingPrincipal = context =>
                 {
                     var sessionClaims = context.CurrentPrincipal?.Claims
-                        .Where(c => c.Type is SessionClaims.Profile or SessionClaims.ParentUntil)
+                        .Where(c => c.Type is SessionClaims.Profile or SessionClaims.ParentUntil or SessionClaims.SecureUntil)
                         .ToList() ?? [];
                     context.NewPrincipal?.Identities.First().AddClaims(sessionClaims);
                     return Task.CompletedTask;
@@ -160,6 +160,7 @@ internal static class IdentityModule
     {
         AuthEndpoints.Map(api);
         AccountEmailEndpoints.Map(api);
+        AccountSecurityEndpoints.Map(api);
         SessionEndpoints.Map(api);
         ProfileEndpoints.Map(api);
         return api;

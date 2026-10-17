@@ -9,6 +9,7 @@ sidebar:
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0011](0011-password-sign-in-first.md) — accounts sign in with a verified email; a username only
   still signs in an account from before, until it adds an email
+- **Amended by:** [ADR 0025](0025-step-up-in-two-levels-and-consent-at-sign-up.md) — changing the email needs step-up level 2 rather than the parent gate
 
 ## Context
 

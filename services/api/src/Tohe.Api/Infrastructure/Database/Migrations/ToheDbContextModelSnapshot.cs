@@ -239,6 +239,18 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
 
+                    b.Property<int>("ManagePinFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("manage_pin_failures");
+
+                    b.Property<string>("ManagePinHash")
+                        .HasColumnType("text")
+                        .HasColumnName("manage_pin_hash");
+
+                    b.Property<DateTimeOffset?>("ManagePinLockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("manage_pin_locked_until");
+
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
                         .HasColumnType("character varying(256)")
@@ -270,6 +282,15 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("boolean")
                         .HasDefaultValue(true)
                         .HasColumnName("telemetry_enabled");
+
+                    b.Property<DateTimeOffset?>("TermsAcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("terms_accepted_at");
+
+                    b.Property<string>("TermsVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("terms_version");
 
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean")
@@ -350,6 +371,11 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasMaxLength(16)
                         .HasColumnType("character varying(16)")
                         .HasColumnName("purpose");
+
+                    b.Property<string>("TermsVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("terms_version");
 
                     b.Property<int>("TriesLeft")
                         .HasColumnType("integer")

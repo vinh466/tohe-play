@@ -11,10 +11,14 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="Email">The address that will sign in. A code goes there; the account exists once it is typed back.</param>
 /// <param name="Password">At least 8 characters (ADR 0011).</param>
 /// <param name="DisplayName">The account's name, which also names its first profile (ADR 0023).</param>
+/// <param name="AcceptTerms">"Tôi từ 16 tuổi trở lên và đồng ý Điều khoản và Chính sách quyền riêng tư" (ADR 0025).</param>
+/// <param name="TermsVersion">The version of the documents the hub showed.</param>
 public sealed record SignUpRequest(
     [Required(AllowEmptyStrings = true)] string Email,
     [Required(AllowEmptyStrings = true), StringLength(128)] string Password,
-    [Required(AllowEmptyStrings = true)] string DisplayName);
+    [Required(AllowEmptyStrings = true)] string DisplayName,
+    bool AcceptTerms,
+    string? TermsVersion);
 
 /// <summary>A flow waiting for the code sent by email. The same answer whoever the address belongs to (ADR 0024).</summary>
 /// <param name="AttemptId">Send it back with the code: a code opens only the attempt it was sent for.</param>
@@ -91,11 +95,7 @@ internal static class AuthEndpoints
                     return TypedResults.NoContent();
                 }
 
-                var view = await me.LoadAsync(
-                    accountId,
-                    SessionClaims.ProfileId(http.User),
-                    SessionClaims.ParentUnlockedUntil(http.User),
-                    ct);
+                var view = await me.LoadAsync(accountId, DeviceSession.Of(http.User), ct);
                 return view is null ? TypedResults.NoContent() : TypedResults.Ok(view);
             })
             .WithName("GetMe")
@@ -130,6 +130,12 @@ internal static class AuthEndpoints
             return Problems.Field("displayName", nameError);
         }
 
+        // 16 or older, and the terms: under 16, a child plays as a profile a parent makes (ADR 0023, 0025).
+        if (!request.AcceptTerms || !Consent.IsVersion(request.TermsVersion))
+        {
+            return Problems.Field("acceptTerms", "terms_required");
+        }
+
         if (await attempts.RefusalAsync(attempts.Normalize(email), ct) is { } refusal)
         {
             return Problems.TooManyCodes(refusal);
@@ -147,7 +153,8 @@ internal static class AuthEndpoints
             decoy: existing is not null,
             ct,
             passwordHash: existing is null ? passwordHash : null,
-            displayName: displayName);
+            displayName: displayName,
+            termsVersion: request.TermsVersion);
         outbox.Add(existing?.Email is { } signsIn
             ? IdentityEmails.AlreadyRegistered(signsIn, attempts.Link("/welcome"))
             : IdentityEmails.SignUpCode(email, code!, attempts.Link($"/register/confirm?attempt={attempt.Id}&code={code}")));
@@ -191,6 +198,8 @@ internal static class AuthEndpoints
             PasswordHash = attempt.PasswordHash,
             DisplayName = attempt.DisplayName!,
             CreatedAt = now,
+            TermsVersion = attempt.TermsVersion,
+            TermsAcceptedAt = attempt.CreatedAt,
         };
 
         // Every account starts with a profile to play as (ADR 0023), and plays as it at once: nobody else to choose.
@@ -222,8 +231,9 @@ internal static class AuthEndpoints
         }
 
         await transaction.CommitAsync(ct);
-        await session.WriteAsync(account, profileId: profile.Id, parentUntil: null);
-        return TypedResults.Ok((await me.LoadAsync(account.Id, profile.Id, null, ct))!);
+        var state = new DeviceSession(profile.Id);
+        await session.WriteAsync(account, state);
+        return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);
     }
 
     private static async Task<Results<Ok<MeView>, ProblemHttpResult>> LoginAsync(
@@ -258,8 +268,9 @@ internal static class AuthEndpoints
         }
 
         var playing = await OnlyProfileAsync(db, account.Id, ct);
-        await session.WriteAsync(account, profileId: playing, parentUntil: null);
-        return TypedResults.Ok((await me.LoadAsync(account.Id, playing, null, ct))!);
+        var state = new DeviceSession(playing);
+        await session.WriteAsync(account, state);
+        return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);
     }
 
     private static async Task<Results<Accepted<AttemptView>, ValidationProblem, ProblemHttpResult>> ForgotPasswordAsync(
@@ -352,8 +363,9 @@ internal static class AuthEndpoints
         await transaction.CommitAsync(ct);
 
         var playing = await OnlyProfileAsync(db, account.Id, ct);
-        await session.WriteAsync(account, profileId: playing, parentUntil: null);
-        return TypedResults.Ok((await me.LoadAsync(account.Id, playing, null, ct))!);
+        var state = new DeviceSession(playing);
+        await session.WriteAsync(account, state);
+        return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);
     }
 
     /// <summary>One profile without a PIN leaves nobody to choose (ADR 0023): it plays at once. Otherwise null.</summary>
