@@ -2,6 +2,15 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (tối) — agent
+
+- A3 #47 (GHCR publish, UAT kéo image theo SHA) và C2 #48 (ADR 0024: email là định danh, attempt + mã, decoy chống dò,
+  reset kết thúc mọi phiên khác, đổi email, username cũ thêm email) mở; #44, #46, #47 CI xanh.
+- C1 sửa hai lỗi e2e: bước tự chọn hồ sơ tốn thêm một request trong rate limit chung (smoke + rooms cùng một phút) →
+  API tự chọn khi đăng ký/đăng nhập; trang đăng nhập/đăng ký điều hướng hai lần → chỉ guard điều hướng.
+- C2 tách rate limit theo IP thành ba nhóm (đăng nhập/xin mã, nhập mã, PIN/parent gate). ADR dời số: C4 0025, D1 0026,
+  E1 0027, E2 0028.
+
 ## 2026-10-18 (chiều) — agent
 
 - Mở A1 #43 (ADR 0021), A2 #44 (chart; CI cài lên kind — sửa `helm test --logs` vì pod test bị xoá khi pass), B1 #45

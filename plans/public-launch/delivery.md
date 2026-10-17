@@ -13,16 +13,16 @@ Owner: "theo đề xuất bạn có thể impl toàn bộ giúp tôi k, planning
 | **A3** | Release | CI đẩy image + chart lên GHCR; UAT chạy đúng image theo SHA thay vì build tại máy | (0021) | A2 | E-05 |
 | A4 | Release | `apps/tohe` trong `platform-infra` (draft) — **phiên mở trong repo đó** | — | A3 (chart đã publish) | E-06 |
 | **B1** | Email | Outbox + gửi SMTP, Mailpit cho dev, mẫu thư tiếng Việt, cấu hình `smtp \| disabled`, khối SMTP trong chart | 0022 Transactional email | — (A2 để có khối chart) | E-02 |
-| **C1** | Identity | Account sở hữu hồ sơ (bỏ household), ID hồ sơ 12 số (Damm), hồ sơ mặc định, luật tên, tối đa 5 hồ sơ, bàn "chỉ trong account", chuyển dữ liệu UAT | 0023 User-first identity (thay 0004, sửa 0011) | — | D-01, D-17, E-01 |
-| **C2** | Identity | Đăng ký bằng email (attempt + mã), đăng nhập bằng email, quên mật khẩu, đổi email, security stamp, chống dò email, thư thông báo; account username trên UAT thêm email ở lần đăng nhập kế | (0023) | C1, B1 | D-02, E-01 |
-| **C3** | Identity | Xác thực lại hai mức (mã quản lý, L2), mẫu hồ sơ trẻ em, cổng tuổi 16 + đồng ý điều khoản | (0023) | C2 | D-05, D-06 |
-| **C4** | Identity | Google, GitHub, OIDC chung + luồng liên kết; cấu hình hai lớp; test bằng scheme giả + `mock-oauth2-server` | 0024 Sign-in methods and account linking | C2 | D-03, D-04 |
+| **C1** | Identity | Account sở hữu hồ sơ (bỏ household), ID hồ sơ 12 số (Damm), hồ sơ mặc định, luật tên, tối đa 5 hồ sơ, bàn "chỉ trong account", chuyển dữ liệu UAT | 0023 Accounts own their profiles (thay 0004, sửa 0011) | — | D-01, D-17, E-01 |
+| **C2** | Identity | Đăng ký bằng email (attempt + mã), đăng nhập bằng email, quên mật khẩu, đổi email, security stamp, chống dò email, thư thông báo; account username trên UAT thêm email ở lần đăng nhập kế | 0024 Email identifies an account (sửa 0011) | C1, B1 | D-02, E-01 |
+| **C3** | Identity | Xác thực lại hai mức (mã quản lý, L2), mẫu hồ sơ trẻ em, cổng tuổi 16 + đồng ý điều khoản | (0024) | C2 | D-05, D-06 |
+| **C4** | Identity | Google, GitHub, OIDC chung + luồng liên kết; cấu hình hai lớp; test bằng scheme giả + `mock-oauth2-server` | 0025 Sign-in methods and account linking | C2 | D-03, D-04 |
 | **C5** | Identity | Mời đích danh bằng ID, "ai được mời tôi", hồ sơ trẻ em "không tìm thấy" | (0023) | C1 | D-17 |
-| **D1** | Admin | App `apps/admin` ở `/admin`, `/api/admin` với tài liệu OpenAPI riêng, module chỉ đọc: tổng quan, game, sức khoẻ (telemetry), hệ thống | 0025 Platform admin and the first owner | — | D-07 |
-| **D2** | Admin | Vai trò → quyền, admin đầu tiên bằng setup token + CLI, 2FA (TOTP), audit log, xác thực lại cho thao tác nhạy cảm | (0025) | C2, D1 | D-07, D-08 |
-| **D3** | Admin | Người dùng, cài đặt đăng nhập (bật/tắt runtime), chế độ đăng ký + mã mời cộng đồng | (0025) | D2, C4 | D-07, D-12 |
-| **E1** | Độ tin | Engine `Integrity` (mức tin, chính sách bảng, `RoomVerifier`, tín hiệu `Bounds` / `PersonalJump` / `Rate` / `Farming`, `held` / `rejected`, audit) + bảng trong account / cộng đồng / toàn server, tuần + mọi lúc | 0026 Integrity engine and leaderboards by trust | C1 | D-09, D-11, D-16 |
-| **E2** | Độ tin | Run tính hạng: seed của server, kênh gửi nước đi, module xác minh, `ReplayVerifier`, conformance; Ghép Khối là game đầu tiên | 0027 Ranked runs (Game Contract) | E1 | D-10 |
+| **D1** | Admin | App `apps/admin` ở `/admin`, `/api/admin` với tài liệu OpenAPI riêng, module chỉ đọc: tổng quan, game, sức khoẻ (telemetry), hệ thống | 0026 Platform admin and the first owner | — | D-07 |
+| **D2** | Admin | Vai trò → quyền, admin đầu tiên bằng setup token + CLI, 2FA (TOTP), audit log, xác thực lại cho thao tác nhạy cảm | (0026) | C2, D1 | D-07, D-08 |
+| **D3** | Admin | Người dùng, cài đặt đăng nhập (bật/tắt runtime), chế độ đăng ký + mã mời cộng đồng | (0026) | D2, C4 | D-07, D-12 |
+| **E1** | Độ tin | Engine `Integrity` (mức tin, chính sách bảng, `RoomVerifier`, tín hiệu `Bounds` / `PersonalJump` / `Rate` / `Farming`, `held` / `rejected`, audit) + bảng trong account / cộng đồng / toàn server, tuần + mọi lúc | 0027 Integrity engine and leaderboards by trust | C1 | D-09, D-11, D-16 |
+| **E2** | Độ tin | Run tính hạng: seed của server, kênh gửi nước đi, module xác minh, `ReplayVerifier`, conformance; Ghép Khối là game đầu tiên | 0028 Ranked runs (Game Contract) | E1 | D-10 |
 | **E3** | Độ tin | Hàng đợi "Chờ xem xét" trong admin, xem lại run bằng chính game | — | D2, E2 | D-16 |
 | **F1** | Public | Trang điều khoản và quyền riêng tư (bản nháp để owner duyệt), lưu phiên bản đồng ý, xoá hồ sơ / account có thời gian chờ, kiểm duyệt tên (từ dành riêng, từ thô tục, lịch sử tên) | — | C3 | E-07 |
 | **F2** | Public | `/metrics` + ServiceMonitor trong chart + cảnh báo tối thiểu | — | A2 | E-08 |
@@ -76,7 +76,9 @@ flowchart LR
 | A1 | `feat/deploy-env-agnostic-images` | [#43](https://github.com/vinh466/tohe-play/pull/43) — CI xanh, chờ review |
 | A2 | `feat/deploy-helm-chart` (trên A1) | [#44](https://github.com/vinh466/tohe-play/pull/44) — CI xanh (cài lên kind, `helm test`, upgrade), chờ review |
 | B1 | `feat/api-transactional-email` (trên A1) | [#45](https://github.com/vinh466/tohe-play/pull/45) — CI xanh, chờ review; khối SMTP của chart làm sau khi A2 + B1 merge |
-| C1 | `feat/identity-accounts-own-profiles` (trên B1) | [#46](https://github.com/vinh466/tohe-play/pull/46) — chờ review; trước khi lên UAT: chạy thử migration trên bản dump UAT (E-01) |
-| A3 | — | kế tiếp |
+| C1 | `feat/identity-accounts-own-profiles` (trên B1) | [#46](https://github.com/vinh466/tohe-play/pull/46) — CI xanh, chờ review; trước khi lên UAT: chạy thử migration trên bản dump UAT (E-01) |
+| A3 | `feat/deploy-publish-ghcr` (trên A2) | [#47](https://github.com/vinh466/tohe-play/pull/47) — CI xanh, chờ review; sau lần publish đầu: owner đặt 5 package GHCR thành Public |
+| C2 | `feat/identity-email-sign-in` (trên C1) | [#48](https://github.com/vinh466/tohe-play/pull/48) — chờ CI; trước khi lên UAT: relay email của UAT (E-02 Q2) |
+| C3 | — | kế tiếp |
 
-Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48; #47 sau #44. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
