@@ -38,13 +38,14 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 ## Mode A — hot reload (day-to-day)
 
 ```sh
-docker compose up -d postgres   # database only
-pnpm dev                        # API (dotnet watch) + games origin + hub + site
+docker compose up -d postgres mailpit   # the database, and Mailpit for the codes sign-up emails
+pnpm dev                                # API (dotnet watch) + games origin + hub + site
 ```
 
 Open <http://localhost:4720>. The API migrates the database on start and indexes the games within ~15 s.
-A new device lands on the welcome screen: create an account (any username, password of 8+ characters), add a
-child profile under "Quản lý tài khoản", or use "Chơi thử" to play as a guest.
+A new device lands on the welcome screen: sign up with any email and a password of 8+ characters (the code arrives
+in Mailpit, <http://localhost:4760>), add a child profile under "Quản lý tài khoản", or use "Chơi thử" to play as a
+guest.
 
 `pnpm dev` builds the games once at start. After changing a game, rebuild it and the games origin picks it up:
 
@@ -61,7 +62,7 @@ pnpm --filter @tohe/game-hello dev:standalone    # http://localhost:4731
 ## Mode B — production-like containers
 
 ```sh
-docker compose up --build -d    # postgres, api, hub, games, site
+docker compose up --build -d    # postgres, mailpit, api, hub, games, site
 ```
 
 Same URLs as above. Images are the ones production will use (Caddy + chiseled .NET). Stop with

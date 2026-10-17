@@ -39,7 +39,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 
 ```sh
 pnpm install && dotnet tool restore
-docker compose up -d postgres && pnpm dev      # hub http://localhost:4720
+docker compose up -d postgres mailpit && pnpm dev   # hub http://localhost:4720, mail :4760
 pnpm verify                                    # Definition of Done, run before every PR
 pnpm --filter @tohe/e2e smoke                  # against a running stack
 ```

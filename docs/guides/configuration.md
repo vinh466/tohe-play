@@ -18,14 +18,15 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | --- | --- | --- |
 | `ConnectionStrings:Database` | PostgreSQL connection string | — required |
 | `Database:MigrateOnStartup` | Apply pending migrations when the API starts | `false` (compose and UAT: `true`) |
-| `App:PublicUrl` | The hub's public URL, e.g. `https://tohe.example.org` — no path. With `https`, every request counts as HTTPS and the session cookie is `Secure`, named `__Host-tohe.session` | unset: requests stay as they arrive |
+| `App:PublicUrl` | The hub's public URL, e.g. `https://tohe.example.org` — no path. With `https`, every request counts as HTTPS and the session cookie is `Secure`, named `__Host-tohe.session`. Emails link to the hub's pages under it | unset: requests stay as they arrive, emails carry codes without links |
 | `App:Version` | The commit the deployment built, shown by `GET /api/config` | the assembly's version, or `dev` |
 | `Games:PublicOrigin` | Origin browsers load game iframes from | — required |
 | `Games:CatalogUrl` | Where the API fetches `catalog.json` (often an internal address) | — required |
 | `Registry:SyncInterval` | How often the catalog is fetched | `00:05:00` |
 | `Telemetry:Enabled` | Server switch for device telemetry ([ADR 0015](../decisions/0015-device-telemetry.md)) | `true` |
 | `Telemetry:OperatorToken` | Token for `GET /api/telemetry/report` | empty: no reports |
-| `Identity:AuthRequestsPerMinute` | Sign-in, registration, PIN and parent-gate requests per client address | `10` |
+| `Identity:AuthRequestsPerMinute` | Requests per client address and minute in each of three buckets: signing in or asking for a code, typing a code back, a PIN or the parent gate (ADR 0024) | `10` |
+| `Identity:SessionCheckInterval` | How often a session is checked against its account's security stamp: after a password reset or an email change, other sessions end within this long | `00:05:00` |
 | `Email:Mode` | `Smtp` to send email, `Disabled` to send none — features that need email are then unavailable ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | `Disabled` (compose: Mailpit) |
 | `Email:From` | The sender, e.g. `Tò He <no-reply@example.org>` — an address the relay may send as | — required with `Smtp` |
 | `Email:Smtp:Host`, `Email:Smtp:Port`, `Email:Smtp:Security` | The relay; `Security` is `StartTls` (587), `SslOnConnect` (465) or `None` (a relay on the same network, like Mailpit) | —, `587`, `StartTls` |

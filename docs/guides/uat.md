@@ -20,7 +20,10 @@ project on ports 47xx ([Local development](local-development.md)); the two never
 
 ## First use
 
-Open the hub and choose **Tạo tài khoản**: the account starts with one profile and plays at once. Add the
+Open the hub and choose **Tạo tài khoản**: an email, a name and a password, then the code that email receives
+([ADR 0024](../decisions/0024-email-identifies-an-account.md)) — so UAT needs its relay configured
+([below](#email)), or nobody new can join. The account starts with one profile and plays at once. Accounts made
+before email sign-in keep their username and add an email the next time they sign in. Add the
 children's profiles from **Đổi người chơi → Thêm hồ sơ** or **Quản lý tài khoản** (it asks for the password again);
 an account holds up to five. A family shares one account on its devices; another adult may register their own. See
 [Identity](../architecture/identity.md).
