@@ -1,9 +1,9 @@
 # D-10 — Điểm đã xác minh cho game một người: server cấp seed và chạy lại nước đi?
 
-- Status: **proposed** — giờ là verifier đầu tiên của engine độ tin ([D-16](D-16-integrity-engine.md)); thời điểm làm hỏi ở D-16 Q2
+- Status: **decided** (2026-10-17, chat) — phương án A, là verifier đầu tiên của engine ([D-16](D-16-integrity-engine.md)), Ghép Khối trong v1 trước ra mắt
 - Kind: decision — **đổi Game Contract** (ADR + docs + conformance trong cùng PR)
 - Blocks: bảng công khai cho game một người (D-09 bước 4) · Blocked by: D-09, D-16
-- Decided: —
+- Decided: owner, 2026-10-17, chat — "ok ngu de xuat cua ban on nba" (chấp nhận D-16 Q2: có)
 
 ## Vì sao cần chốt
 

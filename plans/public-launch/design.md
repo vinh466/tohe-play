@@ -9,11 +9,11 @@ Sơ đồ dùng nhãn tiếng Anh vì khi graduate chúng chuyển nguyên vào 
 ## 0. Trả lời ngắn: đã chắc tới đâu
 
 - **Chắc:** email là định danh và bộ luồng auth (D-02), luật liên kết (D-03), các cách đăng nhập + OAuth chỉ ở prod
-  (D-04), một account nhiều hồ sơ có hồ sơ mặc định (D-01), hai mức xác thực lại (D-05), admin console và admin đầu
-  tiên (D-07, D-08), bảng xếp hạng phân tầng theo độ tin (D-09, D-11), chế độ đăng ký (D-12), release bằng chart
-  (D-14); UAT HTTPS để sau (D-15).
-- **Hướng đã có, chi tiết chờ owner:** tên đặt thoải mái + ID 12 số (D-17), engine độ tin (D-16) và verifier replay
-  đầu tiên của nó (D-10), cổng tuổi (D-06), email giao dịch (E-02), chuyển dữ liệu UAT (E-01).
+  (D-04), một account nhiều hồ sơ có hồ sơ mặc định (D-01), tên đặt thoải mái + ID 12 số (D-17), hai mức xác thực lại
+  (D-05), admin console và admin đầu tiên (D-07, D-08), bảng xếp hạng phân tầng theo độ tin (D-09, D-11), engine độ tin
+  (D-16) với replay Ghép Khối trong v1 (D-10), chế độ đăng ký (D-12), release bằng chart (D-14); UAT HTTPS để sau (D-15).
+- **Hướng đã có, còn một câu chờ owner:** bảng cộng đồng có nhận `checked` không (D-16 Q4), mốc tuổi N (D-06), gửi
+  email từ đâu và account Resend (E-02); chuyển dữ liệu UAT (E-01) sẽ được owner xem cùng spec T2.
 - **Chưa mở:** domain riêng cho games (D-13), quyền riêng tư/xoá/kiểm duyệt (E-07), observability (E-08), chống bot
   (E-09), checklist ra mắt (E-10).
 
@@ -53,13 +53,13 @@ flowchart LR
 | Liên kết | `(provider, subject)`; chứng minh quyền trước khi gộp | Supabase, Clerk, Lucia | API `Identity` | D-03 |
 | Cấu hình cách đăng nhập | Deploy: có sẵn · runtime: đang bật | — | env/chart + DB + admin | D-04 |
 | Hồ sơ | Người chơi; account có sẵn hồ sơ mặc định, tối đa 5; mẫu hồ sơ trẻ em | Netflix (hồ sơ) | API `Identity` | D-01 |
-| Tên + ID hồ sơ | Tên đặt thoải mái; ID 12 số duy nhất, không đổi, chữ số cuối Damm; mời đích danh | Nintendo friend code, Damm | API `Identity` + `Rooms` | D-17 *(proposed)* |
+| Tên + ID hồ sơ | Tên đặt thoải mái; ID 12 số duy nhất, không đổi, chữ số cuối Damm; mời đích danh | Nintendo friend code, Damm | API `Identity` + `Rooms` | D-17 |
 | Xác thực lại | L1 mã quản lý · L2 mật khẩu hoặc mã email | Netflix: mật khẩu để đặt PIN | API + hub | D-05 |
 | Email | Outbox, mẫu thư tiếng Việt, SMTP | — | API + Resend/Mailpit | E-02 *(proposed)* |
 | Admin | Console chủ sản phẩm, 2FA, audit | Mastodon roles | `apps/admin` + `/api/admin` | D-07 |
 | Admin đầu tiên | Token cài đặt, danh sách email, CLI | Jenkins, Discourse, Mastodon | API + admin | D-08 |
 | Bảng xếp hạng | Phân tầng theo độ tin; tuần + mọi lúc; ít nhất 2 người thật cho phòng | Open Hexagon (replay), OpenSkill | API `Progress` + `Rooms` | D-09, D-11 |
-| Engine độ tin | Mức tin theo bằng chứng; verifier + tín hiệu cắm thêm; máy chỉ ẩn, người mới phạt; audit | Steam trusted writes, Google Play tamper protection, Lichess, Trackmania | API `Integrity` + admin | D-16, D-10 *(proposed)* |
+| Engine độ tin | Mức tin theo bằng chứng; verifier + tín hiệu cắm thêm; máy chỉ ẩn, người mới phạt; audit | Steam trusted writes, Google Play tamper protection, Lichess, Trackmania | API `Integrity` + admin | D-16, D-10 |
 | Release | Chart, image GHCR, promote | chart `platform` | `deploy/helm/tohe` + `platform-infra` | D-14 |
 
 ## 3. Các luồng
@@ -320,7 +320,7 @@ của admin (admin còn cần 2FA — D-07).
 
 ### 3.12 Hồ sơ trên một thiết bị
 
-*(D-01; tên và ID: D-17, proposed)* — account luôn có ít nhất một hồ sơ: hồ sơ mặc định ra đời cùng account (§3.2,
+*(D-01, D-17)* — account luôn có ít nhất một hồ sơ: hồ sơ mặc định ra đời cùng account (§3.2,
 §3.6) và không xoá được hồ sơ cuối cùng.
 
 ```mermaid
@@ -382,7 +382,7 @@ sequenceDiagram
 
 ### 3.15 Mời đích danh bằng ID
 
-*(D-17, proposed)*
+*(D-17)*
 
 ```mermaid
 sequenceDiagram
@@ -415,7 +415,7 @@ sequenceDiagram
 
 ## 4. Engine độ tin
 
-*(D-16, proposed — sơ đồ trạng thái và đường đi của một kết quả nằm trong [D-16](items/D-16-integrity-engine.md))*
+*(D-16 — sơ đồ trạng thái và đường đi của một kết quả nằm trong [D-16](items/D-16-integrity-engine.md))*
 
 | Mức | Bằng chứng | Bảng nhận |
 |---|---|---|
@@ -433,10 +433,9 @@ owner chọn ở D-16 Q2). Tín hiệu v1: `Bounds`, `PersonalJump`, `Rate`, `Fa
 
 | Câu hỏi | Item |
 |---|---|
-| Tên không cần duy nhất + ID 12 số, emoji trong tên, tên vui ngẫu nhiên, "ai được mời tôi" | [D-17](items/D-17-profile-name-and-id.md) Q1–Q4 |
-| Engine là module nền tảng, Ghép Khối trong v1, minh bạch với người chơi, mức tin của bảng cộng đồng | [D-16](items/D-16-integrity-engine.md) Q1–Q4 |
-| Mốc tuổi N | [D-06](items/D-06-age-and-consent.md) |
-| Địa chỉ gửi email, dùng chung Resend | [E-02](items/E-02-transactional-email.md) |
+| Bảng cộng đồng nhận `checked` cho game chưa có replay? (đề xuất: có, kèm nhãn "chưa xác minh") | [D-16](items/D-16-integrity-engine.md) Q4 |
+| Mốc tuổi N (đề xuất: 16, theo Luật Trẻ em) | [D-06](items/D-06-age-and-consent.md) |
+| Gửi từ `no-reply@…`; account Resend đang Free hay Pro | [E-02](items/E-02-transactional-email.md) Q1–Q2 |
 | Games origin trên domain riêng | D-13 (chưa mở) |
 
 ## 6. Rủi ro chưa có lời giải

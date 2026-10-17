@@ -1,6 +1,6 @@
 # E-02 — Hạ tầng email giao dịch
 
-- Status: **proposed**
+- Status: **proposed** — cách làm được chấp nhận 2026-10-17 ("ok ngu de xuat cua ban on nba"); **còn chờ Q1, Q2**
 - Kind: enhancement — dịch vụ ngoài mới → ADR (ADR 0008: "A new framework, database, or service requires a new ADR")
 - Blocks: D-02 (mọi luồng gửi mã), D-12, E-04 (khối SMTP trong chart) · Blocked by: —
 - Decided: —
@@ -28,7 +28,35 @@ API không gửi email nào.
   nhập · mã xác thực lại · account sắp bị xoá / đã huỷ xoá.
 - Giới hạn gửi theo người nhận đi cùng luật mã một lần (design §3.3). Bounce/khiếu nại để sau.
 
+## Resend: hạn mức quyết định có dùng chung được không
+
+Sự thật (2026-10-17):
+- Gói **Free**: **100 email mỗi ngày** (chặn cứng, không tính thêm tiền), 3.000 email mỗi tháng; số domain theo trang giá
+  chính thức là 3 (nguồn cũ ghi 1). Gói **Pro**: 20 USD/tháng, 50.000 email/tháng, **không giới hạn theo ngày**, 10 domain.
+- `platform` và Outline đã gửi qua cùng một account Resend (`~/workspace/platform-infra/apps/outline/README.md`).
+- Chưa biết account đó đang ở gói nào.
+
+Vì sao quan trọng: ở gói Free, **100 email/ngày là của chung cả account**. Ước tính của agent: một cộng đồng 50 người
+đăng ký trong một tối tốn khoảng 60–70 email (mã đăng ký, gửi lại mã, thư "bạn đã có tài khoản"); cộng thêm thư của
+platform là chạm trần.
+Khi đó **mọi thư của platform cũng ngừng** tới ngày hôm sau — một lần ra mắt của Tò He làm hỏng đăng nhập của platform.
+
+## Đề xuất của agent cho Q1, Q2
+
+- **Nếu account đang ở Pro:** dùng chung; tạo API key riêng cho Tò He chỉ có quyền gửi; gửi từ
+  `Tò He <no-reply@vinetic.io.vn>` (domain đã xác minh sẵn, không phải đụng DNS).
+- **Nếu account đang ở Free:** tạo **account Resend riêng** cho Tò He (100 email/ngày của riêng nó) với một domain gửi
+  riêng, ví dụ `tohe.vinetic.io.vn` — thêm vài bản ghi DNS (SPF, DKIM) trong Cloudflare; gửi từ
+  `Tò He <no-reply@tohe.vinetic.io.vn>`. Domain riêng còn tách uy tín gửi thư của Tò He khỏi platform. (Chưa kiểm: một
+  domain có thuộc được hai account Resend không — dùng subdomain riêng thì khỏi phải lo.)
+- **Địa chỉ `no-reply`:** thư chỉ chứa mã và thông báo, cuối thư ghi "Thư tự động, vui lòng không trả lời". Nếu owner
+  muốn người dùng trả lời được, đặt Reply-To một địa chỉ hỗ trợ chuyển về Gmail bằng Cloudflare Email Routing — làm sau
+  cũng được.
+
 ## Câu hỏi cho owner
 
-- **Q1** Địa chỉ gửi: `tohe@vinetic.io.vn`, `no-reply@vinetic.io.vn`, hay khác?
-- **Q2** Dùng chung account Resend của `platform` (chỉ tạo API key riêng cho Tò He) được không?
+- **Q1** Gửi từ `Tò He <no-reply@…>` như đề xuất — được không?
+- **Q2** Account Resend của platform đang ở gói **Free** hay **Pro**? (Câu trả lời chọn giúp nhánh dùng chung hay tách riêng ở trên.)
+
+Nguồn: [Resend: What is Resend pricing](https://resend.com/docs/knowledge-base/what-is-resend-pricing) ·
+[Nuntly: Resend pricing 2026](https://nuntly.com/resend-pricing) · [AgentDeals: Resend free tier 2026](https://agentdeals.dev/vendor/resend)

@@ -1,9 +1,9 @@
 # D-17 — Tên hồ sơ đặt thoải mái, định danh bằng ID `xxxx xxxx xxxx`
 
-- Status: **proposed** — ý tưởng của owner; chi tiết chờ owner trả lời Q1–Q4
+- Status: **decided** (2026-10-17, chat) — phương án A với mọi chi tiết như đề xuất
 - Kind: decision
 - Blocks: T2 spec, D-09 (bảng hiển thị gì), E-01, E-07 · Blocked by: D-01
-- Decided: —
+- Decided: owner, 2026-10-17, chat — xem *Decision*
 
 ## Vì sao cần chốt
 
@@ -66,16 +66,17 @@ Trái với "đặt thoải mái cho vui".
 Hệ quả cho chỗ khác: D-01 bỏ @handle; bảng xếp hạng và phòng hiện tên + avatar, thẻ hồ sơ hiện ID (D-09); admin tìm
 người theo email hoặc ID (D-07); E-01 cấp ID cho hồ sơ cũ thay vì sinh handle.
 
-## Câu hỏi cho owner
+## Câu hỏi cho owner (đã trả lời 2026-10-17)
 
-- **Q1** Chọn A: bỏ @handle, tên **không cần duy nhất**, ID là định danh duy nhất — đúng ý bạn chưa?
-- **Q2** Tên cho phép emoji không?
-- **Q3** Tên vui ngẫu nhiên cho hồ sơ mặc định — được không, hay muốn hỏi tên ngay lúc đăng ký?
-- **Q4** Ba mức "ai được mời tôi" như trên — đủ chưa?
+- **Q1** Bỏ @handle, tên **không cần duy nhất**, ID là định danh duy nhất — *đồng ý*.
+- **Q2** Tên cho phép emoji — *có*, như đề xuất.
+- **Q3** Tên vui ngẫu nhiên cho hồ sơ mặc định — *có*.
+- **Q4** Ba mức "ai được mời tôi" — *đủ*.
 
 ## Decision
 
-—
+**owner** (2026-10-17, chat): "ok ngu de xuat cua ban on nba" (ok, những đề xuất của bạn ổn nha) — chấp nhận phương án
+A và mọi chi tiết đề xuất ở trên.
 
 ## Discussion
 

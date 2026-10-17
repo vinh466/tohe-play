@@ -67,7 +67,7 @@ flowchart TD
 
 | Phase | Song song | Xong khi |
 |---|---|---|
-| **A — Chốt** | owner trả lời D-17, D-16, D-06, E-02 · agent bắt đầu T1 | T2 và T5 đủ quyết định để spec |
+| **A — Chốt** | owner trả lời D-16 Q4, D-06 (N), E-02 Q1–Q2 · agent bắt đầu T1 | T2, T3 và T5 đủ quyết định để spec |
 | **B — Nền** | T1 (E-03 → E-04 → E-05; E-06 sau lần publish đầu) · T3 · spec rồi xây T2 · T6a | chart cài được lên kind và chạy trên UAT; đăng ký bằng email + hồ sơ mặc định có ID chạy trên UAT |
 | **C — Mở rộng** | T4 · T6b · T5: engine v1 + bảng trong account + bảng tuần công khai của phòng | Google/GitHub chạy trên prod lúc đăng ký còn đóng; tạo được admin đầu tiên; engine chạy với kết quả phòng |
 | **D — Sẵn sàng public** | T6c (gồm hàng đợi xem xét) · T7 · T8 · T5: bảng cộng đồng, replay Ghép Khối (nếu D-16 Q2 = có) | checklist public xanh; gia đình và bạn bè dùng UAT ổn định |

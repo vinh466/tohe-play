@@ -1,9 +1,9 @@
 # D-16 — Engine độ tin: một nơi quyết định mỗi kết quả đáng tin tới đâu
 
-- Status: **proposed** — owner yêu cầu engine; thiết kế chờ owner trả lời Q1–Q4
+- Status: **decided** (2026-10-17, chat) — Q1–Q3 như đề xuất; **Q4 còn mở**
 - Kind: decision — module API mới (ADR khi graduate)
 - Blocks: D-10 (verifier đầu tiên), D-11 (luật phòng), T5 build, D-07 (hàng đợi xem xét) · Blocked by: D-09
-- Decided: —
+- Decided: owner, 2026-10-17, chat — xem *Decision*
 
 ## Vì sao cần chốt
 
@@ -141,15 +141,31 @@ Redis.
 
 ## Câu hỏi cho owner
 
-- **Q1** Engine là một module của nền tảng (A) với phạm vi v1 như bảng trên — được không?
-- **Q2** Đưa xác minh replay của Ghép Khối (D-10) vào v1, trước ra mắt? Release không gấp nên agent nghiêng về **có**.
-- **Q3** Người chơi thấy "Đang được xem xét" (minh bạch) thay vì xử lý âm thầm — đúng tinh thần chưa?
-- **Q4** Bảng cộng đồng: chỉ `verified` như D-09, hay nhận cả `checked` để game một người chưa có replay vẫn có bảng
-  cộng đồng?
+- **Q1** Engine là một module của nền tảng (A) với phạm vi v1 như bảng trên — *đồng ý* (2026-10-17).
+- **Q2** Đưa xác minh replay của Ghép Khối (D-10) vào v1, trước ra mắt — *có* (2026-10-17).
+- **Q3** Người chơi thấy "Đang được xem xét" (minh bạch) thay vì xử lý âm thầm — *đồng ý* (2026-10-17).
+- **Q4** Bảng cộng đồng: chỉ `verified` như D-09, hay nhận cả `checked`? — **còn mở**, đề xuất bên dưới.
+
+### Q4 — đề xuất của agent (2026-10-17)
+
+Hai mức `checked` và `verified` khác nhau thế này: `checked` nghĩa là điểm *trông hợp lý* (không vượt giới hạn, không
+nhanh hơn người thật, thời lượng theo giờ server khớp) nhưng server **không tự chơi lại** được; `verified` nghĩa là
+server **tự chơi lại ra đúng điểm đó** (hoặc chính server điều khiển ván phòng).
+
+Sau v1, trong các game một người đang có (`games/merge-block`, `games/tap-merge`; Lấp Ô mới có SPEC), chỉ Ghép Khối
+có replay. Nếu bảng cộng đồng chỉ nhận `verified`, cộng đồng chỉ có bảng cho Ghép Khối và các game phòng; Chạm Ghép —
+và mọi game một người mới — chưa có bảng cộng đồng cho tới khi có replay.
+
+Đề xuất: **mỗi game một chính sách — game đã có replay thì bảng cộng đồng chỉ nhận `verified`; game chưa có replay thì
+nhận `checked`, kèm nhãn nhỏ "chưa xác minh"**. Bảng toàn server vẫn chỉ nhận `verified`. Lý do: cộng đồng là nhóm nhỏ
+vào bằng mã mời, người trong nhóm biết nhau (đúng tinh thần "mọi người legit"); tín hiệu của engine vẫn ẩn điểm lạ chờ
+admin. Khi một game có replay, bảng cộng đồng của nó tự chuyển sang chỉ nhận `verified`. Chọn đề xuất này thì D-09
+được sửa một dòng (bảng cộng đồng không còn "chỉ `verified`" cho mọi game).
 
 ## Decision
 
-—
+**owner** (2026-10-17, chat): "ok ngu de xuat cua ban on nba" (ok, những đề xuất của bạn ổn nha) — chấp nhận Q1–Q3
+theo đề xuất. Q4 chưa có đề xuất cụ thể lúc owner trả lời, nên còn mở.
 
 ## Discussion
 

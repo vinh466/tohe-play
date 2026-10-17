@@ -2,6 +2,15 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-17 (khuya) — owner + agent (chat)
+
+- Owner: "ok ngu de xuat cua ban on nba" → D-17 decided (bỏ @handle, tên thoải mái có emoji, ID 12 số, tên vui ngẫu
+  nhiên, ba mức mời); D-16 decided Q1–Q3 (module, replay Ghép Khối trong v1, minh bạch); D-10 decided.
+- Owner hỏi giải thích bốn câu còn chờ → agent viết đề xuất cho từng câu: D-16 Q4 (bảng cộng đồng nhận `checked` cho
+  game chưa có replay), D-06 (N = 16, theo R-07 mới về luật trẻ em), E-02 Q1 (`no-reply@…`), E-02 Q2 (Resend Free hay Pro
+  — gói Free dùng chung 100 email/ngày với platform).
+- Chờ owner: bốn câu trên. Agent kế tiếp: T1.
+
 ## 2026-10-17 (tối) — owner + agent (chat)
 
 - Owner: "ok on … còn lại ôn" → brief xác nhận (plan sang *Map*); D-01, D-05, D-09, D-11 decided; D-15 deferred.
