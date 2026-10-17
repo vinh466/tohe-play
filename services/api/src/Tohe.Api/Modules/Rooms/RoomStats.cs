@@ -1,18 +1,19 @@
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
-using Tohe.Api.Modules.Identity;
+using Tohe.Api.Modules.Integrity;
 
 namespace Tohe.Api.Modules.Rooms;
 
 /// <param name="Firsts">Hands won (first place).</param>
 public sealed record PlayerStats(int Hands, int Firsts, int Points);
 
-/// <summary>One of the account's profiles on the game's weekly board.</summary>
+/// <summary>One of the account's profiles on the game's board of the week.</summary>
 public sealed record LeaderRow(Guid ProfileId, string Name, string Avatar, int Hands, int Firsts, int Points);
 
-/// <summary>The active profile's online results in a game, and the account's board over the last 7 days.</summary>
+/// <summary>The active profile's online results in a game, and the account's board of the week (ADR 0029).</summary>
 public sealed record RoomStatsView(PlayerStats AllTime, PlayerStats Week, IReadOnlyList<LeaderRow> Account);
 
 /// <summary>A finished hand the active profile played.</summary>
@@ -49,25 +50,17 @@ internal static class RoomStats
 
     public static void Map(RouteGroupBuilder rooms, Func<HttpContext, Player> playerOf)
     {
-        rooms.MapGet("/stats", async (string game, HttpContext http, ToheDbContext db, IAccountProfiles profiles, TimeProvider clock, CancellationToken ct) =>
+        rooms.MapGet("/stats", async (string game, HttpContext http, ToheDbContext db, IBoards boards, TimeProvider clock, CancellationToken ct) =>
             {
                 var player = playerOf(http);
-                var since = clock.GetUtcNow().AddDays(-7);
+                // The calendar week, as on every board (ADR 0029).
+                var since = Weeks.StartOf(clock.GetUtcNow());
                 var mine = await db.RoomResults.AsNoTracking()
                     .Where(r => r.GameId == game && r.ProfileId == player.ProfileId)
                     .Select(r => new { r.Place, r.Points, r.At })
                     .ToListAsync(ct);
-                var week = await db.RoomResults.AsNoTracking()
-                    .Where(r => r.GameId == game && r.AccountId == player.AccountId && r.ProfileId != null && r.At >= since)
-                    .GroupBy(r => r.ProfileId!.Value)
-                    .Select(g => new { ProfileId = g.Key, Hands = g.Count(), Firsts = g.Count(r => r.Place == 0), Points = g.Sum(r => r.Points) })
-                    .ToListAsync(ct);
-                var cards = (await profiles.ListAsync(player.AccountId, ct)).ToDictionary(p => p.Id);
-                var board = week
-                    .Where(row => cards.ContainsKey(row.ProfileId))
-                    .Select(row => new LeaderRow(row.ProfileId, cards[row.ProfileId].Name, cards[row.ProfileId].Avatar, row.Hands, row.Firsts, row.Points))
-                    .OrderByDescending(row => row.Points)
-                    .ThenByDescending(row => row.Firsts)
+                var board = (await boards.AccountHandsAsync(player.AccountId, game, since, ct))
+                    .Select(row => new LeaderRow(row.ProfileId, row.Name, row.Avatar, row.Hands, row.Firsts, row.Points))
                     .ToList();
                 var recent = mine.Where(r => r.At >= since).ToList();
                 return new RoomStatsView(
@@ -76,7 +69,7 @@ internal static class RoomStats
                     board);
             })
             .WithName("GetRoomStats")
-            .WithSummary("The active profile's online results in a game, and its account's board over the last 7 days.");
+            .WithSummary("The active profile's online results in a game, and its account's board of the week.");
 
         rooms.MapGet("/history", async (string game, HttpContext http, ToheDbContext db, CancellationToken ct) =>
             {

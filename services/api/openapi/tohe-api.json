@@ -1297,13 +1297,13 @@
         }
       }
     },
-    "/api/progress/leaderboard/{gameId}": {
+    "/api/boards/{gameId}": {
       "get": {
         "tags": [
-          "Progress"
+          "Boards"
         ],
-        "summary": "Best score of each of the account's profiles on a game's board.",
-        "operationId": "GetLeaderboard",
+        "summary": "The account's board of a game: each profile's best this week or of all time.",
+        "operationId": "GetAccountBoard",
         "parameters": [
           {
             "name": "gameId",
@@ -1319,6 +1319,14 @@
             "schema": {
               "type": "string",
               "default": "default"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "week"
             }
           }
         ],
@@ -1338,10 +1346,17 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LeaderboardEntry"
-                  }
+                  "$ref": "#/components/schemas/AccountBoardView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -1578,7 +1593,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "The active profile's online results in a game, and its account's board over the last 7 days.",
+        "summary": "The active profile's online results in a game, and its account's board of the week.",
         "operationId": "GetRoomStats",
         "parameters": [
           {
@@ -2176,6 +2191,40 @@
   },
   "components": {
     "schemas": {
+      "AccountBoardView": {
+        "required": [
+          "gameId",
+          "board",
+          "period",
+          "since",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "since": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardRow"
+            }
+          }
+        }
+      },
       "AccountView": {
         "required": [
           "id",
@@ -2248,6 +2297,44 @@
           "attemptId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "BoardRow": {
+        "required": [
+          "profileId",
+          "name",
+          "avatar",
+          "value",
+          "at",
+          "inProgress",
+          "underReview"
+        ],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inProgress": {
+            "type": "boolean"
+          },
+          "underReview": {
+            "type": "boolean"
           }
         }
       },
@@ -3039,40 +3126,6 @@
           "points": {
             "type": "integer",
             "format": "int32"
-          }
-        }
-      },
-      "LeaderboardEntry": {
-        "required": [
-          "profileId",
-          "name",
-          "avatar",
-          "value",
-          "achievedAt",
-          "inProgress"
-        ],
-        "type": "object",
-        "properties": {
-          "profileId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "avatar": {
-            "type": "string"
-          },
-          "value": {
-            "type": "number",
-            "format": "double"
-          },
-          "achievedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "inProgress": {
-            "type": "boolean"
           }
         }
       },
@@ -4295,6 +4348,9 @@
     },
     {
       "name": "Progress"
+    },
+    {
+      "name": "Boards"
     },
     {
       "name": "Telemetry"

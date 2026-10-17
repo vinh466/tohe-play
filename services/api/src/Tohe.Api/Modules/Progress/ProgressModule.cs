@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
+using Tohe.Api.Modules.Integrity;
 
 namespace Tohe.Api.Modules.Progress;
 
@@ -31,19 +32,10 @@ public sealed record RecordScoresRequest([Required, MaxLength(200)] IReadOnlyLis
 /// <param name="Recorded">Scores added or raised by this request (repeats that change nothing excluded).</param>
 public sealed record RecordScoresResult(int Recorded);
 
-/// <summary>A profile's best score on a board.</summary>
-/// <param name="InProgress">The best score belongs to a run that is still going on.</param>
-public sealed record LeaderboardEntry(
-    Guid ProfileId,
-    string Name,
-    string Avatar,
-    double Value,
-    DateTimeOffset AchievedAt,
-    bool InProgress);
-
 /// <summary>
-/// Saves and scores of the active profile, synced by the hub in the background (M2, ADR 0005), and the board of the
-/// account's profiles. Offline, the hub keeps writing to the device and pushes when the API is back.
+/// Saves and scores of the active profile, synced by the hub in the background (M2, ADR 0005). Offline, the hub keeps
+/// writing to the device and pushes when the API is back. Every run also goes to the integrity engine, whose boards
+/// rank them (ADR 0029).
 /// </summary>
 internal static partial class ProgressModule
 {
@@ -129,7 +121,7 @@ internal static partial class ProgressModule
             .WithSummary("Store the active profile's save of a game; the last write wins.");
 
         progress.MapPost("/scores", async Task<Results<Ok<RecordScoresResult>, ValidationProblem>> (
-                RecordScoresRequest request, HttpContext http, ToheDbContext db, TimeProvider clock, CancellationToken ct) =>
+                RecordScoresRequest request, HttpContext http, ToheDbContext db, IResults results, TimeProvider clock, CancellationToken ct) =>
             {
                 if (request.Scores.Any(s => !GameIdPattern().IsMatch(s.GameId) || !double.IsFinite(s.Value)))
                 {
@@ -141,7 +133,7 @@ internal static partial class ProgressModule
                 var known = await db.Scores
                     .Where(s => s.ProfileId == profile.Id && ids.Contains(s.ClientId))
                     .ToDictionaryAsync(s => s.ClientId, ct);
-                var recorded = 0;
+                var changed = new List<ScoreEntry>();
                 foreach (var input in request.Scores)
                 {
                     if (known.TryGetValue(input.ClientId, out var entry))
@@ -178,42 +170,20 @@ internal static partial class ProgressModule
                         known[input.ClientId] = entry;
                     }
 
-                    recorded++;
+                    changed.Add(entry);
                 }
 
+                // The engine decides how far each can be trusted, saved with the scores (ADR 0029).
+                await results.SubmitRunsAsync(
+                    profile.Id,
+                    profile.AccountId,
+                    [.. changed.Select(entry => new RunClaim(entry.ClientId, entry.GameId, entry.Board, entry.Value, entry.Final, entry.AchievedAt))],
+                    ct);
                 await db.SaveChangesAsync(ct);
-                return TypedResults.Ok(new RecordScoresResult(recorded));
+                return TypedResults.Ok(new RecordScoresResult(changed.Count));
             })
             .WithName("RecordScores")
             .WithSummary("Record runs of the active profile; the same clientId again raises that run's score.");
-
-        progress.MapGet("/leaderboard/{gameId}", async (
-                string gameId,
-                HttpContext http,
-                ToheDbContext db,
-                IAccountProfiles profiles,
-                CancellationToken ct,
-                string board = "default") =>
-            {
-                var players = await profiles.ListAsync(Active(http).AccountId, ct);
-                var ids = players.Select(p => p.Id).ToList();
-                var best = await db.Scores.AsNoTracking()
-                    .Where(s => s.GameId == gameId && s.Board == board && ids.Contains(s.ProfileId))
-                    .GroupBy(s => s.ProfileId)
-                    .Select(g => g.OrderByDescending(s => s.Value).ThenBy(s => s.AchievedAt).First())
-                    .ToListAsync(ct);
-                return best
-                    .Join(
-                        players,
-                        s => s.ProfileId,
-                        p => p.Id,
-                        (s, p) => new LeaderboardEntry(p.Id, p.Name, p.Avatar, s.Value, s.AchievedAt, !s.Final))
-                    .OrderByDescending(entry => entry.Value)
-                    .ThenBy(entry => entry.AchievedAt)
-                    .ToList();
-            })
-            .WithName("GetLeaderboard")
-            .WithSummary("Best score of each of the account's profiles on a game's board.");
 
         return api;
     }

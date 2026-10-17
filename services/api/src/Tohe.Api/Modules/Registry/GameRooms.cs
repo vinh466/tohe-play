@@ -89,7 +89,11 @@ public sealed record RegistryGame(string Id, string Name, string Version, string
 /// <summary>Read access to the registry for other modules (Rooms reads a game's rooms block and build path).</summary>
 public interface IRegistryGames
 {
+    /// <summary>A listed game; null when the catalog does not list it now.</summary>
     Task<RegistryGame?> GetAsync(string id, CancellationToken cancellationToken);
+
+    /// <summary>The registry has known the game, listed now or not: its scores can be real (ADR 0029).</summary>
+    Task<bool> KnowsAsync(string id, CancellationToken cancellationToken);
 }
 
 internal sealed class RegistryGames(ToheDbContext db) : IRegistryGames
@@ -101,4 +105,7 @@ internal sealed class RegistryGames(ToheDbContext db) : IRegistryGames
             ? null
             : new RegistryGame(game.Id, game.Name, game.Version, game.Path, game.MinAge, game.Rooms is { } rooms ? GameRooms.Parse(rooms) : null);
     }
+
+    public Task<bool> KnowsAsync(string id, CancellationToken cancellationToken) =>
+        db.Games.AsNoTracking().AnyAsync(g => g.Id == id, cancellationToken);
 }
