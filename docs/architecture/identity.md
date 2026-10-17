@@ -1,24 +1,28 @@
 ---
 title: Identity, accounts and profiles
-description: How people sign in, how one account plays as several profiles, how profiles are told apart, and how managing them is protected.
+description: How people sign up and in by email, how one account plays as several profiles, how profiles are told apart, and how managing them is protected.
 sidebar:
   order: 4
 ---
 
-Decisions: [ADR 0023](../decisions/0023-accounts-own-their-profiles.md) (accounts own profiles, public IDs, names),
-[ADR 0011](../decisions/0011-password-sign-in-first.md) (password sign-in, sessions, parent gate). ADR 0004
-(households) is superseded.
+Decisions: [ADR 0024](../decisions/0024-email-identifies-an-account.md) (email identifies an account, codes bound to
+attempts), [ADR 0023](../decisions/0023-accounts-own-their-profiles.md) (accounts own profiles, public IDs, names),
+[ADR 0011](../decisions/0011-password-sign-in-first.md) (passwords, sessions, parent gate). ADR 0004 (households) is
+superseded.
 
 ## Model
 
 ```mermaid
 erDiagram
   ACCOUNT ||--|{ PROFILE : "owns 1 to 5"
+  ACCOUNT ||--o{ AUTH_ATTEMPT : "resets, email changes"
   ACCOUNT {
     uuid id
-    string user_name "unique, signs in"
+    string email "unique, verified, signs in"
+    string user_name "opaque, or an old account's sign-in until it adds an email"
     string display_name "names the first profile"
     string password_hash "PBKDF2"
+    string security_stamp "changes with the password or the email"
     bool telemetry_enabled "ADR 0015"
   }
   PROFILE {
@@ -31,22 +35,163 @@ erDiagram
     string pin_hash "optional"
     bool play_with_others "children: off by default"
   }
+  AUTH_ATTEMPT {
+    uuid id "held by the client, sent back with the code"
+    string purpose "sign-up, reset, email change"
+    string email "where the code went"
+    string code_hash "none for a decoy"
+    int tries_left "5"
+    timestamp expires_at "15 minutes"
+  }
 ```
 
-- An **account** is someone who signs in. It owns one to five **profiles**: the first is created with the account
-  and named with its display name, and the last can never be removed. A family is one account with a profile per
-  player.
-- A **profile** is a player. Children only ever have profiles — never accounts or passwords. Any profile may have a
-  PIN.
+- An **account** is someone who signs in, with one **verified email** that nobody else ever sees. It owns one to five
+  **profiles**: the first is created with the account and named with its display name, and the last can never be
+  removed. A family is one account with a profile per player.
+- A **profile** is a player. Children only ever have profiles — never accounts, emails or passwords. Any profile may
+  have a PIN.
 - Every profile has a **public ID**: 12 digits shown as `1234 5678 9012`. The first 11 are random (the first never 0),
   the last is a [Damm](https://en.wikipedia.org/wiki/Damm_algorithm) check digit, so a single mistyped digit or two
   swapped neighbours never point at another profile. It never changes and is not a secret — an address, never a way to
   sign in (`ProfileIds`, mirrored in the hub's `session/profileIds.ts`).
 - **Names** are free and not unique: the ID tells profiles apart. See [Names](#names).
+- An **attempt** waits for a code sent by email: signing up, a forgotten password, a new sign-in email.
 - Saves and scores belong to a profile; boards show the profiles of one account.
 
-Tables live in the `identity` schema (`accounts`, `profiles`). Data Protection keys (used to encrypt session cookies)
-live in `platform.data_protection_keys`.
+Tables live in the `identity` schema (`accounts`, `profiles`, `auth_attempts`). Data Protection keys (used to encrypt
+session cookies) live in `platform.data_protection_keys`.
+
+## Signing up
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Person
+  participant H as Hub
+  participant A as API
+  participant M as Email outbox
+  U->>H: email, a name, a password
+  H->>A: POST /api/auth/register
+  A->>A: email on? · limits per IP and per address · password and name rules
+  alt the address has no account
+    A->>A: attempt {code hash, password hash, name, 15 min, 5 tries}
+    A->>M: "Mã đăng ký Tò He: 482 913" + a link
+  else the address has an account
+    A->>A: decoy attempt — no code opens it
+    A->>M: "Bạn đã có tài khoản Tò He" + a link to sign in
+  end
+  A-->>H: 202 {attemptId} — the same answer either way
+  U->>H: the code (or the link, opened on any device)
+  H->>A: POST /api/auth/register/confirm {attemptId, code}
+  alt right code, open attempt, address still free
+    A->>A: the account (email confirmed) and its first profile, in one transaction
+    A-->>H: 200 + session cookie, playing as that profile
+  else wrong code
+    A-->>H: 400 code_invalid {triesLeft} — the fifth wrong one closes the attempt
+  else expired, used, out of tries, or the address was taken meanwhile
+    A-->>H: 400 attempt_closed — start again
+  end
+```
+
+There is no "unverified" account: the password waits in the attempt until the code comes back. Since a code opens only
+the attempt it was sent for, someone who signed up first with another person's address cannot use the code that
+person receives, and the owner's own attempt is unaffected by theirs.
+
+## One-time codes
+
+| For | Sent to | Link in the email |
+| --- | --- | --- |
+| Signing up | the address signing up | `/register/confirm?attempt=…&code=…` |
+| A forgotten password | the account's address | `/password/reset?attempt=…&code=…` |
+| A new sign-in email | the new address | `/account/email?attempt=…&code=…` |
+
+Every code: six random digits, stored hashed, used once, bound to its attempt, alive 15 minutes, five tries — counted in
+the database, so tries made at the same moment all count. One address gets one code a minute and five an hour,
+whatever they are for (`code_cooldown`, `too_many_codes`). Links need `App:PublicUrl`; without it the email carries the
+code alone. Attempts a day past their end are deleted when the next one starts.
+
+## Signing in
+
+```mermaid
+flowchart TD
+  start["Email — or an old account's username — and password"] --> rl{"Under the per-IP limit?"}
+  rl -- no --> slow["429"]
+  rl -- yes --> find{"An account signs in with it<br/>and has a password?"}
+  find -- no --> miss["401 invalid_credentials<br/>(after hashing anyway: a miss takes as long as a wrong password)"]
+  find -- yes --> lock{"Locked out?<br/>10 wrong in a row → 5 min"}
+  lock -- yes --> locked["429 locked_out"]
+  lock -- no --> right{"Password right?"}
+  right -- no --> fail["Count the failure"] --> miss
+  right -- yes --> session["Session cookie"]
+  session --> only{"One profile, no PIN?"}
+  only -- yes --> play["Plays as it at once"]
+  only -- no --> picker["Ai đang chơi?"]
+```
+
+An account from before email sign-in still signs in with its username. Right after it does, the hub asks for an email
+and sends the password just typed along as the proof; once the code comes back, only the email signs in.
+
+## A forgotten password
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Person
+  participant H as Hub
+  participant A as API
+  participant M as Email outbox
+  U->>H: email
+  H->>A: POST /api/auth/password/forgot
+  alt an account signs in with it
+    A->>A: attempt {code hash, 15 min, 5 tries}
+    A->>M: "Mã đặt lại mật khẩu Tò He" + a link
+  else no account does
+    A->>A: decoy attempt, and no email
+  end
+  A-->>H: 202 {attemptId} — the same answer either way
+  U->>H: the code and a new password
+  H->>A: POST /api/auth/password/reset {attemptId, code, password}
+  A->>A: password rules first — a weak one costs no try — then the code
+  A->>A: the new password, a new security stamp, any lockout ended
+  A->>A: a pending email change is cancelled
+  A->>M: "Mật khẩu Tò He của bạn đã đổi"
+  A-->>H: 200 + a fresh session here — every other one ends within 5 minutes
+```
+
+## A new sign-in email
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Account owner
+  participant H as Hub
+  participant A as API
+  participant M as Email outbox
+  U->>H: a new email — the parent gate open, or the password with it
+  H->>A: POST /api/account/email {email, password?}
+  alt no account signs in with it
+    A->>A: attempt for this account — replaces an earlier one
+    A->>M: "Mã xác nhận email Tò He" to the new address + a link
+  else another account does
+    A->>A: decoy attempt
+    A->>M: "Email này đã có tài khoản Tò He" to that address
+  end
+  A-->>H: 202 {attemptId}
+  U->>H: the code
+  H->>A: POST /api/account/email/confirm {attemptId, code}
+  A->>A: the new email (confirmed), a new security stamp
+  A->>M: to the old address: "Email đăng nhập Tò He đã đổi", the new one masked
+  A-->>H: 200 — this device carries on, every other session ends
+```
+
+## Sessions
+
+| What | How |
+| --- | --- |
+| Cookie | `tohe.session` — `__Host-tohe.session` behind an HTTPS hub (ADR 0021) — 90 days, sliding, HttpOnly, `SameSite=Lax` |
+| In the cookie | the active profile and the parent gate's expiry |
+| Checked against the account's security stamp | every 5 minutes (`Identity:SessionCheckInterval`) |
+| The stamp changes when | the password is reset · the sign-in email changes |
 
 ## A device's life
 
@@ -57,12 +202,12 @@ sequenceDiagram
   participant H as Hub
   participant API
 
-  P->>H: sign in (username, password)
+  P->>H: sign in (email, password)
   H->>API: POST /api/auth/login
   alt one profile without a PIN
-    API-->>H: session cookie (90 days, sliding), already playing as that profile
+    API-->>H: session cookie, already playing as that profile
   else several profiles, or a PIN
-    API-->>H: session cookie (90 days, sliding)
+    API-->>H: session cookie
     H->>C: "Ai đang chơi?" profile picker
     C->>H: taps own avatar (+ PIN if set)
     H->>API: PUT /api/session/profile
@@ -101,6 +246,10 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 
 | Rule | Where it is enforced |
 | --- | --- |
+| One account per sign-in email; an account exists only once the code sent to it came back | `email_index` (unique) on `identity.accounts`; `AuthEndpoints` |
+| A code opens only its attempt; five tries, 15 minutes; one address gets a code a minute and five an hour | `Attempts`, `Codes` |
+| No answer tells whether an address has an account: decoy attempts, the same 202, a miss as slow as a wrong password | `AuthEndpoints`, `AccountEmailEndpoints` |
+| Changing the sign-in email needs the password (with the request, or the parent gate) and a code at the new address | `AccountEmailEndpoints` |
 | Managing the account and its profiles needs the parent gate (password within the last 10 minutes) | The parent-gate endpoint filter on `/api/account` and `/api/profiles/*` (`ProfileEndpoints.Gated`) |
 | An account owns at least one and at most five profiles; changes to them are serialized on the account's row, so requests at the same time cannot break the limits | Identity module (`ProfileEndpoints`) |
 | An account sees, manages and plays as its own profiles only; another account's profile is "not found" | Identity module, `IActiveProfile` |
@@ -110,8 +259,8 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | A child plays online with other accounts only when the account's owner turned on "Chơi online với người ngoài" (`playWithOthers`, off by default); otherwise only at tables the account keeps to itself | Rooms, via `IActiveProfile` ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) |
 | Saves, scores and the leaderboard belong to the active profile; boards list the account's profiles | Progress, via `IActiveProfile` and `IAccountProfiles` |
 | Unsafe `/api` requests from another origin (`Sec-Fetch-Site` ≠ `same-origin`) are rejected | `SameOriginGuard` middleware |
-| Sign-in, registration, PIN and parent gate: 10 requests per minute per client IP | Rate limiter policy `auth` |
-| 10 wrong passwords lock an account for 5 minutes | ASP.NET Core Identity lockout |
+| Per client IP, 10 requests a minute in each of three buckets: signing in or asking for a code (`auth`), typing a code back (`auth-code`), a PIN or the parent gate (`auth-gate`) | Rate limiter policies; `Identity:AuthRequestsPerMinute` |
+| 10 wrong passwords lock an account for 5 minutes; a password reset ends the lockout | ASP.NET Core Identity lockout |
 
 ## Guest mode
 
@@ -122,19 +271,29 @@ device). The first time a real profile is chosen on that device, the hub offers 
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `POST /api/auth/register` | — | Create an account and its first profile, which plays at once |
-| `POST /api/auth/login` / `POST /api/auth/logout` | — / session | Sign in (playing at once as an only profile without a PIN) / out |
-| `GET /api/auth/me` | session | Account, its profiles (with public IDs), active profile, parent-gate expiry |
+| `POST /api/auth/register` | — | Start signing up: a code to the email — 202 and an attempt, whoever the address belongs to |
+| `POST /api/auth/register/confirm` | — | The code creates the account and its first profile, which plays at once |
+| `POST /api/auth/login` / `POST /api/auth/logout` | — / session | Sign in with the email (an old account's username until it adds one) / out |
+| `POST /api/auth/password/forgot` | — | A code to set a new password, if the address has an account — 202 either way |
+| `POST /api/auth/password/reset` | — | The code sets the new password; every other session ends |
+| `GET /api/auth/me` | session | Account (with its email), its profiles (with public IDs), active profile, parent-gate expiry |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
 | `POST /api/session/parent-gate` / `DELETE` | session | Unlock / lock account management |
+| `POST /api/account/email` | session + parent gate, or the password | A code to a new sign-in email |
+| `POST /api/account/email/confirm` | session | The code makes it the sign-in email; every other session ends |
 | `GET /api/profiles/options` | — | Allowed avatars and age bands; how many profiles an account may own |
 | `PATCH /api/account` | parent | The account's telemetry switch |
 | `POST /api/profiles` | parent | Add a profile: a child's with an age band, an adult's without |
 | `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`) / remove a profile — never the last |
 
-Errors are problem details; a machine-readable `code` (e.g. `invalid_credentials`, `pin_required`, `pin_invalid`,
-`parent_gate_required`, `username_taken`, `too_many_profiles`, `last_profile`, `name_required`,
-`name_invalid_character`, `name_too_long`, `name_reserved`) lets the hub show a Vietnamese message.
+`GET /api/config` says whether the server sends email (`email`); without it, nothing that needs a code starts
+(`email_unavailable`).
+
+Errors are problem details; a machine-readable `code` lets the hub show a Vietnamese message: `invalid_credentials`,
+`locked_out`, `email_invalid`, `email_unavailable`, `email_unchanged`, `code_invalid` (with `triesLeft`),
+`attempt_closed`, `code_cooldown`, `too_many_codes`, `password_too_short`, `password_invalid`, `pin_required`,
+`pin_invalid`, `parent_gate_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
+`name_too_long`, `name_reserved`.
 
 ## From households
 

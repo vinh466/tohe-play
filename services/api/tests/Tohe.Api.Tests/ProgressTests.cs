@@ -148,12 +148,7 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
     private async Task<(HttpClient Client, MeView Me)> RegisterAsync(string displayName)
     {
         var client = factory.CreateClient();
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName, username = $"u{Guid.NewGuid():N}"[..16], password = Password },
-            Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (client, (await response.Content.ReadFromJsonAsync<MeView>(Ct))!);
+        return (client, await Accounts.SignUpAsync(factory, client, displayName));
     }
 
     private static async Task UnlockAsync(HttpClient client)

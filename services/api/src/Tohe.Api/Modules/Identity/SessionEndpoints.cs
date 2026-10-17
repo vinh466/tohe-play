@@ -18,7 +18,7 @@ internal static class SessionEndpoints
         var session = api.MapGroup("/session").WithTags("Identity").RequireAuthorization();
 
         session.MapPut("/profile", SelectProfileAsync)
-            .RequireRateLimiting(IdentityModule.AuthRateLimit)
+            .RequireRateLimiting(IdentityModule.GateRateLimit)
             .WithName("SelectProfile")
             .WithSummary("Choose who plays on this device. Locks the parent gate.");
 
@@ -38,7 +38,7 @@ internal static class SessionEndpoints
             .WithSummary("Back to the profile picker.");
 
         session.MapPost("/parent-gate", UnlockParentGateAsync)
-            .RequireRateLimiting(IdentityModule.AuthRateLimit)
+            .RequireRateLimiting(IdentityModule.GateRateLimit)
             .WithName("UnlockParentGate")
             .WithSummary("Re-enter the password to manage the account's profiles for a few minutes.");
 

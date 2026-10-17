@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Registry;
 
@@ -34,11 +36,11 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         var (_, me) = await RegisterAsync("Mẹ");
         var client = factory.CreateClient();
 
-        var wrong = await client.PostAsJsonAsync(Url("/api/auth/login"), new { username = me.Account.Username, password = "sai-mat-khau" }, Ct);
+        var wrong = await client.PostAsJsonAsync(Url("/api/auth/login"), new { email = me.Account.Email, password = "sai-mat-khau" }, Ct);
         Assert.Equal(HttpStatusCode.Unauthorized, wrong.StatusCode);
         Assert.Equal("invalid_credentials", await CodeAsync(wrong));
 
-        var right = await client.PostAsJsonAsync(Url("/api/auth/login"), new { username = me.Account.Username.ToUpperInvariant(), password = Password }, Ct);
+        var right = await client.PostAsJsonAsync(Url("/api/auth/login"), new { email = me.Account.Email!.ToUpperInvariant(), password = Password }, Ct);
         Assert.Equal(HttpStatusCode.OK, right.StatusCode);
         Assert.Equal(me.Profiles[0].Id, (await right.Content.ReadFromJsonAsync<MeView>(Ct))!.ActiveProfileId);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
@@ -52,7 +54,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     {
         var (owner, me) = await RegisterAsync("Bố");
         await UnlockAsync(owner);
-        var credentials = new { username = me.Account.Username, password = Password };
+        var credentials = new { email = me.Account.Email, password = Password };
         async Task<Guid?> SignInAsync() =>
             (await (await factory.CreateClient().PostAsJsonAsync(Url("/api/auth/login"), credentials, Ct))
                 .Content.ReadFromJsonAsync<MeView>(Ct))!.ActiveProfileId;
@@ -68,31 +70,26 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Null(await SignInAsync());
     }
 
-    [Fact]
-    public async Task A_taken_username_is_reported_on_the_username_field()
+    [Theory]
+    [InlineData("khong-phai-email", "mat-khau-cua-bo", "Bố", "email", "email_invalid")]
+    [InlineData("Bố <bo@tohe.test>", "mat-khau-cua-bo", "Bố", "email", "email_invalid")]
+    [InlineData("bo@localhost", "mat-khau-cua-bo", "Bố", "email", "email_invalid")]
+    [InlineData("{0}", "ngan", "Bố", "password", "password_too_short")]
+    [InlineData("{0}", "mat-khau-cua-bo", "   ", "displayName", "name_required")]
+    public async Task Invalid_input_is_rejected_before_anything_is_sent(
+        string email, string password, string displayName, string field, string error)
     {
-        var (_, me) = await RegisterAsync("Bố");
+        var address = string.Format(System.Globalization.CultureInfo.InvariantCulture, email, Accounts.NewEmail());
 
         var response = await factory.CreateClient().PostAsJsonAsync(
             Url("/api/auth/register"),
-            new { displayName = "Ai đó", username = me.Account.Username, password = Password },
+            new { email = address, password, displayName },
             Ct);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("username_taken", (await ErrorsAsync(response))["username"]);
-    }
-
-    [Fact]
-    public async Task Invalid_input_is_rejected_before_anything_is_created()
-    {
-        var response = await factory.CreateClient().PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName = "", username = "a b", password = "short" },
-            Ct);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errors = await ErrorsAsync(response);
-        Assert.True(errors.ContainsKey("password") || errors.ContainsKey("Password"), string.Join(",", errors.Keys));
+        Assert.Contains(error, (await ErrorsAsync(response))[field]);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        Assert.False(await db.EmailOutbox.AnyAsync(e => e.To == address, Ct));
     }
 
     [Fact]
@@ -274,7 +271,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     {
         var request = new HttpRequestMessage(HttpMethod.Post, Url("/api/auth/login"))
         {
-            Content = JsonContent.Create(new { username = "x", password = "y" }),
+            Content = JsonContent.Create(new { email = "x@tohe.test", password = "y" }),
         };
         request.Headers.Add("Sec-Fetch-Site", "same-site");
 
@@ -288,10 +285,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     public async Task Session_cookie_is_http_only_and_lax()
     {
         var client = factory.CreateClient(new() { HandleCookies = false });
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName = "Bố", username = NewUsername(), password = Password },
-            Ct);
+        var response = await Accounts.SignUpResponseAsync(factory, client, "Bố");
 
         var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith("tohe.session=", StringComparison.Ordinal));
         Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
@@ -306,10 +300,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         // App:PublicUrl is what makes it HTTPS.
         await using var https = factory.WithWebHostBuilder(builder => builder.UseSetting("App:PublicUrl", "https://tohe.example.test"));
         var client = https.CreateClient(new() { HandleCookies = false });
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName = "Bố", username = NewUsername(), password = Password },
-            Ct);
+        var response = await Accounts.SignUpResponseAsync(factory, client, "Bố");
 
         var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith("__Host-tohe.session=", StringComparison.Ordinal));
         Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
@@ -323,12 +314,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     private async Task<(HttpClient Client, MeView Me)> RegisterAsync(string displayName)
     {
         var client = factory.CreateClient();
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName, username = NewUsername(), password = Password },
-            Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (client, (await response.Content.ReadFromJsonAsync<MeView>(Ct))!);
+        return (client, await Accounts.SignUpAsync(factory, client, displayName));
     }
 
     private static async Task<MeView> UnlockAsync(HttpClient client)
@@ -350,8 +336,6 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
 
     private static object NewChild(string name, string? pin = null) =>
         new { name, avatar = ProfileOptions.Avatars[1], ageBand = "3-5", pin };
-
-    private static string NewUsername() => $"u{Guid.NewGuid():N}"[..16];
 
     private static Uri Url(string path) => new(path, UriKind.Relative);
 

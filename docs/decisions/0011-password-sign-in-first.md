@@ -9,6 +9,7 @@ sidebar:
 - **Date:** 2026-10-13
 - **Amends:** the sign-in method of [ADR 0004](0004-identity-households-and-profiles.md) (the household/profile model stands)
 - **Amended by:** [ADR 0023](0023-accounts-own-their-profiles.md) — no invites; the parent gate guards the account and its profiles
+  · [ADR 0024](0024-email-identifies-an-account.md) — accounts sign in with a verified email; usernames only for accounts from before
 
 ## Context
 

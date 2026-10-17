@@ -6,11 +6,13 @@ import {
   lazyRouteComponent,
   Outlet,
 } from '@tanstack/react-router';
+import { AccountEmailPage } from './pages/AccountEmailPage.tsx';
 import { AccountPage } from './pages/AccountPage.tsx';
 import { CatalogPage } from './pages/CatalogPage.tsx';
 import { DataPage } from './pages/DataPage.tsx';
+import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordPage.tsx';
 import { ProfilesPage } from './pages/ProfilesPage.tsx';
-import { RegisterPage } from './pages/RegisterPage.tsx';
+import { ConfirmRegistrationPage, RegisterPage } from './pages/RegisterPage.tsx';
 import { WelcomePage } from './pages/WelcomePage.tsx';
 
 interface RouterContext {
@@ -31,6 +33,39 @@ const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/register',
   component: RegisterPage,
+});
+
+/**
+ * A link in an email carries the attempt and its code (ADR 0024). The router reads "482913" as a number; the code is
+ * text, so it is turned back.
+ */
+const codeLink = (search: Record<string, unknown>): { attempt: string; code: string } => ({
+  attempt: String(search.attempt ?? ''),
+  code: String(search.code ?? ''),
+});
+
+const confirmRegistrationRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/register/confirm',
+  validateSearch: codeLink,
+  component: ConfirmRegistrationPage,
+});
+const forgotPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/password/forgot',
+  component: ForgotPasswordPage,
+});
+const resetPasswordRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/password/reset',
+  validateSearch: codeLink,
+  component: ResetPasswordPage,
+});
+const accountEmailRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/account/email',
+  validateSearch: codeLink,
+  component: AccountEmailPage,
 });
 const profilesRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -91,8 +126,12 @@ export function createAppRouter(queryClient: QueryClient) {
       catalogRoute,
       welcomeRoute,
       registerRoute,
+      confirmRegistrationRoute,
+      forgotPasswordRoute,
+      resetPasswordRoute,
       profilesRoute,
       accountRoute,
+      accountEmailRoute,
       dataRoute,
       playRoute,
       roomsRoute,

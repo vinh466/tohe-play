@@ -16,7 +16,25 @@ internal static class Problems
             extensions: new Dictionary<string, object?> { ["code"] = code });
 
     public static ProblemHttpResult InvalidCredentials() =>
-        Of(StatusCodes.Status401Unauthorized, "invalid_credentials", "Wrong username or password");
+        Of(StatusCodes.Status401Unauthorized, "invalid_credentials", "Wrong email or password");
+
+    /// <summary>Email is off on this server (<c>Email:Mode=Disabled</c>), so nothing that needs a code can start.</summary>
+    public static ProblemHttpResult EmailUnavailable() =>
+        Of(StatusCodes.Status503ServiceUnavailable, "email_unavailable", "This server does not send email");
+
+    /// <summary><c>code_cooldown</c> (a minute between codes) or <c>too_many_codes</c> (five an hour) for one address.</summary>
+    public static ProblemHttpResult TooManyCodes(string code) =>
+        Of(StatusCodes.Status429TooManyRequests, code, "Too many codes for this address; wait a little");
+
+    public static ProblemHttpResult CodeInvalid(int triesLeft) =>
+        TypedResults.Problem(
+            title: "Wrong code",
+            statusCode: StatusCodes.Status400BadRequest,
+            extensions: new Dictionary<string, object?> { ["code"] = "code_invalid", ["triesLeft"] = triesLeft });
+
+    /// <summary>Expired, used, out of tries, replaced by a newer code — or its email was taken meanwhile: start again.</summary>
+    public static ProblemHttpResult AttemptClosed() =>
+        Of(StatusCodes.Status400BadRequest, "attempt_closed", "This code no longer works; ask for a new one");
 
     public static ProblemHttpResult LockedOut() =>
         Of(StatusCodes.Status429TooManyRequests, "locked_out", "Too many wrong attempts; try again in a few minutes");
