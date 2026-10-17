@@ -46,6 +46,9 @@ public sealed class RoomsOptions
     public bool ClockEnabled { get; set; } = true;
 }
 
+/// <summary>The open rooms: how many, how many in a hand, the profiles connected to them, and the rooms of each game.</summary>
+public sealed record LiveRooms(int Open, int Playing, int Online, IReadOnlyDictionary<string, int> OpenByGame);
+
 /// <summary>
 /// The rooms in memory, one actor each (ADR 0016), loaded from the database when the API starts so a deploy does not
 /// end a table: a hand in progress is rebuilt by replaying its actions.
@@ -61,6 +64,18 @@ internal sealed partial class RoomRegistry(
     private readonly ConcurrentDictionary<Guid, int> _minSeats = new();
 
     public IEnumerable<RoomActor> All => _rooms.Values;
+
+    /// <summary>The open rooms right now, for the admin console (ADR 0027).</summary>
+    public LiveRooms Live()
+    {
+        var open = _rooms.Values.Where(room => !room.IsClosed).ToList();
+        return new LiveRooms(
+            open.Count,
+            open.Count(room => room.Room.Status == RoomStatus.Playing),
+            open.Sum(room => room.Online),
+            open.GroupBy(room => room.Room.GameId, StringComparer.Ordinal)
+                .ToDictionary(game => game.Key, game => game.Count(), StringComparer.Ordinal));
+    }
 
     public RoomActor? Find(Guid id) => _rooms.TryGetValue(id, out var room) && !room.IsClosed ? room : null;
 

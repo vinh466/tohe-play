@@ -24,6 +24,7 @@ internal static class EmailModule
         services.TryAddSingleton<ISmtpTransport, MailKitSmtpTransport>();
         services.AddScoped<IEmailOutbox, EmailOutbox>();
         services.AddScoped<EmailDelivery>();
+        services.AddScoped<EmailFacts>();
 
         var configured = builder.Configuration.GetSection(EmailOptions.Section).Get<EmailOptions>() ?? new EmailOptions();
         if (configured.Mode == EmailMode.Smtp && configured.DeliveryEnabled && !BuildTime.IsGeneratingOpenApi)

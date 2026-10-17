@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using MimeKit;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 
 namespace Tohe.Api.Modules.Email;
@@ -113,6 +114,7 @@ internal sealed partial class EmailDelivery(
 internal sealed partial class EmailDeliveryWorker(
     IServiceScopeFactory scopes,
     IOptions<EmailOptions> options,
+    BackgroundWork work,
     ILogger<EmailDeliveryWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -124,9 +126,11 @@ internal sealed partial class EmailDeliveryWorker(
             {
                 await using var scope = scopes.CreateAsyncScope();
                 await scope.ServiceProvider.GetRequiredService<EmailDelivery>().RunAsync(stoppingToken);
+                work.Succeeded(BackgroundWork.EmailDelivery);
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {
+                work.Failed(BackgroundWork.EmailDelivery, error);
                 LogFailed(error);
             }
         }
