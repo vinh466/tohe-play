@@ -61,6 +61,12 @@ public sealed class SignInSettingsTests(ApiFactory factory) : IClassFixture<ApiF
             new { email = Accounts.NewEmail(), password = Accounts.Password, displayName = "Ai", acceptTerms = true, termsVersion = Accounts.TermsVersion },
             Ct);
         Assert.Equal("method_disabled", await CodeOfAsync(signUp));
+        // A new password by email signs in, so it is no way in meanwhile either — whenever its code was asked for.
+        var forgot = await _app.CreateClient().PostAsJsonAsync(Url("/api/auth/password/forgot"), new { email = player }, Ct);
+        Assert.Equal("method_disabled", await CodeOfAsync(forgot));
+        var reset = await _app.CreateClient().PostAsJsonAsync(
+            Url("/api/auth/password/reset"), new { attemptId = Guid.NewGuid(), code = "123456", password = "mat-khau-moi-cua-bo" }, Ct);
+        Assert.Equal("method_disabled", await CodeOfAsync(reset));
 
         Assert.Equal(HttpStatusCode.OK, (await SaveAsync(owner, new { methods = new { password = true } })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await _app.CreateClient().PostAsJsonAsync(Url("/api/auth/login"), new { email = player, password = Accounts.Password }, Ct)).StatusCode);

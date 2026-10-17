@@ -318,8 +318,15 @@ internal static class AuthEndpoints
         IEmailOutbox outbox,
         UserManager<Account> users,
         ToheDbContext db,
+        ISignInSettings settings,
         CancellationToken ct)
     {
+        // A new password signs in: with the password switched off it is no way in either (ADR 0028).
+        if (!await settings.IsOnAsync(SignInMethods.Password, ct))
+        {
+            return Problems.MethodDisabled();
+        }
+
         if (!outbox.Enabled)
         {
             return Problems.EmailUnavailable();
@@ -359,8 +366,15 @@ internal static class AuthEndpoints
         SessionWriter session,
         MeQueries me,
         TimeProvider clock,
+        ISignInSettings settings,
         CancellationToken ct)
     {
+        // Also a code asked for before the switch went off.
+        if (!await settings.IsOnAsync(SignInMethods.Password, ct))
+        {
+            return Problems.MethodDisabled();
+        }
+
         // A weak password costs no try.
         if (await PasswordProblemAsync(users, request.Password) is { } weak)
         {
