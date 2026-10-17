@@ -198,8 +198,9 @@ Invitations live in the room's memory: an API restart forgets them.
 
 ### 10. Results and looking back
 
-The lobby shows the active profile's own results in the game (hands, wins, points: all time and the last 7 days),
-the account's board for the last 7 days, and its last 20 hands. **Xem lại** opens a hand in the game, which deals
+The lobby shows the active profile's own results in the game (hands, wins, points: all time and this week — from
+Monday 00:00 in Việt Nam), the account's board of the week from the integrity engine
+([Integrity and boards](integrity.md)), and its last 20 hands. **Xem lại** opens a hand in the game, which deals
 it again from its seed with its own rules module and plays it back from the player's seat: back, forward, play and
 pause ([ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)). A hand played with an older version than
 the catalog's says it cannot be replayed: the games image only holds current builds.
@@ -321,7 +322,7 @@ A `Rooms` module in the API with its own `rooms` schema
 | `PATCH /api/rooms/{id}` · `PUT …/seats/{seat}` · `POST …/start` | The host's controls, before a hand |
 | `POST /api/rooms/{id}/watch` | Watch without a seat, when the room allows spectators |
 | `POST /api/rooms/{id}/invite` · `GET /api/rooms/invites` | Ask another profile of the account to the table · the active profile's invitations |
-| `GET /api/rooms/stats?game=` | Its results (all time, last 7 days) and the account's 7-day board |
+| `GET /api/rooms/stats?game=` | Its results (all time, this week) and the account's board of the week |
 | `GET /api/rooms/history?game=` · `GET /api/rooms/{id}/hands/{hand}` | Its last 20 hands · one hand to replay, only for the profiles that played it |
 | `/api/rooms/hub` (SignalR) | `Enter`, `Exit`, `Act`, `Next`, `React`, `WatchLobby`; pushes `Room`, `View`, `Reaction`, `Closed`, `LobbyChanged` |
 
@@ -337,8 +338,9 @@ A `Rooms` module in the API with its own `rooms` schema
   hand's actions from its setup (the rules module is deterministic), and phones that reconnect get the same table. A
   room whose build is gone closes.
 - **Every finished hand is kept:** `rooms.hands` (build version, seed, options, carry, who sat where, result) and
-  `rooms.results` (one row per seat: profile and account, place, points) next to its actions. Statistics, the board
-  and replays read them; rooms are closed, never deleted.
+  `rooms.results` (one row per seat: profile and account, place, points) next to its actions. Statistics and replays
+  read them; every person's result also goes to the integrity engine, verified, in the same transaction — boards read
+  it there (ADR 0029). Rooms are closed, never deleted.
 - **One API instance.** Several instances would need room affinity; not planned at this scale.
 
 ## Reconnection

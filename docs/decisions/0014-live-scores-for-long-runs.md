@@ -5,7 +5,8 @@ sidebar:
   order: 14
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — a run's place on a board follows the server's clock and its trust level since
+  [ADR 0029](0029-integrity-engine-and-boards-by-trust.md)
 - **Date:** 2026-10-14
 
 ## Context

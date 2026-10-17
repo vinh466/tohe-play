@@ -75,7 +75,8 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | Platform | done | `GET /api/config` |
 | Registry | done | `GET /api/games`, `GET /api/games/{id}` |
 | Identity & Profiles | done | `/api/auth/*`, `/api/session/*`, `/api/account/*`, `/api/profiles/*` — accounts own their profiles and sign in by email or a provider, switched and opened at run time ([ADR 0023](../decisions/0023-accounts-own-their-profiles.md), [0024](../decisions/0024-email-identifies-an-account.md), [0026](../decisions/0026-sign-in-methods-and-account-linking.md), [0028](../decisions/0028-sign-in-and-registration-at-run-time.md)); see [Identity](identity.md) |
-| Saves & Scores | M2 | per-profile saves, score boards |
+| Saves & Scores | M2 | per-profile saves and runs; their boards come from Integrity |
+| Integrity | the engine and the account's boards ([ADR 0029](../decisions/0029-integrity-engine-and-boards-by-trust.md)) | `/api/boards/*`; Progress and Rooms hand it their results — see [Integrity and boards](integrity.md) |
 | Parental | later | play-time limits, per-profile game visibility |
 | Email | done ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | none — other modules add messages to its outbox |
 | Telemetry | done ([ADR 0015](../decisions/0015-device-telemetry.md)) | `/api/telemetry`, `/api/telemetry/report` — see [Device telemetry](telemetry.md) |

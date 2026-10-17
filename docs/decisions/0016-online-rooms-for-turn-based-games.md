@@ -6,7 +6,9 @@ sidebar:
 ---
 
 - **Status:** Accepted — the seed's secrecy amended by [ADR 0017](0017-replays-of-finished-online-hands.md) (replays of finished hands);
-  tables for the household are tables for the host's account since [ADR 0023](0023-accounts-own-their-profiles.md)
+  tables for the household are tables for the host's account since [ADR 0023](0023-accounts-own-their-profiles.md);
+  the board of the week is the calendar week, and a hand counts on public boards only with two people at the table,
+  since [ADR 0029](0029-integrity-engine-and-boards-by-trust.md)
 - **Date:** 2026-10-16
 
 ## Context
