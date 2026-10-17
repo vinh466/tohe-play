@@ -73,7 +73,7 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
     }
 
     [Fact]
-    public async Task Scores_are_stored_once_and_the_leaderboard_ranks_the_household_only()
+    public async Task Scores_are_stored_once_and_the_leaderboard_ranks_the_accounts_profiles_only()
     {
         var (client, me) = await RegisterAsync("Bố");
         await UnlockAsync(client);
@@ -164,7 +164,7 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
     private static async Task<ProfileView> AddChildAsync(HttpClient client, string name)
     {
         var response = await client.PostAsJsonAsync(
-            Url("/api/household/profiles"),
+            Url("/api/profiles"),
             new { name, avatar = ProfileOptions.Avatars[1], ageBand = "6-8" },
             Ct);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

@@ -19,7 +19,7 @@ public sealed class IdentityOptions
     public int AuthRequestsPerMinute { get; set; } = 10;
 }
 
-/// <summary>Accounts, households, profiles and the device session (ADR 0004, ADR 0011).</summary>
+/// <summary>Accounts, the profiles they own, and the device session (ADR 0011, ADR 0023).</summary>
 internal static class IdentityModule
 {
     public const string AuthRateLimit = "auth";
@@ -127,7 +127,7 @@ internal static class IdentityModule
         services.AddScoped<SessionWriter>();
         services.AddScoped<MeQueries>();
         services.AddScoped<IActiveProfile, ActiveProfileReader>();
-        services.AddScoped<IHouseholdProfiles, HouseholdProfilesReader>();
+        services.AddScoped<IAccountProfiles, AccountProfilesReader>();
         return builder;
     }
 
@@ -135,7 +135,7 @@ internal static class IdentityModule
     {
         AuthEndpoints.Map(api);
         SessionEndpoints.Map(api);
-        HouseholdEndpoints.Map(api);
+        ProfileEndpoints.Map(api);
         return api;
     }
 }

@@ -20,8 +20,6 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
 {
     public DbSet<Game> Games => Set<Game>();
 
-    public DbSet<Household> Households => Set<Household>();
-
     public DbSet<Profile> Profiles => Set<Profile>();
 
     public DbSet<SavedGame> SavedGames => Set<SavedGame>();

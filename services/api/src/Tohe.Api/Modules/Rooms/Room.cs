@@ -38,13 +38,13 @@ public sealed class Room
 
     public Guid HostProfileId { get; set; }
 
-    public Guid HostHouseholdId { get; set; }
+    public Guid HostAccountId { get; set; }
 
     /// <summary>Listed in the lobby; otherwise joined with the code or the link only.</summary>
     public bool IsPublic { get; set; }
 
-    /// <summary>Only profiles of the host's household may join.</summary>
-    public bool HouseholdOnly { get; set; }
+    /// <summary>Only profiles of the host's account may join.</summary>
+    public bool AccountOnly { get; set; }
 
     /// <summary>The host closed the door: nobody new may join.</summary>
     public bool Locked { get; set; }
@@ -102,7 +102,7 @@ public sealed class Room
 
 /// <summary>A seat as stored: a person, a bot, or empty.</summary>
 /// <param name="Auto">A bot that filled an empty seat; a person who joins between hands takes its place.</param>
-public sealed record SeatRecord(Guid? ProfileId, Guid? HouseholdId, string? Name, string? Avatar, string? Bot, bool Auto = false)
+public sealed record SeatRecord(Guid? ProfileId, Guid? AccountId, string? Name, string? Avatar, string? Bot, bool Auto = false)
 {
     public static readonly SeatRecord Empty = new(null, null, null, null, null);
 
