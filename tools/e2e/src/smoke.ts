@@ -3,8 +3,9 @@
 // Opens the hub on a phone-sized viewport, launches the sample game, plays one round and checks that the
 // hub stored the score and the save locally. Every screen — hub, landing page, docs — is checked in the light and
 // the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke (SITE_URL defaults to :4710)
-// With ADMIN_GRANT_COMMAND (CI: the API container's `admin grant`, ADR 0027) it also sets up the admin console's
-// two-factor authentication and walks its pages.
+// With ADMIN_LOGS_COMMAND (CI: the API container's log) a new deployment's admin console is claimed with the setup token
+// the API logged; else, with ADMIN_GRANT_COMMAND (the API container's `admin grant`), a role is granted (ADR 0027).
+// Either way the console's two-factor authentication is set up and its pages walked.
 import { execFileSync } from 'node:child_process';
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
@@ -14,6 +15,7 @@ import { totp } from './totp.ts';
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
 const grantCommand = process.env.ADMIN_GRANT_COMMAND?.split(' ').filter(Boolean);
+const logsCommand = process.env.ADMIN_LOGS_COMMAND?.split(' ').filter(Boolean);
 const step = (message: string) => console.log(`• ${message}`);
 
 const browser = await chromium.launch().catch(() => chromium.launch({ channel: 'chrome' }));
@@ -345,17 +347,36 @@ try {
   await page.goto(hubUrl);
   await expectTheme('dark');
 
-  step('the admin console (/admin/) knows this account has no role, and says how one is granted');
+  step(
+    'the admin console (/admin/): without a role, a new deployment offers its claim, an owned one says how a role comes',
+  );
   await page.goto(`${hubUrl}/admin/`);
-  await page.getByText('chưa có vai trò quản trị').waitFor();
+  const claim = page.getByText('chưa có chủ');
+  await claim.or(page.getByText('chưa có vai trò quản trị')).waitFor();
   await expectTheme('dark');
-  await shot('admin-no-role');
+  await shot('admin-gate');
 
-  if (grantCommand) {
+  let admin = false;
+  if (logsCommand && (await claim.isVisible())) {
+    const [command = '', ...args] = logsCommand;
+    step(`a new deployment: the setup token in the API's log makes this account its first owner`);
+    // The last one: each start of the API makes up a new token.
+    const logs = execFileSync(command, args, { encoding: 'utf8' });
+    const token = [...logs.matchAll(/setup token ([0-9A-Z]{4}-[0-9A-Z]{4})/g)].at(-1)?.[1];
+    if (!token) throw new Error("no setup token in the API's log");
+    await page.getByLabel('Mã cài đặt').fill(token);
+    await page.getByRole('button', { name: 'Nhận quyền chủ' }).click();
+    admin = true;
+  } else if (grantCommand) {
     const [command = '', ...args] = grantCommand;
-    step(`granted a role in the API's container, the console asks for two-factor authentication first`);
+    step(`granted a role in the API's container`);
     execFileSync(command, [...args, email, '--role', 'viewer'], { stdio: 'inherit' });
     await page.reload();
+    admin = true;
+  }
+
+  if (admin) {
+    step('the console asks for two-factor authentication first: step-up, then a new key');
     await page.getByLabel('Mật khẩu của bạn').fill(password);
     await page.getByRole('button', { name: 'Xác nhận', exact: true }).click();
     await page.getByRole('button', { name: 'Tạo khoá cho ứng dụng xác thực' }).click();
@@ -379,6 +400,13 @@ try {
       await page.getByRole('link', { name: link, exact: true }).click();
       await page.getByRole('heading', { name: heading, exact: true }).waitFor();
       await shot(`admin-${link}`);
+    }
+    // The owner reads the audit log: the claim and the console's opening are in it.
+    const auditLink = page.getByRole('link', { name: 'Nhật ký', exact: true });
+    if (await auditLink.isVisible()) {
+      await auditLink.click();
+      await page.getByText('Bật xác thực hai lớp').first().waitFor();
+      await shot('admin-audit');
     }
   }
   await page.goto(hubUrl);
