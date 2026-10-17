@@ -8,6 +8,7 @@
  * Contrast rules, checked in both themes by src/contrast.test.ts:
  *   - ink, ink-soft, accent and brand-ink on page, surface, fill and soft: at least 4.5:1 (WCAG AA).
  *   - on-brand on brand: at least 3:1 only, so text on brand must be large (1.25rem bold or bigger).
+ *   - on-brand on brand-strong: at least 4.5:1, so text of any size may sit on it (the admin console's buttons).
  *   - brand and focus against page and surface: at least 3:1, so buttons and focus rings stand out.
  */
 

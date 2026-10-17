@@ -3,7 +3,8 @@ import { type ButtonHTMLAttributes, type InputHTMLAttributes, useId } from 'reac
 import { ApiError } from '../api/client.ts';
 
 const variants = {
-  primary: 'bg-brand text-on-brand hover:bg-brand-strong',
+  // brand-strong, not brand: these buttons carry body-size text, and on-brand meets AA only on brand-strong.
+  primary: 'bg-brand-strong text-on-brand',
   secondary: 'bg-soft text-ink hover:bg-soft-strong',
   danger: 'bg-danger-soft text-danger',
 };

@@ -22,7 +22,7 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 | `ink-faint` | Decoration only, never information (placeholders) |
 | `accent` | Text and icons of secondary controls |
 | `brand-ink` | Brand-coloured text: titles, links |
-| `brand`, `brand-strong`, `on-brand` | Primary actions, their pressed state, and their text |
+| `brand`, `brand-strong`, `on-brand` | Primary actions, their pressed state, and their text. Text on `brand` must be large (1.25rem bold); on `brand-strong` any size meets AA, as the admin console's buttons need |
 | `glow` | Coloured shadow under brand elements |
 | `focus` | Keyboard focus ring |
 | `danger`, `danger-soft`, `danger-soft-strong`, `danger-line` | Errors and destructive actions |
