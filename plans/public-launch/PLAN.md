@@ -15,14 +15,15 @@
 
 ## Next — one item
 
-**C3** ([delivery.md](delivery.md)): xác thực lại hai mức (mã quản lý L1, L2 bằng mật khẩu hoặc mã email), mẫu hồ sơ
-trẻ em, cổng tuổi 16 + đồng ý điều khoản — xếp trên C2 (#48). Đã mở: #43–#48 ([trạng thái](delivery.md#trạng-thái)).
+**C4** ([delivery.md](delivery.md)): Google, GitHub, OIDC chung + liên kết cách đăng nhập (D-03, D-04) — xếp trên C3
+(#49). Đã mở: #43–#49 ([trạng thái](delivery.md#trạng-thái)).
 
 ## Waiting on the owner
 
 1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? Không chặn code; cần trước khi C2 lên UAT.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48); nói "deploy" cho mỗi lần lên UAT.
+3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → #49); nói "deploy" cho mỗi lần lên UAT.
+5. Duyệt bản nháp Điều khoản + Quyền riêng tư trong #49, điền cách liên hệ người vận hành.
 4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).
 
 ## Board
@@ -62,4 +63,4 @@ Item chưa có link = chưa mở file; file được tạo khi item rời `open`
 ## Graduation list
 
 Chốt ở [delivery.md](delivery.md): 19 pull request trong sáu lane (A release · B email · C identity · D admin · E độ tin ·
-F public), mỗi PR mang ADR và docs của nó — ADR 0021…0028 (C2 lấy 0024, các số sau dời một).
+F public), mỗi PR mang ADR và docs của nó — ADR 0021…0029; số được cấp khi PR mở (C2 0024, C3 0025).

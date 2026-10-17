@@ -2,6 +2,11 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (khuya) — agent
+
+- C3 #49 (ADR 0025): mã quản lý 6 số (L1), L2 bằng mật khẩu hoặc mã email, đổi mật khẩu, đồng ý điều khoản ở tuổi 16+
+  và hỏi lại khi điều khoản đổi; bản nháp Điều khoản + Quyền riêng tư trong hub chờ owner duyệt. #48 CI xanh.
+
 ## 2026-10-18 (tối) — agent
 
 - A3 #47 (GHCR publish, UAT kéo image theo SHA) và C2 #48 (ADR 0024: email là định danh, attempt + mã, decoy chống dò,
