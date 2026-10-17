@@ -92,10 +92,20 @@ const reasons: Record<string, string> = {
   name_too_long: 'Tên dài quá 24 ký tự.',
   name_reserved: 'Tên này dành cho Tò He.',
   name_invalid_character: 'Tên có ký tự không dùng được.',
+  settings_last_method: 'Phải còn ít nhất một cách đăng nhập.',
+  settings_lockout_self:
+    'Tắt thì chính bạn không còn cách nào đăng nhập. Thêm một cách khác cho tài khoản của bạn ở Tò He trước.',
+  method_unknown: 'Máy chủ chưa cấu hình cách đăng nhập này.',
+  registration_invalid: 'Chế độ đăng ký không hợp lệ.',
+  community_exists: 'Đã có cộng đồng tên này.',
+  invite_code_exists: 'Đã có mã này.',
+  invite_code_invalid: 'Mã gồm 4–32 ký tự: chữ không dấu, số, dấu gạch ngang.',
+  max_uses_invalid: 'Số lượt phải từ 1 trở lên.',
+  expires_in_past: 'Ngày hết hạn phải ở phía trước.',
 };
 
-/** What went wrong, in Vietnamese. */
-export function problem(error: unknown): string {
+/** What went wrong, in Vietnamese; `own` words a code for the form at hand, e.g. a limit of its own. */
+export function problem(error: unknown, own: Record<string, string> = {}): string {
   const reason = error instanceof ApiError ? error.reason : null;
-  return (reason && reasons[reason]) ?? 'Có lỗi xảy ra, thử lại nhé.';
+  return (reason && (own[reason] ?? reasons[reason])) ?? 'Có lỗi xảy ra, thử lại nhé.';
 }

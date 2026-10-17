@@ -1,9 +1,11 @@
 import { createRootRoute, createRoute, createRouter } from '@tanstack/react-router';
 import { AuditPage } from './pages/AuditPage.tsx';
+import { CommunitiesPage } from './pages/CommunitiesPage.tsx';
 import { GamesPage } from './pages/GamesPage.tsx';
 import { HEALTH_DAYS, HealthPage } from './pages/HealthPage.tsx';
 import { OverviewPage } from './pages/OverviewPage.tsx';
 import { SecurityPage } from './pages/SecurityPage.tsx';
+import { SettingsPage } from './pages/SettingsPage.tsx';
 import { Shell } from './pages/Shell.tsx';
 import { SystemPage } from './pages/SystemPage.tsx';
 import { UserPage } from './pages/UserPage.tsx';
@@ -38,6 +40,16 @@ const usersRoute = createRoute({
   component: UsersPage,
 });
 const userRoute = createRoute({ getParentRoute: () => rootRoute, path: '/users/$id', component: UserPage });
+const settingsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/settings',
+  component: SettingsPage,
+});
+const communitiesRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/communities',
+  component: CommunitiesPage,
+});
 
 /** The console lives under /admin/ on the hub's origin (ADR 0027). */
 export const router = createRouter({
@@ -48,6 +60,8 @@ export const router = createRouter({
     systemRoute,
     usersRoute,
     userRoute,
+    communitiesRoute,
+    settingsRoute,
     auditRoute,
     securityRoute,
   ]),
