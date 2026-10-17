@@ -104,6 +104,35 @@ internal static class IdentityEmails
             code,
             "Nếu không phải bạn vừa yêu cầu, hãy đổi mật khẩu: có thể ai đó đang dùng tài khoản của bạn."));
 
+    /// <summary>Proving the account is theirs before a provider is linked to it (ADR 0026).</summary>
+    public static EmailMessage LinkCode(string to, string code, string provider) => new(
+        "link-code",
+        to,
+        $"Mã liên kết Tò He: {Spaced(code)}",
+        EmailLayout.Render(
+            $"Liên kết {provider}",
+            [$"Nhập mã này trên Tò He để từ nay đăng nhập tài khoản của bạn bằng {provider}. {Lifetime}"],
+            code,
+            "Nếu không phải bạn, đừng đưa mã này cho ai: không có gì thay đổi."));
+
+    public static EmailMessage MethodLinked(string to, string provider) => new(
+        "method-linked",
+        to,
+        $"Tài khoản Tò He đã liên kết với {provider}",
+        EmailLayout.Render(
+            $"Đã liên kết {provider}",
+            [$"Từ nay tài khoản Tò He của bạn đăng nhập được bằng {provider}."],
+            footnote: "Nếu không phải bạn, hãy vào Quản lý tài khoản → Bảo mật tài khoản để gỡ liên kết, và đổi mật khẩu."));
+
+    public static EmailMessage MethodUnlinked(string to, string provider) => new(
+        "method-unlinked",
+        to,
+        $"Tài khoản Tò He đã gỡ liên kết {provider}",
+        EmailLayout.Render(
+            $"Đã gỡ liên kết {provider}",
+            [$"Tài khoản Tò He của bạn không còn đăng nhập bằng {provider}, và mọi thiết bị khác đã được đăng xuất."],
+            footnote: "Nếu không phải bạn, hãy đặt lại mật khẩu ngay bằng \"Quên mật khẩu?\" rồi báo người quản lý Tò He."));
+
     /// <summary>"nam@example.org" → "n•••@example.org": enough to recognise, not to learn.</summary>
     public static string Mask(string email)
     {

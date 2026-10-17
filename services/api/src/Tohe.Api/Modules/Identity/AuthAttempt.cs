@@ -19,6 +19,12 @@ public enum AttemptPurpose
 
     /// <summary>Proving it is the account's owner before account security changes (step-up level 2, ADR 0025).</summary>
     StepUp,
+
+    /// <summary>
+    /// A sign-in that came back from a provider and needs another step (ADR 0026): an address proven, a link to the
+    /// account that has it, or a sign-up to finish. Bound to the browser by a cookie, never by a link.
+    /// </summary>
+    External,
 }
 
 /// <summary>
@@ -54,6 +60,18 @@ public sealed class AuthAttempt
     /// <summary>Signing up: the version of the terms accepted, with the age, when the attempt started.</summary>
     public string? TermsVersion { get; init; }
 
+    /// <summary>External: the provider's scheme (<c>google</c>, <c>github</c>, <c>oidc</c>).</summary>
+    public string? Provider { get; init; }
+
+    /// <summary>External: who the provider says this is — its subject, never the email.</summary>
+    public string? ProviderKey { get; init; }
+
+    /// <summary>External: the provider's name, for the hub and the emails.</summary>
+    public string? ProviderName { get; init; }
+
+    /// <summary>External: <see cref="Email"/> is proven — verified by the provider, or by a code of ours.</summary>
+    public bool EmailProven { get; set; }
+
     public int TriesLeft { get; set; }
 
     public DateTimeOffset CreatedAt { get; init; }
@@ -79,6 +97,9 @@ internal sealed class AuthAttemptConfiguration : IEntityTypeConfiguration<AuthAt
         builder.Property(attempt => attempt.CodeHash).HasMaxLength(64).IsFixedLength();
         builder.Property(attempt => attempt.DisplayName).HasMaxLength(200);
         builder.Property(attempt => attempt.TermsVersion).HasMaxLength(Consent.MaxVersionLength);
+        builder.Property(attempt => attempt.Provider).HasMaxLength(32);
+        builder.Property(attempt => attempt.ProviderKey).HasMaxLength(256);
+        builder.Property(attempt => attempt.ProviderName).HasMaxLength(64);
         builder.HasIndex(attempt => new { attempt.NormalizedEmail, attempt.CreatedAt });
         builder.HasIndex(attempt => attempt.ExpiresAt);
     }

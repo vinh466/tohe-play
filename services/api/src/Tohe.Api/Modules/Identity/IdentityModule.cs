@@ -28,7 +28,10 @@ public sealed class IdentityOptions
     public TimeSpan SessionCheckInterval { get; set; } = TimeSpan.FromMinutes(5);
 }
 
-/// <summary>Accounts, the profiles they own, signing in by email, and the device session (ADR 0011, 0023, 0024).</summary>
+/// <summary>
+/// Accounts, the profiles they own, signing in by email or with a provider, step-up, and the device session
+/// (ADR 0011, 0023, 0024, 0025, 0026).
+/// </summary>
 internal static class IdentityModule
 {
     /// <summary>Signing in, signing up, and asking for a code.</summary>
@@ -46,7 +49,10 @@ internal static class IdentityModule
         services.AddOptions<IdentityOptions>().BindConfiguration(IdentityOptions.Section);
         services.TryAddSingleton(TimeProvider.System);
 
-        services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
+        var authentication = services.AddAuthentication(IdentityConstants.ApplicationScheme);
+        authentication.AddIdentityCookies();
+        // Google, GitHub and an OpenID Connect issuer, each only when the deployment gave it secrets (ADR 0026).
+        services.AddSingleton(ExternalProviders.Add(authentication, builder.Configuration));
         services.AddAuthorization();
         services.AddIdentityCore<Account>(options =>
             {
@@ -161,6 +167,7 @@ internal static class IdentityModule
         AuthEndpoints.Map(api);
         AccountEmailEndpoints.Map(api);
         AccountSecurityEndpoints.Map(api);
+        ExternalEndpoints.Map(api);
         SessionEndpoints.Map(api);
         ProfileEndpoints.Map(api);
         return api;

@@ -47,6 +47,8 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
         var since = now.AddHours(-1);
         var sent = await db.AuthAttempts
             .Where(a => a.NormalizedEmail == normalizedEmail && a.CreatedAt > since)
+            // A sign-in back from a provider sends nothing until it asks for a code.
+            .Where(a => a.Purpose != AttemptPurpose.External || a.CodeHash != null)
             .Select(a => a.CreatedAt)
             .ToListAsync(ct);
         if (sent.Any(at => now - at < Codes.Cooldown))
@@ -104,6 +106,32 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
         };
         db.AuthAttempts.Add(attempt);
         return (attempt, code);
+    }
+
+    /// <summary>
+    /// A sign-in back from a provider (ADR 0026), waiting for its next step and bound to the browser by the caller.
+    /// <paramref name="code"/>, when given, is what the next step sends to <paramref name="email"/>.
+    /// </summary>
+    public AuthAttempt NewExternal(
+        string provider, string providerKey, string providerName, string? email, bool emailProven, string? code)
+    {
+        var now = clock.GetUtcNow();
+        var id = Guid.NewGuid();
+        return new AuthAttempt
+        {
+            Id = id,
+            Purpose = AttemptPurpose.External,
+            Email = email ?? "",
+            NormalizedEmail = email is null ? "" : Normalize(email),
+            CodeHash = code is null ? null : Codes.Hash(id, code),
+            Provider = provider,
+            ProviderKey = providerKey,
+            ProviderName = providerName,
+            EmailProven = emailProven,
+            TriesLeft = Codes.Tries,
+            CreatedAt = now,
+            ExpiresAt = now + Codes.Lifetime,
+        };
     }
 
     /// <summary>

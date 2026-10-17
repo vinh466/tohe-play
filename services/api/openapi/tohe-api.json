@@ -27,6 +27,40 @@
         }
       }
     },
+    "/api/account/logins/{provider}": {
+      "delete": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Remove a provider from the account (needs step-up level 2); never the last way in.",
+        "operationId": "UnlinkSignInMethod",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/profiles/options": {
       "get": {
         "tags": [
@@ -449,6 +483,213 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The step a sign-in back from a provider waits for, on this browser; 404 when none.",
+        "operationId": "GetPendingSignIn",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingSignInView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Forget the sign-in waiting on this browser.",
+        "operationId": "CancelPendingSignIn",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/email": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The provider vouched for no address: a code goes to this one.",
+        "operationId": "PendingSignInEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PendingEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/email/confirm": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code proves the address: an account with it is linked at once; otherwise sign-up follows.",
+        "operationId": "ConfirmPendingSignInEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PendingCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalOutcome"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/link-code": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A code to the account's address, to prove it before the provider is linked.",
+        "operationId": "PendingSignInLinkCode",
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/link": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code, or the account's password, links the provider to the account and signs in.",
+        "operationId": "LinkPendingSignIn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkProofRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalOutcome"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/signup": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A name and the terms finish signing up with the provider; the first profile plays at once.",
+        "operationId": "CompletePendingSignUp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteSignUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalOutcome"
                 }
               }
             }
@@ -1944,7 +2185,8 @@
           "telemetry",
           "hasPassword",
           "hasManagePin",
-          "termsVersion"
+          "termsVersion",
+          "logins"
         ],
         "type": "object",
         "properties": {
@@ -1981,6 +2223,12 @@
               "null",
               "string"
             ]
+          },
+          "logins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },
@@ -2018,7 +2266,8 @@
           "gamesOrigin",
           "apiVersion",
           "telemetry",
-          "email"
+          "email",
+          "providers"
         ],
         "type": "object",
         "properties": {
@@ -2033,6 +2282,34 @@
           },
           "email": {
             "type": "boolean"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalProvider"
+            }
+          }
+        }
+      },
+      "CompleteSignUpRequest": {
+        "required": [
+          "displayName",
+          "acceptTerms",
+          "termsVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "acceptTerms": {
+            "type": "boolean"
+          },
+          "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -2262,6 +2539,50 @@
           },
           "new": {
             "type": "boolean"
+          }
+        }
+      },
+      "ExternalOutcome": {
+        "required": [
+          "me",
+          "pending"
+        ],
+        "type": "object",
+        "properties": {
+          "me": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MeView"
+              }
+            ]
+          },
+          "pending": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PendingSignInView"
+              }
+            ]
+          }
+        }
+      },
+      "ExternalProvider": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
           }
         }
       },
@@ -2734,6 +3055,23 @@
           }
         }
       },
+      "LinkProofRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "LoginRequest": {
         "required": [
           "email",
@@ -2852,6 +3190,54 @@
         "properties": {
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "PendingCodeRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "PendingEmailRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "PendingSignInView": {
+        "required": [
+          "provider",
+          "step",
+          "email",
+          "hasPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "step": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasPassword": {
+            "type": "boolean"
           }
         }
       },
