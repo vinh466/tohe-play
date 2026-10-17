@@ -9,7 +9,8 @@ metadata:
     {{- include "tohe.labels" (dict "root" . "component" "smoke-test") | nindent 4 }}
   annotations:
     helm.sh/hook: test
-    helm.sh/hook-delete-policy: before-hook-creation,hook-succeeded
+    # Kept after it runs so `helm test --logs` and `kubectl logs` can read it; the next `helm test` replaces it.
+    helm.sh/hook-delete-policy: before-hook-creation
 spec:
   restartPolicy: Never
   automountServiceAccountToken: false
