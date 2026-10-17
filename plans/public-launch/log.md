@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (rạng sáng) — agent
+
+- D1 #51 (ADR 0027): `apps/admin` ở `/admin/` trong image hub (CSP riêng, noindex), `/api/admin` với OpenAPI riêng, vai trò
+  là claim của account → quyền, đọc vai trò từ DB mỗi request; trang tổng quan, game, sức khoẻ, hệ thống; mỗi module lộ
+  `…Facts` thay vì để admin đọc bảng; lệnh `admin grant|revoke|list` trong container. CI xanh, smoke e2e cấp vai trò thật.
+- Chờ owner: review #43–#51. Agent kế tiếp: D2 (setup token, 2FA, audit), xếp trên D1.
+
 ## 2026-10-18 (khuya, tiếp) — agent
 
 - C4 #50 (ADR 0026): Google + OIDC chung (OpenIdConnect, code + PKCE, trả về bằng query), GitHub (OAuth + PKCE); liên kết

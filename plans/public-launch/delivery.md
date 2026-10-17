@@ -81,6 +81,7 @@ flowchart LR
 | C2 | `feat/identity-email-sign-in` (trên C1) | [#48](https://github.com/vinh466/tohe-play/pull/48) — CI xanh, chờ review; trước khi lên UAT: relay email của UAT (E-02 Q2) |
 | C3 | `feat/identity-step-up-and-consent` (trên C2) | [#49](https://github.com/vinh466/tohe-play/pull/49) — CI xanh, chờ review; owner duyệt bản nháp Điều khoản + Quyền riêng tư (`apps/hub/src/legal/documents.ts`) |
 | C4 | `feat/identity-oauth-and-linking` (trên C3) | [#50](https://github.com/vinh466/tohe-play/pull/50) — CI xanh, chờ review; trước khi lên prod: OAuth app + secret (mục trên) |
-| D1 | — | kế tiếp, xếp trên C4: đọc model account (C1) và outbox (B1), không có migration |
+| D1 | `feat/admin-console-shell` (trên C4) | [#51](https://github.com/vinh466/tohe-play/pull/51) — CI xanh (smoke e2e cấp vai trò bằng lệnh thật rồi đi qua các trang), chờ review |
+| D2 | `feat/admin-setup-2fa-audit` (trên D1) | đang làm: setup mode, 2FA cho console, step-up, audit log chỉ ghi thêm |
 
-Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
