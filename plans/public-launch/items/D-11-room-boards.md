@@ -1,9 +1,9 @@
 # D-11 — Bảng và hạng cho phòng nhiều người: tính ván nào, xếp theo gì?
 
-- Status: **proposed**
+- Status: **decided** (2026-10-17, chat) — luật "ít nhất 2 người thật" chạy như tín hiệu `Farming` của engine (D-16)
 - Kind: decision
 - Blocks: bảng công khai của phòng (D-09 bước 2) · Blocked by: D-09
-- Decided: —
+- Decided: owner, 2026-10-17, chat — xem *Decision*
 
 ## Hiện trạng
 
@@ -26,11 +26,11 @@
    xác tương đương — [R-03](../research/R-03-leaderboards.md)), cần ít nhất 20 ván mới hiện. Không thuộc v1.
 4. Bạn bè "nhường" nhau trong cùng bàn: chấp nhận rủi ro ở quy mô vài cộng đồng; admin gỡ được kết quả.
 
-## Câu hỏi cho owner
+## Câu hỏi cho owner (đã trả lời 2026-10-17)
 
-- **Q1** Luật "ít nhất 2 người thật" cho bảng công khai — được không?
-- **Q2** Hạng kỹ năng (rating) để sau ra mắt — được không?
+- **Q1** Luật "ít nhất 2 người thật" cho bảng công khai — *ổn*.
+- **Q2** Hạng kỹ năng (rating) để sau ra mắt — *ổn*.
 
 ## Decision
 
-—
+**owner** (2026-10-17, chat): "còn lại ôn" — chấp nhận cả bốn điểm của đề xuất trong report cùng ngày.

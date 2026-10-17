@@ -1,8 +1,8 @@
 # D-10 — Điểm đã xác minh cho game một người: server cấp seed và chạy lại nước đi?
 
-- Status: **proposed**
+- Status: **proposed** — giờ là verifier đầu tiên của engine độ tin ([D-16](D-16-integrity-engine.md)); thời điểm làm hỏi ở D-16 Q2
 - Kind: decision — **đổi Game Contract** (ADR + docs + conformance trong cùng PR)
-- Blocks: bảng công khai cho game một người (D-09 bước 4) · Blocked by: D-09
+- Blocks: bảng công khai cho game một người (D-09 bước 4) · Blocked by: D-09, D-16
 - Decided: —
 
 ## Vì sao cần chốt
@@ -66,3 +66,8 @@ A đến từng game một sau đó, Ghép Khối trước. Chi phí thật nằ
 
 **agent** (2026-10-17): tái dùng đúng hạ tầng Jint của rooms, nên rủi ro kỹ thuật thấp. Cần kiểm chứng: logic của
 từng game có thật sự tất định khi chạy trong Jint (số thực, thứ tự duyệt) — conformance sẽ bắt được nếu không.
+
+**agent** (2026-10-17, sau khi owner muốn "1 engine xịn"): item này giờ là `ReplayVerifier` — verifier đầu tiên cắm vào
+engine D-16. Release không gấp, nên agent đổi khuyến nghị: đưa Ghép Khối vào v1 trước ra mắt (D-16 Q2). Replay chứng
+minh nước đi hợp lệ, không chứng minh người thật chơi (bài học Trackmania — [R-06](../research/R-06-integrity-engines.md));
+phần đó do tín hiệu của engine lo.

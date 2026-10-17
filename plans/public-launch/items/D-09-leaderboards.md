@@ -1,9 +1,9 @@
 # D-09 — Bảng xếp hạng khi người chơi là người lạ với nhau: phạm vi nào, chu kỳ nào, tin điểm tới đâu?
 
-- Status: **proposed**
+- Status: **decided** (2026-10-17, chat) — cách thực thi độ tin là engine ở [D-16](D-16-integrity-engine.md)
 - Kind: decision
-- Blocks: D-10, D-11, T5 spec, E-07 · Blocked by: D-01, D-12
-- Decided: —
+- Blocks: D-10, D-11, D-16, T5 spec, E-07 · Blocked by: D-01, D-12
+- Decided: owner, 2026-10-17, chat — xem *Decision*
 
 ## Vì sao cần chốt
 
@@ -56,7 +56,7 @@ Mạnh nhất nhưng đổi kiến trúc (độ trễ, tải server, mất chơi
 - Hiển thị top 50 cộng "quanh tôi" (hạng của tôi ± 2).
 - Hồ sơ có `on_public_boards = false` (mặc định với mẫu "Hồ sơ trẻ em" — D-01) không bao giờ lên bảng cộng đồng hay
   toàn server; vẫn lên bảng trong account.
-- Hiện avatar + tên hiển thị + @handle; không bao giờ hiện email.
+- Hiện tên + avatar; bấm vào thì thẻ hồ sơ hiện ID (D-17); không bao giờ hiện email.
 - Bằng điểm: ai đạt trước (theo giờ server) đứng trên.
 - Admin gỡ được một dòng, ẩn một hồ sơ khỏi bảng, khoá account (D-07); báo cáo vi phạm làm sau (E-07).
 - Lưu trong PostgreSQL: mỗi (bảng, chu kỳ, hồ sơ) một dòng giữ điểm tốt nhất; hạng = số dòng tốt hơn + 1 nhờ index.
@@ -68,16 +68,18 @@ Mạnh nhất nhưng đổi kiến trúc (độ trễ, tải server, mất chơi
 Khi có D-10, "thử thách hôm nay" (mọi người chơi cùng một seed trong ngày, như `dailySeed()` đang làm) trở thành một
 bảng công khai công bằng. Đó là khả năng mở ra, không phải yêu cầu của plan này.
 
-## Câu hỏi cho owner
+## Câu hỏi cho owner (đã trả lời 2026-10-17)
 
-- **Q1** Phạm vi v1: trong account + cộng đồng + toàn server (chỉ kết quả đã xác minh); bạn bè làm sau — được không?
-- **Q2** Game một người chưa có xác minh thì chưa có bảng công khai — chấp nhận không? (Phương án khác là hiện bảng
-  công khai có nhãn "chưa xác minh"; agent không khuyên.)
-- **Q3** Chu kỳ "Tuần này" + "Mọi lúc" là đủ chưa?
+- **Q1** Phạm vi v1: trong account + cộng đồng + toàn server (chỉ kết quả đã xác minh); bạn bè làm sau — *ổn*.
+- **Q2** Game một người chưa có xác minh thì chưa có bảng công khai — *ổn* (D-16 Q4 hỏi thêm về bảng cộng đồng).
+- **Q3** Chu kỳ "Tuần này" + "Mọi lúc" — *ổn*.
 
 ## Decision
 
-—
+**owner** (2026-10-17, chat): "còn lại ôn, nhất là phát hiện bảng xếp về uy tín rất tốt, chúng ta nên có 1 engine xịn
+để giúp nó (cố hết sức th, chứ tinh thần mọi người cũng legit nha haha, tương lai enhance thêm từ đây)".
+
+Đã chốt: phương án B với các luật và thứ tự ra mắt ở trên. Cách thực thi độ tin trở thành một engine dùng chung — D-16.
 
 ## Discussion
 

@@ -1,8 +1,8 @@
 # E-01 — Chuyển dữ liệu UAT sang mô hình mới (household → account, username → email)
 
-- Status: **proposed** — hướng đã chốt ("bắt thêm email ở lần đăng nhập kế"), chi tiết chờ D-01
+- Status: **proposed** — hướng đã chốt ("bắt thêm email ở lần đăng nhập kế"), D-01 đã chốt; còn chờ D-17
 - Kind: enhancement
-- Blocks: deploy T2 lên UAT · Blocked by: D-01, D-02
+- Blocks: deploy T2 lên UAT · Blocked by: D-01, D-02, D-17
 - Decided: hướng — owner, 2026-10-17, chat ("còn lại các dề xuất của bạn ổn nha", chấp nhận khuyến nghị "migrate
   tài khoản username → bắt thêm email ở lần đăng nhập kế")
 
@@ -17,13 +17,13 @@ UAT giữ dữ liệu thật của gia đình và không được wipe (`docs/gu
 |---|---|
 | Household có adult A1 (tạo sớm nhất) … Ak, các hồ sơ trẻ em | Mỗi adult là một account riêng; **hồ sơ trẻ em thuộc A1**; hồ sơ adult thuộc account của chính người đó |
 | Đăng nhập bằng username | Còn dùng được tới khi account thêm email; lần đăng nhập kế bắt buộc màn "Thêm email" (mã xác minh) rồi chỉ đăng nhập bằng email |
-| Tên hồ sơ tự do | Giữ làm tên hiển thị; @handle sinh tự động (bỏ dấu, trùng thì thêm số); owner được đổi handle một lần không tính thời gian chờ |
+| Tên hồ sơ | Giữ nguyên làm tên (D-17 — không cần duy nhất); mỗi hồ sơ được cấp một ID 12 số |
 | Bàn "chỉ trong nhà", `RoomHistory.HouseholdId` | Bàn "chỉ trong account"; lịch sử gắn với account sở hữu hồ sơ |
 | `Household.TelemetryEnabled` | Copy sang từng account của household |
 | Mã mời adult thứ hai | Bỏ |
 
-Hệ quả cần owner biết: adult thứ hai trong một household mất quyền quản lý hồ sơ trẻ em (chúng thuộc A1) — trừ khi
-D-01 Q4 chọn có đồng sở hữu.
+Hệ quả owner đã chấp nhận (D-01 Q4): adult thứ hai trong một household không quản lý hồ sơ trẻ em nữa (chúng thuộc
+A1); gia đình dùng chung account của A1 trên máy gia đình, đồng sở hữu làm sau.
 
 ## Kiểm chứng trước khi lên UAT
 

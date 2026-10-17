@@ -8,10 +8,10 @@ bảng trong [PLAN.md](PLAN.md); trang này chỉ là hình dạng.
 | Track | Gồm | Ghi chú |
 |---|---|---|
 | **T1 Release** | D-14 (E-03 → E-04 → E-05, E-06), D-15 | Đã decided toàn bộ phần cần làm — graduate được ngay |
-| **T2 Identity & hồ sơ** | D-01, D-02, D-05, D-06, E-01 | Thay ADR 0004/0011; household chuyển thành account (D-01) |
+| **T2 Identity & hồ sơ** | D-01, D-02, D-05, D-06, D-17, E-01 | Thay ADR 0004/0011; household chuyển thành account (D-01); tên + ID hồ sơ (D-17) |
 | **T3 Email** | E-02 | T2 cần nó để gửi mã |
 | **T4 OAuth & liên kết** | D-03, D-04 | OAuth chỉ chạy ở prod; test bằng scheme giả + mock server |
-| **T5 Bảng xếp hạng** | D-09, D-10, D-11 | Thay cho "Family" của review trước: family đã tan vào D-01 |
+| **T5 Bảng xếp hạng & engine độ tin** | D-09, D-11, D-16, D-10 | Thay cho "Family" của review trước; engine (D-16) là năng lực nền tảng, D-10 là verifier đầu tiên |
 | **T6 Admin** | D-07, D-08 (6a shell + module đọc dữ liệu có sẵn · 6b vai trò, admin đầu tiên, 2FA, audit · 6c người dùng, cài đặt đăng nhập, mã mời) | 6a bắt đầu được ngay |
 | **T7 Sẵn sàng public** | D-12, D-13, E-07, E-09 | |
 | **T8 Observability** | E-08 | Sau chart (ServiceMonitor) |
@@ -31,10 +31,13 @@ flowchart TD
   D02["D-02 Email identity"] --> D03["D-03 Linking"]
   D03 --> D04
   D02 --> D12["D-12 Registration modes"]
-  D01["D-01 Accounts, profiles, handles"] --> D05["D-05 Step-up"]
+  D01["D-01 Accounts and profiles"] --> D05["D-05 Step-up"]
   D01 --> D06["D-06 Age and consent"]
   D01 --> E01["E-01 UAT migration"]
   D02 --> E01
+  D01 --> D17["D-17 Profile name and ID"]
+  D17 --> E01
+  D17 -.-> T2build
   E02["E-02 Transactional email"] -.->|"needed to build"| T2build(["T2 build"])
   D05 -.-> T2build
   D06 -.-> T2build
@@ -43,10 +46,14 @@ flowchart TD
 
   D01 --> D09["D-09 Leaderboards"]
   D12 --> D09
-  D09 --> D10["D-10 Verified runs"]
+  D09 --> D16["D-16 Integrity engine"]
+  D16 --> D10["D-10 Replay verifier (contract)"]
   D09 --> D11["D-11 Room boards"]
+  D11 --> D16
+  D07 --> D16
 
   D01 --> E07["E-07 Privacy, deletion, moderation"]
+  D17 --> E07
   D06 --> E07
   D09 --> E07
   D12 --> E09["E-09 Bot protection"]
@@ -60,18 +67,18 @@ flowchart TD
 
 | Phase | Song song | Xong khi |
 |---|---|---|
-| **A — Chốt** | owner trả lời D-01, D-05, D-06, D-09…D-11, E-02 · agent bắt đầu T1 | brief được xác nhận; T2 đủ quyết định để spec |
-| **B — Nền** | T1 (E-03 → E-04 → E-05; E-06 sau lần publish đầu) · T3 · spec rồi xây T2 · T6a | chart cài được lên kind và chạy trên UAT; đăng ký bằng email + hồ sơ @handle chạy trên UAT |
-| **C — Mở rộng** | T4 · T6b · T5 bước 1–2 (bảng trong account, bảng tuần công khai của phòng) | Google/GitHub chạy trên prod lúc đăng ký còn đóng; tạo được admin đầu tiên |
-| **D — Sẵn sàng public** | T6c · T7 · T8 · T5 bước 3 (bảng cộng đồng) | checklist public xanh; gia đình và bạn bè dùng UAT ổn định |
+| **A — Chốt** | owner trả lời D-17, D-16, D-06, E-02 · agent bắt đầu T1 | T2 và T5 đủ quyết định để spec |
+| **B — Nền** | T1 (E-03 → E-04 → E-05; E-06 sau lần publish đầu) · T3 · spec rồi xây T2 · T6a | chart cài được lên kind và chạy trên UAT; đăng ký bằng email + hồ sơ mặc định có ID chạy trên UAT |
+| **C — Mở rộng** | T4 · T6b · T5: engine v1 + bảng trong account + bảng tuần công khai của phòng | Google/GitHub chạy trên prod lúc đăng ký còn đóng; tạo được admin đầu tiên; engine chạy với kết quả phòng |
+| **D — Sẵn sàng public** | T6c (gồm hàng đợi xem xét) · T7 · T8 · T5: bảng cộng đồng, replay Ghép Khối (nếu D-16 Q2 = có) | checklist public xanh; gia đình và bạn bè dùng UAT ổn định |
 | **E — Ra mắt** | E-10 | một cộng đồng dùng thử trên prod |
-| sau ra mắt | D-10 từng game; rating (D-11) | |
+| sau ra mắt | thêm game vào `ReplayVerifier`; tín hiệu v2; rating (D-11) | |
 
 ## Item
 
 | ID | Câu hỏi / thay đổi | Mục tiêu cần nó vì | Chặn |
 |---|---|---|---|
-| D-01 | Một account nhiều hồ sơ, @handle duy nhất | Mô hình người chơi cho user-first | D-05, D-06, D-09, E-01, E-07 |
+| D-01 | Một account nhiều hồ sơ, có hồ sơ mặc định | Mô hình người chơi cho user-first | D-05, D-06, D-09, D-17, E-01, E-07 |
 | D-02 | Email là định danh + bộ luồng chuẩn | Public cần khôi phục và liên kết | D-03, D-12, E-01 |
 | D-03 | Luật liên kết | Không bị chiếm account qua OAuth | D-04 |
 | D-04 | Cách đăng nhập v1, cấu hình hai lớp, OAuth ở prod | "bật tắt và config được" | D-15 |
@@ -79,9 +86,11 @@ flowchart TD
 | D-06 | Cổng tuổi, đồng ý điều khoản | Trẻ em tự đăng ký | E-07 |
 | D-07 | Admin console | "quản lý nền tảng, monitor" | D-08 |
 | D-08 | Admin đầu tiên | Cài mới an toàn trên URL public | — |
-| D-09 | Bảng xếp hạng phân tầng theo độ tin | Bảng công khai không bị gian lận | D-10, D-11, E-07 |
-| D-10 | Run đã xác minh (đổi contract) | Bảng công khai cho game một người | — |
-| D-11 | Bảng và hạng của phòng | Bảng công khai cho phòng | — |
+| D-09 | Bảng xếp hạng phân tầng theo độ tin | Bảng công khai không bị gian lận | D-11, D-16, E-07 |
+| D-10 | Verifier replay (đổi contract) | Bảng công khai cho game một người | — |
+| D-11 | Bảng và hạng của phòng | Bảng công khai cho phòng | D-16 |
+| D-16 | Engine độ tin | "1 engine xịn" — độ tin là năng lực nền tảng, nâng cấp từ đây | D-10 |
+| D-17 | Tên đặt thoải mái + ID 12 số | "username cho đặt thoải mái", "mời đích danh profile" | E-01, E-07 |
 | D-12 | Chế độ đăng ký, mã mời cộng đồng | Mở dần cho "vài cộng đồng nhỏ" | D-09, E-09 |
 | D-13 | Games origin trên domain riêng? | Game có thể do AI viết; passkey sau này | E-10 |
 | D-14 | Release bằng chart riêng | Prod trên `platform-infra` | E-03…E-06 |
@@ -97,7 +106,7 @@ flowchart TD
 ## Đã cân nhắc và để ngoài
 
 - **Redis, nhiều API instance, SignalR backplane** — ADR 0016 chốt một instance; không cần cho vài cộng đồng.
-- **Hệ thống bạn bè** — handle (D-01) chừa đường; làm khi có nhu cầu.
+- **Hệ thống bạn bè** — ID hồ sơ (D-17) chừa đường, như friend code; làm khi có nhu cầu.
 - **Hồ sơ tự đăng nhập, đồng sở hữu hồ sơ, ghim thiết bị vào hồ sơ, chuyển hồ sơ sang account khác** — ghi ở D-01.
 - **Passkey** — .NET 10 có sẵn; làm sau khi có HTTPS ở nơi cần thử (D-15).
 - **Facebook, Zalo** — không thuộc v1; đường "provider không có email" của D-03 đã chừa sẵn.

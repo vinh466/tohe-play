@@ -1,4 +1,4 @@
-# Design — Public launch: thiết kế đích (v1, đang thành hình)
+# Design — Public launch: thiết kế đích (v2, đang thành hình)
 
 Trang này **ghép** các item thành một bức tranh. Nó không quyết định gì: mỗi khẳng định trỏ về item quyết định nó;
 *(proposed)* đánh dấu item chưa `decided`. Item nào được quyết khác đi thì sửa trang này ngay trong phiên đó.
@@ -9,9 +9,11 @@ Sơ đồ dùng nhãn tiếng Anh vì khi graduate chúng chuyển nguyên vào 
 ## 0. Trả lời ngắn: đã chắc tới đâu
 
 - **Chắc:** email là định danh và bộ luồng auth (D-02), luật liên kết (D-03), các cách đăng nhập + OAuth chỉ ở prod
-  (D-04), admin console và admin đầu tiên (D-07, D-08), chế độ đăng ký (D-12), release bằng chart (D-14).
-- **Hướng đã có, chi tiết chờ owner:** một account nhiều hồ sơ với @handle (D-01), hai mức xác thực lại (D-05), cổng
-  tuổi (D-06), bảng xếp hạng phân tầng theo độ tin (D-09, D-10, D-11), email giao dịch (E-02), chuyển dữ liệu UAT (E-01).
+  (D-04), một account nhiều hồ sơ có hồ sơ mặc định (D-01), hai mức xác thực lại (D-05), admin console và admin đầu
+  tiên (D-07, D-08), bảng xếp hạng phân tầng theo độ tin (D-09, D-11), chế độ đăng ký (D-12), release bằng chart
+  (D-14); UAT HTTPS để sau (D-15).
+- **Hướng đã có, chi tiết chờ owner:** tên đặt thoải mái + ID 12 số (D-17), engine độ tin (D-16) và verifier replay
+  đầu tiên của nó (D-10), cổng tuổi (D-06), email giao dịch (E-02), chuyển dữ liệu UAT (E-01).
 - **Chưa mở:** domain riêng cho games (D-13), quyền riêng tư/xoá/kiểm duyệt (E-07), observability (E-08), chống bot
   (E-09), checklist ra mắt (E-10).
 
@@ -25,18 +27,20 @@ flowchart LR
     github["GitHub"]
     oidc["Generic OIDC"]
   end
-  subgraph identity ["Account (D-02)"]
+  subgraph identity ["Account (D-02, D-01)"]
     acc["Account<br/>verified email · status"]
-    prof1["Profile @an"]
-    prof2["Profile @be.na<br/>kid preset"]
+    prof1["Default profile: Mèo Vui<br/>ID 4821 0937 5520"]
+    prof2["Profile: Bé Na · kid preset<br/>ID 7302 1846 9915"]
   end
   methods -->|"linked by (provider, subject) — D-03"| acc
   acc --> prof1
   acc --> prof2
-  prof1 --> play["Saves · scores · seats in rooms"]
+  prof1 --> play["Saves · scores · seats in rooms<br/>invites by ID (D-17)"]
   prof2 --> play
-  play --> boards["Boards: account · community · global<br/>(public = verified only — D-09)"]
-  admin["Admin console /admin (D-07)"] -.->|"users · sign-in · registration · games · boards · health"| acc
+  play --> engine["Integrity engine (D-16)<br/>reported · checked · verified · held · rejected"]
+  engine --> boards["Boards: account · community · global<br/>(public = verified only — D-09)"]
+  admin["Admin console /admin (D-07)"] -.->|"users · sign-in · registration · games · review queue · health"| acc
+  admin -.->|"approve · reject · reopen"| engine
   mail["Email outbox → Resend / Mailpit (E-02)"] -.->|"codes and notices"| acc
 ```
 
@@ -48,12 +52,14 @@ flowchart LR
 | Attempt + mã một lần | Xác minh trước, tạo account sau; mã gắn attempt | MSRC: xác minh trước mọi thao tác | API `Identity` | D-02 |
 | Liên kết | `(provider, subject)`; chứng minh quyền trước khi gộp | Supabase, Clerk, Lucia | API `Identity` | D-03 |
 | Cấu hình cách đăng nhập | Deploy: có sẵn · runtime: đang bật | — | env/chart + DB + admin | D-04 |
-| Hồ sơ + @handle | Người chơi; handle duy nhất, tên hiển thị tự do | Netflix (hồ sơ), Discord (handle) | API `Identity` | D-01 *(proposed)* |
-| Xác thực lại | L1 mã quản lý · L2 mật khẩu hoặc mã email | Netflix: mật khẩu để đặt PIN | API + hub | D-05 *(proposed)* |
+| Hồ sơ | Người chơi; account có sẵn hồ sơ mặc định, tối đa 5; mẫu hồ sơ trẻ em | Netflix (hồ sơ) | API `Identity` | D-01 |
+| Tên + ID hồ sơ | Tên đặt thoải mái; ID 12 số duy nhất, không đổi, chữ số cuối Damm; mời đích danh | Nintendo friend code, Damm | API `Identity` + `Rooms` | D-17 *(proposed)* |
+| Xác thực lại | L1 mã quản lý · L2 mật khẩu hoặc mã email | Netflix: mật khẩu để đặt PIN | API + hub | D-05 |
 | Email | Outbox, mẫu thư tiếng Việt, SMTP | — | API + Resend/Mailpit | E-02 *(proposed)* |
 | Admin | Console chủ sản phẩm, 2FA, audit | Mastodon roles | `apps/admin` + `/api/admin` | D-07 |
 | Admin đầu tiên | Token cài đặt, danh sách email, CLI | Jenkins, Discourse, Mastodon | API + admin | D-08 |
-| Bảng xếp hạng | Phân tầng theo độ tin | Open Hexagon (replay), OpenSkill | API `Progress` + `Rooms` | D-09…D-11 *(proposed)* |
+| Bảng xếp hạng | Phân tầng theo độ tin; tuần + mọi lúc; ít nhất 2 người thật cho phòng | Open Hexagon (replay), OpenSkill | API `Progress` + `Rooms` | D-09, D-11 |
+| Engine độ tin | Mức tin theo bằng chứng; verifier + tín hiệu cắm thêm; máy chỉ ẩn, người mới phạt; audit | Steam trusted writes, Google Play tamper protection, Lichess, Trackmania | API `Integrity` + admin | D-16, D-10 *(proposed)* |
 | Release | Chart, image GHCR, promote | chart `platform` | `deploy/helm/tohe` + `platform-infra` | D-14 |
 
 ## 3. Các luồng
@@ -96,8 +102,8 @@ sequenceDiagram
   U->>H: code from the email
   H->>A: POST /api/auth/register/confirm {attemptId, code}
   alt code right, attempt open, email still free
-    A->>A: create Account (Active, email confirmed) from the attempt
-    A-->>H: 200 + session cookie → first profile (§3.12)
+    A->>A: create Account (Active, email confirmed) from the attempt + its default profile (D-17)
+    A-->>H: 200 + session cookie → play (§3.12)
   else code wrong
     A-->>H: 400 code_invalid (tries left) — 0 tries left closes the attempt
   else attempt expired or closed, or email taken meanwhile
@@ -197,7 +203,7 @@ flowchart TD
   mode -- closed --> closed["Refuse: registration_closed"]
   mode -- invite --> invite["Ask for a community invite code"] --> create
   mode -- open --> create["Complete sign-up: terms + age (D-06)<br/>create Account (Active) + link"]
-  create --> first["First profile (§3.12)"]
+  create --> first["Default profile created with it:<br/>suggested fun name · ID · avatar (D-17)"]
   exists -- yes --> est{"Account status"}
   est -- "Disabled or Deleting" --> refuse2["Refuse with the reason"]
   est -- Active --> already{"E proven by our code<br/>in this flow?"}
@@ -292,7 +298,7 @@ sequenceDiagram
 
 ### 3.11 Xác thực lại
 
-*(proposed — D-05)*
+*(D-05)*
 
 ```mermaid
 flowchart TD
@@ -314,21 +320,20 @@ của admin (admin còn cần 2FA — D-07).
 
 ### 3.12 Hồ sơ trên một thiết bị
 
-*(proposed — D-01)*
+*(D-01; tên và ID: D-17, proposed)* — account luôn có ít nhất một hồ sơ: hồ sơ mặc định ra đời cùng account (§3.2,
+§3.6) và không xoá được hồ sơ cuối cùng.
 
 ```mermaid
 flowchart TD
-  in["Signed in"] --> count{"Profiles on the account"}
-  count -- none --> first["Create the first profile:<br/>display name · @handle suggestion · avatar"]
-  first --> play["Play as that profile"]
-  count -- one --> play
+  in["Signed in"] --> count{"Profiles on the account<br/>(at least the default one)"}
+  count -- one --> play["Play as that profile"]
   count -- "two or more" --> picker["Picker: Ai đang chơi?"]
   picker --> haspin{"Profile PIN set?"}
   haspin -- no --> play
   haspin -- yes --> pin["Enter the profile PIN (rate limited)"] --> play
   play --> manage["Manage profiles"]
   manage --> l1["Step-up L1 (§3.11)"]
-  l1 --> edit["Create · edit · delete · kid preset<br/>at most 5 per account"]
+  l1 --> edit["Create · rename · delete (never the last one) · kid preset<br/>at most 5 per account"]
 ```
 
 ### 3.13 Admin đầu tiên
@@ -371,32 +376,80 @@ sequenceDiagram
     A->>A: status = Active
     A->>M: "Đã huỷ xoá tài khoản"
   else 7 days pass
-    A->>A: purge account, profiles, saves, scores, logins<br/>room history shows "Người chơi đã xoá"<br/>handles held for 30 days
+    A->>A: purge account, profiles, saves, scores, logins<br/>room history shows "Người chơi đã xoá"<br/>profile IDs are never given out again
   end
 ```
 
-## 4. Còn mở
+### 3.15 Mời đích danh bằng ID
+
+*(D-17, proposed)*
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor S as Inviter (seated in a room)
+  participant H as Hub
+  participant A as API
+  actor T as Invited profile
+  S->>H: "Mời bằng ID" — 1234 5678 9012
+  H->>H: Damm check digit — a typo or swapped digits are caught here, no request sent
+  H->>A: GET /api/profiles/by-id/{id}
+  alt no such profile, or a kid profile outside the inviter's account
+    A-->>H: 404 profile_not_found — the same answer for both
+  else found
+    A-->>H: card {name, avatar}
+    S->>H: confirm "Mời Mèo Vui?"
+    H->>A: POST /api/rooms/{room}/invitations {profileId}
+    A->>A: rate limit (about 20 per inviter per hour, at most 10 pending per invited profile)
+    alt the profile's "who can invite me" excludes the inviter
+      A-->>H: 403 invites_closed
+    else allowed
+      A->>A: invitation lives 10 minutes (as today, now across accounts)
+      A-->>H: 202
+      A-->>T: shown on that profile's catalog while it is active on any device
+    end
+  end
+```
+
+"Ai được mời tôi" của mỗi hồ sơ: mọi người · người từng chơi cùng · chỉ trong account (mặc định của mẫu hồ sơ trẻ em).
+
+## 4. Engine độ tin
+
+*(D-16, proposed — sơ đồ trạng thái và đường đi của một kết quả nằm trong [D-16](items/D-16-integrity-engine.md))*
+
+| Mức | Bằng chứng | Bảng nhận |
+|---|---|---|
+| `reported` | Chỉ có con số client gửi | Trong account |
+| `checked` | Qua luật hợp lý theo giờ server | Trong account (cộng đồng nếu owner chọn — D-16 Q4) |
+| `verified` | Ván do server điều khiển, hoặc replay bằng seed server khớp điểm | Mọi bảng |
+| `held` | Một tín hiệu bắn — chờ admin; chính hồ sơ đó thấy "Đang được xem xét" | Không bảng công khai nào |
+| `rejected` | Bằng chứng cứng là sai, hoặc admin quyết | Không đâu cả |
+
+Ba luật cứng: máy chỉ được *ẩn*, người mới *phạt*; mức tin đi theo bằng chứng, không theo người; mọi quyết định có
+nhật ký kèm phiên bản luật và đảo ngược được. Verifier v1: `RoomVerifier`, `ReplayVerifier` (Ghép Khối — D-10, nếu
+owner chọn ở D-16 Q2). Tín hiệu v1: `Bounds`, `PersonalJump`, `Rate`, `Farming` (ít nhất 2 người thật — D-11).
+
+## 5. Còn mở
 
 | Câu hỏi | Item |
 |---|---|
-| Số hồ sơ tối đa, luật handle, mã quản lý, hai bố mẹ, mẫu hồ sơ trẻ em | [D-01](items/D-01-accounts-profiles-handles.md) Q1–Q5 |
-| Hai mức xác thực lại | [D-05](items/D-05-step-up.md) |
+| Tên không cần duy nhất + ID 12 số, emoji trong tên, tên vui ngẫu nhiên, "ai được mời tôi" | [D-17](items/D-17-profile-name-and-id.md) Q1–Q4 |
+| Engine là module nền tảng, Ghép Khối trong v1, minh bạch với người chơi, mức tin của bảng cộng đồng | [D-16](items/D-16-integrity-engine.md) Q1–Q4 |
 | Mốc tuổi N | [D-06](items/D-06-age-and-consent.md) |
-| Phạm vi, độ tin, chu kỳ của bảng | [D-09](items/D-09-leaderboards.md) Q1–Q3 |
-| Run đã xác minh, sau ngày ra mắt | [D-10](items/D-10-verified-runs.md) |
-| Luật bảng phòng, rating để sau | [D-11](items/D-11-room-boards.md) |
 | Địa chỉ gửi email, dùng chung Resend | [E-02](items/E-02-transactional-email.md) |
-| UAT HTTPS để sau | [D-15](items/D-15-uat-https.md) |
 | Games origin trên domain riêng | D-13 (chưa mở) |
 
-## 5. Rủi ro chưa có lời giải
+## 6. Rủi ro chưa có lời giải
 
 - **Mã rơi vào thư rác** → không ai đăng ký được. Dùng domain đã xác minh ở Resend; thử với Gmail, Outlook và Yahoo
   trước khi mở public (E-10).
 - **OAuth chạy thật lần đầu ở prod** (D-04) → test bằng scheme giả và mock server, rồi owner thử trên prod khi đăng ký
   còn `closed`.
 - **Dữ liệu gia đình khi chuyển mô hình** (E-01) → chạy thử trên bản dump UAT khôi phục vào DB dev trước.
-- **Handle chiếm chỗ hoặc phản cảm** → danh sách từ dành riêng + bộ lọc + admin đổi tên (D-01, E-07).
+- **Tên phản cảm, hoặc mạo danh bằng cùng một tên** (tên không duy nhất) → tên dành riêng + bộ lọc + admin đổi tên;
+  thẻ hồ sơ luôn có avatar và ID; lời mời luôn hỏi xác nhận kèm thẻ (D-17, E-07).
+- **Dò ID để làm phiền** → ID ngẫu nhiên, rate limit lời mời, "ai được mời tôi", hồ sơ trẻ em trả "không tìm thấy" (D-17).
+- **Engine bắt nhầm người thật** → luật bảo thủ, nghi ngờ chỉ dẫn tới `held`, mọi quyết định đảo ngược được (D-16).
 - **Một API instance** → mỗi lần deploy gián đoạn vài giây; phòng chơi dựng lại từ PostgreSQL (ADR 0016) — chấp nhận.
 - **Đăng ký hàng loạt bằng bot** → rate limit theo IP và email; Turnstile tuỳ chọn (E-09).
 - **Pháp lý về dữ liệu trẻ em** → D-06 và E-07; owner kiểm tra, agent không tư vấn pháp lý.

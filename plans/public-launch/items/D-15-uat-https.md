@@ -1,9 +1,9 @@
 # D-15 — UAT có cần HTTPS và tên miền không?
 
-- Status: **proposed** — agent đề xuất *deferred*
+- Status: **deferred** (2026-10-17, chat) — mở lại theo một trong ba điều kiện ở *Đề xuất*
 - Kind: decision
 - Blocks: — · Blocked by: D-04
-- Decided: —
+- Decided: owner, 2026-10-17, chat — xem *Decision*
 
 ## Vì sao câu hỏi đổi
 
@@ -27,4 +27,4 @@ giống prod về cookie để bắt lỗi.
 
 ## Decision
 
-—
+**owner** (2026-10-17, chat): "còn lại ôn" — chấp nhận đề xuất để UAT HTTPS sang sau trong report cùng ngày.

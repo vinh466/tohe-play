@@ -1,7 +1,7 @@
 # Brief — Mở Tò He cho mọi người (public launch)
 
-Status: **draft** — owner xác nhận thì plan rời *Frame*. Các trích dẫn là lời owner trong chat ngày 2026-10-17
-(giữ nguyên văn, chỉ cắt bớt).
+Status: **confirmed** — owner, 2026-10-17, chat: "ok on … còn lại ôn". Các trích dẫn là lời owner trong chat ngày
+2026-10-17 (giữ nguyên văn, chỉ cắt bớt).
 
 ## Vì sao
 
@@ -12,12 +12,14 @@ Release là **kim chỉ nam, không gấp**; mục tiêu thật là sửa nền 
 
 > "uat là stage tôi lấy ý kiến từ tôi và người thân bạn bè, prod sắp tới sẽ là public cho vài cộng đồng nhỏ của tôi"
 
-Năm hướng owner đã đặt:
+Sáu hướng owner đã đặt:
 
 1. **User-first.** "tôi mong muốn tohe sẽ mở được với mọi người luôn, nên xoay ý chí sản phẩm sang user first".
    Nhu cầu chính là "user - user (1 user 1 account)". Thay cho cha–con hiện nay: "1 account sẽ có thể tạo nhìu
    profile chơi, lúc này mỗi profile sẽ được chủ account tạo và config cho nó (có 1 lóp auth lại khi config
    profile), các profile sẽ cần có username unique trên system để chúng có thể tham gia trên hệ thống luôn".
+   Sau đó: "username cho đặt thoải mái tý cho vui … thêm định danh cho profile thêm bởi id xxxx xxxx xxxx … để mời
+   đích dang profile luôn chẳng hạn (1 account tạo ra là có 1 profile mặc định r á)".
 2. **Auth lấy email làm định danh.** "dùng email để định danh 1 user … oauth như google/github/register by
    email/forgot pass … quan tâm việc link email account"; "các phương pháp auth như oauth hay thủ công thì điều bật
    tắt và config được"; luồng "đầy đủ và kín", "spec mermaid rõ về các luồng để làm tài liệu maintain";
@@ -28,6 +30,8 @@ Năm hướng owner đã đặt:
 5. **Chart riêng cho prod** trên VPS cluster của `platform-infra`: "chart có thể tự vận hành dễ dàng từ đầu và
    hưởng mở custom đc, để platform có thể tích hợp secret/db/redis/.... dễ dàng mà k break chart của ta … còn ta
    gì đảm bảo chất lượng sản phẩm của ta"; "chuẩn bị nó luôn … trên platform-infra thì tạo 1 nhánh và PR sẳn".
+6. **Engine độ tin** cho bảng xếp hạng: "chúng ta nên có 1 engine xịn để giúp nó (cố hết sức th, chứ tinh thần mọi
+   người cũng legit nha haha, tương lai enhance thêm từ đây)".
 
 ## Ràng buộc đang có hiệu lực
 
@@ -45,11 +49,12 @@ Năm hướng owner đã đặt:
 
 1. Ai cũng đăng ký được bằng email đã xác minh, hoặc Google/GitHub trên prod; liên kết các cách đăng nhập an toàn;
    quên mật khẩu tự xử lý được; mỗi cách đăng nhập bật/tắt được — luồng nào cũng có sơ đồ mermaid trong spec.
-2. Một account sở hữu nhiều hồ sơ chơi, mỗi hồ sơ có @handle duy nhất; quản lý hồ sơ cần xác thực lại; hồ sơ trẻ
-   em được bảo vệ bằng cài đặt của hồ sơ.
+2. Một account sở hữu nhiều hồ sơ chơi (có sẵn một hồ sơ mặc định), mỗi hồ sơ có tên đặt thoải mái và một ID duy
+   nhất để mời đích danh; quản lý hồ sơ cần xác thực lại; hồ sơ trẻ em được bảo vệ bằng cài đặt của hồ sơ.
 3. Owner tạo được admin đầu tiên khi cài mới, và quản lý nền tảng qua admin console (người dùng, cách đăng nhập,
    chế độ đăng ký, game, sức khoẻ thiết bị, nhật ký thao tác).
-4. Bảng xếp hạng công khai chỉ chứa kết quả đáng tin.
+4. Bảng xếp hạng công khai chỉ chứa kết quả đáng tin, do một engine độ tin dùng chung quyết định; nghi ngờ thì ẩn
+   chờ admin xem, không phạt oan.
 5. Tò He chạy trên cluster `platform-infra` bằng chart của chính nó (image + chart trên GHCR); chart cũng tự cài
    được từ đầu ở nơi khác; UAT chạy đúng các image sẽ lên prod.
 6. Checklist public xanh (điều khoản/quyền riêng tư, xoá tài khoản, kiểm duyệt tên, chống lạm dụng), rồi một cộng

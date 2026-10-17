@@ -1,9 +1,9 @@
 # D-05 — Xác thực lại (step-up): khi nào, bằng gì?
 
-- Status: **proposed**
+- Status: **decided** (2026-10-17, chat)
 - Kind: decision
 - Blocks: T2 spec (luồng quản lý hồ sơ và cài đặt account), D-07 (thao tác nhạy cảm của admin) · Blocked by: D-01
-- Decided: —
+- Decided: owner, 2026-10-17, chat — xem *Decision*
 
 ## Vì sao cần chốt
 
@@ -48,7 +48,8 @@ Quy tắc phụ:
 
 ## Decision
 
-—
+**owner** (2026-10-17, chat): "còn lại ôn" — chấp nhận phương án B (hai mức: mã quản lý cho hồ sơ, xác thực lại thật
+cho bảo mật account) trong report cùng ngày.
 
 ## Discussion
 
