@@ -26,7 +26,10 @@ tohe-play/
 │   ├── games-host/          Assembles games into .out/games + serves the local games origin
 │   ├── e2e/                 End-to-end smoke test against a running stack
 │   └── codegen/             Generators that need TypeScript 5's compiler API (API types)
-├── deploy/docker/           Dockerfiles and Caddyfiles
+├── deploy/
+│   ├── docker/              Dockerfiles and Caddyfiles (one set of images for every environment, ADR 0021)
+│   ├── helm/tohe/           The Helm chart: self-hosting and production (ADR 0021)
+│   └── uat/                 UAT deploy and backup scripts (ADR 0010)
 ├── compose.yaml             Local stack
 └── .claude/skills/          Agent skills: new-game, new-adr, verify
 ```

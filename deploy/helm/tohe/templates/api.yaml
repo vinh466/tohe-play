@@ -1,0 +1,181 @@
+{{- include "tohe.validate" . }}
+{{- $name := include "tohe.componentName" (dict "root" . "component" "api") }}
+{{- $common := include "tohe.merged" (dict "root" . "values" .Values.api) | fromYaml }}
+{{- $hubHost := include "tohe.host" .Values.publicUrls.hub }}
+{{- $pg := .Values.infra.postgres }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "tohe.labels" (dict "root" . "component" "api") | nindent 4 }}
+  {{- with $common.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: 1
+  # Recreate, never two at once: rooms live in memory, and the new pod migrates the schema the old one is using.
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      {{- include "tohe.selectorLabels" (dict "root" . "component" "api") | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "tohe.selectorLabels" (dict "root" . "component" "api") | nindent 8 }}
+        {{- with $common.podLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- $podAnnotations := deepCopy ($common.podAnnotations | default dict) }}
+      {{- if not .Values.secrets.existingSecret }}
+      {{- /* The chart's own Secret changed: roll the pod (an existingSecret needs Reloader or a manual restart). */}}
+      {{- $_ := set $podAnnotations "checksum/secrets" (include (print $.Template.BasePath "/secret.yaml") . | sha256sum) }}
+      {{- end }}
+      {{- with $podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+    spec:
+      automountServiceAccountToken: false
+      enableServiceLinks: false
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $common.priorityClassName }}
+      priorityClassName: {{ . }}
+      {{- end }}
+      securityContext:
+        {{- toYaml .Values.api.podSecurityContext | nindent 8 }}
+      containers:
+        - name: api
+          image: {{ include "tohe.image" (dict "root" . "component" "api" "image" .Values.api.image) }}
+          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          securityContext:
+            {{- toYaml .Values.api.securityContext | nindent 12 }}
+          ports:
+            - name: http
+              containerPort: 8080
+          env:
+            - name: ASPNETCORE_ENVIRONMENT
+              value: Production
+            - name: App__PublicUrl
+              value: {{ .Values.publicUrls.hub | quote }}
+            - name: App__Version
+              value: {{ include "tohe.tag" (dict "root" . "image" .Values.api.image) | quote }}
+            - name: AllowedHosts
+              value: {{ .Values.api.allowedHosts | default $hubHost | quote }}
+            - name: Games__PublicOrigin
+              value: {{ include "tohe.origin" .Values.publicUrls.games | quote }}
+            # Fetched inside the cluster, not through the public origin.
+            - name: Games__CatalogUrl
+              value: {{ printf "http://%s:8080/catalog.json" (include "tohe.componentName" (dict "root" . "component" "games")) | quote }}
+            - name: Database__MigrateOnStartup
+              value: {{ .Values.api.migrateOnStartup | quote }}
+            {{- if $pg.external.connectionStringKey }}
+            - name: ConnectionStrings__Database
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tohe.secretName" . }}
+                  key: {{ $pg.external.connectionStringKey }}
+            {{- else }}
+            - name: TOHE_DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tohe.secretName" . }}
+                  key: {{ $pg.passwordKey }}
+            - name: ConnectionStrings__Database
+              value: {{ include "tohe.connectionString" . | quote }}
+            {{- end }}
+            - name: Telemetry__OperatorToken
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tohe.secretName" . }}
+                  key: telemetry-operator-token
+                  optional: true
+            {{- range $key, $value := .Values.api.config }}
+            - name: {{ $key }}
+              value: {{ $value | quote }}
+            {{- end }}
+            {{- with .Values.api.extraEnv }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+          {{- with .Values.api.extraEnvFrom }}
+          envFrom:
+            {{- toYaml . | nindent 12 }}
+          {{- end }}
+          # Migrations run before the API listens: up to five minutes for a first install or a big one.
+          startupProbe:
+            httpGet:
+              path: /api/health
+              port: http
+              # Host filtering (AllowedHosts) answers 400 to the pod IP the kubelet would send.
+              httpHeaders:
+                - name: Host
+                  value: {{ $hubHost }}
+            periodSeconds: 5
+            failureThreshold: 60
+          # Ready means the database answers.
+          readinessProbe:
+            httpGet:
+              path: /api/health
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: {{ $hubHost }}
+            periodSeconds: 10
+            failureThreshold: 3
+          # Alive means the process answers — not the database, or an outage of it would restart the API in a loop.
+          livenessProbe:
+            httpGet:
+              path: /api/config
+              port: http
+              httpHeaders:
+                - name: Host
+                  value: {{ $hubHost }}
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.api.resources | nindent 12 }}
+          volumeMounts:
+            # The root filesystem is read-only; .NET still wants a writable /tmp.
+            - name: tmp
+              mountPath: /tmp
+            {{- with .Values.api.extraVolumeMounts }}
+            {{- toYaml . | nindent 12 }}
+            {{- end }}
+      volumes:
+        - name: tmp
+          emptyDir: {}
+        {{- with .Values.api.extraVolumes }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+      {{- with $common.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $common.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with $common.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "tohe.labels" (dict "root" . "component" "api") | nindent 4 }}
+spec:
+  type: ClusterIP
+  selector:
+    {{- include "tohe.selectorLabels" (dict "root" . "component" "api") | nindent 4 }}
+  ports:
+    - name: http
+      port: 8080
+      targetPort: http

@@ -1,0 +1,7 @@
+{{- /* The landing page and the docs; both URLs are read when the container starts (ADR 0021). */ -}}
+{{- if .Values.site.enabled }}
+{{- $env := list
+  (dict "name" "PUBLIC_HUB_URL" "value" (trimSuffix "/" .Values.publicUrls.hub))
+  (dict "name" "TOHE_SITE_URL" "value" (trimSuffix "/" .Values.publicUrls.site)) -}}
+{{ include "tohe.caddyWorkload" (dict "root" . "component" "site" "values" .Values.site "env" $env "probePath" "/") }}
+{{- end }}
