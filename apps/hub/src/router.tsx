@@ -9,6 +9,7 @@ import {
 import { AccountEmailPage } from './pages/AccountEmailPage.tsx';
 import { AccountPage } from './pages/AccountPage.tsx';
 import { CatalogPage } from './pages/CatalogPage.tsx';
+import { ContinueSignInPage } from './pages/ContinueSignInPage.tsx';
 import { DataPage } from './pages/DataPage.tsx';
 import { PrivacyPage, TermsPage } from './pages/LegalPage.tsx';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordPage.tsx';
@@ -28,7 +29,17 @@ const catalogRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', c
 const welcomeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/welcome',
+  // ?external=failed: back from a provider that refused, or was cancelled (ADR 0026).
+  validateSearch: (search: Record<string, unknown>): { external?: string } => ({
+    external: typeof search.external === 'string' ? search.external : undefined,
+  }),
   component: WelcomePage,
+});
+/** Back from a provider for the first time: one more step on this browser (ADR 0026). */
+const continueSignInRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/sign-in/continue',
+  component: ContinueSignInPage,
 });
 const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -81,9 +92,14 @@ const profilesRoute = createRoute({
 const accountRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/account',
-  // ?add=true opens the "new profile" form right after the parent gate.
-  validateSearch: (search: Record<string, unknown>): { add: boolean } => ({
+  // ?add=true opens the "new profile" form right after the parent gate. ?linked= and ?link_error= come back from
+  // linking a provider (ADR 0026).
+  validateSearch: (
+    search: Record<string, unknown>,
+  ): { add: boolean; linked?: string; link_error?: string } => ({
     add: search.add === true || search.add === 'true',
+    linked: typeof search.linked === 'string' ? search.linked : undefined,
+    link_error: typeof search.link_error === 'string' ? search.link_error : undefined,
   }),
   component: AccountPage,
 });
@@ -138,6 +154,7 @@ export function createAppRouter(queryClient: QueryClient) {
     routeTree: rootRoute.addChildren([
       catalogRoute,
       welcomeRoute,
+      continueSignInRoute,
       registerRoute,
       confirmRegistrationRoute,
       forgotPasswordRoute,

@@ -16,6 +16,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
     hasPassword: true,
     hasManagePin: false,
     termsVersion: '2026-10-18',
+    logins: [],
   },
   profiles: [
     {

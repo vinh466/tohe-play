@@ -21,6 +21,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/logins/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a provider from the account (needs step-up level 2); never the last way in. */
+        delete: operations["UnlinkSignInMethod"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/profiles/options": {
         parameters: {
             query?: never;
@@ -236,6 +253,109 @@ export interface paths {
         put?: never;
         /** Accept the terms and privacy notice in the version the hub shows. */
         post: operations["AcceptTerms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The step a sign-in back from a provider waits for, on this browser; 404 when none. */
+        get: operations["GetPendingSignIn"];
+        put?: never;
+        post?: never;
+        /** Forget the sign-in waiting on this browser. */
+        delete: operations["CancelPendingSignIn"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The provider vouched for no address: a code goes to this one. */
+        post: operations["PendingSignInEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code proves the address: an account with it is linked at once; otherwise sign-up follows. */
+        post: operations["ConfirmPendingSignInEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/link-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code to the account's address, to prove it before the provider is linked. */
+        post: operations["PendingSignInLinkCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code, or the account's password, links the provider to the account and signs in. */
+        post: operations["LinkPendingSignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A name and the terms finish signing up with the provider; the first profile plays at once. */
+        post: operations["CompletePendingSignUp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -771,6 +891,7 @@ export interface components {
             hasPassword: boolean;
             hasManagePin: boolean;
             termsVersion: null | string;
+            logins: string[];
         };
         AttemptView: {
             /** Format: uuid */
@@ -785,6 +906,12 @@ export interface components {
             apiVersion: string;
             telemetry: boolean;
             email: boolean;
+            providers: components["schemas"]["ExternalProvider"][];
+        };
+        CompleteSignUpRequest: {
+            displayName: string;
+            acceptTerms: boolean;
+            termsVersion: null | string;
         };
         ConfirmCodeRequest: {
             /** Format: uuid */
@@ -864,6 +991,14 @@ export interface components {
             /** Format: date-time */
             lastSeen: string;
             new: boolean;
+        };
+        ExternalOutcome: {
+            me: null | components["schemas"]["MeView"];
+            pending: null | components["schemas"]["PendingSignInView"];
+        };
+        ExternalProvider: {
+            id: string;
+            name: string;
         };
         ForgotPasswordRequest: {
             email: string;
@@ -997,6 +1132,10 @@ export interface components {
             achievedAt: string;
             inProgress: boolean;
         };
+        LinkProofRequest: {
+            code?: null | string;
+            password?: null | string;
+        };
         LoginRequest: {
             email: string;
             password: string;
@@ -1030,6 +1169,18 @@ export interface components {
         };
         PasswordRequest: {
             password: string;
+        };
+        PendingCodeRequest: {
+            code: string;
+        };
+        PendingEmailRequest: {
+            email: string;
+        };
+        PendingSignInView: {
+            provider: string;
+            step: string;
+            email: null | string;
+            hasPassword: boolean;
         };
         PlayerStats: {
             /** Format: int32 */
@@ -1323,6 +1474,35 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ClientConfig"];
                 };
+            };
+        };
+    };
+    UnlinkSignInMethod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -1681,6 +1861,199 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPendingSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingSignInView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancelPendingSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PendingSignInEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PendingEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmPendingSignInEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PendingCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalOutcome"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    PendingSignInLinkCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    LinkPendingSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkProofRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalOutcome"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    CompletePendingSignUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteSignUpRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalOutcome"];
                 };
             };
             /** @description Bad Request */

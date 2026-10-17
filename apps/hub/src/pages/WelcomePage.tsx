@@ -1,11 +1,12 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery } from '../api/queries.ts';
 import { EmailChange } from '../session/EmailChange.tsx';
+import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
@@ -44,6 +45,7 @@ function SignIn() {
   const queryClient = useQueryClient();
   const setMe = useSetMe();
   const config = useQuery(configQuery);
+  const { external } = useSearch({ from: '/welcome' });
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Signed in, but an account from before email sign-in adds one first (ADR 0024).
@@ -104,6 +106,11 @@ function SignIn() {
       <Brand subtitle={t('welcome.subtitle')} />
       <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
         <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
+        {external ? (
+          <p role="alert" className="text-danger">
+            {t('external.failed')}
+          </p>
+        ) : null}
         <TextField
           label={t('welcome.email')}
           hint={t('welcome.emailHint')}
@@ -143,6 +150,7 @@ function SignIn() {
           </Link>
         ) : null}
       </form>
+      <ProviderButtons />
       <div className="flex flex-col items-center gap-3 text-center">
         <p className="text-ink-soft">
           {t('welcome.noAccount')}{' '}
