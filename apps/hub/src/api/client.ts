@@ -99,17 +99,32 @@ export const session = {
   selectProfile: (profileId: string, pin?: string) =>
     call(api.PUT('/api/session/profile', { body: { profileId, pin: pin ?? null } })),
   clearProfile: () => call(api.DELETE('/api/session/profile')),
-  unlockParentGate: (password: string) => call(api.POST('/api/session/parent-gate', { body: { password } })),
+  /** The manage PIN opens profile management on this device (step-up level 1, ADR 0025). */
+  unlockParentGate: (pin: string) => call(api.POST('/api/session/parent-gate', { body: { pin } })),
+  /** Closes both levels of step-up on this device. */
   lockParentGate: () => call(api.DELETE('/api/session/parent-gate')),
+  /** Level 2 with the password: account security, and profile management with it. */
+  stepUp: (password: string) => call(api.POST('/api/session/step-up', { body: { password } })),
+  /** Level 2 without the password: a code to the account's email. */
+  stepUpCode: () => call(api.POST('/api/session/step-up/code')),
+  confirmStepUp: (attemptId: string, code: string) =>
+    call(api.POST('/api/session/step-up/confirm', { body: { attemptId, code } })),
 };
 
-/** The account and the profiles it owns (ADR 0023, 0024). Changes need the parent gate, or the password. */
+/**
+ * The account and the profiles it owns (ADR 0023, 0024, 0025). Profiles change within step-up level 1; the email,
+ * the password and the manage PIN within level 2.
+ */
 export const account = {
-  /** A code goes to the new sign-in email. `password` when the parent gate is not open on this device. */
+  /** A code goes to the new sign-in email. `password` when level 2 is not open on this device. */
   changeEmail: (email: string, password?: string) =>
     call(api.POST('/api/account/email', { body: { email, password: password ?? null } })),
   confirmEmailChange: (attemptId: string, code: string) =>
     call(api.POST('/api/account/email/confirm', { body: { attemptId, code } })),
+  setManagePin: (pin: string) => call(api.PUT('/api/account/manage-pin', { body: { pin } })),
+  setPassword: (password: string) => call(api.PUT('/api/account/password', { body: { password } })),
+  /** The terms and privacy notice in the version the hub shows (legal/documents.tsx). */
+  acceptTerms: (version: string) => call(api.POST('/api/account/terms', { body: { version } })),
   /** Technical telemetry from the account's devices (ADR 0015). */
   setTelemetry: (telemetry: boolean) => call(api.PATCH('/api/account', { body: { telemetry } })),
   addProfile: (body: CreateProfileRequest) => call(api.POST('/api/profiles', { body })),

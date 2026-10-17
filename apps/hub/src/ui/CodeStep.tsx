@@ -23,6 +23,7 @@ export function CodeStep({
   onSubmit,
   onResend,
   onBack,
+  backLabel,
   children,
 }: {
   /** Where the code went; null when the page was opened from the email's link. */
@@ -38,6 +39,8 @@ export function CodeStep({
   onResend?: () => Promise<unknown>;
   /** Back to the step before, to fix the address. */
   onBack?: () => void;
+  /** What going back means here; "Đổi email" by default. */
+  backLabel?: string;
   children?: ReactNode;
 }) {
   const { t } = useTranslation();
@@ -113,7 +116,7 @@ export function CodeStep({
         ) : null}
         {onBack ? (
           <Button variant="ghost" onClick={onBack}>
-            {t('code.changeEmail')}
+            {backLabel ?? t('code.changeEmail')}
           </Button>
         ) : null}
       </div>
