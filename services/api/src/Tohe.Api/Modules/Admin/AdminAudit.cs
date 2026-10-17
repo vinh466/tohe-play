@@ -13,6 +13,11 @@ internal static class AuditActions
     public const string RoleGrant = "role.grant";
     public const string RoleRevoke = "role.revoke";
 
+    public const string UserSuspend = "user.suspend";
+    public const string UserLift = "user.unsuspend";
+    public const string UserSignOut = "user.sign-out";
+    public const string ProfileRename = "profile.rename";
+
     /// <summary>The console opened on a device: two-factor authentication passed.</summary>
     public const string ConsoleOpen = "console.open";
 

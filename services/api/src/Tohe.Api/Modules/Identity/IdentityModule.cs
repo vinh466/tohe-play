@@ -162,6 +162,7 @@ internal static class IdentityModule
         // Platform roles and the counts the admin console reads (ADR 0027).
         services.AddScoped<PlatformRoles>();
         services.AddScoped<IdentityFacts>();
+        services.AddScoped<AccountsAdmin>();
         services.AddScoped<IActiveProfile, ActiveProfileReader>();
         services.AddScoped<IAccountProfiles, AccountProfilesReader>();
         return builder;

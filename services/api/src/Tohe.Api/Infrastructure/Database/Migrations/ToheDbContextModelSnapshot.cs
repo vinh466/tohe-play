@@ -352,6 +352,15 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("security_stamp");
 
+                    b.Property<DateTimeOffset?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suspended_at");
+
+                    b.Property<string>("SuspendedReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("suspended_reason");
+
                     b.Property<bool>("TelemetryEnabled")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("boolean")
@@ -553,6 +562,38 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasDatabaseName("ix_profiles_account_id_created_at");
 
                     b.ToTable("profiles", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileName", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_profile_names");
+
+                    b.HasIndex("ProfileId", "At")
+                        .HasDatabaseName("ix_profile_names_profile_id_at");
+
+                    b.ToTable("profile_names", "identity");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Progress.SavedGame", b =>
@@ -1435,6 +1476,16 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_profiles_accounts_account_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileName", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Profile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_profile_names_profiles_profile_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomAction", b =>

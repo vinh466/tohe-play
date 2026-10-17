@@ -159,6 +159,7 @@ internal static class AdminEndpoints
 
         SetupEndpoints.Map(admin);
         TwoFactorEndpoints.Map(admin);
+        UsersEndpoints.Map(admin);
     }
 
     /// <summary>The account, its role and what the role may do, and the console's state on this device.</summary>

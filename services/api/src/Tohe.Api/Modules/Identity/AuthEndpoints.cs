@@ -267,6 +267,12 @@ internal static class AuthEndpoints
             return Problems.InvalidCredentials();
         }
 
+        // Told only after the password was right: nobody learns which accounts are suspended (ADR 0027).
+        if (account.SuspendedAt is not null)
+        {
+            return Problems.AccountSuspended();
+        }
+
         var playing = await OnlyProfileAsync(db, account.Id, ct);
         var state = new DeviceSession(playing);
         await session.WriteAsync(account, state);

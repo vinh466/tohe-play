@@ -48,8 +48,13 @@ internal sealed class PlatformRoles(ToheDbContext db, UserManager<Account> users
             .Select(claim => claim.ClaimValue)
             .FirstOrDefaultAsync(ct));
 
-    public Task<bool> AnyOwnerAsync(CancellationToken ct) =>
-        db.UserClaims.AnyAsync(claim => claim.ClaimType == ClaimType && claim.ClaimValue == NameOf(PlatformRole.Owner), ct);
+    public Task<bool> AnyOwnerAsync(CancellationToken ct) => AnyOwnerAsync(except: null, ct);
+
+    /// <summary>Whether an account other than <paramref name="except"/> is owner.</summary>
+    public Task<bool> AnyOwnerAsync(Guid? except, CancellationToken ct) =>
+        db.UserClaims.AnyAsync(
+            claim => claim.ClaimType == ClaimType && claim.ClaimValue == NameOf(PlatformRole.Owner) && claim.UserId != except,
+            ct);
 
     /// <summary>Gives the account this role, in place of any it had.</summary>
     public async Task SetAsync(Account account, PlatformRole role)
