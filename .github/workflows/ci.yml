@@ -136,3 +136,53 @@ jobs:
           name: e2e
           path: tools/e2e/test-results/
           if-no-files-found: ignore
+
+  # What passed every check on main becomes the release (ADR 0021): four images tagged with the commit, and the chart
+  # whose appVersion is that tag. UAT deploys these images; production pins a chart version and a tag.
+  publish:
+    name: Publish images and chart to GHCR
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [verify, chart, stack]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGES: ghcr.io/${{ github.repository }}
+      CHARTS: oci://ghcr.io/${{ github.repository_owner }}/charts
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+        with:
+          version: v3.16.3
+      - name: Sign in to ghcr.io
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
+          echo "$TOKEN" | helm registry login ghcr.io --username "$ACTOR" --password-stdin
+      - name: Build and push the images (sha-<commit>)
+        run: |
+          tag="sha-$GITHUB_SHA"
+          labels=(--label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY"
+            --label "org.opencontainers.image.revision=$GITHUB_SHA")
+          docker build --pull -f deploy/docker/api.Dockerfile "${labels[@]}" -t "$IMAGES/api:$tag" .
+          for target in hub games site; do
+            docker build --pull -f deploy/docker/web.Dockerfile --target "$target" "${labels[@]}" -t "$IMAGES/$target:$tag" .
+          done
+          for component in api hub games site; do
+            docker push --quiet "$IMAGES/$component:$tag"
+          done
+      - name: Package and push the chart (<version>-g<short sha>)
+        run: |
+          version="$(sed -n 's/^version: *//p' deploy/helm/tohe/Chart.yaml)-g${GITHUB_SHA::7}"
+          helm package deploy/helm/tohe --version "$version" --app-version "sha-$GITHUB_SHA" --destination dist
+          helm push "dist/tohe-$version.tgz" "$CHARTS"
+          {
+            echo "### Published $GITHUB_SHA"
+            echo
+            echo "- Images: \`$IMAGES/{api,hub,games,site}:sha-$GITHUB_SHA\`"
+            echo "- Chart: \`helm install tohe $CHARTS/tohe --version $version\`"
+          } >>"$GITHUB_STEP_SUMMARY"

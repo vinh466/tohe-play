@@ -77,6 +77,10 @@ the API and only the API reach the builtin PostgreSQL.
 `ghcr.io/vinh466/tohe-play/api:<tag>`. The tag is the component's, else `global.image.tag`, else the chart's
 `appVersion`: a published chart carries its own commit's tag; a chart from a checkout needs `global.image.tag`.
 
+CI publishes both for every commit on `main` that passed its checks: images `sha-<commit>`, and this chart as
+`oci://ghcr.io/vinh466/charts/tohe`, version `<version in Chart.yaml>-g<short commit>`, `appVersion: sha-<commit>`.
+Raise `version` in `Chart.yaml` when the chart's values change in a way installs must notice.
+
 ## Checking a change
 
 ```sh

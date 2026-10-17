@@ -37,20 +37,27 @@ The script:
 
 1. creates `~/.config/tohe-uat/uat.env` on first run (host, a random database password and a telemetry report
    token — keep this file; an older file gets the token added once);
-2. backs up the database if UAT is running ([below](#backups));
-3. exports the exact commit with `git archive` into `~/.local/share/tohe-uat/src` — never a working copy;
-4. builds the images on freshly pulled base images (security patches of the .NET runtime, Node and Caddy) and
-   starts the `tohe-uat` compose project (database migrations run when the API starts);
-5. waits for `/api/health` and prints the deployed commit.
+2. exports the exact commit with `git archive` into `~/.local/share/tohe-uat/src` — never a working copy;
+3. pulls the four images CI published for that commit, `ghcr.io/vinh466/tohe-play/<api|hub|games|site>:sha-<commit>`
+   ([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md)) — the same images production runs.
+   CI publishes them after every check on `main` passed; until then the script stops and says so. A commit from
+   before CI published images (a rollback that far) is built here instead, as deploys used to;
+4. backs up the database if UAT is running ([below](#backups));
+5. starts the `tohe-uat` compose project (database migrations run when the API starts), waits for `/api/health` and
+   prints the deployed commit.
 
 What is running: `curl -s http://10.100.0.2:4820/api/config` → `apiVersion` is the deployed commit.
 
 Deploy only commits that are on `main` with green CI. Agents deploy after merging when asked to "ship to UAT".
 
+The packages are public, so the homelab pulls without signing in. If a pull is refused, check the package's
+visibility on GitHub (**Packages → tohe-play/api → Package settings**), or sign in once with
+`docker login ghcr.io` and a token that can read packages.
+
 ## Backups
 
 `deploy/uat/backup.sh` dumps the database to `~/backups/tohe-uat/` and keeps the newest 20 dumps. Every deploy
-runs it first. Restore a dump:
+runs it right before replacing the containers. Restore a dump:
 
 ```sh
 gunzip -c ~/backups/tohe-uat/tohe-YYYYMMDD-HHMMSS.sql.gz \
