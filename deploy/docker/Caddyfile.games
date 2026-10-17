@@ -10,6 +10,8 @@
 	root * /srv
 
 	header X-Content-Type-Options nosniff
+	# Browsers ignore this over plain HTTP (UAT, local); behind HTTPS it pins this one host, not its siblings.
+	header Strict-Transport-Security "max-age=31536000"
 
 	@catalog path /catalog.json
 	header @catalog {

@@ -5,7 +5,7 @@ sidebar:
   order: 10
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — production decided by [ADR 0021](0021-release-production-through-the-tohe-chart.md)
 - **Date:** 2026-10-13
 
 ## Context

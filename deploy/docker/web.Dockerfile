@@ -14,11 +14,16 @@ FROM workspace AS build-hub
 RUN pnpm turbo run build --filter=@tohe/hub
 
 FROM workspace AS build-site
-# Where the landing page's "play" button points, and the site's canonical URL (sitemap).
-ARG PUBLIC_HUB_URL=http://localhost:4720
-ARG TOHE_SITE_URL=http://localhost:4710
-ENV PUBLIC_HUB_URL=$PUBLIC_HUB_URL TOHE_SITE_URL=$TOHE_SITE_URL
-RUN pnpm turbo run build --filter=@tohe/site
+# One image for every environment (ADR 0021). The site's own URL (canonical links, sitemap, llms.txt) is built as a
+# placeholder and turned into a template action that the site's Caddy fills in from TOHE_SITE_URL at run time
+# (Caddyfile.site). Caddy only templates HTML, XML and text, so the build fails if the placeholder lands anywhere else.
+# The play button needs nothing here: /play is a run-time redirect to PUBLIC_HUB_URL.
+ENV TOHE_SITE_URL=https://tohe-site.invalid
+RUN pnpm turbo run build --filter=@tohe/site \
+ && cd apps/site/dist \
+ && find . -type f \( -name '*.html' -o -name '*.xml' -o -name '*.txt' \) \
+      -exec sed -i 's#https://tohe-site\.invalid#[[[env "TOHE_SITE_URL"]]]#g' {} + \
+ && if grep -rl 'tohe-site\.invalid' .; then echo 'site URL placeholder left outside HTML, XML or text' >&2; exit 1; fi
 
 FROM workspace AS build-games
 RUN pnpm turbo run build --filter=@tohe/games-host

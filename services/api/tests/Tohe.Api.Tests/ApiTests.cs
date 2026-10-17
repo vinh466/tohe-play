@@ -27,6 +27,19 @@ public sealed class ApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal("https://games.example.test", config?.GamesOrigin);
     }
 
+    [Theory]
+    [InlineData("https://tohe.example.test/hub")]
+    [InlineData("tohe.example.test")]
+    [InlineData("ftp://tohe.example.test")]
+    public void A_public_url_that_is_not_a_bare_http_origin_stops_the_api_from_starting(string publicUrl)
+    {
+        using var misconfigured = factory.WithWebHostBuilder(builder => builder.UseSetting("App:PublicUrl", publicUrl));
+
+        var error = Assert.ThrowsAny<Exception>(() => misconfigured.CreateClient());
+
+        Assert.Contains("App:PublicUrl", error.ToString(), StringComparison.Ordinal);
+    }
+
     [Fact]
     public async Task OpenApi_document_is_served()
     {

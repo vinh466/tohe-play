@@ -214,6 +214,26 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith("tohe.session=", StringComparison.Ordinal));
         Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=lax", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secure", cookie, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task On_an_https_deployment_the_session_cookie_is_secure_and_host_locked()
+    {
+        // Behind the TLS-terminating edge the request reaches the API as plain HTTP (TestServer's default too):
+        // App:PublicUrl is what makes it HTTPS.
+        await using var https = factory.WithWebHostBuilder(builder => builder.UseSetting("App:PublicUrl", "https://tohe.example.test"));
+        var client = https.CreateClient(new() { HandleCookies = false });
+        var response = await client.PostAsJsonAsync(
+            Url("/api/auth/register"),
+            new { displayName = "Bố", username = NewUsername(), password = Password },
+            Ct);
+
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith("__Host-tohe.session=", StringComparison.Ordinal));
+        Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("path=/", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("domain=", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
     }
 
     // ------------------------------------------------------------------ helpers
