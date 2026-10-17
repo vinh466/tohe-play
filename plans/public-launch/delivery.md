@@ -73,4 +73,10 @@ flowchart LR
 
 | PR | Nhánh | Trạng thái |
 |---|---|---|
-| A1 | — | chưa bắt đầu |
+| A1 | `feat/deploy-env-agnostic-images` | [#43](https://github.com/vinh466/tohe-play/pull/43) — CI xanh, chờ review |
+| A2 | `feat/deploy-helm-chart` (trên A1) | [#44](https://github.com/vinh466/tohe-play/pull/44) — CI xanh (cài lên kind, `helm test`, upgrade), chờ review |
+| B1 | `feat/api-transactional-email` (trên A1) | [#45](https://github.com/vinh466/tohe-play/pull/45) — CI xanh, chờ review; khối SMTP của chart làm sau khi A2 + B1 merge |
+| C1 | `feat/identity-accounts-own-profiles` (trên B1) | [#46](https://github.com/vinh466/tohe-play/pull/46) — chờ review; trước khi lên UAT: chạy thử migration trên bản dump UAT (E-01) |
+| A3 | — | kế tiếp |
+
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.

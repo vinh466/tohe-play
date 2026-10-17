@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (chiều) — agent
+
+- Mở A1 #43 (ADR 0021), A2 #44 (chart; CI cài lên kind — sửa `helm test --logs` vì pod test bị xoá khi pass), B1 #45
+  (ADR 0022), C1 #46 (ADR 0023: account sở hữu hồ sơ, ID Damm, tên tự do, migration UAT có test dữ liệu cũ).
+- Phát hiện khi làm C1: API chạy InvariantGlobalization nên `Normalize` không làm gì ngoài ASCII → hub gửi NFC, gập tên
+  dành riêng bằng bảng chữ Latin có dấu; khoá dòng account để giới hạn 1–5 hồ sơ đúng khi request song song.
+- Chờ owner: review #43–#46 theo thứ tự; E-02 Q2; D-13; chạy thử migration trên dump UAT trước khi deploy C1.
+
 ## 2026-10-18 — owner + agent (chat)
 
 - Owner: "ok rồi đó, theo đề xuất bạn có thể impl toàn bộ giúp tôi k, planning và làm những việc song song" → D-16 Q4,

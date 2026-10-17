@@ -15,14 +15,15 @@
 
 ## Next — one item
 
-**A1** ([delivery.md](delivery.md)): ADR 0021 *Production via the Tò He chart* + image chạy được ở mọi môi trường.
-Owner: "theo đề xuất bạn có thể impl toàn bộ giúp tôi k" (2026-10-18). Các lane A, B, C, D bắt đầu được song song.
+**A3** ([delivery.md](delivery.md)): CI đẩy image + chart lên GHCR; UAT chạy đúng image theo SHA — xếp trên A2 (#44).
+Đã mở: A1 #43, A2 #44, B1 #45, C1 #46 ([trạng thái](delivery.md#trạng-thái)). Sau A3: D1, rồi C2 (xếp trên C1).
 
 ## Waiting on the owner
 
 1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? Không chặn code; cần trước khi C2 lên UAT.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Review và merge từng PR; nói "deploy" cho mỗi lần lên UAT.
+3. Review và merge từng PR (#43 → #44, #45 → #46); nói "deploy" cho mỗi lần lên UAT.
+4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).
 
 ## Board
 
