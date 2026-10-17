@@ -149,9 +149,14 @@ public sealed class SignInSettingsTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.Equal(2, mine.Members);
         Assert.All(mine.Codes, code => Assert.False(code.Usable));
 
-        // Open again: a code is welcome but not needed.
+        // Open again: a code is welcome but not needed. Closed before its code comes back, a sign-up makes nothing.
         await SaveAsync(owner, new { registration = "open" });
-        Assert.Equal(HttpStatusCode.Accepted, (await StartSignUpAsync(Accounts.NewEmail(), null)).StatusCode);
+        var late = Accounts.NewEmail();
+        var lateAttempt = await AttemptOfAsync(await StartSignUpAsync(late, null));
+        await SaveAsync(owner, new { registration = "closed" });
+        Assert.Equal("registration_closed", await CodeOfAsync(await ConfirmAsync(late, lateAttempt)));
+        await SaveAsync(owner, new { registration = "open" });
+        Assert.Equal(HttpStatusCode.OK, (await ConfirmAsync(late, lateAttempt)).StatusCode);
 
         await using var scope = factory.Services.CreateAsyncScope();
         var actions = await scope.ServiceProvider.GetRequiredService<ToheDbContext>().AuditLog
