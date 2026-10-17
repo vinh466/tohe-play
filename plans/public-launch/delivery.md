@@ -24,7 +24,7 @@ Owner: "theo đề xuất bạn có thể impl toàn bộ giúp tôi k, planning
 | **D3b** | Admin | Bật/tắt cách đăng nhập lúc chạy, chế độ đăng ký (mở / theo lời mời / đóng), cộng đồng + mã mời | 0028 Sign-in and registration at run time | D3a, C4 | D-04, D-12 |
 | **E1a** | Độ tin | Engine `Integrity` (mức tin, `RoomVerifier`, tín hiệu `Bounds` / `PersonalJump` / `Rate`, luật hai người thật như phạm vi, `held` / `rejected`, nhật ký quyết định chỉ ghi thêm) + bảng trong account, tuần (thứ Hai 00:00 giờ Việt Nam) + mọi lúc | 0029 Integrity engine and boards by trust | C1 | D-09, D-11, D-16 |
 | **E1b** | Độ tin | Bảng công khai: cộng đồng + toàn server, một dòng mỗi hồ sơ/bảng/chu kỳ, top 50 + quanh tôi; công tắc "hiện trên bảng công khai" của hồ sơ (trẻ em tắt sẵn, "Tôi đã hỏi ý bé") | (0029) | E1a, D3b | D-01, D-06, D-09 |
-| **E2** | Độ tin | Run tính hạng: seed của server, kênh gửi nước đi, module xác minh, `ReplayVerifier`, conformance; Ghép Khối là game đầu tiên | 0030 Ranked runs (Game Contract) | E1 | D-10 |
+| **E2** | Độ tin | Run tính hạng: seed của server, kênh gửi nước đi, module xác minh, `ReplayVerifier`, conformance; Ghép Khối là game đầu tiên | 0030 Ranked runs replayed by the server (Game Contract) | E1 | D-10 |
 | **E3** | Độ tin | Hàng đợi "Chờ xem xét" trong admin, xem lại run bằng chính game | — | D2, E2 | D-16 |
 | **F1** | Public | Trang điều khoản và quyền riêng tư (bản nháp để owner duyệt), lưu phiên bản đồng ý, xoá hồ sơ / account có thời gian chờ, kiểm duyệt tên (từ dành riêng, từ thô tục, lịch sử tên) | — | C3 | E-07 |
 | **F2** | Public | `/metrics` + ServiceMonitor trong chart + cảnh báo tối thiểu | — | A2 | E-08 |
@@ -88,6 +88,7 @@ flowchart LR
 | D2 | `feat/admin-setup-2fa-audit` (trên D1) | [#52](https://github.com/vinh466/tohe-play/pull/52) — CI xanh (smoke e2e nhận quyền chủ bằng setup token thật, bật 2FA), chờ review |
 | D3a | `feat/admin-users` (trên D2) | [#53](https://github.com/vinh466/tohe-play/pull/53) — CI xanh, chờ review; có thêm bản sửa: tài khoản bị khoá không vào lại bằng quên mật khẩu hay gia hạn phiên |
 | D3b | `feat/signin-and-registration-settings` (trên D3a) | [#54](https://github.com/vinh466/tohe-play/pull/54) — CI xanh, chờ review; trên UAT (chỉ email) thử chế độ theo lời mời bằng link mã trên điện thoại |
-| E1a | `feat/integrity-engine` (trên D3b) | [#55](https://github.com/vinh466/tohe-play/pull/55) — chờ CI rồi review; trên UAT: bảng 🏆 mở ở "Tuần này", kỷ lục cũ của nhà ở "Mọi lúc" |
+| E1a | `feat/integrity-engine` (trên D3b) | [#55](https://github.com/vinh466/tohe-play/pull/55) — CI xanh, chờ review; trên UAT: bảng 🏆 mở ở "Tuần này", kỷ lục cũ của nhà ở "Mọi lúc" |
+| E1b | `feat/public-boards` (trên E1a) | [#56](https://github.com/vinh466/tohe-play/pull/56) — CI xanh, chờ review; trên UAT: hồ sơ người lớn lên bảng công khai, hồ sơ trẻ em tắt cho tới khi bật kèm "Tôi đã hỏi ý bé" |
 
-Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.

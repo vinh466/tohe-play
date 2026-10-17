@@ -15,16 +15,16 @@
 
 ## Next — one item
 
-**E1b** ([delivery.md](delivery.md)): bảng công khai — cộng đồng và toàn server theo mức tin, top 50 + quanh tôi, công
-tắc "hiện trên bảng công khai" của hồ sơ với "Tôi đã hỏi ý bé" (D-01, D-06, D-09), trong ADR 0029 — xếp trên E1a (#55),
-có migration. Đã mở: #43–#55 ([trạng thái](delivery.md#trạng-thái)).
+**E2** ([delivery.md](delivery.md)): run tính hạng — máy chủ cấp seed, game giữ nước đi và nộp khi xong, API chạy lại bằng
+module xác minh của game trong Jint (`ReplayVerifier`), đổi Game Contract (khả năng + khối `ranked`, `ranked.start` /
+`ranked.finish`), conformance; Ghép Khối trước (D-10), ADR 0030 — xếp trên E1b (#56), có migration. Đã mở: #43–#56
+([trạng thái](delivery.md#trạng-thái)).
 
 ## Waiting on the owner
 
 1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? Không chặn code; cần trước khi C2 lên UAT.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55); nói
-   "deploy" cho mỗi lần lên UAT.
+3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #55 → #56); nói "deploy" cho mỗi lần lên UAT.
 4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).
 5. Duyệt bản nháp Điều khoản + Quyền riêng tư (#49; #50 thêm phần đăng nhập bằng provider), điền cách liên hệ người vận hành.
 6. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).

@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (sáng, tiếp) — agent
+
+- E1a #55 và E1b #56 CI xanh. E1b: bảng cộng đồng + toàn server đọc từ kết quả theo mức tin, top 50 + quanh tôi, công tắc
+  hồ sơ (người lớn bật, trẻ em tắt, bật cần "Tôi đã hỏi ý bé"). ADR 0029 sửa trong #55: bảng đọc thẳng từ kết quả
+  (đơn giản, luôn đúng), "một dòng mỗi hồ sơ" của D-09 để dành khi quy mô cần. CI #55 từng đỏ do smoke còn gọi API cũ.
+- Chờ owner: review #43–#56. Agent đang làm: E2 (run tính hạng, ADR 0030), xếp trên E1b.
+
 ## 2026-10-18 (sáng) — agent
 
 - D3b #54 CI xanh. E1 tách đôi như D3: E1a #55 (ADR 0029) — engine `Integrity`: mức tin theo bằng chứng, luật v1, nhật ký
