@@ -15,7 +15,7 @@ it goes straight to a doc change or an ADR.
 
 | Plan | Goal | Phase | Entry point |
 |---|---|---|---|
-| public-launch | Tò He ready to open to the public: user-first accounts and profiles, email and OAuth sign-in, a platform admin, an integrity engine for trustworthy leaderboards, and its own Helm chart for production | Map | [PLAN.md](public-launch/PLAN.md) |
+| public-launch | Tò He ready to open to the public: user-first accounts and profiles, email and OAuth sign-in, a platform admin, an integrity engine for trustworthy leaderboards, and its own Helm chart for production | Graduate | [PLAN.md](public-launch/PLAN.md) |
 
 ## What a plan space is — and is not
 

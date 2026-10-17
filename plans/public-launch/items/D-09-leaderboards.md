@@ -44,7 +44,8 @@ gửi được điểm tuỳ ý bằng devtools hay curl.
 Rẻ. Bị gian lận ngay, và admin phải dọn mãi.
 
 ### B — Phân tầng theo độ tin (agent đề xuất)
-- Bảng *cộng đồng* và *toàn server* chỉ nhận kết quả **đã xác minh**.
+- Bảng *toàn server* chỉ nhận kết quả **đã xác minh**. Bảng *cộng đồng* cũng vậy, trừ game chưa có replay: nhận kết quả
+  `checked` kèm nhãn "chưa xác minh" (sửa 2026-10-18 theo D-16 Q4).
 - Bảng *trong account* nhận mọi điểm (không ai có lý do gian lận với chính nhà mình).
 - Game một người chưa hỗ trợ xác minh thì **chưa có bảng công khai**; vẫn có bảng trong account và kỷ lục cá nhân.
 

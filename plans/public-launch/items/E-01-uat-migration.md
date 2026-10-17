@@ -1,6 +1,6 @@
 # E-01 — Chuyển dữ liệu UAT sang mô hình mới (household → account, username → email)
 
-- Status: **proposed** — hướng đã chốt ("bắt thêm email ở lần đăng nhập kế"), D-01 đã chốt; còn chờ D-17
+- Status: **decided** (2026-10-18, chat: "theo đề xuất … impl toàn bộ") — cách chuyển như bảng dưới
 - Kind: enhancement
 - Blocks: deploy T2 lên UAT · Blocked by: D-01, D-02, D-17
 - Decided: hướng — owner, 2026-10-17, chat ("còn lại các dề xuất của bạn ổn nha", chấp nhận khuyến nghị "migrate

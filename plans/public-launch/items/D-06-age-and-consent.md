@@ -1,9 +1,9 @@
 # D-06 — Cổng tuổi và đồng ý điều khoản khi tự đăng ký
 
-- Status: **proposed** — cách A (tự xác nhận) được chấp nhận 2026-10-17 ("ok ngu de xuat cua ban on nba"); **còn chờ owner chọn N**
+- Status: **decided** (2026-10-18, chat) — cách A, **N = 16**, kèm dòng "Tôi đã hỏi ý bé" khi bật hồ sơ của con lên bảng công khai
 - Kind: decision
 - Blocks: T2 spec (bước "Hoàn tất đăng ký"), E-07 · Blocked by: D-01
-- Decided: —
+- Decided: owner, 2026-10-18, chat — "ok rồi đó, theo đề xuất bạn có thể impl toàn bộ giúp tôi k"
 
 ## Vì sao cần chốt
 

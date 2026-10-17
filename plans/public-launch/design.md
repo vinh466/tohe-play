@@ -12,8 +12,9 @@ Sơ đồ dùng nhãn tiếng Anh vì khi graduate chúng chuyển nguyên vào 
   (D-04), một account nhiều hồ sơ có hồ sơ mặc định (D-01), tên đặt thoải mái + ID 12 số (D-17), hai mức xác thực lại
   (D-05), admin console và admin đầu tiên (D-07, D-08), bảng xếp hạng phân tầng theo độ tin (D-09, D-11), engine độ tin
   (D-16) với replay Ghép Khối trong v1 (D-10), chế độ đăng ký (D-12), release bằng chart (D-14); UAT HTTPS để sau (D-15).
-- **Hướng đã có, còn một câu chờ owner:** bảng cộng đồng có nhận `checked` không (D-16 Q4), mốc tuổi N (D-06), gửi
-  email từ đâu và account Resend (E-02); chuyển dữ liệu UAT (E-01) sẽ được owner xem cùng spec T2.
+- **Cũng đã chốt (2026-10-18):** bảng cộng đồng nhận `checked` cho game chưa có replay (D-16 Q4), tự đăng ký từ 16 tuổi
+  (D-06), gửi email từ `no-reply@…` (E-02), chuyển dữ liệu UAT (E-01). Còn chờ owner: Resend Free hay Pro (E-02 Q2,
+  chỉ là cấu hình lúc deploy) và D-13. Thứ tự xây: [delivery.md](delivery.md).
 - **Chưa mở:** domain riêng cho games (D-13), quyền riêng tư/xoá/kiểm duyệt (E-07), observability (E-08), chống bot
   (E-09), checklist ra mắt (E-10).
 
@@ -420,7 +421,7 @@ sequenceDiagram
 | Mức | Bằng chứng | Bảng nhận |
 |---|---|---|
 | `reported` | Chỉ có con số client gửi | Trong account |
-| `checked` | Qua luật hợp lý theo giờ server | Trong account (cộng đồng nếu owner chọn — D-16 Q4) |
+| `checked` | Qua luật hợp lý theo giờ server | Trong account; cộng đồng với game chưa có replay, nhãn "chưa xác minh" (D-16 Q4) |
 | `verified` | Ván do server điều khiển, hoặc replay bằng seed server khớp điểm | Mọi bảng |
 | `held` | Một tín hiệu bắn — chờ admin; chính hồ sơ đó thấy "Đang được xem xét" | Không bảng công khai nào |
 | `rejected` | Bằng chứng cứng là sai, hoặc admin quyết | Không đâu cả |
@@ -433,9 +434,7 @@ owner chọn ở D-16 Q2). Tín hiệu v1: `Bounds`, `PersonalJump`, `Rate`, `Fa
 
 | Câu hỏi | Item |
 |---|---|
-| Bảng cộng đồng nhận `checked` cho game chưa có replay? (đề xuất: có, kèm nhãn "chưa xác minh") | [D-16](items/D-16-integrity-engine.md) Q4 |
-| Mốc tuổi N (đề xuất: 16, theo Luật Trẻ em) | [D-06](items/D-06-age-and-consent.md) |
-| Gửi từ `no-reply@…`; account Resend đang Free hay Pro | [E-02](items/E-02-transactional-email.md) Q1–Q2 |
+| Account Resend đang Free hay Pro (chỉ đổi cấu hình lúc deploy) | [E-02](items/E-02-transactional-email.md) Q2 |
 | Games origin trên domain riêng | D-13 (chưa mở) |
 
 ## 6. Rủi ro chưa có lời giải

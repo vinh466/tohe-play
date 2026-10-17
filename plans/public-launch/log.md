@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 — owner + agent (chat)
+
+- Owner: "ok rồi đó, theo đề xuất bạn có thể impl toàn bộ giúp tôi k, planning và làm những việc song song" → D-16 Q4,
+  D-06 (N = 16), E-02 (Q1), E-01 decided; E-02 Q2 (Resend Free/Pro) và D-13 còn chờ nhưng không chặn code.
+- Plan sang *Graduate*: [delivery.md](delivery.md) — 19 PR trong sáu lane, ADR 0021…0027, quy tắc merge migration
+  từng cái một. Agent bắt đầu A1.
+
 ## 2026-10-17 (khuya) — owner + agent (chat)
 
 - Owner: "ok ngu de xuat cua ban on nba" → D-17 decided (bỏ @handle, tên thoải mái có emoji, ID 12 số, tên vui ngẫu

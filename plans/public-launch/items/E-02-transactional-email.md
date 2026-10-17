@@ -1,6 +1,6 @@
 # E-02 — Hạ tầng email giao dịch
 
-- Status: **proposed** — cách làm được chấp nhận 2026-10-17 ("ok ngu de xuat cua ban on nba"); **còn chờ Q1, Q2**
+- Status: **decided** (2026-10-18, chat) — cách làm và Q1 (`Tò He <no-reply@…>`) theo đề xuất; **Q2 (Resend Free hay Pro) vẫn chờ owner**, không chặn code: hai nhánh chỉ khác cấu hình lúc deploy
 - Kind: enhancement — dịch vụ ngoài mới → ADR (ADR 0008: "A new framework, database, or service requires a new ADR")
 - Blocks: D-02 (mọi luồng gửi mã), D-12, E-04 (khối SMTP trong chart) · Blocked by: —
 - Decided: —

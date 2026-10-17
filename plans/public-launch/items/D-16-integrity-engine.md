@@ -1,6 +1,6 @@
 # D-16 — Engine độ tin: một nơi quyết định mỗi kết quả đáng tin tới đâu
 
-- Status: **decided** (2026-10-17, chat) — Q1–Q3 như đề xuất; **Q4 còn mở**
+- Status: **decided** (2026-10-17/18, chat) — Q1–Q4 như đề xuất
 - Kind: decision — module API mới (ADR khi graduate)
 - Blocks: D-10 (verifier đầu tiên), D-11 (luật phòng), T5 build, D-07 (hàng đợi xem xét) · Blocked by: D-09
 - Decided: owner, 2026-10-17, chat — xem *Decision*
@@ -144,7 +144,7 @@ Redis.
 - **Q1** Engine là một module của nền tảng (A) với phạm vi v1 như bảng trên — *đồng ý* (2026-10-17).
 - **Q2** Đưa xác minh replay của Ghép Khối (D-10) vào v1, trước ra mắt — *có* (2026-10-17).
 - **Q3** Người chơi thấy "Đang được xem xét" (minh bạch) thay vì xử lý âm thầm — *đồng ý* (2026-10-17).
-- **Q4** Bảng cộng đồng: chỉ `verified` như D-09, hay nhận cả `checked`? — **còn mở**, đề xuất bên dưới.
+- **Q4** Bảng cộng đồng: chỉ `verified` như D-09, hay nhận cả `checked`? — *theo đề xuất bên dưới* (2026-10-18).
 
 ### Q4 — đề xuất của agent (2026-10-17)
 
@@ -166,6 +166,10 @@ admin. Khi một game có replay, bảng cộng đồng của nó tự chuyển 
 
 **owner** (2026-10-17, chat): "ok ngu de xuat cua ban on nba" (ok, những đề xuất của bạn ổn nha) — chấp nhận Q1–Q3
 theo đề xuất. Q4 chưa có đề xuất cụ thể lúc owner trả lời, nên còn mở.
+
+**owner** (2026-10-18, chat): "ok rồi đó, theo đề xuất bạn có thể impl toàn bộ giúp tôi k" — Q4 theo đề xuất: mỗi game
+một chính sách; game chưa có replay thì bảng cộng đồng nhận `checked` kèm nhãn "chưa xác minh"; bảng toàn server chỉ
+nhận `verified`. D-09 sửa đúng một dòng tương ứng.
 
 ## Discussion
 
