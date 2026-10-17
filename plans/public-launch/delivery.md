@@ -20,9 +20,10 @@ Owner: "theo đề xuất bạn có thể impl toàn bộ giúp tôi k, planning
 | **C5** | Identity | Mời đích danh bằng ID, "ai được mời tôi", hồ sơ trẻ em "không tìm thấy" | (0023) | C1 | D-17 |
 | **D1** | Admin | App `apps/admin` ở `/admin`, `/api/admin` với tài liệu OpenAPI riêng, module chỉ đọc: tổng quan, game, sức khoẻ (telemetry), hệ thống | 0027 Platform admin and the first owner | — | D-07 |
 | **D2** | Admin | Vai trò → quyền, admin đầu tiên bằng setup token + CLI, 2FA (TOTP), audit log, xác thực lại cho thao tác nhạy cảm | (0027) | C2, D1 | D-07, D-08 |
-| **D3** | Admin | Người dùng, cài đặt đăng nhập (bật/tắt runtime), chế độ đăng ký + mã mời cộng đồng | (0027) | D2, C4 | D-07, D-12 |
-| **E1** | Độ tin | Engine `Integrity` (mức tin, chính sách bảng, `RoomVerifier`, tín hiệu `Bounds` / `PersonalJump` / `Rate` / `Farming`, `held` / `rejected`, audit) + bảng trong account / cộng đồng / toàn server, tuần + mọi lúc | 0028 Integrity engine and leaderboards by trust | C1 | D-09, D-11, D-16 |
-| **E2** | Độ tin | Run tính hạng: seed của server, kênh gửi nước đi, module xác minh, `ReplayVerifier`, conformance; Ghép Khối là game đầu tiên | 0029 Ranked runs (Game Contract) | E1 | D-10 |
+| **D3a** | Admin | Người dùng: tìm, tạm khoá, đăng xuất mọi nơi, vai trò, đổi tên hồ sơ (giữ lịch sử tên) | (0027) | D2 | D-07 |
+| **D3b** | Admin | Bật/tắt cách đăng nhập lúc chạy, chế độ đăng ký (mở / theo lời mời / đóng), cộng đồng + mã mời | 0028 Sign-in and registration at run time | D3a, C4 | D-04, D-12 |
+| **E1** | Độ tin | Engine `Integrity` (mức tin, chính sách bảng, `RoomVerifier`, tín hiệu `Bounds` / `PersonalJump` / `Rate` / `Farming`, `held` / `rejected`, audit) + bảng trong account / cộng đồng / toàn server, tuần + mọi lúc | 0029 Integrity engine and leaderboards by trust | C1 | D-09, D-11, D-16 |
+| **E2** | Độ tin | Run tính hạng: seed của server, kênh gửi nước đi, module xác minh, `ReplayVerifier`, conformance; Ghép Khối là game đầu tiên | 0030 Ranked runs (Game Contract) | E1 | D-10 |
 | **E3** | Độ tin | Hàng đợi "Chờ xem xét" trong admin, xem lại run bằng chính game | — | D2, E2 | D-16 |
 | **F1** | Public | Trang điều khoản và quyền riêng tư (bản nháp để owner duyệt), lưu phiên bản đồng ý, xoá hồ sơ / account có thời gian chờ, kiểm duyệt tên (từ dành riêng, từ thô tục, lịch sử tên) | — | C3 | E-07 |
 | **F2** | Public | `/metrics` + ServiceMonitor trong chart + cảnh báo tối thiểu | — | A2 | E-08 |
@@ -35,15 +36,15 @@ flowchart LR
   A2 --> F2
   B1 --> C2
   C1 --> C2 --> C3 --> F1
-  C2 --> C4 --> D3
+  C2 --> C4 --> D3b
   C1 --> C5
   C1 --> E1 --> E2 --> E3
-  D1 --> D2 --> D3
+  D1 --> D2 --> D3a --> D3b
   C2 --> D2
   D2 --> E3
   C2 --> F3
   A3 --> F4
-  D3 --> F4
+  D3b --> F4
   E3 --> F4
   F1 --> F4
   F2 --> F4
@@ -52,8 +53,8 @@ flowchart LR
 ## Chạy song song thế nào
 
 - **Bắt đầu được ngay, độc lập với nhau:** A1, B1, C1, D1. Sau đó: A2/A3 (release), C2→C3→C4 (identity), E1→E2 (độ tin),
-  D2→D3 (admin).
-- **Không chạy song song được:** các PR cùng thêm migration EF Core (C1, C2, C3, C4, D2, E1, E2) đụng chung
+  D2→D3a→D3b (admin).
+- **Không chạy song song được:** các PR cùng thêm migration EF Core (C1, C2, C3, C4, D2, D3a, D3b, E1, E2) đụng chung
   `ToheDbContextModelSnapshot.cs` — merge từng cái một, cái sau rebase lên cái trước. Tương tự với các file sinh ra
   (`services/api/openapi/`, `apps/hub/src/api/schema.gen.ts`): sinh lại sau khi rebase, không sửa tay.
 - **Mỗi lane một worktree và một nhánh**; plan này là bảng điều phối chung.
@@ -82,6 +83,8 @@ flowchart LR
 | C3 | `feat/identity-step-up-and-consent` (trên C2) | [#49](https://github.com/vinh466/tohe-play/pull/49) — CI xanh, chờ review; owner duyệt bản nháp Điều khoản + Quyền riêng tư (`apps/hub/src/legal/documents.ts`) |
 | C4 | `feat/identity-oauth-and-linking` (trên C3) | [#50](https://github.com/vinh466/tohe-play/pull/50) — CI xanh, chờ review; trước khi lên prod: OAuth app + secret (mục trên) |
 | D1 | `feat/admin-console-shell` (trên C4) | [#51](https://github.com/vinh466/tohe-play/pull/51) — CI xanh (smoke e2e cấp vai trò bằng lệnh thật rồi đi qua các trang), chờ review |
-| D2 | `feat/admin-setup-2fa-audit` (trên D1) | đang làm: setup mode, 2FA cho console, step-up, audit log chỉ ghi thêm |
+| D2 | `feat/admin-setup-2fa-audit` (trên D1) | [#52](https://github.com/vinh466/tohe-play/pull/52) — CI xanh (smoke e2e nhận quyền chủ bằng setup token thật, bật 2FA), chờ review |
+| D3a | `feat/admin-users` (trên D2) | [#53](https://github.com/vinh466/tohe-play/pull/53) — CI xanh, chờ review; có thêm bản sửa: tài khoản bị khoá không vào lại bằng quên mật khẩu hay gia hạn phiên |
+| D3b | `feat/signin-and-registration-settings` (trên D3a) | [#54](https://github.com/vinh466/tohe-play/pull/54) — chờ CI rồi review; trên UAT (chỉ email) thử chế độ theo lời mời bằng link mã trên điện thoại |
 
-Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.

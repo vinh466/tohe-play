@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (rạng sáng, tiếp) — agent
+
+- D2 #52: setup token → chủ đầu tiên, 2FA cho console, step-up, audit log chỉ ghi thêm (trigger); CI xanh sau hai lần sửa
+  (smoke nhận quyền chủ, tương phản nút). D3 tách đôi: D3a #53 người dùng; D3b #54 (ADR 0028) bật/tắt cách đăng nhập lúc
+  chạy, chế độ đăng ký, cộng đồng + mã mời — mọi cách tạo account đều theo. ADR dời số: E1 0029, E2 0030.
+- Làm D3b lộ lỗ ở D3a: tài khoản bị khoá vào lại bằng quên mật khẩu / gia hạn phiên → sửa trên #53 (4ae3697).
+- Chờ owner: review #43–#54. Agent kế tiếp: E1, xếp trên D3b.
+
 ## 2026-10-18 (rạng sáng) — agent
 
 - D1 #51 (ADR 0027): `apps/admin` ở `/admin/` trong image hub (CSP riêng, noindex), `/api/admin` với OpenAPI riêng, vai trò
