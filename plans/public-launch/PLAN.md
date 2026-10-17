@@ -15,16 +15,16 @@
 
 ## Next — one item
 
-**E1** ([delivery.md](delivery.md)): engine `Integrity` — mức tin, chính sách bảng, `RoomVerifier`, các tín hiệu,
-`held` / `rejected`, bảng trong account / cộng đồng / toàn server (D-09, D-11, D-16), ADR 0029 — xếp trên D3b (#54), có
-migration. Đã mở: #43–#54 ([trạng thái](delivery.md#trạng-thái)).
+**E1b** ([delivery.md](delivery.md)): bảng công khai — cộng đồng và toàn server theo mức tin, top 50 + quanh tôi, công
+tắc "hiện trên bảng công khai" của hồ sơ với "Tôi đã hỏi ý bé" (D-01, D-06, D-09), trong ADR 0029 — xếp trên E1a (#55),
+có migration. Đã mở: #43–#55 ([trạng thái](delivery.md#trạng-thái)).
 
 ## Waiting on the owner
 
 1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? Không chặn code; cần trước khi C2 lên UAT.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54); nói "deploy" cho
-   mỗi lần lên UAT.
+3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55); nói
+   "deploy" cho mỗi lần lên UAT.
 4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).
 5. Duyệt bản nháp Điều khoản + Quyền riêng tư (#49; #50 thêm phần đăng nhập bằng provider), điền cách liên hệ người vận hành.
 6. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).
@@ -65,6 +65,6 @@ Item chưa có link = chưa mở file; file được tạo khi item rời `open`
 
 ## Graduation list
 
-Chốt ở [delivery.md](delivery.md): 20 pull request trong sáu lane (A release · B email · C identity · D admin · E độ tin ·
-F public; D3 tách thành D3a và D3b), mỗi PR mang ADR và docs của nó — ADR 0021…0030; số được cấp khi PR mở (C2 0024,
-C3 0025, D3b 0028).
+Chốt ở [delivery.md](delivery.md): 21 pull request trong sáu lane (A release · B email · C identity · D admin · E độ tin ·
+F public; D3 và E1 mỗi cái tách đôi), mỗi PR mang ADR và docs của nó — ADR 0021…0030; số được cấp khi PR mở (C2 0024,
+C3 0025, D3b 0028, E1a 0029).

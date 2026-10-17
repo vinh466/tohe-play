@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (sáng) — agent
+
+- D3b #54 CI xanh. E1 tách đôi như D3: E1a #55 (ADR 0029) — engine `Integrity`: mức tin theo bằng chứng, luật v1, nhật ký
+  quyết định chỉ ghi thêm, ván phòng `verified` (ít hơn hai người thật thì không lên bảng công khai), bảng account theo
+  tuần lịch Việt Nam; E1b (bảng công khai, công tắc hồ sơ) xếp trên. Tự review: run đã `held` không tự `checked` lại.
+- Chờ owner: review #43–#55. Agent kế tiếp: E1b.
+
 ## 2026-10-18 (rạng sáng, tiếp) — agent
 
 - D2 #52: setup token → chủ đầu tiên, 2FA cho console, step-up, audit log chỉ ghi thêm (trigger); CI xanh sau hai lần sửa
