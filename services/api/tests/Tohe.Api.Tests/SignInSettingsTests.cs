@@ -76,11 +76,21 @@ public sealed class SignInSettingsTests(ApiFactory factory) : IClassFixture<ApiF
     public async Task A_provider_switched_off_is_not_offered_and_does_not_sign_in()
     {
         var owner = await Admins.NewAsync(factory, "owner", _app);
+        // A sign-in with Fake that waits for proof to join the account with its address…
+        var email = Accounts.NewEmail();
+        await Accounts.SignUpAsync(factory, _app.CreateClient(), "Người chơi", email);
+        var browser = NoRedirects();
+        Assert.Equal("/sign-in/continue", await FakeProvider.ComeBackAsync(browser, Guid.NewGuid().ToString("N"), email, verified: true));
+
         Assert.Equal(HttpStatusCode.OK, (await SaveAsync(owner, new { methods = new { fake = false } })).StatusCode);
 
         Assert.Empty((await _app.CreateClient().GetFromJsonAsync<ClientConfig>(Url("/api/config"), Ct))!.Providers);
         var start = await NoRedirects().GetAsync(Url("/api/auth/external/fake"), Ct);
         Assert.Equal("/welcome?external=disabled", start.Headers.Location!.OriginalString);
+        // …links nothing and signs nobody in once Fake is off.
+        var link = await browser.PostAsJsonAsync(Url("/api/auth/external/pending/link"), new { password = Accounts.Password }, Ct);
+        Assert.Equal("method_disabled", await CodeOfAsync(link));
+        Assert.Equal(HttpStatusCode.NoContent, (await browser.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
 
         Assert.Equal(HttpStatusCode.OK, (await SaveAsync(owner, new { methods = new { fake = true } })).StatusCode);
         Assert.Single((await _app.CreateClient().GetFromJsonAsync<ClientConfig>(Url("/api/config"), Ct))!.Providers);

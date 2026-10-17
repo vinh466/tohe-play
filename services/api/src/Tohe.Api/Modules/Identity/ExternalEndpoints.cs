@@ -290,6 +290,7 @@ internal static class ExternalEndpoints
         SessionWriter session,
         MeQueries me,
         TimeProvider clock,
+        ISignInSettings settings,
         CancellationToken ct)
     {
         var attempt = await PendingAsync(http, protection, db, clock, ct);
@@ -323,7 +324,7 @@ internal static class ExternalEndpoints
         // An account signs in with the address: our code was the proof, so the provider joins it now (D-03).
         if (await users.FindByEmailAsync(attempt.Email) is { } account)
         {
-            return await FinishLinkAsync(http, attempt, account, attempts, users, outbox, db, session, me, ct);
+            return await FinishLinkAsync(http, attempt, account, attempts, users, outbox, db, session, me, settings, ct);
         }
 
         return TypedResults.Ok(new ExternalOutcome(null, await ViewAsync(attempt, users)));
@@ -381,6 +382,7 @@ internal static class ExternalEndpoints
         SessionWriter session,
         MeQueries me,
         TimeProvider clock,
+        ISignInSettings settings,
         CancellationToken ct)
     {
         var attempt = await PendingAsync(http, protection, db, clock, ct);
@@ -421,7 +423,7 @@ internal static class ExternalEndpoints
             return Problems.Field("code", "proof_required");
         }
 
-        return await FinishLinkAsync(http, attempt, account, attempts, users, outbox, db, session, me, ct);
+        return await FinishLinkAsync(http, attempt, account, attempts, users, outbox, db, session, me, settings, ct);
     }
 
     private static async Task<Results<Ok<ExternalOutcome>, ValidationProblem, ProblemHttpResult>> SignUpAsync(
@@ -607,8 +609,15 @@ internal static class ExternalEndpoints
         ToheDbContext db,
         SessionWriter session,
         MeQueries me,
+        ISignInSettings settings,
         CancellationToken ct)
     {
+        // Switched off since this sign-in began (ADR 0028): no link, no session.
+        if (!await settings.IsOnAsync(attempt.Provider!, ct))
+        {
+            return Problems.MethodDisabled();
+        }
+
         if (account.SuspendedAt is not null)
         {
             return Problems.AccountSuspended();
