@@ -40,7 +40,11 @@ internal static class Problems
         Of(StatusCodes.Status429TooManyRequests, "locked_out", "Too many wrong attempts; try again in a few minutes");
 
     public static ProblemHttpResult ParentGateRequired() =>
-        Of(StatusCodes.Status403Forbidden, "parent_gate_required", "Re-enter the password to manage the account's profiles");
+        Of(StatusCodes.Status403Forbidden, "parent_gate_required", "Enter the manage PIN to manage the account's profiles");
+
+    /// <summary>Account security changes need step-up level 2 on this device: the password, or a code by email.</summary>
+    public static ProblemHttpResult StepUpRequired() =>
+        Of(StatusCodes.Status403Forbidden, "step_up_required", "Prove it is the account's owner first");
 
     public static ValidationProblem Field(string field, string code) =>
         TypedResults.ValidationProblem(new Dictionary<string, string[]> { [field] = [code] });

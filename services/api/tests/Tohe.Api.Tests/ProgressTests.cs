@@ -153,8 +153,7 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
 
     private static async Task UnlockAsync(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        await Accounts.StepUpAsync(client);
     }
 
     private static async Task<ProfileView> AddChildAsync(HttpClient client, string name)

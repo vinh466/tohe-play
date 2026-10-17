@@ -6,7 +6,7 @@ namespace Tohe.Api.Modules.Identity;
 
 /// <summary>
 /// Someone who signs in. An account owns the profiles that play (ADR 0023); children only ever have profiles, made and
-/// managed by the account behind the parent gate.
+/// managed by the account behind its manage PIN (ADR 0025).
 /// </summary>
 public sealed class Account : IdentityUser<Guid>
 {
@@ -16,6 +16,19 @@ public sealed class Account : IdentityUser<Guid>
     public bool TelemetryEnabled { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>The six-digit manage PIN that opens profile management (step-up level 1, ADR 0025), hashed.</summary>
+    public string? ManagePinHash { get; set; }
+
+    /// <summary>Wrong manage PINs in a row; the fifth locks it for five minutes.</summary>
+    public int ManagePinFailures { get; set; }
+
+    public DateTimeOffset? ManagePinLockedUntil { get; set; }
+
+    /// <summary>The version of the terms and privacy notice the account's owner accepted, at 16 or older.</summary>
+    public string? TermsVersion { get; set; }
+
+    public DateTimeOffset? TermsAcceptedAt { get; set; }
 }
 
 internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
@@ -31,6 +44,7 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
             .IsUnique()
             .HasFilter("normalized_email IS NOT NULL");
         builder.Property(account => account.TelemetryEnabled).HasDefaultValue(true);
+        builder.Property(account => account.TermsVersion).HasMaxLength(Consent.MaxVersionLength);
     }
 }
 

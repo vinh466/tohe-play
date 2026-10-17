@@ -544,8 +544,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
 
     private static async Task UnlockAsync(Person person)
     {
-        var response = await person.Client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        await Accounts.StepUpAsync(person.Client);
     }
 
     private static async Task<RoomView> CreateAsync(Person person, object request)

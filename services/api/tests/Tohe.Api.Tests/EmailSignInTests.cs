@@ -120,7 +120,7 @@ public sealed class EmailSignInTests(ApiFactory factory) : IClassFixture<ApiFact
         var client = factory.CreateClient();
         var response = await client.PostAsJsonAsync(
             Url("/api/auth/register"),
-            new { email = email.ToUpperInvariant(), password = "mat-khau-cua-ke-la", displayName = "Kẻ lạ" },
+            new { email = email.ToUpperInvariant(), password = "mat-khau-cua-ke-la", displayName = "Kẻ lạ", acceptTerms = true, termsVersion = Accounts.TermsVersion },
             Ct);
 
         Assert.Equal(HttpStatusCode.Accepted, response.StatusCode);
@@ -226,10 +226,10 @@ public sealed class EmailSignInTests(ApiFactory factory) : IClassFixture<ApiFact
         var email = Accounts.NewEmail();
 
         var noProof = await client.PostAsJsonAsync(Url("/api/account/email"), new { email }, Ct);
-        Assert.Equal("parent_gate_required", await CodeOfAsync(noProof));
+        Assert.Equal("step_up_required", await CodeOfAsync(noProof));
         var wrongProof = await client.PostAsJsonAsync(Url("/api/account/email"), new { email, password = "sai-mat-khau" }, Ct);
         Assert.Equal("password_invalid", await CodeOfAsync(wrongProof));
-        await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
+        await Accounts.StepUpAsync(client);
         var same = await client.PostAsJsonAsync(Url("/api/account/email"), new { email = old.ToUpperInvariant() }, Ct);
         Assert.Contains("email_unchanged", (await ErrorsAsync(same))["email"]);
 
@@ -299,7 +299,9 @@ public sealed class EmailSignInTests(ApiFactory factory) : IClassFixture<ApiFact
 
         Assert.False((await client.GetFromJsonAsync<ClientConfig>(Url("/api/config"), Ct))!.Email);
         var register = await client.PostAsJsonAsync(
-            Url("/api/auth/register"), new { email = Accounts.NewEmail(), password = Password, displayName = "Bố" }, Ct);
+            Url("/api/auth/register"),
+            new { email = Accounts.NewEmail(), password = Password, displayName = "Bố", acceptTerms = true, termsVersion = Accounts.TermsVersion },
+            Ct);
         Assert.Equal((HttpStatusCode.ServiceUnavailable, "email_unavailable"), (register.StatusCode, await CodeOfAsync(register)));
         var forgot = await client.PostAsJsonAsync(Url("/api/auth/password/forgot"), new { email = Accounts.NewEmail() }, Ct);
         Assert.Equal("email_unavailable", await CodeOfAsync(forgot));
@@ -329,7 +331,10 @@ public sealed class EmailSignInTests(ApiFactory factory) : IClassFixture<ApiFact
         client.PostAsJsonAsync(Url("/api/account/email/confirm"), new { attemptId = attempt, code }, Ct);
 
     private static Task<HttpResponseMessage> StartAgainAsync(HttpClient client, string email) =>
-        client.PostAsJsonAsync(Url("/api/auth/register"), new { email, password = Password, displayName = "Bố" }, Ct);
+        client.PostAsJsonAsync(
+            Url("/api/auth/register"),
+            new { email, password = Password, displayName = "Bố", acceptTerms = true, termsVersion = Accounts.TermsVersion },
+            Ct);
 
     private Task<HttpResponseMessage> LoginAsync(string email, string password) =>
         factory.CreateClient().PostAsJsonAsync(Url("/api/auth/login"), new { email, password }, Ct);
