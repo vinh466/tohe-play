@@ -8,6 +8,8 @@ sidebar:
 - **Status:** Accepted
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0011](0011-password-sign-in-first.md) — OAuth arrives, as more ways into the same accounts
+- **Amended by:** [ADR 0028](0028-sign-in-and-registration-at-run-time.md) — a provider with secrets can still be
+  switched off from the admin console, and its first sign-in obeys the registration mode
 
 ## Context
 

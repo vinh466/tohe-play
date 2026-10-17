@@ -20,6 +20,8 @@ erDiagram
   PROFILE ||--|{ PROFILE_NAME : "was called"
   ACCOUNT ||--o{ ACCOUNT_LOGIN : "signs in with"
   ACCOUNT ||--o{ AUTH_ATTEMPT : "resets, email changes"
+  COMMUNITY |o--o{ ACCOUNT : "brought in"
+  COMMUNITY ||--o{ INVITE_CODE : "hands out"
   ACCOUNT {
     uuid id
     string email "unique, verified, signs in"
@@ -31,6 +33,19 @@ erDiagram
     string terms_version "accepted at 16 or older"
     bool telemetry_enabled "ADR 0015"
     timestamp suspended_at "suspended from the admin console: no way in"
+    uuid community_id "the community its invite code was for (ADR 0028)"
+    string invite_code "the code it signed up with"
+  }
+  COMMUNITY {
+    uuid id
+    string name "unique, up to 64 characters"
+  }
+  INVITE_CODE {
+    string code "4 to 32 of A-Z, 0-9 and -"
+    timestamp expires_at "optional"
+    int max_uses "optional"
+    int uses "counted in the transaction that makes the account"
+    timestamp revoked_at "never used again"
   }
   ACCOUNT_LOGIN {
     string login_provider "google, github, oidc"
@@ -56,6 +71,7 @@ erDiagram
     string purpose "sign-up, reset, email change, step-up, provider sign-in"
     string email "where the code went"
     string provider "provider sign-in: which one, and its subject"
+    string invite_code "signing up: the code typed, checked again at the end"
     bool email_proven "provider sign-in: the address is proven"
     string code_hash "none for a decoy"
     int tries_left "5"
@@ -75,11 +91,14 @@ erDiagram
   swapped neighbours never point at another profile. It never changes and is not a secret — an address, never a way to
   sign in (`ProfileIds`, mirrored in the hub's `session/profileIds.ts`).
 - **Names** are free and not unique: the ID tells profiles apart. See [Names](#names).
+- A **community** is a group an invite code belongs to. An account remembers the community it came with, one for now
+  ([Registration](#registration)).
 - An **attempt** waits for a code sent by email — signing up, a forgotten password, a new sign-in email — or for the
   last step of a sign-in back from a provider.
 - Saves and scores belong to a profile; boards show the profiles of one account.
 
-Tables live in the `identity` schema (`accounts`, `account_logins`, `profiles`, `profile_names`, `auth_attempts`). Data Protection keys (used to encrypt
+Tables live in the `identity` schema (`accounts`, `account_logins`, `profiles`, `profile_names`, `auth_attempts`,
+`communities`, `invite_codes`); the console's switches in `admin.settings` ([Admin console](admin.md#sign-in-and-registration)). Data Protection keys (used to encrypt
 session cookies) live in `platform.data_protection_keys`.
 
 ## Signing up
@@ -91,9 +110,10 @@ sequenceDiagram
   participant H as Hub
   participant A as API
   participant M as Email outbox
-  U->>H: email, a name, a password — and "16 or older, I accept the terms"
-  H->>A: POST /api/auth/register {…, acceptTerms, termsVersion}
-  A->>A: email on? · limits per IP and per address · password, name and consent rules
+  U->>H: email, a name, a password, an invite code if any — and "16 or older, I accept the terms"
+  H->>A: POST /api/auth/register {…, inviteCode, acceptTerms, termsVersion}
+  A->>A: email and password on? · email sent? · limits per IP and per address · password, name and consent rules
+  A->>A: the registration mode and the code (Registration) — else 403 registration_closed, 400 invite_required or invite_invalid
   alt the address has no account
     A->>A: attempt {code hash, password hash, name, 15 min, 5 tries}
     A->>M: "Mã đăng ký Tò He: 482 913" + a link
@@ -105,8 +125,10 @@ sequenceDiagram
   U->>H: the code (or the link, opened on any device)
   H->>A: POST /api/auth/register/confirm {attemptId, code}
   alt right code, open attempt, address still free
-    A->>A: the account (email confirmed) and its first profile, in one transaction
+    A->>A: in one transaction: the mode and the code once more, the code counted, the account (email confirmed, its community) and its first profile
     A-->>H: 200 + session cookie, playing as that profile
+  else registration closed, or the code used up or revoked, since it started
+    A-->>H: 403 registration_closed or invite_invalid — nothing made
   else wrong code
     A-->>H: 400 code_invalid {triesLeft} — the fifth wrong one closes the attempt
   else expired, used, out of tries, or the address was taken meanwhile
@@ -118,6 +140,40 @@ There is no "unverified" account: the password, the name and the accepted terms 
 comes back. Under 16, a child plays as a profile a parent makes (ADR 0023) instead of signing up. Since a code opens only
 the attempt it was sent for, someone who signed up first with another person's address cannot use the code that
 person receives, and the owner's own attempt is unaffected by theirs.
+
+## Registration
+
+Who may make an account is the admin console's ([ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md),
+[Admin console](admin.md#sign-in-and-registration)): `open`, `invite` or `closed`. Every way an account is made obeys
+it — signing up by email when it starts and when its code comes back, and the first sign-in with a provider.
+
+```mermaid
+flowchart TD
+  new["Someone signs up: by email, or the first time with a provider"] --> mode{"The registration mode"}
+  mode -- closed --> closed["403 registration_closed<br/>accounts already made sign in as usual"]
+  mode -- open --> typed1{"A code typed?"}
+  mode -- invite --> typed2{"A code typed?"}
+  typed1 -- no --> plain["Goes on, without a community"]
+  typed2 -- no --> required["400 invite_required"]
+  typed1 -- yes --> usable{"Usable? Not revoked,<br/>not past its end, uses left"}
+  typed2 -- yes --> usable
+  usable -- no --> invalid["400 invite_invalid"]
+  usable -- yes --> later["Goes on: the code waits in the attempt,<br/>or is sent with the provider's sign-up step"]
+  plain --> made
+  later --> made{"When the account is made, in its transaction:<br/>the mode and the code once more"}
+  made -- "closed, used up or revoked meanwhile" --> late["403 registration_closed or invite_invalid<br/>nothing made, nothing counted"]
+  made -- "still good" --> joined["The code counted, the account made<br/>with its community and code"]
+```
+
+- A code is 4 to 32 letters A–Z, digits and dashes; what is typed is trimmed and upper-cased. A code typed must be
+  usable in every mode, so a typo never silently leaves someone outside the community they were invited to.
+- The code is counted by one `UPDATE … SET uses = uses + 1 WHERE … uses < max_uses` in the transaction that makes the
+  account: two people using its last use at the same moment get one account and one `invite_invalid`.
+- Codes travel as links, `/register?invite=CODE`. The hub fills the field from it and keeps the code on that tab
+  (`sessionStorage`, `tohe.invite`) through a trip to a provider, for the provider's sign-up step; it forgets the code
+  once an account is made.
+- The hub reads the mode from `GET /api/config`: by invite, the code field comes first and is needed; open, it comes
+  last and is welcome; closed, the sign-up pages say so and the welcome page stops offering "Tạo tài khoản".
 
 ## One-time codes
 
@@ -141,7 +197,9 @@ code alone. Attempts a day past their end are deleted when the next one starts.
 flowchart TD
   start["Email — or an old account's username — and password"] --> rl{"Under the per-IP limit?"}
   rl -- no --> slow["429"]
-  rl -- yes --> find{"An account signs in with it<br/>and has a password?"}
+  rl -- yes --> on{"Email and password on?<br/>(the admin console)"}
+  on -- no --> off["403 method_disabled"]
+  on -- yes --> find{"An account signs in with it<br/>and has a password?"}
   find -- no --> miss["401 invalid_credentials<br/>(after hashing anyway: a miss takes as long as a wrong password)"]
   find -- yes --> lock{"Locked out?<br/>10 wrong in a row → 5 min"}
   lock -- yes --> locked["429 locked_out"]
@@ -160,12 +218,15 @@ and sends the password just typed along as the proof; once the code comes back, 
 
 ## Signing in with a provider
 
-Production only: a deployment offers the providers it has secrets for ([Configuration](../guides/configuration.md#api)),
-and the hub shows "Tiếp tục với …" for each on the sign-in and sign-up screens.
+Production only: a deployment offers the providers it has secrets for ([Configuration](../guides/configuration.md#api))
+and the admin console has on (ADR 0028), and the hub shows "Tiếp tục với …" for each on the sign-in and sign-up
+screens.
 
 ```mermaid
 flowchart TD
-  go["Tiếp tục với Google, GitHub or the issuer"] --> out["GET /api/auth/external/{provider}<br/>to the provider with state, nonce and PKCE"]
+  go["Tiếp tục với Google, GitHub or the issuer"] --> on{"The provider on?<br/>(the admin console)"}
+  on -- no --> disabled["/welcome?external=disabled"]
+  on -- yes --> out["GET /api/auth/external/{provider}<br/>to the provider with state, nonce and PKCE"]
   out --> provider{"The provider"}
   provider -- "cancelled or refused" --> failed["/welcome?external=failed"]
   provider -- "signed in" --> back["Back on …/callback with a code, as a GET<br/>code + verifier → its subject, and an address if it verified one"]
@@ -179,7 +240,7 @@ flowchart TD
   has1 -- yes --> link["Link (provider, subject)<br/>email: method linked"]
   has2 -- yes --> proof["Its owner proves it:<br/>a code to the address, or the password"]
   proof --> link
-  has1 -- no --> signup["A name, and 16 or older with the terms"]
+  has1 -- no --> signup["A name, an invite code when one is needed,<br/>and 16 or older with the terms (Registration)"]
   has2 -- no --> signup
   signup --> create["The account, without a password, address confirmed,<br/>with its link and first profile, in one transaction"]
   link --> signin
@@ -194,6 +255,8 @@ flowchart TD
   one; "Huỷ" closes it.
 - OpenID Connect answers in the query, as a GET: the same-origin guard, which refuses cross-site POSTs to `/api`,
   stays whole.
+- The provider is asked about again when it comes back and at every step after: switched off meanwhile, nothing is
+  linked and nothing is made (`method_disabled`; `/welcome?external=disabled` for the navigation back).
 
 ## Proof before a link
 
@@ -245,6 +308,7 @@ sequenceDiagram
   participant M as Email outbox
   U->>H: email
   H->>A: POST /api/auth/password/forgot
+  A->>A: email and password on? — else 403 method_disabled, for the reset below too (ADR 0028)
   alt an account signs in with it
     A->>A: attempt {code hash, 15 min, 5 tries}
     A->>M: "Mã đặt lại mật khẩu Tò He" + a link
@@ -307,6 +371,13 @@ flowchart TD
   left -- no --> last["409 last_method"]
   left -- yes --> remove["Unlink · new security stamp, other sessions end<br/>email: method unlinked"]
 ```
+
+Which methods exist is the deployment's — a provider needs its secrets; which are on is the admin console's
+([ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md), [Admin console](admin.md#sign-in-and-registration)).
+A method switched off signs nobody in and makes no account: not by a forgotten password, not by finishing a provider
+sign-in begun before. Nothing else changes — a provider stays linked, a password stays set, and step-up still accepts
+the password. `GET /api/config` tells the hub what is on; a link to a provider that is off ends at
+`/account?link_error=method_disabled`.
 
 A link starts only from the hub: another site navigating a signed-in browser to the start address carries its session
 cookie too, so the API refuses a start that `Sec-Fetch-Site` marks as coming from elsewhere. An account made with a
@@ -405,6 +476,8 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | Linking and unlinking need step-up level 2; a link starts only from the hub's page (`Sec-Fetch-Site`); unlinking never removes the last way in and ends the other sessions; the account's address hears of both | `ExternalEndpoints` |
 | Providers answer with a GET (OpenID Connect in the query), and every one of them uses PKCE | `ExternalProviders` |
 | A suspended account has no way in — password, provider, finishing a link, a new password by email — and hears why only after proving it is theirs; its sessions end with the new security stamp, and none is written for it | `AuthEndpoints`, `ExternalEndpoints`, `SessionWriter`, `AccountsAdmin` |
+| A method switched off in the console signs nobody in and makes no account — nor does a forgotten password, nor finishing a provider sign-in begun before | `AuthEndpoints`, `ExternalEndpoints`, `RuntimeSettings` |
+| Every way an account is made obeys the registration mode and checks it again when the account is made; an invite code is counted in that transaction, so its limit holds when people use it at the same moment | `Invites`, `AuthEndpoints`, `ExternalEndpoints` |
 | Every name a profile had is kept, whoever renamed it | The `profiles_name_history` trigger on `identity.profiles` |
 | Managing the account's profiles needs step-up level 1: the manage PIN within the last 10 minutes, or level 2 | The parent-gate endpoint filter on `/api/account` and `/api/profiles/*` (`ProfileEndpoints.Gated`) |
 | The manage PIN is six digits, hashed; five wrong in a row lock it for five minutes | `SessionEndpoints`, `ManagePins` |
@@ -430,7 +503,7 @@ device). The first time a real profile is chosen on that device, the hub offers 
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `POST /api/auth/register` | — | Start signing up: a code to the email — 202 and an attempt, whoever the address belongs to |
+| `POST /api/auth/register` | — | Start signing up, with an invite code when [registration](#registration) needs one: a code to the email — 202 and an attempt, whoever the address belongs to |
 | `POST /api/auth/register/confirm` | — | The code creates the account and its first profile, which plays at once |
 | `POST /api/auth/login` / `POST /api/auth/logout` | — / session | Sign in with the email (an old account's username until it adds one) / out |
 | `POST /api/auth/password/forgot` | — | A code to set a new password, if the address has an account — 202 either way |
@@ -439,7 +512,7 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `GET /api/auth/external/pending` | the browser that came back | The step that waits — `email`, `link` or `signup` — or 404 |
 | `POST /api/auth/external/pending/email` · `/email/confirm` | the browser that came back | A code to the address typed · the code proves it; an account with it is linked at once |
 | `POST /api/auth/external/pending/link-code` · `/link` | the browser that came back | A code to the account's address · the code, or the password, links and signs in |
-| `POST /api/auth/external/pending/signup` | the browser that came back | A name and the terms create the account; its first profile plays at once |
+| `POST /api/auth/external/pending/signup` | the browser that came back | A name, the terms and an invite code when needed create the account; its first profile plays at once |
 | `DELETE /api/auth/external/pending` | the browser that came back | Forget the sign-in that waits |
 | `GET /api/auth/me` | session | Account (with its email, linked providers and platform role — [Admin console](admin.md)), its profiles (with public IDs), active profile, step-up expiries |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
@@ -457,7 +530,9 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`) / remove a profile — never the last |
 
 `GET /api/config` says whether the server sends email (`email`) — without it, nothing that needs a code starts
-(`email_unavailable`) — and which providers it offers (`providers`: an `id` and the name on the button).
+(`email_unavailable`) — which providers it offers (`providers`: an `id` and the name on the button, only those on),
+whether email and password are on (`passwordSignIn`) and the registration mode (`registration`: `open`, `invite` or
+`closed`).
 
 Errors are problem details; a machine-readable `code` lets the hub show a Vietnamese message: `invalid_credentials`,
 `locked_out`, `email_invalid`, `email_unavailable`, `email_unchanged`, `code_invalid` (with `triesLeft`),
@@ -465,9 +540,10 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `pin_invalid`, `parent_gate_required`, `step_up_required`, `manage_pin_not_set`, `manage_pin_invalid`,
 `password_not_set`, `email_required`, `terms_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
 `name_too_long`, `name_reserved`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
-`last_method`, `account_suspended`. Navigations answer with a redirect instead: `/welcome?external=failed` (the provider
-refused, or was cancelled), `/welcome?external=suspended`, `/account?linked={provider}`, or `/account?link_error=` `step_up_required`, `provider_account_in_use` or
-`cross_origin`.
+`last_method`, `account_suspended`, `method_disabled`, `registration_closed`, `invite_required`, `invite_invalid`.
+Navigations answer with a redirect instead: `/welcome?external=failed` (the provider refused, or was cancelled),
+`/welcome?external=suspended`, `/welcome?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`
+`step_up_required`, `provider_account_in_use`, `cross_origin` or `method_disabled`.
 
 ## From households
 
