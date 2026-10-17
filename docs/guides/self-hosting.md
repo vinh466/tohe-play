@@ -16,14 +16,21 @@ walks through an install. What each image reads: [Configuration](configuration.m
 - Three hostnames pointing at the ingress: the hub, the games origin and the site. The games origin must be a
   different host from the hub's ([ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md)). HTTPS
   is strongly advised: the session cookie is only `Secure` on an `https` hub URL.
-- The images. Build and push them to a registry your cluster can pull from:
+- Nothing to build. CI publishes every commit on `main` that passed its checks: the four images,
+  `ghcr.io/vinh466/tohe-play/<api|hub|games|site>:sha-<commit>`, and the chart,
+  `oci://ghcr.io/vinh466/charts/tohe` with version `<x.y.z>-g<short commit>`, whose images default to its own
+  commit's. Both are public; the versions are listed under the repository's **Packages** on GitHub.
+
+Your own build instead — a fork, a patch — goes to a registry your cluster can pull from, and the chart is told
+where:
 
 ```sh
 docker build -f deploy/docker/api.Dockerfile -t registry.example.org/tohe/api:1 .
 for target in hub games site; do
   docker build -f deploy/docker/web.Dockerfile --target "$target" -t "registry.example.org/tohe/$target:1" .
 done
-# docker push … each of the four
+# docker push … each of the four, then add to the commands below:
+#   --set global.image.registry=registry.example.org --set global.image.repository=tohe --set global.image.tag=1
 ```
 
 ## From scratch
@@ -32,11 +39,11 @@ The chart's own PostgreSQL (`infra.postgres.mode: builtin`) and its own Secret. 
 the secrets in:
 
 ```sh
-helm install tohe deploy/helm/tohe --namespace tohe --create-namespace \
+helm install tohe oci://ghcr.io/vinh466/charts/tohe --version 0.1.0-g1a2b3c4 \
+  --namespace tohe --create-namespace \
   --set publicUrls.hub=https://tohe.example.org \
   --set publicUrls.games=https://tohe-games.example.org \
   --set publicUrls.site=https://tohe-site.example.org \
-  --set global.image.registry=registry.example.org --set global.image.repository=tohe --set global.image.tag=1 \
   --set secrets.values.postgresPassword="$(openssl rand -hex 24)" \
   --wait --timeout 10m
 helm --namespace tohe test tohe
@@ -96,7 +103,8 @@ The API never needs `X-Forwarded-Proto` to know it is on HTTPS: `publicUrls.hub`
 
 ## Updating
 
-`helm upgrade` with a new `global.image.tag`. The API stops before the new one starts (one instance — online rooms
+`helm upgrade` to a newer chart version (its images come with it), or with a new `global.image.tag` on the same
+chart. The API stops before the new one starts (one instance — online rooms
 live in its memory) and migrates the database on start; open rooms rebuild from PostgreSQL
 ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)). Take a backup first if you run the builtin
 database.
