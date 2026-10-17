@@ -40,3 +40,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0024](0024-email-identifies-an-account.md) | Email identifies an account; a code opens only the attempt it was sent for | Accepted; email change behind step-up by 0025 |
 | [0025](0025-step-up-in-two-levels-and-consent-at-sign-up.md) | Step up in two levels; sign up at 16 or older, accepting the terms | Accepted |
 | [0026](0026-sign-in-methods-and-account-linking.md) | Sign in with Google, GitHub or an OpenID Connect issuer; link a provider by its subject, after proof | Accepted |
+| [0027](0027-platform-admin-and-the-first-owner.md) | Run the platform from an admin console on the hub's origin; roles grant permissions; a setup token makes the first owner | Accepted |

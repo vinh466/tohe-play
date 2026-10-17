@@ -426,7 +426,7 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `POST /api/auth/external/pending/link-code` · `/link` | the browser that came back | A code to the account's address · the code, or the password, links and signs in |
 | `POST /api/auth/external/pending/signup` | the browser that came back | A name and the terms create the account; its first profile plays at once |
 | `DELETE /api/auth/external/pending` | the browser that came back | Forget the sign-in that waits |
-| `GET /api/auth/me` | session | Account (with its email and linked providers), its profiles (with public IDs), active profile, step-up expiries |
+| `GET /api/auth/me` | session | Account (with its email, linked providers and platform role — [Admin console](admin.md)), its profiles (with public IDs), active profile, step-up expiries |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
 | `POST /api/session/parent-gate` / `DELETE` | session | The manage PIN opens profile management / lock both levels |
 | `POST /api/session/step-up` | session | Level 2 with the password (opens level 1 too) |
