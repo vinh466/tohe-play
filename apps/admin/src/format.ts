@@ -34,6 +34,9 @@ export function since(iso: string, now: Date = new Date()): string {
   return `${Math.floor(seconds / 86_400)} ngày`;
 }
 
+/** A profile's public ID as people read it, `123456789012` → `1234 5678 9012` (ADR 0023). */
+export const publicId = (id: string) => id.replace(/(\d{4})(?=\d)/g, '$1 ');
+
 /** The platform roles in Vietnamese (ADR 0027). */
 export const roleName = (role: string) =>
   ({ owner: 'Chủ', admin: 'Quản trị viên', moderator: 'Kiểm duyệt viên', viewer: 'Người xem' })[role] ?? role;

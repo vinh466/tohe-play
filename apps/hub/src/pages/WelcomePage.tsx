@@ -108,7 +108,7 @@ function SignIn() {
         <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
         {external ? (
           <p role="alert" className="text-danger">
-            {t('external.failed')}
+            {external === 'suspended' ? t('errors.accountSuspended') : t('external.failed')}
           </p>
         ) : null}
         <TextField

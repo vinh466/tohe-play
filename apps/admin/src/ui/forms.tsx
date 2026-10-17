@@ -81,6 +81,17 @@ const reasons: Record<string, string> = {
   email_required: 'Tài khoản cần có email đã xác nhận trước.',
   step_up_required: 'Cần xác nhận lại là bạn.',
   authenticator_not_set_up: 'Tạo khoá trước đã.',
+  admin_self: 'Không làm việc này trên tài khoản của chính bạn ở đây.',
+  admin_rank: 'Tài khoản này có vai trò ngang hoặc cao hơn bạn.',
+  admin_required: 'Vai trò của bạn không làm được việc này.',
+  last_owner: 'Tò He cần ít nhất một chủ.',
+  reason_required: 'Ghi lý do để các quản trị viên khác hiểu.',
+  reason_too_long: 'Lý do dài quá 300 ký tự.',
+  role_invalid: 'Vai trò không hợp lệ.',
+  name_required: 'Tên không được để trống.',
+  name_too_long: 'Tên dài quá 24 ký tự.',
+  name_reserved: 'Tên này dành cho Tò He.',
+  name_invalid_character: 'Tên có ký tự không dùng được.',
 };
 
 /** What went wrong, in Vietnamese. */

@@ -1,7 +1,7 @@
 import sharedScript from '@tohe/design-tokens/theme-init.js?raw';
 import { describe, expect, it } from 'vitest';
 import adminScript from '../public/theme-init.js?raw';
-import { ago, count, day, milliseconds, percent, roleName, since } from './format.ts';
+import { ago, count, day, milliseconds, percent, publicId, roleName, since } from './format.ts';
 
 // The console's CSP forbids inline scripts, as the hub's, so it serves the shared pre-paint script as a copy.
 // When the original changes: cp ../../packages/design-tokens/theme-init.js public/
@@ -51,6 +51,7 @@ describe('how the console writes things', () => {
     expect(milliseconds(250.4)).toBe('250 ms');
     expect(milliseconds(1530)).toBe('1,5 s');
     expect(day('2026-10-08')).toBe('08/10');
+    expect(publicId('123456789012')).toBe('1234 5678 9012');
   });
 
   it('names the roles in Vietnamese', () => {

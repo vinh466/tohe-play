@@ -13,6 +13,9 @@ export type GameHealth = Schemas['GameHealth'];
 export type AuditEntry = Schemas['AuditEntryView'];
 export type AuditPage = Schemas['AuditPage'];
 export type TwoFactorView = Schemas['TwoFactorView'];
+export type AccountSummary = Schemas['AccountSummary'];
+export type AccountDetail = Schemas['AccountDetail'];
+export type ProfileDetail = Schemas['ProfileDetail'];
 
 /** Same origin: the console is served at /admin/ by the hub's server, which proxies /api. */
 const api = createClient<paths>({ baseUrl: '' });
@@ -78,6 +81,16 @@ export const admin = {
     ),
   newRecoveryCodes: () => call(api.POST('/api/admin/two-factor/recovery-codes')),
   disableTwoFactor: () => call(api.DELETE('/api/admin/two-factor')),
+  users: (q: string) => call(api.GET('/api/admin/users', { params: { query: q ? { q } : {} } })),
+  user: (id: string) => call(api.GET('/api/admin/users/{id}', { params: { path: { id } } })),
+  suspend: (id: string, reason: string) =>
+    call(api.POST('/api/admin/users/{id}/suspend', { params: { path: { id } }, body: { reason } })),
+  lift: (id: string) => call(api.DELETE('/api/admin/users/{id}/suspend', { params: { path: { id } } })),
+  signOut: (id: string) => call(api.POST('/api/admin/users/{id}/sign-out', { params: { path: { id } } })),
+  setRole: (id: string, role: string | null) =>
+    call(api.PUT('/api/admin/users/{id}/role', { params: { path: { id } }, body: { role } })),
+  renameProfile: (id: string, name: string) =>
+    call(api.PATCH('/api/admin/profiles/{id}', { params: { path: { id } }, body: { name } })),
 };
 
 /**

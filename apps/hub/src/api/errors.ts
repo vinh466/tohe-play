@@ -22,6 +22,7 @@ const byCode: Record<string, string> = {
   email_required: 'errors.emailRequired',
   last_method: 'errors.lastMethod',
   provider_account_in_use: 'errors.providerAccountInUse',
+  account_suspended: 'errors.accountSuspended',
   sign_in_expired: 'errors.signInExpired',
   wrong_step: 'errors.signInExpired',
   proof_required: 'errors.codeInvalid',
