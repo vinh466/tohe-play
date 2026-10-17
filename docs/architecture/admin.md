@@ -1,13 +1,14 @@
 ---
 title: Admin console
-description: The operator's console at /admin/ on the hub's origin — who may open it, the first owner, two-factor authentication, the audit log, and what each page reads.
+description: The operator's console at /admin/ on the hub's origin — who may open it, the first owner, two-factor authentication, the audit log, users, sign-in and registration, and what each page reads.
 sidebar:
   order: 5
 ---
 
-Decision: [ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md). This page describes what exists: the
-console's app and API, roles and permissions, the first owner's setup, two-factor authentication, the audit log, the
-read-only pages and the users. Sign-in settings and registration modes come next.
+Decisions: [ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md),
+[ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md). This page describes what exists: the console's
+app and API, roles and permissions, the first owner's setup, two-factor authentication, the audit log, the read-only
+pages, the users, and sign-in and registration with communities.
 
 ## Where it lives
 
