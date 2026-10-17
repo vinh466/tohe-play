@@ -163,6 +163,8 @@ infra:
       connectionStringKey: ""
     builtin:
       image: postgres:18-alpine
+      # Its own pull policy: global.image.pullPolicy is for Tò He's images (CI sets Never for the ones it built).
+      pullPolicy: IfNotPresent
       storage:
         size: 5Gi
         # Empty: the cluster's default StorageClass.

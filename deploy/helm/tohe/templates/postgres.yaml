@@ -34,7 +34,7 @@ spec:
       containers:
         - name: postgres
           image: {{ $builtin.image }}
-          imagePullPolicy: {{ .Values.global.image.pullPolicy }}
+          imagePullPolicy: {{ $builtin.pullPolicy }}
           securityContext:
             {{- toYaml $builtin.securityContext | nindent 12 }}
           ports:

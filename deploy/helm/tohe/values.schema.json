@@ -356,6 +356,9 @@
                 },
                 "affinity": {
                   "type": "object"
+                },
+                "pullPolicy": {
+                  "enum": ["Always", "IfNotPresent", "Never"]
                 }
               }
             }
