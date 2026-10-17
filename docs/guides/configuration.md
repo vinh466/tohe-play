@@ -55,6 +55,13 @@ sign-in by address.
 | `PUBLIC_HUB_URL` | Where the landing page's play button (`/play`) leads | `/`: the site's own home page |
 | `TOHE_SITE_URL` | The site's own URL, for canonical links, the sitemap and `llms.txt` | empty: relative links |
 
+## In the Helm chart
+
+The chart sets all of the above from its values ([Self-hosting](self-hosting.md)): `publicUrls.*` give
+`App:PublicUrl`, `Games:PublicOrigin`, `GAMES_ORIGIN`, `HUB_ORIGINS`, `PUBLIC_HUB_URL` and `TOHE_SITE_URL`;
+`hub.proxy.*` give `TOHE_TRUSTED_PROXIES` and `TOHE_CLIENT_IP_HEADERS`; `infra.postgres.*` and the Secret give
+`ConnectionStrings:Database`; `api.config` adds any other API key.
+
 ## Every web origin
 
 The hub, the games origin and the site send `Strict-Transport-Security: max-age=31536000` (no

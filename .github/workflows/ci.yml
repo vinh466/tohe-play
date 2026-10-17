@@ -50,6 +50,52 @@ jobs:
           path: games/*/test-results/conformance/
           if-no-files-found: ignore
 
+  chart:
+    name: Helm chart (lint, guards, install on kind)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      # Helm 3, as ArgoCD renders charts with it (ADR 0021).
+      - uses: azure/setup-helm@v5
+        with:
+          version: v3.16.3
+      - name: Lint, render every profile, check every guard
+        run: deploy/helm/tohe/ci/check.sh
+      - name: Build the images
+        run: |
+          docker build -f deploy/docker/api.Dockerfile -t tohe-api:ci .
+          for target in hub games site; do
+            docker build -f deploy/docker/web.Dockerfile --target "$target" -t "tohe-$target:ci" .
+          done
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: tohe
+      - name: Load the images into kind
+        run: kind load docker-image tohe-api:ci tohe-hub:ci tohe-games:ci tohe-site:ci --name tohe
+      - name: Install from scratch (builtin PostgreSQL, the chart's own Secret)
+        run: |
+          helm install tohe deploy/helm/tohe \
+            -f deploy/helm/tohe/ci/standalone.yaml -f deploy/helm/tohe/ci/kind/images.yaml \
+            --wait --timeout 10m
+      - name: helm test
+        run: helm test tohe --logs
+      - name: Upgrade in place
+        run: |
+          helm upgrade tohe deploy/helm/tohe \
+            -f deploy/helm/tohe/ci/standalone.yaml -f deploy/helm/tohe/ci/kind/images.yaml \
+            --set api.config.Rooms__GraceSeconds=45 --wait --timeout 10m
+          helm test tohe --logs
+      - name: Cluster state
+        if: failure()
+        run: |
+          kubectl get pods,pvc,events -o wide
+          kubectl describe pods
+          for component in api hub games site postgres; do
+            kubectl logs -l app.kubernetes.io/component=$component --tail=80 --all-containers || true
+          done
+
   stack:
     name: Docker stack + e2e smoke and rooms
     needs: verify

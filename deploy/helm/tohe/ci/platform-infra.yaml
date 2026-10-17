@@ -1,0 +1,30 @@
+# The production shape on the platform-infra cluster (ADR 0021): the shared CloudNativePG server, every secret from an
+# Infisical-managed Secret, Traefik behind Cloudflare (TLS ends at Cloudflare), Reloader rolling on secret changes.
+publicUrls:
+  hub: https://tohe.vinetic.io.vn
+  games: https://tohe-games.vinetic.io.vn
+  site: https://tohe-site.vinetic.io.vn
+global:
+  image:
+    tag: sha-0000000000000000000000000000000000000000
+defaults:
+  annotations:
+    reloader.stakater.com/auto: "true"
+hub:
+  proxy:
+    trustedProxies: [10.42.0.0/16]
+    clientIpHeaders: [CF-Connecting-IP]
+infra:
+  postgres:
+    mode: external
+    maxPoolSize: 8
+    external:
+      host: postgres-rw.platform-data.svc.cluster.local
+secrets:
+  existingSecret: tohe-secrets
+ingress:
+  className: traefik
+networkPolicy:
+  enabled: true
+  ingressNamespaceLabels:
+    kubernetes.io/metadata.name: kube-system

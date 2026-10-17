@@ -1,0 +1,12 @@
+# From scratch: the chart's own PostgreSQL and Secret, the cluster's default ingress. CI installs this on kind.
+publicUrls:
+  hub: http://tohe.example.test
+  games: http://tohe-games.example.test
+  site: http://tohe-site.example.test
+global:
+  image:
+    tag: sha-0000000000000000000000000000000000000000
+secrets:
+  values:
+    postgresPassword: ci-only-not-a-secret
+    telemetryOperatorToken: ci-only-token
