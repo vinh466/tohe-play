@@ -1,5 +1,4 @@
 import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, auth } from '../api/client.ts';
@@ -26,7 +25,6 @@ const USERNAME = /^[a-z0-9._-]{3,32}$/;
 
 function Register() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const setMe = useSetMe();
   // The first profile's name is public, so it starts as a fun one rather than anyone's real name (D-17).
   const [form, setForm] = useState(() => ({
@@ -56,8 +54,9 @@ function Register() {
     mutationFn: () => auth.register({ displayName, username, password: form.password }),
     onSuccess: async (me) => {
       guestMode.disable();
+      // The session guard of this page moves on to the picker as soon as the session changes; navigating here too
+      // would pass through the picker twice.
       await setMe(me);
-      await navigate({ to: '/profiles', search: { auto: true }, replace: true });
     },
   });
 

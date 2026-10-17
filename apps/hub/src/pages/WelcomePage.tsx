@@ -48,8 +48,9 @@ function SignIn() {
     mutationFn: () => auth.login(username.trim(), password),
     onSuccess: async (me) => {
       guestMode.disable();
+      // The session guard of this page moves on to the picker as soon as the session changes; navigating here too
+      // would pass through the picker twice.
       await setMe(me);
-      await navigate({ to: '/profiles', search: { auto: true }, replace: true });
     },
   });
 
