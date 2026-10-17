@@ -60,6 +60,9 @@ public sealed class AuthAttempt
     /// <summary>Signing up: the version of the terms accepted, with the age, when the attempt started.</summary>
     public string? TermsVersion { get; init; }
 
+    /// <summary>Signing up: the invite code given (ADR 0028), used when the code comes back and the account is made.</summary>
+    public string? InviteCode { get; init; }
+
     /// <summary>External: the provider's scheme (<c>google</c>, <c>github</c>, <c>oidc</c>).</summary>
     public string? Provider { get; init; }
 
@@ -97,6 +100,7 @@ internal sealed class AuthAttemptConfiguration : IEntityTypeConfiguration<AuthAt
         builder.Property(attempt => attempt.CodeHash).HasMaxLength(64).IsFixedLength();
         builder.Property(attempt => attempt.DisplayName).HasMaxLength(200);
         builder.Property(attempt => attempt.TermsVersion).HasMaxLength(Consent.MaxVersionLength);
+        builder.Property(attempt => attempt.InviteCode).HasMaxLength(Invites.MaxLength);
         builder.Property(attempt => attempt.Provider).HasMaxLength(32);
         builder.Property(attempt => attempt.ProviderKey).HasMaxLength(256);
         builder.Property(attempt => attempt.ProviderName).HasMaxLength(64);

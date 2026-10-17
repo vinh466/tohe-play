@@ -33,6 +33,9 @@ internal static class AdminPermissions
     /// <summary>Rename a profile whose name breaks the rules of a community.</summary>
     public const string ProfilesModerate = "admin.profiles.moderate";
 
+    /// <summary>Switch sign-in methods and the registration mode; communities and their invite codes (ADR 0028).</summary>
+    public const string SettingsWrite = "admin.settings.write";
+
     /// <summary>
     /// What each role may: owners everything, admins all but roles, moderators find accounts and rename profiles,
     /// viewers read. A permission to change something new arrives with its page, given here to the roles that hold it.
@@ -40,8 +43,8 @@ internal static class AdminPermissions
     public static IReadOnlyList<string> Of(PlatformRole? role) => role switch
     {
         null => [],
-        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate],
-        PlatformRole.Admin => [Read, AuditRead, UsersRead, UsersWrite, ProfilesModerate],
+        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate, SettingsWrite],
+        PlatformRole.Admin => [Read, AuditRead, UsersRead, UsersWrite, ProfilesModerate, SettingsWrite],
         PlatformRole.Moderator => [Read, UsersRead, ProfilesModerate],
         _ => [Read],
     };

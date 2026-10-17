@@ -34,10 +34,12 @@ public sealed record LinkProofRequest(string? Code = null, string? Password = nu
 
 /// <param name="DisplayName">The account's name, which also names its first profile (ADR 0023).</param>
 /// <param name="AcceptTerms">16 or older, and the terms and privacy notice (ADR 0025).</param>
+/// <param name="InviteCode">Needed when registration is by invite; welcome otherwise, for its community (ADR 0028).</param>
 public sealed record CompleteSignUpRequest(
     [Required(AllowEmptyStrings = true)] string DisplayName,
     bool AcceptTerms,
-    string? TermsVersion);
+    string? TermsVersion,
+    string? InviteCode = null);
 
 /// <summary>
 /// Signing in with Google, GitHub or an OpenID Connect issuer, and linking them to accounts (ADR 0026). A provider's
@@ -98,11 +100,18 @@ internal static class ExternalEndpoints
             .WithSummary("Remove a provider from the account (needs step-up level 2); never the last way in.");
     }
 
-    private static IResult Start(string provider, string? intent, HttpContext http, ExternalProviderCatalog catalog, TimeProvider clock)
+    private static async Task<IResult> Start(
+        string provider, string? intent, HttpContext http, ExternalProviderCatalog catalog, ISignInSettings settings, TimeProvider clock, CancellationToken ct)
     {
         if (catalog.Find(provider) is null)
         {
             return Results.NotFound();
+        }
+
+        // Switched off in the admin console (ADR 0028).
+        if (!await settings.IsOnAsync(provider, ct))
+        {
+            return Results.Redirect(intent == "link" ? AccountPage("link_error", "method_disabled") : "/welcome?external=disabled");
         }
 
         var properties = new AuthenticationProperties { RedirectUri = $"{Paths}/{provider}/done" };
@@ -142,6 +151,7 @@ internal static class ExternalEndpoints
         IEmailOutbox outbox,
         SessionWriter session,
         ExternalProviderCatalog catalog,
+        ISignInSettings settings,
         IDataProtectionProvider protection,
         TimeProvider clock,
         CancellationToken ct)
@@ -152,6 +162,14 @@ internal static class ExternalEndpoints
         if (!answer.Succeeded || answer.Properties is null || answer.Principal is null)
         {
             return Results.Redirect("/welcome?external=failed");
+        }
+
+        // Switched off while the person was at the provider.
+        if (!await settings.IsOnAsync(provider, ct))
+        {
+            return Results.Redirect(answer.Properties.GetString("link") is null
+                ? "/welcome?external=disabled"
+                : AccountPage("link_error", "method_disabled"));
         }
 
         var properties = answer.Properties;
@@ -412,6 +430,8 @@ internal static class ExternalEndpoints
         IDataProtectionProvider protection,
         Attempts attempts,
         UserManager<Account> users,
+        ISignInSettings settings,
+        Invites invites,
         ToheDbContext db,
         SessionWriter session,
         MeQueries me,
@@ -439,13 +459,30 @@ internal static class ExternalEndpoints
             return Problems.Field("acceptTerms", "terms_required");
         }
 
+        if (!await settings.IsOnAsync(attempt.Provider!, ct))
+        {
+            return Problems.MethodDisabled();
+        }
+
+        // Registration closed, or an invite code missing or spent: no back door through a provider (ADR 0028).
+        var now = clock.GetUtcNow();
+        if (await invites.RefusalAsync(request.InviteCode, now, ct) is { } closed)
+        {
+            return closed == "registration_closed" ? Problems.RegistrationClosed() : Problems.Field("inviteCode", closed);
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         if (!await attempts.UseAsync(attempt, ct))
         {
             return Problems.AttemptClosed();
         }
 
-        var now = clock.GetUtcNow();
+        var (community, inviteCode, refusal) = await invites.AdmitAsync(request.InviteCode, now, ct);
+        if (refusal is not null)
+        {
+            return refusal == "registration_closed" ? Problems.RegistrationClosed() : Problems.Field("inviteCode", refusal);
+        }
+
         var id = Guid.CreateVersion7(now);
         var account = new Account
         {
@@ -458,6 +495,8 @@ internal static class ExternalEndpoints
             CreatedAt = now,
             TermsVersion = request.TermsVersion,
             TermsAcceptedAt = now,
+            CommunityId = community,
+            InviteCode = inviteCode,
         };
         var profile = new Profile
         {

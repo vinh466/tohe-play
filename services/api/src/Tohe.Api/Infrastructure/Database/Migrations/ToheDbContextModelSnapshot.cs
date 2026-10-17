@@ -282,6 +282,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("access_failed_count");
 
+                    b.Property<Guid?>("CommunityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("community_id");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text")
@@ -305,6 +309,11 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean")
                         .HasColumnName("email_confirmed");
+
+                    b.Property<string>("InviteCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("invite_code");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean")
@@ -388,6 +397,9 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_accounts");
 
+                    b.HasIndex("CommunityId")
+                        .HasDatabaseName("ix_accounts_community_id");
+
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
                         .HasDatabaseName("email_index")
@@ -444,6 +456,11 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("expires_at");
 
+                    b.Property<string>("InviteCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("invite_code");
+
                     b.Property<string>("NormalizedEmail")
                         .IsRequired()
                         .HasMaxLength(254)
@@ -494,6 +511,73 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasDatabaseName("ix_auth_attempts_normalized_email_created_at");
 
                     b.ToTable("auth_attempts", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.Community", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_communities");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_communities_name");
+
+                    b.ToTable("communities", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.InviteCode", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("community_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_uses");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<int>("Uses")
+                        .HasColumnType("integer")
+                        .HasColumnName("uses");
+
+                    b.HasKey("Code")
+                        .HasName("pk_invite_codes");
+
+                    b.HasIndex("CommunityId")
+                        .HasDatabaseName("ix_invite_codes_community_id");
+
+                    b.ToTable("invite_codes", "identity");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Identity.Profile", b =>
@@ -1466,6 +1550,25 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_account_tokens_accounts_user_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.Account", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Community", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_accounts_communities_community_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.InviteCode", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Community", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_invite_codes_communities_community_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Identity.Profile", b =>

@@ -47,13 +47,18 @@ public sealed class AppOptions
 /// <param name="ApiVersion">Informational version of the running API.</param>
 /// <param name="Telemetry">The server collects device telemetry (ADR 0015); off, the hub sends none.</param>
 /// <param name="Email">The server sends email (ADR 0022): signing up, forgotten passwords and email changes work.</param>
-/// <param name="Providers">The sign-in providers this deployment offers (ADR 0026), in the order to show them.</param>
+/// <param name="Providers">The sign-in providers this deployment offers and the console has on (ADR 0026, 0028), in the
+/// order to show them.</param>
+/// <param name="PasswordSignIn">Email and password are on: signing in with them, and signing up by email (ADR 0028).</param>
+/// <param name="Registration"><c>open</c>, <c>invite</c> — signing up needs an invite code — or <c>closed</c>.</param>
 public sealed record ClientConfig(
     string GamesOrigin,
     string ApiVersion,
     bool Telemetry,
     bool Email,
-    IReadOnlyList<ExternalProvider> Providers);
+    IReadOnlyList<ExternalProvider> Providers,
+    bool PasswordSignIn,
+    string Registration);
 
 internal static class PlatformModule
 {
@@ -107,13 +112,37 @@ internal static class PlatformModule
 
         api.MapGet(
                 "/config",
-                (IOptions<GamesOptions> games, IOptions<TelemetryOptions> telemetry, IEmailOutbox email, ExternalProviderCatalog providers) =>
-                    new ClientConfig(
+                async (
+                    IOptions<GamesOptions> games,
+                    IOptions<TelemetryOptions> telemetry,
+                    IEmailOutbox email,
+                    ExternalProviderCatalog providers,
+                    ISignInSettings settings,
+                    CancellationToken ct) =>
+                {
+                    var on = new List<ExternalProvider>();
+                    foreach (var provider in providers.Providers)
+                    {
+                        if (await settings.IsOnAsync(provider.Id, ct))
+                        {
+                            on.Add(provider);
+                        }
+                    }
+
+                    return new ClientConfig(
                         games.Value.PublicOrigin.GetLeftPart(UriPartial.Authority),
                         version,
                         telemetry.Value.Enabled,
                         email.Enabled,
-                        providers.Providers))
+                        on,
+                        await settings.IsOnAsync(SignInMethods.Password, ct),
+                        (await settings.RegistrationAsync(ct)) switch
+                        {
+                            RegistrationMode.Invite => "invite",
+                            RegistrationMode.Closed => "closed",
+                            _ => "open",
+                        });
+                })
             .WithName("GetConfig")
             .WithTags("Platform")
             .WithSummary("Runtime configuration for the hub.");
