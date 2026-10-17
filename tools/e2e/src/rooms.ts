@@ -9,6 +9,7 @@
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e rooms
 import { AxeBuilder } from '@axe-core/playwright';
 import { type Browser, chromium, type Frame, type Page } from 'playwright';
+import { codeSentTo } from './mailpit.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const step = (message: string) => console.log(`• ${message}`);
@@ -40,23 +41,25 @@ async function phone(name: string, target: Browser): Promise<Page> {
   return page;
 }
 
-/** Registers an account, whose only profile plays at once; returns its username. */
+/** Signs up with a new email and the code it receives; the only profile plays at once. Returns the email. */
 async function register(page: Page, displayName: string): Promise<string> {
-  const username = `e2e${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
+  const email = `e2e${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}@e2e.test`;
   await page.goto(`${hubUrl}/register`);
+  await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Tên khi chơi').fill(displayName);
-  await page.getByLabel('Tên đăng nhập').fill(username);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByLabel('Nhập lại mật khẩu').fill(password);
+  await page.getByRole('button', { name: 'Gửi mã xác nhận' }).tap();
+  await page.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
   await page.waitForURL((url) => url.pathname === '/' || url.pathname.startsWith('/r/'));
-  return username;
+  return email;
 }
 
 /** A second phone of the same account: signs in and plays as `profile`. */
-async function signIn(page: Page, username: string, profile: string) {
+async function signIn(page: Page, email: string, profile: string) {
   await page.goto(`${hubUrl}/welcome`);
-  await page.getByLabel('Tên đăng nhập').fill(username);
+  await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập' }).tap();
   await page.waitForURL((url) => url.pathname === '/profiles');

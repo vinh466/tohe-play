@@ -8,7 +8,8 @@ export type ClientConfig = Schemas['ClientConfig'];
 export type MeView = Schemas['MeView'];
 export type ProfileView = Schemas['ProfileView'];
 export type ProfileOptionsView = Schemas['ProfileOptionsView'];
-export type RegisterRequest = Schemas['RegisterRequest'];
+export type SignUpRequest = Schemas['SignUpRequest'];
+export type AttemptView = Schemas['AttemptView'];
 export type CreateProfileRequest = Schemas['CreateProfileRequest'];
 export type UpdateProfileRequest = Schemas['UpdateProfileRequest'];
 export type LeaderboardEntry = Schemas['LeaderboardEntry'];
@@ -28,13 +29,15 @@ export const api = createClient<paths>({ baseUrl: '' });
 
 /**
  * A response the API refused. `code` is the machine-readable reason from problem details (see
- * docs/architecture/identity.md); `fields` holds validation codes per field.
+ * docs/architecture/identity.md); `fields` holds validation codes per field; `triesLeft` comes with a wrong code
+ * from an email (ADR 0024).
  */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string | null,
     readonly fields: Record<string, string[]> = {},
+    readonly triesLeft: number | null = null,
   ) {
     super(`API ${status}${code ? ` ${code}` : ''}`);
   }
@@ -56,13 +59,14 @@ interface Outcome<T> {
 export async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
   const { data, error, response } = await request;
   if (response.ok) return data as T;
-  const problem = (error ?? {}) as { code?: unknown; errors?: unknown };
+  const problem = (error ?? {}) as { code?: unknown; errors?: unknown; triesLeft?: unknown };
   throw new ApiError(
     response.status,
     typeof problem.code === 'string' ? problem.code : null,
     typeof problem.errors === 'object' && problem.errors !== null
       ? (problem.errors as Record<string, string[]>)
       : {},
+    typeof problem.triesLeft === 'number' ? problem.triesLeft : null,
   );
 }
 
@@ -76,10 +80,18 @@ export async function fetchMe(): Promise<MeView | null> {
   return me ?? null;
 }
 
+/** Signing up, in and out by email (ADR 0024). Every code goes with the attempt it was sent for. */
 export const auth = {
-  login: (username: string, password: string) =>
-    call(api.POST('/api/auth/login', { body: { username, password } })),
-  register: (body: RegisterRequest) => call(api.POST('/api/auth/register', { body })),
+  /** `email` may be an old account's username, until it adds an email. */
+  login: (email: string, password: string) =>
+    call(api.POST('/api/auth/login', { body: { email, password } })),
+  /** A code goes to the email; the account exists once it comes back. */
+  register: (body: SignUpRequest) => call(api.POST('/api/auth/register', { body })),
+  confirmRegistration: (attemptId: string, code: string) =>
+    call(api.POST('/api/auth/register/confirm', { body: { attemptId, code } })),
+  forgotPassword: (email: string) => call(api.POST('/api/auth/password/forgot', { body: { email } })),
+  resetPassword: (attemptId: string, code: string, password: string) =>
+    call(api.POST('/api/auth/password/reset', { body: { attemptId, code, password } })),
   logout: () => call(api.POST('/api/auth/logout')),
 };
 
@@ -91,8 +103,13 @@ export const session = {
   lockParentGate: () => call(api.DELETE('/api/session/parent-gate')),
 };
 
-/** The account and the profiles it owns (ADR 0023); every call needs the parent gate. */
+/** The account and the profiles it owns (ADR 0023, 0024). Changes need the parent gate, or the password. */
 export const account = {
+  /** A code goes to the new sign-in email. `password` when the parent gate is not open on this device. */
+  changeEmail: (email: string, password?: string) =>
+    call(api.POST('/api/account/email', { body: { email, password: password ?? null } })),
+  confirmEmailChange: (attemptId: string, code: string) =>
+    call(api.POST('/api/account/email/confirm', { body: { attemptId, code } })),
   /** Technical telemetry from the account's devices (ADR 0015). */
   setTelemetry: (telemetry: boolean) => call(api.PATCH('/api/account', { body: { telemetry } })),
   addProfile: (body: CreateProfileRequest) => call(api.POST('/api/profiles', { body })),

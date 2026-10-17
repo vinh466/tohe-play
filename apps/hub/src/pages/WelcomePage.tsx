@@ -1,9 +1,11 @@
-import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { auth } from '../api/client.ts';
+import { auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { configQuery } from '../api/queries.ts';
+import { EmailChange } from '../session/EmailChange.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
@@ -41,16 +43,31 @@ function SignIn() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const setMe = useSetMe();
-  const [username, setUsername] = useState('');
+  const config = useQuery(configQuery);
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  // Signed in, but an account from before email sign-in adds one first (ADR 0024).
+  const [needsEmail, setNeedsEmail] = useState(false);
 
   const login = useMutation({
-    mutationFn: () => auth.login(username.trim(), password),
+    mutationFn: () => auth.login(email.trim(), password),
     onSuccess: async (me) => {
       guestMode.disable();
+      if (me.account.email === null && config.data?.email) {
+        setNeedsEmail(true);
+        return;
+      }
       // The session guard of this page moves on to the picker as soon as the session changes; navigating here too
       // would pass through the picker twice.
       await setMe(me);
+    },
+  });
+
+  const signOut = useMutation({
+    mutationFn: () => auth.logout(),
+    onSettled: () => {
+      setNeedsEmail(false);
+      setPassword('');
     },
   });
 
@@ -65,21 +82,40 @@ function SignIn() {
     await navigate({ to: '/', replace: true });
   };
 
+  if (needsEmail) {
+    return (
+      <Screen narrow>
+        <Brand subtitle={t('welcome.subtitle')} />
+        <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
+          <h2 className="font-bold text-ink text-xl">{t('welcome.addEmailTitle')}</h2>
+          <p className="text-ink">{t('welcome.addEmailBody')}</p>
+          {/* The password typed a moment ago proves the owner; it never leaves this screen otherwise. */}
+          <EmailChange password={password} onDone={(me: MeView) => setMe(me)} />
+        </section>
+        <Button variant="ghost" busy={signOut.isPending} onClick={() => signOut.mutate()}>
+          {t('profiles.signOut')}
+        </Button>
+      </Screen>
+    );
+  }
+
   return (
     <Screen narrow>
       <Brand subtitle={t('welcome.subtitle')} />
       <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
         <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
         <TextField
-          label={t('welcome.username')}
-          name="username"
+          label={t('welcome.email')}
+          hint={t('welcome.emailHint')}
+          name="email"
+          inputMode="email"
           autoComplete="username"
           autoCapitalize="none"
           autoCorrect="off"
           spellCheck={false}
           required
-          value={username}
-          onChange={(e) => setUsername(e.target.value)}
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
         />
         <TextField
           label={t('welcome.password')}
@@ -98,6 +134,14 @@ function SignIn() {
         <Button type="submit" busy={login.isPending}>
           {t('welcome.signIn')}
         </Button>
+        {config.data?.email ? (
+          <Link
+            to="/password/forgot"
+            className="text-center font-semibold text-accent underline underline-offset-4"
+          >
+            {t('welcome.forgot')}
+          </Link>
+        ) : null}
       </form>
       <div className="flex flex-col items-center gap-3 text-center">
         <p className="text-ink-soft">

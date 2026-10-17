@@ -47,8 +47,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create an account and its first profile. */
+        /** Start signing up: a code goes to the email. 202 whether or not the address has an account. */
         post: operations["Register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/register/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code from the email creates the account and its first profile, which plays at once. */
+        post: operations["ConfirmRegistration"];
         delete?: never;
         options?: never;
         head?: never;
@@ -64,8 +81,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Sign in; sets the session cookie. */
+        /** Sign in; sets the session cookie. An only profile without a PIN plays at once. */
         post: operations["Login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code to set a new password goes to the email, if it has an account. 202 either way. */
+        post: operations["ForgotPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code sets a new password; every other session ends. */
+        post: operations["ResetPassword"];
         delete?: never;
         options?: never;
         head?: never;
@@ -100,6 +151,40 @@ export interface paths {
         get: operations["GetMe"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code goes to the new email. Needs the parent gate, or the password with the request. */
+        post: operations["ChangeEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code makes the new email the one that signs in; every other session ends. */
+        post: operations["ConfirmEmailChange"];
         delete?: never;
         options?: never;
         head?: never;
@@ -577,14 +662,29 @@ export interface components {
         AccountView: {
             /** Format: uuid */
             id: string;
-            username: string;
+            email: null | string;
+            username: null | string;
             displayName: string;
             telemetry: boolean;
+        };
+        AttemptView: {
+            /** Format: uuid */
+            attemptId: string;
+        };
+        ChangeEmailRequest: {
+            email: string;
+            password?: null | string;
         };
         ClientConfig: {
             gamesOrigin: string;
             apiVersion: string;
             telemetry: boolean;
+            email: boolean;
+        };
+        ConfirmCodeRequest: {
+            /** Format: uuid */
+            attemptId: string;
+            code: string;
         };
         CountSummary: {
             name: string;
@@ -659,6 +759,9 @@ export interface components {
             /** Format: date-time */
             lastSeen: string;
             new: boolean;
+        };
+        ForgotPasswordRequest: {
+            email: string;
         };
         FrameGroup: {
             os: string;
@@ -790,7 +893,7 @@ export interface components {
             inProgress: boolean;
         };
         LoginRequest: {
-            username: string;
+            email: string;
             password: string;
         };
         MeView: {
@@ -858,11 +961,6 @@ export interface components {
             /** Format: int32 */
             recorded: number;
         };
-        RegisterRequest: {
-            displayName: string;
-            username: string;
-            password: string;
-        };
         ReplayAction: {
             /** Format: int32 */
             seat: number;
@@ -874,6 +972,12 @@ export interface components {
             name: null | string;
             avatar: null | string;
             bot: null | string;
+        };
+        ResetPasswordRequest: {
+            /** Format: uuid */
+            attemptId: string;
+            code: string;
+            password: string;
         };
         RoomInvite: {
             /** Format: uuid */
@@ -973,6 +1077,11 @@ export interface components {
         };
         SetSeatRequest: {
             bot: null | string;
+        };
+        SignUpRequest: {
+            email: string;
+            password: string;
+            displayName: string;
         };
         TelemetryBatch: {
             /** Format: uuid */
@@ -1125,7 +1234,40 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterRequest"];
+                "application/json": components["schemas"]["SignUpRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCodeRequest"];
             };
         };
         responses: {
@@ -1136,15 +1278,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeView"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
         };
@@ -1169,6 +1302,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeView"];
+                };
+            };
+        };
+    };
+    ForgotPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    ResetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
         };
@@ -1215,6 +1414,63 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ChangeEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmEmailChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
             };
         };
     };

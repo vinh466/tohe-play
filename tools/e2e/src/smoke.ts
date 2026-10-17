@@ -5,6 +5,7 @@
 // the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke (SITE_URL defaults to :4710)
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
+import { codeSentTo } from './mailpit.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
@@ -78,7 +79,7 @@ const shot = async (name: string) => {
 const expectTheme = (theme: 'light' | 'dark') =>
   page.waitForFunction((t) => document.documentElement.dataset.theme === t, theme, { timeout: 5000 });
 const password = 'mat-khau-e2e-123';
-const username = `e2e${Date.now().toString(36)}`;
+const email = `e2e${Date.now().toString(36)}@e2e.test`;
 
 try {
   step(`open ${hubUrl} — a new device lands on the welcome screen`);
@@ -86,13 +87,18 @@ try {
   await page.waitForURL(/\/welcome$/);
   await shot('welcome');
 
-  step(`register an account (${username}): its only profile plays at once`);
+  step(
+    `sign up with ${email}: the code from the email creates the account, whose only profile plays at once`,
+  );
   await page.getByRole('link', { name: 'Tạo tài khoản' }).tap();
+  await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Tên khi chơi').fill('Bố E2E');
-  await page.getByLabel('Tên đăng nhập').fill(username);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByLabel('Nhập lại mật khẩu').fill(password);
   await shot('register');
+  await page.getByRole('button', { name: 'Gửi mã xác nhận' }).tap();
+  await page.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
+  await shot('register-code');
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
   await page.waitForURL((url) => url.pathname === '/');
 
