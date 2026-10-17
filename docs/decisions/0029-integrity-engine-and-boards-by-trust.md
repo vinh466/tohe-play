@@ -42,7 +42,7 @@ by mistake.
   The two-people rule of D-11 is a scope, not a signal: a hand with fewer than two people at the table is verified,
   and counts on the account's board but on no public one — playing with bots is not suspicious, only not comparable.
 - **Three hard rules.** Automation only hides — `rejected` needs hard proof, everything else that looks wrong is
-  `held`, and suspending an account is always a person's decision. The level follows the evidence: no player is
+  `held`, once held only a person releases it, and suspending an account is always a person's decision. The level follows the evidence: no player is
   trusted past their evidence; later reputation may change how closely a result is looked at, never its level. The
   player sees where their results stand.
 - **Every decision is logged** in `integrity.decisions` — the level before and after, the reason, the signals, the

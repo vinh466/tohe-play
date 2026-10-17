@@ -107,6 +107,30 @@ public sealed class IntegrityTests(ApiFactory factory) : IClassFixture<ApiFactor
     }
 
     [Fact]
+    public async Task Once_held_a_run_stays_held_until_a_person_decides()
+    {
+        await Games.KnowAsync(factory, "tap-merge");
+        var (client, me) = await PlayerAsync("Bố");
+        var ids = Enumerable.Range(0, IntegrityEngine.RateLimit + 1).Select(_ => Guid.NewGuid()).ToArray();
+        await RecordAsync(client, [.. ids.Select((id, index) => Run(id, index + 1, game: "tap-merge"))]);
+        var held = await ResultAsync(me, ids[^1]);
+        Assert.Equal(TrustLevel.Held, held.Level);
+
+        // Later, the burst long over, it comes again higher and would pass the rules: it stays held.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ToheDbContext>().IntegrityResults
+                .Where(result => result.ProfileId == me.Profiles[0].Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(result => result.At, result => result.At.AddMinutes(-11)), Ct);
+        }
+
+        await RecordAsync(client, Run(ids[^1], 100, game: "tap-merge"));
+        var again = await ResultAsync(me, ids[^1]);
+        Assert.Equal((TrustLevel.Held, 100d), (again.Level, again.Value));
+        Assert.Single(await DecisionsAsync(again.Id));
+    }
+
+    [Fact]
     public async Task A_hand_is_verified_for_every_person_at_the_table_and_public_only_with_two_people()
     {
         var (_, alone) = await PlayerAsync("Một mình");

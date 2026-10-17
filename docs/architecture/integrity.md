@@ -58,7 +58,8 @@ flowchart TD
 
 Only a run that would move a board — a best of the week for its profile — is looked at past `Bounds`: a run that
 changes no board cannot mislead one, and a child who restarts often never sees "Đang được xem xét" for it. A final run
-reported again with a higher value is judged again; a level a person set stays.
+reported again with a higher value is judged again — unless it is held or rejected: once held, only a person releases a
+result, and a level a person set stays.
 
 ## A hand's way
 
@@ -112,7 +113,7 @@ The migration `IntegrityEngine` brought every earlier result in as it was truste
 
 | Rule | Where it is enforced |
 | --- | --- |
-| Only hard proof rejects; anything else that looks wrong is held | `IntegrityEngine` |
+| Only hard proof rejects; anything else that looks wrong is held, and once held only a person releases it | `IntegrityEngine` |
 | A level a person set is never changed by the engine | `IntegrityEngine` (`decided_by`) |
 | Every change of level is logged, and the log cannot be rewritten | `IntegrityEngine`; the triggers `decisions_no_change` and `decisions_no_truncate` |
 | A result is saved with what it came with, or not at all | `IResults` adds to the caller's unit of work (Progress, Rooms) |

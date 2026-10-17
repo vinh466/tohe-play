@@ -120,8 +120,8 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
                 continue;
             }
 
-            // A person's decision stands; the engine looks at the new value only when nobody has.
-            if (result.DecidedBy is null)
+            // A person's decision stands, and only a person releases what the engine held: automation only hides.
+            if (result.DecidedBy is null && result.Level is not (TrustLevel.Held or TrustLevel.Rejected))
             {
                 var (level, reason, details) = await JudgeRunAsync(result, batch, now, ct);
                 Move(result, isNew ? null : result.Level, level, reason, details, now, isNew);
