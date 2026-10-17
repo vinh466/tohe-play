@@ -94,12 +94,21 @@ pnpm --filter @tohe/telemetry-report report -- --env uat --days 7
 ```
 
 The admin console, `http://10.100.0.2:4820/admin/`, shows the same and more ([Admin console](../architecture/admin.md)).
-It opens for an account with a platform role, granted inside the API's container:
+Until someone owns the deployment, the API logs a setup token when it starts; the first owner gives it at
+`/admin/setup`, signed in with a confirmed email:
+
+```sh
+docker compose -p tohe-uat logs api | grep "No platform owner"
+```
+
+The command inside the API's container grants roles too, and is the way back if every owner is lost:
 
 ```sh
 docker compose -p tohe-uat exec api dotnet Tohe.Api.dll admin grant <email or old username> --role owner
 docker compose -p tohe-uat exec api dotnet Tohe.Api.dll admin list
 ```
+
+The first visit sets up two-factor authentication: an authenticator app on the phone, and recovery codes to keep.
 
 ## Limits (accepted for now)
 

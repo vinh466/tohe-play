@@ -325,7 +325,7 @@ page. Signing in, the password just typed counts as level 2 for adding a first e
 | What | How |
 | --- | --- |
 | Cookie | `tohe.session` — `__Host-tohe.session` behind an HTTPS hub (ADR 0021) — 90 days, sliding, HttpOnly, `SameSite=Lax` |
-| In the cookie | the active profile, and until when step-up level 1 and level 2 are open |
+| In the cookie | the active profile, and until when step-up level 1 and level 2 are open — and the admin console, after its two-factor check ([Admin console](admin.md#two-factor-authentication)) |
 | Checked against the account's security stamp | every 5 minutes (`Identity:SessionCheckInterval`) |
 | The stamp changes when | the password is reset or changed · the sign-in email changes · a provider is unlinked |
 

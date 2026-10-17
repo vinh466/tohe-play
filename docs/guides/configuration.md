@@ -36,6 +36,8 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Auth:Providers:Oidc:Authority`, `…:ClientId`, `…:ClientSecret`, `…:DisplayName` | One more OpenID Connect issuer (Dex, Keycloak…): its issuer URL, a confidential client with the redirect URI `<App:PublicUrl>/api/auth/external/oidc/callback`, and the name on its button | unset: none; the name defaults to `OpenID` |
 | `Auth:Providers:Oidc:RequireHttpsMetadata` | `false` only for a test issuer on plain HTTP | `true` |
 | `Rooms:*` | Timers, bots and limits of online rooms ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | see `RoomsOptions` |
+| `Admin:SetupToken` | The token that makes a new deployment's first owner, at `/admin/setup` ([Admin console](../architecture/admin.md#the-first-owner)); keep it in the secret store | unset: made up at start and logged once while there is no owner |
+| `Admin:BootstrapEmails` | Addresses allowed to become the first owner (`Admin__BootstrapEmails__0`, `__1`…) | empty: any confirmed address with the token |
 
 The API trusts the `X-Forwarded-For` the hub sends, so nothing but the hub may reach it.
 
