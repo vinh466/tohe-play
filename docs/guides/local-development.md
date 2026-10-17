@@ -32,6 +32,8 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 | 4731 | A single game's standalone dev server (`dev:standalone`) |
 | 4740 | Platform API (direct, for debugging; Scalar at `/api/docs`) |
 | 4750 | PostgreSQL (bound to 127.0.0.1) — user `tohe`, password `tohe-dev-only`, database `tohe` |
+| 4760 | Mailpit — every email the API sends locally, in a web UI ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) |
+| 4761 | Mailpit's SMTP port, which `pnpm dev`'s API sends to (start it with `docker compose up -d mailpit`) |
 
 ## Mode A — hot reload (day-to-day)
 
