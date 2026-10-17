@@ -124,6 +124,262 @@
           }
         }
       }
+    },
+    "/api/admin/audit": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "The audit log, newest first, a page at a time.",
+        "operationId": "GetAdminAudit",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/setup": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Whether the deployment still waits for its first owner.",
+        "operationId": "GetAdminSetup",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/setup/claim": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "With the setup token, the signed-in account becomes the platform's first owner; setup ends for good.",
+        "operationId": "ClaimAdminSetup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimSetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Whether two-factor authentication is on, until when the console is open here, recovery codes left.",
+        "operationId": "GetAdminTwoFactor",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Turn two-factor authentication off: the console closes on every device (needs step-up level 2).",
+        "operationId": "DisableAdminTwoFactor",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/setup": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A new authenticator key, while two-factor authentication is off (needs step-up level 2).",
+        "operationId": "SetUpAdminAuthenticator",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatorSetupView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/enable": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A code from the new key turns two-factor authentication on and opens the console; recovery codes once.",
+        "operationId": "EnableAdminTwoFactor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/verify": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A code, or a recovery code, opens the console on this device for twelve hours.",
+        "operationId": "VerifyAdminTwoFactor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/recovery-codes": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "New recovery codes in place of the old ones (needs step-up level 2).",
+        "operationId": "NewAdminRecoveryCodes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesView"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
@@ -280,7 +536,11 @@
           "displayName",
           "email",
           "role",
-          "permissions"
+          "permissions",
+          "twoFactorEnabled",
+          "openUntil",
+          "secureUntil",
+          "hasPassword"
         ],
         "type": "object",
         "properties": {
@@ -308,6 +568,26 @@
             "items": {
               "type": "string"
             }
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "openUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "secureUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "hasPassword": {
+            "type": "boolean"
           }
         }
       },
@@ -457,6 +737,100 @@
           },
           "settings": {
             "$ref": "#/components/schemas/AdminSettings"
+          }
+        }
+      },
+      "AuditEntryView": {
+        "required": [
+          "id",
+          "at",
+          "actor",
+          "action",
+          "target",
+          "details",
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AuditPage": {
+        "required": [
+          "entries",
+          "before"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEntryView"
+            }
+          },
+          "before": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "AuthenticatorSetupView": {
+        "required": [
+          "sharedKey",
+          "uri"
+        ],
+        "type": "object",
+        "properties": {
+          "sharedKey": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          }
+        }
+      },
+      "ClaimSetupRequest": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
           }
         }
       },
@@ -742,6 +1116,51 @@
           }
         }
       },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
       "MetricSummary": {
         "required": [
           "name",
@@ -807,6 +1226,35 @@
           }
         }
       },
+      "RecoveryCodesView": {
+        "required": [
+          "codes"
+        ],
+        "type": "object",
+        "properties": {
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "SetupView": {
+        "required": [
+          "open",
+          "onlySomeEmails"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "onlySomeEmails": {
+            "type": "boolean"
+          }
+        }
+      },
       "TelemetryReport": {
         "required": [
           "from",
@@ -866,6 +1314,47 @@
             "format": "int32"
           },
           "events": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TwoFactorCodeRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recoveryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TwoFactorView": {
+        "required": [
+          "enabled",
+          "openUntil",
+          "recoveryCodesLeft"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "openUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "recoveryCodesLeft": {
             "type": "integer",
             "format": "int32"
           }

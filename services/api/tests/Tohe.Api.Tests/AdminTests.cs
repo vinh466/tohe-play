@@ -2,8 +2,11 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Routing;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Npgsql;
 using Tohe.Api.Infrastructure;
+using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Admin;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Registry;
@@ -13,7 +16,7 @@ namespace Tohe.Api.Tests;
 
 /// <summary>
 /// The admin console's API (ADR 0027): the role is read from the database on every request, every endpoint declares
-/// its permission, and the pages put together what each module tells.
+/// its permission, two-factor authentication opens the console on each device, and every change is audited.
 /// </summary>
 public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
@@ -31,20 +34,22 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var player = (await client.GetFromJsonAsync<AdminMeView>(Url("/api/admin/me"), Ct))!;
         Assert.Null(player.Role);
         Assert.Empty(player.Permissions);
-        var refused = await client.GetAsync(Url("/api/admin/overview"), Ct);
-        Assert.Equal((HttpStatusCode.Forbidden, "admin_required"), (refused.StatusCode, await CodeOfAsync(refused)));
+        Assert.Equal("admin_required", await CodeOfAsync(await client.GetAsync(Url("/api/admin/overview"), Ct)));
 
         Assert.Equal(0, (await CommandAsync("admin", "grant", email, "--role", "viewer")).Exit);
         var admin = (await client.GetFromJsonAsync<AdminMeView>(Url("/api/admin/me"), Ct))!;
-        Assert.Equal(("viewer", "Bố"), (admin.Role, admin.DisplayName));
+        Assert.Equal(("viewer", "Bố", false), (admin.Role, admin.DisplayName, admin.TwoFactorEnabled));
         Assert.Equal([AdminPermissions.Read], admin.Permissions);
         Assert.Equal("viewer", (await client.GetFromJsonAsync<MeView>(Url("/api/auth/me"), Ct))!.Account.Role);
 
+        // A role is not enough: the console opens behind two-factor authentication.
+        Assert.Equal("two_factor_setup_required", await CodeOfAsync(await client.GetAsync(Url("/api/admin/overview"), Ct)));
+        await EnrolAsync(client);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Url("/api/admin/overview"), Ct)).StatusCode);
 
         // The same session, its role taken away: the very next request is refused.
         Assert.Equal(0, (await CommandAsync("admin", "revoke", email)).Exit);
-        Assert.Equal(HttpStatusCode.Forbidden, (await client.GetAsync(Url("/api/admin/overview"), Ct)).StatusCode);
+        Assert.Equal("admin_required", await CodeOfAsync(await client.GetAsync(Url("/api/admin/overview"), Ct)));
         Assert.Null((await client.GetFromJsonAsync<AdminMeView>(Url("/api/admin/me"), Ct))!.Role);
     }
 
@@ -55,8 +60,87 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
             .OfType<RouteEndpoint>()
             .Where(endpoint => endpoint.RoutePattern.RawText?.StartsWith("/api/admin", StringComparison.Ordinal) == true)
             .ToList();
-        Assert.Equal(5, endpoints.Count);
+        Assert.True(endpoints.Count >= 14, $"{endpoints.Count} admin endpoints");
         Assert.All(endpoints, endpoint => Assert.NotNull(endpoint.Metadata.GetMetadata<AdminPermission>()));
+    }
+
+    [Fact]
+    public async Task Each_device_opens_the_console_with_its_own_code_and_a_code_works_once()
+    {
+        var admin = await AdminAsync();
+        var laptop = await SignInAsync(admin.Email);
+        Assert.Equal("two_factor_required", await CodeOfAsync(await laptop.GetAsync(Url("/api/admin/overview"), Ct)));
+        Assert.Null((await laptop.GetFromJsonAsync<AdminMeView>(Url("/api/admin/me"), Ct))!.OpenUntil);
+
+        var wrong = await laptop.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { code = "000000" }, Ct);
+        Assert.Contains("code_invalid", (await ErrorsAsync(wrong))["code"]);
+
+        var code = Totp.Code(admin.Key, DateTimeOffset.UtcNow.AddSeconds(30));
+        var opened = await laptop.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { code }, Ct);
+        var view = (await opened.Content.ReadFromJsonAsync<TwoFactorView>(Ct))!;
+        Assert.True(view.Enabled);
+        Assert.True(view.OpenUntil > DateTimeOffset.UtcNow.AddHours(11));
+        Assert.Equal(HttpStatusCode.OK, (await laptop.GetAsync(Url("/api/admin/overview"), Ct)).StatusCode);
+
+        // Seen over a shoulder, the same code opens nothing on another device.
+        var phone = await SignInAsync(admin.Email);
+        var replay = await phone.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { code }, Ct);
+        Assert.Contains("code_used", (await ErrorsAsync(replay))["code"]);
+
+        // A recovery code opens it once.
+        var codes = (await (await admin.Client.PostAsync(Url("/api/admin/two-factor/recovery-codes"), null, Ct))
+            .Content.ReadFromJsonAsync<RecoveryCodesView>(Ct))!.Codes;
+        Assert.Equal(10, codes.Count);
+        Assert.Equal(HttpStatusCode.OK, (await phone.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { recoveryCode = codes[0] }, Ct)).StatusCode);
+        var again = await SignInAsync(admin.Email);
+        var used = await again.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { recoveryCode = codes[0] }, Ct);
+        Assert.Contains("code_invalid", (await ErrorsAsync(used))["recoveryCode"]);
+    }
+
+    [Fact]
+    public async Task Changing_two_factor_needs_step_up_and_turning_it_off_closes_the_console_everywhere()
+    {
+        var email = Accounts.NewEmail();
+        var client = factory.CreateClient();
+        await Accounts.SignUpAsync(factory, client, "Cô Ba", email);
+        Assert.Equal(0, (await CommandAsync("admin", "grant", email, "--role", "admin")).Exit);
+        Assert.Equal("step_up_required", await CodeOfAsync(await client.PostAsync(Url("/api/admin/two-factor/setup"), null, Ct)));
+
+        var key = await EnrolAsync(client);
+        var laptop = await SignInAsync(email);
+        await laptop.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { code = Totp.Code(key, DateTimeOffset.UtcNow.AddSeconds(30)) }, Ct);
+        Assert.Equal(HttpStatusCode.OK, (await laptop.GetAsync(Url("/api/admin/overview"), Ct)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.OK, (await client.DeleteAsync(Url("/api/admin/two-factor"), Ct)).StatusCode);
+        Assert.Equal("two_factor_setup_required", await CodeOfAsync(await client.GetAsync(Url("/api/admin/overview"), Ct)));
+        Assert.Equal("two_factor_setup_required", await CodeOfAsync(await laptop.GetAsync(Url("/api/admin/overview"), Ct)));
+
+        // The audit log tells the story; an admin may read it, a viewer may not.
+        var auditor = await AdminAsync("owner");
+        var page = (await auditor.Client.GetFromJsonAsync<AuditPage>(Url("/api/admin/audit?limit=200"), Ct))!;
+        var actions = page.Entries.Where(entry => entry.Actor == email || entry.Target?.StartsWith(email, StringComparison.Ordinal) == true)
+            .Select(entry => entry.Action).ToList();
+        Assert.Equal(
+            [AuditActions.TwoFactorDisable, AuditActions.ConsoleOpen, AuditActions.TwoFactorEnable, AuditActions.RoleGrant],
+            actions);
+        Assert.Equal("command line", page.Entries.First(entry => entry.Action == AuditActions.RoleGrant && entry.Target!.StartsWith(email, StringComparison.Ordinal)).Actor);
+        var viewer = await AdminAsync("viewer");
+        Assert.Equal("admin_required", await CodeOfAsync(await viewer.Client.GetAsync(Url("/api/admin/audit"), Ct)));
+    }
+
+    [Fact]
+    public async Task The_audit_log_cannot_be_changed_or_emptied()
+    {
+        var admin = await AdminAsync();
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        Assert.True(await db.AuditLog.AnyAsync(entry => entry.Actor == admin.Email, Ct));
+
+        foreach (var sql in (string[])["UPDATE admin.audit_log SET actor = 'someone else'", "DELETE FROM admin.audit_log", "TRUNCATE admin.audit_log"])
+        {
+            var refused = await Assert.ThrowsAsync<PostgresException>(() => db.Database.ExecuteSqlRawAsync(sql, Ct));
+            Assert.Contains("append-only", refused.MessageText, StringComparison.Ordinal);
+        }
     }
 
     [Fact]
@@ -74,13 +158,13 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
             await scope.ServiceProvider.GetRequiredService<CatalogSync>().RunAsync(Ct);
         }
 
-        var (client, _) = await AdminAsync();
+        var admin = await AdminAsync();
         var player = factory.CreateClient();
         await Accounts.SignUpAsync(factory, player, "Na");
         var saved = await player.PutAsJsonAsync(Url("/api/progress/saves/hello"), new { data = new { level = 2 } }, Ct);
         Assert.Equal(HttpStatusCode.OK, saved.StatusCode);
 
-        var overview = (await client.GetFromJsonAsync<AdminOverview>(Url("/api/admin/overview"), Ct))!;
+        var overview = (await admin.Client.GetFromJsonAsync<AdminOverview>(Url("/api/admin/overview"), Ct))!;
         Assert.True(overview.Accounts.LastDay >= 2, "both accounts are new");
         Assert.True(overview.Accounts.Total >= overview.Accounts.LastWeek && overview.Accounts.LastWeek >= overview.Accounts.LastDay);
         Assert.True(overview.Profiles.LastDay >= 2);
@@ -89,7 +173,7 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.NotNull(overview.ErrorsLastDay);
         Assert.True(overview.Email.Enabled);
 
-        var hello = Assert.Single((await client.GetFromJsonAsync<List<AdminGame>>(Url("/api/admin/games"), Ct))!);
+        var hello = Assert.Single((await admin.Client.GetFromJsonAsync<List<AdminGame>>(Url("/api/admin/games"), Ct))!);
         Assert.Equal(("hello", "Xin chào", "1.2.0", true, false), (hello.Id, hello.Name, hello.Version, hello.Listed, hello.Online));
         Assert.Equal((1, 0), (hello.PlayersLastWeek, hello.OpenRooms));
     }
@@ -97,20 +181,20 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [Fact]
     public async Task The_health_page_is_the_device_telemetry_report()
     {
-        var (client, _) = await AdminAsync();
-        var report = (await client.GetFromJsonAsync<TelemetryReport>(Url("/api/admin/health?days=3"), Ct))!;
+        var admin = await AdminAsync();
+        var report = (await admin.Client.GetFromJsonAsync<TelemetryReport>(Url("/api/admin/health?days=3"), Ct))!;
         Assert.Equal(3, (report.To - report.From).TotalDays, 3);
     }
 
     [Fact]
     public async Task The_system_page_shows_the_workers_and_no_secret()
     {
-        var (client, _) = await AdminAsync();
+        var admin = await AdminAsync();
         var work = factory.Services.GetRequiredService<BackgroundWork>();
         work.Succeeded(BackgroundWork.CatalogSync);
         work.Failed(BackgroundWork.EmailDelivery, new InvalidOperationException("relay down"));
 
-        var raw = await client.GetStringAsync(Url("/api/admin/system"), Ct);
+        var raw = await admin.Client.GetStringAsync(Url("/api/admin/system"), Ct);
         var system = JsonSerializer.Deserialize<AdminSystem>(raw, JsonSerializerOptions.Web)!;
         Assert.True(system.Database.Applied > 0);
         Assert.Empty(system.Database.Pending);
@@ -135,6 +219,13 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal(0, granted.Exit);
         Assert.Contains("is now owner", granted.Output, StringComparison.Ordinal);
         Assert.Contains($"owner     {email} (Chủ)", (await CommandAsync("admin", "list")).Output, StringComparison.Ordinal);
+
+        // An owner from the command line ends setup mode for good.
+        var setup = (await factory.CreateClient().GetAsync(Url("/api/admin/setup"), Ct)).StatusCode;
+        Assert.Equal(HttpStatusCode.Unauthorized, setup);
+        var someone = factory.CreateClient();
+        await Accounts.SignUpAsync(factory, someone, "Ai đó");
+        Assert.False((await someone.GetFromJsonAsync<SetupView>(Url("/api/admin/setup"), Ct))!.Open);
     }
 
     [Fact]
@@ -144,20 +235,44 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
         var admin = await client.GetStringAsync(Url("/api/openapi/admin.json"), Ct);
         var hub = await client.GetStringAsync(Url("/api/openapi/v1.json"), Ct);
         Assert.Contains("/api/admin/overview", admin, StringComparison.Ordinal);
+        Assert.Contains("/api/admin/two-factor/verify", admin, StringComparison.Ordinal);
         Assert.DoesNotContain("/api/auth/login", admin, StringComparison.Ordinal);
         Assert.DoesNotContain("/api/admin", hub, StringComparison.Ordinal);
     }
 
     // ------------------------------------------------------------------ helpers
 
-    /// <summary>A new account holding a role, signed in on the returned client.</summary>
-    private async Task<(HttpClient Client, string Email)> AdminAsync(string role = "viewer")
+    private sealed record Admin(HttpClient Client, string Email, string Key);
+
+    /// <summary>A new account holding a role, two-factor authentication on, the console open on the returned client.</summary>
+    private async Task<Admin> AdminAsync(string role = "viewer")
     {
         var email = Accounts.NewEmail();
         var client = factory.CreateClient();
         await Accounts.SignUpAsync(factory, client, "Cô Ba", email);
         Assert.Equal(0, (await CommandAsync("admin", "grant", email, "--role", role)).Exit);
-        return (client, email);
+        return new Admin(client, email, await EnrolAsync(client));
+    }
+
+    /// <summary>Step-up level 2, a new authenticator key, and its first code: two-factor authentication on.</summary>
+    private static async Task<string> EnrolAsync(HttpClient client)
+    {
+        await Accounts.StepUpAsync(client);
+        var setup = await client.PostAsync(Url("/api/admin/two-factor/setup"), null, Ct);
+        var key = (await setup.Content.ReadFromJsonAsync<AuthenticatorSetupView>(Ct))!.SharedKey;
+        var enabled = await client.PostAsJsonAsync(Url("/api/admin/two-factor/enable"), new { code = Totp.Code(key, DateTimeOffset.UtcNow) }, Ct);
+        Assert.Equal(HttpStatusCode.OK, enabled.StatusCode);
+        Assert.Equal(10, (await enabled.Content.ReadFromJsonAsync<RecoveryCodesView>(Ct))!.Codes.Count);
+        return key;
+    }
+
+    /// <summary>The same account on another device.</summary>
+    private async Task<HttpClient> SignInAsync(string email)
+    {
+        var client = factory.CreateClient();
+        var signedIn = await client.PostAsJsonAsync(Url("/api/auth/login"), new { email, password = Accounts.Password }, Ct);
+        Assert.Equal(HttpStatusCode.OK, signedIn.StatusCode);
+        return client;
     }
 
     private async Task<(int Exit, string Output)> CommandAsync(params string[] args)
@@ -172,6 +287,13 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
     {
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
         return json.RootElement.TryGetProperty("code", out var code) ? code.GetString() : null;
+    }
+
+    private static async Task<Dictionary<string, string[]>> ErrorsAsync(HttpResponseMessage response)
+    {
+        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
+        using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
+        return json.RootElement.GetProperty("errors").Deserialize<Dictionary<string, string[]>>()!;
     }
 
     private static Uri Url(string path) => new(path, UriKind.Relative);
