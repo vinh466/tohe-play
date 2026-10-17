@@ -10,7 +10,7 @@ import { localized, TURN_CHOICES, withDefaults } from './model.ts';
 export interface RoomSettingsValue {
   seats: number;
   isPublic: boolean;
-  householdOnly: boolean;
+  accountOnly: boolean;
   botsFill: boolean;
   botLevel: string | null;
   botsTakeOver: boolean;
@@ -25,7 +25,7 @@ export function defaultSettings(game: GameSummary): RoomSettingsValue {
   return {
     seats: rooms?.maxSeats ?? 4,
     isPublic: true,
-    householdOnly: false,
+    accountOnly: false,
     botsFill: bots.length > 0,
     botLevel: bots[Math.floor((bots.length - 1) / 2)] ?? null,
     botsTakeOver: bots.length > 0,
@@ -76,7 +76,7 @@ function Chips<T extends string | number>({
 export function RoomSettings({
   game,
   initial,
-  familyOnly,
+  ownAccountOnly,
   submitLabel,
   busy,
   error,
@@ -84,8 +84,8 @@ export function RoomSettings({
 }: {
   game: GameSummary;
   initial: RoomSettingsValue;
-  /** A child a parent has not allowed to play with other households: the room stays in the family. */
-  familyOnly: boolean;
+  /** A child the account's owner has not allowed to play with others: the room stays within the account. */
+  ownAccountOnly: boolean;
   submitLabel: string;
   busy: boolean;
   error: string | null;
@@ -93,7 +93,7 @@ export function RoomSettings({
 }) {
   const { t, i18n } = useTranslation();
   const [value, setValue] = useState<RoomSettingsValue>(
-    familyOnly ? { ...initial, householdOnly: true } : initial,
+    ownAccountOnly ? { ...initial, accountOnly: true } : initial,
   );
   const set = (change: Partial<RoomSettingsValue>) => setValue((current) => ({ ...current, ...change }));
   const setOption = (id: string, option: unknown) =>
@@ -131,17 +131,19 @@ export function RoomSettings({
         value={value.isPublic ? 'public' : 'private'}
         onChange={(id) => set({ isPublic: id === 'public' })}
       />
-      {familyOnly ? (
-        <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">{t('rooms.familyForced')}</p>
+      {ownAccountOnly ? (
+        <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
+          {t('rooms.ownAccountForced')}
+        </p>
       ) : (
         <Chips
           label={t('rooms.who')}
           choices={[
             { id: 'anyone', label: t('rooms.anyone') },
-            { id: 'family', label: t('rooms.family') },
+            { id: 'account', label: t('rooms.ownAccount') },
           ]}
-          value={value.householdOnly ? 'family' : 'anyone'}
-          onChange={(id) => set({ householdOnly: id === 'family' })}
+          value={value.accountOnly ? 'account' : 'anyone'}
+          onChange={(id) => set({ accountOnly: id === 'account' })}
         />
       )}
       {rooms.bots.length > 0 ? (

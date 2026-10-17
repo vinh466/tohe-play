@@ -5,7 +5,8 @@ sidebar:
   order: 4
 ---
 
-- **Status:** Accepted — sign-in method amended by [ADR 0011](0011-password-sign-in-first.md) (username + password first)
+- **Status:** Superseded by [ADR 0023](0023-accounts-own-their-profiles.md) (accounts own their profiles; no households) — sign-in method amended by
+  [ADR 0011](0011-password-sign-in-first.md) (username + password first)
 - **Date:** 2026-10-13
 
 ## Context

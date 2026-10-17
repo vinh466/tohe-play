@@ -20,8 +20,9 @@ project on ports 47xx ([Local development](local-development.md)); the two never
 
 ## First use
 
-Open the hub, choose **Tạo tài khoản gia đình**, then add the children's profiles under **Quản lý gia đình**
-(it asks for the password again). The second parent registers with the invite code shown there. See
+Open the hub and choose **Tạo tài khoản**: the account starts with one profile and plays at once. Add the
+children's profiles from **Đổi người chơi → Thêm hồ sơ** or **Quản lý tài khoản** (it asks for the password again);
+an account holds up to five. A family shares one account on its devices; another adult may register their own. See
 [Identity](../architecture/identity.md).
 
 ## Deploy

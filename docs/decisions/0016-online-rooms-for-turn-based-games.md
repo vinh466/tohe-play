@@ -5,7 +5,8 @@ sidebar:
   order: 16
 ---
 
-- **Status:** Accepted — the seed's secrecy amended by [ADR 0017](0017-replays-of-finished-online-hands.md) (replays of finished hands)
+- **Status:** Accepted — the seed's secrecy amended by [ADR 0017](0017-replays-of-finished-online-hands.md) (replays of finished hands);
+  tables for the household are tables for the host's account since [ADR 0023](0023-accounts-own-their-profiles.md)
 - **Date:** 2026-10-16
 
 ## Context

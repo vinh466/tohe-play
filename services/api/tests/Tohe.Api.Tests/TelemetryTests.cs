@@ -210,7 +210,7 @@ public sealed class TelemetryTests(ApiFactory factory) : IClassFixture<ApiFactor
     }
 
     [Fact]
-    public async Task The_hub_learns_whether_to_send_from_the_config_and_the_household()
+    public async Task The_hub_learns_whether_to_send_from_the_config_and_the_account()
     {
         var client = factory.CreateClient();
         var config = await client.GetFromJsonAsync<ClientConfig>(Url("/api/config"), Ct);
@@ -220,13 +220,12 @@ public sealed class TelemetryTests(ApiFactory factory) : IClassFixture<ApiFactor
             Url("/api/auth/register"),
             new { displayName = "Bố", username = $"u{Guid.NewGuid():N}"[..16], password = Password },
             Ct);
-        Assert.True((await register.Content.ReadFromJsonAsync<MeView>(Ct))!.Household.Telemetry);
+        Assert.True((await register.Content.ReadFromJsonAsync<MeView>(Ct))!.Account.Telemetry);
         await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
 
-        var off = await client.PatchAsJsonAsync(Url("/api/household"), new { telemetry = false }, Ct);
+        var off = await client.PatchAsJsonAsync(Url("/api/account"), new { telemetry = false }, Ct);
         var me = (await off.Content.ReadFromJsonAsync<MeView>(Ct))!;
-        Assert.False(me.Household.Telemetry);
-        Assert.NotEmpty(me.Household.Name);
+        Assert.False(me.Account.Telemetry);
     }
 
     [Fact]

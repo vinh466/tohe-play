@@ -22,7 +22,7 @@ internal static class Problems
         Of(StatusCodes.Status429TooManyRequests, "locked_out", "Too many wrong attempts; try again in a few minutes");
 
     public static ProblemHttpResult ParentGateRequired() =>
-        Of(StatusCodes.Status403Forbidden, "parent_gate_required", "Re-enter the password to manage the household");
+        Of(StatusCodes.Status403Forbidden, "parent_gate_required", "Re-enter the password to manage the account's profiles");
 
     public static ValidationProblem Field(string field, string code) =>
         TypedResults.ValidationProblem(new Dictionary<string, string[]> { [field] = [code] });

@@ -6,10 +6,10 @@ using Tohe.Api.Modules.Identity;
 namespace Tohe.Api.Modules.Rooms;
 
 /// <summary>Who is asking: the active profile, as the room needs it.</summary>
-internal sealed record Player(Guid ProfileId, Guid HouseholdId, string Name, string Avatar, bool MayPlayWithOthers, int MaxGameMinAge)
+internal sealed record Player(Guid ProfileId, Guid AccountId, string Name, string Avatar, bool MayPlayWithOthers, int MaxGameMinAge)
 {
     public static Player From(ActiveProfile profile) =>
-        new(profile.Id, profile.HouseholdId, profile.Name, profile.Avatar, profile.MayPlayWithOthers, profile.MaxGameMinAge);
+        new(profile.Id, profile.AccountId, profile.Name, profile.Avatar, profile.MayPlayWithOthers, profile.MaxGameMinAge);
 }
 
 /// <summary>Where a room's changes go: people's phones (SignalR) and the database.</summary>
@@ -62,7 +62,7 @@ internal sealed class RoomActor
     private readonly Dictionary<int, DateTimeOffset> _lastReaction = [];
     /// <summary>Profiles watching without a seat.</summary>
     private readonly HashSet<Guid> _watchers = [];
-    /// <summary>Household members asked to the table: who asked, and until when.</summary>
+    /// <summary>Other profiles of a player's account asked to the table: who asked, and until when.</summary>
     private readonly Dictionary<Guid, (Guid From, DateTimeOffset Until)> _invites = [];
     private DateTimeOffset? _turnDeadline;
     private DateTimeOffset? _botAt;
@@ -153,7 +153,7 @@ internal sealed class RoomActor
             Room.Status.ToString().ToLowerInvariant(),
             Room.HostProfileId,
             Room.IsPublic,
-            Room.HouseholdOnly,
+            Room.AccountOnly,
             Room.Locked,
             Room.Seats,
             Room.BotsFill,
@@ -207,14 +207,14 @@ internal sealed class RoomActor
             return null;
         }
 
-        var sameHousehold = player.HouseholdId == Room.HostHouseholdId;
-        if (Room.HouseholdOnly && !sameHousehold)
+        var sameAccount = player.AccountId == Room.HostAccountId;
+        if (Room.AccountOnly && !sameAccount)
         {
-            return RoomErrors.HouseholdOnly;
+            return RoomErrors.AccountOnly;
         }
 
-        // A child a parent has not allowed only plays with the family: at tables that stay in the household.
-        if (!player.MayPlayWithOthers && !(sameHousehold && Room.HouseholdOnly))
+        // A child the account's owner has not allowed only plays within the account: at tables that stay in it.
+        if (!player.MayPlayWithOthers && !(sameAccount && Room.AccountOnly))
         {
             return RoomErrors.ParentPermission;
         }
@@ -246,13 +246,13 @@ internal sealed class RoomActor
             return RoomErrors.SpectatorsOff;
         }
 
-        var sameHousehold = player.HouseholdId == Room.HostHouseholdId;
-        if (Room.HouseholdOnly && !sameHousehold)
+        var sameAccount = player.AccountId == Room.HostAccountId;
+        if (Room.AccountOnly && !sameAccount)
         {
-            return RoomErrors.HouseholdOnly;
+            return RoomErrors.AccountOnly;
         }
 
-        return !player.MayPlayWithOthers && !(sameHousehold && Room.HouseholdOnly) ? RoomErrors.ParentPermission : null;
+        return !player.MayPlayWithOthers && !(sameAccount && Room.AccountOnly) ? RoomErrors.ParentPermission : null;
     }
 
     public async Task<string?> WatchAsync(Player player)
@@ -271,7 +271,7 @@ internal sealed class RoomActor
         return null;
     }
 
-    /// <summary>A player at the table asks a member of their household to it.</summary>
+    /// <summary>A player at the table asks another profile of their account to it.</summary>
     public string? Invite(Guid from, Guid to)
     {
         if (IsClosed)
@@ -337,7 +337,7 @@ internal sealed class RoomActor
         }
 
         var seat = FreeSeat()!.Value;
-        _seats[seat] = new SeatRecord(player.ProfileId, player.HouseholdId, player.Name, player.Avatar, null);
+        _seats[seat] = new SeatRecord(player.ProfileId, player.AccountId, player.Name, player.Avatar, null);
         _invites.Remove(player.ProfileId);
         _watchers.Remove(player.ProfileId);
         Touch();
@@ -491,7 +491,7 @@ internal sealed class RoomActor
         }
 
         Room.IsPublic = request.IsPublic ?? Room.IsPublic;
-        Room.HouseholdOnly = request.HouseholdOnly ?? Room.HouseholdOnly;
+        Room.AccountOnly = request.AccountOnly ?? Room.AccountOnly;
         Room.Locked = request.Locked ?? Room.Locked;
         Room.BotsFill = request.BotsFill ?? Room.BotsFill;
         Room.BotsTakeOver = request.BotsTakeOver ?? Room.BotsTakeOver;
@@ -729,7 +729,7 @@ internal sealed class RoomActor
             Hand = Room.Hand,
             Seat = rulesSeat,
             ProfileId = seat.ProfileId,
-            HouseholdId = seat.HouseholdId,
+            AccountId = seat.AccountId,
             Place = ranking.IndexOf(rulesSeat) is var place and >= 0 ? place : rulesSeat,
             Points = points?[rulesSeat]?.GetValue<int>() ?? 0,
             At = now,

@@ -23,7 +23,7 @@ describe('the trail of pages behind the current one', () => {
     const history = createMemoryHistory({ initialEntries: ['/'] });
     const trail = createTrail(history);
     history.push('/profiles');
-    history.push('/family');
+    history.push('/account');
     history.back();
     expect(history.location.pathname).toBe('/profiles');
     expect(trail.stepsBackTo('/')).toBe(1);
@@ -32,7 +32,7 @@ describe('the trail of pages behind the current one', () => {
     // A page pushed after going back takes the place of the one left.
     history.push('/play/hello');
     expect(trail.stepsBackTo('/data')).toBe(1);
-    expect(trail.stepsBackTo('/family')).toBe(0);
+    expect(trail.stepsBackTo('/account')).toBe(0);
     trail.stop();
   });
 

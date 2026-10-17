@@ -1,9 +1,10 @@
-import { useMutation } from '@tanstack/react-query';
-import { useNavigate } from '@tanstack/react-router';
-import { useState } from 'react';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { useNavigate, useSearch } from '@tanstack/react-router';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, auth, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { profileOptionsQuery } from '../api/queries.ts';
 import { useLeaveTo } from '../navigation/leave.tsx';
 import { takeNext } from '../session/next.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -16,7 +17,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { PinPad } from '../ui/PinPad.tsx';
-import { Screen } from '../ui/Screen.tsx';
+import { Loading, Screen } from '../ui/Screen.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 export function ProfilesPage() {
@@ -35,10 +36,23 @@ function Picker({ me }: { me: MeView }) {
   const [offerMove, setOfferMove] = useState<{ from: string; to: ProfileView } | null>(null);
 
   // Back to a room link that needed a player (session/next.ts), or to the catalog.
-  const goOn = async () => {
+  const goOn = useCallback(async () => {
     const next = takeNext();
     leaveTo({ to: next ?? '/' });
-  };
+  }, [leaveTo]);
+
+  // A real profile now plays on this device: the first time, offer it the guest's progress.
+  const playing = useCallback(
+    async (profile: ProfileView) => {
+      const guest = await db.profiles.toCollection().first();
+      if (guest && !localStorage.getItem(GUEST_PROGRESS_OFFERED) && (await hasProgress(db, guest.id))) {
+        setOfferMove({ from: guest.id, to: profile });
+        return;
+      }
+      await goOn();
+    },
+    [goOn],
+  );
 
   const select = useMutation({
     mutationFn: ({ profile, pin }: { profile: ProfileView; pin?: string }) =>
@@ -46,12 +60,7 @@ function Picker({ me }: { me: MeView }) {
     onSuccess: async (next, { profile }) => {
       setPinFor(null);
       await setMe(next);
-      const guest = await db.profiles.toCollection().first();
-      if (guest && !localStorage.getItem(GUEST_PROGRESS_OFFERED) && (await hasProgress(db, guest.id))) {
-        setOfferMove({ from: guest.id, to: profile });
-        return;
-      }
-      await goOn();
+      await playing(profile);
     },
     onError: (error, { profile }) => {
       if (error instanceof ApiError && error.code === 'pin_required') setPinFor(profile);
@@ -83,12 +92,37 @@ function Picker({ me }: { me: MeView }) {
     }
   };
 
+  // When the hub sent someone here to pick a player (`auto`), an account that leaves nobody to choose goes straight on
+  // (ADR 0023): signing up and signing in already chose its only profile, or it has one profile without a PIN that
+  // this device has not chosen yet. Decided on arrival, so the picker never flashes.
+  const { auto } = useSearch({ from: '/profiles' });
+  const [arrival] = useState(() => {
+    if (!auto) return null;
+    const active = me.profiles.find((profile) => profile.id === me.activeProfileId);
+    if (active) return { profile: active, chosen: true };
+    const only = me.profiles.length === 1 ? me.profiles[0] : undefined;
+    return only && !only.hasPin ? { profile: only, chosen: false } : null;
+  });
+  const handled = useRef(false);
+  const play = select.mutate;
+  useEffect(() => {
+    if (!arrival || handled.current) return;
+    handled.current = true;
+    if (arrival.chosen) void playing(arrival.profile);
+    else play({ profile: arrival.profile });
+  }, [arrival, play, playing]);
+
+  const options = useQuery(profileOptionsQuery);
+  const full = options.data !== undefined && me.profiles.length >= options.data.maxProfiles;
+
+  if (arrival && !select.isError && offerMove === null) return <Loading label={t('loading')} />;
+
   return (
     <Screen>
       {/* Three columns keep the title centred next to the theme button. */}
       <header className="grid grid-cols-[2.75rem_1fr_2.75rem] items-start gap-2 text-center">
         <div className="col-start-2 pt-6">
-          <p className="font-semibold text-ink-soft">{me.household.name}</p>
+          <p className="font-semibold text-ink-soft">{me.account.displayName}</p>
           <h1 className="font-black text-4xl text-brand-ink">{t('profiles.title')}</h1>
         </div>
         <ThemeButton />
@@ -108,22 +142,24 @@ function Picker({ me }: { me: MeView }) {
               <span className="text-ink-soft text-sm">
                 {profile.kind === 'adult'
                   ? t('profiles.adult')
-                  : t('family.years', { band: profile.ageBand })}
+                  : t('account.years', { band: profile.ageBand })}
                 {profile.hasPin ? ' · 🔒' : ''}
               </span>
             </button>
           </li>
         ))}
-        <li>
-          <button
-            type="button"
-            onClick={() => void navigate({ to: '/family', search: { add: true } })}
-            className="flex size-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-line-strong border-dashed p-4 text-brand-ink transition active:scale-95"
-          >
-            <span className="grid size-16 place-items-center rounded-full bg-soft text-4xl">+</span>
-            <span className="font-bold">{t('profiles.add')}</span>
-          </button>
-        </li>
+        {full ? null : (
+          <li>
+            <button
+              type="button"
+              onClick={() => void navigate({ to: '/account', search: { add: true } })}
+              className="flex size-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-line-strong border-dashed p-4 text-brand-ink transition active:scale-95"
+            >
+              <span className="grid size-16 place-items-center rounded-full bg-soft text-4xl">+</span>
+              <span className="font-bold">{t('profiles.add')}</span>
+            </button>
+          </li>
+        )}
       </ul>
 
       {select.isError && !(select.error instanceof ApiError && select.error.code?.startsWith('pin_')) ? (
@@ -133,7 +169,7 @@ function Picker({ me }: { me: MeView }) {
       ) : null}
 
       <footer className="mt-auto flex flex-wrap justify-center gap-3">
-        <Button variant="secondary" onClick={() => void navigate({ to: '/family', search: { add: false } })}>
+        <Button variant="secondary" onClick={() => void navigate({ to: '/account', search: { add: false } })}>
           ⚙️ {t('profiles.manage')}
         </Button>
         <Button variant="ghost" busy={signOut.isPending} onClick={() => signOut.mutate()}>

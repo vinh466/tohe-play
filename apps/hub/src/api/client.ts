@@ -91,17 +91,14 @@ export const session = {
   lockParentGate: () => call(api.DELETE('/api/session/parent-gate')),
 };
 
-export const household = {
-  rename: (name: string) => call(api.PATCH('/api/household', { body: { name } })),
-  /** Technical telemetry from the household's devices (ADR 0015). */
-  setTelemetry: (telemetry: boolean) => call(api.PATCH('/api/household', { body: { telemetry } })),
-  createInvite: () => call(api.POST('/api/household/invite')),
-  revokeInvite: () => call(api.DELETE('/api/household/invite')),
-  addProfile: (body: CreateProfileRequest) => call(api.POST('/api/household/profiles', { body })),
+/** The account and the profiles it owns (ADR 0023); every call needs the parent gate. */
+export const account = {
+  /** Technical telemetry from the account's devices (ADR 0015). */
+  setTelemetry: (telemetry: boolean) => call(api.PATCH('/api/account', { body: { telemetry } })),
+  addProfile: (body: CreateProfileRequest) => call(api.POST('/api/profiles', { body })),
   updateProfile: (id: string, body: UpdateProfileRequest) =>
-    call(api.PATCH('/api/household/profiles/{id}', { params: { path: { id } }, body })),
-  deleteProfile: (id: string) =>
-    call(api.DELETE('/api/household/profiles/{id}', { params: { path: { id } } })),
+    call(api.PATCH('/api/profiles/{id}', { params: { path: { id } }, body })),
+  deleteProfile: (id: string) => call(api.DELETE('/api/profiles/{id}', { params: { path: { id } } })),
 };
 
 /** Saves and scores of the active profile (M2); the hub calls these from storage/sync.ts, never from games. */

@@ -8,6 +8,7 @@ sidebar:
 - **Status:** Accepted
 - **Date:** 2026-10-13
 - **Amends:** the sign-in method of [ADR 0004](0004-identity-households-and-profiles.md) (the household/profile model stands)
+- **Amended by:** [ADR 0023](0023-accounts-own-their-profiles.md) — no invites; the parent gate guards the account and its profiles
 
 ## Context
 

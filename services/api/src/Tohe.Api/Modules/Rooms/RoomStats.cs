@@ -9,11 +9,11 @@ namespace Tohe.Api.Modules.Rooms;
 /// <param name="Firsts">Hands won (first place).</param>
 public sealed record PlayerStats(int Hands, int Firsts, int Points);
 
-/// <summary>One profile of the household on the game's weekly board.</summary>
+/// <summary>One of the account's profiles on the game's weekly board.</summary>
 public sealed record LeaderRow(Guid ProfileId, string Name, string Avatar, int Hands, int Firsts, int Points);
 
-/// <summary>The active profile's online results in a game, and the household's board over the last 7 days.</summary>
-public sealed record RoomStatsView(PlayerStats AllTime, PlayerStats Week, IReadOnlyList<LeaderRow> Household);
+/// <summary>The active profile's online results in a game, and the account's board over the last 7 days.</summary>
+public sealed record RoomStatsView(PlayerStats AllTime, PlayerStats Week, IReadOnlyList<LeaderRow> Account);
 
 /// <summary>A finished hand the active profile played.</summary>
 /// <param name="Seat">Its seat in the hand (the rules module's).</param>
@@ -42,14 +42,14 @@ public sealed record HandReplay(
     int MySeat,
     DateTimeOffset FinishedAt);
 
-/// <summary>Statistics, the household board and replays of online hands (ADR 0016, phase 3).</summary>
+/// <summary>Statistics, the account's board and replays of online hands (ADR 0016, phase 3).</summary>
 internal static class RoomStats
 {
     private const int HistoryLength = 20;
 
     public static void Map(RouteGroupBuilder rooms, Func<HttpContext, Player> playerOf)
     {
-        rooms.MapGet("/stats", async (string game, HttpContext http, ToheDbContext db, IHouseholdProfiles profiles, TimeProvider clock, CancellationToken ct) =>
+        rooms.MapGet("/stats", async (string game, HttpContext http, ToheDbContext db, IAccountProfiles profiles, TimeProvider clock, CancellationToken ct) =>
             {
                 var player = playerOf(http);
                 var since = clock.GetUtcNow().AddDays(-7);
@@ -58,11 +58,11 @@ internal static class RoomStats
                     .Select(r => new { r.Place, r.Points, r.At })
                     .ToListAsync(ct);
                 var week = await db.RoomResults.AsNoTracking()
-                    .Where(r => r.GameId == game && r.HouseholdId == player.HouseholdId && r.ProfileId != null && r.At >= since)
+                    .Where(r => r.GameId == game && r.AccountId == player.AccountId && r.ProfileId != null && r.At >= since)
                     .GroupBy(r => r.ProfileId!.Value)
                     .Select(g => new { ProfileId = g.Key, Hands = g.Count(), Firsts = g.Count(r => r.Place == 0), Points = g.Sum(r => r.Points) })
                     .ToListAsync(ct);
-                var cards = (await profiles.ListAsync(player.HouseholdId, ct)).ToDictionary(p => p.Id);
+                var cards = (await profiles.ListAsync(player.AccountId, ct)).ToDictionary(p => p.Id);
                 var board = week
                     .Where(row => cards.ContainsKey(row.ProfileId))
                     .Select(row => new LeaderRow(row.ProfileId, cards[row.ProfileId].Name, cards[row.ProfileId].Avatar, row.Hands, row.Firsts, row.Points))
@@ -76,7 +76,7 @@ internal static class RoomStats
                     board);
             })
             .WithName("GetRoomStats")
-            .WithSummary("The active profile's online results in a game, and its household's board over the last 7 days.");
+            .WithSummary("The active profile's online results in a game, and its account's board over the last 7 days.");
 
         rooms.MapGet("/history", async (string game, HttpContext http, ToheDbContext db, CancellationToken ct) =>
             {

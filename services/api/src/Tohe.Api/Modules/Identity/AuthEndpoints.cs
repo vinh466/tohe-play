@@ -6,13 +6,11 @@ using Tohe.Api.Infrastructure.Database;
 
 namespace Tohe.Api.Modules.Identity;
 
-/// <param name="InviteCode">Join the household that issued this code instead of creating a new one.</param>
+/// <param name="DisplayName">The account's name, which also names its first profile (ADR 0023).</param>
 public sealed record RegisterRequest(
-    [Required, StringLength(40, MinimumLength = 1)] string DisplayName,
+    [Required(AllowEmptyStrings = true)] string DisplayName,
     [Required, RegularExpression("^[A-Za-z0-9._-]{3,32}$")] string Username,
-    [Required, StringLength(128, MinimumLength = 8)] string Password,
-    [StringLength(40)] string? HouseholdName = null,
-    [StringLength(16)] string? InviteCode = null);
+    [Required, StringLength(128, MinimumLength = 8)] string Password);
 
 public sealed record LoginRequest([Required] string Username, [Required] string Password);
 
@@ -25,7 +23,7 @@ internal static class AuthEndpoints
         auth.MapPost("/register", RegisterAsync)
             .RequireRateLimiting(IdentityModule.AuthRateLimit)
             .WithName("Register")
-            .WithSummary("Create an adult account: a new household, or join one with an invite code.");
+            .WithSummary("Create an account and its first profile.");
 
         auth.MapPost("/login", LoginAsync)
             .RequireRateLimiting(IdentityModule.AuthRateLimit)
@@ -57,7 +55,7 @@ internal static class AuthEndpoints
                 return view is null ? TypedResults.NoContent() : TypedResults.Ok(view);
             })
             .WithName("GetMe")
-            .WithSummary("The device session (account, household, profiles, active profile, parent gate); 204 when signed out.");
+            .WithSummary("The device session (account, profiles, active profile, parent gate); 204 when signed out.");
     }
 
     private static async Task<Results<Ok<MeView>, ValidationProblem>> RegisterAsync(
@@ -70,33 +68,17 @@ internal static class AuthEndpoints
         CancellationToken ct)
     {
         var now = clock.GetUtcNow();
-        var displayName = request.DisplayName.Trim();
+        if (!ProfileNames.TryNormalize(request.DisplayName, out var displayName, out var nameError))
+        {
+            return Problems.Field("displayName", nameError);
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
-
-        Household? household;
-        if (!string.IsNullOrWhiteSpace(request.InviteCode))
-        {
-            var code = Invites.Normalize(request.InviteCode);
-            household = await db.Households.FirstOrDefaultAsync(h => h.InviteCode == code && h.InviteExpiresAt > now, ct);
-            if (household is null)
-            {
-                return Problems.Field("inviteCode", "invite_invalid");
-            }
-        }
-        else
-        {
-            var name = string.IsNullOrWhiteSpace(request.HouseholdName) ? $"Nhà {displayName}" : request.HouseholdName.Trim();
-            household = new Household { Id = Guid.CreateVersion7(), Name = name[..Math.Min(name.Length, 40)], CreatedAt = now };
-            db.Households.Add(household);
-            await db.SaveChangesAsync(ct);
-        }
-
         var account = new Account
         {
             Id = Guid.CreateVersion7(),
             UserName = request.Username.Trim().ToLowerInvariant(),
             DisplayName = displayName,
-            HouseholdId = household.Id,
             CreatedAt = now,
         };
         var created = await users.CreateAsync(account, request.Password);
@@ -105,27 +87,30 @@ internal static class AuthEndpoints
             return Problems.FromIdentity(created.Errors);
         }
 
-        db.Profiles.Add(new Profile
+        // Every account starts with a profile to play as (ADR 0023), and plays as it at once: nobody else to choose.
+        var profile = new Profile
         {
             Id = Guid.CreateVersion7(),
-            HouseholdId = household.Id,
-            Name = displayName[..Math.Min(displayName.Length, 20)],
+            AccountId = account.Id,
+            PublicId = await ProfileEndpoints.NewPublicIdAsync(db, ct),
+            Name = displayName,
             Avatar = ProfileOptions.Avatars[0],
             Kind = ProfileKind.Adult,
-            AccountId = account.Id,
             CreatedAt = now,
-        });
+        };
+        db.Profiles.Add(profile);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
-        await session.WriteAsync(account, profileId: null, parentUntil: null);
-        return TypedResults.Ok((await me.LoadAsync(account.Id, null, null, ct))!);
+        await session.WriteAsync(account, profileId: profile.Id, parentUntil: null);
+        return TypedResults.Ok((await me.LoadAsync(account.Id, profile.Id, null, ct))!);
     }
 
     private static async Task<Results<Ok<MeView>, ProblemHttpResult>> LoginAsync(
         LoginRequest request,
         UserManager<Account> users,
         SignInManager<Account> signIn,
+        ToheDbContext db,
         SessionWriter session,
         MeQueries me,
         CancellationToken ct)
@@ -147,7 +132,15 @@ internal static class AuthEndpoints
             return Problems.InvalidCredentials();
         }
 
-        await session.WriteAsync(account, profileId: null, parentUntil: null);
-        return TypedResults.Ok((await me.LoadAsync(account.Id, null, null, ct))!);
+        // One profile without a PIN leaves nobody to choose (ADR 0023): it plays at once. Otherwise the picker asks.
+        var profiles = await db.Profiles
+            .Where(p => p.AccountId == account.Id)
+            .Select(p => new { p.Id, Locked = p.PinHash != null })
+            .Take(2)
+            .ToListAsync(ct);
+        Guid? playing = profiles is [{ Locked: false } only] ? only.Id : null;
+
+        await session.WriteAsync(account, profileId: playing, parentUntil: null);
+        return TypedResults.Ok((await me.LoadAsync(account.Id, playing, null, ct))!);
     }
 }

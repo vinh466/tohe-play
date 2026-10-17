@@ -5,7 +5,8 @@ sidebar:
   order: 15
 ---
 
-- **Status:** Accepted (the owner took the proposed answers to every open question, 2026-10-15)
+- **Status:** Accepted (the owner took the proposed answers to every open question, 2026-10-15) — the switch is the
+  account's since [ADR 0023](0023-accounts-own-their-profiles.md)
 - **Date:** 2026-10-15
 
 ## Context

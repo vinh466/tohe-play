@@ -32,7 +32,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Allowed avatars and age bands.",
+        "summary": "Allowed avatars and age bands, and how many profiles an account may own.",
         "operationId": "GetProfileOptions",
         "responses": {
           "200": {
@@ -53,7 +53,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Create an adult account: a new household, or join one with an invite code.",
+        "summary": "Create an account and its first profile.",
         "operationId": "Register",
         "requestBody": {
           "content": {
@@ -139,7 +139,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "The device session (account, household, profiles, active profile, parent gate); 204 when signed out.",
+        "summary": "The device session (account, profiles, active profile, parent gate); 204 when signed out.",
         "operationId": "GetMe",
         "responses": {
           "200": {
@@ -216,7 +216,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Re-enter the password to manage the household for a few minutes.",
+        "summary": "Re-enter the password to manage the account's profiles for a few minutes.",
         "operationId": "UnlockParentGate",
         "requestBody": {
           "content": {
@@ -245,7 +245,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Lock household management again.",
+        "summary": "Lock profile management again.",
         "operationId": "LockParentGate",
         "responses": {
           "200": {
@@ -261,18 +261,18 @@
         }
       }
     },
-    "/api/household": {
+    "/api/account": {
       "patch": {
         "tags": [
           "Identity"
         ],
-        "summary": "Rename the household, or turn its telemetry on or off.",
-        "operationId": "UpdateHousehold",
+        "summary": "Turn the account's telemetry on or off.",
+        "operationId": "UpdateAccount",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateHouseholdRequest"
+                "$ref": "#/components/schemas/UpdateAccountRequest"
               }
             }
           },
@@ -302,72 +302,12 @@
         }
       }
     },
-    "/api/household/invite": {
+    "/api/profiles": {
       "post": {
         "tags": [
           "Identity"
         ],
-        "summary": "New invite code for another adult (replaces the previous one).",
-        "operationId": "CreateInvite",
-        "responses": {
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeView"
-                }
-              }
-            }
-          }
-        }
-      },
-      "delete": {
-        "tags": [
-          "Identity"
-        ],
-        "summary": "Revoke the invite code.",
-        "operationId": "RevokeInvite",
-        "responses": {
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/household/profiles": {
-      "post": {
-        "tags": [
-          "Identity"
-        ],
-        "summary": "Add a child profile.",
+        "summary": "Add a profile to the account (at most five).",
         "operationId": "CreateProfile",
         "requestBody": {
           "content": {
@@ -413,12 +353,12 @@
         }
       }
     },
-    "/api/household/profiles/{id}": {
+    "/api/profiles/{id}": {
       "patch": {
         "tags": [
           "Identity"
         ],
-        "summary": "Edit a profile. Adults can only edit their own adult profile.",
+        "summary": "Edit one of the account's profiles.",
         "operationId": "UpdateProfile",
         "parameters": [
           {
@@ -481,7 +421,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Remove a child profile.",
+        "summary": "Remove one of the account's profiles — never the last one.",
         "operationId": "DeleteProfile",
         "parameters": [
           {
@@ -730,7 +670,7 @@
         "tags": [
           "Progress"
         ],
-        "summary": "Best score of each household member on a game's board.",
+        "summary": "Best score of each of the account's profiles on a game's board.",
         "operationId": "GetLeaderboard",
         "parameters": [
           {
@@ -1006,7 +946,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "The active profile's online results in a game, and its household's board over the last 7 days.",
+        "summary": "The active profile's online results in a game, and its account's board over the last 7 days.",
         "operationId": "GetRoomStats",
         "parameters": [
           {
@@ -1377,7 +1317,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "Ask a member of one's household to the table: it shows in their hub for 10 minutes.",
+        "summary": "Ask another of the account's profiles to the table: it shows in their hub for 10 minutes.",
         "operationId": "InviteToRoom",
         "parameters": [
           {
@@ -1425,7 +1365,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "Tables household members asked the active profile to, for the next 10 minutes.",
+        "summary": "Tables the account's other profiles asked the active profile to, for the next 10 minutes.",
         "operationId": "ListRoomInvites",
         "responses": {
           "403": {
@@ -1608,7 +1548,8 @@
         "required": [
           "id",
           "username",
-          "displayName"
+          "displayName",
+          "telemetry"
         ],
         "type": "object",
         "properties": {
@@ -1621,6 +1562,9 @@
           },
           "displayName": {
             "type": "string"
+          },
+          "telemetry": {
+            "type": "boolean"
           }
         }
       },
@@ -1667,8 +1611,7 @@
       "CreateProfileRequest": {
         "required": [
           "name",
-          "avatar",
-          "ageBand"
+          "avatar"
         ],
         "type": "object",
         "properties": {
@@ -1679,7 +1622,10 @@
             "type": "string"
           },
           "ageBand": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "pin": {
             "type": [
@@ -1707,7 +1653,7 @@
             "type": "boolean",
             "default": true
           },
-          "householdOnly": {
+          "accountOnly": {
             "type": "boolean",
             "default": false
           },
@@ -2185,44 +2131,6 @@
           }
         }
       },
-      "HouseholdView": {
-        "required": [
-          "id",
-          "name",
-          "members",
-          "invite",
-          "telemetry"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "members": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MemberView"
-            }
-          },
-          "invite": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/InviteView"
-              }
-            ]
-          },
-          "telemetry": {
-            "type": "boolean"
-          }
-        }
-      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -2277,22 +2185,6 @@
           "profileId": {
             "type": "string",
             "format": "uuid"
-          }
-        }
-      },
-      "InviteView": {
-        "required": [
-          "code",
-          "expiresAt"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
           }
         }
       },
@@ -2384,7 +2276,6 @@
       "MeView": {
         "required": [
           "account",
-          "household",
           "profiles",
           "activeProfileId",
           "parentUnlockedUntil"
@@ -2393,9 +2284,6 @@
         "properties": {
           "account": {
             "$ref": "#/components/schemas/AccountView"
-          },
-          "household": {
-            "$ref": "#/components/schemas/HouseholdView"
           },
           "profiles": {
             "type": "array",
@@ -2416,26 +2304,6 @@
               "string"
             ],
             "format": "date-time"
-          }
-        }
-      },
-      "MemberView": {
-        "required": [
-          "accountId",
-          "displayName",
-          "username"
-        ],
-        "type": "object",
-        "properties": {
-          "accountId": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "displayName": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
           }
         }
       },
@@ -2542,7 +2410,8 @@
       "ProfileOptionsView": {
         "required": [
           "avatars",
-          "ageBands"
+          "ageBands",
+          "maxProfiles"
         ],
         "type": "object",
         "properties": {
@@ -2557,18 +2426,22 @@
             "items": {
               "type": "string"
             }
+          },
+          "maxProfiles": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
       "ProfileView": {
         "required": [
           "id",
+          "publicId",
           "name",
           "avatar",
           "kind",
           "ageBand",
           "hasPin",
-          "isMine",
           "playWithOthers"
         ],
         "type": "object",
@@ -2576,6 +2449,9 @@
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "publicId": {
+            "type": "string"
           },
           "name": {
             "type": "string"
@@ -2593,9 +2469,6 @@
             ]
           },
           "hasPin": {
-            "type": "boolean"
-          },
-          "isMine": {
             "type": "boolean"
           },
           "playWithOthers": {
@@ -2656,18 +2529,6 @@
           },
           "password": {
             "type": "string"
-          },
-          "householdName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "inviteCode": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },
@@ -2760,7 +2621,7 @@
         "required": [
           "allTime",
           "week",
-          "household"
+          "account"
         ],
         "type": "object",
         "properties": {
@@ -2770,7 +2631,7 @@
           "week": {
             "$ref": "#/components/schemas/PlayerStats"
           },
-          "household": {
+          "account": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LeaderRow"
@@ -2842,7 +2703,7 @@
           "status",
           "hostProfileId",
           "isPublic",
-          "householdOnly",
+          "accountOnly",
           "locked",
           "seats",
           "botsFill",
@@ -2883,7 +2744,7 @@
           "isPublic": {
             "type": "boolean"
           },
-          "householdOnly": {
+          "accountOnly": {
             "type": "boolean"
           },
           "locked": {
@@ -3334,15 +3195,9 @@
           }
         }
       },
-      "UpdateHouseholdRequest": {
+      "UpdateAccountRequest": {
         "type": "object",
         "properties": {
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
           "telemetry": {
             "type": [
               "null",
@@ -3408,7 +3263,7 @@
               "boolean"
             ]
           },
-          "householdOnly": {
+          "accountOnly": {
             "type": [
               "null",
               "boolean"
