@@ -27,6 +27,23 @@
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 	}
 
+	# The admin console (ADR 0027): its own app at /admin/, built into this image. Never indexed, and stricter than the
+	# hub: no games origin, no WebSocket, no inline styles. Its header replaces the hub's CSP set above.
+	redir /admin /admin/ 308
+	handle /admin/* {
+		header {
+			Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+			X-Robots-Tag "noindex, nofollow"
+		}
+		root * /srv
+		@adminImmutable path /admin/assets/*
+		header @adminImmutable Cache-Control "public, max-age=31536000, immutable"
+		@adminMutable not path /admin/assets/*
+		header @adminMutable Cache-Control "no-cache"
+		try_files {path} /admin/index.html
+		file_server
+	}
+
 	handle /api/* {
 		reverse_proxy {$API_UPSTREAM} {
 			# The API rate-limits sign-in by client address: hand it the one worked out above, not a proxy's.

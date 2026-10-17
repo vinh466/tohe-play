@@ -892,6 +892,7 @@ export interface components {
             hasManagePin: boolean;
             termsVersion: null | string;
             logins: string[];
+            role: null | string;
         };
         AttemptView: {
             /** Format: uuid */

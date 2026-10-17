@@ -11,7 +11,8 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --prefer-offline
 
 FROM workspace AS build-hub
-RUN pnpm turbo run build --filter=@tohe/hub
+# The admin console (ADR 0027) ships in the hub's image, served at /admin/.
+RUN pnpm turbo run build --filter=@tohe/hub --filter=@tohe/admin
 
 FROM workspace AS build-site
 # One image for every environment (ADR 0021). The site's own URL (canonical links, sitemap, llms.txt) is built as a
@@ -31,6 +32,7 @@ RUN pnpm turbo run build --filter=@tohe/games-host
 FROM caddy:2-alpine AS hub
 COPY deploy/docker/Caddyfile.hub /etc/caddy/Caddyfile
 COPY --from=build-hub /repo/apps/hub/dist /srv
+COPY --from=build-hub /repo/apps/admin/dist /srv/admin
 EXPOSE 8080
 
 FROM caddy:2-alpine AS site
