@@ -586,15 +586,15 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/progress/leaderboard/{gameId}": {
+    "/api/boards/{gameId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Best score of each of the account's profiles on a game's board. */
-        get: operations["GetLeaderboard"];
+        /** The account's board of a game: each profile's best this week or of all time. */
+        get: operations["GetAccountBoard"];
         put?: never;
         post?: never;
         delete?: never;
@@ -679,7 +679,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The active profile's online results in a game, and its account's board over the last 7 days. */
+        /** The active profile's online results in a game, and its account's board of the week. */
         get: operations["GetRoomStats"];
         put?: never;
         post?: never;
@@ -881,6 +881,14 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccountBoardView: {
+            gameId: string;
+            board: string;
+            period: string;
+            /** Format: date-time */
+            since: null | string;
+            rows: components["schemas"]["BoardRow"][];
+        };
         AccountView: {
             /** Format: uuid */
             id: string;
@@ -897,6 +905,18 @@ export interface components {
         AttemptView: {
             /** Format: uuid */
             attemptId: string;
+        };
+        BoardRow: {
+            /** Format: uuid */
+            profileId: string;
+            name: string;
+            avatar: string;
+            /** Format: double */
+            value: number;
+            /** Format: date-time */
+            at: string;
+            inProgress: boolean;
+            underReview: boolean;
         };
         ChangeEmailRequest: {
             email: string;
@@ -1124,17 +1144,6 @@ export interface components {
             firsts: number;
             /** Format: int32 */
             points: number;
-        };
-        LeaderboardEntry: {
-            /** Format: uuid */
-            profileId: string;
-            name: string;
-            avatar: string;
-            /** Format: double */
-            value: number;
-            /** Format: date-time */
-            achievedAt: string;
-            inProgress: boolean;
         };
         LinkProofRequest: {
             code?: null | string;
@@ -2563,10 +2572,11 @@ export interface operations {
             };
         };
     };
-    GetLeaderboard: {
+    GetAccountBoard: {
         parameters: {
             query?: {
                 board?: string;
+                period?: string;
             };
             header?: never;
             path: {
@@ -2582,7 +2592,16 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LeaderboardEntry"][];
+                    "application/json": components["schemas"]["AccountBoardView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
             /** @description Forbidden */

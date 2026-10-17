@@ -15,7 +15,8 @@ export type ExternalOutcome = Schemas['ExternalOutcome'];
 export type ExternalProvider = Schemas['ExternalProvider'];
 export type CreateProfileRequest = Schemas['CreateProfileRequest'];
 export type UpdateProfileRequest = Schemas['UpdateProfileRequest'];
-export type LeaderboardEntry = Schemas['LeaderboardEntry'];
+export type AccountBoardView = Schemas['AccountBoardView'];
+export type BoardRow = Schemas['BoardRow'];
 export type ScoreInput = Schemas['ScoreInput'];
 export type RoomView = Schemas['RoomView'];
 export type RoomSummary = Schemas['RoomSummary'];
@@ -182,8 +183,12 @@ export const progress = {
   putSave: (gameId: string, data: unknown) =>
     call(api.PUT('/api/progress/saves/{gameId}', { params: { path: { gameId } }, body: { data } })),
   recordScores: (scores: ScoreInput[]) => call(api.POST('/api/progress/scores', { body: { scores } })),
-  leaderboard: (gameId: string) =>
-    call(api.GET('/api/progress/leaderboard/{gameId}', { params: { path: { gameId } } })),
+};
+
+/** Boards read by trust (ADR 0029): the account's board of a game, this week or all time. */
+export const boards = {
+  account: (gameId: string, period: 'week' | 'all') =>
+    call(api.GET('/api/boards/{gameId}', { params: { path: { gameId }, query: { period } } })),
 };
 
 /** Online rooms (ADR 0016): the lobby and the host's controls. What happens at the table goes through the hub. */
@@ -200,7 +205,7 @@ export const rooms = {
   setSeat: (id: string, seat: number, bot: string | null) =>
     call(api.PUT('/api/rooms/{id}/seats/{seat}', { params: { path: { id, seat } }, body: { bot } })),
   start: (id: string) => call(api.POST('/api/rooms/{id}/start', { params: { path: { id } } })),
-  /** Online results of a game: the profile's, and its household's board over the last 7 days. */
+  /** Online results of a game: the profile's, and its account's board this week. */
   stats: (game: string) => call(api.GET('/api/rooms/stats', { params: { query: { game } } })),
   history: (game: string) => call(api.GET('/api/rooms/history', { params: { query: { game } } })),
   /** Watch a table without a seat (when the host allows spectators). */
