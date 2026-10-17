@@ -3,11 +3,13 @@
 // Opens the hub on a phone-sized viewport, launches the sample game, plays one round and checks that the
 // hub stored the score and the save locally. Every screen — hub, landing page, docs — is checked in the light and
 // the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke (SITE_URL defaults to :4710)
-// With ADMIN_GRANT_COMMAND (CI: the API container's `admin grant`, ADR 0027) it also walks the admin console's pages.
+// With ADMIN_GRANT_COMMAND (CI: the API container's `admin grant`, ADR 0027) it also sets up the admin console's
+// two-factor authentication and walks its pages.
 import { execFileSync } from 'node:child_process';
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
 import { codeSentTo } from './mailpit.ts';
+import { totp } from './totp.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
@@ -351,15 +353,28 @@ try {
 
   if (grantCommand) {
     const [command = '', ...args] = grantCommand;
-    step(`granted a role in the API's container, the console opens on its pages`);
+    step(`granted a role in the API's container, the console asks for two-factor authentication first`);
     execFileSync(command, [...args, email, '--role', 'viewer'], { stdio: 'inherit' });
     await page.reload();
+    await page.getByLabel('Mật khẩu của bạn').fill(password);
+    await page.getByRole('button', { name: 'Xác nhận', exact: true }).click();
+    await page.getByRole('button', { name: 'Tạo khoá cho ứng dụng xác thực' }).click();
+    const key = await page.getByLabel('Khoá xác thực', { exact: true }).inputValue();
+    await shot('admin-two-factor');
+
+    step('a code from the key turns it on; the recovery codes show once, then the console opens');
+    await page.getByLabel('Mã 6 số ứng dụng đang hiện').fill(totp(key));
+    await page.getByRole('button', { name: 'Bật xác thực hai lớp' }).click();
+    await page.getByRole('list', { name: 'Mã dự phòng' }).waitFor();
+    await shot('admin-recovery-codes');
+    await page.getByRole('button', { name: 'Tôi đã cất các mã này' }).click();
     await page.getByRole('heading', { name: 'Tổng quan' }).waitFor();
     await shot('admin-overview');
     for (const [link, heading] of [
       ['Game', 'Game'],
       ['Sức khoẻ thiết bị', 'Sức khoẻ thiết bị'],
       ['Hệ thống', 'Hệ thống'],
+      ['Bảo mật', 'Bảo mật'],
     ] as const) {
       await page.getByRole('link', { name: link, exact: true }).click();
       await page.getByRole('heading', { name: heading, exact: true }).waitFor();
