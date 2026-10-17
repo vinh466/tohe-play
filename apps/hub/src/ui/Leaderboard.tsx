@@ -2,17 +2,20 @@ import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { boards, type GameSummary } from '../api/client.ts';
+import { meQuery } from '../api/queries.ts';
 import type { Player } from '../session/session.ts';
 import { syncer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
 import { withOfflineCache } from '../storage/repository.ts';
 import { Avatar } from './AvatarGrid.tsx';
 import { Modal } from './Modal.tsx';
+import { PublicBoard } from './PublicBoard.tsx';
+import { Segmented } from './Segmented.tsx';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-const PERIODS = ['week', 'all'] as const;
-type Period = (typeof PERIODS)[number];
+type Period = 'week' | 'all';
+type Scope = 'account' | 'community' | 'server';
 
 /** 🏆 in the corner of a game card: the best scores of the account's profiles for that game (M2). */
 export function LeaderboardButton({ game, player }: { game: GameSummary; player: Player }) {
@@ -53,27 +56,39 @@ export function LeaderboardSheet({
   );
 }
 
-/** This week — from Monday 00:00 in Việt Nam — or all time (ADR 0029). */
+/**
+ * The account's board, its community's and the server's (ADR 0029) — this week, from Monday 00:00 in Việt Nam, or all
+ * time.
+ */
 function Ranking({ gameId, player }: { gameId: string; player: Player }) {
   const { t } = useTranslation();
+  const me = useQuery(meQuery);
+  const community = me.data?.account.community ?? null;
+  const [scope, setScope] = useState<Scope>('account');
   const [period, setPeriod] = useState<Period>('week');
+  const scopes: { value: Scope; label: string }[] = [
+    { value: 'account', label: t('boards.account') },
+    ...(community ? [{ value: 'community' as const, label: t('boards.community') }] : []),
+    { value: 'server', label: t('boards.server') },
+  ];
   return (
     <div className="flex flex-col gap-3">
-      <fieldset className="grid min-w-0 grid-cols-2 gap-1 rounded-2xl bg-soft p-1">
-        <legend className="sr-only">{t('leaderboard.period')}</legend>
-        {PERIODS.map((value) => (
-          <button
-            key={value}
-            type="button"
-            aria-pressed={value === period}
-            onClick={() => setPeriod(value)}
-            className={`rounded-xl px-3 py-2 font-bold ${value === period ? 'bg-surface text-ink shadow-sm' : 'text-ink-soft'}`}
-          >
-            {t(value === 'week' ? 'leaderboard.week' : 'leaderboard.allTime')}
-          </button>
-        ))}
-      </fieldset>
-      <Rows gameId={gameId} player={player} period={period} />
+      <Segmented<Scope> legend={t('boards.scope')} options={scopes} value={scope} onChange={setScope} />
+      <Segmented<Period>
+        legend={t('leaderboard.period')}
+        options={[
+          { value: 'week', label: t('leaderboard.week') },
+          { value: 'all', label: t('leaderboard.allTime') },
+        ]}
+        value={period}
+        onChange={setPeriod}
+      />
+      {scope === 'community' && community ? <p className="text-ink-soft text-sm">{community}</p> : null}
+      {scope === 'account' ? (
+        <Rows gameId={gameId} player={player} period={period} />
+      ) : (
+        <PublicBoard gameId={gameId} scope={scope} period={period} playerId={player.id} />
+      )}
     </div>
   );
 }

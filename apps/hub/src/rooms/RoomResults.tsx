@@ -1,17 +1,27 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { rooms } from '../api/client.ts';
+import { meQuery } from '../api/queries.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
+import { PublicBoard } from '../ui/PublicBoard.tsx';
+import { Segmented } from '../ui/Segmented.tsx';
 
 const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
+type Scope = 'account' | 'community' | 'server';
+
 /**
- * A game's online results in its lobby (ADR 0016, phase 3): the profile's own, the account's board over the last 7
- * days (the account's profiles only, like every board on Tò He so far), and the last hands, each with a replay.
+ * A game's online results in its lobby (ADR 0016, phase 3): the profile's own, the boards of the week — the account's,
+ * its community's and the server's, which count tables with two people or more (ADR 0029) — and the last hands, each
+ * with a replay.
  */
 export function RoomResults({ gameId, playerId }: { gameId: string; playerId: string }) {
   const { t } = useTranslation();
+  const me = useQuery(meQuery);
+  const community = me.data?.account.community ?? null;
+  const [scope, setScope] = useState<Scope>('account');
   const stats = useQuery({ queryKey: ['room-stats', gameId, playerId], queryFn: () => rooms.stats(gameId) });
   const history = useQuery({
     queryKey: ['room-history', gameId, playerId],
@@ -41,22 +51,37 @@ export function RoomResults({ gameId, playerId }: { gameId: string; playerId: st
       </dl>
 
       <h3 className="font-bold text-ink">{t('rooms.board')}</h3>
-      {account.length === 0 ? <p className="text-ink-soft">{t('rooms.boardEmpty')}</p> : null}
-      <ol className="flex flex-col gap-2">
-        {account.map((row, index) => (
-          <li
-            key={row.profileId}
-            className={`flex items-center gap-3 rounded-2xl p-3 ${row.profileId === playerId ? 'bg-notice text-notice-ink' : 'bg-surface text-ink'}`}
-          >
-            <span className="w-6 text-center font-black">{index + 1}</span>
-            <Avatar avatar={row.avatar} size="sm" />
-            <span className="min-w-0 flex-1 truncate font-bold">{row.name}</span>
-            <span className="text-sm">
-              {t('rooms.statsLine', { hands: row.hands, firsts: row.firsts, points: signed(row.points) })}
-            </span>
-          </li>
-        ))}
-      </ol>
+      <Segmented<Scope>
+        legend={t('boards.scope')}
+        options={[
+          { value: 'account', label: t('boards.account') },
+          ...(community ? [{ value: 'community' as const, label: t('boards.community') }] : []),
+          { value: 'server', label: t('boards.server') },
+        ]}
+        value={scope}
+        onChange={setScope}
+      />
+      {scope !== 'account' ? (
+        <PublicBoard gameId={gameId} scope={scope} period="week" playerId={playerId} />
+      ) : account.length === 0 ? (
+        <p className="text-ink-soft">{t('rooms.boardEmpty')}</p>
+      ) : (
+        <ol className="flex flex-col gap-2">
+          {account.map((row, index) => (
+            <li
+              key={row.profileId}
+              className={`flex items-center gap-3 rounded-2xl p-3 ${row.profileId === playerId ? 'bg-notice text-notice-ink' : 'bg-surface text-ink'}`}
+            >
+              <span className="w-6 text-center font-black">{index + 1}</span>
+              <Avatar avatar={row.avatar} size="sm" />
+              <span className="min-w-0 flex-1 truncate font-bold">{row.name}</span>
+              <span className="text-sm">
+                {t('rooms.statsLine', { hands: row.hands, firsts: row.firsts, points: signed(row.points) })}
+              </span>
+            </li>
+          ))}
+        </ol>
+      )}
 
       {history.data && history.data.length > 0 ? (
         <>

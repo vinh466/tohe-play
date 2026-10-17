@@ -18,6 +18,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
     termsVersion: '2026-10-18',
     logins: [],
     role: null,
+    community: null,
   },
   profiles: [
     {
@@ -29,6 +30,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
       ageBand: null,
       hasPin: false,
       playWithOthers: true,
+      onPublicBoards: true,
     },
     {
       id: 'p-kid',
@@ -39,6 +41,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
       ageBand: '3-5',
       hasPin: true,
       playWithOthers: false,
+      onPublicBoards: false,
     },
   ],
   activeProfileId: null,

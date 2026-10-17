@@ -311,6 +311,11 @@ function ProfileForm({
   const [pin, setPin] = useState('');
   const [removePin, setRemovePin] = useState(false);
   const [playWithOthers, setPlayWithOthers] = useState(profile?.playWithOthers ?? false);
+  const [onPublicBoards, setOnPublicBoards] = useState(profile?.onPublicBoards ?? false);
+  // A child goes on public boards only once its owner says they asked it (D-06).
+  const [askedChild, setAskedChild] = useState(false);
+  const showingChild = profile?.kind === 'child' && onPublicBoards && !profile.onPublicBoards;
+  const [unasked, setUnasked] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
 
   const save = useMeMutation(
@@ -329,6 +334,8 @@ function ProfileForm({
             pin: pin || null,
             removePin: removePin || null,
             playWithOthers: isChild ? playWithOthers : null,
+            onPublicBoards,
+            askedChild: showingChild ? askedChild : null,
           }),
     onDone,
   );
@@ -339,6 +346,8 @@ function ProfileForm({
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!cleanName(name) || tooLong || pinInvalid) return;
+    setUnasked(showingChild && !askedChild);
+    if (showingChild && !askedChild) return;
     save.mutate(undefined);
   };
 
@@ -430,6 +439,35 @@ function ProfileForm({
           checked={playWithOthers}
           onChange={setPlayWithOthers}
         />
+      ) : null}
+      {profile ? (
+        <Switch
+          label={t('account.onPublicBoards')}
+          hint={t(
+            profile.kind === 'child' ? 'account.onPublicBoardsChildHint' : 'account.onPublicBoardsHint',
+          )}
+          checked={onPublicBoards}
+          onChange={setOnPublicBoards}
+        />
+      ) : null}
+      {showingChild ? (
+        <div className="flex flex-col gap-2">
+          <label className="flex items-start gap-3 rounded-2xl bg-notice p-4 text-notice-ink">
+            <input
+              type="checkbox"
+              checked={askedChild}
+              onChange={(event) => setAskedChild(event.target.checked)}
+              aria-invalid={unasked && !askedChild ? true : undefined}
+              className="mt-0.5 size-5 shrink-0 accent-brand-strong"
+            />
+            <span className="font-semibold">{t('account.askedChild', { name: profile?.name ?? '' })}</span>
+          </label>
+          {unasked && !askedChild ? (
+            <p role="alert" className="text-danger text-sm">
+              {t('errors.askedChildRequired')}
+            </p>
+          ) : null}
+        </div>
       ) : null}
       {save.isError || remove.isError ? (
         <p role="alert" className="text-danger">
