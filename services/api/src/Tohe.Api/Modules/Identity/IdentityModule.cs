@@ -1,10 +1,13 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Platform;
 
 namespace Tohe.Api.Modules.Identity;
 
@@ -52,7 +55,8 @@ internal static class IdentityModule
             options.Cookie.Name = "tohe.session";
             options.Cookie.HttpOnly = true;
             options.Cookie.SameSite = SameSiteMode.Lax;
-            // Secure whenever served over HTTPS; UAT is plain HTTP inside the VPN (ADR 0010).
+            // Secure whenever the request is HTTPS — which App:PublicUrl decides behind a proxy (UsePublicUrl).
+            // UAT is plain HTTP inside the VPN (ADR 0010).
             options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             options.ExpireTimeSpan = TimeSpan.FromDays(90);
             options.SlidingExpiration = true;
@@ -68,6 +72,19 @@ internal static class IdentityModule
                 return Task.CompletedTask;
             };
         });
+
+        // On an HTTPS deployment the cookie is always Secure and locked to the hub's host: the __Host- prefix forbids
+        // a Domain attribute, so another subdomain of the same site (the games origin among them) can neither set nor
+        // shadow it (ADR 0021).
+        services.AddOptions<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme)
+            .Configure<IOptions<AppOptions>>((options, app) =>
+            {
+                if (app.Value.PublicUrl?.Scheme == Uri.UriSchemeHttps)
+                {
+                    options.Cookie.Name = "__Host-tohe.session";
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                }
+            });
 
         // Identity periodically rebuilds the principal from the database; keep the session claims across that.
         services.Configure<SecurityStampValidatorOptions>(options =>
