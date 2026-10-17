@@ -9,6 +9,7 @@ sidebar:
 tohe-play/
 ├── AGENTS.md / CLAUDE.md    Entry point for AI agents (short; points here)
 ├── docs/                    This documentation — the specification
+├── plans/                   Plan spaces: intent worked out with the owner before it becomes spec (not published)
 ├── apps/
 │   ├── hub/                 React PWA: catalog, launcher, profiles, local-first storage
 │   └── site/                Astro + Starlight: landing page + renders docs/
