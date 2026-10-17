@@ -87,8 +87,8 @@ internal static class AuthEndpoints
             return Problems.FromIdentity(created.Errors);
         }
 
-        // Every account starts with a profile to play as (ADR 0023).
-        db.Profiles.Add(new Profile
+        // Every account starts with a profile to play as (ADR 0023), and plays as it at once: nobody else to choose.
+        var profile = new Profile
         {
             Id = Guid.CreateVersion7(),
             AccountId = account.Id,
@@ -97,18 +97,20 @@ internal static class AuthEndpoints
             Avatar = ProfileOptions.Avatars[0],
             Kind = ProfileKind.Adult,
             CreatedAt = now,
-        });
+        };
+        db.Profiles.Add(profile);
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
 
-        await session.WriteAsync(account, profileId: null, parentUntil: null);
-        return TypedResults.Ok((await me.LoadAsync(account.Id, null, null, ct))!);
+        await session.WriteAsync(account, profileId: profile.Id, parentUntil: null);
+        return TypedResults.Ok((await me.LoadAsync(account.Id, profile.Id, null, ct))!);
     }
 
     private static async Task<Results<Ok<MeView>, ProblemHttpResult>> LoginAsync(
         LoginRequest request,
         UserManager<Account> users,
         SignInManager<Account> signIn,
+        ToheDbContext db,
         SessionWriter session,
         MeQueries me,
         CancellationToken ct)
@@ -130,7 +132,15 @@ internal static class AuthEndpoints
             return Problems.InvalidCredentials();
         }
 
-        await session.WriteAsync(account, profileId: null, parentUntil: null);
-        return TypedResults.Ok((await me.LoadAsync(account.Id, null, null, ct))!);
+        // One profile without a PIN leaves nobody to choose (ADR 0023): it plays at once. Otherwise the picker asks.
+        var profiles = await db.Profiles
+            .Where(p => p.AccountId == account.Id)
+            .Select(p => new { p.Id, Locked = p.PinHash != null })
+            .Take(2)
+            .ToListAsync(ct);
+        Guid? playing = profiles is [{ Locked: false } only] ? only.Id : null;
+
+        await session.WriteAsync(account, profileId: playing, parentUntil: null);
+        return TypedResults.Ok((await me.LoadAsync(account.Id, playing, null, ct))!);
     }
 }

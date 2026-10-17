@@ -18,6 +18,7 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
     public async Task Progress_needs_a_chosen_profile()
     {
         var (client, _) = await RegisterAsync("Bố");
+        await client.DeleteAsync(Url("/api/session/profile"), Ct); // back to "Ai đang chơi?"
 
         var response = await client.GetAsync(Url("/api/progress/saves"), Ct);
 

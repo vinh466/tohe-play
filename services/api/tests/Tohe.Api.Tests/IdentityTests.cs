@@ -21,7 +21,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Equal(("adult", "Bố Vinh 🦊"), (profile.Kind, profile.Name));
         Assert.True(ProfileIds.TryNormalize(profile.PublicId, out _), profile.PublicId);
         Assert.True(me.Account.Telemetry);
-        Assert.Null(me.ActiveProfileId);
+        Assert.Equal(profile.Id, me.ActiveProfileId); // nobody else to choose: it plays at once
         Assert.Null(me.ParentUnlockedUntil);
 
         var again = await client.GetFromJsonAsync<MeView>(Url("/api/auth/me"), Ct);
@@ -40,10 +40,32 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
 
         var right = await client.PostAsJsonAsync(Url("/api/auth/login"), new { username = me.Account.Username.ToUpperInvariant(), password = Password }, Ct);
         Assert.Equal(HttpStatusCode.OK, right.StatusCode);
+        Assert.Equal(me.Profiles[0].Id, (await right.Content.ReadFromJsonAsync<MeView>(Ct))!.ActiveProfileId);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
 
         await client.PostAsync(Url("/api/auth/logout"), null, Ct);
         Assert.Equal(HttpStatusCode.NoContent, (await client.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task Signing_in_plays_the_only_profile_at_once_but_asks_when_there_is_a_choice()
+    {
+        var (owner, me) = await RegisterAsync("Bố");
+        await UnlockAsync(owner);
+        var credentials = new { username = me.Account.Username, password = Password };
+        async Task<Guid?> SignInAsync() =>
+            (await (await factory.CreateClient().PostAsJsonAsync(Url("/api/auth/login"), credentials, Ct))
+                .Content.ReadFromJsonAsync<MeView>(Ct))!.ActiveProfileId;
+
+        // Its PIN has to be typed by someone.
+        var locked = await owner.PatchAsJsonAsync(Url($"/api/profiles/{me.Profiles[0].Id}"), new { pin = "1234" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, locked.StatusCode);
+        Assert.Null(await SignInAsync());
+
+        // Two profiles: someone has to choose.
+        await owner.PatchAsJsonAsync(Url($"/api/profiles/{me.Profiles[0].Id}"), new { removePin = true }, Ct);
+        await AddChildAsync(owner, "Na");
+        Assert.Null(await SignInAsync());
     }
 
     [Fact]

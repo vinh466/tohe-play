@@ -3,8 +3,9 @@
 // Lên room from the lobby, a friend joins with the room's link, and the parent invites their child, who gets the
 // invitation on the parent's second phone and watches the start of the hand. Both play it to the end with the game's
 // 💡 hints next to bots, and the results reach both. Back in the lobby the hand is in the friend's results, and its
-// replay plays to the end. The hub's screens are checked in light and dark. Seven sign-in requests in all: the API
-// allows ten a minute from one address.
+// replay plays to the end. The hub's screens are checked in light and dark. Five sign-in requests in all (signing up
+// plays the new profile at once): the API allows ten a minute from one address, and the smoke test before this one
+// may share the minute.
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e rooms
 import { AxeBuilder } from '@axe-core/playwright';
 import { type Browser, chromium, type Frame, type Page } from 'playwright';

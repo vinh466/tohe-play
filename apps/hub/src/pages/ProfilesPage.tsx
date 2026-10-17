@@ -1,6 +1,6 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { useNavigate, useSearch } from '@tanstack/react-router';
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, auth, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
@@ -36,10 +36,23 @@ function Picker({ me }: { me: MeView }) {
   const [offerMove, setOfferMove] = useState<{ from: string; to: ProfileView } | null>(null);
 
   // Back to a room link that needed a player (session/next.ts), or to the catalog.
-  const goOn = async () => {
+  const goOn = useCallback(async () => {
     const next = takeNext();
     leaveTo({ to: next ?? '/' });
-  };
+  }, [leaveTo]);
+
+  // A real profile now plays on this device: the first time, offer it the guest's progress.
+  const playing = useCallback(
+    async (profile: ProfileView) => {
+      const guest = await db.profiles.toCollection().first();
+      if (guest && !localStorage.getItem(GUEST_PROGRESS_OFFERED) && (await hasProgress(db, guest.id))) {
+        setOfferMove({ from: guest.id, to: profile });
+        return;
+      }
+      await goOn();
+    },
+    [goOn],
+  );
 
   const select = useMutation({
     mutationFn: ({ profile, pin }: { profile: ProfileView; pin?: string }) =>
@@ -47,12 +60,7 @@ function Picker({ me }: { me: MeView }) {
     onSuccess: async (next, { profile }) => {
       setPinFor(null);
       await setMe(next);
-      const guest = await db.profiles.toCollection().first();
-      if (guest && !localStorage.getItem(GUEST_PROGRESS_OFFERED) && (await hasProgress(db, guest.id))) {
-        setOfferMove({ from: guest.id, to: profile });
-        return;
-      }
-      await goOn();
+      await playing(profile);
     },
     onError: (error, { profile }) => {
       if (error instanceof ApiError && error.code === 'pin_required') setPinFor(profile);
@@ -84,26 +92,30 @@ function Picker({ me }: { me: MeView }) {
     }
   };
 
-  // An account with one profile and no PIN leaves nobody to choose (D-01): when the hub sent someone here to pick a
-  // player, that profile plays at once. Decided on arrival, so choosing it does not flash the picker.
+  // When the hub sent someone here to pick a player (`auto`), an account that leaves nobody to choose goes straight on
+  // (ADR 0023): signing up and signing in already chose its only profile, or it has one profile without a PIN that
+  // this device has not chosen yet. Decided on arrival, so the picker never flashes.
   const { auto } = useSearch({ from: '/profiles' });
-  const [only] = useState(() => {
-    const single = me.profiles.length === 1 ? me.profiles[0] : undefined;
-    return auto && single && !single.hasPin && me.activeProfileId === null ? single : null;
+  const [arrival] = useState(() => {
+    if (!auto) return null;
+    const active = me.profiles.find((profile) => profile.id === me.activeProfileId);
+    if (active) return { profile: active, chosen: true };
+    const only = me.profiles.length === 1 ? me.profiles[0] : undefined;
+    return only && !only.hasPin ? { profile: only, chosen: false } : null;
   });
-  const autoChosen = useRef(false);
+  const handled = useRef(false);
   const play = select.mutate;
   useEffect(() => {
-    if (only && !autoChosen.current) {
-      autoChosen.current = true;
-      play({ profile: only });
-    }
-  }, [only, play]);
+    if (!arrival || handled.current) return;
+    handled.current = true;
+    if (arrival.chosen) void playing(arrival.profile);
+    else play({ profile: arrival.profile });
+  }, [arrival, play, playing]);
 
   const options = useQuery(profileOptionsQuery);
   const full = options.data !== undefined && me.profiles.length >= options.data.maxProfiles;
 
-  if (only && !select.isError && offerMove === null) return <Loading label={t('loading')} />;
+  if (arrival && !select.isError && offerMove === null) return <Loading label={t('loading')} />;
 
   return (
     <Screen>

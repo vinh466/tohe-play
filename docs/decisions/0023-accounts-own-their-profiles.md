@@ -25,7 +25,8 @@ tell profiles apart. UAT holds a family's history (two adults, children, rooms, 
 
 - **An account owns one to five profiles.** An account is someone who signs in. Its first profile is created with it,
   in the same transaction, named with the account's display name (the hub suggests a fun one, since profile names
-  are public); the last one cannot be removed. A family is one account with a profile for each player — households
+  are public), and plays at once; signing in to an account with one profile and no PIN plays it at once too. The last
+  profile cannot be removed. A family is one account with a profile for each player — households
   and invite codes are gone. The limit is served by `GET /api/profiles/options` (`maxProfiles`), so the hub never
   assumes it, and changes to an account's profiles are serialized on the account's row so concurrent requests cannot
   break the limits.

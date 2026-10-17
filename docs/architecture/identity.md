@@ -59,15 +59,15 @@ sequenceDiagram
 
   P->>H: sign in (username, password)
   H->>API: POST /api/auth/login
-  API-->>H: session cookie (90 days, sliding)
   alt one profile without a PIN
-    H->>API: PUT /api/session/profile (that profile)
+    API-->>H: session cookie (90 days, sliding), already playing as that profile
   else several profiles, or a PIN
+    API-->>H: session cookie (90 days, sliding)
     H->>C: "Ai đang chơi?" profile picker
     C->>H: taps own avatar (+ PIN if set)
     H->>API: PUT /api/session/profile
+    API-->>H: cookie now carries the active profile
   end
-  API-->>H: cookie now carries the active profile
   C->>H: plays — catalog filtered by the profile's age band
   P->>H: "Quản lý tài khoản"
   H->>P: parent gate: password again
@@ -75,9 +75,11 @@ sequenceDiagram
   API-->>H: management unlocked for 10 minutes
 ```
 
-The picker chooses by itself only when the hub sent someone there to pick a player (`/profiles?auto=true`, after
-signing in or when a page needs a player). Opened by hand ("Đổi người chơi"), it always shows, so a one-profile
-account can still add a profile or manage the account.
+Signing up plays the new profile at once, and so does signing in to an account with one profile and no PIN — nobody
+else to choose, and one sign-in request fewer. The hub then sends the device through the picker with
+`/profiles?auto=true`, which goes straight on (offering the guest's progress first, if this device has some), and
+which also chooses a lone PIN-less profile by itself when a page needs a player and none is chosen. Opened by hand
+("Đổi người chơi"), the picker always shows, so a one-profile account can still add a profile or manage the account.
 
 ## Names
 
@@ -120,8 +122,8 @@ device). The first time a real profile is chosen on that device, the hub offers 
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `POST /api/auth/register` | — | Create an account and its first profile |
-| `POST /api/auth/login` / `POST /api/auth/logout` | — / session | Sign in / out |
+| `POST /api/auth/register` | — | Create an account and its first profile, which plays at once |
+| `POST /api/auth/login` / `POST /api/auth/logout` | — / session | Sign in (playing at once as an only profile without a PIN) / out |
 | `GET /api/auth/me` | session | Account, its profiles (with public IDs), active profile, parent-gate expiry |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
 | `POST /api/session/parent-gate` / `DELETE` | session | Unlock / lock account management |
