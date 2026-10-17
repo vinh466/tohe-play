@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (khuya, tiếp) — agent
+
+- C4 #50 (ADR 0026): Google + OIDC chung (OpenIdConnect, code + PKCE, trả về bằng query), GitHub (OAuth + PKCE); liên kết
+  theo `(provider, subject)`, email chỉ để tìm account, chứng minh bằng mã hoặc mật khẩu trước khi liên kết; CI xanh.
+- Tự review sửa: liên kết chỉ bắt đầu từ trang hub (`Sec-Fetch-Site`); race khi liên kết → 409 thay vì 500; bản nháp quyền
+  riêng tư nhắc dữ liệu provider (`TERMS_VERSION` 2026-10-18.2). Chưa làm: chứng minh bằng provider đã liên kết (D-03).
+- Chờ owner: review #43–#50. Agent kế tiếp: D1, xếp trên C4.
+
 ## 2026-10-18 (khuya) — agent
 
 - C3 #49 (ADR 0025): mã quản lý 6 số (L1), L2 bằng mật khẩu hoặc mã email, đổi mật khẩu, đồng ý điều khoản ở tuổi 16+

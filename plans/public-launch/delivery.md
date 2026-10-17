@@ -65,7 +65,7 @@ flowchart LR
 | Mỗi PR | Review và merge |
 | Mỗi lần lên UAT | Nói "deploy" — agent chỉ chạy `deploy/uat/deploy.sh` khi được bảo |
 | Trước khi C2 lên UAT | Trả lời E-02 Q2 (Resend Free hay Pro); tạo API key (và domain gửi riêng nếu Free), đưa vào `~/.config/tohe-uat/uat.env` |
-| Trước khi C4 lên prod | Tạo OAuth app Google và GitHub với redirect URI của prod; secret vào Infisical `/tohe` |
+| Trước khi C4 lên prod | Tạo OAuth client Google (*Web application*) và OAuth app GitHub, redirect URI `https://<hub>/api/auth/external/{google,github}/callback`; secret vào Infisical `/tohe` (`Auth__Providers__Google__ClientId`, `…__ClientSecret`, tương tự GitHub), chart nhận qua `api.extraEnvFrom` |
 | Trước khi merge A4 | Pre-step của `platform-infra`: role Postgres, `/tohe` trong Infisical, DNS |
 | Trước F4 | Chốt D-13 (domain cho games); duyệt văn bản điều khoản và quyền riêng tư (agent soạn, không phải tư vấn pháp lý) |
 
@@ -79,7 +79,8 @@ flowchart LR
 | C1 | `feat/identity-accounts-own-profiles` (trên B1) | [#46](https://github.com/vinh466/tohe-play/pull/46) — CI xanh, chờ review; trước khi lên UAT: chạy thử migration trên bản dump UAT (E-01) |
 | A3 | `feat/deploy-publish-ghcr` (trên A2) | [#47](https://github.com/vinh466/tohe-play/pull/47) — CI xanh, chờ review; sau lần publish đầu: owner đặt 5 package GHCR thành Public |
 | C2 | `feat/identity-email-sign-in` (trên C1) | [#48](https://github.com/vinh466/tohe-play/pull/48) — CI xanh, chờ review; trước khi lên UAT: relay email của UAT (E-02 Q2) |
-| C3 | `feat/identity-step-up-and-consent` (trên C2) | [#49](https://github.com/vinh466/tohe-play/pull/49) — chờ CI; owner duyệt bản nháp Điều khoản + Quyền riêng tư (`apps/hub/src/legal/documents.ts`) |
-| C4 | — | kế tiếp |
+| C3 | `feat/identity-step-up-and-consent` (trên C2) | [#49](https://github.com/vinh466/tohe-play/pull/49) — CI xanh, chờ review; owner duyệt bản nháp Điều khoản + Quyền riêng tư (`apps/hub/src/legal/documents.ts`) |
+| C4 | `feat/identity-oauth-and-linking` (trên C3) | [#50](https://github.com/vinh466/tohe-play/pull/50) — CI xanh, chờ review; trước khi lên prod: OAuth app + secret (mục trên) |
+| D1 | — | kế tiếp, xếp trên C4: đọc model account (C1) và outbox (B1), không có migration |
 
-Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.

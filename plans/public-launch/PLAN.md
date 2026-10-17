@@ -15,16 +15,18 @@
 
 ## Next — one item
 
-**C4** ([delivery.md](delivery.md)): Google, GitHub, OIDC chung + liên kết cách đăng nhập (D-03, D-04) — xếp trên C3
-(#49). Đã mở: #43–#49 ([trạng thái](delivery.md#trạng-thái)).
+**D1** ([delivery.md](delivery.md)): admin shell — `apps/admin` ở `/admin`, `/api/admin` có OpenAPI riêng, module chỉ
+đọc (D-07), ADR 0027. Xếp trên C4 (#50) vì đọc model account và outbox; không có migration. Đã mở: #43–#50
+([trạng thái](delivery.md#trạng-thái)).
 
 ## Waiting on the owner
 
 1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? Không chặn code; cần trước khi C2 lên UAT.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → #49); nói "deploy" cho mỗi lần lên UAT.
-5. Duyệt bản nháp Điều khoản + Quyền riêng tư trong #49, điền cách liên hệ người vận hành.
+3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → #49 → #50); nói "deploy" cho mỗi lần lên UAT.
 4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).
+5. Duyệt bản nháp Điều khoản + Quyền riêng tư (#49; #50 thêm phần đăng nhập bằng provider), điền cách liên hệ người vận hành.
+6. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).
 
 ## Board
 
