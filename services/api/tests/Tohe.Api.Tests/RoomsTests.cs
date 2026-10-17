@@ -515,12 +515,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     {
         var jar = new CookieJar(factory.Server.CreateHandler());
         var client = new HttpClient(jar) { BaseAddress = factory.Server.BaseAddress };
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName, username = $"u{Guid.NewGuid():N}"[..16], password = Password },
-            Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var me = (await response.Content.ReadFromJsonAsync<MeView>(Ct))!;
+        var me = await Accounts.SignUpAsync(factory, client, displayName);
         var person = new Person(client, jar, me, me.Profiles[0].Id);
         await PlayAsAsync(person, person.ProfileId);
         return person;

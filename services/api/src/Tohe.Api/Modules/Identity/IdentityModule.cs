@@ -15,14 +15,30 @@ public sealed class IdentityOptions
 {
     public const string Section = "Identity";
 
-    /// <summary>Sign-in, registration, PIN and parent-gate requests allowed per client IP per minute.</summary>
+    /// <summary>
+    /// Requests per client IP per minute in each of three buckets: signing in or asking for a code, typing a code back,
+    /// and typing a PIN or the parent gate's password. Each guards a different secret, so one does not use up another.
+    /// </summary>
     public int AuthRequestsPerMinute { get; set; } = 10;
+
+    /// <summary>
+    /// How often a session is checked against its account's security stamp, which a new password or email changes:
+    /// "every other session ends" takes at most this long (ADR 0024).
+    /// </summary>
+    public TimeSpan SessionCheckInterval { get; set; } = TimeSpan.FromMinutes(5);
 }
 
-/// <summary>Accounts, the profiles they own, and the device session (ADR 0011, ADR 0023).</summary>
+/// <summary>Accounts, the profiles they own, signing in by email, and the device session (ADR 0011, 0023, 0024).</summary>
 internal static class IdentityModule
 {
-    public const string AuthRateLimit = "auth";
+    /// <summary>Signing in, signing up, and asking for a code.</summary>
+    public const string SignInRateLimit = "auth";
+
+    /// <summary>Typing back a code from an email.</summary>
+    public const string CodeRateLimit = "auth-code";
+
+    /// <summary>A profile's PIN and the parent gate's password.</summary>
+    public const string GateRateLimit = "auth-gate";
 
     public static WebApplicationBuilder AddIdentityModule(this WebApplicationBuilder builder)
     {
@@ -86,15 +102,20 @@ internal static class IdentityModule
                 }
             });
 
-        // Identity periodically rebuilds the principal from the database; keep the session claims across that.
-        services.Configure<SecurityStampValidatorOptions>(options =>
-            options.OnRefreshingPrincipal = context =>
+        // Identity periodically checks the session against the account's security stamp and rebuilds the principal
+        // from the database; keep the session claims across that.
+        services.AddOptions<SecurityStampValidatorOptions>()
+            .Configure<IOptions<IdentityOptions>>((options, identity) =>
             {
-                var sessionClaims = context.CurrentPrincipal?.Claims
-                    .Where(c => c.Type is SessionClaims.Profile or SessionClaims.ParentUntil)
-                    .ToList() ?? [];
-                context.NewPrincipal?.Identities.First().AddClaims(sessionClaims);
-                return Task.CompletedTask;
+                options.ValidationInterval = identity.Value.SessionCheckInterval;
+                options.OnRefreshingPrincipal = context =>
+                {
+                    var sessionClaims = context.CurrentPrincipal?.Claims
+                        .Where(c => c.Type is SessionClaims.Profile or SessionClaims.ParentUntil)
+                        .ToList() ?? [];
+                    context.NewPrincipal?.Identities.First().AddClaims(sessionClaims);
+                    return Task.CompletedTask;
+                };
             });
 
         var dataProtection = services.AddDataProtection().SetApplicationName("tohe");
@@ -106,14 +127,17 @@ internal static class IdentityModule
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddPolicy(AuthRateLimit, context =>
+            foreach (var policy in (string[])[SignInRateLimit, CodeRateLimit, GateRateLimit])
             {
-                var limit = context.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptions<IdentityOptions>>()
-                    .Value.AuthRequestsPerMinute;
-                return RateLimitPartition.GetFixedWindowLimiter(
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) });
-            });
+                options.AddPolicy(policy, context =>
+                {
+                    var limit = context.RequestServices.GetRequiredService<IOptions<IdentityOptions>>()
+                        .Value.AuthRequestsPerMinute;
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) });
+                });
+            }
         });
 
         // The API is only reachable through the hub's reverse proxy (Caddy / Vite), which sets X-Forwarded-For.
@@ -125,6 +149,7 @@ internal static class IdentityModule
         });
 
         services.AddScoped<SessionWriter>();
+        services.AddScoped<Attempts>();
         services.AddScoped<MeQueries>();
         services.AddScoped<IActiveProfile, ActiveProfileReader>();
         services.AddScoped<IAccountProfiles, AccountProfilesReader>();
@@ -134,6 +159,7 @@ internal static class IdentityModule
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder api)
     {
         AuthEndpoints.Map(api);
+        AccountEmailEndpoints.Map(api);
         SessionEndpoints.Map(api);
         ProfileEndpoints.Map(api);
         return api;

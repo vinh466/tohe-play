@@ -1,10 +1,13 @@
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using MimeKit;
+using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Email;
 using Testcontainers.PostgreSql;
 
@@ -26,6 +29,32 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public FakeSmtp Smtp { get; } = new();
 
     public async ValueTask InitializeAsync() => await _postgres.StartAsync();
+
+    /// <summary>
+    /// The code in the newest email to <paramref name="to"/>, read from the outbox the way the API wrote it (tests run
+    /// delivery themselves, so bodies are still there).
+    /// </summary>
+    public async Task<string> CodeSentToAsync(string to)
+    {
+        var text = await MailSentToAsync(to);
+        var code = Regex.Match(text, @"\b(\d{3}) (\d{3})\b");
+        Assert.True(code.Success, $"no code in: {text}");
+        return code.Groups[1].Value + code.Groups[2].Value;
+    }
+
+    /// <summary>The plain text of the newest email to <paramref name="to"/>.</summary>
+    public async Task<string> MailSentToAsync(string to)
+    {
+        using var scope = Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        var text = await db.EmailOutbox
+            .Where(e => e.To == to)
+            .OrderByDescending(e => e.CreatedAt)
+            .Select(e => e.Text)
+            .FirstOrDefaultAsync(TestContext.Current.CancellationToken);
+        Assert.False(text is null, $"no email to {to}");
+        return text;
+    }
 
     public override async ValueTask DisposeAsync()
     {

@@ -4,10 +4,14 @@ using System.Text.Unicode;
 
 namespace Tohe.Api.Modules.Email;
 
+/// <summary>The one thing a message asks its reader to open, e.g. the page that takes its code.</summary>
+public sealed record EmailLink(string Label, Uri Url);
+
 /// <summary>
-/// The one look every Tò He email has: a heading, a few short paragraphs, an optional one-time code set apart, and the
-/// same footer. Vietnamese, like the hub. No images, no tracking, no links that are not the point of the message.
-/// The colours are fixed: mail clients do not read the design tokens' CSS variables (ADR 0013 covers screens).
+/// The one look every Tò He email has: a heading, a few short paragraphs, an optional one-time code set apart, an
+/// optional link, and the same footer. Vietnamese, like the hub. No images, no tracking, no links that are not the
+/// point of the message. The colours are fixed: mail clients do not read the design tokens' CSS variables (ADR 0013
+/// covers screens).
 /// </summary>
 public static class EmailLayout
 {
@@ -16,7 +20,12 @@ public static class EmailLayout
     /// <summary>Escapes what HTML treats specially and leaves Vietnamese letters as they are.</summary>
     private static readonly HtmlEncoder Html = HtmlEncoder.Create(UnicodeRanges.All);
 
-    public static EmailBody Render(string heading, IReadOnlyList<string> paragraphs, string? code = null, string? footnote = null)
+    public static EmailBody Render(
+        string heading,
+        IReadOnlyList<string> paragraphs,
+        string? code = null,
+        string? footnote = null,
+        EmailLink? link = null)
     {
         var text = new StringBuilder()
             .AppendLine(heading)
@@ -29,6 +38,11 @@ public static class EmailLayout
         if (code is not null)
         {
             text.AppendLine($"    {Spaced(code)}").AppendLine();
+        }
+
+        if (link is not null)
+        {
+            text.AppendLine($"{link.Label}: {link.Url.AbsoluteUri}").AppendLine();
         }
 
         if (footnote is not null)
@@ -55,6 +69,15 @@ public static class EmailLayout
             html.Append("<p style=\"margin:8px 0 24px;font-size:32px;font-weight:700;letter-spacing:6px;text-align:center\">")
                 .Append(Encode(Spaced(code)))
                 .Append("</p>");
+        }
+
+        if (link is not null)
+        {
+            html.Append("<p style=\"margin:0 0 24px;text-align:center\"><a href=\"").Append(Encode(link.Url.AbsoluteUri))
+                .Append("\" style=\"display:inline-block;padding:12px 20px;border-radius:12px;background:#c2410c;")
+                .Append("color:#ffffff;font-size:16px;font-weight:600;text-decoration:none\">")
+                .Append(Encode(link.Label))
+                .Append("</a></p>");
         }
 
         if (footnote is not null)
