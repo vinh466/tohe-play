@@ -35,3 +35,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0019](0019-game-shell-2-title-screen-hud-and-first-screen.md) | Give every game a title screen, a HUD and a pause that holds, from the kit | Accepted; stages amended by 0020 |
 | [0020](0020-a-game-has-a-menu-stage-and-a-play-stage.md) | Give every game a menu stage and a play stage | Accepted |
 | [0021](0021-release-production-through-the-tohe-chart.md) | Release production through the Tò He Helm chart; one set of images configured at run time | Accepted |
+| [0022](0022-send-transactional-email-through-an-outbox.md) | Send transactional email through an outbox and an SMTP relay | Accepted |

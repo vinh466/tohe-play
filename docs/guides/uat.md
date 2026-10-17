@@ -47,6 +47,22 @@ What is running: `curl -s http://10.100.0.2:4820/api/config` → `apiVersion` is
 
 Deploy only commits that are on `main` with green CI. Agents deploy after merging when asked to "ship to UAT".
 
+## Email
+
+UAT sends no email until the relay's settings are in `~/.config/tohe-uat/uat.env`
+([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)). For Resend (port 587, STARTTLS — the
+username is the literal word `resend`, the password an API key):
+
+```sh
+TOHE_UAT_EMAIL_MODE=Smtp
+TOHE_UAT_EMAIL_FROM='Tò He <no-reply@vinetic.io.vn>'   # quoted: deploy.sh sources this file
+TOHE_UAT_SMTP_HOST=smtp.resend.com
+TOHE_UAT_SMTP_USERNAME=resend
+TOHE_UAT_SMTP_PASSWORD=re_…
+```
+
+The next deploy picks them up. Resend's free plan allows 100 emails a day for the whole account.
+
 ## Backups
 
 `deploy/uat/backup.sh` dumps the database to `~/backups/tohe-uat/` and keeps the newest 20 dumps. Every deploy

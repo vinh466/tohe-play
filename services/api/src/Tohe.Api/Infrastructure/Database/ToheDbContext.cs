@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
@@ -42,6 +43,8 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
     public DbSet<RoomHand> RoomHands => Set<RoomHand>();
 
     public DbSet<RoomResult> RoomResults => Set<RoomResult>();
+
+    public DbSet<OutboxEmail> EmailOutbox => Set<OutboxEmail>();
 
     /// <summary>Keys that encrypt session cookies; persisted so restarts and deploys keep people signed in.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();

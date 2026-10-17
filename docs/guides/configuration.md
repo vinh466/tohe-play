@@ -26,6 +26,10 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Telemetry:Enabled` | Server switch for device telemetry ([ADR 0015](../decisions/0015-device-telemetry.md)) | `true` |
 | `Telemetry:OperatorToken` | Token for `GET /api/telemetry/report` | empty: no reports |
 | `Identity:AuthRequestsPerMinute` | Sign-in, registration, PIN and parent-gate requests per client address | `10` |
+| `Email:Mode` | `Smtp` to send email, `Disabled` to send none — features that need email are then unavailable ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | `Disabled` (compose: Mailpit) |
+| `Email:From` | The sender, e.g. `Tò He <no-reply@example.org>` — an address the relay may send as | — required with `Smtp` |
+| `Email:Smtp:Host`, `Email:Smtp:Port`, `Email:Smtp:Security` | The relay; `Security` is `StartTls` (587), `SslOnConnect` (465) or `None` (a relay on the same network, like Mailpit) | —, `587`, `StartTls` |
+| `Email:Smtp:Username`, `Email:Smtp:Password` | The relay's credentials (Resend: `resend` and an API key) | empty: no authentication |
 | `Rooms:*` | Timers, bots and limits of online rooms ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | see `RoomsOptions` |
 
 The API trusts the `X-Forwarded-For` the hub sends, so nothing but the hub may reach it.
