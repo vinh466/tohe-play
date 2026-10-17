@@ -60,9 +60,10 @@ by mistake.
   board ranks each profile's best; a room board ranks the points of the period, with hands and firsts. Ties go to
   whoever got there first by the server's clock; a result belongs to the week the server received it. Public boards
   show the first 50 and the viewer's place with two on each side.
-- **A public board keeps one row per profile, board and period** with its standing, so a rank is the number of
-  better rows plus one, read from an index; the engine rewrites a profile's rows whenever a decision changes one of its
-  results. An account's board, five profiles at most, is read from the results themselves.
+- **Boards are read from the results**, through indexes on game, board and time: nothing has to be kept in step when a
+  decision, a profile's switch or a suspension changes who counts. At the scale of a few communities a board is one
+  grouped query; when a board outgrows that, the next step is D-09's one row per profile, board and period, rewritten
+  with each decision.
 - **Public boards are opt-in per profile**: on for adults, off for children; a parent turning it on for a child says
   "Tôi đã hỏi ý bé" (D-06). Suspended accounts are off them. Names and avatars come from Identity; a tap shows the
   profile's ID, never an email.
@@ -81,7 +82,8 @@ by mistake.
 - **Checks scattered in Progress and Rooms:** cheap today; every later feature (daily challenge, achievements,
   tournaments) would redo trust, without one review queue or one log.
 - **An outside anti-cheat service:** none fits small web games in iframes, and players' data would leave the server.
-- **Boards computed from results on every read:** simpler, but every public read scans a period's results; rows per
-  profile keep a rank to an index lookup and are rewritten only when a decision changes them (D-09).
+- **One row per profile, board and period now (D-09's sketch):** a rank becomes an index lookup, but every decision,
+  every switch of a profile and every suspension must rewrite rows in step — worth it once a board outgrows a grouped
+  query, not before.
 - **Holding hands played with bots:** would flood the review queue with ordinary play and tell children their games
   are "being reviewed"; a scope says what D-11 asked without suspicion.
