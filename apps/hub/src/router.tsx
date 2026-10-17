@@ -44,6 +44,10 @@ const continueSignInRoute = createRoute({
 const registerRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/register',
+  // ?invite=CODE: a community's invite link (ADR 0028).
+  validateSearch: (search: Record<string, unknown>): { invite?: string } => ({
+    invite: typeof search.invite === 'string' ? search.invite : undefined,
+  }),
   component: RegisterPage,
 });
 

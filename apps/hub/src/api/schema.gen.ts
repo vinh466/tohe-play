@@ -908,11 +908,14 @@ export interface components {
             telemetry: boolean;
             email: boolean;
             providers: components["schemas"]["ExternalProvider"][];
+            passwordSignIn: boolean;
+            registration: string;
         };
         CompleteSignUpRequest: {
             displayName: string;
             acceptTerms: boolean;
             termsVersion: null | string;
+            inviteCode?: null | string;
         };
         ConfirmCodeRequest: {
             /** Format: uuid */
@@ -1349,6 +1352,7 @@ export interface components {
             displayName: string;
             acceptTerms: boolean;
             termsVersion: null | string;
+            inviteCode?: null | string;
         };
         StepUpRequest: {
             password: string;
