@@ -1,4 +1,5 @@
 import { useInfiniteQuery } from '@tanstack/react-query';
+import { Link } from '@tanstack/react-router';
 import { admin } from '../api/client.ts';
 import { dateTime } from '../format.ts';
 import { Button } from '../ui/forms.tsx';
@@ -12,7 +13,33 @@ const actions: Record<string, string> = {
   'two-factor.enable': 'Bật xác thực hai lớp',
   'two-factor.disable': 'Tắt xác thực hai lớp',
   'two-factor.recovery-codes': 'Tạo mã dự phòng mới',
+  'user.suspend': 'Tạm khoá tài khoản',
+  'user.unsuspend': 'Mở khoá tài khoản',
+  'user.sign-out': 'Đăng xuất mọi thiết bị',
+  'profile.rename': 'Đổi tên hồ sơ',
+  'profile.hide': 'Ẩn hồ sơ khỏi bảng công khai',
+  'profile.show': 'Cho hồ sơ hiện lại trên bảng công khai',
+  'settings.change': 'Đổi cách đăng nhập, đăng ký',
+  'community.create': 'Tạo cộng đồng',
+  'invite.create': 'Tạo mã mời',
+  'invite.revoke': 'Thu hồi mã mời',
+  'result.approve': 'Duyệt kết quả',
+  'result.reject': 'Từ chối kết quả',
+  'result.reopen': 'Mở lại kết quả',
 };
+
+/** A result the review decided about (`result 42`) opens in the review; any other target is text. */
+function Target({ target }: { target: string | null }) {
+  const result = target?.match(/^result (\d+)$/)?.[1];
+  if (result) {
+    return (
+      <Link to="/review/$id" params={{ id: result }} className="text-brand-ink underline underline-offset-4">
+        {target}
+      </Link>
+    );
+  }
+  return <>{target ?? '—'}</>;
+}
 
 /** Who did what in the console, newest first. The log is append-only: nothing here can be changed or removed. */
 export function AuditPage() {
@@ -44,7 +71,9 @@ export function AuditPage() {
                     <div className="break-all text-ink-soft text-xs">{entry.details}</div>
                   ) : null}
                 </td>
-                <td className={`${cell} break-all`}>{entry.target ?? '—'}</td>
+                <td className={`${cell} break-all`}>
+                  <Target target={entry.target} />
+                </td>
                 <td className={`${cell} whitespace-nowrap text-ink-soft`}>{entry.address ?? '—'}</td>
               </tr>
             ))}

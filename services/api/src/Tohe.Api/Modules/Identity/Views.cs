@@ -31,6 +31,7 @@ public sealed record AccountView(
 /// <param name="Kind"><c>adult</c> or <c>child</c>.</param>
 /// <param name="PlayWithOthers">May play online with other accounts: adults, and children the owner allowed.</param>
 /// <param name="OnPublicBoards">On the public boards — a community's and the server's (ADR 0029).</param>
+/// <param name="HiddenFromBoards">A moderator hid it from public boards, whatever <paramref name="OnPublicBoards"/> says.</param>
 public sealed record ProfileView(
     Guid Id,
     string PublicId,
@@ -40,7 +41,8 @@ public sealed record ProfileView(
     string? AgeBand,
     bool HasPin,
     bool PlayWithOthers,
-    bool OnPublicBoards);
+    bool OnPublicBoards,
+    bool HiddenFromBoards);
 
 /// <summary>Everything the hub needs about the device session.</summary>
 /// <param name="Profiles">The account's profiles, its first (created with it) first.</param>
@@ -109,5 +111,6 @@ internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, TimeProvi
         profile.AgeBand,
         profile.PinHash is not null,
         profile.Kind == ProfileKind.Adult || profile.PlayWithOthers,
-        profile.OnPublicBoards);
+        profile.OnPublicBoards,
+        profile.HiddenFromBoardsAt is not null);
 }

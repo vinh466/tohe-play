@@ -7,8 +7,9 @@ sidebar:
 
 Decision: [ADR 0029](../decisions/0029-integrity-engine-and-boards-by-trust.md). This page describes what exists: the
 engine, its rules of version 1, the decision log, the account's boards and the public ones — a community's and the
-server's — and ranked runs, which the server replays ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)).
-The console's queue of results waiting for a person comes next.
+server's — ranked runs, which the server replays ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)),
+and the console's review, where people decide what the engine held
+([ADR 0031](../decisions/0031-people-decide-what-the-engine-held.md)).
 
 ## Levels
 
@@ -18,7 +19,7 @@ The console's queue of results waiting for a person comes next.
 | `checked` | Passed the rules of its version | Yes |
 | `verified` | The server refereed it — a room hand — or replayed it — a ranked run | Yes |
 | `held` | A signal fired; it waits for a person | Only for its own player, labelled "Đang được xem xét" |
-| `rejected` | Hard proof that it is false | No |
+| `rejected` | Hard proof that it is false, or a person decided | No |
 
 The level follows the evidence, never the player. Three rules hold everywhere: automation only hides — `rejected`
 needs hard proof, anything else that looks wrong is `held`, and suspending an account is a person's decision; no
@@ -59,8 +60,8 @@ flowchart TD
 
 Only a run that would move a board — a best of the week for its profile — is looked at past `Bounds`: a run that
 changes no board cannot mislead one, and a child who restarts often never sees "Đang được xem xét" for it. A final run
-reported again with a higher value is judged again — unless it is held or rejected: once held, only a person releases a
-result, and a level a person set stays.
+reported again with a higher value is judged again — unless it is left to people: held, rejected, or decided by a
+person. Then nothing changes, its value neither: a person decides on the number they see ([review](#review)).
 
 ## A hand's way
 
@@ -182,6 +183,60 @@ sequenceDiagram
 - **What counts where**: a game the server replays has verified runs only on its public boards — its community's too
   (D-16 Q4); the run the game also reported as a score still counts on the account's board.
 
+## Review
+
+Whoever holds `admin.results.review` — owners, admins and moderators ([Admin console](admin.md#who-gets-in)) — reviews
+in the console's **Xem xét kết quả**: the held results, oldest first, and under **Đã quyết** the results people decided
+about or the engine rejected, the latest decision first, where an old decision is found again. One result shows where
+it stands and why, its evidence — `device` (only the device's number), `refereed` (a room hand), `replayed` (a ranked
+run whose replay agreed) — a ranked run's moves, time, the least a person needs and the scores claimed and replayed,
+the profile's best and number of results on the board with its last ten, and every change of level.
+
+```mermaid
+stateDiagram-v2
+  held --> verified: approve, refereed or replayed
+  held --> checked: approve, only the device's number
+  held --> rejected: reject
+  reported --> rejected: reject
+  checked --> rejected: reject
+  verified --> rejected: reject
+  rejected --> held: reopen
+  checked --> held: reopen
+  verified --> held: reopen
+```
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor P as A moderator
+  participant C as Console
+  participant A as API
+  participant D as PostgreSQL
+  P->>C: opens a held result
+  C->>A: GET /api/admin/review/{id}
+  A-->>C: where it stands, its evidence, its profile's history, every decision
+  P->>C: Duyệt, with a note
+  C->>A: POST /api/admin/review/{id}/approve
+  A->>A: the permission, step-up level 2, not a result of their own account
+  A->>D: lock the result's row, then read its level again
+  alt the decision applies to that level
+    A->>D: the new level and decided_by, a decision with the person and the note, an audit entry
+    A-->>C: the result as it stands now
+  else another person decided first
+    A-->>C: 409 review_not_allowed
+  end
+```
+
+A decision is logged with the person and the note, and the result keeps the rule version that judged it last; the audit
+log has it too (`result.approve`, `result.reject`, `result.reopen`, target `result {id}`). A result left to people keeps
+its value as well as its level: the same run reported again higher changes nothing, so an approved run cannot climb
+afterwards — a run grows only until it ends ([ADR 0014](../decisions/0014-live-scores-for-long-runs.md)).
+
+Rejecting does not suspend: the result links to its account, where whoever may suspends ([Users](admin.md#users)). A
+moderator also hides a profile from public boards, with a reason, and lets it back. The owner's switch stays as it is
+and does not bring it back; the hub tells the owner, under the switch, that Tò He's operator hid the profile, and the
+account's own board is unchanged. Watching a run in the game itself (E3b) comes later.
+
 ## Data
 
 | Table | Holds |
@@ -189,6 +244,9 @@ sequenceDiagram
 | `integrity.results` | One row per result: kind (`Run`, `Hand`), profile and account, game, board (`hands` for a hand), value, place, source (unique: `run:{profile}:{clientId}`, `hand:{room}:{hand}:{seat}`), final, level, public, the server's time, the device's, rule version, `decided_by` |
 | `integrity.decisions` | The append-only log above |
 | `integrity.ranked_runs` | One row per ranked run: profile and account, game, the build and verify module that started it, board, limits, seed, state (`Open`, `Submitted`, `Decided`, `Closed`), started and finished by the server's clock, the moves (JSON), the score claimed and replayed, tries, its result |
+
+Two partial indexes keep the review's lists small: the held results (`ix_integrity_results_held`), and people's
+decisions with the rejections (`ix_integrity_decisions_decided`).
 
 The migration `IntegrityEngine` brought every earlier result in as it was trusted: runs as `reported`, hands as
 `verified` — public when two people sat at the table — each with an `imported` decision of rule version 0.
@@ -198,11 +256,12 @@ The migration `IntegrityEngine` brought every earlier result in as it was truste
 | Rule | Where it is enforced |
 | --- | --- |
 | Only hard proof rejects; anything else that looks wrong is held, and once held only a person releases it | `IntegrityEngine` |
-| A level a person set is never changed by the engine | `IntegrityEngine` (`decided_by`) |
+| A result left to people — held, rejected, or decided by a person — keeps its level and its value | `IntegrityEngine` (`Settled`) |
+| A person approves only a held result — verified with a referee's or a replay's evidence, checked otherwise — rejects one not rejected, reopens a decided one; with `admin.results.review` and step-up level 2, never about their own account's results, one at a time per result | `ReviewEndpoints`, `IntegrityReview` |
 | Every change of level is logged, and the log cannot be rewritten | `IntegrityEngine`; the triggers `decisions_no_change` and `decisions_no_truncate` |
 | A result is saved with what it came with, or not at all | `IResults` adds to the caller's unit of work (Progress, Rooms) |
 | A held result shows only to its own player | `Boards` |
-| A public board shows only profiles switched on, of accounts not suspended — and only what its audience can trust | `PublicBoards`, Identity's `IBoardAudience` |
+| A public board shows only profiles switched on and not hidden by a moderator, of accounts not suspended — and only what its audience can trust | `PublicBoards`, Identity's `IBoardAudience` |
 | A child is on public boards only once its owner says they asked it | `ProfileEndpoints` (`asked_child_required`) |
 | A ranked run starts from the server's seed, one open per profile and game; its replay decides — the same score verified, a wrong one or a move that is not legal rejected, faster than a person held | `RankedRuns`, `RankedReplays`, `VerifyHost` |
 | Modules keep their tables: Progress and Rooms hand results over through `IResults`; names and avatars come from Identity's `IAccountProfiles` and `IBoardAudience`; the registry answers `IRegistryGames` | `IntegrityModule` |
@@ -220,3 +279,5 @@ Refusals: 403 `profile_required`; 400 `period_invalid`, `scope_invalid`, and for
 `too_many_moves`, `score_invalid`; 404 for a game the catalog does not list, `no_community` for a community's board of
 an account without one, `not_ranked` for a run of a game that is not ranked, `not_found` for another profile's run;
 409 `run_closed`, `run_finished`; 429 `too_many_runs`.
+
+The review's endpoints belong to the console: [Admin console](admin.md#api).

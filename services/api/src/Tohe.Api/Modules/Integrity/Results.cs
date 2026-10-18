@@ -128,6 +128,10 @@ internal sealed class IntegrityResultConfiguration : IEntityTypeConfiguration<In
         // Public boards: a game's board over a period.
         builder.HasIndex(result => new { result.GameId, result.Board, result.At })
             .HasDatabaseName("ix_integrity_results_game_id_board_at");
+        // The review queue: only the held ones, oldest first.
+        builder.HasIndex(result => result.Id)
+            .HasFilter("level = 'Held'")
+            .HasDatabaseName("ix_integrity_results_held");
     }
 }
 
@@ -142,6 +146,10 @@ internal sealed class IntegrityDecisionConfiguration : IEntityTypeConfiguration<
         builder.Property(decision => decision.Details).HasColumnType("jsonb");
         builder.Property(decision => decision.Actor).HasMaxLength(320);
         builder.HasIndex(decision => decision.ResultId);
+        // The review's decided list: people's decisions and rejections, a few among many.
+        builder.HasIndex(decision => new { decision.ResultId, decision.Id })
+            .HasFilter("actor IS NOT NULL OR \"to\" = 'Rejected'")
+            .HasDatabaseName("ix_integrity_decisions_decided");
         builder.HasOne(decision => decision.Result).WithMany().HasForeignKey(decision => decision.ResultId).OnDelete(DeleteBehavior.Restrict);
     }
 }

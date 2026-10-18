@@ -36,6 +36,9 @@ internal static class AdminPermissions
     /// <summary>Switch sign-in methods and the registration mode; communities and their invite codes (ADR 0028).</summary>
     public const string SettingsWrite = "admin.settings.write";
 
+    /// <summary>Review the results the integrity engine held: approve, reject, reopen (ADR 0029).</summary>
+    public const string ResultsReview = "admin.results.review";
+
     /// <summary>
     /// What each role may: owners everything, admins all but roles, moderators find accounts and rename profiles,
     /// viewers read. A permission to change something new arrives with its page, given here to the roles that hold it.
@@ -43,9 +46,9 @@ internal static class AdminPermissions
     public static IReadOnlyList<string> Of(PlatformRole? role) => role switch
     {
         null => [],
-        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate, SettingsWrite],
-        PlatformRole.Admin => [Read, AuditRead, UsersRead, UsersWrite, ProfilesModerate, SettingsWrite],
-        PlatformRole.Moderator => [Read, UsersRead, ProfilesModerate],
+        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate, SettingsWrite, ResultsReview],
+        PlatformRole.Admin => [Read, AuditRead, UsersRead, UsersWrite, ProfilesModerate, SettingsWrite, ResultsReview],
+        PlatformRole.Moderator => [Read, UsersRead, ProfilesModerate, ResultsReview],
         _ => [Read],
     };
 }

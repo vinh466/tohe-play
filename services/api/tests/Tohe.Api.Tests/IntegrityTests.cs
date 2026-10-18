@@ -116,7 +116,8 @@ public sealed class IntegrityTests(ApiFactory factory) : IClassFixture<ApiFactor
         var held = await ResultAsync(me, ids[^1]);
         Assert.Equal(TrustLevel.Held, held.Level);
 
-        // Later, the burst long over, it comes again higher and would pass the rules: it stays held.
+        // Later, the burst long over, it comes again higher and would pass the rules: it stays held, at the value a
+        // person will look at.
         await using (var scope = factory.Services.CreateAsyncScope())
         {
             await scope.ServiceProvider.GetRequiredService<ToheDbContext>().IntegrityResults
@@ -126,7 +127,7 @@ public sealed class IntegrityTests(ApiFactory factory) : IClassFixture<ApiFactor
 
         await RecordAsync(client, Run(ids[^1], 100, game: "tap-merge"));
         var again = await ResultAsync(me, ids[^1]);
-        Assert.Equal((TrustLevel.Held, 100d), (again.Level, again.Value));
+        Assert.Equal((TrustLevel.Held, IntegrityEngine.RateLimit + 1d), (again.Level, again.Value));
         Assert.Single(await DecisionsAsync(again.Id));
     }
 

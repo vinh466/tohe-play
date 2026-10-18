@@ -7,7 +7,10 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="CommunityId">The community its account came with (ADR 0028), if any.</param>
 public sealed record BoardPlayer(Guid Id, string Name, string Avatar, string PublicId, Guid? CommunityId);
 
-/// <summary>Who may appear on public boards (ADR 0029): profiles switched on, of accounts that are not suspended.</summary>
+/// <summary>
+/// Who may appear on public boards (ADR 0029): profiles switched on and not hidden by a moderator, of accounts that are
+/// not suspended.
+/// </summary>
 public interface IBoardAudience
 {
     /// <summary>Of <paramref name="profileIds"/>, those on public boards.</summary>
@@ -21,7 +24,7 @@ internal sealed class BoardAudience(ToheDbContext db) : IBoardAudience
 {
     public async Task<IReadOnlyDictionary<Guid, BoardPlayer>> ListedAsync(IReadOnlyCollection<Guid> profileIds, CancellationToken ct) =>
         await db.Profiles.AsNoTracking()
-            .Where(profile => profileIds.Contains(profile.Id) && profile.OnPublicBoards)
+            .Where(profile => profileIds.Contains(profile.Id) && profile.OnPublicBoards && profile.HiddenFromBoardsAt == null)
             .Join(
                 db.Users.Where(account => account.SuspendedAt == null),
                 profile => profile.AccountId,

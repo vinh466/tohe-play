@@ -1285,6 +1285,7 @@ export interface components {
             hasPin: boolean;
             playWithOthers: boolean;
             onPublicBoards: boolean;
+            hiddenFromBoards: boolean;
         };
         PublicBoardView: {
             gameId: string;

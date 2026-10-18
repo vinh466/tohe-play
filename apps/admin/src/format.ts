@@ -37,6 +37,74 @@ export function since(iso: string, now: Date = new Date()): string {
 /** A profile's public ID as people read it, `123456789012` → `1234 5678 9012` (ADR 0023). */
 export const publicId = (id: string) => id.replace(/(\d{4})(?=\d)/g, '$1 ');
 
+/** A result's trust level (ADR 0029), as the console names it. */
+export const levelName = (level: string) =>
+  ({
+    reported: 'Mới báo',
+    checked: 'Đã kiểm',
+    verified: 'Đã xác minh',
+    held: 'Chờ xem xét',
+    rejected: 'Bị từ chối',
+  })[level] ?? level;
+
+/** How a level stands out: held waits for a person, rejected counts nowhere. */
+export const levelTone = (level: string): 'soft' | 'notice' | 'danger' =>
+  level === 'held' ? 'notice' : level === 'rejected' ? 'danger' : 'soft';
+
+/** Why a result stands where it does: a rule of the engine, or a person's decision (ADR 0029, 0030). */
+export const reasonName = (reason: string) =>
+  ({
+    in_progress: 'Đang chơi dở',
+    checked: 'Qua các luật',
+    refereed: 'Máy chủ làm trọng tài',
+    replayed: 'Máy chủ chơi lại, khớp điểm',
+    imported: 'Có từ trước engine',
+    personal_jump: 'Vượt xa kỷ lục của chính hồ sơ',
+    rate: 'Nộp lượt nhanh hơn người chơi được',
+    too_fast: 'Đi nước nhanh hơn người chơi được',
+    replay_mismatch: 'Chơi lại ra điểm khác',
+    illegal_move: 'Có nước đi sai luật',
+    replay_failed: 'Module verify lỗi khi chơi lại',
+    replay_unavailable: 'Không tải được module verify',
+    unknown_game: 'Game không có trong danh mục',
+    approved: 'Người duyệt',
+    rejected: 'Người từ chối',
+    reopened: 'Người mở lại',
+  })[reason] ?? reason;
+
+/** What a result's level rests on. */
+export const evidenceName = (evidence: string) =>
+  ({
+    device: 'Chỉ có số của thiết bị',
+    refereed: 'Máy chủ làm trọng tài',
+    replayed: 'Máy chủ chơi lại, khớp điểm',
+  })[evidence] ?? evidence;
+
+const detailNames: Record<string, string> = {
+  note: 'Ghi chú',
+  previousBest: 'Kỷ lục trước',
+  runs: 'Số lượt',
+  minutes: 'Số phút',
+  moves: 'Số nước',
+  seconds: 'Số giây',
+  needed: 'Cần ít nhất (giây)',
+  claimed: 'Game báo',
+  replayed: 'Chơi lại ra',
+  error: 'Lỗi',
+  attempts: 'Số lần thử',
+  people: 'Số người',
+};
+
+/** What a rule saw, or a person's note, on one line: `Kỷ lục trước: 100 · Số lượt: 10`. */
+export function decisionDetails(details: unknown): string | null {
+  if (details === null || typeof details !== 'object' || Array.isArray(details)) return null;
+  const parts = Object.entries(details).map(
+    ([key, value]) =>
+      `${detailNames[key] ?? key}: ${typeof value === 'number' ? count(value) : String(value)}`,
+  );
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 /** The platform roles in Vietnamese (ADR 0027). */
 export const roleName = (role: string) =>
   ({ owner: 'Chủ', admin: 'Quản trị viên', moderator: 'Kiểm duyệt viên', viewer: 'Người xem' })[role] ?? role;

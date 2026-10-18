@@ -3605,7 +3605,8 @@
           "ageBand",
           "hasPin",
           "playWithOthers",
-          "onPublicBoards"
+          "onPublicBoards",
+          "hiddenFromBoards"
         ],
         "type": "object",
         "properties": {
@@ -3638,6 +3639,9 @@
             "type": "boolean"
           },
           "onPublicBoards": {
+            "type": "boolean"
+          },
+          "hiddenFromBoards": {
             "type": "boolean"
           }
         }

@@ -13,9 +13,13 @@ public sealed record SetRoleRequest(string? Role);
 
 public sealed record RenameProfileRequest(string? Name);
 
+/// <param name="Reason">Why, for the other admins; the profile's owner is only told that it is hidden.</param>
+public sealed record HideProfileRequest(string? Reason);
+
 /// <summary>
 /// The console's users (ADR 0027): find an account by its address, a name or a profile ID; suspend it or lift that, end
-/// its sessions, give or take its role, rename one of its profiles. Every change needs step-up level 2 and lands in the
+/// its sessions, give or take its role, rename one of its profiles or hide it from public boards (ADR 0029). Every
+/// change needs step-up level 2 and lands in the
 /// audit log with it. Nobody acts on their own account here, nor on one whose role is as strong as theirs — but an
 /// owner may on another owner — and the last owner stays one.
 /// </summary>
@@ -64,6 +68,18 @@ internal static class UsersEndpoints
             .RequireStepUp()
             .WithName("RenameAdminProfile")
             .WithSummary("Rename a profile, under the same name rules; its history keeps the old name.");
+
+        admin.MapPost("/profiles/{id:guid}/hidden", HideProfileAsync)
+            .RequirePermission(AdminPermissions.ProfilesModerate)
+            .RequireStepUp()
+            .WithName("HideAdminProfile")
+            .WithSummary("Hide a profile from public boards; its owner's switch does not bring it back.");
+
+        admin.MapDelete("/profiles/{id:guid}/hidden", ShowProfileAsync)
+            .RequirePermission(AdminPermissions.ProfilesModerate)
+            .RequireStepUp()
+            .WithName("ShowAdminProfile")
+            .WithSummary("Let a hidden profile back on public boards, as its owner's switch says.");
     }
 
     private static async Task<Ok<IReadOnlyList<AccountSummary>>> SearchAsync(AccountsAdmin accounts, CancellationToken ct, string? q = null) =>
@@ -282,6 +298,77 @@ internal static class UsersEndpoints
             await transaction.CommitAsync(ct);
         }
 
+        return TypedResults.Ok((await accounts.DetailAsync(profile.AccountId, ct))!);
+    }
+
+    private static async Task<Results<Ok<AccountDetail>, NotFound, ValidationProblem, ProblemHttpResult>> HideProfileAsync(
+        Guid id,
+        HideProfileRequest request,
+        HttpContext http,
+        UserManager<Account> users,
+        AccountsAdmin accounts,
+        PlatformRoles roles,
+        AdminAudit audit,
+        ToheDbContext db,
+        TimeProvider clock,
+        CancellationToken ct)
+    {
+        var reason = request.Reason?.Trim() ?? "";
+        if (reason.Length == 0)
+        {
+            return Problems.Field("reason", "reason_required");
+        }
+
+        if (reason.Length > MaxReason)
+        {
+            return Problems.Field("reason", "reason_too_long");
+        }
+
+        return await SetHiddenAsync(id, reason, http, users, accounts, roles, audit, db, clock, ct);
+    }
+
+    private static async Task<Results<Ok<AccountDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ShowProfileAsync(
+        Guid id,
+        HttpContext http,
+        UserManager<Account> users,
+        AccountsAdmin accounts,
+        PlatformRoles roles,
+        AdminAudit audit,
+        ToheDbContext db,
+        TimeProvider clock,
+        CancellationToken ct) =>
+        await SetHiddenAsync(id, null, http, users, accounts, roles, audit, db, clock, ct);
+
+    /// <summary>Hides the profile with a reason, or shows it again without one.</summary>
+    private static async Task<Results<Ok<AccountDetail>, NotFound, ValidationProblem, ProblemHttpResult>> SetHiddenAsync(
+        Guid id,
+        string? reason,
+        HttpContext http,
+        UserManager<Account> users,
+        AccountsAdmin accounts,
+        PlatformRoles roles,
+        AdminAudit audit,
+        ToheDbContext db,
+        TimeProvider clock,
+        CancellationToken ct)
+    {
+        if (await accounts.FindProfileAsync(id, ct) is not { } profile)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (await GuardAsync(http, profile.AccountId, roles, ct) is { } refused)
+        {
+            return refused;
+        }
+
+        accounts.SetHiddenFromBoards(profile, reason is not null, clock.GetUtcNow());
+        audit.Add(
+            await ActorAsync(http, users),
+            reason is not null ? AuditActions.ProfileHide : AuditActions.ProfileShow,
+            $"{profile.PublicId} ({profile.Name})",
+            reason is not null ? new { reason } : null);
+        await db.SaveChangesAsync(ct);
         return TypedResults.Ok((await accounts.DetailAsync(profile.AccountId, ct))!);
     }
 

@@ -1,7 +1,21 @@
 import sharedScript from '@tohe/design-tokens/theme-init.js?raw';
 import { describe, expect, it } from 'vitest';
 import adminScript from '../public/theme-init.js?raw';
-import { ago, count, day, milliseconds, percent, publicId, roleName, since } from './format.ts';
+import {
+  ago,
+  count,
+  day,
+  decisionDetails,
+  evidenceName,
+  levelName,
+  levelTone,
+  milliseconds,
+  percent,
+  publicId,
+  reasonName,
+  roleName,
+  since,
+} from './format.ts';
 
 // The console's CSP forbids inline scripts, as the hub's, so it serves the shared pre-paint script as a copy.
 // When the original changes: cp ../../packages/design-tokens/theme-init.js public/
@@ -61,5 +75,26 @@ describe('how the console writes things', () => {
       'Kiểm duyệt viên',
       'Người xem',
     ]);
+  });
+
+  it('names trust levels, reasons and evidence, and keeps a code it does not know', () => {
+    expect(['reported', 'checked', 'verified', 'held', 'rejected'].map(levelName)).toEqual([
+      'Mới báo',
+      'Đã kiểm',
+      'Đã xác minh',
+      'Chờ xem xét',
+      'Bị từ chối',
+    ]);
+    expect(['held', 'rejected', 'checked'].map(levelTone)).toEqual(['notice', 'danger', 'soft']);
+    expect(reasonName('personal_jump')).toBe('Vượt xa kỷ lục của chính hồ sơ');
+    expect(reasonName('a_rule_of_tomorrow')).toBe('a_rule_of_tomorrow');
+    expect(evidenceName('replayed')).toBe('Máy chủ chơi lại, khớp điểm');
+  });
+
+  it("writes what a rule saw, or a person's note, on one line", () => {
+    expect(decisionDetails({ previousBest: 1200, runs: 10 })).toBe('Kỷ lục trước: 1.200 · Số lượt: 10');
+    expect(decisionDetails({ note: 'Bé chơi giỏi thật' })).toBe('Ghi chú: Bé chơi giỏi thật');
+    expect(decisionDetails(null)).toBeNull();
+    expect(decisionDetails({})).toBeNull();
   });
 });
