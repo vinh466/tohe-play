@@ -10,17 +10,29 @@ export type AdminSystem = Schemas['AdminSystem'];
 export type WorkerStatus = Schemas['WorkerStatus'];
 export type TelemetryReport = Schemas['TelemetryReport'];
 export type GameHealth = Schemas['GameHealth'];
+export type AuditEntry = Schemas['AuditEntryView'];
+export type AuditPage = Schemas['AuditPage'];
+export type TwoFactorView = Schemas['TwoFactorView'];
 
 /** Same origin: the console is served at /admin/ by the hub's server, which proxies /api. */
 const api = createClient<paths>({ baseUrl: '' });
 
-/** A response the API refused: 401 signed out, 403 `admin_required` without a role that may. */
+/**
+ * A response the API refused: 401 signed out, 403 `admin_required` without a role that may, `two_factor_required`
+ * and `step_up_required` until a check passes. `fields` holds validation codes per field, e.g. `code_invalid`.
+ */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string | null,
+    readonly fields: Record<string, string[]> = {},
   ) {
     super(`API ${status}${code ? ` ${code}` : ''}`);
+  }
+
+  /** The first problem with the request: its code, or the first field's. */
+  get reason(): string | null {
+    return this.code ?? Object.values(this.fields)[0]?.[0] ?? null;
   }
 }
 
@@ -33,8 +45,16 @@ interface Outcome<T> {
 async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
   const { data, error, response } = await request;
   if (response.ok) return data as T;
-  const problem = (error ?? {}) as { code?: unknown };
-  throw new ApiError(response.status, typeof problem.code === 'string' ? problem.code : null);
+  throw await refusal(response, error);
+}
+
+async function refusal(response: Response, problem: unknown = undefined): Promise<ApiError> {
+  const body = (problem ?? (await response.json().catch(() => ({})))) as { code?: unknown; errors?: unknown };
+  return new ApiError(
+    response.status,
+    typeof body.code === 'string' ? body.code : null,
+    typeof body.errors === 'object' && body.errors !== null ? (body.errors as Record<string, string[]>) : {},
+  );
 }
 
 export const admin = {
@@ -43,4 +63,40 @@ export const admin = {
   games: () => call(api.GET('/api/admin/games')),
   health: (days: number) => call(api.GET('/api/admin/health', { params: { query: { days } } })),
   system: () => call(api.GET('/api/admin/system')),
+  audit: (before?: number) =>
+    call(api.GET('/api/admin/audit', { params: { query: before === undefined ? {} : { before } } })),
+  setup: () => call(api.GET('/api/admin/setup')),
+  claimSetup: (token: string) => call(api.POST('/api/admin/setup/claim', { body: { token } })),
+  twoFactor: () => call(api.GET('/api/admin/two-factor')),
+  setUpAuthenticator: () => call(api.POST('/api/admin/two-factor/setup')),
+  enableTwoFactor: (code: string) => call(api.POST('/api/admin/two-factor/enable', { body: { code } })),
+  verifyTwoFactor: (proof: { code?: string; recoveryCode?: string }) =>
+    call(
+      api.POST('/api/admin/two-factor/verify', {
+        body: { code: proof.code ?? null, recoveryCode: proof.recoveryCode ?? null },
+      }),
+    ),
+  newRecoveryCodes: () => call(api.POST('/api/admin/two-factor/recovery-codes')),
+  disableTwoFactor: () => call(api.DELETE('/api/admin/two-factor')),
 };
+
+/**
+ * Step-up level 2 (ADR 0025) is the hub's, not the admin API's: the same endpoints, called by hand. What they answer
+ * does not matter here; the console asks /api/admin/me again afterwards.
+ */
+export const stepUp = {
+  password: (password: string) => send('/api/session/step-up', { password }),
+  sendCode: async (): Promise<string> =>
+    ((await send('/api/session/step-up/code')) as { attemptId: string }).attemptId,
+  confirm: (attemptId: string, code: string) => send('/api/session/step-up/confirm', { attemptId, code }),
+};
+
+async function send(path: string, body?: unknown): Promise<unknown> {
+  const response = await fetch(path, {
+    method: 'POST',
+    headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  });
+  if (!response.ok) throw await refusal(response);
+  return response.status === 204 ? null : response.json();
+}

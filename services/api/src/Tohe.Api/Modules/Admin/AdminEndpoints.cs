@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using System.Security.Claims;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,7 +18,28 @@ namespace Tohe.Api.Modules.Admin;
 
 /// <summary>The account using the console, its role and what the role may do.</summary>
 /// <param name="Role"><c>owner</c>, <c>admin</c>, <c>moderator</c> or <c>viewer</c>; none for a player, who may do nothing here.</param>
-public sealed record AdminMeView(Guid AccountId, string DisplayName, string? Email, string? Role, IReadOnlyList<string> Permissions);
+/// <param name="TwoFactorEnabled">Two-factor authentication is on: the console opens with a code on each device.</param>
+/// <param name="OpenUntil">The console is open on this device until then — two-factor authentication passed.</param>
+/// <param name="SecureUntil">Step-up level 2 is open on this device until then (ADR 0025).</param>
+/// <param name="HasPassword">Step-up level 2 may use the password; otherwise a code by email.</param>
+public sealed record AdminMeView(
+    Guid AccountId,
+    string DisplayName,
+    string? Email,
+    string? Role,
+    IReadOnlyList<string> Permissions,
+    bool TwoFactorEnabled,
+    DateTimeOffset? OpenUntil,
+    DateTimeOffset? SecureUntil,
+    bool HasPassword);
+
+/// <summary>One entry of the audit log.</summary>
+/// <param name="Details">More about it, as JSON.</param>
+public sealed record AuditEntryView(long Id, DateTimeOffset At, string Actor, string Action, string? Target, string? Details, string? Address);
+
+/// <summary>A page of the audit log, newest first.</summary>
+/// <param name="Before">Ask with <c>before</c> set to this for the next, older page; none at the start of the log.</param>
+public sealed record AuditPage(IReadOnlyList<AuditEntryView> Entries, long? Before);
 
 /// <summary>The platform at a glance.</summary>
 /// <param name="Players">Profiles that saved a game or recorded a score.</param>
@@ -129,9 +151,30 @@ internal static class AdminEndpoints
             .RequirePermission(AdminPermissions.Read)
             .WithName("GetAdminSystem")
             .WithSummary("The running build, its database migrations, background workers and settings without secrets.");
+
+        admin.MapGet("/audit", AuditAsync)
+            .RequirePermission(AdminPermissions.AuditRead)
+            .WithName("GetAdminAudit")
+            .WithSummary("The audit log, newest first, a page at a time.");
+
+        SetupEndpoints.Map(admin);
+        TwoFactorEndpoints.Map(admin);
     }
 
-    private static async Task<Results<Ok<AdminMeView>, UnauthorizedHttpResult>> MeAsync(HttpContext http, UserManager<Account> users)
+    /// <summary>The account, its role and what the role may do, and the console's state on this device.</summary>
+    public static AdminMeView MeView(Account account, PlatformRole? role, ClaimsPrincipal user, DateTimeOffset now) => new(
+        account.Id,
+        account.DisplayName,
+        account.Email,
+        role is { } held ? PlatformRoles.NameOf(held) : null,
+        AdminPermissions.Of(role),
+        account.TwoFactorEnabled,
+        SessionClaims.IsAdminOpen(user, now) ? SessionClaims.AdminOpenUntil(user) : null,
+        SessionClaims.IsSecure(user, now) ? SessionClaims.SecureUnlockedUntil(user) : null,
+        account.PasswordHash is not null);
+
+    private static async Task<Results<Ok<AdminMeView>, UnauthorizedHttpResult>> MeAsync(
+        HttpContext http, UserManager<Account> users, TimeProvider clock)
     {
         var caller = AdminCaller.Of(http);
         if (await users.FindByIdAsync(caller.AccountId.ToString()) is not { } account)
@@ -139,12 +182,19 @@ internal static class AdminEndpoints
             return TypedResults.Unauthorized();
         }
 
-        return TypedResults.Ok(new AdminMeView(
-            account.Id,
-            account.DisplayName,
-            account.Email,
-            caller.Role is { } role ? PlatformRoles.NameOf(role) : null,
-            AdminPermissions.Of(caller.Role)));
+        return TypedResults.Ok(MeView(account, caller.Role, http.User, clock.GetUtcNow()));
+    }
+
+    private static async Task<Ok<AuditPage>> AuditAsync(ToheDbContext db, CancellationToken ct, long? before = null, int limit = 50)
+    {
+        limit = Math.Clamp(limit, 1, 200);
+        var entries = await db.AuditLog.AsNoTracking()
+            .Where(entry => before == null || entry.Id < before)
+            .OrderByDescending(entry => entry.Id)
+            .Take(limit)
+            .Select(entry => new AuditEntryView(entry.Id, entry.At, entry.Actor, entry.Action, entry.Target, entry.Details, entry.Address))
+            .ToListAsync(ct);
+        return TypedResults.Ok(new AuditPage(entries, entries.Count == limit ? entries[^1].Id : null));
     }
 
     private static async Task<Ok<AdminOverview>> OverviewAsync(

@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, Outlet } from '@tanstack/react-router';
-import type { ReactNode } from 'react';
 import { ApiError, admin } from '../api/client.ts';
 import { roleName } from '../format.ts';
+import { Centered, meKey, NoRole, TwoFactorCheck, TwoFactorSetup } from '../security/Gate.tsx';
 
 const pages = [
   { to: '/', label: 'Tổng quan' },
@@ -12,11 +12,12 @@ const pages = [
 ] as const;
 
 /**
- * Every page sits behind the account's role (ADR 0027): signed out, the console sends people to the hub to sign in;
- * without a role it says how one is granted. The API decides on every request — this only explains its answers.
+ * Every page sits behind the account (ADR 0027): signed in, with a role, two-factor authentication on, and a code
+ * given on this device. The console walks people through each; the API checks all of them on every request — this only
+ * explains its answers.
  */
 export function Shell() {
-  const me = useQuery({ queryKey: ['admin', 'me'], queryFn: admin.me, retry: false });
+  const me = useQuery({ queryKey: meKey, queryFn: admin.me, retry: false });
 
   if (me.isPending) {
     return (
@@ -50,30 +51,22 @@ export function Shell() {
     );
   }
 
-  if (me.data.role === null) {
-    return (
-      <Centered>
-        <p className="text-ink">Tài khoản {me.data.email ?? me.data.displayName} chưa có vai trò quản trị.</p>
-        <p className="text-ink-soft text-sm">
-          Người vận hành cấp vai trò trong container của API:{' '}
-          <code className="break-all rounded bg-soft px-1">
-            dotnet Tohe.Api.dll admin grant &lt;email&gt; --role owner
-          </code>
-        </p>
-        <a href="/" className="font-semibold text-brand-ink underline underline-offset-4">
-          Về Tò He
-        </a>
-      </Centered>
-    );
-  }
+  if (me.data.role === null) return <NoRole me={me.data} />;
+  if (!me.data.twoFactorEnabled) return <TwoFactorSetup me={me.data} />;
+  if (!me.data.openUntil) return <TwoFactorCheck />;
 
+  const mayAudit = me.data.permissions.includes('admin.audit.read');
   return (
     <div className="min-h-dvh">
       <header className="border-line border-b bg-surface">
         <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
           <span className="font-bold text-brand-ink text-lg">Tò He · Quản trị</span>
           <nav aria-label="Trang quản trị" className="flex flex-wrap gap-1">
-            {pages.map((page) => (
+            {[
+              ...pages,
+              ...(mayAudit ? [{ to: '/audit', label: 'Nhật ký' } as const] : []),
+              { to: '/security', label: 'Bảo mật' } as const,
+            ].map((page) => (
               <Link
                 key={page.to}
                 to={page.to}
@@ -97,14 +90,5 @@ export function Shell() {
         <Outlet />
       </main>
     </div>
-  );
-}
-
-function Centered({ children }: { children: ReactNode }) {
-  return (
-    <main className="mx-auto flex min-h-dvh max-w-md flex-col items-start justify-center gap-4 px-6">
-      <h1 className="font-bold text-2xl text-ink">Tò He · Quản trị</h1>
-      {children}
-    </main>
   );
 }

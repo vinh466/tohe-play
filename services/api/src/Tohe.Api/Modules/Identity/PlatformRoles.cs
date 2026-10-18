@@ -48,6 +48,9 @@ internal sealed class PlatformRoles(ToheDbContext db, UserManager<Account> users
             .Select(claim => claim.ClaimValue)
             .FirstOrDefaultAsync(ct));
 
+    public Task<bool> AnyOwnerAsync(CancellationToken ct) =>
+        db.UserClaims.AnyAsync(claim => claim.ClaimType == ClaimType && claim.ClaimValue == NameOf(PlatformRole.Owner), ct);
+
     /// <summary>Gives the account this role, in place of any it had.</summary>
     public async Task SetAsync(Account account, PlatformRole role)
     {

@@ -1,11 +1,13 @@
 using Microsoft.AspNetCore.Identity;
+using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 
 namespace Tohe.Api.Modules.Admin;
 
 /// <summary>
 /// <c>dotnet Tohe.Api.dll admin …</c>, run inside the API's container (ADR 0027): grant, take away and list platform
-/// roles. The way to a first role on development and UAT, and the way back when every owner is lost.
+/// roles — the way back when every owner is lost. Each change lands in the audit log, by "command line"; granting
+/// an owner also ends setup mode, for good.
 /// </summary>
 internal static class AdminCommand
 {
@@ -25,6 +27,8 @@ internal static class AdminCommand
         await using var scope = services.CreateAsyncScope();
         var users = scope.ServiceProvider.GetRequiredService<UserManager<Account>>();
         var roles = scope.ServiceProvider.GetRequiredService<PlatformRoles>();
+        var audit = scope.ServiceProvider.GetRequiredService<AdminAudit>();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
 
         switch (args)
         {
@@ -42,7 +46,20 @@ internal static class AdminCommand
                     return 1;
                 }
 
-                await roles.SetAsync(account, role);
+                await using (var transaction = await db.Database.BeginTransactionAsync())
+                {
+                    await roles.SetAsync(account, role);
+                    if (role == PlatformRole.Owner)
+                    {
+                        await scope.ServiceProvider.GetRequiredService<SetupState>()
+                            .CloseAsync(scope.ServiceProvider.GetRequiredService<TimeProvider>().GetUtcNow(), CancellationToken.None);
+                    }
+
+                    audit.Add(AdminActor.CommandLine, AuditActions.RoleGrant, Label(account), new { role = PlatformRoles.NameOf(role) });
+                    await db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+
                 await output.WriteLineAsync($"{Label(account)} is now {PlatformRoles.NameOf(role)}.");
                 return 0;
             }
@@ -55,9 +72,20 @@ internal static class AdminCommand
                     return 1;
                 }
 
-                await output.WriteLineAsync(await roles.RemoveAsync(account)
-                    ? $"{Label(account)} no longer has a role."
-                    : $"{Label(account)} had no role.");
+                await using (var transaction = await db.Database.BeginTransactionAsync())
+                {
+                    if (!await roles.RemoveAsync(account))
+                    {
+                        await output.WriteLineAsync($"{Label(account)} had no role.");
+                        return 0;
+                    }
+
+                    audit.Add(AdminActor.CommandLine, AuditActions.RoleRevoke, Label(account));
+                    await db.SaveChangesAsync();
+                    await transaction.CommitAsync();
+                }
+
+                await output.WriteLineAsync($"{Label(account)} no longer has a role.");
                 return 0;
             }
 

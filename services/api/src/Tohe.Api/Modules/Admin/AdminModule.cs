@@ -1,3 +1,5 @@
+using Tohe.Api.Infrastructure;
+
 namespace Tohe.Api.Modules.Admin;
 
 /// <summary>
@@ -11,6 +13,16 @@ internal static class AdminModule
 
     public static WebApplicationBuilder AddAdminModule(this WebApplicationBuilder builder)
     {
+        builder.Services.AddOptions<AdminOptions>().BindConfiguration(AdminOptions.Section);
+        builder.Services.AddSingleton<SetupToken>();
+        builder.Services.AddScoped<SetupState>();
+        builder.Services.AddScoped<AdminAudit>();
+        if (!BuildTime.IsGeneratingOpenApi)
+        {
+            // Tells, when the API starts, how to claim a deployment without an owner: needs the database.
+            builder.Services.AddHostedService<SetupAnnouncer>();
+        }
+
         builder.Services.AddOpenApi(Document, options =>
         {
             // By default a document also takes every endpoint without a group, i.e. all of the hub's.

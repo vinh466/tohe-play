@@ -89,6 +89,143 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The audit log, newest first, a page at a time. */
+        get: operations["GetAdminAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the deployment still waits for its first owner. */
+        get: operations["GetAdminSetup"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/setup/claim": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** With the setup token, the signed-in account becomes the platform's first owner; setup ends for good. */
+        post: operations["ClaimAdminSetup"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether two-factor authentication is on, until when the console is open here, recovery codes left. */
+        get: operations["GetAdminTwoFactor"];
+        put?: never;
+        post?: never;
+        /** Turn two-factor authentication off: the console closes on every device (needs step-up level 2). */
+        delete: operations["DisableAdminTwoFactor"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/two-factor/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A new authenticator key, while two-factor authentication is off (needs step-up level 2). */
+        post: operations["SetUpAdminAuthenticator"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/two-factor/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code from the new key turns two-factor authentication on and opens the console; recovery codes once. */
+        post: operations["EnableAdminTwoFactor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/two-factor/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code, or a recovery code, opens the console on this device for twelve hours. */
+        post: operations["VerifyAdminTwoFactor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/two-factor/recovery-codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** New recovery codes in place of the old ones (needs step-up level 2). */
+        post: operations["NewAdminRecoveryCodes"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -142,6 +279,12 @@ export interface components {
             email: null | string;
             role: null | string;
             permissions: string[];
+            twoFactorEnabled: boolean;
+            /** Format: date-time */
+            openUntil: null | string;
+            /** Format: date-time */
+            secureUntil: null | string;
+            hasPassword: boolean;
         };
         AdminOverview: {
             /** Format: date-time */
@@ -181,6 +324,29 @@ export interface components {
             database: components["schemas"]["AdminDatabase"];
             workers: components["schemas"]["WorkerStatus"][];
             settings: components["schemas"]["AdminSettings"];
+        };
+        AuditEntryView: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            actor: string;
+            action: string;
+            target: null | string;
+            details: null | string;
+            address: null | string;
+        };
+        AuditPage: {
+            entries: components["schemas"]["AuditEntryView"][];
+            /** Format: int64 */
+            before: null | number;
+        };
+        AuthenticatorSetupView: {
+            sharedKey: string;
+            uri: string;
+        };
+        ClaimSetupRequest: {
+            token: string;
         };
         CountSummary: {
             name: string;
@@ -264,6 +430,17 @@ export interface components {
             /** Format: int32 */
             lastWeek: number;
         };
+        HttpValidationProblemDetails: {
+            type?: null | string;
+            title?: null | string;
+            /** Format: int32 */
+            status?: null | number;
+            detail?: null | string;
+            instance?: null | string;
+            errors?: {
+                [key: string]: string[];
+            };
+        };
         MetricSummary: {
             name: string;
             /** Format: int32 */
@@ -286,6 +463,13 @@ export interface components {
             /** Format: date-time */
             oldestWaitingSince: null | string;
         };
+        RecoveryCodesView: {
+            codes: string[];
+        };
+        SetupView: {
+            open: boolean;
+            onlySomeEmails: boolean;
+        };
         TelemetryReport: {
             /** Format: date-time */
             from: string;
@@ -303,6 +487,17 @@ export interface components {
             sessions: number;
             /** Format: int32 */
             events: number;
+        };
+        TwoFactorCodeRequest: {
+            code?: null | string;
+            recoveryCode?: null | string;
+        };
+        TwoFactorView: {
+            enabled: boolean;
+            /** Format: date-time */
+            openUntil: null | string;
+            /** Format: int32 */
+            recoveryCodesLeft: number;
         };
         WorkerStatus: {
             name: string;
@@ -421,6 +616,219 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminSystem"];
+                };
+            };
+        };
+    };
+    GetAdminAudit: {
+        parameters: {
+            query?: {
+                before?: number;
+                limit?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuditPage"];
+                };
+            };
+        };
+    };
+    GetAdminSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SetupView"];
+                };
+            };
+        };
+    };
+    ClaimAdminSetup: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ClaimSetupRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminMeView"];
+                };
+            };
+        };
+    };
+    GetAdminTwoFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorView"];
+                };
+            };
+        };
+    };
+    DisableAdminTwoFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorView"];
+                };
+            };
+        };
+    };
+    SetUpAdminAuthenticator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatorSetupView"];
+                };
+            };
+        };
+    };
+    EnableAdminTwoFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    VerifyAdminTwoFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TwoFactorView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    NewAdminRecoveryCodes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesView"];
                 };
             };
         };

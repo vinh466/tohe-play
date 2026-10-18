@@ -77,7 +77,9 @@ jobs:
       - run: pnpm --filter @tohe/e2e exec playwright install --with-deps chromium
       - run: pnpm --filter @tohe/e2e smoke
         env:
-          # The smoke test grants its account a role with the API container's command (ADR 0027).
+          # The smoke test claims the new deployment with the setup token the API logs; the API container's command is
+          # the way when it is owned already (ADR 0027).
+          ADMIN_LOGS_COMMAND: docker compose --project-directory ${{ github.workspace }} logs api
           ADMIN_GRANT_COMMAND: docker compose --project-directory ${{ github.workspace }} exec -T api dotnet Tohe.Api.dll admin grant
       - name: Online rooms, three phones (ADR 0016, 0017)
         run: pnpm --filter @tohe/e2e rooms

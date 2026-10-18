@@ -70,7 +70,9 @@ internal static class IdentityModule
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             })
             .AddEntityFrameworkStores<ToheDbContext>()
-            .AddSignInManager();
+            .AddSignInManager()
+            // Authenticator apps (TOTP) for the admin console's two-factor authentication (ADR 0027).
+            .AddTokenProvider<AuthenticatorTokenProvider<Account>>(TokenOptions.DefaultAuthenticatorProvider);
 
         services.ConfigureApplicationCookie(options =>
         {
@@ -117,7 +119,7 @@ internal static class IdentityModule
                 options.OnRefreshingPrincipal = context =>
                 {
                     var sessionClaims = context.CurrentPrincipal?.Claims
-                        .Where(c => c.Type is SessionClaims.Profile or SessionClaims.ParentUntil or SessionClaims.SecureUntil)
+                        .Where(c => SessionClaims.All.Contains(c.Type))
                         .ToList() ?? [];
                     context.NewPrincipal?.Identities.First().AddClaims(sessionClaims);
                     return Task.CompletedTask;
