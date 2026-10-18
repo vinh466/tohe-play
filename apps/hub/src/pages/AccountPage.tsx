@@ -6,6 +6,7 @@ import { ApiError, account, type MeView, type ProfileView, session } from '../ap
 import { errorKey } from '../api/errors.ts';
 import { configQuery, profileOptionsQuery } from '../api/queries.ts';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
+import { EmailChange } from '../session/EmailChange.tsx';
 import { formatProfileId } from '../session/profileIds.ts';
 import { cleanName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -82,6 +83,7 @@ function ManageAccount({ me }: { me: MeView }) {
       {unlocked ? (
         <>
           <Profiles me={me} startAdding={add} />
+          <SignInEmail me={me} />
           <TechnicalData me={me} />
           <footer className="mt-auto flex flex-col items-center gap-2">
             <Button variant="secondary" busy={lock.isPending} onClick={() => lock.mutate(undefined)}>
@@ -387,6 +389,45 @@ function ProfileForm({
         onDismiss={() => setConfirmDelete(false)}
       />
     </form>
+  );
+}
+
+/**
+ * The address the account signs in with (ADR 0024): changed — or added, by an account from before email sign-in —
+ * with a code sent to the new one. Without email on the server it only shows.
+ */
+function SignInEmail({ me }: { me: MeView }) {
+  const { t } = useTranslation();
+  const config = useQuery(configQuery);
+  const setMe = useSetMe();
+  const [open, setOpen] = useState(false);
+  const email = me.account.email;
+  if (!email && !config.data?.email) return null;
+  return (
+    <Card title={t('account.emailTitle')}>
+      <p className={email ? 'break-all font-semibold text-ink' : 'text-ink-soft'}>
+        {email ?? t('account.emailNone')}
+      </p>
+      {config.data?.email ? (
+        <Button variant="secondary" onClick={() => setOpen(true)}>
+          {email ? t('account.emailChange') : t('account.emailAdd')}
+        </Button>
+      ) : null}
+      <Modal
+        open={open}
+        title={email ? t('account.emailChange') : t('account.emailAdd')}
+        onClose={() => setOpen(false)}
+      >
+        {open ? (
+          <EmailChange
+            onDone={async (next) => {
+              await setMe(next);
+              setOpen(false);
+            }}
+          />
+        ) : null}
+      </Modal>
+    </Card>
   );
 }
 

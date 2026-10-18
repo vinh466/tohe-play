@@ -73,7 +73,7 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | --- | --- | --- |
 | Platform | done | `GET /api/config` |
 | Registry | done | `GET /api/games`, `GET /api/games/{id}` |
-| Identity & Profiles | done | `/api/auth/*`, `/api/session/*`, `/api/account`, `/api/profiles/*` — accounts own their profiles ([ADR 0023](../decisions/0023-accounts-own-their-profiles.md)); see [Identity](identity.md) |
+| Identity & Profiles | done | `/api/auth/*`, `/api/session/*`, `/api/account/*`, `/api/profiles/*` — accounts own their profiles and sign in by email ([ADR 0023](../decisions/0023-accounts-own-their-profiles.md), [0024](../decisions/0024-email-identifies-an-account.md)); see [Identity](identity.md) |
 | Saves & Scores | M2 | per-profile saves, score boards |
 | Parental | later | play-time limits, per-profile game visibility |
 | Email | done ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | none — other modules add messages to its outbox |

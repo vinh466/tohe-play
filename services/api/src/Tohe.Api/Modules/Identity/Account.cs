@@ -24,6 +24,12 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
     {
         builder.ToTable("accounts", "identity");
         builder.Property(account => account.DisplayName).HasMaxLength(200); // as a profile name (ProfileNames)
+
+        // One account per sign-in email (ADR 0024). Accounts from before email sign-in have none yet.
+        builder.HasIndex(account => account.NormalizedEmail)
+            .HasDatabaseName("email_index")
+            .IsUnique()
+            .HasFilter("normalized_email IS NOT NULL");
         builder.Property(account => account.TelemetryEnabled).HasDefaultValue(true);
     }
 }

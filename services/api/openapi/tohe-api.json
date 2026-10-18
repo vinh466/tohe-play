@@ -53,13 +53,157 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Create an account and its first profile.",
+        "summary": "Start signing up: a code goes to the email. 202 whether or not the address has an account.",
         "operationId": "Register",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
+                "$ref": "#/components/schemas/SignUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register/confirm": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code from the email creates the account and its first profile, which plays at once.",
+        "operationId": "ConfirmRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Sign in; sets the session cookie. An only profile without a PIN plays at once.",
+        "operationId": "Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password/forgot": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A code to set a new password goes to the email, if it has an account. 202 either way.",
+        "operationId": "ForgotPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password/reset": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code sets a new password; every other session ends.",
+        "operationId": "ResetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
               }
             }
           },
@@ -82,37 +226,6 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/auth/login": {
-      "post": {
-        "tags": [
-          "Identity"
-        ],
-        "summary": "Sign in; sets the session cookie.",
-        "operationId": "Login",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeView"
                 }
               }
             }
@@ -154,6 +267,78 @@
           },
           "204": {
             "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/account/email": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A code goes to the new email. Needs the parent gate, or the password with the request.",
+        "operationId": "ChangeEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/email/confirm": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code makes the new email the one that signs in; every other session ends.",
+        "operationId": "ConfirmEmailChange",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
           }
         }
       }
@@ -1547,6 +1732,7 @@
       "AccountView": {
         "required": [
           "id",
+          "email",
           "username",
           "displayName",
           "telemetry"
@@ -1557,8 +1743,17 @@
             "type": "string",
             "format": "uuid"
           },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "username": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "displayName": {
             "type": "string"
@@ -1568,11 +1763,41 @@
           }
         }
       },
+      "AttemptView": {
+        "required": [
+          "attemptId"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "ChangeEmailRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ClientConfig": {
         "required": [
           "gamesOrigin",
           "apiVersion",
-          "telemetry"
+          "telemetry",
+          "email"
         ],
         "type": "object",
         "properties": {
@@ -1584,6 +1809,25 @@
           },
           "telemetry": {
             "type": "boolean"
+          },
+          "email": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ConfirmCodeRequest": {
+        "required": [
+          "attemptId",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
           }
         }
       },
@@ -1797,6 +2041,17 @@
           },
           "new": {
             "type": "boolean"
+          }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
           }
         }
       },
@@ -2260,12 +2515,12 @@
       },
       "LoginRequest": {
         "required": [
-          "username",
+          "email",
           "password"
         ],
         "type": "object",
         "properties": {
-          "username": {
+          "email": {
             "type": "string"
           },
           "password": {
@@ -2513,25 +2768,6 @@
           }
         }
       },
-      "RegisterRequest": {
-        "required": [
-          "displayName",
-          "username",
-          "password"
-        ],
-        "type": "object",
-        "properties": {
-          "displayName": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          }
-        }
-      },
       "ReplayAction": {
         "required": [
           "seat",
@@ -2581,6 +2817,26 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "required": [
+          "attemptId",
+          "code",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
           }
         }
       },
@@ -2948,6 +3204,25 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SignUpRequest": {
+        "required": [
+          "email",
+          "password",
+          "displayName"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
           }
         }
       },

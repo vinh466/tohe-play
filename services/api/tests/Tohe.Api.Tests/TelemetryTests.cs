@@ -216,11 +216,7 @@ public sealed class TelemetryTests(ApiFactory factory) : IClassFixture<ApiFactor
         var config = await client.GetFromJsonAsync<ClientConfig>(Url("/api/config"), Ct);
         Assert.True(config!.Telemetry);
 
-        var register = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName = "Bố", username = $"u{Guid.NewGuid():N}"[..16], password = Password },
-            Ct);
-        Assert.True((await register.Content.ReadFromJsonAsync<MeView>(Ct))!.Account.Telemetry);
+        Assert.True((await Accounts.SignUpAsync(factory, client, "Bố")).Account.Telemetry);
         await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
 
         var off = await client.PatchAsJsonAsync(Url("/api/account"), new { telemetry = false }, Ct);
