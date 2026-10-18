@@ -7,8 +7,8 @@ namespace Tohe.Api.Modules.Identity;
 /// <summary>
 /// Profile names are chosen freely, for fun (ADR 0023): any script, Vietnamese with its marks, digits, spaces, emoji.
 /// They are not unique — the public ID tells profiles apart — but they are shown to strangers, so a few rails hold:
-/// no invisible or direction-changing characters, no pile of combining marks on one letter, and none of the names that
-/// would pass for the platform itself.
+/// no invisible or direction-changing characters, no pile of combining marks on one letter, none of the names that
+/// would pass for the platform itself, and no offensive word (<see cref="NameFilter"/>, ADR 0035).
 /// </summary>
 /// <remarks>
 /// The API runs without ICU (InvariantGlobalization), where <see cref="string.Normalize()"/> leaves anything beyond
@@ -145,6 +145,12 @@ public static class ProfileNames
         if (IsReserved(normalized))
         {
             error = "name_reserved";
+            return false;
+        }
+
+        if (NameFilter.IsOffensive(normalized))
+        {
+            error = "name_inappropriate";
             return false;
         }
 

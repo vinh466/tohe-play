@@ -503,6 +503,8 @@ back (R-07).
 | No letters that draw nothing (Hangul and braille fillers) | A name made of them looks empty |
 | At most three combining marks on one character | Vietnamese needs two; more is "zalgo" |
 | Not a reserved name — Admin, Moderator, Support, System, Official, Tò He, Quản trị (viên), Kiểm duyệt, Hỗ trợ, Hệ thống, Chính thức, Người chơi đã xoá — compared without case, marks, separators or hidden joiners | Nobody passes for the platform. "Tò-HE 🦊" is taken; "Admin Nhí" is not |
+| No offensive word (`NameFilter`, [ADR 0035](../decisions/0035-filter-offensive-names-and-limit-renames.md)): whole words, or two side by side, or letters typed apart. Vietnamese words are matched **with their marks**, however typed; English words and Vietnamese teen code **without marks**, `0 1 3 4 5 7 @ $ !` read as letters, a letter repeated read once | Names are shown to strangers. "Fuuuck", "sh1t", "f u c k" are refused; "Bé Lớn", "Các Bạn", "Diễm", "Essex" are not — without their marks most Vietnamese swear words are everyday words. What slips through, a moderator renames |
+| Its owner renames a profile at most **5 times in 24 hours** (`Identity:ProfileRenamesPerDay`), counted from its name history (`rename_limit`) | Swearing and swapping back is pointless; nobody else meets the limit. A moderator's rename from the console is not limited |
 
 The API runs with invariant globalization (no ICU), where `string.Normalize` does nothing beyond ASCII. So the hub
 sends names composed (`normalize('NFC')`), the rules hold for composed and decomposed text alike, and reserved names
@@ -590,7 +592,7 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `attempt_closed`, `code_cooldown`, `too_many_codes`, `password_too_short`, `password_invalid`, `pin_required`,
 `pin_invalid`, `parent_gate_required`, `step_up_required`, `manage_pin_not_set`, `manage_pin_invalid`,
 `password_not_set`, `email_required`, `terms_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
-`name_too_long`, `name_reserved`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
+`name_too_long`, `name_reserved`, `name_inappropriate`, `rename_limit`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
 `last_method`, `account_suspended`, `session_ended`, `method_disabled`, `registration_closed`, `invite_required`,
 `invite_invalid`, `asked_child_required`.
 Navigations answer with a redirect instead: `/welcome?external=failed` (the provider refused, or was cancelled),

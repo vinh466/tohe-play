@@ -24,6 +24,9 @@ public sealed class IdentityOptions
     /// <summary>Profile IDs one account may look up in an hour (ADR 0033): found or not, every lookup counts.</summary>
     public int ProfileLookupsPerHour { get; set; } = 20;
 
+    /// <summary>Times its owner may rename a profile in 24 hours (E-07 Q5, ADR 0035).</summary>
+    public int ProfileRenamesPerDay { get; set; } = 5;
+
     /// <summary>
     /// How often a session is checked against its account's security stamp, which a new password or email changes:
     /// "every other session ends" takes at most this long (ADR 0024).
