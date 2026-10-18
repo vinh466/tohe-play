@@ -125,11 +125,19 @@ export const admin = {
     );
   },
   signInSettings: () => call(api.GET('/api/admin/settings')),
-  /** Only what is given changes: methods by id, the registration mode. */
-  saveSignInSettings: (change: { methods?: Record<string, boolean>; registration?: string }) =>
+  /** Only what is given changes: methods by id, the registration mode, the proof-of-work (ADR 0037). */
+  saveSignInSettings: (change: {
+    methods?: Record<string, boolean>;
+    registration?: string;
+    proofOfWork?: boolean;
+  }) =>
     call(
       api.PUT('/api/admin/settings', {
-        body: { methods: change.methods ?? null, registration: change.registration ?? null },
+        body: {
+          methods: change.methods ?? null,
+          registration: change.registration ?? null,
+          proofOfWork: change.proofOfWork ?? null,
+        },
       }),
     ),
   communities: () => call(api.GET('/api/admin/communities')),

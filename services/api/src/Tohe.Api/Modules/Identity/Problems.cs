@@ -36,6 +36,13 @@ internal static class Problems
     public static ProblemHttpResult AttemptClosed() =>
         Of(StatusCodes.Status400BadRequest, "attempt_closed", "This code no longer works; ask for a new one");
 
+    /// <summary>
+    /// The console asks for a proof-of-work here (ADR 0037) and none came, or it was wrong, expired or spent: ask for a
+    /// new challenge and solve it.
+    /// </summary>
+    public static ProblemHttpResult ProofOfWorkRequired() =>
+        Of(StatusCodes.Status400BadRequest, "proof_of_work_required", "Solve a new challenge from /api/auth/challenge first");
+
     /// <summary>The admin console turned this sign-in method off (ADR 0028).</summary>
     public static ProblemHttpResult MethodDisabled() =>
         Of(StatusCodes.Status403Forbidden, "method_disabled", "This way of signing in is off");

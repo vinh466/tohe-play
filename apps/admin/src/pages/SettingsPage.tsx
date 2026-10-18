@@ -54,6 +54,7 @@ export function SettingsPage() {
       <div className="grid gap-4 lg:grid-cols-2">
         <Methods settings={settings.data} canChange={mayChange && secure} onChange={show} />
         <Registration settings={settings.data} canChange={mayChange && secure} onChange={show} />
+        <ProofOfWork settings={settings.data} canChange={mayChange && secure} onChange={show} />
       </div>
     </>
   );
@@ -217,6 +218,53 @@ function Registration({
         <Button busy={save.isPending} disabled={mode === settings.registration} onClick={() => save.mutate()}>
           Lưu chế độ đăng ký
         </Button>
+      ) : null}
+    </Card>
+  );
+}
+
+/**
+ * The proof-of-work before a code by email (ADR 0037, E-09): off by default — launch is by invite — and on before
+ * registration opens to everyone.
+ */
+function ProofOfWork({
+  settings,
+  canChange,
+  onChange,
+}: {
+  settings: SignInSettings;
+  canChange: boolean;
+  onChange: (next: SignInSettings) => void;
+}) {
+  const save = useMutation({
+    mutationFn: (on: boolean) => admin.saveSignInSettings({ proofOfWork: on }),
+    onSuccess: onChange,
+  });
+  return (
+    <Card title="Chống bot đăng ký">
+      <div className="flex flex-wrap items-center gap-x-3 gap-y-2">
+        <span className="font-semibold text-ink">Thiết bị giải một bài toán nhỏ</span>
+        {settings.proofOfWork ? <Badge>Đang bật</Badge> : <Badge tone="danger">Đang tắt</Badge>}
+        {canChange ? (
+          <Button
+            variant={settings.proofOfWork ? 'secondary' : 'primary'}
+            className="ml-auto"
+            busy={save.isPending}
+            onClick={() => save.mutate(!settings.proofOfWork)}
+          >
+            {settings.proofOfWork ? 'Tắt' : 'Bật'}
+          </Button>
+        ) : null}
+      </div>
+      <p className="text-ink-soft text-sm">
+        Trước khi đăng ký hay xin mã đặt lại mật khẩu, máy của người dùng tính khoảng nửa giây; bot gửi hàng
+        nghìn yêu cầu thì tốn hàng nghìn lần như thế. Không gửi gì ra ngoài Tò He. Nên bật trước khi mở đăng
+        ký cho mọi người.
+      </p>
+      {save.isError ? (
+        <p role="alert" className="text-danger">
+          {problem(save.error)}
+        </p>
       ) : null}
     </Card>
   );

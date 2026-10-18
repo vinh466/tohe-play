@@ -5,7 +5,8 @@ sidebar:
   order: 28
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — one more switch, the proof-of-work before a code by email, since
+  [ADR 0037](0037-proof-of-work-before-a-code-by-email.md)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0026](0026-sign-in-methods-and-account-linking.md) — a provider with secrets can still be off;
   [ADR 0024](0024-email-identifies-an-account.md) — signing up may need an invite code, or be closed

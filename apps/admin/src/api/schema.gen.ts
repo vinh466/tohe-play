@@ -999,6 +999,7 @@ export interface components {
             methods: components["schemas"]["SignInMethodView"][];
             registration: string;
             email: boolean;
+            proofOfWork: boolean;
         };
         SuspendRequest: {
             reason: null | string;
@@ -1037,6 +1038,7 @@ export interface components {
                 [key: string]: boolean;
             };
             registration: null | string;
+            proofOfWork?: null | boolean;
         };
         WorkerStatus: {
             name: string;

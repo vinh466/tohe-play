@@ -176,6 +176,37 @@ flowchart TD
 - Codes travel as links, `/register?invite=CODE`. The hub fills the field from it and keeps the code on that tab
   (`sessionStorage`, `tohe.invite`) through a trip to a provider, for the provider's sign-up step; it forgets the code
   once an account is made.
+
+### Proof-of-work
+
+A switch of the console, off by default ([ADR 0037](../decisions/0037-proof-of-work-before-a-code-by-email.md),
+E-09): on, signing up by email and asking for a password reset — the two requests that send a code to any address,
+without a session — take a solved challenge, before anything else is checked.
+
+```mermaid
+sequenceDiagram
+  participant H as Hub
+  participant API
+  H->>API: GET /api/config → proofOfWork: true
+  H->>API: GET /api/auth/challenge
+  API-->>H: {algorithm: SHA-256, challenge, salt, maxNumber, token}<br/>token = the salt and the hash, sealed by Data Protection for 5 minutes
+  H->>H: n = 0, 1, 2… until SHA-256(salt + n) = challenge<br/>(on average maxNumber / 2 tries — about half a second on a phone)
+  H->>API: POST /api/auth/register {…, proof: {token, number}}
+  API->>API: the token unsealed and not expired · the hash right · the salt not answered before
+  alt any of it fails
+    API-->>H: 400 proof_of_work_required — the hub solves a fresh one and sends once more
+  else
+    API-->>H: as without the switch
+  end
+```
+
+- The hash is computed in the hub's own code (`session/proofOfWork.ts`), not `crypto.subtle`: that exists only on
+  HTTPS, and UAT is plain HTTP.
+- `Identity:ProofOfWorkMaxNumber` (50 000) sets the difficulty, `Identity:ProofOfWorkLifetime` (5 minutes) how long a
+  challenge waits. Answered salts are remembered in memory until their challenge would have expired: one API process
+  (ADR 0016).
+- It stops cheap bots, not someone with many machines; it costs a person nothing they notice and sends nothing outside
+  Tò He. Launch is by invite (E-09 Q1); turn it on before registration opens to everyone.
 - The hub reads the mode from `GET /api/config`: by invite, the code field comes first and is needed; open, it comes
   last and is welcome; closed, the sign-up pages say so and the welcome page stops offering "Tạo tài khoản".
 
@@ -554,10 +585,11 @@ device). The first time a real profile is chosen on that device, the hub offers 
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `POST /api/auth/register` | — | Start signing up, with an invite code when [registration](#registration) needs one: a code to the email — 202 and an attempt, whoever the address belongs to |
+| `GET /api/auth/challenge` | — | A [proof-of-work](#proof-of-work) to solve before signing up or a reset, when the console asks for one |
+| `POST /api/auth/register` | — | Start signing up, with an invite code when [registration](#registration) needs one (and `proof` when the console asks): a code to the email — 202 and an attempt, whoever the address belongs to |
 | `POST /api/auth/register/confirm` | — | The code creates the account and its first profile, which plays at once |
 | `POST /api/auth/login` / `POST /api/auth/logout` | — / session | Sign in with the email (an old account's username until it adds one) / out |
-| `POST /api/auth/password/forgot` | — | A code to set a new password, if the address has an account — 202 either way |
+| `POST /api/auth/password/forgot` | — | A code to set a new password, if the address has an account (`proof` when the console asks) — 202 either way |
 | `POST /api/auth/password/reset` | — | The code sets the new password; every other session ends |
 | `GET /api/auth/external/{provider}` | — (`?intent=link`: session + level 2) | A navigation: off to the provider, back through `…/callback` and `…/done` |
 | `GET /api/auth/external/pending` | the browser that came back | The step that waits — `email`, `link` or `signup` — or 404 |
@@ -584,8 +616,8 @@ device). The first time a real profile is chosen on that device, the hub offers 
 
 `GET /api/config` says whether the server sends email (`email`) — without it, nothing that needs a code starts
 (`email_unavailable`) — which providers it offers (`providers`: an `id` and the name on the button, only those on),
-whether email and password are on (`passwordSignIn`) and the registration mode (`registration`: `open`, `invite` or
-`closed`).
+whether email and password are on (`passwordSignIn`), the registration mode (`registration`: `open`, `invite` or
+`closed`), and whether signing up and a reset take a proof-of-work (`proofOfWork`).
 
 Errors are problem details; a machine-readable `code` lets the hub show a Vietnamese message: `invalid_credentials`,
 `locked_out`, `email_invalid`, `email_unavailable`, `email_unchanged`, `code_invalid` (with `triesLeft`),
@@ -593,7 +625,7 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `pin_invalid`, `parent_gate_required`, `step_up_required`, `manage_pin_not_set`, `manage_pin_invalid`,
 `password_not_set`, `email_required`, `terms_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
 `name_too_long`, `name_reserved`, `name_inappropriate`, `rename_limit`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
-`last_method`, `account_suspended`, `session_ended`, `method_disabled`, `registration_closed`, `invite_required`,
+`last_method`, `account_suspended`, `session_ended`, `method_disabled`, `proof_of_work_required`, `registration_closed`, `invite_required`,
 `invite_invalid`, `asked_child_required`.
 Navigations answer with a redirect instead: `/welcome?external=failed` (the provider refused, or was cancelled),
 `/welcome?external=suspended`, `/welcome?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`

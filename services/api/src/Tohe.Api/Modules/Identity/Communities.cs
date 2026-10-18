@@ -28,6 +28,12 @@ public interface ISignInSettings
     ValueTask<bool> IsOnAsync(string method, CancellationToken ct);
 
     ValueTask<RegistrationMode> RegistrationAsync(CancellationToken ct);
+
+    /// <summary>
+    /// A device solves a proof-of-work before signing up or asking for a password reset (ADR 0037). Off unless the
+    /// console turns it on.
+    /// </summary>
+    ValueTask<bool> ProofOfWorkAsync(CancellationToken ct);
 }
 
 public static class SignInMethods
