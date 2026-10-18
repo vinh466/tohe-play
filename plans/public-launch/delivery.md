@@ -115,6 +115,6 @@ nữa** — sửa sau review đi bằng migration mới.
 | F2b | `feat/chart-metrics` (trên A3 #47) | [#64](https://github.com/vinh466/tohe-play/pull/64) — **merged** · CI xanh (cài lên kind); `promtool` nhận 6 cảnh báo; giả định namespace `monitoring` |
 | F3 | `feat/proof-of-work` (trên F2a) | [#65](https://github.com/vinh466/tohe-play/pull/65) — **merged** · tắt sẵn; bật ở console → Đăng nhập & đăng ký → Chống bot đăng ký |
 | F1c | `feat/deletion-waits-for-admin` (trên `main`) | [#66](https://github.com/vinh466/tohe-play/pull/66) — CI xanh (cả e2e); màn console kiểm sáng/tối, desktop/điện thoại; chờ owner review; lên UAT khi owner nói "deploy"; trên UAT: console → Tổng quan "Tài khoản đến hạn xoá", Người dùng → "Chờ xoá" |
-| D-13 | `feat/games-own-domain` (trên `main`) | [#67](https://github.com/vinh466/tohe-play/pull/67) — games origin production `toheplay.io.vn` (ADR 0039); `/` → hub, `noindex`; `pnpm verify` + chart check xanh; chờ owner review |
+| D-13 | `feat/games-own-domain` (trên `main`) | [#67](https://github.com/vinh466/tohe-play/pull/67) — games origin production `toheplay.io.vn` (ADR 0039); `/` → hub, `noindex`; CI xanh (cả e2e: bước smoke mới chạy trên Caddy thật); chờ owner review |
 
 Thứ tự merge (đã merge hết, 2026-10-18 — chuỗi chính trước, dòng chart sau): #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58 → #59 → #60 → #61 → #62 → #63 → #65; #47 sau #44, #64 sau #47. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.

@@ -7,6 +7,8 @@ Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang 
 - Owner đã mua `toheplay.io.vn` → D-13 decided. Rà soát: mọi thứ đi theo `publicUrls.games`; chỉ file mẫu production
   ghi tên cũ. [#67](https://github.com/vinh466/tohe-play/pull/67) (ADR 0039): tên mới, `/` → hub, `noindex`, docs; `pnpm verify` xanh.
 - Chờ owner: review #66, #67; zone Cloudflare cho `toheplay.io.vn` (thiết lập trong item D-13).
+- Flaky: conformance shell của `tap-merge` (menu khi tạm dừng / Back) đỏ ngẫu nhiên trên CI — cả nhánh chỉ có docs; chạy lại
+  thì xanh. Việc của agent: làm nó ổn định, không nới phép kiểm.
 
 ## 2026-10-18 (khuya, tiếp) — agent
 
