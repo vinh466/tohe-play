@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (chiều, tiếp) — agent
+
+- C5 #60 sửa cho khớp design §3.15 ("lời mời luôn hỏi xác nhận kèm thẻ"): tra ID (`GET /api/profiles/by-id`) → thẻ →
+  "Mời {tên}" → lời mời; 20 lần tra/giờ, 20 lời mời sang account khác/giờ, 10 chờ; mã từ chối `invites_closed`.
+- E-07, E-08, E-09 → `proposed`, mỗi item có sự thật từ code, phương án, giá, đề xuất và câu hỏi. Chờ owner: review
+  #43–#60, quyết E-07/E-08/E-09.
+
 ## 2026-10-18 (chiều) — agent
 
 - E3b #59 CI xanh. C5 #60 (ADR 0033): mời bằng ID 12 số trong phòng; "ai được mời tôi" (mọi người · từng chơi cùng ·

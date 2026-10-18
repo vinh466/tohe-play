@@ -15,10 +15,12 @@
 
 ## Next — one item
 
-**E-07, E-08, E-09 → `proposed`**: soạn đề xuất (sự thật từ code, phương án, giá phải trả, một khuyến nghị) cho quyền
-riêng tư · xoá account · kiểm duyệt tên (E-07), observability (E-08) và chống bot đăng ký (E-09), để owner quyết; F1–F3
-xây theo các quyết định đó. Mọi PR code khác đã mở: #43–#60 ([trạng thái](delivery.md#trạng-thái)); phần chart còn
-lại (khối SMTP, secret của provider, `Admin__SetupToken`) chờ #44 và chồng C/D/E cùng vào `main`.
+**Owner quyết E-07, E-08, E-09** — đề xuất đã sẵn: [E-07](items/E-07-privacy-deletion-moderation.md) (xoá account
+chờ 7 ngày, xoá hồ sơ là xoá hẳn dữ liệu của nó, bộ lọc tên và giới hạn đổi tên — Q1–Q7, phần pháp lý cần owner kiểm),
+[E-08](items/E-08-observability.md) (prometheus-net, cảnh báo tối thiểu — Q1–Q3),
+[E-09](items/E-09-bot-protection.md) (ra mắt bằng mã mời, proof-of-work tự host trước khi mở `open` — Q1–Q2). Agent xây
+F1–F3 theo quyết định. Mọi PR code đã mở: #43–#60 ([trạng thái](delivery.md#trạng-thái)); phần chart còn lại (khối
+SMTP, secret của provider, `Admin__SetupToken`) chờ #44 và chồng C/D/E cùng vào `main`.
 
 ## Waiting on the owner
 
@@ -26,8 +28,8 @@ lại (khối SMTP, secret của provider, `Admin__SetupToken`) chờ #44 và ch
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
 3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #59 → #60); nói "deploy" cho mỗi lần lên UAT.
    Với #60: xác nhận hồ sơ người lớn mặc định "Mọi người có ID" (D-17 chỉ quy định hồ sơ trẻ em).
-7. **E-07, E-08, E-09** (quyền riêng tư và xoá account, observability, chống bot đăng ký) còn `open`: F1–F3 chờ các
-   quyết định này; agent sẽ soạn đề xuất khi tới lượt.
+7. **E-07, E-08, E-09** đã `proposed` (xem Next): F1–F3 chờ các câu trả lời. E-09 Q2 phụ thuộc E-02 Q2 (Resend Free
+   hay Pro: quota chung 100 thư/ngày làm rủi ro bot lớn hơn).
 4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).
 5. Duyệt bản nháp Điều khoản + Quyền riêng tư (#49; #50 thêm phần đăng nhập bằng provider), điền cách liên hệ người vận hành.
 6. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).
@@ -59,9 +61,9 @@ lại (khối SMTP, secret của provider, `Admin__SetupToken`) chờ #44 và ch
 | E-04 | Chart `tohe` — [trong D-14](items/D-14-release-via-chart.md#e-04--chart-tohe-deployhelmtohe) | T1 | enhancement | **decided** | E-03 |
 | E-05 | UAT kéo image GHCR — [trong D-14](items/D-14-release-via-chart.md#e-05--uat-chạy-đúng-image-sẽ-lên-prod) | T1 | enhancement | **decided** | E-04 |
 | E-06 | `apps/tohe` ở `platform-infra` (draft PR) — [trong D-14](items/D-14-release-via-chart.md#e-06--component-appstohe-trong-platform-infra-draft-pr) | T1 | enhancement | **decided** | E-04 publish |
-| E-07 | Quyền riêng tư, xoá account, kiểm duyệt tên | T7 | enhancement | open | D-06, D-17 |
-| E-08 | Observability | T8 | enhancement | open | E-04 |
-| E-09 | Chống bot đăng ký (Turnstile, tuỳ chọn) | T7 | enhancement | open | D-12 |
+| E-07 | [Quyền riêng tư, xoá account, kiểm duyệt tên](items/E-07-privacy-deletion-moderation.md) | T7 | enhancement | **proposed** | D-06, D-17 |
+| E-08 | [Observability](items/E-08-observability.md) | T8 | enhancement | **proposed** | E-04 |
+| E-09 | [Chống bot đăng ký](items/E-09-bot-protection.md) | T7 | enhancement | **proposed** | D-12 |
 | E-10 | Checklist ra mắt | — | enhancement | open | E-07, E-08, E-09, D-13 |
 
 Item chưa có link = chưa mở file; file được tạo khi item rời `open`.
