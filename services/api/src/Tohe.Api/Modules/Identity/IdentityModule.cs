@@ -119,9 +119,8 @@ internal static class IdentityModule
         });
 
         // On an HTTPS deployment the cookie is always Secure and locked to the hub's host: the __Host- prefix forbids
-        // a Domain attribute, so another subdomain of the same site can neither set nor shadow it (ADR 0021) — a
-        // games origin among them, where a deployment puts it beside the hub rather than on a domain of its own
-        // (ADR 0039).
+        // a Domain attribute, so another subdomain of the same site can neither set nor shadow it (ADR 0021) — the
+        // games origin among them, a subdomain of the hub's domain in production (ADR 0040).
         services.AddOptions<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme)
             .Configure<IOptions<AppOptions>>((options, app) =>
             {
