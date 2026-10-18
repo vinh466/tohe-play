@@ -1,0 +1,40 @@
+{{- if .Values.ingress.enabled }}
+{{- /* One Ingress, one host per origin: the hub (which also serves /api), the games origin, the site. */ -}}
+{{- $routes := list
+  (dict "host" (include "tohe.host" .Values.publicUrls.hub) "component" "hub")
+  (dict "host" (include "tohe.host" .Values.publicUrls.games) "component" "games") -}}
+{{- if .Values.site.enabled }}
+{{- $routes = append $routes (dict "host" (include "tohe.host" .Values.publicUrls.site) "component" "site") }}
+{{- end }}
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: {{ include "tohe.fullname" . }}
+  labels:
+    {{- include "tohe.labels" (dict "root" . "component" "ingress") | nindent 4 }}
+  {{- with .Values.ingress.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- with .Values.ingress.className }}
+  ingressClassName: {{ . }}
+  {{- end }}
+  {{- with .Values.ingress.tls }}
+  tls:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+  rules:
+    {{- range $routes }}
+    - host: {{ .host }}
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: {{ include "tohe.componentName" (dict "root" $ "component" .component) }}
+                port:
+                  name: http
+    {{- end }}
+{{- end }}
