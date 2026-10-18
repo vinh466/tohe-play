@@ -1,4 +1,5 @@
 // Typed API client. Types come from the API's OpenAPI document: pnpm --filter @tohe/hub generate:api
+import type { JsonValue } from '@tohe/game-sdk';
 import createClient from 'openapi-fetch';
 import type { components, paths } from './schema.gen.ts';
 
@@ -185,6 +186,13 @@ export const progress = {
   putSave: (gameId: string, data: unknown) =>
     call(api.PUT('/api/progress/saves/{gameId}', { params: { path: { gameId } }, body: { data } })),
   recordScores: (scores: ScoreInput[]) => call(api.POST('/api/progress/scores', { body: { scores } })),
+};
+
+/** Ranked runs (ADR 0030): the API deals the seed, then replays the moves the game hands in. */
+export const runs = {
+  start: (gameId: string) => call(api.POST('/api/runs', { body: { gameId } })),
+  finish: (run: string, moves: JsonValue[], score: number) =>
+    call(api.POST('/api/runs/{id}/finish', { params: { path: { id: run } }, body: { moves, score } })),
 };
 
 /** Boards read by trust (ADR 0029): the account's board of a game, this week or all time. */

@@ -620,6 +620,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open a ranked run of a game (ADR 0030): its id and the seed to play it from; it closes the last one. */
+        post: operations["StartRankedRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hand a ranked run's moves and score in; the server replays them with the game's verify module. */
+        post: operations["FinishRankedRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/telemetry": {
         parameters: {
             query?: never;
@@ -1042,6 +1076,11 @@ export interface components {
             id: string;
             name: string;
         };
+        FinishRankedRunRequest: {
+            moves: components["schemas"]["JsonElement"];
+            /** Format: double */
+            score: number;
+        };
         ForgotPasswordRequest: {
             email: string;
         };
@@ -1282,6 +1321,11 @@ export interface components {
         PutSaveRequest: {
             data: components["schemas"]["JsonElement"];
         };
+        RankedRunView: {
+            run: string;
+            /** Format: int32 */
+            seed: number;
+        };
         RecordScoresRequest: {
             scores: components["schemas"]["ScoreInput"][];
         };
@@ -1413,6 +1457,9 @@ export interface components {
             acceptTerms: boolean;
             termsVersion: null | string;
             inviteCode?: null | string;
+        };
+        StartRankedRunRequest: {
+            gameId: string;
         };
         StepUpRequest: {
             password: string;
@@ -2716,6 +2763,81 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    StartRankedRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartRankedRunRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankedRunView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    FinishRankedRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinishRankedRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
