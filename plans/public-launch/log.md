@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (khuya, tiếp) — agent
+
+- Owner: "chắc tôi sẽ mua 1 domain mới, mà .io.vn vẫn được chứ" → D-13 Q1 = B.
+- `.io.vn` được: public suffix nên là site riêng, mở cho mọi cá nhân/tổ chức. Tên gợi ý `toheplay.io.vn` (DNS còn
+  trống), dự phòng `tohebox.io.vn`; `tohe.io.vn` đã có người dùng ([tìm tên](items/D-13-games-origin-domain.md#tìm-tên-2026-10-18)).
+- Chờ owner: mua tên, trỏ về Cloudflare; rồi agent viết ADR (sửa 0002) + cấu hình.
+
 ## 2026-10-18 (khuya) — agent
 
 - Owner: "#62 đồng ý", namespace `monitoring` đúng, E-02 Q2 Free, E-08 Q2 email, E-07 Q7 → xoá chờ admin; "chốt hiện tại,

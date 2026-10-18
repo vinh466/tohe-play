@@ -1,6 +1,7 @@
 # D-13 — Games origin trên domain riêng
 
-- Status: **proposed** (2026-10-18) — owner hỏi gợi ý; agent đề xuất **B** trước F4, chờ owner chọn
+- Status: **decided Q1 = B** (2026-10-18, chat: "chắc tôi sẽ mua 1 domain mới, mà .io.vn vẫn được chứ") — Q2 (tên)
+  chờ owner mua; agent gợi ý **`toheplay.io.vn`** ([tìm tên](#tìm-tên-2026-10-18))
 - Kind: decision — đổi hostname production của games origin (ADR 0002) là quyết định về origin → ADR khi chốt
 - Blocks: E-10 (checklist ra mắt), F4 · Blocked by: —
 
@@ -62,6 +63,43 @@ cũng được mà không phải chuyển dữ liệu. Khi đó nên làm `form-
 2. **Q2** (nếu B): owner chọn và mua tên nào? Agent không chọn, không mua thay. Khi có tên, agent viết ADR và đổi
    cấu hình; host ở `platform-infra` là một draft PR riêng.
 
+## Tìm tên (2026-10-18)
+
+**`.io.vn` dùng được.** `io.vn` nằm trong Public Suffix List, nên `<tên>.io.vn` là một site riêng, khác site với
+`vinetic.io.vn`. Theo bài tổng hợp ngày 31/07/2025 ([runsystem](https://runsystem.net/en/node/230)), `.io.vn` do VNNIC quản
+lý và "open to all individuals and organizations, no restrictions apply". Phí duy trì nhà nước 20.000đ/năm theo
+Thông tư 10/2025/TT-BTC (trích qua thuvienphapluat; agent chưa đọc được văn bản gốc); giá bán lẻ tuỳ nhà đăng ký.
+Cloudflare nhận được zone `.io.vn`: `vinetic.io.vn` đang chạy trên đó.
+
+Tình trạng DNS ngày 2026-10-18, hỏi qua DNS-over-HTTPS: NXDOMAIN là chưa ai trỏ DNS, nhiều khả năng còn trống, nhưng
+ô tìm kiếm của nhà đăng ký mới là câu trả lời chắc chắn.
+
+| Tên | DNS | Nhận xét |
+|---|---|---|
+| **`toheplay.io.vn`** | NXDOMAIN | **Gợi ý.** Trùng tên dự án (`tohe-play` trên GitHub và GHCR). Nhìn là biết của Tò He, "play" nói rõ đây là chỗ chạy game. Một từ, không gạch nối, không dấu — dễ đọc qua điện thoại. |
+| `tohebox.io.vn` | NXDOMAIN | Dự phòng: "box" gợi chiếc hộp đồ chơi, và cái sandbox game chạy bên trong. |
+| `tohegames.io.vn` | NXDOMAIN | Rõ nghĩa nhưng dài hơn, và là số nhiều tiếng Anh. |
+| `tohe-play.io.vn`, `tohe-games.io.vn` | NXDOMAIN | Gạch nối dễ bị quên khi đọc cho nhau nghe. |
+| `tohezone.io.vn`, `choitohe.io.vn` | NXDOMAIN | "zone" không có nghĩa với người Việt; "choi" không dấu đọc thành nhiều chữ. |
+| `tohe.io.vn` | **đã có người dùng** (NS `vclouddns.com`) | Không lấy được. |
+
+Tiền lệ cho việc tách domain: GitHub chuyển Pages sang `github.io` năm 2013 vì cookie tossing
+([Yummy cookies across domains](https://github.blog/2013-04-09-yummy-cookies-across-domains/)); itch.io chạy game HTML
+trên `html-classic.itch.zone`.
+
+Khi owner mua xong:
+1. **Owner:** trỏ nameserver về Cloudflare (zone mới, gói Free) — như `vinetic.io.vn`. Dùng thẳng tên gốc làm games
+   origin: `https://toheplay.io.vn`. Cả domain chỉ dành cho game.
+2. **Agent:** viết một ADR (sửa hostname production của ADR 0002) và cập nhật docs. Đặt `publicUrls.games` cho chart.
+   Cho trang gốc của games origin chuyển về hub — hiện nó trả 404, mà một tên dễ gõ thì sẽ có người gõ.
+3. **A4 (`platform-infra`):** thêm host vào ingress và DNS. Thử lại spike S1 (offline) và S2 (âm thanh iOS) trên domain
+   mới. UAT không đổi: ở UAT, games origin là địa chỉ IP với cổng riêng.
+4. **Mua sớm, kể cả khi chưa ra mắt.** Một số bộ lọc DNS chặn domain mới đăng ký — ví dụ NextDNS có tuỳ chọn "Block
+   Newly Registered Domains" cho domain đăng ký chưa tới 30 ngày
+   ([diễn đàn NextDNS](https://help.nextdns.io/t/35yz3m6/is-there-a-way-to-block-newly-active-domains)). Ai bật tuỳ chọn
+   này sẽ không tải được game trong những tuần đầu.
+
 ## Thảo luận
 
-—
+**owner** (2026-10-18, chat): "chắc tôi sẽ mua 1 domain mới, mà .io.vn vẫn được chứ, research cho tôi 1 name gợi ý đi"
+→ Q1 = B. **agent:** `.io.vn` được; gợi ý `toheplay.io.vn`, dự phòng `tohebox.io.vn` (bảng trên).
