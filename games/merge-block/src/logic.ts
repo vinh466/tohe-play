@@ -183,6 +183,28 @@ export function drop(state: State, col: number): DropResult {
   return { ok: true, state: next, events };
 }
 
+/**
+ * A ranked run played again from its seed (ADR 0030, 0032): the state after its first `upTo` moves, or why move `at`
+ * is not a legal column. The verify module judges runs with it and the replay stage shows them with it, so the console
+ * shows the game the server judged.
+ */
+export function replayMoves(
+  seed: number,
+  moves: readonly unknown[],
+  upTo = moves.length,
+  best = 0,
+): { state: State } | { error: string; at: number } {
+  let state = newGame(seed, best);
+  for (let at = 0; at < Math.min(upTo, moves.length); at++) {
+    const col = moves[at];
+    if (typeof col !== 'number' || !Number.isInteger(col)) return { error: `move ${at} is not a column`, at };
+    const result = drop(state, col);
+    if (!result.ok) return { error: `move ${at}: ${result.reason}`, at };
+    state = result.state;
+  }
+  return { state };
+}
+
 /** Cells holding blocks, for rendering a whole board at once (start, resume). */
 export function blocks(grid: readonly Exponent[]): { cell: Cell; exp: Exponent }[] {
   return grid.flatMap((exp, index) => (exp > 0 ? [{ cell: cellAt(index), exp }] : []));

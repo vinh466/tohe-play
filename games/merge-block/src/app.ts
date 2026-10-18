@@ -39,6 +39,9 @@ const isRanked = (value: unknown): value is RankedProgress => {
 export const session = await connect<Saved>({ gameId: 'merge-block' });
 export const t = stringsFor(session.locale);
 
+/** A ranked run to watch (ADR 0032): replay.ts plays it back instead of a game, and nothing is saved or scored. */
+export const rankedReplay = session.rankedReplay;
+
 export const sfx = createSfx({ telemetry: session.telemetry });
 sfx.setMuted(session.settings.muted);
 session.on('settings', (settings) => sfx.setMuted(settings.muted));
