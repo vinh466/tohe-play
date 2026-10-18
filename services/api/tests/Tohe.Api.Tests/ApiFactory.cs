@@ -2,7 +2,10 @@ using System.Net;
 using System.Text;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.Extensions.DependencyInjection;
+using MimeKit;
+using Tohe.Api.Modules.Email;
 using Testcontainers.PostgreSql;
 
 namespace Tohe.Api.Tests;
@@ -18,6 +21,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
     public const string TelemetryToken = "test-operator-token";
 
     public FakeCatalog Catalog { get; } = new();
+
+    /// <summary>The SMTP relay: keeps what it is handed, or refuses on demand.</summary>
+    public FakeSmtp Smtp { get; } = new();
 
     public async ValueTask InitializeAsync() => await _postgres.StartAsync();
 
@@ -49,6 +55,12 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Rooms:NextHandSeconds", "1");
         builder.UseSetting("Rooms:GraceSeconds", "1");
         builder.UseSetting("Rooms:CodeLookupsPerMinute", "10000");
+        // Email goes to FakeSmtp; tests run delivery themselves (EmailDelivery), with the mail they need.
+        builder.UseSetting("Email:Mode", "Smtp");
+        builder.UseSetting("Email:From", "Tò He <no-reply@tohe.test>");
+        builder.UseSetting("Email:Smtp:Host", "smtp.tohe.test");
+        builder.UseSetting("Email:DeliveryEnabled", "false");
+        builder.ConfigureTestServices(services => services.AddSingleton<ISmtpTransport>(Smtp));
         builder.ConfigureServices(services =>
         {
             services.AddHttpClient<Modules.Registry.CatalogSync>().ConfigurePrimaryHttpMessageHandler(() => Catalog);
@@ -112,5 +124,48 @@ public sealed class FakeCatalog : HttpMessageHandler
         {
             Content = new StringContent(Json, Encoding.UTF8, "application/json"),
         });
+    }
+}
+
+/// <summary>An SMTP relay that keeps every message it accepts, and refuses the next ones when told to.</summary>
+public sealed class FakeSmtp : ISmtpTransport
+{
+    private readonly Lock _gate = new();
+    private readonly List<MimeMessage> _sent = [];
+    private int _refusals;
+
+    public IReadOnlyList<MimeMessage> Sent
+    {
+        get
+        {
+            lock (_gate)
+            {
+                return [.. _sent];
+            }
+        }
+    }
+
+    public void RefuseNext(int times)
+    {
+        lock (_gate)
+        {
+            _refusals = times;
+        }
+    }
+
+    public Task SendAsync(MimeMessage message, CancellationToken cancellationToken)
+    {
+        lock (_gate)
+        {
+            if (_refusals > 0)
+            {
+                _refusals--;
+                throw new InvalidOperationException("451 relay unavailable");
+            }
+
+            _sent.Add(message);
+        }
+
+        return Task.CompletedTask;
     }
 }

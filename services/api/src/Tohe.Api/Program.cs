@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Infrastructure.Security;
+using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Platform;
 using Tohe.Api.Modules.Progress;
@@ -30,6 +31,7 @@ builder.Services.AddOpenApi(options => options.AddDocumentTransformer((document,
 
 builder.AddDatabase();
 builder.AddPlatformModule();
+builder.AddEmailModule();
 builder.AddIdentityModule();
 builder.AddRegistryModule();
 builder.AddTelemetryModule();

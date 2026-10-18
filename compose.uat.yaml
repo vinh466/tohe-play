@@ -40,6 +40,13 @@ services:
       Games__CatalogUrl: http://games:8080/catalog.json
       Registry__SyncInterval: "00:01:00"
       Telemetry__OperatorToken: ${TOHE_UAT_TELEMETRY_TOKEN:?set by deploy/uat/deploy.sh}
+      # Off until the relay's settings are in uat.env (docs/guides/uat.md, ADR 0022).
+      Email__Mode: ${TOHE_UAT_EMAIL_MODE:-Disabled}
+      Email__From: ${TOHE_UAT_EMAIL_FROM:-}
+      Email__Smtp__Host: ${TOHE_UAT_SMTP_HOST:-}
+      Email__Smtp__Port: ${TOHE_UAT_SMTP_PORT:-587}
+      Email__Smtp__Username: ${TOHE_UAT_SMTP_USERNAME:-}
+      Email__Smtp__Password: ${TOHE_UAT_SMTP_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
