@@ -144,6 +144,31 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task The_audit_log_keeps_a_year_and_nothing_younger_goes()
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        await db.Database.ExecuteSqlRawAsync(
+            """
+            INSERT INTO admin.audit_log (at, actor, action) VALUES
+                (now() - interval '400 days', 'test', 'test.past-the-year'),
+                (now() - interval '300 days', 'test', 'test.within-the-year')
+            """,
+            Ct);
+
+        Assert.True(await scope.ServiceProvider.GetRequiredService<AuditRetention>().RunAsync(Ct) >= 1);
+
+        Assert.False(await db.AuditLog.AnyAsync(entry => entry.Action == "test.past-the-year", Ct));
+        Assert.True(await db.AuditLog.AnyAsync(entry => entry.Action == "test.within-the-year", Ct));
+        // The retention's way out opens only for entries past the year.
+        await using var transaction = await db.Database.BeginTransactionAsync(Ct);
+        await db.Database.ExecuteSqlRawAsync("SELECT set_config('tohe.purge', 'audit', true)", Ct);
+        var refused = await Assert.ThrowsAsync<PostgresException>(
+            () => db.Database.ExecuteSqlRawAsync("DELETE FROM admin.audit_log WHERE action = 'test.within-the-year'", Ct));
+        Assert.Contains("append-only", refused.MessageText, StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task The_overview_and_the_games_put_together_what_the_modules_tell()
     {
         factory.Catalog.Json = """

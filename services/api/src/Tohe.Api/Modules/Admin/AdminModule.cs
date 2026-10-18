@@ -18,6 +18,14 @@ internal static class AdminModule
         builder.Services.AddSingleton<SetupToken>();
         builder.Services.AddScoped<SetupState>();
         builder.Services.AddScoped<AdminAudit>();
+        // The audit log keeps a year (ADR 0034).
+        builder.Services.AddScoped<AuditRetention>();
+        if (builder.Configuration.GetValue($"{AdminOptions.Section}:AuditRetentionEnabled", defaultValue: true)
+            && !BuildTime.IsGeneratingOpenApi)
+        {
+            builder.Services.AddHostedService<AuditRetentionWorker>();
+        }
+
         // The console's switches of ADR 0028, which the Identity module asks through ISignInSettings.
         builder.Services.AddSingleton<RuntimeSettings>();
         builder.Services.AddSingleton<ISignInSettings>(services => services.GetRequiredService<RuntimeSettings>());

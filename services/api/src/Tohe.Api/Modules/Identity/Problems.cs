@@ -51,6 +51,13 @@ internal static class Problems
     public static ProblemHttpResult AccountSuspended() =>
         Of(StatusCodes.Status403Forbidden, "account_suspended", "This account is suspended");
 
+    /// <summary>
+    /// The session ended since this device last asked — its account asked to be deleted (ADR 0034): sign in again,
+    /// which keeps the account.
+    /// </summary>
+    public static ProblemHttpResult SessionEnded() =>
+        Of(StatusCodes.Status401Unauthorized, "session_ended", "This session has ended; sign in again");
+
     public static ProblemHttpResult LockedOut() =>
         Of(StatusCodes.Status429TooManyRequests, "locked_out", "Too many wrong attempts; try again in a few minutes");
 

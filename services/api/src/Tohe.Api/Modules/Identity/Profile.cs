@@ -119,6 +119,27 @@ public sealed class ProfileName
     public DateTimeOffset At { get; set; }
 }
 
+/// <summary>
+/// The public ID of a deleted profile (ADR 0034): kept so it is never given to anyone else — someone who shared it
+/// must never reach a stranger with it. Nothing else of the profile is kept.
+/// </summary>
+public sealed class RetiredProfileId
+{
+    public required string PublicId { get; set; }
+
+    public DateTimeOffset RetiredAt { get; set; }
+}
+
+internal sealed class RetiredProfileIdConfiguration : IEntityTypeConfiguration<RetiredProfileId>
+{
+    public void Configure(EntityTypeBuilder<RetiredProfileId> builder)
+    {
+        builder.ToTable("retired_profile_ids", "identity");
+        builder.HasKey(retired => retired.PublicId);
+        builder.Property(retired => retired.PublicId).HasMaxLength(ProfileIds.Length).IsFixedLength();
+    }
+}
+
 internal sealed class ProfileNameConfiguration : IEntityTypeConfiguration<ProfileName>
 {
     public void Configure(EntityTypeBuilder<ProfileName> builder)

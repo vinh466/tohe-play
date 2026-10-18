@@ -80,7 +80,7 @@ internal static class ProfileEndpoints
 
         profiles.MapDelete("/{id:guid}", DeleteProfileAsync)
             .WithName("DeleteProfile")
-            .WithSummary("Remove one of the account's profiles — never the last one.");
+            .WithSummary("Delete one of the account's profiles — never the last one — and everything of it, for good.");
     }
 
     /// <summary>
@@ -247,8 +247,13 @@ internal static class ProfileEndpoints
         return TypedResults.Ok(await context.MeAsync(ct));
     }
 
+    /// <summary>
+    /// Deletes the profile and everything of it at once (ADR 0034): saves, scores, results on boards, ranked runs; its
+    /// seats in finished hands stay for the others at the table, without anything of it. For a child, this is its
+    /// parent taking the consent back (R-07).
+    /// </summary>
     private static async Task<Results<Ok<MeView>, NotFound, ProblemHttpResult>> DeleteProfileAsync(
-        Guid id, Context context, CancellationToken ct)
+        Guid id, Context context, AccountDeletion deletion, CancellationToken ct)
     {
         // Looked up under the lock, so a second tap on "delete" finds nothing rather than racing the first.
         await using var transaction = await context.Db.Database.BeginTransactionAsync(ct);
@@ -266,8 +271,7 @@ internal static class ProfileEndpoints
             return Problems.Of(StatusCodes.Status409Conflict, "last_profile", "An account keeps at least one profile");
         }
 
-        context.Db.Profiles.Remove(profile);
-        await context.Db.SaveChangesAsync(ct);
+        await deletion.DeleteProfileAsync(profile, ct);
         await transaction.CommitAsync(ct);
         return TypedResults.Ok(await context.MeAsync(ct));
     }
@@ -279,13 +283,17 @@ internal static class ProfileEndpoints
     private static Task LockAccountAsync(ToheDbContext db, Guid accountId, CancellationToken ct) =>
         db.Database.ExecuteSqlAsync($"SELECT 1 FROM identity.accounts WHERE id = {accountId} FOR UPDATE", ct);
 
-    /// <summary>A public ID no profile has yet. Collisions are one in tens of billions; a few tries is plenty.</summary>
+    /// <summary>
+    /// A public ID no profile has, nor ever had (ADR 0034): a deleted profile's ID is never given again. Collisions are
+    /// one in tens of billions; a few tries is plenty.
+    /// </summary>
     public static async Task<string> NewPublicIdAsync(ToheDbContext db, CancellationToken ct)
     {
         for (var attempt = 0; attempt < 5; attempt++)
         {
             var id = ProfileIds.New();
-            if (!await db.Profiles.AnyAsync(p => p.PublicId == id, ct))
+            if (!await db.Profiles.AnyAsync(p => p.PublicId == id, ct)
+                && !await db.RetiredProfileIds.AnyAsync(retired => retired.PublicId == id, ct))
             {
                 return id;
             }

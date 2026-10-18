@@ -178,7 +178,13 @@ export const account = {
   addProfile: (body: CreateProfileRequest) => call(api.POST('/api/profiles', { body })),
   updateProfile: (id: string, body: UpdateProfileRequest) =>
     call(api.PATCH('/api/profiles/{id}', { params: { path: { id } }, body })),
+  /** For good, with everything of the profile (ADR 0034). */
   deleteProfile: (id: string) => call(api.DELETE('/api/profiles/{id}', { params: { path: { id } } })),
+  /**
+   * Within step-up level 2 (ADR 0034): every session ends, this one too, and the account goes for good after seven
+   * days unless someone signs in to it.
+   */
+  deleteAccount: () => call(api.DELETE('/api/account')),
 };
 
 /** Saves and scores of the active profile (M2); the hub calls these from storage/sync.ts, never from games. */

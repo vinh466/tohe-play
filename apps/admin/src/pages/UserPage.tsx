@@ -52,9 +52,13 @@ export function UserPage() {
             <Fact label="Trạng thái">
               {user.suspendedAt ? (
                 <Badge tone="danger">Tạm khoá từ {dateTime(user.suspendedAt)}</Badge>
-              ) : (
+              ) : user.deleteAfter ? null : (
                 'Đang hoạt động'
               )}
+              {/* Its owner asked to delete it (ADR 0034): it goes then, unless someone signs in to it before. */}
+              {user.deleteAfter ? (
+                <Badge tone="notice">Chờ xoá — xoá hẳn lúc {dateTime(user.deleteAfter)}</Badge>
+              ) : null}
             </Fact>
           </div>
           {user.suspendedReason ? (

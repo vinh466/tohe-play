@@ -541,6 +541,66 @@
         }
       }
     },
+    "/api/account": {
+      "delete": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Delete the account (needs step-up level 2): it stops now, and goes for good after seven days unless someone signs in to it.",
+        "operationId": "DeleteAccount",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Turn the account's telemetry on or off.",
+        "operationId": "UpdateAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/external/pending": {
       "get": {
         "tags": [
@@ -934,47 +994,6 @@
         }
       }
     },
-    "/api/account": {
-      "patch": {
-        "tags": [
-          "Identity"
-        ],
-        "summary": "Turn the account's telemetry on or off.",
-        "operationId": "UpdateAccount",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/UpdateAccountRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/profiles": {
       "post": {
         "tags": [
@@ -1094,7 +1113,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Remove one of the account's profiles — never the last one.",
+        "summary": "Delete one of the account's profiles — never the last one — and everything of it, for good.",
         "operationId": "DeleteProfile",
         "parameters": [
           {
@@ -2436,6 +2455,18 @@
             "items": {
               "$ref": "#/components/schemas/BoardRow"
             }
+          }
+        }
+      },
+      "AccountDeletionView": {
+        "required": [
+          "deleteAfter"
+        ],
+        "type": "object",
+        "properties": {
+          "deleteAfter": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -3916,7 +3947,8 @@
           "profileId",
           "name",
           "avatar",
-          "bot"
+          "bot",
+          "deleted"
         ],
         "type": "object",
         "properties": {
@@ -3944,6 +3976,9 @@
               "null",
               "string"
             ]
+          },
+          "deleted": {
+            "type": "boolean"
           }
         }
       },

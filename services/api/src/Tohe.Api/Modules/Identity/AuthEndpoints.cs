@@ -310,7 +310,7 @@ internal static class AuthEndpoints
 
         var playing = await OnlyProfileAsync(db, account.Id, ct);
         var state = new DeviceSession(playing);
-        await session.WriteAsync(account, state);
+        await session.SignInAsync(account, state, ct);
         return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);
     }
 
@@ -426,7 +426,7 @@ internal static class AuthEndpoints
 
         var playing = await OnlyProfileAsync(db, account.Id, ct);
         var state = new DeviceSession(playing);
-        await session.WriteAsync(account, state);
+        await session.SignInAsync(account, state, ct);
         return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);
     }
 

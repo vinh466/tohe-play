@@ -23,6 +23,7 @@ const byCode: Record<string, string> = {
   last_method: 'errors.lastMethod',
   provider_account_in_use: 'errors.providerAccountInUse',
   account_suspended: 'errors.accountSuspended',
+  session_ended: 'errors.sessionEnded',
   asked_child_required: 'errors.askedChildRequired',
   no_community: 'errors.noCommunity',
   method_disabled: 'errors.methodDisabled',

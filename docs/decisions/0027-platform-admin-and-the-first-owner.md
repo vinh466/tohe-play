@@ -6,7 +6,7 @@ sidebar:
 ---
 
 - **Status:** Accepted — the console frames the games origin, only to watch a ranked run, since
-  [ADR 0032](0032-watch-a-ranked-run-in-the-game-itself.md)
+  [ADR 0032](0032-watch-a-ranked-run-in-the-game-itself.md); the audit log keeps a year since [ADR 0034](0034-delete-accounts-and-profiles-for-good.md)
 - **Date:** 2026-10-18
 
 ## Context

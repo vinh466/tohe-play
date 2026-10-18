@@ -6,6 +6,7 @@ namespace Tohe.Api.Modules.Identity;
 
 /// <summary>An account in a list of the admin console.</summary>
 /// <param name="Username">What an account from before email sign-in signs in with, until it adds an email.</param>
+/// <param name="DeleteAfter">Its owner asked to delete it (ADR 0034): it goes then, unless someone signs in before.</param>
 public sealed record AccountSummary(
     Guid Id,
     string? Email,
@@ -14,12 +15,14 @@ public sealed record AccountSummary(
     DateTimeOffset CreatedAt,
     string? Role,
     bool Suspended,
-    int Profiles);
+    int Profiles,
+    DateTimeOffset? DeleteAfter);
 
 /// <summary>One account, as the admin console shows it.</summary>
 /// <param name="Logins">The providers it signs in with (ADR 0026).</param>
 /// <param name="SuspendedReason">Why, in the admin's words.</param>
 /// <param name="Community">The community it came with, by an invite code (ADR 0028).</param>
+/// <param name="DeleteAfter">Its owner asked to delete it (ADR 0034): it goes then, unless someone signs in before.</param>
 public sealed record AccountDetail(
     Guid Id,
     string? Email,
@@ -35,7 +38,8 @@ public sealed record AccountDetail(
     DateTimeOffset? SuspendedAt,
     string? SuspendedReason,
     string? Community,
-    IReadOnlyList<ProfileDetail> Profiles);
+    IReadOnlyList<ProfileDetail> Profiles,
+    DateTimeOffset? DeleteAfter);
 
 /// <param name="Names">The names it had, newest first (D-17).</param>
 public sealed record ProfileDetail(
@@ -98,6 +102,7 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
                 account.DisplayName,
                 account.CreatedAt,
                 account.SuspendedAt,
+                account.DeleteAfter,
                 Profiles = db.Profiles.Count(p => p.AccountId == account.Id),
                 Role = db.UserClaims
                     .Where(claim => claim.UserId == account.Id && claim.ClaimType == PlatformRoles.ClaimType)
@@ -113,7 +118,8 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
             row.CreatedAt,
             PlatformRoles.Parse(row.Role) is { } role ? PlatformRoles.NameOf(role) : null,
             row.SuspendedAt is not null,
-            row.Profiles))];
+            row.Profiles,
+            row.DeleteAfter))];
     }
 
     public async Task<AccountDetail?> DetailAsync(Guid id, CancellationToken ct)
@@ -168,7 +174,8 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
                 profile.CreatedAt,
                 [.. names[profile.Id].Select(name => new NameChange(name.Name, name.At))],
                 profile.OnPublicBoards,
-                profile.HiddenFromBoardsAt is not null))]);
+                profile.HiddenFromBoardsAt is not null))],
+            account.DeleteAfter);
     }
 
     public async Task<IReadOnlyDictionary<Guid, ProfileCard>> CardsAsync(IReadOnlyCollection<Guid> profileIds, CancellationToken ct) =>

@@ -57,6 +57,7 @@ export function UsersPage() {
                   <div className="flex flex-wrap gap-1">
                     {account.role ? <Badge tone="notice">{roleName(account.role)}</Badge> : null}
                     {account.suspended ? <Badge tone="danger">Tạm khoá</Badge> : null}
+                    {account.deleteAfter ? <Badge tone="notice">Chờ xoá</Badge> : null}
                   </div>
                 </td>
                 <td className={`${cell} tabular-nums`}>{count(account.profiles)}</td>

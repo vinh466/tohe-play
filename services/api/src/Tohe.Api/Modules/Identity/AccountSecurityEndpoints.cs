@@ -36,6 +36,38 @@ internal static class AccountSecurityEndpoints
         account.MapPost("/terms", AcceptTermsAsync)
             .WithName("AcceptTerms")
             .WithSummary("Accept the terms and privacy notice in the version the hub shows.");
+
+        account.MapDelete("/", DeleteAccountAsync)
+            .WithName("DeleteAccount")
+            .WithSummary("Delete the account (needs step-up level 2): it stops now, and goes for good after seven days unless someone signs in to it.");
+    }
+
+    /// <summary>
+    /// The owner asks to delete the account (ADR 0034, design §3.14): every session ends — this one too — its profiles
+    /// leave boards and tables, and it goes for good after the wait, with everything of its profiles.
+    /// </summary>
+    private static async Task<Results<Ok<AccountDeletionView>, ProblemHttpResult, UnauthorizedHttpResult>> DeleteAccountAsync(
+        HttpContext http,
+        UserManager<Account> users,
+        SignInManager<Account> signIn,
+        AccountDeletion deletion,
+        TimeProvider clock,
+        CancellationToken ct)
+    {
+        var account = await users.GetUserAsync(http.User);
+        if (account is null)
+        {
+            return TypedResults.Unauthorized();
+        }
+
+        if (!SessionClaims.IsSecure(http.User, clock.GetUtcNow()))
+        {
+            return Problems.StepUpRequired();
+        }
+
+        var deleteAfter = account.DeleteAfter ?? await deletion.RequestAsync(account, ct);
+        await signIn.SignOutAsync();
+        return TypedResults.Ok(new AccountDeletionView(deleteAfter));
     }
 
     private static async Task<Results<Ok<MeView>, ValidationProblem, ProblemHttpResult, UnauthorizedHttpResult>> SetManagePinAsync(

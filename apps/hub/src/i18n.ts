@@ -77,6 +77,8 @@ const vi = {
     password: 'Mật khẩu',
     signIn: 'Đăng nhập',
     forgot: 'Quên mật khẩu?',
+    deleting:
+      'Tài khoản sẽ bị xoá hẳn vào ngày {{date}}. Đổi ý? Đăng nhập lại trước ngày đó là tài khoản được giữ nguyên.',
     addEmailTitle: 'Thêm email cho tài khoản',
     addEmailBody:
       'Từ nay Tò He đăng nhập bằng email, và gửi mã tới đó khi bạn quên mật khẩu. Nhập email của bạn để nhận mã xác nhận.',
@@ -206,6 +208,16 @@ const vi = {
     newPassword: 'Mật khẩu mới',
     save: 'Lưu mật khẩu',
   },
+  deleteAccount: {
+    title: 'Xoá tài khoản',
+    hint: 'Xoá tài khoản cùng mọi hồ sơ trong đó. Có 7 ngày để đổi ý.',
+    start: 'Xoá tài khoản…',
+    body: 'Mọi thiết bị sẽ được đăng xuất ngay, và tài khoản bị xoá hẳn sau 7 ngày.',
+    goes: 'Bị xoá: tài khoản, mọi hồ sơ, ván đã lưu, điểm và kết quả trên bảng xếp hạng. ID hồ sơ không bao giờ được cấp cho ai khác.',
+    stays: 'Ván online đã chơi vẫn còn cho người cùng bàn xem lại; chỗ của bạn hiện là "Người chơi đã xoá".',
+    keep: 'Đổi ý? Đăng nhập lại trong 7 ngày đó là tài khoản được giữ nguyên.',
+    confirm: 'Xoá tài khoản',
+  },
   profiles: {
     title: 'Ai đang chơi?',
     add: 'Thêm hồ sơ',
@@ -268,7 +280,8 @@ const vi = {
     copied: 'Đã chép',
     delete: 'Xoá hồ sơ',
     deleteTitle: 'Xoá hồ sơ {{name}}?',
-    deleteBody: 'Tiến độ chơi của hồ sơ này trên các máy sẽ không còn dùng được.',
+    deleteBody:
+      'Ván đã lưu, điểm và kết quả trên bảng xếp hạng của hồ sơ này bị xoá hẳn, không lấy lại được. Ván online đã chơi vẫn còn cho người cùng bàn, với tên "Người chơi đã xoá".',
     emailTitle: 'Email đăng nhập',
     emailNone: 'Chưa có email. Thêm email để đăng nhập bằng email và lấy lại mật khẩu khi quên.',
     emailChange: 'Đổi email',
@@ -324,6 +337,7 @@ const vi = {
   },
   rooms: {
     lobbyTitle: '{{game}}',
+    deletedPlayer: 'Người chơi đã xoá',
     quickPlay: '⚡ Chơi nhanh',
     create: '＋ Tạo phòng',
     enterCode: '# Nhập mã',
@@ -467,6 +481,7 @@ const vi = {
     noCommunity: 'Tài khoản này chưa thuộc cộng đồng nào.',
     accountSuspended:
       'Tài khoản này đang bị tạm khoá. Liên hệ người vận hành Tò He nếu bạn nghĩ đó là nhầm lẫn.',
+    sessionEnded: 'Phiên đăng nhập này đã kết thúc. Đăng nhập lại nhé.',
     signInExpired: 'Phiên đăng nhập này đã hết hạn. Bắt đầu lại nhé.',
     passwordTooShort: 'Mật khẩu cần ít nhất 8 ký tự.',
     pinInvalid: 'Sai mã PIN, thử lại nhé.',
@@ -560,6 +575,8 @@ const en: typeof vi = {
     password: 'Password',
     signIn: 'Sign in',
     forgot: 'Forgot your password?',
+    deleting:
+      'The account will be deleted for good on {{date}}. Changed your mind? Sign in before then and it stays as it is.',
     addEmailTitle: 'Add an email to your account',
     addEmailBody:
       'Tò He now signs in with an email, and sends a code there when a password is forgotten. Enter yours to get a confirmation code.',
@@ -691,6 +708,17 @@ const en: typeof vi = {
     newPassword: 'New password',
     save: 'Save the password',
   },
+  deleteAccount: {
+    title: 'Delete the account',
+    hint: 'Deletes the account and every profile in it. You have 7 days to change your mind.',
+    start: 'Delete the account…',
+    body: 'Every device is signed out now, and the account is deleted for good after 7 days.',
+    goes: 'Deleted: the account, every profile, saved games, scores and results on the boards. A profile ID is never given to anyone else.',
+    stays:
+      'Online hands you played stay for the others at the table to replay; your seat shows "Deleted player".',
+    keep: 'Changed your mind? Sign in within those 7 days and the account stays as it is.',
+    confirm: 'Delete the account',
+  },
   profiles: {
     title: "Who's playing?",
     add: 'Add profile',
@@ -753,7 +781,8 @@ const en: typeof vi = {
     copied: 'Copied',
     delete: 'Delete profile',
     deleteTitle: 'Delete {{name}}?',
-    deleteBody: "This profile's progress on all devices will no longer be usable.",
+    deleteBody:
+      'This profile\'s saved games, scores and results on the boards are deleted for good. Online hands it played stay for the others at the table, as "Deleted player".',
     emailTitle: 'Sign-in email',
     emailNone: 'No email yet. Add one to sign in with it and to recover a forgotten password.',
     emailChange: 'Change email',
@@ -809,6 +838,7 @@ const en: typeof vi = {
   },
   rooms: {
     lobbyTitle: '{{game}}',
+    deletedPlayer: 'Deleted player',
     quickPlay: '⚡ Quick play',
     create: '＋ New room',
     enterCode: '# Enter code',
@@ -951,6 +981,7 @@ const en: typeof vi = {
     askedChildRequired: 'Ask the child first, then tick this box.',
     noCommunity: 'This account is not in a community.',
     accountSuspended: 'This account is suspended. Contact whoever runs Tò He if you think it is a mistake.',
+    sessionEnded: 'This session has ended. Sign in again.',
     signInExpired: 'This sign-in has expired. Start again.',
     passwordTooShort: 'Passwords need at least 8 characters.',
     pinInvalid: 'Wrong PIN, try again.',

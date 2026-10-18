@@ -414,8 +414,8 @@ page. Signing in, the password just typed counts as level 2 for adding a first e
 | Cookie | `tohe.session` — `__Host-tohe.session` behind an HTTPS hub (ADR 0021) — 90 days, sliding, HttpOnly, `SameSite=Lax` |
 | In the cookie | the active profile, and until when step-up level 1 and level 2 are open — and the admin console, after its two-factor check ([Admin console](admin.md#two-factor-authentication)) |
 | Checked against the account's security stamp | every 5 minutes (`Identity:SessionCheckInterval`) |
-| The stamp changes when | the password is reset or changed · the sign-in email changes · a provider is unlinked · an admin suspends the account or signs it out everywhere ([Admin console](admin.md#users)) |
-| Never written for | a suspended account: whatever would re-issue its session — choosing who plays, a step-up — answers `403 account_suspended` and ends the session at once, so it cannot renew itself before the check |
+| The stamp changes when | the password is reset or changed · the sign-in email changes · a provider is unlinked · an admin suspends the account or signs it out everywhere ([Admin console](admin.md#users)) · the owner asks to delete the account ([below](#deleting)) |
+| Never written for | a suspended account: whatever would re-issue its session — choosing who plays, a step-up — answers `403 account_suspended` and ends the session at once, so it cannot renew itself before the check. An account waiting to be deleted likewise, with `401 session_ended`: only signing in again starts a session, and keeps the account |
 
 ## A device's life
 
@@ -449,6 +449,49 @@ else to choose, and one sign-in request fewer. The hub then sends the device thr
 `/profiles?auto=true`, which goes straight on (offering the guest's progress first, if this device has some), and
 which also chooses a lone PIN-less profile by itself when a page needs a player and none is chosen. Opened by hand
 ("Đổi người chơi"), the picker always shows, so a one-profile account can still add a profile or manage the account.
+
+## Deleting
+
+A profile is deleted at once, an account after seven days ([ADR 0034](../decisions/0034-delete-accounts-and-profiles-for-good.md)).
+Every module that keeps something under a profile's id implements `IProfileData`: `WithdrawAsync` lets the profiles
+go at once — they leave their tables (a bot finishes a hand in progress), invitations to them end — and `PurgeAsync`
+deletes what the module stores, inside the caller's transaction.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor U as Account owner
+  participant H as Hub
+  participant API
+  participant M as Email outbox
+  U->>H: Quản lý tài khoản → Xoá tài khoản (step-up level 2, a last look)
+  H->>API: DELETE /api/account
+  API->>API: DeleteAfter = now + 7 days · new security stamp · profiles leave tables
+  API->>M: "Tài khoản Tò He sắp bị xoá" — the day, and how to keep it
+  API-->>H: 200 {deleteAfter} and this device signed out
+  H->>U: /welcome?deleting=… — "sign in before then to keep it"
+  alt someone signs in within 7 days (password, reset, provider)
+    API->>API: DeleteAfter cleared, then the session starts
+    API->>M: "Tài khoản Tò He sẽ không bị xoá"
+  else the day passes
+    API->>API: account-deletion job (hourly): the account's row locked and read again,<br/>every module purges, public IDs retired, the account deleted
+  end
+```
+
+| Data | When a profile goes |
+| --- | --- |
+| The profile, its name history | Deleted |
+| Saves, scores (Progress) | Deleted |
+| Results on boards, their decisions, ranked runs (Integrity) | Deleted — the one way past the decisions' append-only trigger ([Integrity](integrity.md#decisions)) |
+| Seats in finished hands and closed tables (Rooms) | Kept for the others who played, with nothing of them: a fresh random id, `Deleted: true`, no account, name or avatar; its results keep place and points, without profile or account |
+| Its public ID | Retired in `identity.retired_profile_ids`: never given to another profile |
+| An account's sign-in methods, roles, keys, sign-in attempts | Deleted with the account |
+| Sent email records · audit entries | 30 days (ADR 0022) · a year ([Admin console](admin.md#the-audit-log)) |
+
+While an account waits, its profiles are on no public board and found by no ID — the board audience and the profile
+directory leave it out, as a suspended one — and the console's Users pages show it as "Chờ xoá". Deleting a profile
+stays where it was, behind the parent gate and never the last one; for a child it is the parent taking the consent
+back (R-07).
 
 ## Names
 
@@ -526,6 +569,7 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `POST /api/session/step-up` | session | Level 2 with the password (opens level 1 too) |
 | `POST /api/session/step-up/code` · `/confirm` | session | Level 2 with a code to the account's email |
 | `PUT /api/account/manage-pin` · `PUT /api/account/password` | session + level 2 | Set or change the manage PIN · the password (every other session ends) |
+| `DELETE /api/account` | session + level 2 | Delete the account ([above](#deleting)): `{deleteAfter}`, seven days on; every session ends, this one too; signing in before then keeps it |
 | `POST /api/account/terms` | session | Accept the terms and privacy notice in the version the hub shows |
 | `POST /api/account/email` | session + level 2, or the password | A code to a new sign-in email |
 | `POST /api/account/email/confirm` | session | The code makes it the sign-in email; every other session ends |
@@ -533,8 +577,8 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `GET /api/profiles/options` | — | Allowed avatars and age bands; how many profiles an account may own |
 | `PATCH /api/account` | parent | The account's telemetry switch |
 | `POST /api/profiles` | parent | Add a profile: a child's with an age band, an adult's without |
-| `GET /api/profiles/by-id/{publicId}` | session | A profile's card — id, ID, name, avatar — to confirm before asking it to a table ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); never a child of another account nor a suspended account's (`profile_not_found`); 20 lookups an hour per account (`lookup_limit`) |
-| `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`, `onPublicBoards` — with `askedChild` to turn a child's on — and an adult's `invites`: `anyone`, `played-with`, `account`) / remove a profile — never the last |
+| `GET /api/profiles/by-id/{publicId}` | session | A profile's card — id, ID, name, avatar — to confirm before asking it to a table ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); never a child of another account nor a profile of an account suspended or waiting to be deleted (`profile_not_found`); 20 lookups an hour per account (`lookup_limit`) |
+| `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`, `onPublicBoards` — with `askedChild` to turn a child's on — and an adult's `invites`: `anyone`, `played-with`, `account`) / delete a profile — never the last — with everything of it ([above](#deleting)) |
 
 `GET /api/config` says whether the server sends email (`email`) — without it, nothing that needs a code starts
 (`email_unavailable`) — which providers it offers (`providers`: an `id` and the name on the button, only those on),
@@ -547,8 +591,8 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `pin_invalid`, `parent_gate_required`, `step_up_required`, `manage_pin_not_set`, `manage_pin_invalid`,
 `password_not_set`, `email_required`, `terms_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
 `name_too_long`, `name_reserved`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
-`last_method`, `account_suspended`, `method_disabled`, `registration_closed`, `invite_required`, `invite_invalid`,
-`asked_child_required`.
+`last_method`, `account_suspended`, `session_ended`, `method_disabled`, `registration_closed`, `invite_required`,
+`invite_invalid`, `asked_child_required`.
 Navigations answer with a redirect instead: `/welcome?external=failed` (the provider refused, or was cancelled),
 `/welcome?external=suspended`, `/welcome?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`
 `step_up_required`, `provider_account_in_use`, `cross_origin` or `method_disabled`.

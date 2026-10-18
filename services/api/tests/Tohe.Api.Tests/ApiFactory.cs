@@ -76,6 +76,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Telemetry:OperatorToken", TelemetryToken);
         // Tests run maintenance themselves, with the data they need.
         builder.UseSetting("Telemetry:MaintenanceEnabled", "false");
+        // Tests delete accounts whose wait is over, and old audit entries, themselves (ADR 0034).
+        builder.UseSetting("Identity:DeletionEnabled", "false");
+        builder.UseSetting("Admin:AuditRetentionEnabled", "false");
         // Rooms: quick bots and clock, so a whole hand plays in a test.
         builder.UseSetting("Rooms:BotThinkMinMs", "5");
         builder.UseSetting("Rooms:BotThinkMaxMs", "10");

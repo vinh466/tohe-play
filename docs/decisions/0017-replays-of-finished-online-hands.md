@@ -5,7 +5,7 @@ sidebar:
   order: 17
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — a deleted player's seat shows as such, with nothing of them, since [ADR 0034](0034-delete-accounts-and-profiles-for-good.md)
 - **Date:** 2026-10-16
 - **Amends:** the seed's secrecy in [ADR 0016](0016-online-rooms-for-turn-based-games.md) (it now ends with the hand)
 

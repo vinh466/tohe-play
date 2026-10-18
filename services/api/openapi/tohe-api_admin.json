@@ -1317,7 +1317,8 @@
           "suspendedAt",
           "suspendedReason",
           "community",
-          "profiles"
+          "profiles",
+          "deleteAfter"
         ],
         "type": "object",
         "properties": {
@@ -1399,6 +1400,13 @@
             "items": {
               "$ref": "#/components/schemas/ProfileDetail"
             }
+          },
+          "deleteAfter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -1411,7 +1419,8 @@
           "createdAt",
           "role",
           "suspended",
-          "profiles"
+          "profiles",
+          "deleteAfter"
         ],
         "type": "object",
         "properties": {
@@ -1450,6 +1459,13 @@
           "profiles": {
             "type": "integer",
             "format": "int32"
+          },
+          "deleteAfter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },

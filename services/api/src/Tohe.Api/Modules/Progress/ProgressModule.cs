@@ -49,6 +49,8 @@ internal static partial class ProgressModule
     {
         // What the admin console counts about play (ADR 0027).
         builder.Services.AddScoped<ProgressFacts>();
+        // A deleted profile's saves and scores go with it (ADR 0034).
+        builder.Services.AddScoped<IProfileData, ProgressProfileData>();
         return builder;
     }
 

@@ -72,17 +72,36 @@ public sealed record DeviceSession(
 }
 
 /// <summary>
-/// Re-issues the session cookie with the given session claims. Never for a suspended account (ADR 0027): the cookie would
-/// carry the security stamp the suspension gave the account, and a session it still holds would outlive the suspension by
-/// renewing itself before the session check.
+/// Re-issues the session cookie with the given session claims. Never for a suspended account (ADR 0027) nor one waiting
+/// to be deleted (ADR 0034): the cookie would carry the security stamp that ended its sessions, and a session it still
+/// holds would outlive that by renewing itself before the session check.
 /// </summary>
-public sealed class SessionWriter(SignInManager<Account> signIn)
+internal sealed class SessionWriter(SignInManager<Account> signIn, AccountDeletion deletion)
 {
+    /// <summary>
+    /// A sign-in — by password, provider or a reset — proved it is the account's owner: an account waiting to be
+    /// deleted stays (design §3.14), then the session starts.
+    /// </summary>
+    public async Task SignInAsync(Account account, DeviceSession session, CancellationToken ct)
+    {
+        if (!await deletion.KeepAsync(account, ct))
+        {
+            throw new AccountDeletingException();
+        }
+
+        await WriteAsync(account, session);
+    }
+
     public Task WriteAsync(Account account, DeviceSession session)
     {
         if (account.SuspendedAt is not null)
         {
             throw new AccountSuspendedException();
+        }
+
+        if (account.DeleteAfter is not null)
+        {
+            throw new AccountDeletingException();
         }
 
         var claims = new List<Claim>();
@@ -116,20 +135,33 @@ public sealed class SessionWriter(SignInManager<Account> signIn)
 public sealed class AccountSuspendedException() : InvalidOperationException("The account is suspended");
 
 /// <summary>
-/// The answer to <see cref="AccountSuspendedException"/>: the one a sign-in gets, and the session on this browser ends now
-/// rather than at the next session check.
+/// A session was about to be written for an account waiting to be deleted, from a session it held before (or for one
+/// deleted at that very moment); see <see cref="SessionWriter"/>.
 /// </summary>
-internal sealed class AccountSuspendedHandler : IExceptionHandler
+public sealed class AccountDeletingException() : InvalidOperationException("The account is being deleted");
+
+/// <summary>
+/// The answer to <see cref="AccountSuspendedException"/> — the one a sign-in gets — and to
+/// <see cref="AccountDeletingException"/>, a session that ended: the session on this browser ends now rather than at
+/// the next session check.
+/// </summary>
+internal sealed class SessionRefusedHandler : IExceptionHandler
 {
     public async ValueTask<bool> TryHandleAsync(HttpContext http, Exception exception, CancellationToken ct)
     {
-        if (exception is not AccountSuspendedException)
+        var problem = exception switch
+        {
+            AccountSuspendedException => Problems.AccountSuspended(),
+            AccountDeletingException => Problems.SessionEnded(),
+            _ => null,
+        };
+        if (problem is null)
         {
             return false;
         }
 
         await http.SignOutAsync(IdentityConstants.ApplicationScheme);
-        await Problems.AccountSuspended().ExecuteAsync(http);
+        await problem.ExecuteAsync(http);
         return true;
     }
 }

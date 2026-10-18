@@ -560,6 +560,8 @@ export interface components {
             suspendedReason: null | string;
             community: null | string;
             profiles: components["schemas"]["ProfileDetail"][];
+            /** Format: date-time */
+            deleteAfter: null | string;
         };
         AccountSummary: {
             /** Format: uuid */
@@ -573,6 +575,8 @@ export interface components {
             suspended: boolean;
             /** Format: int32 */
             profiles: number;
+            /** Format: date-time */
+            deleteAfter: null | string;
         };
         ActivePlayers: {
             /** Format: int32 */
