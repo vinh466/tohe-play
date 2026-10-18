@@ -25,6 +25,7 @@ public sealed class MetricsOptions
 /// <param name="OutboxOldestSeconds">How long the message waiting longest has waited; 0 when none waits.</param>
 /// <param name="Held">Results the integrity engine held for a person (ADR 0031).</param>
 /// <param name="ReplaysWaiting">Ranked runs handed in and waiting for their replay (ADR 0030).</param>
+/// <param name="DeletionsDue">Accounts whose seven days are over, waiting for an admin to delete them (ADR 0038).</param>
 public sealed record MetricsReadings(
     bool DatabaseUp,
     int RoomsOpen,
@@ -33,7 +34,8 @@ public sealed record MetricsReadings(
     int OutboxWaiting,
     double OutboxOldestSeconds,
     int Held,
-    int ReplaysWaiting);
+    int ReplaysWaiting,
+    int DeletionsDue);
 
 /// <summary>
 /// Tò He's own metrics (ADR 0036, E-08): one .NET meter, which prometheus-net exports with the runtime's, ASP.NET Core's
@@ -65,6 +67,7 @@ public sealed class ToheMetrics
         Gauge(meter, "email_outbox_oldest_seconds", "How long the email waiting longest has waited.", r => r.OutboxOldestSeconds);
         Gauge(meter, "integrity_held", "Results held for a person.", r => r.Held);
         Gauge(meter, "ranked_replays_waiting", "Ranked runs waiting for their replay.", r => r.ReplaysWaiting);
+        Gauge(meter, "account_deletions_due", "Accounts past their seven days, waiting for an admin to delete them.", r => r.DeletionsDue);
 
         // The background workers, from what they last told BackgroundWork: the workers' names are a fixed few.
         meter.CreateObservableGauge(

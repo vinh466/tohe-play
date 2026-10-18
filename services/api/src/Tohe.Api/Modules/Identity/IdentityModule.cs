@@ -43,19 +43,10 @@ public sealed class IdentityOptions
     public TimeSpan SessionCheckInterval { get; set; } = TimeSpan.FromMinutes(5);
 
     /// <summary>
-    /// How long an account waits between its owner asking to delete it and its deletion (ADR 0034, E-07): signing in
-    /// meanwhile keeps it.
+    /// How long an account waits between its owner asking to delete it and an admin being able to delete it (ADR 0034,
+    /// 0038, E-07): signing in meanwhile keeps it.
     /// </summary>
     public TimeSpan DeletionWait { get; set; } = TimeSpan.FromDays(7);
-
-    /// <summary>How often the deletion job looks for accounts whose wait is over.</summary>
-    public TimeSpan DeletionCheckInterval { get; set; } = TimeSpan.FromHours(1);
-
-    /// <summary>Accounts the deletion job deletes in one run at most; the rest go on the next.</summary>
-    public int DeletionBatch { get; set; } = 50;
-
-    /// <summary>The deletion job runs on its own (tests run it by hand).</summary>
-    public bool DeletionEnabled { get; set; } = true;
 }
 
 /// <summary>
@@ -189,13 +180,8 @@ internal static class IdentityModule
         services.AddScoped<SessionWriter>();
         // The puzzle before a code by email, when the console turns it on (ADR 0037); spent answers live in it.
         services.AddSingleton<ProofOfWork>();
-        // Deleting profiles and accounts, with every module's data (ADR 0034).
+        // Deleting profiles and accounts, with every module's data (ADR 0034); an account, by an admin (ADR 0038).
         services.AddScoped<AccountDeletion>();
-        if (builder.Configuration.GetValue($"{IdentityOptions.Section}:{nameof(IdentityOptions.DeletionEnabled)}", true)
-            && !BuildTime.IsGeneratingOpenApi)
-        {
-            services.AddHostedService<AccountDeletionWorker>();
-        }
 
         // Profiles found by their public ID, for invitations to tables (ADR 0033).
         services.AddScoped<IProfileDirectory, ProfileDirectory>();

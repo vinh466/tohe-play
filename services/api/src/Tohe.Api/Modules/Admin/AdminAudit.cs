@@ -16,6 +16,9 @@ internal static class AuditActions
     public const string UserSuspend = "user.suspend";
     public const string UserLift = "user.unsuspend";
     public const string UserSignOut = "user.sign-out";
+
+    /// <summary>An account its owner asked to delete, deleted for good once its seven days were over (ADR 0038).</summary>
+    public const string UserDelete = "user.delete";
     public const string ProfileRename = "profile.rename";
 
     public const string SettingsChange = "settings.change";

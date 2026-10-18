@@ -278,6 +278,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/users/{id}/delete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Delete for good an account whose owner asked and whose seven days are over (ADR 0038). */
+        post: operations["DeleteAdminUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/users/{id}/sign-out": {
         parameters: {
             query?: never;
@@ -648,6 +665,8 @@ export interface components {
             email: components["schemas"]["OutboxState"];
             /** Format: int32 */
             heldResults: number;
+            /** Format: int32 */
+            deletionsDue: number;
         };
         AdminRooms: {
             /** Format: int32 */
@@ -1378,6 +1397,7 @@ export interface operations {
         parameters: {
             query?: {
                 q?: string;
+                deleting?: boolean;
             };
             header?: never;
             path?: never;
@@ -1486,6 +1506,33 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["AccountDetail"];
                 };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    DeleteAdminUser: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
             /** @description Not Found */
             404: {

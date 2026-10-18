@@ -135,7 +135,10 @@ internal static class IdentityEmails
             [$"Tài khoản Tò He của bạn không còn đăng nhập bằng {provider}, và mọi thiết bị khác đã được đăng xuất."],
             footnote: "Nếu không phải bạn, hãy đặt lại mật khẩu ngay bằng \"Quên mật khẩu?\" rồi báo người quản lý Tò He."));
 
-    /// <summary>The owner asked to delete the account (ADR 0034): the day it goes, and the way to keep it.</summary>
+    /// <summary>
+    /// The owner asked to delete the account (ADR 0034): the day after which the operator deletes it (ADR 0038), and
+    /// the way to keep it.
+    /// </summary>
     public static EmailMessage DeletionScheduled(string to, DateTimeOffset deleteAfter, Uri? signIn) => new(
         "account-deleting",
         to,
@@ -143,7 +146,7 @@ internal static class IdentityEmails
         EmailLayout.Render(
             "Tài khoản sẽ bị xoá",
             [
-                $"Tài khoản Tò He của bạn sẽ bị xoá hẳn vào ngày {Day(deleteAfter)}, cùng mọi hồ sơ trong đó: ván đã " +
+                $"Tài khoản Tò He của bạn sẽ bị xoá hẳn sau ngày {Day(deleteAfter)}, cùng mọi hồ sơ trong đó: ván đã " +
                 "lưu, điểm và kết quả trên bảng xếp hạng. Mọi thiết bị đã được đăng xuất.",
                 "Đổi ý? Chỉ cần đăng nhập lại trước ngày đó: tài khoản được giữ nguyên như cũ.",
             ],

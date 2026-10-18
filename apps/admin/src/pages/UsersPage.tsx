@@ -6,16 +6,23 @@ import { count, dateTime, roleName } from '../format.ts';
 import { Button, Field } from '../ui/forms.tsx';
 import { Badge, Card, cell, Failed, Loading, PageTitle, row, Table } from '../ui/ui.tsx';
 
-/** Accounts by address, username, name or profile ID (ADR 0027); nothing typed, the newest ones. */
+/**
+ * Accounts by address, username, name or profile ID (ADR 0027); nothing typed, the newest ones. "Chờ xoá" lists the
+ * accounts whose owner asked to delete them, the soonest due first (ADR 0038).
+ */
 export function UsersPage() {
-  const { q } = useSearch({ from: '/users' });
+  const { q, deleting } = useSearch({ from: '/users' });
   const navigate = useNavigate({ from: '/users' });
   const [text, setText] = useState(q);
-  const users = useQuery({ queryKey: ['admin', 'users', q], queryFn: () => admin.users(q) });
+  const users = useQuery({
+    queryKey: ['admin', 'users', q, Boolean(deleting)],
+    queryFn: () => admin.users(q, Boolean(deleting)),
+  });
+  const now = Date.now();
 
   const submit = (event: FormEvent) => {
     event.preventDefault();
-    void navigate({ search: { q: text.trim() } });
+    void navigate({ search: { q: text.trim(), deleting } });
   };
 
   return (
@@ -31,8 +38,16 @@ export function UsersPage() {
           />
         </div>
         <Button type="submit">Tìm</Button>
+        <Link
+          to="/users"
+          search={{ q, deleting: deleting ? undefined : true }}
+          className="rounded-xl border border-line-strong px-3 py-2 font-semibold text-ink"
+          aria-pressed={Boolean(deleting)}
+        >
+          {deleting ? 'Mọi tài khoản' : 'Chờ xoá'}
+        </Link>
       </form>
-      <Card title={q ? `Kết quả cho “${q}”` : 'Tài khoản mới nhất'}>
+      <Card title={deleting ? 'Chờ xoá — sớm nhất trước' : q ? `Kết quả cho “${q}”` : 'Tài khoản mới nhất'}>
         {users.isPending ? (
           <Loading />
         ) : users.isError ? (
@@ -57,7 +72,14 @@ export function UsersPage() {
                   <div className="flex flex-wrap gap-1">
                     {account.role ? <Badge tone="notice">{roleName(account.role)}</Badge> : null}
                     {account.suspended ? <Badge tone="danger">Tạm khoá</Badge> : null}
-                    {account.deleteAfter ? <Badge tone="notice">Chờ xoá</Badge> : null}
+                    {account.deleteAfter ? (
+                      // Past its seven days, it waits for an admin (ADR 0038).
+                      new Date(account.deleteAfter).getTime() <= now ? (
+                        <Badge tone="danger">Đến hạn xoá</Badge>
+                      ) : (
+                        <Badge tone="notice">Chờ xoá tới {dateTime(account.deleteAfter)}</Badge>
+                      )
+                    ) : null}
                   </div>
                 </td>
                 <td className={`${cell} tabular-nums`}>{count(account.profiles)}</td>

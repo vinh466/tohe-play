@@ -30,7 +30,8 @@ public interface IProfileData
 /// <summary>
 /// Deleting profiles and accounts (ADR 0034, design §3.14). A profile is deleted at once, with all its data: its owner
 /// asked behind the parent gate. An account waits <see cref="IdentityOptions.DeletionWait"/> first — it stops at once,
-/// and signing in to it before the time keeps it — then goes for good with all its profiles.
+/// and signing in to it before it goes keeps it — then an admin deletes it for good with all its profiles (ADR 0038):
+/// nothing deletes an account by itself while the law's deadlines are not known.
 /// </summary>
 internal sealed partial class AccountDeletion(
     ToheDbContext db,
@@ -50,7 +51,7 @@ internal sealed partial class AccountDeletion(
 
     /// <summary>
     /// The owner asked to delete the account: every session ends, its profiles leave boards and tables, its address
-    /// hears when and how to keep it. Returns when it goes for good.
+    /// hears when and how to keep it. Returns when its wait ends: after that, an admin deletes it (ADR 0038).
     /// </summary>
     public async Task<DateTimeOffset> RequestAsync(Account account, CancellationToken ct)
     {
@@ -123,39 +124,34 @@ internal sealed partial class AccountDeletion(
     }
 
     /// <summary>
-    /// Deletes the accounts whose wait is over, each in its own transaction, with all their profiles. Returns how many.
+    /// An admin deletes for good an account whose wait is over, with all its profiles (ADR 0038) — within the caller's
+    /// transaction, which also writes the audit entry. The account's row is locked and read again: a sign-in at this
+    /// moment either kept it already, or waits for this and finds it gone.
     /// </summary>
-    public async Task<int> PurgeDueAsync(CancellationToken ct)
+    public async Task<AccountDeletionOutcome> DeleteAsync(Guid accountId, DateTimeOffset now, CancellationToken ct)
     {
-        var now = clock.GetUtcNow();
-        var due = await db.Users.AsNoTracking()
-            .Where(account => account.DeleteAfter != null && account.DeleteAfter <= now)
-            .OrderBy(account => account.DeleteAfter)
-            .Select(account => account.Id)
-            .Take(options.Value.DeletionBatch)
-            .ToListAsync(ct);
-        var deleted = 0;
-        foreach (var id in due)
+        if (db.Database.CurrentTransaction is null)
         {
-            if (await PurgeAccountAsync(id, now, ct))
-            {
-                deleted++;
-            }
+            throw new InvalidOperationException("Deleting an account needs the caller's transaction.");
         }
 
-        return deleted;
-    }
-
-    private async Task<bool> PurgeAccountAsync(Guid accountId, DateTimeOffset now, CancellationToken ct)
-    {
-        db.ChangeTracker.Clear();
-        await using var transaction = await db.Database.BeginTransactionAsync(ct);
-        // Held and read again under the lock: a sign-in at this moment either kept it already or waits for this.
         await db.Database.ExecuteSqlAsync($"SELECT 1 FROM identity.accounts WHERE id = {accountId} FOR UPDATE", ct);
         var account = await db.Users.FirstOrDefaultAsync(a => a.Id == accountId, ct);
-        if (account?.DeleteAfter is not { } deleteAfter || deleteAfter > now)
+        if (account is null)
         {
-            return false;
+            return new AccountDeletionOutcome(AccountDeletionState.NotFound, 0);
+        }
+
+        // Read again from the database, not the copy the caller may have loaded before the lock.
+        await db.Entry(account).ReloadAsync(ct);
+        if (account.DeleteAfter is not { } deleteAfter)
+        {
+            return new AccountDeletionOutcome(AccountDeletionState.NotRequested, 0);
+        }
+
+        if (deleteAfter > now)
+        {
+            return new AccountDeletionOutcome(AccountDeletionState.NotDue, 0);
         }
 
         var profiles = await db.Profiles.Where(p => p.AccountId == accountId).ToListAsync(ct);
@@ -169,9 +165,8 @@ internal sealed partial class AccountDeletion(
         // Its profiles, their name history, its sign-in methods, roles and keys go with it (foreign keys cascade).
         db.Users.Remove(account);
         await db.SaveChangesAsync(ct);
-        await transaction.CommitAsync(ct);
         LogDeleted(accountId, profiles.Count);
-        return true;
+        return new AccountDeletionOutcome(AccountDeletionState.Deleted, profiles.Count);
     }
 
     /// <summary>Each module deletes what it keeps of the profiles, then their public IDs are retired for good.</summary>
@@ -196,7 +191,7 @@ internal sealed partial class AccountDeletion(
 
     private Uri? Link(string path) => app.Value.PublicUrl is { } hub ? new Uri(hub, path) : null;
 
-    [LoggerMessage(Level = LogLevel.Information, Message = "Account {AccountId} asked to be deleted; it goes at {DeleteAfter}")]
+    [LoggerMessage(Level = LogLevel.Information, Message = "Account {AccountId} asked to be deleted; an admin may delete it after {DeleteAfter}")]
     private partial void LogRequested(Guid accountId, DateTimeOffset deleteAfter);
 
     [LoggerMessage(Level = LogLevel.Information, Message = "Account {AccountId} signed in while waiting to be deleted: it stays")]
@@ -206,33 +201,18 @@ internal sealed partial class AccountDeletion(
     private partial void LogDeleted(Guid accountId, int profiles);
 }
 
-/// <summary>Deletes the accounts whose wait is over (Identity:DeletionCheckInterval), as <c>account-deletion</c>.</summary>
-internal sealed partial class AccountDeletionWorker(
-    IServiceScopeFactory scopes,
-    IOptions<IdentityOptions> options,
-    BackgroundWork work,
-    ILogger<AccountDeletionWorker> logger) : BackgroundService
+/// <summary>What an admin's deletion found (ADR 0038).</summary>
+internal enum AccountDeletionState
 {
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-    {
-        using var timer = new PeriodicTimer(options.Value.DeletionCheckInterval);
-        do
-        {
-            try
-            {
-                await using var scope = scopes.CreateAsyncScope();
-                await scope.ServiceProvider.GetRequiredService<AccountDeletion>().PurgeDueAsync(stoppingToken);
-                work.Succeeded(BackgroundWork.AccountDeletion);
-            }
-            catch (Exception error) when (error is not OperationCanceledException)
-            {
-                work.Failed(BackgroundWork.AccountDeletion, error);
-                LogFailed(error);
-            }
-        }
-        while (await timer.WaitForNextTickAsync(stoppingToken));
-    }
+    Deleted,
+    NotFound,
 
-    [LoggerMessage(Level = LogLevel.Error, Message = "Deleting accounts whose wait is over failed")]
-    private partial void LogFailed(Exception error);
+    /// <summary>Its owner never asked, or signed in since and kept it.</summary>
+    NotRequested,
+
+    /// <summary>Its seven days are not over: its owner may still keep it.</summary>
+    NotDue,
 }
+
+/// <param name="Profiles">The profiles deleted with it.</param>
+internal sealed record AccountDeletionOutcome(AccountDeletionState State, int Profiles);
