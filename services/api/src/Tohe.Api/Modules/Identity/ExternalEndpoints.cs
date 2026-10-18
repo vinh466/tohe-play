@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Email;
 
@@ -154,6 +155,7 @@ internal static class ExternalEndpoints
         ISignInSettings settings,
         IDataProtectionProvider protection,
         TimeProvider clock,
+        ToheMetrics metrics,
         CancellationToken ct)
     {
         // Identity's external cookie holds the provider's answer for this one request.
@@ -207,6 +209,7 @@ internal static class ExternalEndpoints
         // unless the account is suspended (ADR 0027).
         if (owner is { SuspendedAt: not null })
         {
+            metrics.SignIn(provider, "refused");
             return Results.Redirect("/welcome?external=suspended");
         }
 
@@ -214,6 +217,7 @@ internal static class ExternalEndpoints
         {
             var playing = await AuthEndpoints.OnlyProfileAsync(db, owner.Id, ct);
             await session.SignInAsync(owner, new DeviceSession(playing), ct);
+            metrics.SignIn(provider, "ok");
             return Results.Redirect("/profiles?auto=true");
         }
 

@@ -18,6 +18,14 @@ internal static class AdminModule
         builder.Services.AddSingleton<SetupToken>();
         builder.Services.AddScoped<SetupState>();
         builder.Services.AddScoped<AdminAudit>();
+        // The metrics' gauges, put together from what each module tells (ADR 0036).
+        builder.Services.AddScoped<MetricsSample>();
+        if (builder.Configuration.GetValue($"{MetricsOptions.Section}:{nameof(MetricsOptions.Enabled)}", defaultValue: true)
+            && !BuildTime.IsGeneratingOpenApi)
+        {
+            builder.Services.AddHostedService<MetricsSampler>();
+        }
+
         // The audit log keeps a year (ADR 0034).
         builder.Services.AddScoped<AuditRetention>();
         if (builder.Configuration.GetValue($"{AdminOptions.Section}:AuditRetentionEnabled", defaultValue: true)

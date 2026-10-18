@@ -15,6 +15,7 @@ internal sealed partial class EmailDelivery(
     ToheDbContext db,
     ISmtpTransport transport,
     IOptions<EmailOptions> options,
+    ToheMetrics metrics,
     TimeProvider clock,
     ILogger<EmailDelivery> logger)
 {
@@ -55,6 +56,7 @@ internal sealed partial class EmailDelivery(
                     email.LastError = null;
                     Erase(email);
                     sent++;
+                    metrics.EmailSent();
                 }
                 catch (Exception error) when (error is not OperationCanceledException)
                 {
@@ -64,6 +66,7 @@ internal sealed partial class EmailDelivery(
                         email.FailedAt = now;
                         Erase(email);
                         LogGaveUp(email.Id, email.Kind, email.Attempts);
+                        metrics.EmailFailed();
                     }
                     else
                     {

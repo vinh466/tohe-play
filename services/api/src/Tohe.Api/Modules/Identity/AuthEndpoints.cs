@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Email;
 
@@ -273,6 +274,7 @@ internal static class AuthEndpoints
         ToheDbContext db,
         SessionWriter session,
         MeQueries me,
+        ToheMetrics metrics,
         CancellationToken ct)
     {
         if (!await settings.IsOnAsync(SignInMethods.Password, ct))
@@ -288,29 +290,28 @@ internal static class AuthEndpoints
         if (account?.PasswordHash is null)
         {
             users.PasswordHasher.VerifyHashedPassword(new Account { DisplayName = "" }, NoAccountHash, request.Password);
+            metrics.SignIn(SignInMethods.Password, "refused");
             return Problems.InvalidCredentials();
         }
 
         var result = await signIn.CheckPasswordSignInAsync(account, request.Password, lockoutOnFailure: true);
         if (result.IsLockedOut)
         {
+            metrics.SignIn(SignInMethods.Password, "locked");
             return Problems.LockedOut();
         }
 
-        if (!result.Succeeded)
-        {
-            return Problems.InvalidCredentials();
-        }
-
         // Told only after the password was right: nobody learns which accounts are suspended (ADR 0027).
-        if (account.SuspendedAt is not null)
+        if (!result.Succeeded || account.SuspendedAt is not null)
         {
-            return Problems.AccountSuspended();
+            metrics.SignIn(SignInMethods.Password, "refused");
+            return result.Succeeded ? Problems.AccountSuspended() : Problems.InvalidCredentials();
         }
 
         var playing = await OnlyProfileAsync(db, account.Id, ct);
         var state = new DeviceSession(playing);
         await session.SignInAsync(account, state, ct);
+        metrics.SignIn(SignInMethods.Password, "ok");
         return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);
     }
 

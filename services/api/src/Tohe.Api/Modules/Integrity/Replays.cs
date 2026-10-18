@@ -104,6 +104,10 @@ internal sealed partial class RankedReplays(
 
     public static readonly TimeSpan Timeout = TimeSpan.FromSeconds(10);
 
+    /// <summary>Runs handed in and waiting for their replay (ADR 0036's <c>tohe_ranked_replays_waiting</c>).</summary>
+    public Task<int> WaitingAsync(CancellationToken ct) =>
+        db.RankedRuns.CountAsync(run => run.State == RankedRunState.Submitted, ct);
+
     public async Task<int> RunAsync(CancellationToken ct)
     {
         var now = clock.GetUtcNow();

@@ -49,3 +49,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0033](0033-invite-a-profile-by-its-id.md) | Invite a profile to a table by its ID, as its owner allows; a child is never found from outside | Accepted |
 | [0034](0034-delete-accounts-and-profiles-for-good.md) | Delete a profile at once and an account after seven days, with everything of them; the append-only logs get one way out each | Accepted |
 | [0035](0035-filter-offensive-names-and-limit-renames.md) | Refuse names with an offensive word, matched as people write it; an owner renames a profile five times a day | Accepted |
+| [0036](0036-metrics-for-prometheus-on-a-port-of-its-own.md) | Export metrics for Prometheus with prometheus-net, on a port of the API's own | Accepted |

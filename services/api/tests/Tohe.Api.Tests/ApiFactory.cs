@@ -76,6 +76,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Telemetry:OperatorToken", TelemetryToken);
         // Tests run maintenance themselves, with the data they need.
         builder.UseSetting("Telemetry:MaintenanceEnabled", "false");
+        // One metrics port per machine: MetricsTests opens its own (ADR 0036).
+        builder.UseSetting("Metrics:Enabled", "false");
         // Tests delete accounts whose wait is over, and old audit entries, themselves (ADR 0034).
         builder.UseSetting("Identity:DeletionEnabled", "false");
         builder.UseSetting("Admin:AuditRetentionEnabled", "false");

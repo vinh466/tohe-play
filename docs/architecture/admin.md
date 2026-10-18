@@ -280,7 +280,9 @@ stays in the cluster's Prometheus and Grafana.
 
 Each worker reports its runs to `BackgroundWork`, which lives in memory — one API process runs every worker — so the
 System page tells what happened since the API started. A failed run keeps its error (300 characters at most) and
-counts the failures in a row until a run goes well.
+counts the failures in a row until a run goes well. The same two numbers go to Prometheus
+(`tohe_worker_failures_in_row`, `tohe_worker_last_success_age_seconds`, [Metrics](metrics.md)), which alerts on
+three failures in a row without anyone opening the page.
 
 | Worker | Runs |
 | --- | --- |
