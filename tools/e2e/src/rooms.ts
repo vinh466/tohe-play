@@ -49,6 +49,7 @@ async function register(page: Page, displayName: string): Promise<string> {
   await page.getByLabel('Tên khi chơi').fill(displayName);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByLabel('Nhập lại mật khẩu').fill(password);
+  await page.getByRole('checkbox', { name: /16 tuổi/ }).check();
   await page.getByRole('button', { name: 'Gửi mã xác nhận' }).tap();
   await page.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
@@ -67,17 +68,17 @@ async function signIn(page: Page, email: string, profile: string) {
   await page.waitForURL((url) => url.pathname === '/');
 }
 
-/** A child profile of the signed-in account, allowed to play with others (through the parent gate). */
+/** A child profile of the signed-in account, allowed to play with others (after stepping up with the password). */
 async function addChild(page: Page, name: string) {
   const problem = await page.evaluate(
     async ({ password, name }) => {
       const json = { 'content-type': 'application/json' };
-      const gate = await fetch('/api/session/parent-gate', {
+      const gate = await fetch('/api/session/step-up', {
         method: 'POST',
         headers: json,
         body: JSON.stringify({ password }),
       });
-      if (!gate.ok) return `parent gate: ${gate.status}`;
+      if (!gate.ok) return `step-up: ${gate.status}`;
       const created = await fetch('/api/profiles', {
         method: 'POST',
         headers: json,

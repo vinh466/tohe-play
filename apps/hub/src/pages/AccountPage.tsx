@@ -10,13 +10,16 @@ import { EmailChange } from '../session/EmailChange.tsx';
 import { formatProfileId } from '../session/profileIds.ts';
 import { cleanName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
-import { parentUnlocked } from '../session/session.ts';
+import { ManagePinForm, PasswordForm } from '../session/SecurityForms.tsx';
+import { StepUp } from '../session/StepUp.tsx';
+import { isSecure, parentUnlocked } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
 import { Avatar, AvatarGrid } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { copyText } from '../ui/copyText.ts';
 import { Modal } from '../ui/Modal.tsx';
+import { PinPad } from '../ui/PinPad.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { Switch } from '../ui/Switch.tsx';
 import { TextField } from '../ui/TextField.tsx';
@@ -82,8 +85,9 @@ function ManageAccount({ me }: { me: MeView }) {
 
       {unlocked ? (
         <>
+          {me.account.hasManagePin ? null : <ManagePinNudge me={me} />}
           <Profiles me={me} startAdding={add} />
-          <SignInEmail me={me} />
+          <Security me={me} />
           <TechnicalData me={me} />
           <footer className="mt-auto flex flex-col items-center gap-2">
             <Button variant="secondary" busy={lock.isPending} onClick={() => lock.mutate(undefined)}>
@@ -108,35 +112,94 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
+/**
+ * Profile management opens with the account's manage PIN (step-up level 1, ADR 0025). Without one yet — or when it is
+ * forgotten — the owner proves it is them (level 2), which opens it too and lets them set the PIN.
+ */
 function ParentGate({ me }: { me: MeView }) {
   const { t } = useTranslation();
-  const [password, setPassword] = useState('');
-  const unlock = useMeMutation((value: string) => session.unlockParentGate(value));
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
-    unlock.mutate(password);
-  };
+  const setMe = useSetMe();
+  const [forgot, setForgot] = useState(false);
+  const [wrong, setWrong] = useState(0);
+  const unlock = useMeMutation((pin: string) => session.unlockParentGate(pin));
+  const usePin = me.account.hasManagePin && !forgot;
   return (
-    <form
-      onSubmit={submit}
-      className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-3xl bg-surface p-6 shadow-sm"
-    >
+    <section className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-3xl bg-surface p-6 shadow-sm">
       <div className="text-center text-5xl">🔐</div>
       <h2 className="text-center font-black text-2xl text-ink">{t('account.gateTitle')}</h2>
-      <p className="text-center text-ink-soft">{t('account.gateBody', { name: me.account.displayName })}</p>
-      <TextField
-        label={t('welcome.password')}
-        type="password"
-        autoComplete="current-password"
-        required
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        error={unlock.isError ? t(errorKey(unlock.error)) : null}
-      />
-      <Button type="submit" busy={unlock.isPending}>
-        {t('account.unlock')}
+      {usePin ? (
+        <>
+          <p className="text-center text-ink-soft">
+            {t('account.gateBody', { name: me.account.displayName })}
+          </p>
+          <PinPad
+            length={6}
+            errorKey={wrong}
+            error={unlock.isError ? t(errorKey(unlock.error)) : null}
+            disabled={unlock.isPending}
+            onComplete={(pin) =>
+              unlock.mutate(pin, {
+                onError: () => setWrong((n) => n + 1),
+              })
+            }
+          />
+          <Button variant="ghost" onClick={() => setForgot(true)}>
+            {t('managePin.forgot')}
+          </Button>
+        </>
+      ) : (
+        <>
+          <p className="text-center text-ink-soft">{t('managePin.firstBody')}</p>
+          <StepUp me={me} onDone={setMe} />
+        </>
+      )}
+    </section>
+  );
+}
+
+/** Profile management is open without a manage PIN: setting one now makes the next time six digits. */
+function ManagePinNudge({ me }: { me: MeView }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <section className="flex flex-col gap-3 rounded-3xl bg-notice p-5 text-notice-ink">
+      <p>{t('managePin.nudge')}</p>
+      <Button variant="secondary" onClick={() => setOpen(true)}>
+        {t('managePin.setTitle')}
       </Button>
-    </form>
+      <SecureModal me={me} open={open} title={t('managePin.setTitle')} onClose={() => setOpen(false)}>
+        {(done) => <ManagePinForm onDone={done} />}
+      </SecureModal>
+    </section>
+  );
+}
+
+/**
+ * A change to account security (ADR 0025): first step-up level 2 when it is not open on this device, then the form.
+ * `done` stores the new session and closes the sheet.
+ */
+function SecureModal({
+  me,
+  open,
+  title,
+  onClose,
+  children,
+}: {
+  me: MeView;
+  open: boolean;
+  title: string;
+  onClose(): void;
+  children: (done: (next: MeView) => Promise<void>) => ReactNode;
+}) {
+  const setMe = useSetMe();
+  const done = async (next: MeView) => {
+    await setMe(next);
+    onClose();
+  };
+  return (
+    <Modal open={open} title={title} onClose={onClose}>
+      {open ? isSecure(me) ? children(done) : <StepUp me={me} onDone={setMe} /> : null}
+    </Modal>
   );
 }
 
@@ -294,6 +357,7 @@ function ProfileForm({
               </button>
             ))}
           </div>
+          {isChild ? <p className="text-ink-soft text-sm">{t('account.kidPreset')}</p> : null}
         </fieldset>
       ) : null}
       <TextField
@@ -393,40 +457,68 @@ function ProfileForm({
 }
 
 /**
- * The address the account signs in with (ADR 0024): changed — or added, by an account from before email sign-in —
- * with a code sent to the new one. Without email on the server it only shows.
+ * What protects the account (ADR 0024, 0025): the sign-in email — changed, or added by an account from before email
+ * sign-in, with a code sent to the new one — the password and the manage PIN. Each change asks for step-up level 2
+ * first when it is not open on this device.
  */
-function SignInEmail({ me }: { me: MeView }) {
+function Security({ me }: { me: MeView }) {
   const { t } = useTranslation();
   const config = useQuery(configQuery);
-  const setMe = useSetMe();
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState<'email' | 'password' | 'pin' | null>(null);
   const email = me.account.email;
-  if (!email && !config.data?.email) return null;
+  const close = () => setOpen(null);
+  const row = 'flex flex-wrap items-center justify-between gap-3';
   return (
-    <Card title={t('account.emailTitle')}>
-      <p className={email ? 'break-all font-semibold text-ink' : 'text-ink-soft'}>
-        {email ?? t('account.emailNone')}
-      </p>
-      {config.data?.email ? (
-        <Button variant="secondary" onClick={() => setOpen(true)}>
-          {email ? t('account.emailChange') : t('account.emailAdd')}
-        </Button>
-      ) : null}
-      <Modal
-        open={open}
-        title={email ? t('account.emailChange') : t('account.emailAdd')}
-        onClose={() => setOpen(false)}
-      >
-        {open ? (
-          <EmailChange
-            onDone={async (next) => {
-              await setMe(next);
-              setOpen(false);
-            }}
-          />
+    <Card title={t('security.title')}>
+      <div className={row}>
+        <div className="flex min-w-0 flex-col">
+          <span className="text-ink-soft text-sm">{t('account.emailTitle')}</span>
+          <span className={email ? 'break-all font-semibold text-ink' : 'text-ink-soft'}>
+            {email ?? t('account.emailNone')}
+          </span>
+        </div>
+        {config.data?.email ? (
+          <Button variant="secondary" onClick={() => setOpen('email')}>
+            {email ? t('account.emailChange') : t('account.emailAdd')}
+          </Button>
         ) : null}
-      </Modal>
+      </div>
+      <div className={row}>
+        <span className="font-semibold text-ink">{t('security.password')}</span>
+        <Button variant="secondary" onClick={() => setOpen('password')}>
+          {me.account.hasPassword ? t('security.passwordChange') : t('security.passwordSet')}
+        </Button>
+      </div>
+      <div className={row}>
+        <span className="font-semibold text-ink">{t('managePin.title')}</span>
+        <Button variant="secondary" onClick={() => setOpen('pin')}>
+          {me.account.hasManagePin ? t('managePin.change') : t('managePin.setTitle')}
+        </Button>
+      </div>
+      <SecureModal
+        me={me}
+        open={open === 'email'}
+        title={email ? t('account.emailChange') : t('account.emailAdd')}
+        onClose={close}
+      >
+        {(done) => <EmailChange onDone={done} />}
+      </SecureModal>
+      <SecureModal
+        me={me}
+        open={open === 'password'}
+        title={me.account.hasPassword ? t('security.passwordChange') : t('security.passwordSet')}
+        onClose={close}
+      >
+        {(done) => <PasswordForm onDone={done} />}
+      </SecureModal>
+      <SecureModal
+        me={me}
+        open={open === 'pin'}
+        title={me.account.hasManagePin ? t('managePin.change') : t('managePin.setTitle')}
+        onClose={close}
+      >
+        {(done) => <ManagePinForm onDone={done} />}
+      </SecureModal>
     </Card>
   );
 }

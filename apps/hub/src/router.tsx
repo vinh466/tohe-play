@@ -10,6 +10,7 @@ import { AccountEmailPage } from './pages/AccountEmailPage.tsx';
 import { AccountPage } from './pages/AccountPage.tsx';
 import { CatalogPage } from './pages/CatalogPage.tsx';
 import { DataPage } from './pages/DataPage.tsx';
+import { PrivacyPage, TermsPage } from './pages/LegalPage.tsx';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordPage.tsx';
 import { ProfilesPage } from './pages/ProfilesPage.tsx';
 import { ConfirmRegistrationPage, RegisterPage } from './pages/RegisterPage.tsx';
@@ -87,6 +88,18 @@ const accountRoute = createRoute({
   component: AccountPage,
 });
 
+/** The terms of use and the privacy notice, accepted at sign-up (ADR 0025); open to everyone. */
+const termsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/legal/terms',
+  component: TermsPage,
+});
+const privacyRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/legal/privacy',
+  component: PrivacyPage,
+});
+
 /** What telemetry sends, this device's switch and the last batch (ADR 0015); open to everyone. */
 const dataRoute = createRoute({ getParentRoute: () => rootRoute, path: '/data', component: DataPage });
 
@@ -133,6 +146,8 @@ export function createAppRouter(queryClient: QueryClient) {
       accountRoute,
       accountEmailRoute,
       dataRoute,
+      termsRoute,
+      privacyRoute,
       playRoute,
       roomsRoute,
       joinRoute,

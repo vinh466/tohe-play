@@ -10,6 +10,7 @@ sidebar:
 - **Amends:** the sign-in method of [ADR 0004](0004-identity-households-and-profiles.md) (the household/profile model stands)
 - **Amended by:** [ADR 0023](0023-accounts-own-their-profiles.md) — no invites; the parent gate guards the account and its profiles
   · [ADR 0024](0024-email-identifies-an-account.md) — accounts sign in with a verified email; usernames only for accounts from before
+  · [ADR 0025](0025-step-up-in-two-levels-and-consent-at-sign-up.md) — the parent gate opens with a manage PIN; account security needs the password or a code by email
 
 ## Context
 

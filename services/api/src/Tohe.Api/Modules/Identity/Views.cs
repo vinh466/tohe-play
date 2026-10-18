@@ -7,7 +7,18 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="Email">The address it signs in with (ADR 0024); none yet for an account from before email sign-in.</param>
 /// <param name="Username">What an account from before email sign-in signs in with, until it adds an email.</param>
 /// <param name="Telemetry">The account's devices send technical telemetry (ADR 0015).</param>
-public sealed record AccountView(Guid Id, string? Email, string? Username, string DisplayName, bool Telemetry);
+/// <param name="HasPassword">It can step up with its password; otherwise with a code by email (ADR 0025).</param>
+/// <param name="HasManagePin">Its manage PIN is set, so profile management opens with it (ADR 0025).</param>
+/// <param name="TermsVersion">The terms its owner accepted, at 16 or older; the hub asks again for newer ones.</param>
+public sealed record AccountView(
+    Guid Id,
+    string? Email,
+    string? Username,
+    string DisplayName,
+    bool Telemetry,
+    bool HasPassword,
+    bool HasManagePin,
+    string? TermsVersion);
 
 /// <param name="PublicId">12 digits, the profile's public identifier (ADR 0023).</param>
 /// <param name="Kind"><c>adult</c> or <c>child</c>.</param>
@@ -25,20 +36,18 @@ public sealed record ProfileView(
 /// <summary>Everything the hub needs about the device session.</summary>
 /// <param name="Profiles">The account's profiles, its first (created with it) first.</param>
 /// <param name="ActiveProfileId">The profile playing on this device, if one was chosen.</param>
-/// <param name="ParentUnlockedUntil">Profile management is unlocked until then (parent gate), or null.</param>
+/// <param name="ParentUnlockedUntil">Profile management (step-up level 1) is open on this device until then, or null.</param>
+/// <param name="SecureUntil">Account security (step-up level 2) is open on this device until then, or null.</param>
 public sealed record MeView(
     AccountView Account,
     IReadOnlyList<ProfileView> Profiles,
     Guid? ActiveProfileId,
-    DateTimeOffset? ParentUnlockedUntil);
+    DateTimeOffset? ParentUnlockedUntil,
+    DateTimeOffset? SecureUntil);
 
 internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
 {
-    public async Task<MeView?> LoadAsync(
-        Guid accountId,
-        Guid? activeProfileId,
-        DateTimeOffset? parentUntil,
-        CancellationToken cancellationToken)
+    public async Task<MeView?> LoadAsync(Guid accountId, DeviceSession session, CancellationToken cancellationToken)
     {
         var account = await db.Users.AsNoTracking().FirstOrDefaultAsync(a => a.Id == accountId, cancellationToken);
         if (account is null)
@@ -51,8 +60,8 @@ internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
             .OrderBy(p => p.CreatedAt)
             .ToListAsync(cancellationToken);
         var views = profiles.Select(ToView).ToList();
-        var active = views.Any(p => p.Id == activeProfileId) ? activeProfileId : null;
-        var unlocked = parentUntil > clock.GetUtcNow();
+        var active = views.Any(p => p.Id == session.ProfileId) ? session.ProfileId : null;
+        var now = clock.GetUtcNow();
 
         return new MeView(
             new AccountView(
@@ -60,10 +69,14 @@ internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
                 account.Email,
                 account.Email is null ? account.UserName : null,
                 account.DisplayName,
-                account.TelemetryEnabled),
+                account.TelemetryEnabled,
+                account.PasswordHash is not null,
+                account.ManagePinHash is not null,
+                account.TermsVersion),
             views,
             active,
-            unlocked ? parentUntil : null);
+            session.ParentUntil > now ? session.ParentUntil : null,
+            session.SecureUntil > now ? session.SecureUntil : null);
     }
 
     public static ProfileView ToView(Profile profile) => new(

@@ -252,11 +252,7 @@ internal static class ProfileEndpoints
         public Account Account { get; } = account;
 
         public async Task<MeView> MeAsync(CancellationToken ct) =>
-            (await me.LoadAsync(
-                Account.Id,
-                SessionClaims.ProfileId(http.User),
-                SessionClaims.ParentUnlockedUntil(http.User),
-                ct))!;
+            (await me.LoadAsync(Account.Id, DeviceSession.Of(http.User), ct))!;
 
         public static async ValueTask<Context?> BindAsync(HttpContext http)
         {

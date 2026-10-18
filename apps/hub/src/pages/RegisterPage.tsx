@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery } from '../api/queries.ts';
+import { ConsentCheckbox } from '../legal/Consent.tsx';
+import { TERMS_VERSION } from '../legal/documents.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -54,6 +56,7 @@ function Register() {
     confirm: '',
   }));
   const [showErrors, setShowErrors] = useState(false);
+  const [agreed, setAgreed] = useState(false);
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: event.target.value }));
@@ -69,10 +72,18 @@ function Register() {
         : null,
     password: form.password.length < 8 ? t('errors.passwordTooShort') : null,
     confirm: form.confirm !== form.password ? t('register.passwordsDiffer') : null,
+    terms: agreed ? null : t('errors.termsRequired'),
   };
 
   const start = useMutation({
-    mutationFn: () => auth.register({ email, password: form.password, displayName }),
+    mutationFn: () =>
+      auth.register({
+        email,
+        password: form.password,
+        displayName,
+        acceptTerms: agreed,
+        termsVersion: TERMS_VERSION,
+      }),
     onSuccess: (attempt) => setAttemptId(attempt.attemptId),
   });
   const confirm = useMutation({
@@ -185,7 +196,13 @@ function Register() {
               onChange={set('confirm')}
               error={showErrors ? local.confirm : null}
             />
+            <ConsentCheckbox
+              checked={agreed}
+              onChange={setAgreed}
+              error={(showErrors && local.terms) || fieldError('acceptTerms')}
+            />
             {start.isError &&
+            !server?.field('acceptTerms') &&
             !server?.field('email') &&
             !server?.field('displayName') &&
             !server?.field('password') ? (
@@ -196,6 +213,7 @@ function Register() {
             <Button type="submit" busy={start.isPending}>
               {t('register.submit')}
             </Button>
+            <p className="text-ink-soft text-sm">{t('consent.under16')}</p>
           </form>
         )}
       </section>

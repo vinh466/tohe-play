@@ -93,6 +93,17 @@ internal static class IdentityEmails
             [$"Tài khoản Tò He của bạn từ nay đăng nhập bằng {Mask(newEmail)}, và mọi thiết bị khác đã được đăng xuất."],
             footnote: "Nếu không phải bạn, hãy báo ngay người quản lý Tò He."));
 
+    /// <summary>Stepping up without the password (ADR 0025): proof it is the owner, before account security changes.</summary>
+    public static EmailMessage StepUpCode(string to, string code) => new(
+        "stepup-code",
+        to,
+        $"Mã xác nhận Tò He: {Spaced(code)}",
+        EmailLayout.Render(
+            "Xác nhận là bạn",
+            ["Nhập mã này trên Tò He để đổi cài đặt bảo mật của tài khoản. Mã dùng được trong 10 phút."],
+            code,
+            "Nếu không phải bạn vừa yêu cầu, hãy đổi mật khẩu: có thể ai đó đang dùng tài khoản của bạn."));
+
     /// <summary>"nam@example.org" → "n•••@example.org": enough to recognise, not to learn.</summary>
     public static string Mask(string email)
     {

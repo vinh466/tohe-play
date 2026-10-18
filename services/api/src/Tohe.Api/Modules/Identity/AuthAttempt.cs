@@ -16,6 +16,9 @@ public enum AttemptPurpose
 
     /// <summary>A new sign-in email for the account (or a first one, for an account from before email).</summary>
     ChangeEmail,
+
+    /// <summary>Proving it is the account's owner before account security changes (step-up level 2, ADR 0025).</summary>
+    StepUp,
 }
 
 /// <summary>
@@ -48,6 +51,9 @@ public sealed class AuthAttempt
     /// <summary>Signing up: the first profile's name (ADR 0023).</summary>
     public string? DisplayName { get; init; }
 
+    /// <summary>Signing up: the version of the terms accepted, with the age, when the attempt started.</summary>
+    public string? TermsVersion { get; init; }
+
     public int TriesLeft { get; set; }
 
     public DateTimeOffset CreatedAt { get; init; }
@@ -72,6 +78,7 @@ internal sealed class AuthAttemptConfiguration : IEntityTypeConfiguration<AuthAt
         builder.Property(attempt => attempt.NormalizedEmail).HasMaxLength(Codes.MaxEmailLength);
         builder.Property(attempt => attempt.CodeHash).HasMaxLength(64).IsFixedLength();
         builder.Property(attempt => attempt.DisplayName).HasMaxLength(200);
+        builder.Property(attempt => attempt.TermsVersion).HasMaxLength(Consent.MaxVersionLength);
         builder.HasIndex(attempt => new { attempt.NormalizedEmail, attempt.CreatedAt });
         builder.HasIndex(attempt => attempt.ExpiresAt);
     }
@@ -86,6 +93,10 @@ public static class Codes
     public const int Tries = 5;
 
     public static readonly TimeSpan Lifetime = TimeSpan.FromMinutes(15);
+
+    /// <summary>Fifteen minutes; ten for stepping up, which proves someone is here right now.</summary>
+    public static TimeSpan LifetimeOf(AttemptPurpose purpose) =>
+        purpose == AttemptPurpose.StepUp ? TimeSpan.FromMinutes(10) : Lifetime;
 
     /// <summary>Between two codes to one address.</summary>
     public static readonly TimeSpan Cooldown = TimeSpan.FromSeconds(60);

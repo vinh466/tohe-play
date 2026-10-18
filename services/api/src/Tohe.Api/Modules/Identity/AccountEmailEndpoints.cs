@@ -9,7 +9,7 @@ using Tohe.Api.Modules.Email;
 namespace Tohe.Api.Modules.Identity;
 
 /// <param name="Email">The new sign-in email; a code goes there.</param>
-/// <param name="Password">The account's password, when the parent gate is not open on this device — just after signing
+/// <param name="Password">The account's password, when step-up level 2 is not open on this device — just after signing
 /// in, for an account that adds its first email.</param>
 public sealed record ChangeEmailRequest([Required(AllowEmptyStrings = true)] string Email, string? Password = null);
 
@@ -26,7 +26,7 @@ internal static class AccountEmailEndpoints
         email.MapPost("/", StartAsync)
             .RequireRateLimiting(IdentityModule.SignInRateLimit)
             .WithName("ChangeEmail")
-            .WithSummary("A code goes to the new email. Needs the parent gate, or the password with the request.");
+            .WithSummary("A code goes to the new email. Needs step-up level 2, or the password with the request.");
 
         email.MapPost("/confirm", ConfirmAsync)
             .RequireRateLimiting(IdentityModule.CodeRateLimit)
@@ -51,12 +51,13 @@ internal static class AccountEmailEndpoints
             return TypedResults.Unauthorized();
         }
 
-        // Whoever holds the sign-in email holds the account: a device left signed in is not enough to move it.
-        if (!SessionClaims.IsParentUnlocked(http.User, clock.GetUtcNow()))
+        // Whoever holds the sign-in email holds the account: a device left signed in is not enough to move it
+        // (step-up level 2, ADR 0025).
+        if (!SessionClaims.IsSecure(http.User, clock.GetUtcNow()))
         {
             if (string.IsNullOrEmpty(request.Password))
             {
-                return Problems.ParentGateRequired();
+                return Problems.StepUpRequired();
             }
 
             var proof = await signIn.CheckPasswordSignInAsync(account, request.Password, lockoutOnFailure: true);
@@ -156,9 +157,8 @@ internal static class AccountEmailEndpoints
         await transaction.CommitAsync(ct);
 
         // This device carries on as it was, with a cookie that carries the new stamp.
-        var profileId = SessionClaims.ProfileId(http.User);
-        var parentUntil = SessionClaims.ParentUnlockedUntil(http.User);
-        await session.WriteAsync(account, profileId, parentUntil);
-        return TypedResults.Ok((await me.LoadAsync(account.Id, profileId, parentUntil, ct))!);
+        var state = DeviceSession.Of(http.User);
+        await session.WriteAsync(account, state);
+        return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);
     }
 }

@@ -69,7 +69,8 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
         CancellationToken ct,
         Guid? accountId = null,
         string? passwordHash = null,
-        string? displayName = null)
+        string? displayName = null,
+        string? termsVersion = null)
     {
         var now = clock.GetUtcNow();
 
@@ -96,9 +97,10 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
             CodeHash = code is null ? null : Codes.Hash(id, code),
             PasswordHash = passwordHash,
             DisplayName = displayName,
+            TermsVersion = termsVersion,
             TriesLeft = Codes.Tries,
             CreatedAt = now,
-            ExpiresAt = now + Codes.Lifetime,
+            ExpiresAt = now + Codes.LifetimeOf(purpose),
         };
         db.AuthAttempts.Add(attempt);
         return (attempt, code);

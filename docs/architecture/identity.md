@@ -5,8 +5,9 @@ sidebar:
   order: 4
 ---
 
-Decisions: [ADR 0024](../decisions/0024-email-identifies-an-account.md) (email identifies an account, codes bound to
-attempts), [ADR 0023](../decisions/0023-accounts-own-their-profiles.md) (accounts own profiles, public IDs, names),
+Decisions: [ADR 0025](../decisions/0025-step-up-in-two-levels-and-consent-at-sign-up.md) (step-up in two levels,
+16 or older and the terms at sign-up), [ADR 0024](../decisions/0024-email-identifies-an-account.md) (email identifies
+an account, codes bound to attempts), [ADR 0023](../decisions/0023-accounts-own-their-profiles.md) (accounts own profiles, public IDs, names),
 [ADR 0011](../decisions/0011-password-sign-in-first.md) (passwords, sessions, parent gate). ADR 0004 (households) is
 superseded.
 
@@ -23,6 +24,8 @@ erDiagram
     string display_name "names the first profile"
     string password_hash "PBKDF2"
     string security_stamp "changes with the password or the email"
+    string manage_pin_hash "step-up level 1, six digits"
+    string terms_version "accepted at 16 or older"
     bool telemetry_enabled "ADR 0015"
   }
   PROFILE {
@@ -37,7 +40,7 @@ erDiagram
   }
   AUTH_ATTEMPT {
     uuid id "held by the client, sent back with the code"
-    string purpose "sign-up, reset, email change"
+    string purpose "sign-up, reset, email change, step-up"
     string email "where the code went"
     string code_hash "none for a decoy"
     int tries_left "5"
@@ -70,9 +73,9 @@ sequenceDiagram
   participant H as Hub
   participant A as API
   participant M as Email outbox
-  U->>H: email, a name, a password
-  H->>A: POST /api/auth/register
-  A->>A: email on? · limits per IP and per address · password and name rules
+  U->>H: email, a name, a password — and "16 or older, I accept the terms"
+  H->>A: POST /api/auth/register {…, acceptTerms, termsVersion}
+  A->>A: email on? · limits per IP and per address · password, name and consent rules
   alt the address has no account
     A->>A: attempt {code hash, password hash, name, 15 min, 5 tries}
     A->>M: "Mã đăng ký Tò He: 482 913" + a link
@@ -93,7 +96,8 @@ sequenceDiagram
   end
 ```
 
-There is no "unverified" account: the password waits in the attempt until the code comes back. Since a code opens only
+There is no "unverified" account: the password, the name and the accepted terms wait in the attempt until the code
+comes back. Under 16, a child plays as a profile a parent makes (ADR 0023) instead of signing up. Since a code opens only
 the attempt it was sent for, someone who signed up first with another person's address cannot use the code that
 person receives, and the owner's own attempt is unaffected by theirs.
 
@@ -104,6 +108,7 @@ person receives, and the owner's own attempt is unaffected by theirs.
 | Signing up | the address signing up | `/register/confirm?attempt=…&code=…` |
 | A forgotten password | the account's address | `/password/reset?attempt=…&code=…` |
 | A new sign-in email | the new address | `/account/email?attempt=…&code=…` |
+| Step-up level 2 without the password | the account's address | — (typed where it was asked for; lives 10 minutes) |
 
 Every code: six random digits, stored hashed, used once, bound to its attempt, alive 15 minutes, five tries — counted in
 the database, so tries made at the same moment all count. One address gets one code a minute and five an hour,
@@ -184,14 +189,34 @@ sequenceDiagram
   A-->>H: 200 — this device carries on, every other session ends
 ```
 
+## Stepping up
+
+```mermaid
+flowchart TD
+  need["A change needs proof"] --> level{"Which?"}
+  level -- "level 1: the account's profiles" --> pinset{"Manage PIN set?"}
+  pinset -- yes --> pin["The manage PIN, 6 digits<br/>5 wrong → locked 5 min"]
+  pin --> l1["Profile management open<br/>10 min on this device"]
+  pinset -- "no, or forgotten" --> l2
+  level -- "level 2: email, password, manage PIN" --> l2{"Account has a password?"}
+  l2 -- yes --> either["The password,<br/>or a code by email"]
+  l2 -- no --> code["A code by email"]
+  either --> secure["Account security open — and profile management<br/>10 min on this device"]
+  code --> secure
+  secure --> setpin["Set the manage PIN for next time"]
+```
+
+Both levels are claims of this device's session: they close when someone is chosen to play, or the owner locks the
+page. Signing in, the password just typed counts as level 2 for adding a first email.
+
 ## Sessions
 
 | What | How |
 | --- | --- |
 | Cookie | `tohe.session` — `__Host-tohe.session` behind an HTTPS hub (ADR 0021) — 90 days, sliding, HttpOnly, `SameSite=Lax` |
-| In the cookie | the active profile and the parent gate's expiry |
+| In the cookie | the active profile, and until when step-up level 1 and level 2 are open |
 | Checked against the account's security stamp | every 5 minutes (`Identity:SessionCheckInterval`) |
-| The stamp changes when | the password is reset · the sign-in email changes |
+| The stamp changes when | the password is reset or changed · the sign-in email changes |
 
 ## A device's life
 
@@ -215,8 +240,8 @@ sequenceDiagram
   end
   C->>H: plays — catalog filtered by the profile's age band
   P->>H: "Quản lý tài khoản"
-  H->>P: parent gate: password again
-  H->>API: POST /api/session/parent-gate
+  H->>P: the manage PIN (or, the first time, the password)
+  H->>API: POST /api/session/parent-gate {pin}
   API-->>H: management unlocked for 10 minutes
 ```
 
@@ -249,8 +274,11 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | One account per sign-in email; an account exists only once the code sent to it came back | `email_index` (unique) on `identity.accounts`; `AuthEndpoints` |
 | A code opens only its attempt; five tries, 15 minutes; one address gets a code a minute and five an hour | `Attempts`, `Codes` |
 | No answer tells whether an address has an account: decoy attempts, the same 202, a miss as slow as a wrong password | `AuthEndpoints`, `AccountEmailEndpoints` |
-| Changing the sign-in email needs the password (with the request, or the parent gate) and a code at the new address | `AccountEmailEndpoints` |
-| Managing the account and its profiles needs the parent gate (password within the last 10 minutes) | The parent-gate endpoint filter on `/api/account` and `/api/profiles/*` (`ProfileEndpoints.Gated`) |
+| Changing the sign-in email needs step-up level 2 (or the password with the request) and a code at the new address | `AccountEmailEndpoints` |
+| Managing the account's profiles needs step-up level 1: the manage PIN within the last 10 minutes, or level 2 | The parent-gate endpoint filter on `/api/account` and `/api/profiles/*` (`ProfileEndpoints.Gated`) |
+| The manage PIN is six digits, hashed; five wrong in a row lock it for five minutes | `SessionEndpoints`, `ManagePins` |
+| The email, the password and the manage PIN change within step-up level 2: the password or a code by email, in the last 10 minutes | `AccountSecurityEndpoints`, `AccountEmailEndpoints` |
+| Signing up needs 16 or older and the terms; the account keeps their version, and accepts newer ones again | `AuthEndpoints`, `AccountSecurityEndpoints`; the hub's `legal/documents.ts` |
 | An account owns at least one and at most five profiles; changes to them are serialized on the account's row, so requests at the same time cannot break the limits | Identity module (`ProfileEndpoints`) |
 | An account sees, manages and plays as its own profiles only; another account's profile is "not found" | Identity module, `IActiveProfile` |
 | Public IDs are unique and given once, when the profile is made | `ProfileIds`, unique index on `public_id` |
@@ -278,8 +306,12 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `POST /api/auth/password/reset` | — | The code sets the new password; every other session ends |
 | `GET /api/auth/me` | session | Account (with its email), its profiles (with public IDs), active profile, parent-gate expiry |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
-| `POST /api/session/parent-gate` / `DELETE` | session | Unlock / lock account management |
-| `POST /api/account/email` | session + parent gate, or the password | A code to a new sign-in email |
+| `POST /api/session/parent-gate` / `DELETE` | session | The manage PIN opens profile management / lock both levels |
+| `POST /api/session/step-up` | session | Level 2 with the password (opens level 1 too) |
+| `POST /api/session/step-up/code` · `/confirm` | session | Level 2 with a code to the account's email |
+| `PUT /api/account/manage-pin` · `PUT /api/account/password` | session + level 2 | Set or change the manage PIN · the password (every other session ends) |
+| `POST /api/account/terms` | session | Accept the terms and privacy notice in the version the hub shows |
+| `POST /api/account/email` | session + level 2, or the password | A code to a new sign-in email |
 | `POST /api/account/email/confirm` | session | The code makes it the sign-in email; every other session ends |
 | `GET /api/profiles/options` | — | Allowed avatars and age bands; how many profiles an account may own |
 | `PATCH /api/account` | parent | The account's telemetry switch |
@@ -292,7 +324,8 @@ device). The first time a real profile is chosen on that device, the hub offers 
 Errors are problem details; a machine-readable `code` lets the hub show a Vietnamese message: `invalid_credentials`,
 `locked_out`, `email_invalid`, `email_unavailable`, `email_unchanged`, `code_invalid` (with `triesLeft`),
 `attempt_closed`, `code_cooldown`, `too_many_codes`, `password_too_short`, `password_invalid`, `pin_required`,
-`pin_invalid`, `parent_gate_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
+`pin_invalid`, `parent_gate_required`, `step_up_required`, `manage_pin_not_set`, `manage_pin_invalid`,
+`password_not_set`, `email_required`, `terms_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
 `name_too_long`, `name_reserved`.
 
 ## From households

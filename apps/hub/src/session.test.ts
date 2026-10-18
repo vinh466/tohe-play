@@ -7,7 +7,16 @@ import { openDb } from './storage/db.ts';
 import { hasProgress, loadSave, moveProgress, recordScore, storeSave } from './storage/repository.ts';
 
 const me = (overrides: Partial<MeView> = {}): MeView => ({
-  account: { id: 'a1', email: 'bo@tohe.test', username: null, displayName: 'Bố', telemetry: true },
+  account: {
+    id: 'a1',
+    email: 'bo@tohe.test',
+    username: null,
+    displayName: 'Bố',
+    telemetry: true,
+    hasPassword: true,
+    hasManagePin: false,
+    termsVersion: '2026-10-18',
+  },
   profiles: [
     {
       id: 'p-adult',
@@ -32,6 +41,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
   ],
   activeProfileId: null,
   parentUnlockedUntil: null,
+  secureUntil: null,
   ...overrides,
 });
 
