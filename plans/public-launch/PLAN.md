@@ -15,16 +15,17 @@
 
 ## Next — one item
 
-**C5** ([delivery.md](delivery.md)): mời đích danh bằng ID 12 số trong phòng (D-17) — cài đặt "ai được mời tôi" của
-mỗi hồ sơ (mọi người · người từng chơi cùng · chỉ trong account; trẻ em: chỉ trong account), ID hồ sơ trẻ em tra từ
-ngoài account là "không tìm thấy", giới hạn 20 lời mời gửi mỗi giờ và 10 lời mời đang chờ; có migration, xếp trên
-E3b (#59). F1–F3 chờ owner quyết E-07, E-08, E-09. Đã mở: #43–#59 ([trạng thái](delivery.md#trạng-thái)).
+**E-07, E-08, E-09 → `proposed`**: soạn đề xuất (sự thật từ code, phương án, giá phải trả, một khuyến nghị) cho quyền
+riêng tư · xoá account · kiểm duyệt tên (E-07), observability (E-08) và chống bot đăng ký (E-09), để owner quyết; F1–F3
+xây theo các quyết định đó. Mọi PR code khác đã mở: #43–#60 ([trạng thái](delivery.md#trạng-thái)); phần chart còn
+lại (khối SMTP, secret của provider, `Admin__SetupToken`) chờ #44 và chồng C/D/E cùng vào `main`.
 
 ## Waiting on the owner
 
 1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? Không chặn code; cần trước khi C2 lên UAT.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #58 → #59); nói "deploy" cho mỗi lần lên UAT.
+3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #59 → #60); nói "deploy" cho mỗi lần lên UAT.
+   Với #60: xác nhận hồ sơ người lớn mặc định "Mọi người có ID" (D-17 chỉ quy định hồ sơ trẻ em).
 7. **E-07, E-08, E-09** (quyền riêng tư và xoá account, observability, chống bot đăng ký) còn `open`: F1–F3 chờ các
    quyết định này; agent sẽ soạn đề xuất khi tới lượt.
 4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).

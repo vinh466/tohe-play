@@ -17,7 +17,7 @@ Owner: "theo đề xuất bạn có thể impl toàn bộ giúp tôi k, planning
 | **C2** | Identity | Đăng ký bằng email (attempt + mã), đăng nhập bằng email, quên mật khẩu, đổi email, security stamp, chống dò email, thư thông báo; account username trên UAT thêm email ở lần đăng nhập kế | 0024 Email identifies an account (sửa 0011) | C1, B1 | D-02, E-01 |
 | **C3** | Identity | Xác thực lại hai mức (mã quản lý, L2), mẫu hồ sơ trẻ em, cổng tuổi 16 + đồng ý điều khoản | 0025 Step-up in two levels, consent at sign-up | C2 | D-05, D-06 |
 | **C4** | Identity | Google, GitHub, OIDC chung + luồng liên kết; cấu hình hai lớp; test bằng scheme giả + `mock-oauth2-server` | 0026 Sign-in methods and account linking | C3 | D-03, D-04 |
-| **C5** | Identity | Mời đích danh bằng ID, "ai được mời tôi", hồ sơ trẻ em "không tìm thấy" | (0023) | C1 | D-17 |
+| **C5** | Identity | Mời đích danh bằng ID, "ai được mời tôi", hồ sơ trẻ em "không tìm thấy" | 0033 Invite a profile by its ID (sửa 0023, 0016) | C1 | D-17 |
 | **D1** | Admin | App `apps/admin` ở `/admin`, `/api/admin` với tài liệu OpenAPI riêng, module chỉ đọc: tổng quan, game, sức khoẻ (telemetry), hệ thống | 0027 Platform admin and the first owner | — | D-07 |
 | **D2** | Admin | Vai trò → quyền, admin đầu tiên bằng setup token + CLI, 2FA (TOTP), audit log, xác thực lại cho thao tác nhạy cảm | (0027) | C2, D1 | D-07, D-08 |
 | **D3a** | Admin | Người dùng: tìm, tạm khoá, đăng xuất mọi nơi, vai trò, đổi tên hồ sơ (giữ lịch sử tên) | (0027) | D2 | D-07 |
@@ -57,7 +57,7 @@ flowchart LR
 
 - **Bắt đầu được ngay, độc lập với nhau:** A1, B1, C1, D1. Sau đó: A2/A3 (release), C2→C3→C4 (identity), E1a→E1b→E2→E3a→E3b (độ tin),
   D2→D3a→D3b (admin).
-- **Không chạy song song được:** các PR cùng thêm migration EF Core (C1, C2, C3, C4, D2, D3a, D3b, E1a, E1b, E2, E3a; E3b không có migration nhưng xếp trên E3a) đụng chung
+- **Không chạy song song được:** các PR cùng thêm migration EF Core (C1, C2, C3, C4, D2, D3a, D3b, E1a, E1b, E2, E3a, C5; E3b không có migration nhưng xếp trên E3a) đụng chung
   `ToheDbContextModelSnapshot.cs` — merge từng cái một, cái sau rebase lên cái trước. Tương tự với các file sinh ra
   (`services/api/openapi/`, `apps/hub/src/api/schema.gen.ts`): sinh lại sau khi rebase, không sửa tay.
 - **Mỗi lane một worktree và một nhánh**; plan này là bảng điều phối chung.
@@ -93,6 +93,7 @@ flowchart LR
 | E1b | `feat/public-boards` (trên E1a) | [#56](https://github.com/vinh466/tohe-play/pull/56) — CI xanh, chờ review; trên UAT: hồ sơ người lớn lên bảng công khai, hồ sơ trẻ em tắt cho tới khi bật kèm "Tôi đã hỏi ý bé" |
 | E2 | `feat/ranked-runs` (trên E1b) | [#57](https://github.com/vinh466/tohe-play/pull/57) — CI xanh, chờ review; trên UAT (Ghép Khối 1.9.0): chơi một ván khi đã đăng nhập, run lên "Toàn Tò He" vài giây sau khi xong |
 | E3a | `feat/review-queue` (trên E2) | [#58](https://github.com/vinh466/tohe-play/pull/58) — CI xanh, chờ review; trên UAT: Người dùng → một hồ sơ → Ẩn khỏi bảng công khai, hub của chủ báo lý do |
-| E3b | `feat/run-replay` (trên E3a) | [#59](https://github.com/vinh466/tohe-play/pull/59) — CI đang chạy; trên UAT (Ghép Khối 1.10.0): Xem xét kết quả → một kết quả xếp hạng → ▶ Xem lại run trong game |
+| E3b | `feat/run-replay` (trên E3a) | [#59](https://github.com/vinh466/tohe-play/pull/59) — CI xanh, chờ review; trên UAT (Ghép Khối 1.10.0): Xem xét kết quả → một kết quả xếp hạng → ▶ Xem lại run trong game |
+| C5 | `feat/invite-by-id` (trên E3b) | [#60](https://github.com/vinh466/tohe-play/pull/60) — CI đang chạy; owner xác nhận giả định: người lớn mặc định "Mọi người có ID"; trên UAT: Quản lý tài khoản → hồ sơ → "Ai được mời vào phòng bằng ID", trong phòng → Mời người chơi → Mời bằng ID hồ sơ |
 
-Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58 → #59; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58 → #59 → #60; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.

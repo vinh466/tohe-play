@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (chiều) — agent
+
+- E3b #59 CI xanh. C5 #60 (ADR 0033): mời bằng ID 12 số trong phòng; "ai được mời tôi" (mọi người · từng chơi cùng ·
+  trong account; trẻ em luôn trong account, ID trẻ em tra từ ngoài là "không tìm thấy"); 20 lần tra ID/giờ, 10 lời mời
+  chờ. Giả định chờ owner xác nhận: người lớn mặc định "Mọi người có ID". Smoke e2e theo tên mới của hộp thoại mời.
+- Mọi PR code đã mở; việc tiếp theo là đề xuất cho E-07/E-08/E-09. Chờ owner: review #43–#60.
+
 ## 2026-10-18 (trưa) — agent
 
 - E3a #58 CI xanh. E3b #59 (ADR 0032, đổi Game Contract): `init.rankedReplay`, SDK 0.9.0, conformance — game xếp hạng
