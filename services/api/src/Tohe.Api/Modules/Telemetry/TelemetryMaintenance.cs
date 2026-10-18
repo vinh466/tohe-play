@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 
 namespace Tohe.Api.Modules.Telemetry;
@@ -98,6 +99,7 @@ internal sealed partial class TelemetryMaintenance(
 internal sealed partial class TelemetryMaintenanceWorker(
     IServiceScopeFactory scopes,
     IOptions<TelemetryOptions> options,
+    BackgroundWork work,
     ILogger<TelemetryMaintenanceWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -109,9 +111,11 @@ internal sealed partial class TelemetryMaintenanceWorker(
             {
                 await using var scope = scopes.CreateAsyncScope();
                 await scope.ServiceProvider.GetRequiredService<TelemetryMaintenance>().RunAsync(stoppingToken);
+                work.Succeeded(BackgroundWork.TelemetryMaintenance);
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {
+                work.Failed(BackgroundWork.TelemetryMaintenance, error);
                 LogFailed(error);
             }
         }

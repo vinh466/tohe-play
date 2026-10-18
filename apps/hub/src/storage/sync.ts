@@ -1,7 +1,7 @@
-// Background sync of saves and scores (M2, ADR 0005). Every write lands on the device first; this pushes what is
-// pending and pulls what other devices wrote, for the profile active in the session (the API only accepts that
-// one). A pending local save always wins: it reaches the server later, and the server keeps the version it
-// replaces. Guests never sync.
+// Background sync of saves, scores and ranked runs (M2, ADR 0005, ADR 0030). Every write lands on the device first;
+// this pushes what is pending and pulls what other devices wrote, for the profile active in the session (the API only
+// accepts that one). A pending local save always wins: it reaches the server later, and the server keeps the version
+// it replaces. Guests never sync.
 import type { JsonValue } from '@tohe/game-sdk';
 import type { ToheDb } from './db.ts';
 
@@ -19,6 +19,11 @@ export interface ProgressApi {
       final: boolean;
     }[],
   ): Promise<unknown>;
+  /**
+   * Hands a ranked run's moves in (ADR 0030): `taken`, or `refused` for good (a run a newer one closed, another
+   * profile's) — the device then drops it. A failure that may pass (offline, a server error) throws.
+   */
+  finishRun(run: string, moves: JsonValue[], score: number): Promise<'taken' | 'refused'>;
 }
 
 const SCORE_BATCH = 100;
@@ -27,7 +32,21 @@ const SCORE_BATCH = 100;
 export async function syncProfile(db: ToheDb, api: ProgressApi, profileId: string): Promise<void> {
   await pushSaves(db, api, profileId);
   await pushScores(db, api, profileId);
+  await pushRanked(db, api, profileId);
   await pullSaves(db, api, profileId);
+}
+
+async function pushRanked(db: ToheDb, api: ProgressApi, profileId: string) {
+  const pending = await db.ranked
+    .where('synced')
+    .equals(0)
+    .filter((ranked) => ranked.profileId === profileId)
+    .toArray();
+  for (const ranked of pending) {
+    // Taken or refused for good, it is done here; anything else throws and the next sync tries again.
+    await api.finishRun(ranked.run, ranked.moves, ranked.score);
+    await db.ranked.update(ranked.id ?? -1, { synced: 1 });
+  }
 }
 
 async function pushSaves(db: ToheDb, api: ProgressApi, profileId: string) {

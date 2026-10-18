@@ -29,7 +29,8 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
-        navigateFallbackDenylist: [/^\/api\//],
+        // /api is the API's; /admin/ is the admin console, its own app without a service worker (ADR 0027).
+        navigateFallbackDenylist: [/^\/api\//, /^\/admin(\/|$)/],
         runtimeCaching: [
           {
             // Catalog and config stay usable offline; fresh data wins when the API answers.
@@ -44,8 +45,12 @@ export default defineConfig({
   server: {
     port: 4720,
     strictPort: true,
-    // ws: the rooms hub's WebSocket (ADR 0016) goes through the same /api proxy.
-    proxy: { '/api': { target: 'http://localhost:4740', ws: true } },
+    proxy: {
+      // ws: the rooms hub's WebSocket (ADR 0016) goes through the same /api proxy.
+      '/api': { target: 'http://localhost:4740', ws: true },
+      // The admin console's dev server (apps/admin), at /admin/ as in production; ws for its hot reload.
+      '/admin': { target: 'http://localhost:4721', ws: true },
+    },
   },
   preview: { port: 4720, strictPort: true, proxy: { '/api': { target: 'http://localhost:4740', ws: true } } },
   test: { environment: 'node' },

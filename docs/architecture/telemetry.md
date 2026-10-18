@@ -18,10 +18,10 @@ game version and the kind of device, so a problem shows up before anyone mention
 ## Principles
 
 1. **Technical data only.** It describes the device and the software, never the person: no names, accounts,
-   profiles, households, saves, scores, IP addresses or text a player typed. Names of events are fixed identifiers
+   profiles, saves, scores, IP addresses or text a player typed. Names of events are fixed identifiers
    checked by the contract and the API, so no free text can ride along.
 2. **Visible.** The hub's **Dữ liệu kỹ thuật** page lists what is sent and shows the last batch exactly as sent.
-3. **Three switches**, all on by default: the server's, the household's (a parent's, behind the parent gate) and
+3. **Three switches**, all on by default: the server's, the account's (its owner's, behind the parent gate) and
    the device's. Off means games do not even measure.
 4. **Light.** Summaries are made on the device; a frame pays microseconds, never a network call ([budgets](#budgets)).
 5. **First-party.** Data goes to our API and PostgreSQL only. No third-party script or service.
@@ -73,7 +73,7 @@ store the header.
 
 ### Never collected
 
-Names, usernames, profile or household ids, IP addresses, saves and scores, typed text, screenshots or recordings,
+Names, usernames, account or profile ids, IP addresses, saves and scores, typed text, screenshots or recordings,
 location, contacts, battery, network type, or a GPU renderer string (Safari masks it anyway, and Chrome's exact value
 is a fingerprint).
 
@@ -131,7 +131,7 @@ flowchart LR
 | Switch | Who | Where |
 | --- | --- | --- |
 | Server | the owner | `Telemetry__Enabled=false` in the API's environment; the hub reads it from `GET /api/config` |
-| Household | a parent | **Quản lý gia đình → Dữ liệu kỹ thuật** (`PATCH /api/household { telemetry }`) |
+| Account | the account's owner | **Quản lý tài khoản → Dữ liệu kỹ thuật** (`PATCH /api/account { telemetry }`) |
 | Device | anyone, guests included | **Dữ liệu kỹ thuật** (`/data`, linked from the welcome, profile and game screens) |
 
 The `/data` page lists what is sent and never sent (as above), says which switch keeps telemetry off, and shows the

@@ -1,7 +1,10 @@
 using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
+using Tohe.Api.Modules.Admin;
+using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
+using Tohe.Api.Modules.Integrity;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
 using Tohe.Api.Modules.Rooms;
@@ -19,9 +22,17 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
 {
     public DbSet<Game> Games => Set<Game>();
 
-    public DbSet<Household> Households => Set<Household>();
-
     public DbSet<Profile> Profiles => Set<Profile>();
+
+    public DbSet<ProfileName> ProfileNameHistory => Set<ProfileName>();
+
+    public DbSet<RetiredProfileId> RetiredProfileIds => Set<RetiredProfileId>();
+
+    public DbSet<Community> Communities => Set<Community>();
+
+    public DbSet<InviteCode> InviteCodes => Set<InviteCode>();
+
+    public DbSet<AuthAttempt> AuthAttempts => Set<AuthAttempt>();
 
     public DbSet<SavedGame> SavedGames => Set<SavedGame>();
 
@@ -42,6 +53,18 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
     public DbSet<RoomHand> RoomHands => Set<RoomHand>();
 
     public DbSet<RoomResult> RoomResults => Set<RoomResult>();
+
+    public DbSet<IntegrityResult> IntegrityResults => Set<IntegrityResult>();
+
+    public DbSet<IntegrityDecision> IntegrityDecisions => Set<IntegrityDecision>();
+
+    public DbSet<RankedRun> RankedRuns => Set<RankedRun>();
+
+    public DbSet<OutboxEmail> EmailOutbox => Set<OutboxEmail>();
+
+    public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
+
+    public DbSet<AuditEntry> AuditLog => Set<AuditEntry>();
 
     /// <summary>Keys that encrypt session cookies; persisted so restarts and deploys keep people signed in.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();

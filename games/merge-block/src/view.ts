@@ -341,6 +341,11 @@ export class BoardScene extends Phaser.Scene {
 
   // ------------------------------------------------------------------ input feedback
 
+  /** Watching a run (ADR 0032): taps do nothing; the replay aims and drops with hover() and play(). */
+  watch() {
+    this.input.enabled = false;
+  }
+
   hover(col: number | null) {
     if (this.busy || this.state?.over) col = null;
     if (col === this.hoverCol && col !== null) return;

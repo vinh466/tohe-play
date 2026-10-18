@@ -7,32 +7,50 @@ import { openDb } from './storage/db.ts';
 import { hasProgress, loadSave, moveProgress, recordScore, storeSave } from './storage/repository.ts';
 
 const me = (overrides: Partial<MeView> = {}): MeView => ({
-  account: { id: 'a1', username: 'bo', displayName: 'Bố' },
-  household: { id: 'h1', name: 'Nhà Bố', members: [], invite: null, telemetry: true },
+  account: {
+    id: 'a1',
+    email: 'bo@tohe.test',
+    username: null,
+    displayName: 'Bố',
+    telemetry: true,
+    hasPassword: true,
+    hasManagePin: false,
+    termsVersion: '2026-10-18',
+    logins: [],
+    role: null,
+    community: null,
+  },
   profiles: [
     {
       id: 'p-adult',
+      publicId: '572000000006',
       name: 'Bố',
       avatar: '🦊',
       kind: 'adult',
       ageBand: null,
       hasPin: false,
-      isMine: true,
       playWithOthers: true,
+      onPublicBoards: true,
+      hiddenFromBoards: false,
+      invites: 'anyone',
     },
     {
       id: 'p-kid',
+      publicId: '890000000001',
       name: 'Na',
       avatar: '🐼',
       kind: 'child',
       ageBand: '3-5',
       hasPin: true,
-      isMine: false,
       playWithOthers: false,
+      onPublicBoards: false,
+      hiddenFromBoards: false,
+      invites: 'account',
     },
   ],
   activeProfileId: null,
   parentUnlockedUntil: null,
+  secureUntil: null,
   ...overrides,
 });
 
@@ -69,7 +87,7 @@ describe('resolveSession', () => {
 describe('errorKey', () => {
   it('maps API codes, validation codes, rate limits and network failures', () => {
     expect(errorKey(new ApiError(401, 'invalid_credentials'))).toBe('errors.invalidCredentials');
-    expect(errorKey(new ApiError(400, null, { username: ['username_taken'] }))).toBe('errors.usernameTaken');
+    expect(errorKey(new ApiError(400, null, { email: ['email_invalid'] }))).toBe('errors.emailInvalid');
     expect(errorKey(new ApiError(429, null))).toBe('errors.tooManyRequests');
     expect(errorKey(new TypeError('Failed to fetch'))).toBe('errors.offline');
     expect(errorKey(new ApiError(500, null))).toBe('errors.generic');

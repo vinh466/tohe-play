@@ -4,11 +4,11 @@ import type { JsonValue } from '@tohe/game-sdk';
 import { createHost, type HostHandle, iframeTransport } from '@tohe/game-sdk/host';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import type { GameSummary } from '../api/client.ts';
+import { type GameSummary, runs } from '../api/client.ts';
 import type { Player } from '../session/session.ts';
 import { syncer, syncsWithServer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
-import { loadSave, recordScore, storeSave } from '../storage/repository.ts';
+import { loadSave, recordRanked, recordScore, storeSave } from '../storage/repository.ts';
 import { durationBucket } from '../telemetry/collector.ts';
 import { telemetry, telemetryOn } from '../telemetry/telemetry.ts';
 import { useTheme } from '../theme/useTheme.ts';
@@ -206,6 +206,12 @@ export function GameFrame({
       },
       onScore: async ({ value, board, run, final }) => {
         await recordScore(db, { profileId: player.id, gameId: game.id, board, value, run, final });
+        if (synced) syncer.syncSoon(player.id);
+      },
+      // Ranked runs (ADR 0030) for signed-in profiles: the API deals the seed; without it the game plays unranked.
+      onRankedStart: synced ? () => runs.start(game.id) : undefined,
+      onRankedFinish: async ({ run, moves, score }) => {
+        await recordRanked(db, { profileId: player.id, gameId: game.id, run, moves, score });
         if (synced) syncer.syncSoon(player.id);
       },
       onRoomAct: (action) => room?.act(action),

@@ -28,6 +28,7 @@ internal static class TelemetryModule
             .ValidateDataAnnotations();
         builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.AddScoped<TelemetryReports>();
+        builder.Services.AddScoped<TelemetryFacts>();
         builder.Services.AddScoped<TelemetryMaintenance>();
         if (builder.Configuration.GetValue($"{TelemetryOptions.Section}:MaintenanceEnabled", defaultValue: true)
             && !BuildTime.IsGeneratingOpenApi)

@@ -2,6 +2,8 @@ using System.ComponentModel.DataAnnotations;
 using System.Reflection;
 using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
+using Tohe.Api.Modules.Email;
+using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Telemetry;
 
 namespace Tohe.Api.Modules.Platform;
@@ -44,12 +46,30 @@ public sealed class AppOptions
 /// <param name="GamesOrigin">Origin game iframes are loaded from; the hub only accepts messages from it.</param>
 /// <param name="ApiVersion">Informational version of the running API.</param>
 /// <param name="Telemetry">The server collects device telemetry (ADR 0015); off, the hub sends none.</param>
-public sealed record ClientConfig(string GamesOrigin, string ApiVersion, bool Telemetry);
+/// <param name="Email">The server sends email (ADR 0022): signing up, forgotten passwords and email changes work.</param>
+/// <param name="Providers">The sign-in providers this deployment offers and the console has on (ADR 0026, 0028), in the
+/// order to show them.</param>
+/// <param name="PasswordSignIn">Email and password are on: signing in with them, and signing up by email (ADR 0028).</param>
+/// <param name="Registration"><c>open</c>, <c>invite</c> — signing up needs an invite code — or <c>closed</c>.</param>
+/// <param name="ProofOfWork">Signing up and asking for a password reset take a solved challenge from
+/// <c>GET /api/auth/challenge</c> (ADR 0037).</param>
+public sealed record ClientConfig(
+    string GamesOrigin,
+    string ApiVersion,
+    bool Telemetry,
+    bool Email,
+    IReadOnlyList<ExternalProvider> Providers,
+    bool PasswordSignIn,
+    string Registration,
+    bool ProofOfWork);
 
 internal static class PlatformModule
 {
     public static WebApplicationBuilder AddPlatformModule(this WebApplicationBuilder builder)
     {
+        // What the background workers last did, for the admin console (ADR 0027).
+        builder.Services.AddSingleton<BackgroundWork>();
+        builder.AddMetrics();
         var options = builder.Services.AddOptions<GamesOptions>()
             .BindConfiguration(GamesOptions.Section)
             .ValidateDataAnnotations();
@@ -63,6 +83,41 @@ internal static class PlatformModule
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Tò He's metrics and <c>/metrics</c> on a port of its own (ADR 0036): prometheus-net exports every .NET meter —
+    /// ASP.NET Core's requests by route and status, the runtime's, Npgsql's pool, and <see cref="ToheMetrics"/>. The
+    /// runtime's event counters are left out: the runtime's meter says the same.
+    /// </summary>
+    private static void AddMetrics(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddOptions<MetricsOptions>().BindConfiguration(MetricsOptions.Section);
+        builder.Services.AddSingleton<ToheMetrics>();
+        var options = builder.Configuration.GetSection(MetricsOptions.Section).Get<MetricsOptions>() ?? new MetricsOptions();
+        if (options.Enabled && !BuildTime.IsGeneratingOpenApi)
+        {
+            Prometheus.Metrics.SuppressDefaultMetrics(new Prometheus.SuppressDefaultMetricOptions { SuppressEventCounters = true });
+            // Durations in seconds get the buckets ASP.NET Core advises for its own, not 25 exponential ones per series.
+            Prometheus.Metrics.ConfigureMeterAdapter(adapter => adapter.ResolveHistogramBuckets = instrument =>
+                instrument.Unit == "s" ? SecondsBuckets : Prometheus.MeterAdapterOptions.DefaultHistogramBuckets);
+            Prometheus.KestrelMetricServerExtensions.AddMetricServer(builder.Services, server => server.Port = (ushort)options.Port);
+            builder.Services.AddHostedService<MetricsStart>();
+        }
+    }
+
+    private static readonly double[] SecondsBuckets = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10];
+
+    /// <summary>
+    /// prometheus-net starts listening to the .NET meters at its first collection: one when the API starts, so what is
+    /// counted before the first scrape — a sign-in, an email — is not lost.
+    /// </summary>
+    private sealed class MetricsStart : IHostedService
+    {
+        public Task StartAsync(CancellationToken cancellationToken) =>
+            Prometheus.Metrics.DefaultRegistry.CollectAndExportAsTextAsync(Stream.Null, cancellationToken);
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     /// <summary>
@@ -83,18 +138,51 @@ internal static class PlatformModule
             });
     }
 
-    public static IEndpointRouteBuilder MapPlatformEndpoints(this IEndpointRouteBuilder api)
-    {
-        // Deployments set App:Version to the git commit they built (deploy/uat/deploy.sh, the chart).
-        var app = api.ServiceProvider.GetRequiredService<IOptions<AppOptions>>().Value;
-        var version = app.Version is { Length: > 0 } deployed
+    /// <summary>The build that runs: the commit a deployment built (deploy/uat/deploy.sh, the chart), else the assembly's.</summary>
+    internal static string VersionOf(AppOptions app) =>
+        app.Version is { Length: > 0 } deployed
             ? deployed
             : typeof(PlatformModule).Assembly
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
 
-        api.MapGet("/config", (IOptions<GamesOptions> games, IOptions<TelemetryOptions> telemetry) =>
-                new ClientConfig(
-                    games.Value.PublicOrigin.GetLeftPart(UriPartial.Authority), version, telemetry.Value.Enabled))
+    public static IEndpointRouteBuilder MapPlatformEndpoints(this IEndpointRouteBuilder api)
+    {
+        var version = VersionOf(api.ServiceProvider.GetRequiredService<IOptions<AppOptions>>().Value);
+
+        api.MapGet(
+                "/config",
+                async (
+                    IOptions<GamesOptions> games,
+                    IOptions<TelemetryOptions> telemetry,
+                    IEmailOutbox email,
+                    ExternalProviderCatalog providers,
+                    ISignInSettings settings,
+                    CancellationToken ct) =>
+                {
+                    var on = new List<ExternalProvider>();
+                    foreach (var provider in providers.Providers)
+                    {
+                        if (await settings.IsOnAsync(provider.Id, ct))
+                        {
+                            on.Add(provider);
+                        }
+                    }
+
+                    return new ClientConfig(
+                        games.Value.PublicOrigin.GetLeftPart(UriPartial.Authority),
+                        version,
+                        telemetry.Value.Enabled,
+                        email.Enabled,
+                        on,
+                        await settings.IsOnAsync(SignInMethods.Password, ct),
+                        (await settings.RegistrationAsync(ct)) switch
+                        {
+                            RegistrationMode.Invite => "invite",
+                            RegistrationMode.Closed => "closed",
+                            _ => "open",
+                        },
+                        await settings.ProofOfWorkAsync(ct));
+                })
             .WithName("GetConfig")
             .WithTags("Platform")
             .WithSummary("Runtime configuration for the hub.");

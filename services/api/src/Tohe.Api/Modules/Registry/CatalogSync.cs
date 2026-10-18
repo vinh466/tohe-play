@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Platform;
 
@@ -71,6 +72,10 @@ internal sealed partial class CatalogSync(
                 && (manifest.Capabilities ?? []).Contains("rooms")
                 ? rooms.GetRawText()
                 : null;
+            game.Ranked = manifest.Ranked is { ValueKind: System.Text.Json.JsonValueKind.Object } ranked
+                && (manifest.Capabilities ?? []).Contains("ranked")
+                ? ranked.GetRawText()
+                : null;
             game.Listed = true;
             game.UpdatedAt = now;
         }
@@ -105,6 +110,7 @@ internal sealed partial class CatalogSync(
 internal sealed partial class CatalogSyncWorker(
     IServiceScopeFactory scopes,
     IOptions<RegistryOptions> options,
+    BackgroundWork work,
     ILogger<CatalogSyncWorker> logger) : BackgroundService
 {
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -116,10 +122,12 @@ internal sealed partial class CatalogSyncWorker(
             {
                 await using var scope = scopes.CreateAsyncScope();
                 await scope.ServiceProvider.GetRequiredService<CatalogSync>().RunAsync(stoppingToken);
+                work.Succeeded(BackgroundWork.CatalogSync);
             }
             catch (Exception exception) when (exception is not OperationCanceledException)
             {
                 // The games origin or the database may not be up yet; the next tick retries.
+                work.Failed(BackgroundWork.CatalogSync, exception);
                 LogFailed(exception);
             }
         }

@@ -6,10 +6,10 @@ using Tohe.Api.Modules.Identity;
 namespace Tohe.Api.Modules.Rooms;
 
 /// <summary>Who is asking: the active profile, as the room needs it.</summary>
-internal sealed record Player(Guid ProfileId, Guid HouseholdId, string Name, string Avatar, bool MayPlayWithOthers, int MaxGameMinAge)
+internal sealed record Player(Guid ProfileId, Guid AccountId, string Name, string Avatar, bool MayPlayWithOthers, int MaxGameMinAge)
 {
     public static Player From(ActiveProfile profile) =>
-        new(profile.Id, profile.HouseholdId, profile.Name, profile.Avatar, profile.MayPlayWithOthers, profile.MaxGameMinAge);
+        new(profile.Id, profile.AccountId, profile.Name, profile.Avatar, profile.MayPlayWithOthers, profile.MaxGameMinAge);
 }
 
 /// <summary>Where a room's changes go: people's phones (SignalR) and the database.</summary>
@@ -55,6 +55,8 @@ internal sealed class RoomActor
     private string? _state;
     private int _seq;
     private readonly Dictionary<Guid, HashSet<string>> _connections = [];
+    /// <summary>Profiles with a live connection, counted after every change for readers outside the actor.</summary>
+    private int _online;
     private readonly Dictionary<int, DateTimeOffset> _goneSince = [];
     /// <summary>Room seats a bot plays for their player until they come back.</summary>
     private readonly HashSet<int> _takenOver = [];
@@ -62,7 +64,7 @@ internal sealed class RoomActor
     private readonly Dictionary<int, DateTimeOffset> _lastReaction = [];
     /// <summary>Profiles watching without a seat.</summary>
     private readonly HashSet<Guid> _watchers = [];
-    /// <summary>Household members asked to the table: who asked, and until when.</summary>
+    /// <summary>Other profiles of a player's account asked to the table: who asked, and until when.</summary>
     private readonly Dictionary<Guid, (Guid From, DateTimeOffset Until)> _invites = [];
     private DateTimeOffset? _turnDeadline;
     private DateTimeOffset? _botAt;
@@ -95,6 +97,9 @@ internal sealed class RoomActor
     public IReadOnlyList<SeatRecord> Seats => _seats;
 
     public bool IsClosed => Room.Status == RoomStatus.Closed;
+
+    /// <summary>Profiles connected to the room right now; safe to read from outside the actor (the admin console).</summary>
+    public int Online => Volatile.Read(ref _online);
 
     /// <summary>The rules module's state of the hand in progress, JSON (tests compare it after a rebuild).</summary>
     internal string? State => _state;
@@ -153,7 +158,7 @@ internal sealed class RoomActor
             Room.Status.ToString().ToLowerInvariant(),
             Room.HostProfileId,
             Room.IsPublic,
-            Room.HouseholdOnly,
+            Room.AccountOnly,
             Room.Locked,
             Room.Seats,
             Room.BotsFill,
@@ -207,14 +212,14 @@ internal sealed class RoomActor
             return null;
         }
 
-        var sameHousehold = player.HouseholdId == Room.HostHouseholdId;
-        if (Room.HouseholdOnly && !sameHousehold)
+        var sameAccount = player.AccountId == Room.HostAccountId;
+        if (Room.AccountOnly && !sameAccount)
         {
-            return RoomErrors.HouseholdOnly;
+            return RoomErrors.AccountOnly;
         }
 
-        // A child a parent has not allowed only plays with the family: at tables that stay in the household.
-        if (!player.MayPlayWithOthers && !(sameHousehold && Room.HouseholdOnly))
+        // A child the account's owner has not allowed only plays within the account: at tables that stay in it.
+        if (!player.MayPlayWithOthers && !(sameAccount && Room.AccountOnly))
         {
             return RoomErrors.ParentPermission;
         }
@@ -246,13 +251,13 @@ internal sealed class RoomActor
             return RoomErrors.SpectatorsOff;
         }
 
-        var sameHousehold = player.HouseholdId == Room.HostHouseholdId;
-        if (Room.HouseholdOnly && !sameHousehold)
+        var sameAccount = player.AccountId == Room.HostAccountId;
+        if (Room.AccountOnly && !sameAccount)
         {
-            return RoomErrors.HouseholdOnly;
+            return RoomErrors.AccountOnly;
         }
 
-        return !player.MayPlayWithOthers && !(sameHousehold && Room.HouseholdOnly) ? RoomErrors.ParentPermission : null;
+        return !player.MayPlayWithOthers && !(sameAccount && Room.AccountOnly) ? RoomErrors.ParentPermission : null;
     }
 
     public async Task<string?> WatchAsync(Player player)
@@ -271,7 +276,10 @@ internal sealed class RoomActor
         return null;
     }
 
-    /// <summary>A player at the table asks a member of their household to it.</summary>
+    /// <summary>
+    /// A player at the table asks another profile to it: of their account, or by its ID (ADR 0033). The endpoints check
+    /// who may be asked; the table only that the asker is seated.
+    /// </summary>
     public string? Invite(Guid from, Guid to)
     {
         if (IsClosed)
@@ -337,7 +345,7 @@ internal sealed class RoomActor
         }
 
         var seat = FreeSeat()!.Value;
-        _seats[seat] = new SeatRecord(player.ProfileId, player.HouseholdId, player.Name, player.Avatar, null);
+        _seats[seat] = new SeatRecord(player.ProfileId, player.AccountId, player.Name, player.Avatar, null);
         _invites.Remove(player.ProfileId);
         _watchers.Remove(player.ProfileId);
         Touch();
@@ -347,11 +355,25 @@ internal sealed class RoomActor
         return null;
     }
 
+    /// <summary>
+    /// A profile deleted, or of an account waiting to be deleted, lets go of the table (ADR 0034): it leaves its seat —
+    /// a bot finishes a hand it is in — or stops watching, and an invitation to it ends. Those it sent end with its seat.
+    /// </summary>
+    public async Task WithdrawAsync(Guid profileId)
+    {
+        _invites.Remove(profileId);
+        if (!IsClosed && (SeatOf(profileId) is not null || _watchers.Contains(profileId)))
+        {
+            await LeaveAsync(profileId);
+        }
+    }
+
     public async Task<string?> LeaveAsync(Guid profileId)
     {
         if (_watchers.Remove(profileId))
         {
             _connections.Remove(profileId);
+            CountOnline();
             await _outbox.RoomChangedAsync(this);
             return null;
         }
@@ -375,6 +397,7 @@ internal sealed class RoomActor
         _takenOver.Remove(seat);
         _goneSince.Remove(seat);
         _connections.Remove(profileId);
+        CountOnline();
         Touch();
         if (!_seats.Any(s => s.ProfileId is not null))
         {
@@ -422,6 +445,7 @@ internal sealed class RoomActor
         }
 
         set.Add(connectionId);
+        CountOnline();
         if (SeatOf(profileId) is { } seat)
         {
             _goneSince.Remove(seat);
@@ -443,6 +467,8 @@ internal sealed class RoomActor
                 continue;
             }
 
+            CountOnline();
+
             if (SeatOf(profileId) is { } seat)
             {
                 _goneSince[seat] = _clock.GetUtcNow();
@@ -451,6 +477,8 @@ internal sealed class RoomActor
             await _outbox.RoomChangedAsync(this);
         }
     }
+
+    private void CountOnline() => Volatile.Write(ref _online, _connections.Count(connection => connection.Value.Count > 0));
 
     // ------------------------------------------------------------------ the host's controls
 
@@ -491,7 +519,7 @@ internal sealed class RoomActor
         }
 
         Room.IsPublic = request.IsPublic ?? Room.IsPublic;
-        Room.HouseholdOnly = request.HouseholdOnly ?? Room.HouseholdOnly;
+        Room.AccountOnly = request.AccountOnly ?? Room.AccountOnly;
         Room.Locked = request.Locked ?? Room.Locked;
         Room.BotsFill = request.BotsFill ?? Room.BotsFill;
         Room.BotsTakeOver = request.BotsTakeOver ?? Room.BotsTakeOver;
@@ -529,6 +557,7 @@ internal sealed class RoomActor
         if (_seats[seat].ProfileId is { } removed)
         {
             _connections.Remove(removed);
+            CountOnline();
         }
 
         _seats[seat] = bot is null ? SeatRecord.Empty : new SeatRecord(null, null, null, null, bot);
@@ -729,7 +758,7 @@ internal sealed class RoomActor
             Hand = Room.Hand,
             Seat = rulesSeat,
             ProfileId = seat.ProfileId,
-            HouseholdId = seat.HouseholdId,
+            AccountId = seat.AccountId,
             Place = ranking.IndexOf(rulesSeat) is var place and >= 0 ? place : rulesSeat,
             Points = points?[rulesSeat]?.GetValue<int>() ?? 0,
             At = now,

@@ -1,6 +1,6 @@
 import type { JsonValue } from '@tohe/game-sdk';
 import Dexie from 'dexie';
-import { type LocalProfile, newId, type ToheDb } from './db.ts';
+import { type LocalProfile, type LocalRanked, newId, type ToheDb } from './db.ts';
 
 const AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐧', '🐨', '🦁', '🐰'];
 
@@ -16,6 +16,14 @@ export async function ensureGuestProfile(db: ToheDb): Promise<LocalProfile> {
   };
   await db.profiles.add(profile);
   return profile;
+}
+
+/** A ranked run the game handed in (ADR 0030): it waits on the device until sync takes it to the API. */
+export async function recordRanked(
+  db: ToheDb,
+  entry: Pick<LocalRanked, 'profileId' | 'gameId' | 'run' | 'moves' | 'score'>,
+): Promise<void> {
+  await db.ranked.add({ ...entry, at: Date.now(), synced: 0 });
 }
 
 export async function loadSave(db: ToheDb, profileId: string, gameId: string): Promise<JsonValue | null> {

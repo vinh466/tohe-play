@@ -12,7 +12,7 @@ const room = (over: Partial<RoomView> = {}): RoomView => ({
   status: 'playing',
   hostProfileId: 'p-bo',
   isPublic: true,
-  householdOnly: false,
+  accountOnly: false,
   locked: false,
   seats: 4,
   botsFill: true,
@@ -102,27 +102,37 @@ describe('the way back after signing in', () => {
 
 describe('a replay', () => {
   it('hands the game the seats, its own seat, the seed and the actions', () => {
-    const replay = replayFor({
-      roomId: 'r1',
-      hand: 2,
-      gameId: 'tien-len',
-      gameVersion: '0.3.0',
-      seed: 42,
-      options: { chopChain: true },
-      carry: { leader: 1 },
-      seats: [
-        { profileId: 'p-bo', name: 'Bố', avatar: '🦊', bot: null },
-        { profileId: null, name: null, avatar: null, bot: 'easy' },
-      ],
-      actions: [{ seat: 1, action: { type: 'pass' } }],
-      result: { points: [2, -2] },
-      mySeat: 0,
-      finishedAt: '2026-10-16T10:00:00Z',
-    });
+    const replay = replayFor(
+      {
+        roomId: 'r1',
+        hand: 2,
+        gameId: 'tien-len',
+        gameVersion: '0.3.0',
+        seed: 42,
+        options: { chopChain: true },
+        carry: { leader: 1 },
+        seats: [
+          { profileId: 'p-bo', name: 'Bố', avatar: '🦊', bot: null, deleted: false },
+          { profileId: null, name: null, avatar: null, bot: 'easy', deleted: false },
+          // A player whose profile was deleted since (ADR 0034): a person still, with nothing of them.
+          { profileId: 'p-random', name: null, avatar: null, bot: null, deleted: true },
+        ],
+        actions: [{ seat: 1, action: { type: 'pass' } }],
+        result: { points: [2, -2] },
+        mySeat: 0,
+        finishedAt: '2026-10-16T10:00:00Z',
+      },
+      'Người chơi đã xoá',
+    );
     expect(replay).toEqual({
       seats: [
         { profile: { id: 'p-bo', name: 'Bố', avatar: '🦊' }, bot: null, connected: true },
         { profile: null, bot: 'easy', connected: true },
+        {
+          profile: { id: 'p-random', name: 'Người chơi đã xoá', avatar: undefined },
+          bot: null,
+          connected: true,
+        },
       ],
       seat: 0,
       seed: 42,

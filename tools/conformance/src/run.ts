@@ -27,6 +27,7 @@ import { createHost, type Transport } from '@tohe/game-sdk/host';
 import { type Browser, type BrowserContext, chromium, type Frame, type Page } from 'playwright';
 import { checkRules, defaultOptions, loadRules, pure } from './rules.ts';
 import { serveStatic } from './static-server.ts';
+import { checkVerify, loadVerify, playRanked, replayRanked } from './verify.ts';
 
 export interface Check {
   name: string;
@@ -88,6 +89,12 @@ export async function runConformance(
     for (const result of await checkRules(dist, manifest.rooms)) check(result.name, result.ok, result.detail);
   }
 
+  // A ranked game (ADR 0030): its verify module, checked the way the API will replay runs with it.
+  if (manifest.ranked) {
+    for (const result of await checkVerify(dist, manifest.ranked))
+      check(result.name, result.ok, result.detail);
+  }
+
   // ---------------------------------------------------------------- runtime checks
   const hostDir = mkdtempSync(join(tmpdir(), 'tohe-conformance-'));
   const hostServer = await serveStatic({ root: hostDir });
@@ -105,6 +112,10 @@ export async function runConformance(
   const errors: string[] = [];
   const protocolErrors: string[] = [];
   const traffic = { saves: 0, scores: 0, logs: 0 };
+  const ranked = {
+    seeds: new Map<string, number>(),
+    finished: [] as { run: string; moves: JsonValue[]; score: number }[],
+  };
   // Telemetry is on, as in the hub, so every game's reporting is exercised and held to its budget (ADR 0015).
   const telemetry: { events: number; bytes: number }[] = [];
   const started = Date.now();
@@ -164,6 +175,15 @@ export async function runConformance(
       }),
       onSave: () => void traffic.saves++,
       onScore: () => void traffic.scores++,
+      // Ranked runs as the API deals them: a seed of the hub's own, and the moves handed back to replay.
+      onRankedStart: manifest.ranked
+        ? () => {
+            const run = { run: `conformance-${ranked.seeds.size + 1}`, seed: 20261018 + ranked.seeds.size };
+            ranked.seeds.set(run.run, run.seed);
+            return run;
+          }
+        : undefined,
+      onRankedFinish: (finish) => void ranked.finished.push(finish),
       onLog: () => void traffic.logs++,
       onTelemetry: (events) =>
         void telemetry.push({ events: events.length, bytes: JSON.stringify(events).length }),
@@ -190,6 +210,30 @@ export async function runConformance(
           () => false,
         );
       check('survives random input, pause/resume and settings', alive);
+      if (manifest.ranked) {
+        check('asks for a ranked run when a game starts', ranked.seeds.size > 0, `${ranked.seeds.size} runs`);
+        // A run the game played and handed in replays, with its own verify module, to the score it claimed.
+        if (ranked.finished.length > 0) {
+          const verify = await loadVerify(dist, manifest.ranked);
+          const wrong = ranked.finished.flatMap((finish) => {
+            const seed = ranked.seeds.get(finish.run);
+            if (seed === undefined) return [`${finish.run}: a run the hub never opened`];
+            try {
+              const { score } = replayRanked(verify, { seed, moves: finish.moves });
+              return score === finish.score
+                ? []
+                : [`${finish.run}: the game said ${finish.score}, the replay ${score}`];
+            } catch (error) {
+              return [`${finish.run}: ${(error as Error).message}`];
+            }
+          });
+          check(
+            'a ranked run it played replays to the score it handed in',
+            wrong.length === 0,
+            wrong.join('\n') || `${ranked.finished.length} runs`,
+          );
+        }
+      }
       const outDir = resolve(options.outDir ?? 'test-results/conformance');
       mkdirSync(outDir, { recursive: true });
       const shot = (name: string) => {
@@ -269,6 +313,22 @@ export async function runConformance(
       }).catch((error: Error) => ({ ok: false, detail: error.message }));
       check('replays a finished hand with its rules module', replayed.ok, replayed.detail);
       if (replayed.ok) screenshots.push(join(outDir, `${manifest.id}-replay.png`));
+    }
+
+    if (manifest.ranked && handshake === null) {
+      const outDir = resolve(options.outDir ?? 'test-results/conformance');
+      const watched = await rankedReplayRun({
+        context,
+        manifest,
+        dist,
+        hostUrl: hostServer.url,
+        gameUrl: gameServer.url,
+        errors,
+        protocolErrors,
+        screenshot: join(outDir, `${manifest.id}-ranked-replay.png`),
+      }).catch((error: Error) => ({ ok: false, detail: error.message }));
+      check('plays a ranked run back to watch, and records nothing', watched.ok, watched.detail);
+      if (watched.ok) screenshots.push(join(outDir, `${manifest.id}-ranked-replay.png`));
     }
 
     check('no console errors or uncaught exceptions', errors.length === 0, errors.slice(0, 5).join('\n'));
@@ -716,6 +776,81 @@ async function replayRun(run: {
     mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
     await page.screenshot({ path: run.screenshot });
     return { ok: true, detail: `${actions.length} actions` };
+  } finally {
+    host.dispose();
+    await page.close();
+  }
+}
+
+/**
+ * The game opened with `init.rankedReplay` (ADR 0032): a run its verify module's bot played, to watch instead of play.
+ * Checks that it opens and plays back without errors, and that watching records nothing — no save, no score, no
+ * ranked run.
+ */
+async function rankedReplayRun(run: {
+  context: BrowserContext;
+  manifest: GameManifest;
+  dist: string;
+  hostUrl: string;
+  gameUrl: string;
+  errors: string[];
+  protocolErrors: string[];
+  screenshot: string;
+}): Promise<{ ok: boolean; detail: string }> {
+  const ranked = run.manifest.ranked;
+  if (!ranked) return { ok: false, detail: 'no ranked block' };
+  const verify = await loadVerify(run.dist, ranked);
+  const seed = 20261018;
+  const moves = playRanked(verify, seed, Math.min(ranked.maxMoves, 400)) as JsonValue[];
+  const recorded = new Set<string>();
+  const page = await run.context.newPage();
+  page.on('console', (message) => {
+    if (message.type() === 'error') run.errors.push(`console (ranked replay): ${message.text()}`);
+  });
+  page.on('pageerror', (error) => run.errors.push(`uncaught (ranked replay): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (ranked replay)'));
+  const listeners = new Set<(message: unknown) => void>();
+  await page.exposeFunction('__toNode', (message: unknown) => {
+    for (const listener of listeners) listener(message);
+  });
+  const host = createHost({
+    transport: {
+      post: (message) =>
+        void page.evaluate((m) => (window as unknown as Bridge).__toGame(m), message).catch(() => {}),
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    manifest: run.manifest,
+    readyTimeoutMs: 10_000,
+    init: () => ({
+      profile: { id: 'conformance', name: 'Tester' },
+      locale: 'vi',
+      settings: { muted: true, theme: run.manifest.themes[0] ?? 'light' },
+      save: null,
+      seed: 20261016,
+      rankedReplay: { seed, moves },
+    }),
+    onSave: () => void recorded.add('save'),
+    onScore: () => void recorded.add('score'),
+    onRankedStart: () => {
+      recorded.add('ranked.start');
+      throw new Error('watching a run');
+    },
+    onRankedFinish: () => void recorded.add('ranked.finish'),
+    onProtocolError: (error) => run.protocolErrors.push(`ranked replay: ${error}`),
+  });
+  try {
+    await page.goto(run.hostUrl);
+    await host.ready;
+    await gameFrame(page, run.gameUrl);
+    await page.waitForTimeout(4000);
+    mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
+    await page.screenshot({ path: run.screenshot });
+    return recorded.size === 0
+      ? { ok: true, detail: `${moves.length} moves` }
+      : { ok: false, detail: `recorded while watching: ${[...recorded].join(', ')}` };
   } finally {
     host.dispose();
     await page.close();

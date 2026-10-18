@@ -126,6 +126,151 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("account_tokens", "identity");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Admin.AuditEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("action");
+
+                    b.Property<string>("Actor")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("actor");
+
+                    b.Property<Guid?>("ActorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("actor_id");
+
+                    b.Property<string>("Address")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("address");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<string>("Target")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("target");
+
+                    b.HasKey("Id")
+                        .HasName("pk_audit_log");
+
+                    b.HasIndex("At")
+                        .HasDatabaseName("ix_audit_log_at");
+
+                    b.ToTable("audit_log", "admin");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Admin.PlatformSetting", b =>
+                {
+                    b.Property<string>("Key")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("key");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Value")
+                        .IsRequired()
+                        .HasMaxLength(4000)
+                        .HasColumnType("character varying(4000)")
+                        .HasColumnName("value");
+
+                    b.HasKey("Key")
+                        .HasName("pk_settings");
+
+                    b.ToTable("settings", "admin");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Email.OutboxEmail", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("FailedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("failed_at");
+
+                    b.Property<string>("Html")
+                        .HasColumnType("text")
+                        .HasColumnName("html");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("LastError")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("last_error");
+
+                    b.Property<DateTimeOffset>("NextAttemptAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("next_attempt_at");
+
+                    b.Property<DateTimeOffset?>("SentAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("sent_at");
+
+                    b.Property<string>("Subject")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("subject");
+
+                    b.Property<string>("Text")
+                        .HasColumnType("text")
+                        .HasColumnName("text");
+
+                    b.Property<string>("To")
+                        .IsRequired()
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("to");
+
+                    b.HasKey("Id")
+                        .HasName("pk_outbox");
+
+                    b.HasIndex("CreatedAt")
+                        .HasDatabaseName("ix_outbox_created_at");
+
+                    b.HasIndex("NextAttemptAt")
+                        .HasDatabaseName("ix_outbox_due")
+                        .HasFilter("sent_at IS NULL AND failed_at IS NULL");
+
+                    b.ToTable("outbox", "email");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Identity.Account", b =>
                 {
                     b.Property<Guid>("Id")
@@ -137,6 +282,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("access_failed_count");
 
+                    b.Property<Guid?>("CommunityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("community_id");
+
                     b.Property<string>("ConcurrencyStamp")
                         .IsConcurrencyToken()
                         .HasColumnType("text")
@@ -146,10 +295,14 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset?>("DeleteAfter")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("delete_after");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("display_name");
 
                     b.Property<string>("Email")
@@ -161,9 +314,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("email_confirmed");
 
-                    b.Property<Guid>("HouseholdId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("household_id");
+                    b.Property<string>("InviteCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("invite_code");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean")
@@ -172,6 +326,18 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<DateTimeOffset?>("LockoutEnd")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("lockout_end");
+
+                    b.Property<int>("ManagePinFailures")
+                        .HasColumnType("integer")
+                        .HasColumnName("manage_pin_failures");
+
+                    b.Property<string>("ManagePinHash")
+                        .HasColumnType("text")
+                        .HasColumnName("manage_pin_hash");
+
+                    b.Property<DateTimeOffset?>("ManagePinLockedUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("manage_pin_locked_until");
 
                     b.Property<string>("NormalizedEmail")
                         .HasMaxLength(256)
@@ -199,6 +365,30 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("security_stamp");
 
+                    b.Property<DateTimeOffset?>("SuspendedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("suspended_at");
+
+                    b.Property<string>("SuspendedReason")
+                        .HasMaxLength(300)
+                        .HasColumnType("character varying(300)")
+                        .HasColumnName("suspended_reason");
+
+                    b.Property<bool>("TelemetryEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("telemetry_enabled");
+
+                    b.Property<DateTimeOffset?>("TermsAcceptedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("terms_accepted_at");
+
+                    b.Property<string>("TermsVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("terms_version");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("two_factor_enabled");
@@ -211,11 +401,17 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_accounts");
 
-                    b.HasIndex("HouseholdId")
-                        .HasDatabaseName("ix_accounts_household_id");
+                    b.HasIndex("CommunityId")
+                        .HasDatabaseName("ix_accounts_community_id");
+
+                    b.HasIndex("DeleteAfter")
+                        .HasDatabaseName("ix_accounts_delete_after")
+                        .HasFilter("delete_after IS NOT NULL");
 
                     b.HasIndex("NormalizedEmail")
-                        .HasDatabaseName("EmailIndex");
+                        .IsUnique()
+                        .HasDatabaseName("email_index")
+                        .HasFilter("normalized_email IS NOT NULL");
 
                     b.HasIndex("NormalizedUserName")
                         .IsUnique()
@@ -224,49 +420,7 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("accounts", "identity");
                 });
 
-            modelBuilder.Entity("Tohe.Api.Modules.Identity.Household", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("InviteCode")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("invite_code");
-
-                    b.Property<DateTimeOffset?>("InviteExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("invite_expires_at");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("name");
-
-                    b.Property<bool>("TelemetryEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("telemetry_enabled");
-
-                    b.HasKey("Id")
-                        .HasName("pk_households");
-
-                    b.HasIndex("InviteCode")
-                        .IsUnique()
-                        .HasDatabaseName("ix_households_invite_code");
-
-                    b.ToTable("households", "households");
-                });
-
-            modelBuilder.Entity("Tohe.Api.Modules.Identity.Profile", b =>
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.AuthAttempt", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -277,10 +431,182 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("account_id");
 
+                    b.Property<DateTimeOffset?>("ClosedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("closed_at");
+
+                    b.Property<string>("CodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("code_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("DisplayName")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("display_name");
+
+                    b.Property<string>("Email")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("email");
+
+                    b.Property<bool>("EmailProven")
+                        .HasColumnType("boolean")
+                        .HasColumnName("email_proven");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("InviteCode")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("invite_code");
+
+                    b.Property<string>("NormalizedEmail")
+                        .IsRequired()
+                        .HasMaxLength(254)
+                        .HasColumnType("character varying(254)")
+                        .HasColumnName("normalized_email");
+
+                    b.Property<string>("PasswordHash")
+                        .HasColumnType("text")
+                        .HasColumnName("password_hash");
+
+                    b.Property<string>("Provider")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("provider");
+
+                    b.Property<string>("ProviderKey")
+                        .HasMaxLength(256)
+                        .HasColumnType("character varying(256)")
+                        .HasColumnName("provider_key");
+
+                    b.Property<string>("ProviderName")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("provider_name");
+
+                    b.Property<string>("Purpose")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("purpose");
+
+                    b.Property<string>("TermsVersion")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("terms_version");
+
+                    b.Property<int>("TriesLeft")
+                        .HasColumnType("integer")
+                        .HasColumnName("tries_left");
+
+                    b.HasKey("Id")
+                        .HasName("pk_auth_attempts");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_auth_attempts_expires_at");
+
+                    b.HasIndex("NormalizedEmail", "CreatedAt")
+                        .HasDatabaseName("ix_auth_attempts_normalized_email_created_at");
+
+                    b.ToTable("auth_attempts", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.Community", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("name");
+
+                    b.HasKey("Id")
+                        .HasName("pk_communities");
+
+                    b.HasIndex("Name")
+                        .IsUnique()
+                        .HasDatabaseName("ix_communities_name");
+
+                    b.ToTable("communities", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.InviteCode", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(32)
+                        .HasColumnType("character varying(32)")
+                        .HasColumnName("code");
+
+                    b.Property<Guid>("CommunityId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("community_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset?>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_uses");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<int>("Uses")
+                        .HasColumnType("integer")
+                        .HasColumnName("uses");
+
+                    b.HasKey("Code")
+                        .HasName("pk_invite_codes");
+
+                    b.HasIndex("CommunityId")
+                        .HasDatabaseName("ix_invite_codes_community_id");
+
+                    b.ToTable("invite_codes", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.Profile", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
                     b.Property<string>("AgeBand")
                         .HasMaxLength(8)
                         .HasColumnType("character varying(8)")
                         .HasColumnName("age_band");
+
+                    b.Property<DateTimeOffset?>("AskedChildAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("asked_child_at");
 
                     b.Property<string>("Avatar")
                         .IsRequired()
@@ -292,9 +618,15 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<Guid>("HouseholdId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("household_id");
+                    b.Property<DateTimeOffset?>("HiddenFromBoardsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hidden_from_boards_at");
+
+                    b.Property<string>("Invites")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("invites");
 
                     b.Property<string>("Kind")
                         .IsRequired()
@@ -304,9 +636,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("name");
+
+                    b.Property<bool>("OnPublicBoards")
+                        .HasColumnType("boolean")
+                        .HasColumnName("on_public_boards");
 
                     b.Property<string>("PinHash")
                         .HasColumnType("text")
@@ -318,17 +654,344 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("play_with_others");
 
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character(12)")
+                        .HasColumnName("public_id")
+                        .IsFixedLength();
+
                     b.HasKey("Id")
                         .HasName("pk_profiles");
 
-                    b.HasIndex("AccountId")
+                    b.HasIndex("PublicId")
                         .IsUnique()
-                        .HasDatabaseName("ix_profiles_account_id");
+                        .HasDatabaseName("ix_profiles_public_id");
 
-                    b.HasIndex("HouseholdId")
-                        .HasDatabaseName("ix_profiles_household_id");
+                    b.HasIndex("AccountId", "CreatedAt")
+                        .HasDatabaseName("ix_profiles_account_id_created_at");
 
-                    b.ToTable("profiles", "households");
+                    b.ToTable("profiles", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileName", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("name");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_profile_names");
+
+                    b.HasIndex("ProfileId", "At")
+                        .HasDatabaseName("ix_profile_names_profile_id_at");
+
+                    b.ToTable("profile_names", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.RetiredProfileId", b =>
+                {
+                    b.Property<string>("PublicId")
+                        .HasMaxLength(12)
+                        .HasColumnType("character(12)")
+                        .HasColumnName("public_id")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("RetiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retired_at");
+
+                    b.HasKey("PublicId")
+                        .HasName("pk_retired_profile_ids");
+
+                    b.ToTable("retired_profile_ids", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.IntegrityDecision", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Actor")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("actor");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<string>("From")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("from");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("reason");
+
+                    b.Property<long>("ResultId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("result_id");
+
+                    b.Property<int>("RuleVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("rule_version");
+
+                    b.Property<string>("To")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("to");
+
+                    b.HasKey("Id")
+                        .HasName("pk_decisions");
+
+                    b.HasIndex("ResultId")
+                        .HasDatabaseName("ix_decisions_result_id");
+
+                    b.HasIndex("ResultId", "Id")
+                        .HasDatabaseName("ix_integrity_decisions_decided")
+                        .HasFilter("actor IS NOT NULL OR \"to\" = 'Rejected'");
+
+                    b.ToTable("decisions", "integrity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.IntegrityResult", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Board")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("board");
+
+                    b.Property<string>("DecidedBy")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("decided_by");
+
+                    b.Property<DateTimeOffset?>("DeviceAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("device_at");
+
+                    b.Property<bool>("Final")
+                        .HasColumnType("boolean")
+                        .HasColumnName("final");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("level");
+
+                    b.Property<int?>("Place")
+                        .HasColumnType("integer")
+                        .HasColumnName("place");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<bool>("Public")
+                        .HasColumnType("boolean")
+                        .HasColumnName("public");
+
+                    b.Property<int>("RuleVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("rule_version");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("source");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_integrity_results");
+
+                    b.HasIndex("Id")
+                        .HasDatabaseName("ix_integrity_results_held")
+                        .HasFilter("level = 'Held'");
+
+                    b.HasIndex("Source")
+                        .IsUnique()
+                        .HasDatabaseName("ix_results_source");
+
+                    b.HasIndex("GameId", "Board", "At")
+                        .HasDatabaseName("ix_integrity_results_game_id_board_at");
+
+                    b.HasIndex("ProfileId", "GameId", "At")
+                        .HasDatabaseName("ix_integrity_results_profile_id_game_id_at");
+
+                    b.HasIndex("AccountId", "GameId", "Board", "At")
+                        .HasDatabaseName("ix_results_account_id_game_id_board_at");
+
+                    b.HasIndex("ProfileId", "GameId", "Board", "Value")
+                        .HasDatabaseName("ix_results_profile_id_game_id_board_value");
+
+                    b.ToTable("results", "integrity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.RankedRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("Board")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("board");
+
+                    b.Property<double?>("Claimed")
+                        .HasColumnType("double precision")
+                        .HasColumnName("claimed");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("GamePath")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("game_path");
+
+                    b.Property<int>("MaxMoves")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_moves");
+
+                    b.Property<int>("MinMsPerMove")
+                        .HasColumnType("integer")
+                        .HasColumnName("min_ms_per_move");
+
+                    b.Property<int>("MoveCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("move_count");
+
+                    b.Property<string>("Moves")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("moves");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<double?>("Replayed")
+                        .HasColumnType("double precision")
+                        .HasColumnName("replayed");
+
+                    b.Property<long?>("ResultId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("result_id");
+
+                    b.Property<int>("Seed")
+                        .HasColumnType("integer")
+                        .HasColumnName("seed");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Verify")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("verify");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ranked_runs");
+
+                    b.HasIndex("ResultId")
+                        .HasDatabaseName("ix_ranked_runs_result_id");
+
+                    b.HasIndex("State", "FinishedAt")
+                        .HasDatabaseName("ix_ranked_runs_state_finished_at");
+
+                    b.HasIndex("ProfileId", "GameId", "State")
+                        .HasDatabaseName("ix_ranked_runs_profile_id_game_id_state");
+
+                    b.ToTable("ranked_runs", "integrity");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Progress.SavedGame", b =>
@@ -484,6 +1147,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("path");
 
+                    b.Property<string>("Ranked")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("ranked");
+
                     b.Property<string>("Rooms")
                         .HasColumnType("jsonb")
                         .HasColumnName("rooms");
@@ -519,6 +1186,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uuid")
                         .HasColumnName("id");
+
+                    b.Property<bool>("AccountOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("account_only");
 
                     b.Property<bool>("AllowSpectators")
                         .HasColumnType("boolean")
@@ -581,17 +1252,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("hand_seats");
 
-                    b.Property<Guid>("HostHouseholdId")
+                    b.Property<Guid>("HostAccountId")
                         .HasColumnType("uuid")
-                        .HasColumnName("host_household_id");
+                        .HasColumnName("host_account_id");
 
                     b.Property<Guid>("HostProfileId")
                         .HasColumnType("uuid")
                         .HasColumnName("host_profile_id");
-
-                    b.Property<bool>("HouseholdOnly")
-                        .HasColumnType("boolean")
-                        .HasColumnName("household_only");
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean")
@@ -772,6 +1439,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<Guid?>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
                     b.Property<DateTimeOffset>("At")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("at");
@@ -785,10 +1456,6 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<int>("Hand")
                         .HasColumnType("integer")
                         .HasColumnName("hand");
-
-                    b.Property<Guid?>("HouseholdId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("household_id");
 
                     b.Property<int>("Place")
                         .HasColumnType("integer")
@@ -813,11 +1480,11 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_results");
 
-                    b.HasIndex("RoomId")
-                        .HasDatabaseName("ix_results_room_id");
+                    b.HasIndex("RoomId", "Hand")
+                        .HasDatabaseName("ix_rooms_results_room_id_hand");
 
-                    b.HasIndex("HouseholdId", "GameId", "At")
-                        .HasDatabaseName("ix_results_household_id_game_id_at");
+                    b.HasIndex("AccountId", "GameId", "At")
+                        .HasDatabaseName("ix_results_account_id_game_id_at");
 
                     b.HasIndex("ProfileId", "GameId", "At")
                         .HasDatabaseName("ix_results_profile_id_game_id_at");
@@ -1205,24 +1872,64 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
 
             modelBuilder.Entity("Tohe.Api.Modules.Identity.Account", b =>
                 {
-                    b.HasOne("Tohe.Api.Modules.Identity.Household", "Household")
+                    b.HasOne("Tohe.Api.Modules.Identity.Community", null)
                         .WithMany()
-                        .HasForeignKey("HouseholdId")
+                        .HasForeignKey("CommunityId")
+                        .OnDelete(DeleteBehavior.SetNull)
+                        .HasConstraintName("fk_accounts_communities_community_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.InviteCode", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Community", null)
+                        .WithMany()
+                        .HasForeignKey("CommunityId")
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
-                        .HasConstraintName("fk_accounts_households_household_id");
-
-                    b.Navigation("Household");
+                        .HasConstraintName("fk_invite_codes_communities_community_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Identity.Profile", b =>
                 {
-                    b.HasOne("Tohe.Api.Modules.Identity.Household", null)
-                        .WithMany("Profiles")
-                        .HasForeignKey("HouseholdId")
+                    b.HasOne("Tohe.Api.Modules.Identity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_profiles_households_household_id");
+                        .HasConstraintName("fk_profiles_accounts_account_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileName", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Profile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_profile_names_profiles_profile_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.IntegrityDecision", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Integrity.IntegrityResult", "Result")
+                        .WithMany()
+                        .HasForeignKey("ResultId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_decisions_integrity_results_result_id");
+
+                    b.Navigation("Result");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.RankedRun", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Integrity.IntegrityResult", "Result")
+                        .WithMany()
+                        .HasForeignKey("ResultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ranked_runs_integrity_results_result_id");
+
+                    b.Navigation("Result");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomAction", b =>
@@ -1265,11 +1972,6 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasConstraintName("fk_events_telemetry_sessions_session_id");
 
                     b.Navigation("Session");
-                });
-
-            modelBuilder.Entity("Tohe.Api.Modules.Identity.Household", b =>
-                {
-                    b.Navigation("Profiles");
                 });
 #pragma warning restore 612, 618
         }

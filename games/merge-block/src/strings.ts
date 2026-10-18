@@ -23,6 +23,21 @@ export const strings = {
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
     bestLine: (score: string) => `👑 Kỷ lục ${score}`,
+    // Watching a ranked run (ADR 0032), in the admin console.
+    replay: {
+      title: 'Xem lại run',
+      leave: 'Thoát xem lại',
+      move: 'Nước',
+      back: 'Lùi một nước',
+      forward: 'Tới một nước',
+      play: 'Phát',
+      pause: 'Dừng',
+      speed: (n: number) => `Tốc độ ×${n}`,
+      scrub: 'Tới nước',
+      ended: (score: string) => `Hết ván: ${score} điểm.`,
+      unfinished: 'Run dừng ở đây, ván chưa hết.',
+      illegal: (move: number) => `Nước ${move} không hợp lệ: chiếu đến trước nó.`,
+    },
   },
   en: {
     title: 'Merge Blocks',
@@ -48,6 +63,20 @@ export const strings = {
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     inProgress: (score: string) => `A game in progress: ${score} points.`,
     bestLine: (score: string) => `👑 Best ${score}`,
+    replay: {
+      title: 'Watch the run',
+      leave: 'Stop watching',
+      move: 'Move',
+      back: 'One move back',
+      forward: 'One move on',
+      play: 'Play',
+      pause: 'Pause',
+      speed: (n: number) => `Speed ×${n}`,
+      scrub: 'Go to move',
+      ended: (score: string) => `Game over: ${score} points.`,
+      unfinished: 'The run stops here, before the game ended.',
+      illegal: (move: number) => `Move ${move} is not legal: shown up to it.`,
+    },
   },
 };
 

@@ -94,7 +94,7 @@ export interface TelemetryState extends TelemetrySwitches {
   consent: Consent;
 }
 
-let state: TelemetryState = { server: null, household: true, device: true, consent: null };
+let state: TelemetryState = { server: null, account: true, device: true, consent: null };
 const listeners = new Set<() => void>();
 
 function update(next: Partial<TelemetrySwitches>) {
@@ -140,7 +140,7 @@ export function startTelemetry(queryClient: QueryClient) {
     if (config) hubVersion = config.apiVersion.replace(/[^0-9a-zA-Z.+-]/g, '').slice(0, 40) || 'unknown';
     update({
       server: config ? config.telemetry : state.server,
-      household: me ? me.household.telemetry : true,
+      account: me ? me.account.telemetry : true,
     });
   };
   queryClient.getQueryCache().subscribe(follow);

@@ -22,6 +22,7 @@ describe('design tokens', () => {
     [['danger'], ['page', 'surface', 'danger-soft', 'danger-soft-strong'], 4.5],
     [['notice-ink'], ['notice'], 4.5],
     [['on-brand'], ['brand', 'brand-strong'], 3],
+    [['on-brand'], ['brand-strong'], 4.5],
     [['brand', 'focus'], ['page', 'surface'], 3],
   ];
 
