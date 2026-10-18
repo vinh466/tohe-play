@@ -1,7 +1,8 @@
 # D-13 — Games origin trên domain riêng
 
-- Status: **decided Q1 = B** (2026-10-18, chat: "chắc tôi sẽ mua 1 domain mới, mà .io.vn vẫn được chứ") — Q2 (tên)
-  chờ owner mua; agent gợi ý **`toheplay.io.vn`** ([tìm tên](#tìm-tên-2026-10-18))
+- Status: **decided** (2026-10-18, chat) — Q1 = B; Q2: owner đã mua **`toheplay.io.vn`** ("toheplay.io.vn, tôi đã mua
+  r, chưa trỏ về")
+- Decided: 2026-10-18 — [#67](https://github.com/vinh466/tohe-play/pull/67) (ADR 0039), chờ owner review
 - Kind: decision — đổi hostname production của games origin (ADR 0002) là quyết định về origin → ADR khi chốt
 - Blocks: E-10 (checklist ra mắt), F4 · Blocked by: —
 
@@ -98,6 +99,20 @@ Khi owner mua xong:
    Newly Registered Domains" cho domain đăng ký chưa tới 30 ngày
    ([diễn đàn NextDNS](https://help.nextdns.io/t/35yz3m6/is-there-a-way-to-block-newly-active-domains)). Ai bật tuỳ chọn
    này sẽ không tải được game trong những tuần đầu.
+
+## Rà soát (2026-10-18)
+
+Owner: "bạn hãy rà soát toàn bộ để chúng ta có thể làm games origin đúng nhé (t nghĩ cũng configable đc hết mà
+nhỉ)". Đúng: mọi chỗ trình duyệt và API dùng games origin đều lấy từ một giá trị, `publicUrls.games` của chart —
+CSP của hub và console (`GAMES_ORIGIN`), `Games:PublicOrigin` của API (hub và console tin `postMessage` theo nó),
+`frame-ancestors` của game (`HUB_ORIGINS`), host của Ingress. Chỉ file mẫu production
+`deploy/helm/tohe/ci/platform-infra.yaml` ghi tên cũ. [#67](https://github.com/vinh466/tohe-play/pull/67) sửa nó, cho `/` của games origin chuyển về hub (không
+cache), thêm `X-Robots-Tag: noindex`, viết ADR 0039 và docs.
+
+Khác site với hub không đổi gì cho game: game không dùng storage riêng, không cookie, iframe đã có
+`allow="autoplay; fullscreen"`, games origin không có service worker. Còn lại ngoài repo: zone Cloudflare (bật
+"Always Use HTTPS", SSL/TLS như `vinetic.io.vn`; **tắt** challenge chống bot, Hotlink Protection, Rocket Loader, Web
+Analytics tự chèn, Email Obfuscation) và A4 (DNS `toheplay.io.vn` → IP production, proxied; Ingress).
 
 ## Thảo luận
 

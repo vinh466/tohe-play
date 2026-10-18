@@ -17,16 +17,17 @@
 
 **A4 — `apps/tohe` trong `platform-infra`** (draft PR, phiên mở trong repo đó — E-06): #43–#65 đã merge (2026-10-18),
 `main` là `ad83c45`; CI của nó xanh và đã publish image + chart lên GHCR (5 package public). Song song: owner review F1c
-([#66](https://github.com/vinh466/tohe-play/pull/66), ADR 0038) và mua domain cho game (D-13, gợi ý `toheplay.io.vn`).
+([#66](https://github.com/vinh466/tohe-play/pull/66), ADR 0038) và games origin trên `toheplay.io.vn` ([#67](https://github.com/vinh466/tohe-play/pull/67), ADR 0039).
 Sau đó: F4 (ra mắt, E-10).
 
 ## Waiting on the owner
 
 1. **F1c** — review [#66](https://github.com/vinh466/tohe-play/pull/66): hết 7 ngày, account chờ admin xoá trong console
    (E-07 Q7 theo lời owner). Merge, rồi nói "deploy" nếu muốn nó lên UAT.
-2. **D-13** — owner chọn B (domain riêng cho game). Mua tên: agent gợi ý **`toheplay.io.vn`** (DNS còn trống ngày
-   2026-10-18; dự phòng `tohebox.io.vn`), mua sớm vì có bộ lọc chặn domain mới 30 ngày; zone trên Cloudflare
-   ([item](items/D-13-games-origin-domain.md#tìm-tên-2026-10-18)). Có tên rồi thì agent viết ADR và sửa cấu hình.
+2. **D-13** — `toheplay.io.vn` đã mua. Review [#67](https://github.com/vinh466/tohe-play/pull/67) (ADR 0039). Ở Cloudflare: thêm zone, đổi nameserver ở
+   nhà đăng ký; SSL/TLS như `vinetic.io.vn`, bật "Always Use HTTPS"; **tắt** Bot Fight Mode / "I'm Under Attack" / WAF
+   challenge, Hotlink Protection, Rocket Loader, Web Analytics tự chèn, Email Obfuscation
+   ([lý do](items/D-13-games-origin-domain.md#rà-soát-2026-10-18)). DNS và Ingress đi cùng A4.
 3. ~~GHCR Public~~ — không cần làm: lần publish đầu (2026-10-18) ra 5 package **public** (`api`, `hub`, `games`, `site`,
    `charts/tohe`), kéo ẩn danh được. Từ #47, `deploy/uat/deploy.sh` kéo image `sha-<commit>` từ GHCR — chỉ commit đã
    lên `main` mới có image, nên một PR lên UAT sau khi merge.
@@ -56,7 +57,7 @@ Sau đó: F4 (ra mắt, E-10).
 | D-10 | [Verifier replay (đổi contract)](items/D-10-verified-runs.md) | T5 | decision | **decided** | D-16 |
 | D-11 | [Bảng & hạng của phòng](items/D-11-room-boards.md) | T5 | decision | **decided** | D-09 |
 | D-12 | [Chế độ đăng ký & mã mời cộng đồng](items/D-12-registration-modes.md) | T7 | decision | **decided** | D-02 |
-| D-13 | [Games origin trên domain riêng](items/D-13-games-origin-domain.md) | T7 | decision | **decided** Q1 = B (domain riêng); Q2 tên chờ owner mua — gợi ý `toheplay.io.vn` | — |
+| D-13 | [Games origin trên domain riêng](items/D-13-games-origin-domain.md) | T7 | decision | **decided** — `toheplay.io.vn` (owner đã mua), #67 ADR 0039 | — |
 | D-14 | [Release bằng chart + GHCR + promote](items/D-14-release-via-chart.md) | T1 | decision | **decided** | — |
 | D-15 | [UAT có HTTPS](items/D-15-uat-https.md) | T1 | decision | deferred | — |
 | D-16 | [Engine độ tin](items/D-16-integrity-engine.md) | T5 | decision | **decided** | D-09 |

@@ -2,6 +2,12 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (khuya, cuối) — agent
+
+- Owner đã mua `toheplay.io.vn` → D-13 decided. Rà soát: mọi thứ đi theo `publicUrls.games`; chỉ file mẫu production
+  ghi tên cũ. [#67](https://github.com/vinh466/tohe-play/pull/67) (ADR 0039): tên mới, `/` → hub, `noindex`, docs; `pnpm verify` xanh.
+- Chờ owner: review #66, #67; zone Cloudflare cho `toheplay.io.vn` (thiết lập trong item D-13).
+
 ## 2026-10-18 (khuya, tiếp) — agent
 
 - Owner: "chắc tôi sẽ mua 1 domain mới, mà .io.vn vẫn được chứ" → D-13 Q1 = B.
