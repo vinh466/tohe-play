@@ -5,7 +5,8 @@ sidebar:
   order: 29
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — a result left to people keeps its value, not only its level, since
+  [ADR 0031](0031-people-decide-what-the-engine-held.md)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0014](0014-live-scores-for-long-runs.md) — a run's place on a board follows the server's clock and
   its level; [ADR 0016](0016-online-rooms-for-turn-based-games.md) — the weekly board is the calendar week, and a hand

@@ -42,5 +42,6 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0026](0026-sign-in-methods-and-account-linking.md) | Sign in with Google, GitHub or an OpenID Connect issuer; link a provider by its subject, after proof | Accepted; a configured provider can be switched off by 0028 |
 | [0027](0027-platform-admin-and-the-first-owner.md) | Run the platform from an admin console on the hub's origin; roles grant permissions; a setup token makes the first owner | Accepted |
 | [0028](0028-sign-in-and-registration-at-run-time.md) | Switch sign-in methods and registration at run time; communities join by invite code | Accepted |
-| [0029](0029-integrity-engine-and-boards-by-trust.md) | One integrity engine gives every result a trust level from its evidence; boards read by trust | Accepted |
+| [0029](0029-integrity-engine-and-boards-by-trust.md) | One integrity engine gives every result a trust level from its evidence; boards read by trust | Accepted; a result left to people keeps its value since 0031 |
 | [0030](0030-ranked-runs-replayed-by-the-server.md) | Ranked runs: the server deals the seed, the game hands in its moves, the server replays them | Accepted |
+| [0031](0031-people-decide-what-the-engine-held.md) | People decide what the engine held: the console's review, and profiles hidden from public boards | Accepted |

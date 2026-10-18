@@ -46,11 +46,11 @@ An account holds at most one platform role — `owner`, `admin`, `moderator` or 
 | `admin.users.read` | Find accounts and see one: sign-in methods, role, suspension, profiles and their names | owner, admin, moderator |
 | `admin.users.write` | Suspend an account or lift it, end its sessions | owner, admin |
 | `admin.roles.write` | Give or take platform roles | owner |
-| `admin.profiles.moderate` | Rename a profile | owner, admin, moderator |
+| `admin.profiles.moderate` | Rename a profile, hide it from public boards | owner, admin, moderator |
 | `admin.settings.write` | Switch sign-in methods and the registration mode; make communities and invite codes, revoke codes | owner, admin |
+| `admin.results.review` | Review what the integrity engine held: approve, reject, reopen ([Review](#review)) | owner, admin, moderator |
 
-A permission to change something new — boards — arrives with the page that changes it, given to the roles that should
-hold it.
+A permission to change something new arrives with the page that changes it, given to the roles that should hold it.
 
 ```mermaid
 flowchart TD
@@ -158,6 +158,8 @@ credentials, short of dropping the trigger. Owners and admins read it in the con
 | `user.suspend`, `user.unsuspend` | An account suspended — the reason in the details — or the suspension lifted |
 | `user.sign-out` | Every session of an account ended |
 | `profile.rename` | A profile renamed, with the names before and after |
+| `profile.hide`, `profile.show` | A profile hidden from public boards — the reason in the details — or let back |
+| `result.approve`, `result.reject`, `result.reopen` | A person's decision about a result (target `result {id}`), with the levels before and after and the note |
 | `settings.change` | Sign-in methods or the registration mode switched, with the new values |
 | `community.create` | A community made |
 | `invite.create`, `invite.revoke` | An invite code made — its community, end and limit of uses in the details — or revoked |
@@ -183,9 +185,20 @@ level 2 and in the audit log:
 - **Rename a profile** (moderators too), under the same name rules as its owner (ADR 0023). A database trigger keeps
   every name a profile had — on creation and on any rename, by its owner or a moderator — so moderation sees what it
   was called; the history goes with the profile when it is deleted.
+- **Hide a profile from public boards** (moderators too), with a reason only admins see, and let it back
+  ([ADR 0031](../decisions/0031-people-decide-what-the-engine-held.md)). The owner's switch stays as it is and does not
+  bring the profile back; the hub tells the owner it is hidden. The account's own board is unchanged.
 
 Nobody acts on their own account here (`admin_self`) — that is what the hub is for — nor on an account whose role is as
 strong as theirs (`admin_rank`), except an owner on another owner.
+
+## Review
+
+What the integrity engine held waits for a person in **Xem xét kết quả**, oldest first; results people decided about or
+the engine rejected are found again under **Đã quyết**, to reopen one. A decision — approve, reject, reopen — needs
+step-up level 2, takes an optional note, and nobody makes one about their own account's results (`admin_self`). The
+levels, the evidence and the rules: [Integrity and boards](integrity.md#review). Rejecting does not suspend; the result
+links to its account for whoever may.
 
 ## Sign-in and registration
 
@@ -239,11 +252,12 @@ It exits with 0 when done, 1 when no account signs in with the address, 2 for a 
 
 | Page | Shows | Asks |
 | --- | --- | --- |
-| Tổng quan, `/admin/` | Accounts and profiles: total, last day, last week · players — profiles that saved a game or recorded a score — in the last day and week · open rooms, rooms in a hand, profiles connected · device errors in the last day · the catalog and its last sync · the email outbox | `IdentityFacts`, `ProgressFacts`, `RoomRegistry.Live()`, `TelemetryFacts`, `RegistryFacts` and the catalog worker, `EmailFacts` |
+| Tổng quan, `/admin/` | Accounts and profiles: total, last day, last week · players — profiles that saved a game or recorded a score — in the last day and week · open rooms, rooms in a hand, profiles connected · results waiting for a person · device errors in the last day · the catalog and its last sync · the email outbox | `IdentityFacts`, `ProgressFacts`, `RoomRegistry.Live()`, `IntegrityReview`, `TelemetryFacts`, `RegistryFacts` and the catalog worker, `EmailFacts` |
 | Game, `/admin/games` | Every game in the registry, listed or not, with its players in the last week and its open rooms | `RegistryFacts`, `ProgressFacts`, `RoomRegistry` |
 | Sức khoẻ thiết bị, `/admin/health?days=1\|7\|30` | The device telemetry report ([Device telemetry](telemetry.md)): devices, errors, frames and metrics per game version, plays and errors per day | `TelemetryReports` |
 | Hệ thống, `/admin/system` | The build, environment and start time · migrations applied and pending · what each background worker last did · settings, never secrets | `BackgroundWork`, EF Core, options |
 | Người dùng, `/admin/users`, `/admin/users/{id}` | Accounts found, then one account and its profiles, with what may be done to them | `AccountsAdmin` |
+| Xem xét kết quả, `/admin/review?list=held\|decided`, `/admin/review/{id}` | The held results, oldest first, or the decided ones, latest first; then one result — its evidence, its profile's history on the board, every change of level — and the decision | `IntegrityReview`, `AccountsAdmin` |
 | Cộng đồng, `/admin/communities` | Communities with how many accounts came with each, their invite codes and links; new ones, revoking | `CommunitiesAdmin` |
 | Đăng nhập & đăng ký, `/admin/settings` | Each sign-in method and who relies on it alone; the registration mode; switching both | `RuntimeSettings`, `IdentityFacts` |
 | Nhật ký, `/admin/audit` | The audit log, newest first, a page at a time | `admin.audit_log` |
@@ -286,6 +300,10 @@ counts the failures in a row until a run goes well.
 | `POST /api/admin/users/{id}/sign-out` | `admin.users.write`, step-up | End every session of the account |
 | `PUT /api/admin/users/{id}/role` | `admin.roles.write`, step-up | Give a role, or none |
 | `PATCH /api/admin/profiles/{id}` | `admin.profiles.moderate`, step-up | Rename a profile |
+| `POST` · `DELETE /api/admin/profiles/{id}/hidden` | `admin.profiles.moderate`, step-up | Hide a profile from public boards, with a reason · let it back |
+| `GET /api/admin/review?after=` · `GET /api/admin/review/decided?before=` | `admin.results.review` | Held results, oldest first · results people decided about or the engine rejected, the latest decision first; fifty at a time, with whose they are, how many are held, and the cursor of the next page |
+| `GET /api/admin/review/{id}` | `admin.results.review` | One result: where it stands and why, its evidence, its profile's history on the board, every change of level |
+| `POST /api/admin/review/{id}/approve` · `/reject` · `/reopen` | `admin.results.review`, step-up | A decision, with an optional note; the result as it stands after |
 | `GET /api/admin/settings` | `admin.read` | Each sign-in method — configured, on, accounts relying on it alone — the registration mode, whether email is sent |
 | `PUT /api/admin/settings` | `admin.settings.write`, step-up | Switch methods by id and the registration mode; what is left out stays |
 | `GET /api/admin/communities` | `admin.read` | Communities, their member counts and invite codes |
@@ -296,7 +314,7 @@ counts the failures in a row until a run goes well.
 Refusals: 401 signed out; 403 `admin_required`, `two_factor_setup_required`, `two_factor_required`,
 `step_up_required`, `email_required`, `setup_token_invalid`, `setup_email_not_allowed`, `admin_self`, `admin_rank`;
 409 `setup_closed`, `two_factor_enabled`, `authenticator_not_set_up`, `last_owner`, `settings_last_method`,
-`settings_lockout_self`, `community_exists`, `invite_code_exists`; 400 with field codes `code_invalid`, `code_used`,
+`settings_lockout_self`, `community_exists`, `invite_code_exists`, `review_not_allowed`; 400 with field codes `code_invalid`, `code_used`,
 `locked_out`, `reason_required`, `reason_too_long`, `role_invalid`, `registration_invalid`, `method_unknown`,
-`invite_code_invalid`, `max_uses_invalid`, `expires_in_past` and the name rules'.
+`invite_code_invalid`, `max_uses_invalid`, `expires_in_past`, `note_too_long` and the name rules'.
 Generated reference: [Admin API](/docs/reference/admin-api/).

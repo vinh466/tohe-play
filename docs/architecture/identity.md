@@ -67,6 +67,7 @@ erDiagram
     bool play_with_others "children: off by default"
     bool on_public_boards "adults on, children off (ADR 0029)"
     timestamp asked_child_at "the owner said they asked the child (D-06)"
+    timestamp hidden_from_boards_at "a moderator hid it from public boards (ADR 0031)"
   }
   AUTH_ATTEMPT {
     uuid id "held by the client, sent back with the code"
@@ -491,7 +492,7 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | A PIN is exactly 4 digits and stored hashed; wrong PINs are rate limited | Session endpoints |
 | Children see only games whose `minAge` is at most the lower bound of their age band | Registry, via `IActiveProfile` |
 | A child plays online with other accounts only when the account's owner turned on "Chơi online với người ngoài" (`playWithOthers`, off by default); otherwise only at tables the account keeps to itself | Rooms, via `IActiveProfile` ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) |
-| A profile is on public boards only with "Hiện trên bảng công khai" on — adults from the start, a child once its owner says they asked it — and never while its account is suspended | `ProfileEndpoints`, `IBoardAudience` ([Integrity and boards](integrity.md#public-boards)) |
+| A profile is on public boards only with "Hiện trên bảng công khai" on — adults from the start, a child once its owner says they asked it — never while its account is suspended, and never while a moderator hides it, whatever the switch says | `ProfileEndpoints`, `IBoardAudience` ([Integrity and boards](integrity.md#public-boards)) |
 | Saves, scores and the leaderboard belong to the active profile; boards list the account's profiles | Progress, via `IActiveProfile` and `IAccountProfiles` |
 | Unsafe `/api` requests from another origin (`Sec-Fetch-Site` ≠ `same-origin`) are rejected | `SameOriginGuard` middleware |
 | Per client IP, 10 requests a minute in each of three buckets: signing in or asking for a code (`auth`), typing a code back (`auth-code`), a PIN or the parent gate (`auth-gate`) | Rate limiter policies; `Identity:AuthRequestsPerMinute` |
@@ -517,7 +518,7 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `POST /api/auth/external/pending/link-code` · `/link` | the browser that came back | A code to the account's address · the code, or the password, links and signs in |
 | `POST /api/auth/external/pending/signup` | the browser that came back | A name, the terms and an invite code when needed create the account; its first profile plays at once |
 | `DELETE /api/auth/external/pending` | the browser that came back | Forget the sign-in that waits |
-| `GET /api/auth/me` | session | Account (with its email, linked providers, platform role — [Admin console](admin.md) — and community), its profiles (with public IDs and whether each is on public boards), active profile, step-up expiries |
+| `GET /api/auth/me` | session | Account (with its email, linked providers, platform role — [Admin console](admin.md) — and community), its profiles (with public IDs, whether each is on public boards, and whether a moderator hid it from them), active profile, step-up expiries |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
 | `POST /api/session/parent-gate` / `DELETE` | session | The manage PIN opens profile management / lock both levels |
 | `POST /api/session/step-up` | session | Level 2 with the password (opens level 1 too) |
