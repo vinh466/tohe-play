@@ -18,15 +18,15 @@ landing/docs site — from scratch with its own PostgreSQL, or on infrastructure
 | Value | What |
 |---|---|
 | `publicUrls.hub` | The hub's public URL (`https://…`, no path). The API answers under `/api` on it |
-| `publicUrls.games` | The games origin — a different host from the hub's (ADR 0002), best on a registrable domain of its own (ADR 0039) |
+| `publicUrls.games` | The games origin — a different host from the hub's (ADR 0002), on a domain Tò He has to itself (ADR 0040) |
 | `publicUrls.site` | The landing page and docs, while `site.enabled` |
 | `secrets.existingSecret` **or** `secrets.values.postgresPassword` | Where the secrets come from |
 
-The three hosts must differ: the Ingress routes by host, and the games origin must never share the hub's. Put the
-games origin on a domain of its own when you can: as a sibling subdomain (`tohe-games.example.org` beside
-`tohe.example.org`) it is the same *site* as the hub and every other app on that domain, so game code can set cookies
-they all receive. The hub protects itself (a `__Host-` session cookie, same-origin checks on the API); the others may
-not ([Self-hosting](../../../docs/guides/self-hosting.md)).
+The three hosts must differ: the Ingress routes by host, and the games origin must never share the hub's. Give Tò He
+a domain of its own — production runs `toheplay.io.vn`, `games.toheplay.io.vn` and `docs.toheplay.io.vn`. Game code
+is the same *site* as every host of its registrable domain, so it can set cookies they all receive: the hub protects
+itself (a `__Host-` session cookie, same-origin checks on the API, `form-action 'none'` in the games' CSP); apps that
+are not Tò He's may not ([Self-hosting](../../../docs/guides/self-hosting.md)).
 
 ## Infrastructure
 

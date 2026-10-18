@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
@@ -101,7 +102,10 @@ public sealed class PublicBoardsTests(ApiFactory factory) : IClassFixture<ApiFac
     {
         await Games.KnowAsync(factory, "tap-merge");
         var (client, me) = await PlayerAsync("Bố");
-        var start = DateTimeOffset.UtcNow.AddMinutes(-30);
+        // The board reads this week, from Monday 00:00 in Việt Nam: every run falls inside it, even when the test runs
+        // in the first half hour of a week.
+        var now = DateTimeOffset.UtcNow;
+        var start = Weeks.StartOf(now) > now.AddMinutes(-30) ? Weeks.StartOf(now) : now.AddMinutes(-30);
         // 55 others, verified as a replay will make them: 100, 101 … 154 — and two more at 200, the earlier one first.
         var others = await ProfilesAsync(57);
         var runs = others.Take(55).Select((profile, index) => (profile, Value: 100d + index, At: start)).ToList();

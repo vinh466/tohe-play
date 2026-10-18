@@ -15,7 +15,7 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | # | Decision | Status |
 | --- | --- | --- |
 | [0001](0001-monorepo-with-independent-games.md) | One monorepo; games independent through a contract | Accepted |
-| [0002](0002-games-in-sandboxed-iframe-on-own-origin.md) | Games run in a sandboxed iframe on their own origin | Accepted; in production on a domain of their own since 0039 |
+| [0002](0002-games-in-sandboxed-iframe-on-own-origin.md) | Games run in a sandboxed iframe on their own origin | Accepted; in production on games.toheplay.io.vn since 0039, 0040 |
 | [0003](0003-backend-dotnet-modular-monolith-postgres.md) | Backend: .NET 10 modular monolith + PostgreSQL | Accepted |
 | [0004](0004-identity-households-and-profiles.md) | Identity: households, adult accounts and child profiles | Superseded by 0023 |
 | [0005](0005-offline-first.md) | Offline first: games keep working without the API | Accepted; a ranked run needs the network to start, since 0030 |
@@ -52,4 +52,5 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0036](0036-metrics-for-prometheus-on-a-port-of-its-own.md) | Export metrics for Prometheus with prometheus-net, on a port of the API's own | Accepted |
 | [0037](0037-proof-of-work-before-a-code-by-email.md) | A self-hosted proof-of-work before a code by email, behind a switch of the console | Accepted |
 | [0038](0038-an-account-waits-for-an-admin-after-its-seven-days.md) | After its seven days, an account waits for an admin to delete it; nothing deletes it by itself | Accepted |
-| [0039](0039-games-on-a-domain-of-their-own.md) | Serve games from a registrable domain of their own | Accepted |
+| [0039](0039-games-on-a-domain-of-their-own.md) | Serve games from a registrable domain of their own | Accepted; all of Tò He on toheplay.io.vn since 0040 |
+| [0040](0040-all-of-tohe-on-one-domain-of-its-own.md) | Run all of Tò He on toheplay.io.vn, the games one level below the hub | Accepted |

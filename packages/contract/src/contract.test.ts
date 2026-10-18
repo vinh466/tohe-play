@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GameManifest, GameMessage, HostMessage } from './index.ts';
+import { GameManifest, GameMessage, gameContentSecurityPolicy, HostMessage } from './index.ts';
 
 describe('GameManifest', () => {
   it('applies defaults to a minimal manifest', () => {
@@ -282,5 +282,21 @@ describe('ranked runs (ADR 0030)', () => {
     expect(HostMessage.safeParse({ ...init, rankedReplay: { seed: 1, moves: [], run: 'x' } }).success).toBe(
       false,
     );
+  });
+});
+
+describe('game CSP', () => {
+  const directives = (csp: string) =>
+    new Map(csp.split('; ').map((d) => [d.split(' ')[0], d.slice(d.indexOf(' ') + 1)]));
+
+  it('lets only the hubs embed a game, and a game page submit no form, even to a hub on the same site (ADR 0040)', () => {
+    const csp = directives(gameContentSecurityPolicy(['https://toheplay.io.vn']));
+    expect(csp.get('frame-ancestors')).toBe('https://toheplay.io.vn');
+    expect(csp.get('form-action')).toBe("'none'");
+    expect(csp.get('connect-src')).toBe("'self'");
+  });
+
+  it('lets nobody embed a game when no hub is given', () => {
+    expect(directives(gameContentSecurityPolicy([])).get('frame-ancestors')).toBe("'none'");
   });
 });

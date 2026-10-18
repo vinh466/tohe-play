@@ -1,10 +1,11 @@
 # The production shape on the platform-infra cluster (ADR 0021): the shared CloudNativePG server, every secret from an
 # Infisical-managed Secret, Traefik behind Cloudflare (TLS ends at Cloudflare), Reloader rolling on secret changes.
+# All of Tò He on toheplay.io.vn, a domain it has to itself (ADR 0040): the hub at its root, the games origin and the
+# site one level down — Cloudflare's free certificate covers one level.
 publicUrls:
-  hub: https://tohe.vinetic.io.vn
-  # A registrable domain of its own, not a sibling of the hub (ADR 0039).
-  games: https://toheplay.io.vn
-  site: https://tohe-site.vinetic.io.vn
+  hub: https://toheplay.io.vn
+  games: https://games.toheplay.io.vn
+  site: https://docs.toheplay.io.vn
 global:
   image:
     tag: sha-0000000000000000000000000000000000000000

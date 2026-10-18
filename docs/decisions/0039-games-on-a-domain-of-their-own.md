@@ -5,7 +5,8 @@ sidebar:
   order: 39
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — all of Tò He on `toheplay.io.vn`, the games origin at `games.toheplay.io.vn`, since
+  [ADR 0040](0040-all-of-tohe-on-one-domain-of-its-own.md)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0002](0002-games-in-sandboxed-iframe-on-own-origin.md) — the production games origin is
   `https://toheplay.io.vn`, not `tohe-games.vinetic.io.vn`
