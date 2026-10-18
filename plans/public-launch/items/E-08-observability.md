@@ -1,7 +1,8 @@
 # E-08 — Observability: `/metrics`, ServiceMonitor, cảnh báo tối thiểu
 
-- Status: **decided** (2026-10-18, chat) — Q1 **A** (prometheus-net), Q3 các ngưỡng như đề xuất; **Q2 (cảnh báo gửi tới
-  đâu) vẫn mở** — không có đề xuất nào để nhận, và nó nằm ở `platform-infra`, không chặn phần của Tò He
+- Status: **decided** (2026-10-18, chat) — Q1 **A** (prometheus-net), Q3 các ngưỡng như đề xuất; Q2: **email** — owner
+  "tới mail đc set nha" (receiver email của Alertmanager, cấu hình ở `platform-infra`); namespace giám sát `monitoring`
+  (#64, owner xác nhận)
 - Kind: enhancement — một thư viện NuGet mới, một cổng mới của API, hai template mới trong chart (ADR khi xây)
 - Blocks: E-10 (checklist ra mắt) · Blocked by: E-04 (chart, #44)
 - Decided: 2026-10-18 — F2a (API, [#63](https://github.com/vinh466/tohe-play/pull/63)), F2b (chart, [#64](https://github.com/vinh466/tohe-play/pull/64)) — ADR 0036

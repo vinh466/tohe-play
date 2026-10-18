@@ -2,6 +2,15 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (khuya) — agent
+
+- Owner: "#62 đồng ý", namespace `monitoring` đúng, E-02 Q2 Free, E-08 Q2 email, E-07 Q7 → xoá chờ admin; "chốt hiện tại,
+  merge giúp tôi các PR". Cả 23 PR #43–#65 đã merge (chuỗi chính rồi dòng chart); `main` = `ad83c45`.
+- F1c: [#66](https://github.com/vinh466/tohe-play/pull/66) (ADR 0038) — hết 7 ngày account chờ admin xoá trong console;
+  `pnpm verify` xanh; chưa merge, chưa lên UAT.
+- D-13: owner hỏi gợi ý → [proposed](items/D-13-games-origin-domain.md): B, một domain riêng cho game trước F4.
+- Chờ owner: review #66, D-13 Q1/Q2, GHCR Public, API key Resend cho UAT, receiver email ở `platform-infra`.
+
 ## 2026-10-18 (tối, cuối) — agent
 
 - F1–F3 xây xong, CI xanh: #61 xoá (ADR 0034), #62 kiểm duyệt tên (0035), #63 metrics (0036), #64 chart, #65

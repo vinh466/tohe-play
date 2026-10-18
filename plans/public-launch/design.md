@@ -13,10 +13,11 @@ Sơ đồ dùng nhãn tiếng Anh vì khi graduate chúng chuyển nguyên vào 
   (D-05), admin console và admin đầu tiên (D-07, D-08), bảng xếp hạng phân tầng theo độ tin (D-09, D-11), engine độ tin
   (D-16) với replay Ghép Khối trong v1 (D-10), chế độ đăng ký (D-12), release bằng chart (D-14); UAT HTTPS để sau (D-15).
 - **Cũng đã chốt (2026-10-18):** bảng cộng đồng nhận `checked` cho game chưa có replay (D-16 Q4), tự đăng ký từ 16 tuổi
-  (D-06), gửi email từ `no-reply@…` (E-02), chuyển dữ liệu UAT (E-01). Còn chờ owner: Resend Free hay Pro (E-02 Q2,
-  chỉ là cấu hình lúc deploy) và D-13. Thứ tự xây: [delivery.md](delivery.md).
-- **Chưa mở:** domain riêng cho games (D-13), quyền riêng tư/xoá/kiểm duyệt (E-07), observability (E-08), chống bot
-  (E-09), checklist ra mắt (E-10).
+  (D-06), gửi email từ `no-reply@…` (E-02), chuyển dữ liệu UAT (E-01). Resend: gói Free (E-02 Q2, chốt
+  2026-10-18). Thứ tự xây: [delivery.md](delivery.md).
+- **Chốt sau đó (2026-10-18):** quyền riêng tư/xoá/kiểm duyệt (E-07 — Q7: hết 7 ngày account chờ admin xoá, ADR 0038),
+  observability (E-08 — cảnh báo qua email), chống bot (E-09). **Đề xuất, chờ owner:** domain riêng cho games (D-13 —
+  agent đề xuất B). **Chưa mở:** checklist ra mắt (E-10).
 
 ## 1. Bức tranh
 
@@ -434,8 +435,8 @@ owner chọn ở D-16 Q2). Tín hiệu v1: `Bounds`, `PersonalJump`, `Rate`, `Fa
 
 | Câu hỏi | Item |
 |---|---|
-| Account Resend đang Free hay Pro (chỉ đổi cấu hình lúc deploy) | [E-02](items/E-02-transactional-email.md) Q2 |
-| Games origin trên domain riêng | D-13 (chưa mở) |
+| Games origin trên domain riêng | [D-13](items/D-13-games-origin-domain.md) (proposed: B) |
+| Thời hạn xoá account theo văn bản luật | [E-07](items/E-07-privacy-deletion-moderation.md) Q7 — tới khi biết, admin xoá (ADR 0038) |
 
 ## 6. Rủi ro chưa có lời giải
 

@@ -15,25 +15,28 @@
 
 ## Next — one item
 
-**Owner verify trên UAT** — đã xong (2026-10-18): chạy thử migration (E-01), #43 → #60 lên UAT lần lượt, F1–F3 xây
-(#61 xoá, #62 kiểm duyệt tên, #63 metrics, #64 chart, #65 proof-of-work — ADR 0034–0037, CI xanh) và lên UAT; UAT chạy
-`a42810dd9f0b`. Owner verify theo danh sách trong báo cáo ngày 2026-10-18, rồi review và merge theo thứ tự
-([delivery](delivery.md#trạng-thái)). Sau đó: F4 (ra mắt, E-10).
+**A4 — `apps/tohe` trong `platform-infra`** (draft PR, phiên mở trong repo đó — E-06): #43–#65 đã merge (2026-10-18),
+`main` là `ad83c45` và CI của nó publish image + chart lên GHCR. Song song: owner review F1c
+([#66](https://github.com/vinh466/tohe-play/pull/66), ADR 0038) và chọn D-13 ([đề xuất](items/D-13-games-origin-domain.md)).
+Sau đó: F4 (ra mắt, E-10).
 
 ## Waiting on the owner
 
-1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? UAT đã chạy C2 mà email tắt: account cũ đăng
-   nhập bằng username như trước, nhưng chưa ai đăng ký mới được tới khi có API key trong `~/.config/tohe-uat/uat.env`.
-2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Verify trên UAT, rồi review và merge từng PR (#43 → #44 → #47 → #64, #45 → #46 → #48 → … → #60 → #61 → #62 → #63 →
-   #65). Trong #62: **duyệt danh sách từ** (khối thu gọn). Trong #64: namespace giám sát trên `platform-infra` có phải
-   `monitoring` không.
-4. Mở console trên UAT: tự chạy lệnh cấp quyền chủ cho account của mình — agent không chọn account thay owner
+1. **F1c** — review [#66](https://github.com/vinh466/tohe-play/pull/66): hết 7 ngày, account chờ admin xoá trong console
+   (E-07 Q7 theo lời owner). Merge, rồi nói "deploy" nếu muốn nó lên UAT.
+2. **D-13** — agent đề xuất **B**: một registrable domain riêng chỉ cho game, xong trước F4
+   ([item](items/D-13-games-origin-domain.md)). Q1: B hay A; Q2: nếu B, owner chọn và mua tên.
+3. **GHCR** — sau lần publish đầu của `main`: đặt 5 package thành Public (hoặc `docker login ghcr.io` trên máy UAT).
+   Từ #47, `deploy/uat/deploy.sh` kéo image theo SHA từ GHCR thay vì build tại máy.
+4. **E-02** — gói Free đã chốt; email trên UAT bật khi API key nằm trong `~/.config/tohe-uat/uat.env`.
+5. **E-08 Q2** — receiver email của Alertmanager ở `platform-infra` (namespace `monitoring` đã xác nhận).
+6. Mở console trên UAT: tự chạy lệnh cấp quyền chủ cho account của mình — agent không chọn account thay owner
    (`docs/guides/uat.md`, mục Inspect).
-5. Duyệt bản nháp Điều khoản + Quyền riêng tư (#49; #50 thêm phần đăng nhập bằng provider), điền cách liên hệ người vận hành.
-6. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).
-7. Còn mở sau quyết định 2026-10-18: E-07 **Q7** (pháp lý theo văn bản gốc), E-08 **Q2** (cảnh báo gửi tới đâu, cấu hình
-   ở `platform-infra`).
+7. Duyệt bản nháp Điều khoản + Quyền riêng tư (`apps/hub/src/legal/documents.ts`, bản `2026-10-18.4` ở #66), điền cách
+   liên hệ người vận hành.
+8. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).
+9. E-07 **Q7** — thời hạn xoá theo văn bản gốc; khi biết, nó thành cảnh báo trên `tohe_account_deletions_due` hoặc lại
+   một job (ADR 0038).
 
 ## Board
 
@@ -51,19 +54,19 @@
 | D-10 | [Verifier replay (đổi contract)](items/D-10-verified-runs.md) | T5 | decision | **decided** | D-16 |
 | D-11 | [Bảng & hạng của phòng](items/D-11-room-boards.md) | T5 | decision | **decided** | D-09 |
 | D-12 | [Chế độ đăng ký & mã mời cộng đồng](items/D-12-registration-modes.md) | T7 | decision | **decided** | D-02 |
-| D-13 | Games origin trên domain riêng | T7 | decision | open | — |
+| D-13 | [Games origin trên domain riêng](items/D-13-games-origin-domain.md) | T7 | decision | **proposed** (agent: B, trước F4) | — |
 | D-14 | [Release bằng chart + GHCR + promote](items/D-14-release-via-chart.md) | T1 | decision | **decided** | — |
 | D-15 | [UAT có HTTPS](items/D-15-uat-https.md) | T1 | decision | deferred | — |
 | D-16 | [Engine độ tin](items/D-16-integrity-engine.md) | T5 | decision | **decided** | D-09 |
 | D-17 | [Tên đặt thoải mái + ID 12 số](items/D-17-profile-name-and-id.md) | T2 | decision | **decided** | D-01 |
 | E-01 | [Chuyển dữ liệu UAT](items/E-01-uat-migration.md) | T2 | enhancement | **decided** | — |
-| E-02 | [Email giao dịch](items/E-02-transactional-email.md) | T3 | enhancement | **decided** (Q2 chờ, không chặn code) | — |
+| E-02 | [Email giao dịch](items/E-02-transactional-email.md) | T3 | enhancement | **decided** (Q2 Free) | — |
 | E-03 | Image chạy mọi môi trường — [trong D-14](items/D-14-release-via-chart.md#e-03--image-chạy-được-ở-mọi-môi-trường-code) | T1 | enhancement | **decided** | — |
 | E-04 | Chart `tohe` — [trong D-14](items/D-14-release-via-chart.md#e-04--chart-tohe-deployhelmtohe) | T1 | enhancement | **decided** | E-03 |
 | E-05 | UAT kéo image GHCR — [trong D-14](items/D-14-release-via-chart.md#e-05--uat-chạy-đúng-image-sẽ-lên-prod) | T1 | enhancement | **decided** | E-04 |
 | E-06 | `apps/tohe` ở `platform-infra` (draft PR) — [trong D-14](items/D-14-release-via-chart.md#e-06--component-appstohe-trong-platform-infra-draft-pr) | T1 | enhancement | **decided** | E-04 publish |
-| E-07 | [Quyền riêng tư, xoá account, kiểm duyệt tên](items/E-07-privacy-deletion-moderation.md) | T7 | enhancement | **decided** (Q7 pháp lý chờ owner) | D-06, D-17 |
-| E-08 | [Observability](items/E-08-observability.md) | T8 | enhancement | **decided** (Q2 kênh cảnh báo chờ owner) | E-04 |
+| E-07 | [Quyền riêng tư, xoá account, kiểm duyệt tên](items/E-07-privacy-deletion-moderation.md) | T7 | enhancement | **decided** (Q7 → F1c #66: chờ admin; thời hạn chờ owner) | D-06, D-17 |
+| E-08 | [Observability](items/E-08-observability.md) | T8 | enhancement | **decided** (Q2 email, cấu hình ở `platform-infra`) | E-04 |
 | E-09 | [Chống bot đăng ký](items/E-09-bot-protection.md) | T7 | enhancement | **decided** | D-12 |
 | E-10 | Checklist ra mắt | — | enhancement | open | E-07, E-08, E-09, D-13 |
 

@@ -1,10 +1,12 @@
 # E-07 — Quyền riêng tư, xoá account và hồ sơ, kiểm duyệt tên
 
 - Status: **decided** (2026-10-18, chat) — theo đề xuất: Q1 chờ 7 ngày, Q2 xoá hẳn, Q3 nhật ký admin giữ một năm, Q4 có
-  bộ lọc (owner duyệt danh sách), Q5 5 lần mỗi ngày, Q6 báo cáo vi phạm để sau; **Q7 (pháp lý) vẫn là việc của owner**
+  bộ lọc (owner duyệt danh sách — duyệt 2026-10-18), Q5 5 lần mỗi ngày, Q6 báo cáo vi phạm để sau; Q7: thời hạn chưa rõ
+  → xoá account chờ admin ra tay (F1c), thay cho tự xoá sau 7 ngày
 - Kind: enhancement — xoá dữ liệu xuyên module, một ngoại lệ có kiểm soát cho các bảng chỉ ghi thêm (ADR khi xây)
 - Blocks: E-10 (checklist ra mắt) · Blocked by: D-01, D-06, D-17
 - Decided: 2026-10-18 — F1a (xoá, [#61](https://github.com/vinh466/tohe-play/pull/61), ADR 0034), F1b (kiểm duyệt tên, [#62](https://github.com/vinh466/tohe-play/pull/62), ADR 0035)
+  — cả hai đã merge; F1c (hết 7 ngày account chờ admin xoá, [#66](https://github.com/vinh466/tohe-play/pull/66), ADR 0038) chờ owner review
 
 ## Vì sao
 
@@ -102,6 +104,12 @@ Khi có nút xoá, bản nháp chính sách đổi câu "liên hệ người v�
 ghi thêm, Q3 nhật ký admin giữ **một năm** rồi xoá, Q4 có bộ lọc (danh sách để owner duyệt trong PR), Q5 5 lần đổi tên
 mỗi ngày, Q6 báo cáo vi phạm sau ra mắt. Q7 không quyết được bằng câu này: thời hạn và nghĩa vụ theo văn bản gốc vẫn chờ
 owner (hoặc luật sư) kiểm.
+
+**owner** (2026-10-18, chat, sau khi verify): "#62 đồng ý" — danh sách từ của bộ lọc được duyệt. Q7: "nếu k rõ thời
+gian xóa thì cứ làm thiết kế dạng cho vào đang chờ xử lý và admin sẽ action theo thời điểm (tùy theo ntn mà sẽ impl rõ
+ràng là xóa cái gì ra sao)" → **F1c**: hết 7 ngày, account không tự bị xoá nữa mà vào hàng "Chờ xoá" của console; admin
+bấm xoá hẳn (xác thực lại, nhật ký) khi tới lúc. Cái gì bị xoá và cách xoá vẫn như ADR 0034 cho tới khi văn bản luật nói
+khác. Xoá hồ sơ vẫn xoá ngay (giả định của agent: đó là bố mẹ rút lại sự đồng ý — R-07 muốn ngừng xử lý ngay).
 
 ## Thảo luận
 

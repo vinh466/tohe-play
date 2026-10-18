@@ -1,6 +1,7 @@
 # E-02 — Hạ tầng email giao dịch
 
-- Status: **decided** (2026-10-18, chat) — cách làm và Q1 (`Tò He <no-reply@…>`) theo đề xuất; **Q2 (Resend Free hay Pro) vẫn chờ owner**, không chặn code: hai nhánh chỉ khác cấu hình lúc deploy
+- Status: **decided** (2026-10-18, chat) — cách làm và Q1 (`Tò He <no-reply@…>`) theo đề xuất; Q2: **Free** — owner:
+  "đang gói Free, cứ sử dụng nó, khi nhu cầu cần thì tôi đổi provider phù hợp cho"
 - Kind: enhancement — dịch vụ ngoài mới → ADR (ADR 0008: "A new framework, database, or service requires a new ADR")
 - Blocks: D-02 (mọi luồng gửi mã), D-12, E-04 (khối SMTP trong chart) · Blocked by: —
 - Decided: —
@@ -57,6 +58,12 @@ Khi đó **mọi thư của platform cũng ngừng** tới ngày hôm sau — m�
 
 - **Q1** Gửi từ `Tò He <no-reply@…>` như đề xuất — được không?
 - **Q2** Account Resend của platform đang ở gói **Free** hay **Pro**? (Câu trả lời chọn giúp nhánh dùng chung hay tách riêng ở trên.)
+
+**Q2, owner (2026-10-18, chat):** "đang gói Free, cứ sử dụng nó, khi nhu cầu cần thì tôi đổi provider phù hợp cho". Hệ
+quả: 100 thư/ngày của chung account (cùng platform, Outline) — lúc mở đăng ký cho mọi người, bật proof-of-work (F3,
+ADR 0037) và cân nhắc account/subdomain riêng như nhánh Free ở trên. Relay là cấu hình (`Email__Smtp__*`), đổi
+provider không đụng code. Email trên UAT bật khi owner đưa API key vào `~/.config/tohe-uat/uat.env`
+(`docs/guides/uat.md`, mục Email).
 
 Nguồn: [Resend: What is Resend pricing](https://resend.com/docs/knowledge-base/what-is-resend-pricing) ·
 [Nuntly: Resend pricing 2026](https://nuntly.com/resend-pricing) · [AgentDeals: Resend free tier 2026](https://agentdeals.dev/vendor/resend)
