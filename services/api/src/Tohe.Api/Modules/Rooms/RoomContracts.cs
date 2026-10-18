@@ -97,10 +97,14 @@ public sealed record RoomSummary(
     bool Mine,
     bool Spectators);
 
-/// <param name="ProfileId">Another profile of the inviting player's account.</param>
+/// <param name="ProfileId">Another profile of the inviting player's account, or one of another account found by its
+/// public ID (<c>GET /api/profiles/by-id/{publicId}</c>, ADR 0033).</param>
 public sealed record InviteRequest(Guid ProfileId);
 
-/// <summary>Another profile of the account asked the active profile to their table; valid for 10 minutes.</summary>
+/// <summary>
+/// Someone at a table asked the active profile to it — another profile of the account, or anyone by its ID (ADR 0033);
+/// valid for 10 minutes.
+/// </summary>
 public sealed record RoomInvite(Guid RoomId, string GameId, string Code, string FromName, string FromAvatar, DateTimeOffset ExpiresAt);
 
 /// <summary>Machine-readable reasons a room operation is refused, shown by the hub in Vietnamese.</summary>
@@ -124,4 +128,16 @@ public static class RoomErrors
     public const string ActionInvalid = "action_invalid";
     public const string SpectatorsOff = "spectators_off";
     public const string NotInAccount = "not_in_account";
+
+    /// <summary>No such profile this player may ask: none, a child of another account, a suspended account's.</summary>
+    public const string ProfileNotFound = "profile_not_found";
+
+    /// <summary>Its owner lets only people it played with, or only its account, ask it to a table.</summary>
+    public const string InvitesClosed = "invites_closed";
+
+    /// <summary>This account asked as many profiles of other accounts as it may in an hour.</summary>
+    public const string InviteLimit = "invite_limit";
+
+    /// <summary>That profile has as many invitations waiting as it may.</summary>
+    public const string InviteeLimit = "invitee_limit";
 }

@@ -42,7 +42,7 @@ flow should be built once, properly, so that later turn-based games (Cờ caro, 
 | Hand | Ván | One deal played to the end. |
 | Series | Bảng điểm | The running score of a room across its hands. |
 | Spectator | Người xem | Watches public information only (if the room allows). |
-| Invitation | Lời mời | A player asks another profile of their account to the table; it shows on that profile's catalog for 10 minutes. |
+| Invitation | Lời mời | A player asks another profile to the table — of their account, or another account's found by its 12-digit ID, as its owner allows ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); it shows on that profile's catalog for 10 minutes. |
 | Replay | Xem lại | A finished hand played back in the game, for the people who played it. |
 | Code | Mã phòng | 6 digits, unique among open rooms. |
 | Link | Link mời | `https://<hub>/r/<code>`: the same code, one tap. |
@@ -187,14 +187,54 @@ full or locked table watches it instead of joining; a code or link preview offer
 of seat `null`: the table, card counts and places, never a hand; the waiting room says **Bạn đang xem phòng này**,
 and the game hides its buttons and reactions. Leaving gives up nothing.
 
-### 9. Inviting the account's profiles
+### 9. Inviting players
 
-**Mời người cùng tài khoản** in the waiting room lists the account's other profiles that are not at the table
-(inviting a profile of another account by its public ID comes later,
-[ADR 0023](../decisions/0023-accounts-own-their-profiles.md)). An invitation
-shows as a banner on that profile's catalog (checked every 20 s) with **Vào phòng**, which opens the room's preview.
-It lasts 10 minutes, opens a locked room for that profile, and never gets round the parent switch or a full table.
-Invitations live in the room's memory: an API restart forgets them.
+**Mời người chơi** in the waiting room lists the account's other profiles that are not at the table, and finds any
+profile by its 12-digit ID ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)). The phone checks the ID's
+Damm digit first, so a mistyped digit or two swapped neighbours say "ID không đúng" at once; **Tìm** then shows the
+profile's card — avatar, name, ID — and only **Mời {name}** on that card asks it: a free name never misleads. An
+invitation shows as a banner on that profile's catalog (checked every 20 s) with **Vào phòng**, which opens the room's
+preview. It lasts 10 minutes, opens a locked room for that profile, and never gets round the parent switch or a full
+table. Invitations live in the room's memory: an API restart forgets them.
+
+Beyond the account, the invited profile's owner decides who may ask it (`invites`, in Quản lý tài khoản): **Mọi người
+có ID** (adults, by default), **Người từng chơi cùng** — someone it sat at a finished hand with — or **Chỉ trong tài
+khoản**. A child is always the last, and its ID is not found from outside its account, nor is a profile of a suspended
+account. A table kept to the account takes nobody else. An account looks up 20 IDs an hour, found or not
+(`Identity:ProfileLookupsPerHour`), asks 20 profiles of other accounts an hour (`Rooms:InvitationsPerHour`), and 10
+invitations from other accounts wait for one profile at most (`Rooms:InvitationsWaitingPerProfile`).
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor A as Player at the table
+  participant H as Hub
+  participant R as Rooms (API)
+  participant I as Identity (API)
+  actor B as Invited profile
+  A->>H: Mời người chơi → 12 digits → Tìm
+  H->>H: Damm check digit — wrong: "ID không đúng", nothing sent
+  H->>I: GET /api/profiles/by-id/{publicId}
+  I->>I: count the lookup — over the hour's share: 429 lookup_limit
+  alt none, a child of another account, a suspended account
+    I-->>H: 404 profile_not_found — the same answer for all three
+  else found
+    I-->>H: the card — avatar, name, ID
+    A->>H: Mời {name}, on the card
+    H->>R: POST /api/rooms/{id}/invite { profileId }
+    alt another account
+      R->>I: the profile, as this account may find it — gone since: 404 profile_not_found
+      R->>R: a table kept to the account: 403 room_account_only
+      R->>R: its setting — account, or played-with with no hand together: 403 invites_closed
+      R->>R: 10 invitations already waiting for it: 429 invitee_limit
+      R->>R: 20 asked this hour: 429 invite_limit
+    end
+    R->>R: the invitation, 10 minutes
+    R-->>H: 204
+    B->>R: GET /api/rooms/invites (every 20 s)
+    R-->>B: the banner — Vào phòng opens the preview
+  end
+```
 
 ### 10. Results and looking back
 
@@ -321,7 +361,7 @@ A `Rooms` module in the API with its own `rooms` schema
 | `POST /api/rooms/{id}/join` · `/leave` | Sit (an empty seat, or between hands a bot that only filled one) · leave (a bot finishes the hand) |
 | `PATCH /api/rooms/{id}` · `PUT …/seats/{seat}` · `POST …/start` | The host's controls, before a hand |
 | `POST /api/rooms/{id}/watch` | Watch without a seat, when the room allows spectators |
-| `POST /api/rooms/{id}/invite` · `GET /api/rooms/invites` | Ask another profile of the account to the table · the active profile's invitations |
+| `POST /api/rooms/{id}/invite` · `GET /api/rooms/invites` | Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): `profile_not_found`, `room_account_only`, `invites_closed`, `invite_limit`, `invitee_limit` · the active profile's invitations |
 | `GET /api/rooms/stats?game=` | Its results (all time, this week) and the account's board of the week |
 | `GET /api/rooms/history?game=` · `GET /api/rooms/{id}/hands/{hand}` | Its last 20 hands · one hand to replay, only for the profiles that played it |
 | `/api/rooms/hub` (SignalR) | `Enter`, `Exit`, `Act`, `Next`, `React`, `WatchLobby`; pushes `Room`, `View`, `Reaction`, `Closed`, `LobbyChanged` |
@@ -361,6 +401,8 @@ A `Rooms` module in the API with its own `rooms` schema
 - Every action goes through the rules; the server never trusts a phone's idea of the state.
 - Codes come from a CSPRNG, are unique among open rooms, and die with the room; lookups by code are rate limited per
   account. A private room is protected by not being listed and by that limit on lookups.
+- Profile IDs are random (ADR 0023) and lookups by ID are limited per account, counted found or not; a child's ID is
+  not found from outside its account, so an ID never tells a stranger that a child is there.
 - Limits on message size and rate, on rooms per profile, and on reactions.
 
 ## Offline
@@ -384,7 +426,7 @@ whom.
 | --- | --- |
 | `games/tien-len` | The rules: unit tests and a fast-check random-play bot over every house-rule combination and table size |
 | Conformance | A rooms game's module loaded on its own: platform functions, bot tables to the end at every size, determinism, JSON round trips, view sizes, no browser APIs; then the game at a two-seat table refereed by its own module, and replaying a hand its bots played |
-| API (`RoomsTests`) | Lobby visibility, codes, joining and refusals, the parent switch, host controls, options, a whole hand over SignalR with bots, refused actions, a restart rebuilding the hand, Jint limits and a hard bot's time, the hub's origin check; results, statistics and a replay that the rules module plays back to the same result; spectators; invitations |
+| API (`RoomsTests`) | Lobby visibility, codes, joining and refusals, the parent switch, host controls, options, a whole hand over SignalR with bots, refused actions, a restart rebuilding the hand, Jint limits and a hard bot's time, the hub's origin check; results, statistics and a replay that the rules module plays back to the same result; spectators; invitations, by ID too — the owner's setting, a child not found, the limits |
 | Hub | Codes, seats as the game sees them, quick play, defaults, the way back after sign-in, the replay handed to the game |
 | e2e (`pnpm --filter @tohe/e2e rooms`, CI) | Two phones: create, join by link, start, a whole hand with hints, results on both, leave |
 

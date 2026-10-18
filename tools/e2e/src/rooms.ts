@@ -229,8 +229,8 @@ try {
   await host.getByText('Chú Khách').waitFor();
 
   step('the host invites the child from the waiting room');
-  await host.getByRole('button', { name: 'Mời người cùng tài khoản' }).tap();
-  const invite = host.getByRole('dialog', { name: 'Mời người cùng tài khoản' });
+  await host.getByRole('button', { name: 'Mời người chơi' }).tap();
+  const invite = host.getByRole('dialog', { name: 'Mời người chơi' });
   await invite.getByRole('button', { name: /Bé Na/ }).tap();
   await invite.getByText('✓ Đã mời').waitFor();
   await shot(host, 'invite');

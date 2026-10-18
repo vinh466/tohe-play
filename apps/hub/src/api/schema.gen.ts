@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/profiles/by-id/{publicId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A profile's card by its public ID, as this account may find it: never a child of another account. */
+        get: operations["FindProfileById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/profiles/options": {
         parameters: {
             query?: never;
@@ -852,7 +869,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ask another of the account's profiles to the table: it shows in their hub for 10 minutes. */
+        /** Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): it shows in their hub for 10 minutes. */
         post: operations["InviteToRoom"];
         delete?: never;
         options?: never;
@@ -867,7 +884,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Tables the account's other profiles asked the active profile to, for the next 10 minutes. */
+        /** Tables someone asked the active profile to — by its ID, or from its own account — for the next 10 minutes. */
         get: operations["ListRoomInvites"];
         put?: never;
         post?: never;
@@ -1268,6 +1285,13 @@ export interface components {
             detail?: null | string;
             instance?: null | string;
         };
+        ProfileCardView: {
+            /** Format: uuid */
+            id: string;
+            publicId: string;
+            name: string;
+            avatar: string;
+        };
         ProfileOptionsView: {
             avatars: string[];
             ageBands: string[];
@@ -1286,6 +1310,7 @@ export interface components {
             playWithOthers: boolean;
             onPublicBoards: boolean;
             hiddenFromBoards: boolean;
+            invites: string;
         };
         PublicBoardView: {
             gameId: string;
@@ -1548,6 +1573,7 @@ export interface components {
             playWithOthers?: null | boolean;
             onPublicBoards?: null | boolean;
             askedChild?: null | boolean;
+            invites?: null | string;
         };
         UpdateRoomRequest: {
             /** Format: int32 */
@@ -1618,6 +1644,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    FindProfileById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileCardView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
             };
         };
     };

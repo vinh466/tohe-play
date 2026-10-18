@@ -26,6 +26,13 @@ import { TextField } from '../ui/TextField.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 /** The account's profiles and settings, behind the parent gate (ADR 0011, 0023). */
+/** Who may ask a profile to a table by its ID (ADR 0033), as the API names them, with their labels. */
+const INVITE_SCOPES = [
+  ['anyone', 'account.invitesAnyone'],
+  ['played-with', 'account.invitesPlayedWith'],
+  ['account', 'account.invitesAccount'],
+] as const;
+
 export function AccountPage() {
   return <RequireSession need="account">{({ me }) => <ManageAccount me={me} />}</RequireSession>;
 }
@@ -312,6 +319,8 @@ function ProfileForm({
   const [removePin, setRemovePin] = useState(false);
   const [playWithOthers, setPlayWithOthers] = useState(profile?.playWithOthers ?? false);
   const [onPublicBoards, setOnPublicBoards] = useState(profile?.onPublicBoards ?? false);
+  // Who may ask this profile to a table by its ID (ADR 0033); a child stays within the account.
+  const [invites, setInvites] = useState(profile?.invites ?? 'anyone');
   // A child goes on public boards only once its owner says they asked it (D-06).
   const [askedChild, setAskedChild] = useState(false);
   const showingChild = profile?.kind === 'child' && onPublicBoards && !profile.onPublicBoards;
@@ -336,6 +345,7 @@ function ProfileForm({
             playWithOthers: isChild ? playWithOthers : null,
             onPublicBoards,
             askedChild: showingChild ? askedChild : null,
+            invites: isChild ? null : invites,
           }),
     onDone,
   );
@@ -439,6 +449,29 @@ function ProfileForm({
           checked={playWithOthers}
           onChange={setPlayWithOthers}
         />
+      ) : null}
+      {profile?.kind === 'adult' ? (
+        <fieldset className="flex flex-col gap-2">
+          <legend className="mb-1.5 font-semibold text-ink">{t('account.invites')}</legend>
+          <div className="flex flex-wrap gap-2">
+            {INVITE_SCOPES.map(([scope, label]) => (
+              <button
+                key={scope}
+                type="button"
+                aria-pressed={scope === invites}
+                onClick={() => setInvites(scope)}
+                className={`min-h-11 rounded-full px-4 font-semibold text-ink transition active:scale-95 ${
+                  scope === invites ? 'bg-soft-strong ring-2 ring-brand' : 'bg-surface'
+                }`}
+              >
+                {t(label)}
+              </button>
+            ))}
+          </div>
+          <p className="text-ink-soft text-sm">{t('account.invitesHint')}</p>
+        </fieldset>
+      ) : profile?.kind === 'child' ? (
+        <p className="text-ink-soft text-sm">{t('account.invitesChild')}</p>
       ) : null}
       {profile ? (
         <Switch

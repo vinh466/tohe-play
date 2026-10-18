@@ -32,6 +32,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
       playWithOthers: true,
       onPublicBoards: true,
       hiddenFromBoards: false,
+      invites: 'anyone',
     },
     {
       id: 'p-kid',
@@ -44,6 +45,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
       playWithOthers: false,
       onPublicBoards: false,
       hiddenFromBoards: false,
+      invites: 'account',
     },
   ],
   activeProfileId: null,

@@ -9,6 +9,42 @@ public enum ProfileKind
     Child,
 }
 
+/// <summary>Who may ask a profile to a table by its public ID (ADR 0033).</summary>
+public enum InviteScope
+{
+    /// <summary>Anyone who has the ID: adults, unless they choose otherwise.</summary>
+    Anyone,
+
+    /// <summary>Someone the profile sat at a finished hand with.</summary>
+    PlayedWith,
+
+    /// <summary>Only the account's other profiles: always so for a child.</summary>
+    Account,
+}
+
+/// <summary>The names of <see cref="InviteScope"/> in the API: <c>anyone</c>, <c>played-with</c>, <c>account</c>.</summary>
+public static class InviteScopes
+{
+    public static string NameOf(InviteScope scope) => scope switch
+    {
+        InviteScope.Anyone => "anyone",
+        InviteScope.PlayedWith => "played-with",
+        _ => "account",
+    };
+
+    public static bool TryParse(string? name, out InviteScope scope)
+    {
+        scope = name switch
+        {
+            "anyone" => InviteScope.Anyone,
+            "played-with" => InviteScope.PlayedWith,
+            "account" => InviteScope.Account,
+            _ => (InviteScope)(-1),
+        };
+        return Enum.IsDefined(scope);
+    }
+}
+
 /// <summary>
 /// A player. An account owns up to <see cref="ProfileOptions.MaxProfilesPerAccount"/> of them — its first one is
 /// created with it — and everything a player does (saves, scores, seats at a table) belongs to a profile (ADR 0023).
@@ -59,6 +95,12 @@ public sealed class Profile
     /// <summary>A moderator hid it from public boards (ADR 0029): its owner's switch does not bring it back.</summary>
     public DateTimeOffset? HiddenFromBoardsAt { get; set; }
 
+    /// <summary>
+    /// Who may ask it to a table by its public ID (ADR 0033): anyone for an adult unless its owner chooses otherwise; a
+    /// child only within its account, and its ID is not found from outside.
+    /// </summary>
+    public InviteScope Invites { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 }
 
@@ -102,6 +144,7 @@ internal sealed class ProfileConfiguration : IEntityTypeConfiguration<Profile>
         builder.Property(profile => profile.Name).HasMaxLength(200);
         builder.Property(profile => profile.Avatar).HasMaxLength(16);
         builder.Property(profile => profile.Kind).HasConversion<string>().HasMaxLength(10);
+        builder.Property(profile => profile.Invites).HasConversion<string>().HasMaxLength(12);
         builder.Property(profile => profile.AgeBand).HasMaxLength(8);
         builder.Property(profile => profile.PlayWithOthers).HasDefaultValue(false);
         builder.HasIndex(profile => new { profile.AccountId, profile.CreatedAt });

@@ -61,6 +61,47 @@
         }
       }
     },
+    "/api/profiles/by-id/{publicId}": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A profile's card by its public ID, as this account may find it: never a child of another account.",
+        "operationId": "FindProfileById",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileCardView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/profiles/options": {
       "get": {
         "tags": [
@@ -2137,7 +2178,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "Ask another of the account's profiles to the table: it shows in their hub for 10 minutes.",
+        "summary": "Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): it shows in their hub for 10 minutes.",
         "operationId": "InviteToRoom",
         "parameters": [
           {
@@ -2185,7 +2226,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "Tables the account's other profiles asked the active profile to, for the next 10 minutes.",
+        "summary": "Tables someone asked the active profile to — by its ID, or from its own account — for the next 10 minutes.",
         "operationId": "ListRoomInvites",
         "responses": {
           "403": {
@@ -3569,6 +3610,30 @@
           }
         }
       },
+      "ProfileCardView": {
+        "required": [
+          "id",
+          "publicId",
+          "name",
+          "avatar"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          }
+        }
+      },
       "ProfileOptionsView": {
         "required": [
           "avatars",
@@ -3606,7 +3671,8 @@
           "hasPin",
           "playWithOthers",
           "onPublicBoards",
-          "hiddenFromBoards"
+          "hiddenFromBoards",
+          "invites"
         ],
         "type": "object",
         "properties": {
@@ -3643,6 +3709,9 @@
           },
           "hiddenFromBoards": {
             "type": "boolean"
+          },
+          "invites": {
+            "type": "string"
           }
         }
       },
@@ -4638,6 +4707,12 @@
             "type": [
               "null",
               "boolean"
+            ]
+          },
+          "invites": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }

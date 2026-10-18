@@ -21,6 +21,9 @@ public sealed class IdentityOptions
     /// </summary>
     public int AuthRequestsPerMinute { get; set; } = 10;
 
+    /// <summary>Profile IDs one account may look up in an hour (ADR 0033): found or not, every lookup counts.</summary>
+    public int ProfileLookupsPerHour { get; set; } = 20;
+
     /// <summary>
     /// How often a session is checked against its account's security stamp, which a new password or email changes:
     /// "every other session ends" takes at most this long (ADR 0024).
@@ -157,6 +160,9 @@ internal static class IdentityModule
         });
 
         services.AddScoped<SessionWriter>();
+        // Profiles found by their public ID, for invitations to tables (ADR 0033).
+        services.AddScoped<IProfileDirectory, ProfileDirectory>();
+        services.AddSingleton<ProfileLookups>();
         services.AddExceptionHandler<AccountSuspendedHandler>();
         services.AddScoped<Attempts>();
         services.AddScoped<MeQueries>();

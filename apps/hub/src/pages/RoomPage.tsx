@@ -11,6 +11,7 @@ import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame, type RoomBridge, type RoomUpdate } from '../launcher/GameFrame.tsx';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected, roomsHub } from '../rooms/connection.ts';
+import { InviteById } from '../rooms/InviteById.tsx';
 import { formatCode, gameSeats, joinLink } from '../rooms/model.ts';
 import { RoomSettings, type RoomSettingsValue } from '../rooms/RoomSettings.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -431,6 +432,7 @@ function WaitingRoom({
       </Button>
 
       <Modal open={inviting} title={t('rooms.invite')} onClose={() => setInviting(false)}>
+        <h3 className="mb-2 font-semibold text-ink-soft text-sm">{t('rooms.inviteAccount')}</h3>
         {invitable.length === 0 ? <p className="text-ink-soft">{t('rooms.inviteNone')}</p> : null}
         <ul className="flex flex-col gap-2">
           {invitable.map((profile) => (
@@ -444,7 +446,7 @@ function WaitingRoom({
                 <Avatar avatar={profile.avatar} size="sm" />
                 <span className="flex-1 font-bold text-ink">{profile.name}</span>
                 <span className="font-semibold text-accent text-sm">
-                  {invited.has(profile.id) ? `✓ ${t('rooms.invited')}` : t('rooms.invite')}
+                  {invited.has(profile.id) ? `✓ ${t('rooms.invited')}` : t('rooms.inviteOne')}
                 </span>
               </button>
             </li>
@@ -455,6 +457,7 @@ function WaitingRoom({
             {t(errorKey(invite.error))}
           </p>
         ) : null}
+        <InviteById roomId={room.id} accountOnly={room.accountOnly} />
       </Modal>
 
       <Modal open={editing} title={t('rooms.settingsTitle')} onClose={() => setEditing(false)}>
