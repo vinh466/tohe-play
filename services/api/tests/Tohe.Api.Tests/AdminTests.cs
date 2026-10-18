@@ -242,46 +242,13 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
     // ------------------------------------------------------------------ helpers
 
-    private sealed record Admin(HttpClient Client, string Email, string Key);
+    private Task<Admins.Admin> AdminAsync(string role = "viewer") => Admins.NewAsync(factory, role);
 
-    /// <summary>A new account holding a role, two-factor authentication on, the console open on the returned client.</summary>
-    private async Task<Admin> AdminAsync(string role = "viewer")
-    {
-        var email = Accounts.NewEmail();
-        var client = factory.CreateClient();
-        await Accounts.SignUpAsync(factory, client, "Cô Ba", email);
-        Assert.Equal(0, (await CommandAsync("admin", "grant", email, "--role", role)).Exit);
-        return new Admin(client, email, await EnrolAsync(client));
-    }
+    private static Task<string> EnrolAsync(HttpClient client) => Admins.EnrolAsync(client);
 
-    /// <summary>Step-up level 2, a new authenticator key, and its first code: two-factor authentication on.</summary>
-    private static async Task<string> EnrolAsync(HttpClient client)
-    {
-        await Accounts.StepUpAsync(client);
-        var setup = await client.PostAsync(Url("/api/admin/two-factor/setup"), null, Ct);
-        var key = (await setup.Content.ReadFromJsonAsync<AuthenticatorSetupView>(Ct))!.SharedKey;
-        var enabled = await client.PostAsJsonAsync(Url("/api/admin/two-factor/enable"), new { code = Totp.Code(key, DateTimeOffset.UtcNow) }, Ct);
-        Assert.Equal(HttpStatusCode.OK, enabled.StatusCode);
-        Assert.Equal(10, (await enabled.Content.ReadFromJsonAsync<RecoveryCodesView>(Ct))!.Codes.Count);
-        return key;
-    }
+    private Task<HttpClient> SignInAsync(string email) => Admins.SignInAsync(factory, email);
 
-    /// <summary>The same account on another device.</summary>
-    private async Task<HttpClient> SignInAsync(string email)
-    {
-        var client = factory.CreateClient();
-        var signedIn = await client.PostAsJsonAsync(Url("/api/auth/login"), new { email, password = Accounts.Password }, Ct);
-        Assert.Equal(HttpStatusCode.OK, signedIn.StatusCode);
-        return client;
-    }
-
-    private async Task<(int Exit, string Output)> CommandAsync(params string[] args)
-    {
-        using var output = new StringWriter();
-        using var error = new StringWriter();
-        var exit = await AdminCommand.RunAsync(factory.Services, args, output, error);
-        return (exit, output.ToString() + error);
-    }
+    private Task<(int Exit, string Output)> CommandAsync(params string[] args) => Admins.CommandAsync(factory, args);
 
     private static async Task<string?> CodeOfAsync(HttpResponseMessage response)
     {

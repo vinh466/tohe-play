@@ -6,8 +6,8 @@ sidebar:
 ---
 
 Decision: [ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md). This page describes what exists: the
-console's app and API, roles and permissions, the first owner's setup, two-factor authentication, the audit log and
-the read-only pages. Pages that change things — users, sign-in settings, registration modes — come next.
+console's app and API, roles and permissions, the first owner's setup, two-factor authentication, the audit log, the
+read-only pages and the users. Sign-in settings and registration modes come next.
 
 ## Where it lives
 
@@ -42,9 +42,13 @@ An account holds at most one platform role — `owner`, `admin`, `moderator` or 
 | `signed-in` | `GET /api/admin/me` — who is asking, their role if any — and setup | any signed-in account |
 | `admin.read` | The read-only pages, and the account's own two-factor authentication | every role |
 | `admin.audit.read` | The audit log | owner, admin |
+| `admin.users.read` | Find accounts and see one: sign-in methods, role, suspension, profiles and their names | owner, admin, moderator |
+| `admin.users.write` | Suspend an account or lift it, end its sessions | owner, admin |
+| `admin.roles.write` | Give or take platform roles | owner |
+| `admin.profiles.moderate` | Rename a profile | owner, admin, moderator |
 
-A permission to change something — users, sign-in settings, boards — arrives with the page that changes it, given to
-the roles that should hold it.
+A permission to change something new — sign-in settings, boards — arrives with the page that changes it, given to the
+roles that should hold it.
 
 ```mermaid
 flowchart TD
@@ -148,10 +152,35 @@ credentials, short of dropping the trigger. Owners and admins read it in the con
 | Action | When |
 | --- | --- |
 | `setup.claim` | The first owner claimed the deployment |
-| `role.grant`, `role.revoke` | A role given or taken away (so far only by the command) |
+| `role.grant`, `role.revoke` | A role given or taken away, from the console or the command |
+| `user.suspend`, `user.unsuspend` | An account suspended — the reason in the details — or the suspension lifted |
+| `user.sign-out` | Every session of an account ended |
+| `profile.rename` | A profile renamed, with the names before and after |
 | `two-factor.enable`, `two-factor.disable` | Two-factor authentication turned on or off |
 | `two-factor.recovery-codes` | New recovery codes |
 | `console.open` | The console opened on a device, with how: `authenticator` or `recovery-code` |
+
+## Users
+
+Accounts are found by email, username, display name or profile name, or by the first four digits or more of a profile
+ID; nothing typed lists the newest. An account's page shows how it signs in, its role, two-factor authentication,
+whether it is suspended and why, and each profile with the names it had. What may be done to it, behind step-up
+level 2 and in the audit log:
+
+- **Suspend**, with a reason only admins see: no way in — the password, a provider, finishing a link, a new password
+  by email — and a new security stamp, so its sessions end within the session check. Until then a session it still
+  holds cannot renew itself: whatever would re-issue it answers `account_suspended` and ends it. A sign-in with the
+  right password is told
+  `account_suspended`; a wrong one hears `invalid_credentials` as always, so nobody learns which accounts are
+  suspended. With a provider, the hub shows the same at `/welcome?external=suspended`. **Lift** undoes it.
+- **Sign out everywhere**: a new security stamp alone.
+- **Role** (owners): give one or take it away. The platform keeps at least one owner (`last_owner`).
+- **Rename a profile** (moderators too), under the same name rules as its owner (ADR 0023). A database trigger keeps
+  every name a profile had — on creation and on any rename, by its owner or a moderator — so moderation sees what it
+  was called; the history goes with the profile when it is deleted.
+
+Nobody acts on their own account here (`admin_self`) — that is what the hub is for — nor on an account whose role is as
+strong as theirs (`admin_rank`), except an owner on another owner.
 
 ## Granting a role
 
@@ -176,6 +205,7 @@ It exits with 0 when done, 1 when no account signs in with the address, 2 for a 
 | Game, `/admin/games` | Every game in the registry, listed or not, with its players in the last week and its open rooms | `RegistryFacts`, `ProgressFacts`, `RoomRegistry` |
 | Sức khoẻ thiết bị, `/admin/health?days=1\|7\|30` | The device telemetry report ([Device telemetry](telemetry.md)): devices, errors, frames and metrics per game version, plays and errors per day | `TelemetryReports` |
 | Hệ thống, `/admin/system` | The build, environment and start time · migrations applied and pending · what each background worker last did · settings, never secrets | `BackgroundWork`, EF Core, options |
+| Người dùng, `/admin/users`, `/admin/users/{id}` | Accounts found, then one account and its profiles, with what may be done to them | `AccountsAdmin` |
 | Nhật ký, `/admin/audit` | The audit log, newest first, a page at a time | `admin.audit_log` |
 | Bảo mật, `/admin/security` | The account's two-factor authentication: until when the console is open here, recovery codes left; new recovery codes, or turning it off | Identity's two-factor stores |
 
@@ -210,8 +240,14 @@ counts the failures in a row until a run goes well.
 | `GET /api/admin/health?days=7` | `admin.read` | The device telemetry report over 1 to 30 days |
 | `GET /api/admin/system` | `admin.read` | The running deployment |
 | `GET /api/admin/audit?before=&limit=50` | `admin.audit.read` | A page of the audit log, newest first |
+| `GET /api/admin/users?q=` · `GET /api/admin/users/{id}` | `admin.users.read` | Accounts found, fifty at most · one account |
+| `POST` · `DELETE /api/admin/users/{id}/suspend` | `admin.users.write`, step-up | Suspend, with a reason · lift it |
+| `POST /api/admin/users/{id}/sign-out` | `admin.users.write`, step-up | End every session of the account |
+| `PUT /api/admin/users/{id}/role` | `admin.roles.write`, step-up | Give a role, or none |
+| `PATCH /api/admin/profiles/{id}` | `admin.profiles.moderate`, step-up | Rename a profile |
 
 Refusals: 401 signed out; 403 `admin_required`, `two_factor_setup_required`, `two_factor_required`,
-`step_up_required`, `email_required`, `setup_token_invalid`, `setup_email_not_allowed`; 409 `setup_closed`,
-`two_factor_enabled`, `authenticator_not_set_up`; 400 with field codes `code_invalid`, `code_used`, `locked_out`.
+`step_up_required`, `email_required`, `setup_token_invalid`, `setup_email_not_allowed`, `admin_self`, `admin_rank`;
+409 `setup_closed`, `two_factor_enabled`, `authenticator_not_set_up`, `last_owner`; 400 with field codes
+`code_invalid`, `code_used`, `locked_out`, `reason_required`, `reason_too_long`, `role_invalid` and the name rules'.
 Generated reference: [Admin API](/docs/reference/admin-api/).

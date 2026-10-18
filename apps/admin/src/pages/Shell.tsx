@@ -56,14 +56,16 @@ export function Shell() {
   if (!me.data.openUntil) return <TwoFactorCheck />;
 
   const mayAudit = me.data.permissions.includes('admin.audit.read');
+  const mayUsers = me.data.permissions.includes('admin.users.read');
   return (
     <div className="min-h-dvh">
       <header className="border-line border-b bg-surface">
-        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-6 gap-y-2 px-6 py-3">
+        <div className="mx-auto flex max-w-6xl flex-wrap items-center gap-x-4 gap-y-2 px-6 py-3">
           <span className="font-bold text-brand-ink text-lg">Tò He · Quản trị</span>
           <nav aria-label="Trang quản trị" className="flex flex-wrap gap-1">
             {[
               ...pages,
+              ...(mayUsers ? [{ to: '/users', label: 'Người dùng' } as const] : []),
               ...(mayAudit ? [{ to: '/audit', label: 'Nhật ký' } as const] : []),
               { to: '/security', label: 'Bảo mật' } as const,
             ].map((page) => (

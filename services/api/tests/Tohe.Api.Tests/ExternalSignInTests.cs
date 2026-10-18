@@ -4,7 +4,6 @@ using System.Text.Json;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.AspNetCore.TestHost;
-using Microsoft.AspNetCore.WebUtilities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tohe.Api.Infrastructure.Database;
@@ -210,21 +209,9 @@ public sealed class ExternalSignInTests(ApiFactory factory) : IClassFixture<ApiF
 
     private static string Subject() => Guid.NewGuid().ToString("N");
 
-    /// <summary>Out to the provider and back with its answer; returns the hub page the API sends the browser to.</summary>
-    private static async Task<string> ComeBackAsync(
-        HttpClient browser, string subject, string? email, bool verified, string intent = "")
-    {
-        var start = await browser.GetAsync(Url("/api/auth/external/fake" + intent), Ct);
-        Assert.Equal(HttpStatusCode.Redirect, start.StatusCode);
-        var state = QueryHelpers.ParseQuery(start.Headers.Location!.Query)["state"].ToString();
-        var answer = $"?state={state}&sub={Uri.EscapeDataString(subject)}&email={Uri.EscapeDataString(email ?? "")}" +
-            $"&verified={(verified ? "true" : "false")}";
-        var callback = await browser.GetAsync(Url("/api/auth/external/fake/callback" + answer), Ct);
-        Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
-        var done = await browser.GetAsync(callback.Headers.Location, Ct);
-        Assert.Equal(HttpStatusCode.Redirect, done.StatusCode);
-        return done.Headers.Location!.OriginalString;
-    }
+    private static Task<string> ComeBackAsync(
+        HttpClient browser, string subject, string? email, bool verified, string intent = "") =>
+        FakeProvider.ComeBackAsync(browser, subject, email, verified, intent);
 
     private static async Task<Uri> StartLinkAsync(HttpClient browser, string fetchSite)
     {

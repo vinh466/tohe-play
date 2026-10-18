@@ -185,7 +185,13 @@ internal static class ExternalEndpoints
                 : AccountPage("link_error", "provider_account_in_use"));
         }
 
-        // Signed in with this provider before: in it goes, to the picker (which goes straight on for one profile).
+        // Signed in with this provider before: in it goes, to the picker (which goes straight on for one profile) —
+        // unless the account is suspended (ADR 0027).
+        if (owner is { SuspendedAt: not null })
+        {
+            return Results.Redirect("/welcome?external=suspended");
+        }
+
         if (owner is not null)
         {
             var playing = await AuthEndpoints.OnlyProfileAsync(db, owner.Id, ct);
@@ -564,6 +570,11 @@ internal static class ExternalEndpoints
         MeQueries me,
         CancellationToken ct)
     {
+        if (account.SuspendedAt is not null)
+        {
+            return Problems.AccountSuspended();
+        }
+
         if (!await attempts.UseAsync(attempt, ct))
         {
             return Problems.AttemptClosed();

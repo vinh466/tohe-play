@@ -397,6 +397,8 @@ const vi = {
     emailRequired: 'Tài khoản cần có email trước.',
     lastMethod: 'Đây là cách đăng nhập cuối cùng của tài khoản: đặt mật khẩu hoặc liên kết cách khác trước.',
     providerAccountInUse: 'Tài khoản đó của nhà cung cấp đã liên kết với một tài khoản Tò He khác.',
+    accountSuspended:
+      'Tài khoản này đang bị tạm khoá. Liên hệ người vận hành Tò He nếu bạn nghĩ đó là nhầm lẫn.',
     signInExpired: 'Phiên đăng nhập này đã hết hạn. Bắt đầu lại nhé.',
     passwordTooShort: 'Mật khẩu cần ít nhất 8 ký tự.',
     pinInvalid: 'Sai mã PIN, thử lại nhé.',
@@ -812,6 +814,7 @@ const en: typeof vi = {
     emailRequired: 'The account needs an email first.',
     lastMethod: "It is the account's last way to sign in: set a password or link another first.",
     providerAccountInUse: 'That provider account is linked to another Tò He account.',
+    accountSuspended: 'This account is suspended. Contact whoever runs Tò He if you think it is a mistake.',
     signInExpired: 'This sign-in has expired. Start again.',
     passwordTooShort: 'Passwords need at least 8 characters.',
     pinInvalid: 'Wrong PIN, try again.',

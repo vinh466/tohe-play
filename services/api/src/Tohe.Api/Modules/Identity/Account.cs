@@ -29,6 +29,15 @@ public sealed class Account : IdentityUser<Guid>
     public string? TermsVersion { get; set; }
 
     public DateTimeOffset? TermsAcceptedAt { get; set; }
+
+    /// <summary>
+    /// Suspended from the admin console (ADR 0027): no way in — password, provider, link — until an admin lifts it. Its
+    /// sessions end with the new security stamp the suspension brings.
+    /// </summary>
+    public DateTimeOffset? SuspendedAt { get; set; }
+
+    /// <summary>Why, in the admin's words; shown to admins only.</summary>
+    public string? SuspendedReason { get; set; }
 }
 
 internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
@@ -45,6 +54,7 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
             .HasFilter("normalized_email IS NOT NULL");
         builder.Property(account => account.TelemetryEnabled).HasDefaultValue(true);
         builder.Property(account => account.TermsVersion).HasMaxLength(Consent.MaxVersionLength);
+        builder.Property(account => account.SuspendedReason).HasMaxLength(300);
     }
 }
 

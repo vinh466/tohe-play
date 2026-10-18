@@ -21,14 +21,28 @@ internal static class AdminPermissions
     /// <summary>The audit log: who did what in the console.</summary>
     public const string AuditRead = "admin.audit.read";
 
+    /// <summary>Find accounts and see one: its sign-in methods, role, suspension, profiles and their names.</summary>
+    public const string UsersRead = "admin.users.read";
+
+    /// <summary>Suspend an account or lift that, and end its sessions.</summary>
+    public const string UsersWrite = "admin.users.write";
+
+    /// <summary>Give or take platform roles.</summary>
+    public const string RolesWrite = "admin.roles.write";
+
+    /// <summary>Rename a profile whose name breaks the rules of a community.</summary>
+    public const string ProfilesModerate = "admin.profiles.moderate";
+
     /// <summary>
-    /// Every role reads; owners and admins read the audit log too. A permission to change something arrives with the
-    /// page that changes it (users, sign-in settings…), given here to the roles that hold it.
+    /// What each role may: owners everything, admins all but roles, moderators find accounts and rename profiles,
+    /// viewers read. A permission to change something new arrives with its page, given here to the roles that hold it.
     /// </summary>
     public static IReadOnlyList<string> Of(PlatformRole? role) => role switch
     {
         null => [],
-        PlatformRole.Owner or PlatformRole.Admin => [Read, AuditRead],
+        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate],
+        PlatformRole.Admin => [Read, AuditRead, UsersRead, UsersWrite, ProfilesModerate],
+        PlatformRole.Moderator => [Read, UsersRead, ProfilesModerate],
         _ => [Read],
     };
 }

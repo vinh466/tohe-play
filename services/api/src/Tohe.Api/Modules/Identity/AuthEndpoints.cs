@@ -267,6 +267,12 @@ internal static class AuthEndpoints
             return Problems.InvalidCredentials();
         }
 
+        // Told only after the password was right: nobody learns which accounts are suspended (ADR 0027).
+        if (account.SuspendedAt is not null)
+        {
+            return Problems.AccountSuspended();
+        }
+
         var playing = await OnlyProfileAsync(db, account.Id, ct);
         var state = new DeviceSession(playing);
         await session.WriteAsync(account, state);
@@ -338,6 +344,13 @@ internal static class AuthEndpoints
         var attempt = check.Attempt!;
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var account = attempt.AccountId is { } accountId ? await users.FindByIdAsync(accountId.ToString()) : null;
+        // Suspended (ADR 0027): a new password is no way in either. Said now that the code proved the address; nothing
+        // changes.
+        if (account is { SuspendedAt: not null })
+        {
+            return Problems.AccountSuspended();
+        }
+
         if (account is null || !await attempts.UseAsync(attempt, ct))
         {
             return Problems.AttemptClosed();

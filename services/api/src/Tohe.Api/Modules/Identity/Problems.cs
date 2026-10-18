@@ -36,6 +36,10 @@ internal static class Problems
     public static ProblemHttpResult AttemptClosed() =>
         Of(StatusCodes.Status400BadRequest, "attempt_closed", "This code no longer works; ask for a new one");
 
+    /// <summary>Suspended from the admin console; said only to someone who proved the account is theirs.</summary>
+    public static ProblemHttpResult AccountSuspended() =>
+        Of(StatusCodes.Status403Forbidden, "account_suspended", "This account is suspended");
+
     public static ProblemHttpResult LockedOut() =>
         Of(StatusCodes.Status429TooManyRequests, "locked_out", "Too many wrong attempts; try again in a few minutes");
 

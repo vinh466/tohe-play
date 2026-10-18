@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using System.Net;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
@@ -13,6 +14,30 @@ namespace Tohe.Api.Tests;
 /// whatever subject and email it wants to check, through the same remote-authentication machinery the real providers
 /// use (state, correlation cookie, Identity's external cookie).
 /// </summary>
+/// <summary>The browser's round trip through the fake provider.</summary>
+internal static class FakeProvider
+{
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
+
+    /// <summary>Out to the provider and back with its answer; returns the hub page the API sends the browser to.</summary>
+    public static async Task<string> ComeBackAsync(
+        HttpClient browser, string subject, string? email, bool verified, string intent = "")
+    {
+        var start = await browser.GetAsync(Url("/api/auth/external/fake" + intent), Ct);
+        Assert.Equal(HttpStatusCode.Redirect, start.StatusCode);
+        var state = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(start.Headers.Location!.Query)["state"].ToString();
+        var answer = $"?state={state}&sub={Uri.EscapeDataString(subject)}&email={Uri.EscapeDataString(email ?? "")}" +
+            $"&verified={(verified ? "true" : "false")}";
+        var callback = await browser.GetAsync(Url("/api/auth/external/fake/callback" + answer), Ct);
+        Assert.Equal(HttpStatusCode.Redirect, callback.StatusCode);
+        var done = await browser.GetAsync(callback.Headers.Location, Ct);
+        Assert.Equal(HttpStatusCode.Redirect, done.StatusCode);
+        return done.Headers.Location!.OriginalString;
+    }
+
+    private static Uri Url(string path) => new(path, UriKind.Relative);
+}
+
 public sealed class FakeProviderOptions : RemoteAuthenticationOptions
 {
     public FakeProviderOptions()

@@ -50,6 +50,35 @@ public sealed class Profile
     public DateTimeOffset CreatedAt { get; set; }
 }
 
+/// <summary>
+/// One name a profile had, from when (D-17): written by a database trigger on every new profile and every rename, by its
+/// owner or by a moderator, so moderation sees what a profile was called. Deleted with the profile.
+/// </summary>
+public sealed class ProfileName
+{
+    public long Id { get; set; }
+
+    public Guid ProfileId { get; set; }
+
+    public required string Name { get; set; }
+
+    public DateTimeOffset At { get; set; }
+}
+
+internal sealed class ProfileNameConfiguration : IEntityTypeConfiguration<ProfileName>
+{
+    public void Configure(EntityTypeBuilder<ProfileName> builder)
+    {
+        builder.ToTable("profile_names", "identity");
+        builder.Property(name => name.Name).HasMaxLength(200);
+        builder.HasIndex(name => new { name.ProfileId, name.At });
+        builder.HasOne<Profile>()
+            .WithMany()
+            .HasForeignKey(name => name.ProfileId)
+            .OnDelete(DeleteBehavior.Cascade);
+    }
+}
+
 internal sealed class ProfileConfiguration : IEntityTypeConfiguration<Profile>
 {
     public void Configure(EntityTypeBuilder<Profile> builder)

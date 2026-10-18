@@ -6,6 +6,8 @@ import { OverviewPage } from './pages/OverviewPage.tsx';
 import { SecurityPage } from './pages/SecurityPage.tsx';
 import { Shell } from './pages/Shell.tsx';
 import { SystemPage } from './pages/SystemPage.tsx';
+import { UserPage } from './pages/UserPage.tsx';
+import { UsersPage } from './pages/UsersPage.tsx';
 
 const rootRoute = createRootRoute({ component: Shell });
 
@@ -27,6 +29,15 @@ const securityRoute = createRoute({
   path: '/security',
   component: SecurityPage,
 });
+const usersRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/users',
+  validateSearch: (search: Record<string, unknown>): { q: string } => ({
+    q: typeof search.q === 'string' ? search.q : '',
+  }),
+  component: UsersPage,
+});
+const userRoute = createRoute({ getParentRoute: () => rootRoute, path: '/users/$id', component: UserPage });
 
 /** The console lives under /admin/ on the hub's origin (ADR 0027). */
 export const router = createRouter({
@@ -35,6 +46,8 @@ export const router = createRouter({
     gamesRoute,
     healthRoute,
     systemRoute,
+    usersRoute,
+    userRoute,
     auditRoute,
     securityRoute,
   ]),
