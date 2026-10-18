@@ -10,6 +10,9 @@ export type ProfileView = Schemas['ProfileView'];
 export type ProfileOptionsView = Schemas['ProfileOptionsView'];
 export type SignUpRequest = Schemas['SignUpRequest'];
 export type AttemptView = Schemas['AttemptView'];
+export type PendingSignInView = Schemas['PendingSignInView'];
+export type ExternalOutcome = Schemas['ExternalOutcome'];
+export type ExternalProvider = Schemas['ExternalProvider'];
 export type CreateProfileRequest = Schemas['CreateProfileRequest'];
 export type UpdateProfileRequest = Schemas['UpdateProfileRequest'];
 export type LeaderboardEntry = Schemas['LeaderboardEntry'];
@@ -95,6 +98,42 @@ export const auth = {
   logout: () => call(api.POST('/api/auth/logout')),
 };
 
+/**
+ * Signing in with a provider (ADR 0026). The browser goes to the provider and back; a first sign-in then waits on this
+ * browser for one more step: an address, a proof for the account that has it, or a name and the terms.
+ */
+export const external = {
+  /** Where the browser goes — a full navigation, not a fetch. `link` adds the provider to the signed-in account. */
+  startUrl: (provider: string, intent?: 'link') =>
+    `/api/auth/external/${encodeURIComponent(provider)}${intent ? `?intent=${intent}` : ''}`,
+  /** The step waiting on this browser, or null when nothing waits. */
+  pending: async (): Promise<PendingSignInView | null> => {
+    try {
+      return await call(api.GET('/api/auth/external/pending'));
+    } catch (error) {
+      if (error instanceof ApiError && error.status === 404) return null;
+      throw error;
+    }
+  },
+  sendEmailCode: (email: string) => call(api.POST('/api/auth/external/pending/email', { body: { email } })),
+  confirmEmail: (code: string) =>
+    call(api.POST('/api/auth/external/pending/email/confirm', { body: { code } })),
+  sendLinkCode: () => call(api.POST('/api/auth/external/pending/link-code')),
+  link: (proof: { code?: string; password?: string }) =>
+    call(
+      api.POST('/api/auth/external/pending/link', {
+        body: { code: proof.code ?? null, password: proof.password ?? null },
+      }),
+    ),
+  signUp: (displayName: string, termsVersion: string) =>
+    call(
+      api.POST('/api/auth/external/pending/signup', {
+        body: { displayName, acceptTerms: true, termsVersion },
+      }),
+    ),
+  cancel: () => call(api.DELETE('/api/auth/external/pending')),
+};
+
 export const session = {
   selectProfile: (profileId: string, pin?: string) =>
     call(api.PUT('/api/session/profile', { body: { profileId, pin: pin ?? null } })),
@@ -122,6 +161,9 @@ export const account = {
   confirmEmailChange: (attemptId: string, code: string) =>
     call(api.POST('/api/account/email/confirm', { body: { attemptId, code } })),
   setManagePin: (pin: string) => call(api.PUT('/api/account/manage-pin', { body: { pin } })),
+  /** Never the last way in (ADR 0026). */
+  unlink: (provider: string) =>
+    call(api.DELETE('/api/account/logins/{provider}', { params: { path: { provider } } })),
   setPassword: (password: string) => call(api.PUT('/api/account/password', { body: { password } })),
   /** The terms and privacy notice in the version the hub shows (legal/documents.tsx). */
   acceptTerms: (version: string) => call(api.POST('/api/account/terms', { body: { version } })),

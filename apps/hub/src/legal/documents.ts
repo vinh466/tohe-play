@@ -3,7 +3,7 @@
 // in how to reach the operator, before Tò He opens to everyone.
 
 /** Change it with any change to either document: signed-in accounts accept the new version once. */
-export const TERMS_VERSION = '2026-10-18';
+export const TERMS_VERSION = '2026-10-18.2';
 
 export interface Section {
   heading: string;
@@ -29,7 +29,7 @@ export const terms: LegalDocument = {
     {
       heading: 'Tài khoản',
       paragraphs: [
-        'Người từ 16 tuổi trở lên tự tạo tài khoản bằng email của mình. Dưới 16 tuổi, bạn chơi bằng một hồ sơ do bố mẹ hoặc người giám hộ tạo trong tài khoản của họ; người tạo hồ sơ chịu trách nhiệm cho hồ sơ đó.',
+        'Người từ 16 tuổi trở lên tự tạo tài khoản bằng email của mình, hoặc qua Google, GitHub. Dưới 16 tuổi, bạn chơi bằng một hồ sơ do bố mẹ hoặc người giám hộ tạo trong tài khoản của họ; người tạo hồ sơ chịu trách nhiệm cho hồ sơ đó.',
         'Giữ mật khẩu và mã quản lý cho riêng mình. Những gì làm từ tài khoản của bạn được coi là do bạn làm.',
       ],
     },
@@ -76,7 +76,7 @@ export const privacy: LegalDocument = {
     {
       heading: 'Tò He lưu những gì',
       paragraphs: [
-        'Tài khoản: email (để đăng nhập, lấy lại mật khẩu và nhận thông báo bảo mật), mật khẩu và mã quản lý (chỉ lưu dạng băm, không ai đọc được), tên tài khoản, thời điểm tạo, và bản điều khoản bạn đã đồng ý.',
+        'Tài khoản: email (để đăng nhập, lấy lại mật khẩu và nhận thông báo bảo mật), mật khẩu và mã quản lý (chỉ lưu dạng băm, không ai đọc được), tên tài khoản, thời điểm tạo, và bản điều khoản bạn đã đồng ý. Nếu bạn đăng nhập bằng Google, GitHub hay một nhà cung cấp khác: mã định danh tài khoản của bạn ở đó, để nhận ra bạn lần sau — không bao giờ là mật khẩu của bạn ở đó.',
         'Hồ sơ: tên, hình đại diện, người lớn hay trẻ em, độ tuổi của bé theo khoảng (ví dụ 6–8 tuổi, để chọn trò chơi hợp tuổi), mã PIN (dạng băm) và ID hồ sơ 12 số.',
         'Trò chơi: ván đã lưu và điểm của từng hồ sơ. Ở phòng online: ai ngồi ghế nào, các nước đi và kết quả, để xem lại ván và tính thành tích.',
         'Mã xác nhận gửi qua email: chỉ lưu dạng băm, hết hạn sau 15 phút, bị xoá sau một ngày. Thư đã gửi: nội dung bị xoá ngay khi gửi xong; chỉ giữ người nhận, loại thư và thời gian trong 30 ngày.',
@@ -99,20 +99,20 @@ export const privacy: LegalDocument = {
     {
       heading: 'Lưu trên máy của bạn',
       paragraphs: [
-        'Một cookie giữ bạn đăng nhập; không có nó thì không đăng nhập được. Tò He cũng lưu ván chơi trên máy để chơi được khi mất mạng. Không có cookie quảng cáo hay theo dõi.',
+        'Một cookie giữ bạn đăng nhập; không có nó thì không đăng nhập được. Khi bạn đăng nhập bằng Google hay GitHub, vài cookie tạm nối các bước với nhau, bị xoá khi xong hoặc tự hết hạn. Tò He cũng lưu ván chơi trên máy để chơi được khi mất mạng. Không có cookie quảng cáo hay theo dõi.',
       ],
     },
     {
       heading: 'Bên thứ ba',
       paragraphs: [
-        'Thư được gửi qua một dịch vụ gửi thư (Resend). Tò He chạy trên máy chủ người vận hành thuê, và kết nối có thể đi qua Cloudflare để được mã hoá và chống tấn công. Tò He không bán hay chia sẻ dữ liệu của bạn cho ai để quảng cáo.',
+        'Thư được gửi qua một dịch vụ gửi thư (Resend). Nếu bạn chọn đăng nhập bằng Google, GitHub hay một nhà cung cấp khác, bạn đăng nhập ở trang của họ, theo chính sách của họ; Tò He chỉ giữ mã định danh của bạn ở đó, và dùng email bạn đã xác minh với họ. Tò He chạy trên máy chủ người vận hành thuê, và kết nối có thể đi qua Cloudflare để được mã hoá và chống tấn công. Tò He không bán hay chia sẻ dữ liệu của bạn cho ai để quảng cáo.',
         'Máy chủ có thể ghi lại địa chỉ IP khi có lỗi hoặc để chặn đăng nhập sai quá nhiều lần, chỉ để vận hành và bảo vệ Tò He.',
       ],
     },
     {
       heading: 'Quyền của bạn',
       paragraphs: [
-        'Trong "Quản lý tài khoản", bạn xem và sửa tên, hồ sơ, email, mật khẩu; tắt dữ liệu kỹ thuật; xoá hồ sơ. Muốn xoá cả tài khoản, hãy liên hệ người vận hành cho tới khi Tò He có nút xoá.',
+        'Trong "Quản lý tài khoản", bạn xem và sửa tên, hồ sơ, email, mật khẩu; liên kết hoặc gỡ Google, GitHub; tắt dữ liệu kỹ thuật; xoá hồ sơ. Muốn xoá cả tài khoản, hãy liên hệ người vận hành cho tới khi Tò He có nút xoá.',
       ],
     },
     { heading: 'Liên hệ', paragraphs: [contact] },

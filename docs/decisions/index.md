@@ -24,7 +24,7 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0008](0008-technology-baseline.md) | Technology baseline | Accepted; game default amended by 0012 |
 | [0009](0009-local-environment.md) | Local environment: 47xx ports, compose, isolation | Accepted |
 | [0010](0010-environments-dev-and-uat.md) | Environments: development and UAT on the homelab | Accepted; production decided by 0021 |
-| [0011](0011-password-sign-in-first.md) | Sign in with username and password first; OAuth later | Accepted; invites removed by 0023; email sign-in by 0024; manage PIN and step-up by 0025 |
+| [0011](0011-password-sign-in-first.md) | Sign in with username and password first; OAuth later | Accepted; invites removed by 0023; email sign-in by 0024; manage PIN and step-up by 0025; OAuth by 0026 |
 | [0012](0012-phaser-and-the-game-kit.md) | Phaser 4 and the game kit are the default way to build games | Accepted |
 | [0013](0013-light-and-dark-themes.md) | Light and dark themes from shared design tokens | Accepted |
 | [0014](0014-live-scores-for-long-runs.md) | Live scores for runs that last across sittings | Accepted |
@@ -39,3 +39,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0023](0023-accounts-own-their-profiles.md) | Accounts own their profiles; every profile has a public ID and a free name | Accepted |
 | [0024](0024-email-identifies-an-account.md) | Email identifies an account; a code opens only the attempt it was sent for | Accepted; email change behind step-up by 0025 |
 | [0025](0025-step-up-in-two-levels-and-consent-at-sign-up.md) | Step up in two levels; sign up at 16 or older, accepting the terms | Accepted |
+| [0026](0026-sign-in-methods-and-account-linking.md) | Sign in with Google, GitHub or an OpenID Connect issuer; link a provider by its subject, after proof | Accepted |

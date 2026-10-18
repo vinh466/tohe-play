@@ -31,9 +31,18 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Email:From` | The sender, e.g. `Tò He <no-reply@example.org>` — an address the relay may send as | — required with `Smtp` |
 | `Email:Smtp:Host`, `Email:Smtp:Port`, `Email:Smtp:Security` | The relay; `Security` is `StartTls` (587), `SslOnConnect` (465) or `None` (a relay on the same network, like Mailpit) | —, `587`, `StartTls` |
 | `Email:Smtp:Username`, `Email:Smtp:Password` | The relay's credentials (Resend: `resend` and an API key) | empty: no authentication |
+| `Auth:Providers:Google:ClientId`, `Auth:Providers:Google:ClientSecret` | Google sign-in ([ADR 0026](../decisions/0026-sign-in-methods-and-account-linking.md)): an OAuth client of type *Web application* with the redirect URI `<App:PublicUrl>/api/auth/external/google/callback` | unset: no Google |
+| `Auth:Providers:GitHub:ClientId`, `Auth:Providers:GitHub:ClientSecret` | GitHub sign-in: an OAuth app with the callback URL `<App:PublicUrl>/api/auth/external/github/callback` | unset: no GitHub |
+| `Auth:Providers:Oidc:Authority`, `…:ClientId`, `…:ClientSecret`, `…:DisplayName` | One more OpenID Connect issuer (Dex, Keycloak…): its issuer URL, a confidential client with the redirect URI `<App:PublicUrl>/api/auth/external/oidc/callback`, and the name on its button | unset: none; the name defaults to `OpenID` |
+| `Auth:Providers:Oidc:RequireHttpsMetadata` | `false` only for a test issuer on plain HTTP | `true` |
 | `Rooms:*` | Timers, bots and limits of online rooms ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | see `RoomsOptions` |
 
 The API trusts the `X-Forwarded-For` the hub sends, so nothing but the hub may reach it.
+
+A provider exists only with both its client ID and secret, and `GET /api/config` lists the ones that do. Providers need
+`App:PublicUrl` with `https`: the redirect URI is built from the request — HTTPS, because of `App:PublicUrl`, and the
+host the browser used — so players reach the hub at that address, and the providers' own cookies are `Secure`.
+UAT and local development go without them (a developer may register an app for `http://localhost:4720`).
 
 ## Hub
 

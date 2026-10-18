@@ -8,6 +8,7 @@ import { configQuery } from '../api/queries.ts';
 import { ConsentCheckbox } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
 import { BackLink } from '../navigation/leave.tsx';
+import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
@@ -217,6 +218,7 @@ function Register() {
           </form>
         )}
       </section>
+      {attemptId ? null : <ProviderButtons />}
       <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
         {t('register.haveAccount')}
       </BackLink>

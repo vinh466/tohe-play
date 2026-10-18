@@ -7,6 +7,10 @@ const variants = {
   danger: 'bg-danger-soft text-danger active:bg-danger-soft-strong',
 };
 
+/** The look of a button, for a link that acts as one — a full navigation, such as to a sign-in provider. */
+export const buttonClass = (variant: keyof typeof variants = 'primary') =>
+  `inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-5 font-bold text-xl transition active:scale-[0.97] disabled:opacity-50 ${variants[variant]}`;
+
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   variant?: keyof typeof variants;
   busy?: boolean;
@@ -30,7 +34,7 @@ export function Button({
       {...rest}
       disabled={disabled || busy}
       aria-busy={busy || undefined}
-      className={`inline-flex min-h-12 items-center justify-center gap-2 rounded-2xl px-5 font-bold text-xl transition active:scale-[0.97] disabled:opacity-50 ${variants[variant]} ${className}`}
+      className={`${buttonClass(variant)} ${className}`}
     >
       {busy ? (
         <span className="size-5 animate-spin rounded-full border-2 border-current border-t-transparent" />

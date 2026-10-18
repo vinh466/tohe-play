@@ -10,6 +10,7 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="HasPassword">It can step up with its password; otherwise with a code by email (ADR 0025).</param>
 /// <param name="HasManagePin">Its manage PIN is set, so profile management opens with it (ADR 0025).</param>
 /// <param name="TermsVersion">The terms its owner accepted, at 16 or older; the hub asks again for newer ones.</param>
+/// <param name="Logins">The providers it signs in with besides its email (ADR 0026): <c>google</c>, <c>github</c>, <c>oidc</c>.</param>
 public sealed record AccountView(
     Guid Id,
     string? Email,
@@ -18,7 +19,8 @@ public sealed record AccountView(
     bool Telemetry,
     bool HasPassword,
     bool HasManagePin,
-    string? TermsVersion);
+    string? TermsVersion,
+    IReadOnlyList<string> Logins);
 
 /// <param name="PublicId">12 digits, the profile's public identifier (ADR 0023).</param>
 /// <param name="Kind"><c>adult</c> or <c>child</c>.</param>
@@ -60,6 +62,11 @@ internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
             .OrderBy(p => p.CreatedAt)
             .ToListAsync(cancellationToken);
         var views = profiles.Select(ToView).ToList();
+        var logins = await db.UserLogins.AsNoTracking()
+            .Where(login => login.UserId == accountId)
+            .Select(login => login.LoginProvider)
+            .OrderBy(provider => provider)
+            .ToListAsync(cancellationToken);
         var active = views.Any(p => p.Id == session.ProfileId) ? session.ProfileId : null;
         var now = clock.GetUtcNow();
 
@@ -72,7 +79,8 @@ internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
                 account.TelemetryEnabled,
                 account.PasswordHash is not null,
                 account.ManagePinHash is not null,
-                account.TermsVersion),
+                account.TermsVersion,
+                logins),
             views,
             active,
             session.ParentUntil > now ? session.ParentUntil : null,

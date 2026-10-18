@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearch } from '@tanstack/react-router';
 import { type FormEvent, type ReactNode, useEffect, useReducer, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError, account, type MeView, type ProfileView, session } from '../api/client.ts';
+import { ApiError, account, external, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery, profileOptionsQuery } from '../api/queries.ts';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
@@ -15,7 +15,7 @@ import { StepUp } from '../session/StepUp.tsx';
 import { isSecure, parentUnlocked } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
 import { Avatar, AvatarGrid } from '../ui/AvatarGrid.tsx';
-import { Button } from '../ui/Button.tsx';
+import { Button, buttonClass } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { copyText } from '../ui/copyText.ts';
 import { Modal } from '../ui/Modal.tsx';
@@ -464,12 +464,25 @@ function ProfileForm({
 function Security({ me }: { me: MeView }) {
   const { t } = useTranslation();
   const config = useQuery(configQuery);
-  const [open, setOpen] = useState<'email' | 'password' | 'pin' | null>(null);
+  const { linked, link_error: linkError } = useSearch({ from: '/account' });
+  const [open, setOpen] = useState<string | null>(null);
   const email = me.account.email;
   const close = () => setOpen(null);
   const row = 'flex flex-wrap items-center justify-between gap-3';
+  const providers = config.data?.providers ?? [];
+  const nameOf = (id: string) => providers.find((provider) => provider.id === id)?.name ?? id;
   return (
     <Card title={t('security.title')}>
+      {linked ? (
+        <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink">
+          {t('external.linked', { provider: nameOf(linked) })}
+        </p>
+      ) : null}
+      {linkError ? (
+        <p role="alert" className="text-danger">
+          {t(errorKey(new ApiError(400, linkError)))}
+        </p>
+      ) : null}
       <div className={row}>
         <div className="flex min-w-0 flex-col">
           <span className="text-ink-soft text-sm">{t('account.emailTitle')}</span>
@@ -519,7 +532,72 @@ function Security({ me }: { me: MeView }) {
       >
         {(done) => <ManagePinForm onDone={done} />}
       </SecureModal>
+      {providers.map((provider) => {
+        const isLinked = me.account.logins.includes(provider.id);
+        return (
+          <div key={provider.id} className={row}>
+            <span className="font-semibold text-ink">
+              {provider.name}
+              {isLinked ? <span className="ml-2 text-ink-soft text-sm">{t('external.isLinked')}</span> : null}
+            </span>
+            <Button
+              variant="secondary"
+              onClick={() => setOpen(`${isLinked ? 'unlink' : 'link'}:${provider.id}`)}
+            >
+              {isLinked ? t('external.unlink') : t('external.link')}
+            </Button>
+            <SecureModal
+              me={me}
+              open={open === `link:${provider.id}`}
+              title={t('external.linkTitle', { provider: provider.name })}
+              onClose={close}
+            >
+              {() => (
+                // A full trip to the provider and back, within the step-up just made (ADR 0026).
+                <a href={external.startUrl(provider.id, 'link')} className={buttonClass('primary')}>
+                  {t('external.continueWith', { name: provider.name })}
+                </a>
+              )}
+            </SecureModal>
+            <SecureModal
+              me={me}
+              open={open === `unlink:${provider.id}`}
+              title={t('external.unlinkTitle', { provider: provider.name })}
+              onClose={close}
+            >
+              {(done) => <Unlink provider={provider.id} name={provider.name} onDone={done} />}
+            </SecureModal>
+          </div>
+        );
+      })}
     </Card>
+  );
+}
+
+/** Removing a provider: never the last way in, and every other session ends (ADR 0026). */
+function Unlink({
+  provider,
+  name,
+  onDone,
+}: {
+  provider: string;
+  name: string;
+  onDone(next: MeView): Promise<void>;
+}) {
+  const { t } = useTranslation();
+  const unlink = useMutation({ mutationFn: () => account.unlink(provider), onSuccess: onDone });
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="text-ink">{t('external.unlinkBody', { provider: name })}</p>
+      {unlink.isError ? (
+        <p role="alert" className="text-danger">
+          {t(errorKey(unlink.error))}
+        </p>
+      ) : null}
+      <Button variant="danger" busy={unlink.isPending} onClick={() => unlink.mutate()}>
+        {t('external.unlink')}
+      </Button>
+    </div>
   );
 }
 

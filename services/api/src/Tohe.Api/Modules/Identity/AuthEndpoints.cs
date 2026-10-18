@@ -369,7 +369,7 @@ internal static class AuthEndpoints
     }
 
     /// <summary>One profile without a PIN leaves nobody to choose (ADR 0023): it plays at once. Otherwise null.</summary>
-    private static async Task<Guid?> OnlyProfileAsync(ToheDbContext db, Guid accountId, CancellationToken ct)
+    internal static async Task<Guid?> OnlyProfileAsync(ToheDbContext db, Guid accountId, CancellationToken ct)
     {
         var profiles = await db.Profiles
             .Where(p => p.AccountId == accountId)
