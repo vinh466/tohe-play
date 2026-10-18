@@ -16,8 +16,19 @@ export function OverviewPage() {
   if (overview.isPending) return <Loading />;
   if (overview.isError) return <Failed retry={() => void overview.refetch()} />;
 
-  const { accounts, profiles, players, rooms, errorsLastDay, catalog, email, heldResults, at, version } =
-    overview.data;
+  const {
+    accounts,
+    profiles,
+    players,
+    rooms,
+    errorsLastDay,
+    catalog,
+    email,
+    heldResults,
+    deletionsDue,
+    at,
+    version,
+  } = overview.data;
   return (
     <>
       <PageTitle title="Tổng quan" aside={`Cập nhật ${dateTime(at)} · phiên bản ${version}`} />
@@ -63,6 +74,26 @@ export function OverviewPage() {
           }
         >
           <Stat value={count(heldResults)} hint="engine giữ lại, chờ một người quyết" />
+        </Card>
+        {/* Nothing deletes an account by itself: past its seven days, it waits here for an admin (ADR 0038). */}
+        <Card
+          title="Tài khoản đến hạn xoá"
+          aside={
+            me.data?.permissions.includes('admin.users.read') ? (
+              <Link
+                to="/users"
+                search={{ q: '', deleting: true }}
+                className="text-brand-ink text-sm underline underline-offset-4"
+              >
+                Xem
+              </Link>
+            ) : null
+          }
+        >
+          <Stat
+            value={count(deletionsDue)}
+            hint="chủ đã yêu cầu xoá, quá 7 ngày, chờ quản trị viên xoá hẳn"
+          />
         </Card>
         <Card
           title="Lỗi trên thiết bị"

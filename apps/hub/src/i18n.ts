@@ -78,7 +78,7 @@ const vi = {
     signIn: 'Đăng nhập',
     forgot: 'Quên mật khẩu?',
     deleting:
-      'Tài khoản sẽ bị xoá hẳn vào ngày {{date}}. Đổi ý? Đăng nhập lại trước ngày đó là tài khoản được giữ nguyên.',
+      'Tài khoản sẽ bị xoá hẳn sau ngày {{date}}. Đổi ý? Đăng nhập lại trước ngày đó là tài khoản được giữ nguyên.',
     addEmailTitle: 'Thêm email cho tài khoản',
     addEmailBody:
       'Từ nay Tò He đăng nhập bằng email, và gửi mã tới đó khi bạn quên mật khẩu. Nhập email của bạn để nhận mã xác nhận.',
@@ -212,7 +212,7 @@ const vi = {
     title: 'Xoá tài khoản',
     hint: 'Xoá tài khoản cùng mọi hồ sơ trong đó. Có 7 ngày để đổi ý.',
     start: 'Xoá tài khoản…',
-    body: 'Mọi thiết bị sẽ được đăng xuất ngay, và tài khoản bị xoá hẳn sau 7 ngày.',
+    body: 'Mọi thiết bị sẽ được đăng xuất ngay. Sau 7 ngày, người vận hành xoá hẳn tài khoản.',
     goes: 'Bị xoá: tài khoản, mọi hồ sơ, ván đã lưu, điểm và kết quả trên bảng xếp hạng. ID hồ sơ không bao giờ được cấp cho ai khác.',
     stays: 'Ván online đã chơi vẫn còn cho người cùng bàn xem lại; chỗ của bạn hiện là "Người chơi đã xoá".',
     keep: 'Đổi ý? Đăng nhập lại trong 7 ngày đó là tài khoản được giữ nguyên.',
@@ -579,7 +579,7 @@ const en: typeof vi = {
     signIn: 'Sign in',
     forgot: 'Forgot your password?',
     deleting:
-      'The account will be deleted for good on {{date}}. Changed your mind? Sign in before then and it stays as it is.',
+      'The account will be deleted for good after {{date}}. Changed your mind? Sign in before then and it stays as it is.',
     addEmailTitle: 'Add an email to your account',
     addEmailBody:
       'Tò He now signs in with an email, and sends a code there when a password is forgotten. Enter yours to get a confirmation code.',
@@ -715,7 +715,7 @@ const en: typeof vi = {
     title: 'Delete the account',
     hint: 'Deletes the account and every profile in it. You have 7 days to change your mind.',
     start: 'Delete the account…',
-    body: 'Every device is signed out now, and the account is deleted for good after 7 days.',
+    body: 'Every device is signed out now. After 7 days, the operator deletes the account for good.',
     goes: 'Deleted: the account, every profile, saved games, scores and results on the boards. A profile ID is never given to anyone else.',
     stays:
       'Online hands you played stay for the others at the table to replay; your seat shows "Deleted player".',

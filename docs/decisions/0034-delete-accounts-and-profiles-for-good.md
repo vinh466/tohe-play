@@ -5,7 +5,8 @@ sidebar:
   order: 34
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — an account whose seven days are over waits for an admin, who deletes it from the
+  console, since [ADR 0038](0038-an-account-waits-for-an-admin-after-its-seven-days.md)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0029](0029-integrity-engine-and-boards-by-trust.md) and
   [ADR 0027](0027-platform-admin-and-the-first-owner.md) — the decisions log and the audit log stay append-only, each

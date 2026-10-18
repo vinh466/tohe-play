@@ -36,8 +36,10 @@ const securityRoute = createRoute({
 const usersRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/users',
-  validateSearch: (search: Record<string, unknown>): { q: string } => ({
+  // ?deleting=true: only the accounts whose owner asked to delete them (ADR 0038).
+  validateSearch: (search: Record<string, unknown>): { q: string; deleting?: boolean } => ({
     q: typeof search.q === 'string' ? search.q : '',
+    deleting: search.deleting === true || search.deleting === 'true' ? true : undefined,
   }),
   component: UsersPage,
 });

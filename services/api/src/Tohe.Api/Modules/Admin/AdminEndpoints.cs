@@ -46,6 +46,7 @@ public sealed record AuditPage(IReadOnlyList<AuditEntryView> Entries, long? Befo
 /// <param name="Players">Profiles that saved a game or recorded a score.</param>
 /// <param name="ErrorsLastDay">Errors devices reported in the last day; none while telemetry is off.</param>
 /// <param name="HeldResults">Results the integrity engine held, waiting for a person (ADR 0029).</param>
+/// <param name="DeletionsDue">Accounts whose seven days are over, waiting for an admin to delete them (ADR 0038).</param>
 public sealed record AdminOverview(
     DateTimeOffset At,
     string Version,
@@ -56,7 +57,8 @@ public sealed record AdminOverview(
     int? ErrorsLastDay,
     AdminCatalog Catalog,
     OutboxState Email,
-    int HeldResults);
+    int HeldResults,
+    int DeletionsDue);
 
 /// <param name="Online">Profiles connected to an open room right now.</param>
 public sealed record AdminRooms(int Open, int Playing, int Online);
@@ -231,7 +233,8 @@ internal static class AdminEndpoints
             telemetryOptions.Value.Enabled ? await telemetry.ErrorsSinceAsync(now.AddDays(-1), ct) : null,
             new AdminCatalog(games.Count(game => game.Listed), games.Count(game => !game.Listed), catalog?.LastSuccessAt, catalog?.LastError),
             await email.StateAsync(now, ct),
-            await review.HeldCountAsync(ct)));
+            await review.HeldCountAsync(ct),
+            await identity.DeletionsDueAsync(now, ct)));
     }
 
     private static async Task<Ok<IReadOnlyList<AdminGame>>> GamesAsync(

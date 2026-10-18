@@ -17,10 +17,10 @@ public sealed record RenameProfileRequest(string? Name);
 public sealed record HideProfileRequest(string? Reason);
 
 /// <summary>
-/// The console's users (ADR 0027): find an account by its address, a name or a profile ID; suspend it or lift that, end
-/// its sessions, give or take its role, rename one of its profiles or hide it from public boards (ADR 0029). Every
-/// change needs step-up level 2 and lands in the
-/// audit log with it. Nobody acts on their own account here, nor on one whose role is as strong as theirs — but an
+/// The console's users (ADR 0027): find an account by its address, a name or a profile ID, or those waiting to be
+/// deleted; suspend it or lift that, end its sessions, give or take its role, rename one of its profiles or hide it
+/// from public boards (ADR 0029), delete it for good once its owner asked and its seven days are over (ADR 0038).
+/// Every change needs step-up level 2 and lands in the audit log with it. Nobody acts on their own account here, nor on one whose role is as strong as theirs — but an
 /// owner may on another owner — and the last owner stays one.
 /// </summary>
 internal static class UsersEndpoints
@@ -50,6 +50,12 @@ internal static class UsersEndpoints
             .RequireStepUp()
             .WithName("LiftAdminUserSuspension")
             .WithSummary("Lift a suspension.");
+
+        admin.MapPost("/users/{id:guid}/delete", DeleteAsync)
+            .RequirePermission(AdminPermissions.UsersWrite)
+            .RequireStepUp()
+            .WithName("DeleteAdminUser")
+            .WithSummary("Delete for good an account whose owner asked and whose seven days are over (ADR 0038).");
 
         admin.MapPost("/users/{id:guid}/sign-out", SignOutAsync)
             .RequirePermission(AdminPermissions.UsersWrite)
@@ -82,8 +88,56 @@ internal static class UsersEndpoints
             .WithSummary("Let a hidden profile back on public boards, as its owner's switch says.");
     }
 
-    private static async Task<Ok<IReadOnlyList<AccountSummary>>> SearchAsync(AccountsAdmin accounts, CancellationToken ct, string? q = null) =>
-        TypedResults.Ok(await accounts.SearchAsync(q, ct));
+    /// <param name="deleting">Only the accounts whose owner asked to delete them, the soonest due first (ADR 0038).</param>
+    private static async Task<Ok<IReadOnlyList<AccountSummary>>> SearchAsync(
+        AccountsAdmin accounts, CancellationToken ct, string? q = null, bool deleting = false) =>
+        TypedResults.Ok(await accounts.SearchAsync(q, deleting, ct));
+
+    /// <summary>
+    /// Deletes for good an account its owner asked to delete, once its seven days are over (ADR 0038): with every
+    /// profile and their data, as ADR 0034 says, and the audit entry in the same transaction. Before then its owner
+    /// may still sign in and keep it.
+    /// </summary>
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> DeleteAsync(
+        Guid id,
+        HttpContext http,
+        UserManager<Account> users,
+        PlatformRoles roles,
+        AccountDeletion deletion,
+        AdminAudit audit,
+        ToheDbContext db,
+        TimeProvider clock,
+        CancellationToken ct)
+    {
+        if (await users.FindByIdAsync(id.ToString()) is not { } target)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (await GuardAsync(http, target.Id, roles, ct) is { } refused)
+        {
+            return refused;
+        }
+
+        var label = Label(target);
+        var actor = await ActorAsync(http, users);
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var outcome = await deletion.DeleteAsync(target.Id, clock.GetUtcNow(), ct);
+        switch (outcome.State)
+        {
+            case AccountDeletionState.NotFound:
+                return TypedResults.NotFound();
+            case AccountDeletionState.NotRequested:
+                return Problems.Of(StatusCodes.Status409Conflict, "deletion_not_requested", "Its owner has not asked to delete it");
+            case AccountDeletionState.NotDue:
+                return Problems.Of(StatusCodes.Status409Conflict, "deletion_not_due", "Its seven days are not over: its owner may still keep it");
+        }
+
+        audit.Add(actor, AuditActions.UserDelete, label, new { profiles = outcome.Profiles });
+        await db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return TypedResults.NoContent();
+    }
 
     private static async Task<Results<Ok<AccountDetail>, NotFound>> DetailAsync(Guid id, AccountsAdmin accounts, CancellationToken ct) =>
         await accounts.DetailAsync(id, ct) is { } detail ? TypedResults.Ok(detail) : TypedResults.NotFound();

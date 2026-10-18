@@ -45,7 +45,7 @@ An account holds at most one platform role — `owner`, `admin`, `moderator` or 
 | `admin.read` | The read-only pages, and the account's own two-factor authentication | every role |
 | `admin.audit.read` | The audit log | owner, admin |
 | `admin.users.read` | Find accounts and see one: sign-in methods, role, suspension, profiles and their names | owner, admin, moderator |
-| `admin.users.write` | Suspend an account or lift it, end its sessions | owner, admin |
+| `admin.users.write` | Suspend an account or lift it, end its sessions, delete one whose seven days are over | owner, admin |
 | `admin.roles.write` | Give or take platform roles | owner |
 | `admin.profiles.moderate` | Rename a profile, hide it from public boards | owner, admin, moderator |
 | `admin.settings.write` | Switch sign-in methods and the registration mode; make communities and invite codes, revoke codes | owner, admin |
@@ -163,6 +163,7 @@ entries.
 | `role.grant`, `role.revoke` | A role given or taken away, from the console or the command |
 | `user.suspend`, `user.unsuspend` | An account suspended — the reason in the details — or the suspension lifted |
 | `user.sign-out` | Every session of an account ended |
+| `user.delete` | An account deleted for good, its seven days over — how many profiles went with it in the details ([ADR 0038](../decisions/0038-an-account-waits-for-an-admin-after-its-seven-days.md)) |
 | `profile.rename` | A profile renamed, with the names before and after |
 | `profile.hide`, `profile.show` | A profile hidden from public boards — the reason in the details — or let back |
 | `result.approve`, `result.reject`, `result.reopen` | A person's decision about a result (target `result {id}`), with the levels before and after and the note |
@@ -177,7 +178,7 @@ entries.
 
 Accounts are found by email, username, display name or profile name, or by the first four digits or more of a profile
 ID; nothing typed lists the newest. An account's page shows how it signs in, its role, two-factor authentication,
-whether it is suspended and why, whether its owner asked to delete it and when it goes ("Chờ xoá",
+whether it is suspended and why, whether its owner asked to delete it and when its seven days end ("Chờ xoá",
 [Identity](identity.md#deleting)), and each profile with the names it had. What may be done to it, behind step-up
 level 2 and in the audit log:
 
@@ -188,6 +189,11 @@ level 2 and in the audit log:
   `account_suspended`; a wrong one hears `invalid_credentials` as always, so nobody learns which accounts are
   suspended. With a provider, the hub shows the same at `/welcome?external=suspended`. **Lift** undoes it.
 - **Sign out everywhere**: a new security stamp alone.
+- **Delete for good** an account whose owner asked and whose seven days are over
+  ([ADR 0038](../decisions/0038-an-account-waits-for-an-admin-after-its-seven-days.md)), after one more confirmation: every profile and their data go
+  with it, as [Identity](identity.md#deleting) lists. Before the day it answers `deletion_not_due`; when its owner
+  never asked, or signed in since, `deletion_not_requested`. "Chờ xoá" (`?deleting=true`) lists the accounts
+  waiting, the soonest due first, and the overview counts those due — nothing deletes them by itself.
 - **Role** (owners): give one or take it away. The platform keeps at least one owner (`last_owner`).
 - **Rename a profile** (moderators too), under the same name rules as its owner (ADR 0023). A database trigger keeps
   every name a profile had — on creation and on any rename, by its owner or a moderator — so moderation sees what it
@@ -264,11 +270,11 @@ It exits with 0 when done, 1 when no account signs in with the address, 2 for a 
 
 | Page | Shows | Asks |
 | --- | --- | --- |
-| Tổng quan, `/admin/` | Accounts and profiles: total, last day, last week · players — profiles that saved a game or recorded a score — in the last day and week · open rooms, rooms in a hand, profiles connected · results waiting for a person · device errors in the last day · the catalog and its last sync · the email outbox | `IdentityFacts`, `ProgressFacts`, `RoomRegistry.Live()`, `IntegrityReview`, `TelemetryFacts`, `RegistryFacts` and the catalog worker, `EmailFacts` |
+| Tổng quan, `/admin/` | Accounts and profiles: total, last day, last week · players — profiles that saved a game or recorded a score — in the last day and week · open rooms, rooms in a hand, profiles connected · results waiting for a person · accounts due for deletion · device errors in the last day · the catalog and its last sync · the email outbox | `IdentityFacts`, `ProgressFacts`, `RoomRegistry.Live()`, `IntegrityReview`, `TelemetryFacts`, `RegistryFacts` and the catalog worker, `EmailFacts` |
 | Game, `/admin/games` | Every game in the registry, listed or not, with its players in the last week and its open rooms | `RegistryFacts`, `ProgressFacts`, `RoomRegistry` |
 | Sức khoẻ thiết bị, `/admin/health?days=1\|7\|30` | The device telemetry report ([Device telemetry](telemetry.md)): devices, errors, frames and metrics per game version, plays and errors per day | `TelemetryReports` |
 | Hệ thống, `/admin/system` | The build, environment and start time · migrations applied and pending · what each background worker last did · settings, never secrets | `BackgroundWork`, EF Core, options |
-| Người dùng, `/admin/users`, `/admin/users/{id}` | Accounts found, then one account and its profiles, with what may be done to them | `AccountsAdmin` |
+| Người dùng, `/admin/users`, `/admin/users/{id}` | Accounts found — or those waiting to be deleted, the soonest due first — then one account and its profiles, with what may be done to them | `AccountsAdmin` |
 | Xem xét kết quả, `/admin/review?list=held\|decided`, `/admin/review/{id}` | The held results, oldest first, or the decided ones, latest first; then one result — its evidence, a ranked run played back in the game itself, its profile's history on the board, every change of level — and the decision | `IntegrityReview`, `AccountsAdmin`, `RegistryFacts` |
 | Cộng đồng, `/admin/communities` | Communities with how many accounts came with each, their invite codes and links; new ones, revoking | `CommunitiesAdmin` |
 | Đăng nhập & đăng ký, `/admin/settings` | Each sign-in method and who relies on it alone; the registration mode; switching both | `RuntimeSettings`, `IdentityFacts` |
@@ -293,7 +299,6 @@ three failures in a row without anyone opening the page.
 | `email-delivery` | every `Email:PollInterval` |
 | `telemetry-maintenance` | every `Telemetry:MaintenanceInterval` |
 | `ranked-replays` | every `Integrity:ReplayInterval` ([ranked runs](integrity.md#ranked-runs)) |
-| `account-deletion` | every `Identity:DeletionCheckInterval` (an hour): accounts whose seven days are over ([Identity](identity.md#deleting)) |
 | `audit-retention` | once a day: audit entries older than a year ([above](#the-audit-log)) |
 
 ## API
@@ -311,9 +316,10 @@ three failures in a row without anyone opening the page.
 | `GET /api/admin/health?days=7` | `admin.read` | The device telemetry report over 1 to 30 days |
 | `GET /api/admin/system` | `admin.read` | The running deployment |
 | `GET /api/admin/audit?before=&limit=50` | `admin.audit.read` | A page of the audit log, newest first |
-| `GET /api/admin/users?q=` · `GET /api/admin/users/{id}` | `admin.users.read` | Accounts found, fifty at most · one account |
+| `GET /api/admin/users?q=&deleting=` · `GET /api/admin/users/{id}` | `admin.users.read` | Accounts found, fifty at most — with `deleting=true`, those waiting to be deleted, the soonest due first · one account |
 | `POST` · `DELETE /api/admin/users/{id}/suspend` | `admin.users.write`, step-up | Suspend, with a reason · lift it |
 | `POST /api/admin/users/{id}/sign-out` | `admin.users.write`, step-up | End every session of the account |
+| `POST /api/admin/users/{id}/delete` | `admin.users.write`, step-up | Delete for good an account whose seven days are over ([ADR 0038](../decisions/0038-an-account-waits-for-an-admin-after-its-seven-days.md)) |
 | `PUT /api/admin/users/{id}/role` | `admin.roles.write`, step-up | Give a role, or none |
 | `PATCH /api/admin/profiles/{id}` | `admin.profiles.moderate`, step-up | Rename a profile |
 | `POST` · `DELETE /api/admin/profiles/{id}/hidden` | `admin.profiles.moderate`, step-up | Hide a profile from public boards, with a reason · let it back |

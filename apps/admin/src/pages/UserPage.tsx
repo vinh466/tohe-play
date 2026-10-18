@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { type AccountDetail, type AdminMe, admin, type ProfileDetail } from '../api/client.ts';
 import { dateTime, publicId, roleName } from '../format.ts';
@@ -55,9 +55,13 @@ export function UserPage() {
               ) : user.deleteAfter ? null : (
                 'Đang hoạt động'
               )}
-              {/* Its owner asked to delete it (ADR 0034): it goes then, unless someone signs in to it before. */}
+              {/* Its owner asked to delete it (ADR 0034); past its seven days, it waits for an admin (ADR 0038). */}
               {user.deleteAfter ? (
-                <Badge tone="notice">Chờ xoá — xoá hẳn lúc {dateTime(user.deleteAfter)}</Badge>
+                new Date(user.deleteAfter).getTime() <= Date.now() ? (
+                  <Badge tone="danger">Đến hạn xoá — chờ quản trị viên xoá hẳn</Badge>
+                ) : (
+                  <Badge tone="notice">Chờ xoá — đến hạn lúc {dateTime(user.deleteAfter)}</Badge>
+                )
               ) : null}
             </Fact>
           </div>
@@ -111,6 +115,18 @@ function Actions({
 }) {
   const [reason, setReason] = useState('');
   const [role, setRole] = useState(user.role ?? '');
+  const [confirmDelete, setConfirmDelete] = useState(false);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const remove = useMutation({
+    mutationFn: () => admin.deleteUser(user.id),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['admin', 'users'] });
+      await navigate({ to: '/users', search: { q: '', deleting: true } });
+    },
+  });
+  // Its owner asked, and its seven days are over: the account waits for an admin (ADR 0038).
+  const due = user.deleteAfter !== null && new Date(user.deleteAfter).getTime() <= Date.now();
   const suspend = useMutation({ mutationFn: () => admin.suspend(user.id, reason), onSuccess: onChange });
   const lift = useMutation({ mutationFn: () => admin.lift(user.id), onSuccess: onChange });
   const signOut = useMutation({ mutationFn: () => admin.signOut(user.id), onSuccess: onChange });
@@ -118,7 +134,7 @@ function Actions({
     mutationFn: () => admin.setRole(user.id, role || null),
     onSuccess: onChange,
   });
-  const failed = suspend.error ?? lift.error ?? signOut.error ?? saveRole.error;
+  const failed = suspend.error ?? lift.error ?? signOut.error ?? saveRole.error ?? remove.error;
 
   const submitSuspend = (event: FormEvent) => {
     event.preventDefault();
@@ -154,6 +170,34 @@ function Actions({
             <Button variant="secondary" busy={signOut.isPending} onClick={() => signOut.mutate()}>
               Đăng xuất khỏi mọi thiết bị
             </Button>
+            {user.deleteAfter && !due ? (
+              <p className="text-ink-soft text-sm">
+                Chủ tài khoản đã yêu cầu xoá. Tới {dateTime(user.deleteAfter)} họ còn đăng nhập lại để giữ
+                được; sau đó tài khoản chờ quản trị viên xoá hẳn.
+              </p>
+            ) : null}
+            {due && !confirmDelete ? (
+              <Button variant="danger" onClick={() => setConfirmDelete(true)}>
+                Xoá hẳn tài khoản…
+              </Button>
+            ) : null}
+            {due && confirmDelete ? (
+              <div className="flex flex-col gap-2 rounded-xl border border-danger-line p-3">
+                <p className="text-danger text-sm">
+                  Xoá hẳn tài khoản này cùng {user.profiles.length} hồ sơ của nó: ván đã lưu, điểm, kết quả
+                  trên bảng xếp hạng và các run xếp hạng. Ván online đã chơi vẫn còn cho người cùng bàn, nhưng
+                  không còn gì của họ. Không thể hoàn tác.
+                </p>
+                <div className="flex flex-wrap gap-2">
+                  <Button variant="danger" busy={remove.isPending} onClick={() => remove.mutate()}>
+                    Xoá hẳn
+                  </Button>
+                  <Button variant="secondary" onClick={() => setConfirmDelete(false)}>
+                    Thôi
+                  </Button>
+                </div>
+              </div>
+            ) : null}
           </>
         ) : null}
         {me.permissions.includes('admin.roles.write') ? (

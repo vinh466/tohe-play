@@ -3,6 +3,7 @@ using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Email;
+using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
 using Tohe.Api.Modules.Rooms;
 
@@ -19,6 +20,7 @@ internal sealed class MetricsSample(
     EmailFacts email,
     IntegrityReview review,
     RankedReplays replays,
+    IdentityFacts identity,
     ToheMetrics metrics,
     TimeProvider clock)
 {
@@ -26,7 +28,7 @@ internal sealed class MetricsSample(
     {
         var now = clock.GetUtcNow();
         var live = rooms.Live();
-        var readings = (metrics.Last ?? new MetricsReadings(false, 0, 0, 0, 0, 0, 0, 0))
+        var readings = (metrics.Last ?? new MetricsReadings(false, 0, 0, 0, 0, 0, 0, 0, 0))
             with { RoomsOpen = live.Open, RoomsPlaying = live.Playing, RoomsConnected = live.Online };
         try
         {
@@ -39,6 +41,7 @@ internal sealed class MetricsSample(
                 OutboxOldestSeconds = outbox.OldestWaitingSince is { } since ? Math.Max(0, (now - since).TotalSeconds) : 0,
                 Held = await review.HeldCountAsync(ct),
                 ReplaysWaiting = await replays.WaitingAsync(ct),
+                DeletionsDue = await identity.DeletionsDueAsync(now, ct),
             };
         }
         catch (Exception error) when (error is not OperationCanceledException)

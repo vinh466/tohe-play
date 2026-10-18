@@ -72,9 +72,15 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
     /// Accounts whose email, username, display name or profile name holds the text, or whose profile ID starts with
     /// the digits; the newest first. Nothing typed, the newest accounts.
     /// </summary>
-    public async Task<IReadOnlyList<AccountSummary>> SearchAsync(string? text, CancellationToken ct)
+    /// <param name="deleting">Only accounts whose owner asked to delete them (ADR 0038), the soonest due first.</param>
+    public async Task<IReadOnlyList<AccountSummary>> SearchAsync(string? text, bool deleting, CancellationToken ct)
     {
         var query = db.Users.AsNoTracking();
+        if (deleting)
+        {
+            query = query.Where(account => account.DeleteAfter != null);
+        }
+
         var typed = text?.Trim() ?? "";
         var digits = string.Concat(typed.Where(c => !char.IsWhiteSpace(c)));
         if (digits.Length >= 4 && digits.All(char.IsAsciiDigit))
@@ -91,8 +97,10 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
                 || db.Profiles.Any(p => p.AccountId == account.Id && EF.Functions.ILike(p.Name, pattern)));
         }
 
-        var rows = await query
-            .OrderByDescending(account => account.CreatedAt)
+        var ordered = deleting
+            ? query.OrderBy(account => account.DeleteAfter)
+            : query.OrderByDescending(account => account.CreatedAt);
+        var rows = await ordered
             .Take(Page)
             .Select(account => new
             {

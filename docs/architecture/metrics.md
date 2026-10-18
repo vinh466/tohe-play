@@ -38,10 +38,11 @@ restarts — PromQL's `increase()` reads them as counters.
 | `tohe_email_sent`, `tohe_email_failed` | — | emails the relay took; emails given up on after every try |
 | `tohe_worker_failures_in_row`, `tohe_worker_last_success_age_seconds` | `worker` | each background worker, as the console's System page shows it ([Admin console](admin.md#background-work)) |
 | `tohe_integrity_held`, `tohe_ranked_replays_waiting` | — | results held for a person; ranked runs waiting for their replay ([Integrity](integrity.md)) |
+| `tohe_account_deletions_due` | — | accounts whose seven days are over, waiting for an admin to delete them ([Identity](identity.md#deleting)) |
 | `tohe_sign_ins` | `method` (`password`, `google`, `github`, `oidc`), `outcome` (`ok`, `refused`, `locked`) | every sign-in |
 
 Labels are always bounded: never a profile, an account, an address, a room code or a raw path. The `tohe_` gauges
-of tables, the outbox, held results and replays are read every sample by the Admin module's sampler, which puts
+of tables, the outbox, held results, replays and accounts due for deletion are read every sample by the Admin module's sampler, which puts
 together what each module tells — as the console's overview does — so the metrics never read another module's tables.
 The counters are counted where things happen: the email worker, the sign-in endpoints.
 

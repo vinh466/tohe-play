@@ -91,12 +91,20 @@ export const admin = {
     ),
   newRecoveryCodes: () => call(api.POST('/api/admin/two-factor/recovery-codes')),
   disableTwoFactor: () => call(api.DELETE('/api/admin/two-factor')),
-  users: (q: string) => call(api.GET('/api/admin/users', { params: { query: q ? { q } : {} } })),
+  /** Found by `q`, or — with `deleting` — those whose owner asked to delete them, the soonest due first. */
+  users: (q: string, deleting = false) =>
+    call(
+      api.GET('/api/admin/users', {
+        params: { query: { ...(q ? { q } : {}), ...(deleting ? { deleting } : {}) } },
+      }),
+    ),
   user: (id: string) => call(api.GET('/api/admin/users/{id}', { params: { path: { id } } })),
   suspend: (id: string, reason: string) =>
     call(api.POST('/api/admin/users/{id}/suspend', { params: { path: { id } }, body: { reason } })),
   lift: (id: string) => call(api.DELETE('/api/admin/users/{id}/suspend', { params: { path: { id } } })),
   signOut: (id: string) => call(api.POST('/api/admin/users/{id}/sign-out', { params: { path: { id } } })),
+  /** For good, once its owner asked and its seven days are over (ADR 0038). */
+  deleteUser: (id: string) => call(api.POST('/api/admin/users/{id}/delete', { params: { path: { id } } })),
   setRole: (id: string, role: string | null) =>
     call(api.PUT('/api/admin/users/{id}/role', { params: { path: { id } }, body: { role } })),
   renameProfile: (id: string, name: string) =>
