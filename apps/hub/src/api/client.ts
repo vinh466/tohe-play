@@ -17,6 +17,8 @@ export type CreateProfileRequest = Schemas['CreateProfileRequest'];
 export type UpdateProfileRequest = Schemas['UpdateProfileRequest'];
 export type AccountBoardView = Schemas['AccountBoardView'];
 export type BoardRow = Schemas['BoardRow'];
+export type PublicBoardView = Schemas['PublicBoardView'];
+export type PublicRow = Schemas['PublicRow'];
 export type ScoreInput = Schemas['ScoreInput'];
 export type RoomView = Schemas['RoomView'];
 export type RoomSummary = Schemas['RoomSummary'];
@@ -189,6 +191,9 @@ export const progress = {
 export const boards = {
   account: (gameId: string, period: 'week' | 'all') =>
     call(api.GET('/api/boards/{gameId}', { params: { path: { gameId }, query: { period } } })),
+  /** A community's board — the account's — or the server's: the first 50 and the viewer's place. */
+  public: (gameId: string, scope: 'community' | 'server', period: 'week' | 'all') =>
+    call(api.GET('/api/boards/{gameId}/public', { params: { path: { gameId }, query: { scope, period } } })),
 };
 
 /** Online rooms (ADR 0016): the lobby and the host's controls. What happens at the table goes through the hub. */

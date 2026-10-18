@@ -47,6 +47,15 @@ public sealed class Profile
     /// </summary>
     public bool PlayWithOthers { get; set; }
 
+    /// <summary>
+    /// On the public boards — a community's and the server's (ADR 0029). On for adults; off for children until the
+    /// account's owner turns it on, saying they asked the child (D-06).
+    /// </summary>
+    public bool OnPublicBoards { get; set; }
+
+    /// <summary>When the account's owner said they asked the child, turning <see cref="OnPublicBoards"/> on.</summary>
+    public DateTimeOffset? AskedChildAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 }
 

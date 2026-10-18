@@ -44,6 +44,21 @@ const vi = {
     allTime: 'Mọi lúc',
     underReview: 'Đang được xem xét',
   },
+  boards: {
+    scope: 'Bảng của',
+    account: 'Nhà mình',
+    community: 'Cộng đồng',
+    server: 'Toàn Tò He',
+    empty: 'Chưa ai lên bảng này — chơi một ván nhé!',
+    notListed:
+      'Hồ sơ này đang ẩn khỏi bảng công khai. Bật "Hiện trên bảng công khai" trong Quản lý hồ sơ để lên bảng.',
+    notVerifiable:
+      'Bảng toàn Tò He chỉ nhận điểm máy chủ đã xác minh, mà điểm của game này chưa xác minh được. Xem bảng Cộng đồng nhé.',
+    unverified: 'chưa xác minh',
+    unverifiedBoard: 'Điểm trên bảng này chưa được máy chủ xác minh.',
+    id: 'ID {{id}}',
+    handsLine: '{{hands}} ván · {{firsts}} lần nhất',
+  },
   theme: {
     title: 'Giao diện',
     button: 'Giao diện: {{choice}}',
@@ -232,6 +247,12 @@ const vi = {
     playWithOthers: 'Chơi online với người ngoài',
     playWithOthersHint:
       'Tắt: bé chỉ vào phòng của người trong tài khoản. Người khác chỉ thấy tên và hình đại diện.',
+    onPublicBoards: 'Hiện trên bảng công khai',
+    onPublicBoardsHint:
+      'Tên và hình của hồ sơ lên bảng của cộng đồng và của toàn Tò He. Không ai thấy email.',
+    onPublicBoardsChildHint:
+      'Tắt sẵn cho các bé. Bật thì tên và hình của bé lên bảng của cộng đồng và của toàn Tò He.',
+    askedChild: 'Tôi đã hỏi ý {{name}} và bé đồng ý hiện trên bảng.',
     hasPin: 'Có mã PIN',
     publicId: 'ID hồ sơ',
     copyId: 'Chép ID',
@@ -357,7 +378,7 @@ const vi = {
     statsWeek: 'Tuần này',
     statsAll: 'Từ trước tới nay',
     statsLine: '{{hands}} ván · {{firsts}} lần nhất · {{points}} điểm',
-    board: 'Bảng của tài khoản (tuần này)',
+    board: 'Bảng tuần này',
     boardEmpty: 'Tuần này chưa ai chơi online. Mở một phòng nhé!',
     recent: 'Ván gần đây',
     recentLine: '{{place}} · {{points}} điểm · {{players}} người',
@@ -415,6 +436,8 @@ const vi = {
     registrationClosed: 'Tò He đang tạm đóng đăng ký mới.',
     inviteRequired: 'Cần mã mời để đăng ký.',
     inviteInvalid: 'Mã mời không đúng, đã hết lượt hoặc đã hết hạn.',
+    askedChildRequired: 'Hỏi ý bé trước, rồi đánh dấu ô này nhé.',
+    noCommunity: 'Tài khoản này chưa thuộc cộng đồng nào.',
     accountSuspended:
       'Tài khoản này đang bị tạm khoá. Liên hệ người vận hành Tò He nếu bạn nghĩ đó là nhầm lẫn.',
     signInExpired: 'Phiên đăng nhập này đã hết hạn. Bắt đầu lại nhé.',
@@ -476,6 +499,21 @@ const en: typeof vi = {
     week: 'This week',
     allTime: 'All time',
     underReview: 'Being looked at',
+  },
+  boards: {
+    scope: 'Board of',
+    account: 'My account',
+    community: 'Community',
+    server: 'All of Tò He',
+    empty: 'Nobody on this board yet — play a round!',
+    notListed:
+      'This profile is hidden from public boards. Turn on "Show on public boards" in Manage profiles to join.',
+    notVerifiable:
+      "The board of all Tò He takes scores the server verified only, and this game's cannot be verified yet. See the community's.",
+    unverified: 'not verified',
+    unverifiedBoard: 'The server has not verified the scores on this board.',
+    id: 'ID {{id}}',
+    handsLine: '{{hands}} hands · {{firsts}} wins',
   },
   theme: {
     title: 'Appearance',
@@ -667,6 +705,12 @@ const en: typeof vi = {
     playWithOthers: 'Play online with others',
     playWithOthersHint:
       "Off: only rooms of this account's profiles. Others only ever see the name and avatar.",
+    onPublicBoards: 'Show on public boards',
+    onPublicBoardsHint:
+      "The profile's name and avatar on its community's board and on all of Tò He's. Nobody sees an email.",
+    onPublicBoardsChildHint:
+      "Off for children. On puts the child's name and avatar on its community's board and on all of Tò He's.",
+    askedChild: 'I asked {{name}}, and they agree to be on the boards.',
     hasPin: 'Has a PIN',
     publicId: 'Profile ID',
     copyId: 'Copy ID',
@@ -792,7 +836,7 @@ const en: typeof vi = {
     statsWeek: 'This week',
     statsAll: 'All time',
     statsLine: '{{hands}} hands · {{firsts}} wins · {{points}} points',
-    board: 'This account (this week)',
+    board: 'This week',
     boardEmpty: 'Nobody played online this week. Open a room!',
     recent: 'Recent hands',
     recentLine: '{{place}} · {{points}} points · {{players}} players',
@@ -850,6 +894,8 @@ const en: typeof vi = {
     registrationClosed: 'Tò He is not taking new accounts for now.',
     inviteRequired: 'Signing up needs an invite code.',
     inviteInvalid: 'That invite code is wrong, used up or expired.',
+    askedChildRequired: 'Ask the child first, then tick this box.',
+    noCommunity: 'This account is not in a community.',
     accountSuspended: 'This account is suspended. Contact whoever runs Tò He if you think it is a mistake.',
     signInExpired: 'This sign-in has expired. Start again.',
     passwordTooShort: 'Passwords need at least 8 characters.',

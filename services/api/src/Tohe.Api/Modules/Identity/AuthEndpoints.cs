@@ -238,6 +238,8 @@ internal static class AuthEndpoints
             Name = attempt.DisplayName!,
             Avatar = ProfileOptions.Avatars[0],
             Kind = ProfileKind.Adult,
+            // An adult's profile is on public boards from the start (ADR 0029); they switch it off in its settings.
+            OnPublicBoards = true,
             CreatedAt = now,
         };
         try

@@ -165,6 +165,8 @@ internal static class IdentityModule
         services.AddScoped<IdentityFacts>();
         services.AddScoped<AccountsAdmin>();
         services.AddScoped<Invites>();
+        // Who may appear on public boards (ADR 0029), for the Integrity module.
+        services.AddScoped<IBoardAudience, BoardAudience>();
         services.AddScoped<CommunitiesAdmin>();
         services.AddScoped<IActiveProfile, ActiveProfileReader>();
         services.AddScoped<IAccountProfiles, AccountProfilesReader>();

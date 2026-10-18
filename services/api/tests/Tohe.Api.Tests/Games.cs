@@ -8,7 +8,13 @@ namespace Tohe.Api.Tests;
 /// <summary>Games the registry knows, put there directly: the engine rejects scores of a game it never heard of.</summary>
 internal static class Games
 {
-    public static async Task KnowAsync(ApiFactory factory, params string[] ids)
+    public static Task KnowAsync(ApiFactory factory, params string[] ids) => AddAsync(factory, rooms: null, ids);
+
+    /// <summary>A game played at tables (ADR 0016): its boards are hands.</summary>
+    public static Task KnowRoomGameAsync(ApiFactory factory, string id) =>
+        AddAsync(factory, """{ "seats": { "min": 2, "max": 4 } }""", id);
+
+    private static async Task AddAsync(ApiFactory factory, string? rooms, params string[] ids)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
@@ -27,6 +33,7 @@ internal static class Games
                 Path = $"{id}/1.0.0/",
                 Entry = "index.html",
                 Orientation = "portrait",
+                Rooms = rooms,
                 FirstSeenAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             });

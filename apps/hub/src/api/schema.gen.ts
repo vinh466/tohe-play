@@ -603,6 +603,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/boards/{gameId}/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A community's or the server's board of a game: the first 50 and the viewer's place, by trust. */
+        get: operations["GetPublicBoard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/telemetry": {
         parameters: {
             query?: never;
@@ -901,6 +918,7 @@ export interface components {
             termsVersion: null | string;
             logins: string[];
             role: null | string;
+            community: null | string;
         };
         AttemptView: {
             /** Format: uuid */
@@ -1227,6 +1245,39 @@ export interface components {
             ageBand: null | string;
             hasPin: boolean;
             playWithOthers: boolean;
+            onPublicBoards: boolean;
+        };
+        PublicBoardView: {
+            gameId: string;
+            board: string;
+            scope: string;
+            period: string;
+            /** Format: date-time */
+            since: null | string;
+            hands: boolean;
+            reproducible: boolean;
+            listed: boolean;
+            /** Format: int32 */
+            players: number;
+            top: components["schemas"]["PublicRow"][];
+            me: null | components["schemas"]["PublicRow"];
+            around: components["schemas"]["PublicRow"][];
+        };
+        PublicRow: {
+            /** Format: int32 */
+            rank: number;
+            /** Format: uuid */
+            profileId: string;
+            name: string;
+            avatar: string;
+            publicId: string;
+            /** Format: double */
+            value: number;
+            /** Format: int32 */
+            hands: null | number;
+            /** Format: int32 */
+            firsts: null | number;
+            verified: boolean;
         };
         PutSaveRequest: {
             data: components["schemas"]["JsonElement"];
@@ -1447,6 +1498,8 @@ export interface components {
             pin?: null | string;
             removePin?: null | boolean;
             playWithOthers?: null | boolean;
+            onPublicBoards?: null | boolean;
+            askedChild?: null | boolean;
         };
         UpdateRoomRequest: {
             /** Format: int32 */
@@ -2612,6 +2665,57 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+        };
+    };
+    GetPublicBoard: {
+        parameters: {
+            query?: {
+                scope?: string;
+                board?: string;
+                period?: string;
+            };
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicBoardView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

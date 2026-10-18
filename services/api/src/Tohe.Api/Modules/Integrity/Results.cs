@@ -125,6 +125,9 @@ internal sealed class IntegrityResultConfiguration : IEntityTypeConfiguration<In
         builder.HasIndex(result => new { result.ProfileId, result.GameId, result.Board, result.Value });
         builder.HasIndex(result => new { result.ProfileId, result.GameId, result.At })
             .HasDatabaseName("ix_integrity_results_profile_id_game_id_at");
+        // Public boards: a game's board over a period.
+        builder.HasIndex(result => new { result.GameId, result.Board, result.At })
+            .HasDatabaseName("ix_integrity_results_game_id_board_at");
     }
 }
 

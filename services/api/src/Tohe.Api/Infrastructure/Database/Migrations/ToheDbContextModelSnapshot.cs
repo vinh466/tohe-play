@@ -596,6 +596,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(8)")
                         .HasColumnName("age_band");
 
+                    b.Property<DateTimeOffset?>("AskedChildAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("asked_child_at");
+
                     b.Property<string>("Avatar")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -617,6 +621,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
+
+                    b.Property<bool>("OnPublicBoards")
+                        .HasColumnType("boolean")
+                        .HasColumnName("on_public_boards");
 
                     b.Property<string>("PinHash")
                         .HasColumnType("text")
@@ -822,6 +830,9 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasIndex("Source")
                         .IsUnique()
                         .HasDatabaseName("ix_results_source");
+
+                    b.HasIndex("GameId", "Board", "At")
+                        .HasDatabaseName("ix_integrity_results_game_id_board_at");
 
                     b.HasIndex("ProfileId", "GameId", "At")
                         .HasDatabaseName("ix_integrity_results_profile_id_game_id_at");

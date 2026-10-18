@@ -65,6 +65,8 @@ erDiagram
     string age_band "children: 3-5, 6-8, 9-12, 13-17"
     string pin_hash "optional"
     bool play_with_others "children: off by default"
+    bool on_public_boards "adults on, children off (ADR 0029)"
+    timestamp asked_child_at "the owner said they asked the child (D-06)"
   }
   AUTH_ATTEMPT {
     uuid id "held by the client, sent back with the code"
@@ -489,6 +491,7 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | A PIN is exactly 4 digits and stored hashed; wrong PINs are rate limited | Session endpoints |
 | Children see only games whose `minAge` is at most the lower bound of their age band | Registry, via `IActiveProfile` |
 | A child plays online with other accounts only when the account's owner turned on "Chơi online với người ngoài" (`playWithOthers`, off by default); otherwise only at tables the account keeps to itself | Rooms, via `IActiveProfile` ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) |
+| A profile is on public boards only with "Hiện trên bảng công khai" on — adults from the start, a child once its owner says they asked it — and never while its account is suspended | `ProfileEndpoints`, `IBoardAudience` ([Integrity and boards](integrity.md#public-boards)) |
 | Saves, scores and the leaderboard belong to the active profile; boards list the account's profiles | Progress, via `IActiveProfile` and `IAccountProfiles` |
 | Unsafe `/api` requests from another origin (`Sec-Fetch-Site` ≠ `same-origin`) are rejected | `SameOriginGuard` middleware |
 | Per client IP, 10 requests a minute in each of three buckets: signing in or asking for a code (`auth`), typing a code back (`auth-code`), a PIN or the parent gate (`auth-gate`) | Rate limiter policies; `Identity:AuthRequestsPerMinute` |
@@ -514,7 +517,7 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `POST /api/auth/external/pending/link-code` · `/link` | the browser that came back | A code to the account's address · the code, or the password, links and signs in |
 | `POST /api/auth/external/pending/signup` | the browser that came back | A name, the terms and an invite code when needed create the account; its first profile plays at once |
 | `DELETE /api/auth/external/pending` | the browser that came back | Forget the sign-in that waits |
-| `GET /api/auth/me` | session | Account (with its email, linked providers and platform role — [Admin console](admin.md)), its profiles (with public IDs), active profile, step-up expiries |
+| `GET /api/auth/me` | session | Account (with its email, linked providers, platform role — [Admin console](admin.md) — and community), its profiles (with public IDs and whether each is on public boards), active profile, step-up expiries |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
 | `POST /api/session/parent-gate` / `DELETE` | session | The manage PIN opens profile management / lock both levels |
 | `POST /api/session/step-up` | session | Level 2 with the password (opens level 1 too) |
@@ -527,7 +530,7 @@ device). The first time a real profile is chosen on that device, the hub offers 
 | `GET /api/profiles/options` | — | Allowed avatars and age bands; how many profiles an account may own |
 | `PATCH /api/account` | parent | The account's telemetry switch |
 | `POST /api/profiles` | parent | Add a profile: a child's with an age band, an adult's without |
-| `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`) / remove a profile — never the last |
+| `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`, and `onPublicBoards` — with `askedChild` to turn a child's on) / remove a profile — never the last |
 
 `GET /api/config` says whether the server sends email (`email`) — without it, nothing that needs a code starts
 (`email_unavailable`) — which providers it offers (`providers`: an `id` and the name on the button, only those on),
@@ -540,7 +543,8 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `pin_invalid`, `parent_gate_required`, `step_up_required`, `manage_pin_not_set`, `manage_pin_invalid`,
 `password_not_set`, `email_required`, `terms_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
 `name_too_long`, `name_reserved`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
-`last_method`, `account_suspended`, `method_disabled`, `registration_closed`, `invite_required`, `invite_invalid`.
+`last_method`, `account_suspended`, `method_disabled`, `registration_closed`, `invite_required`, `invite_invalid`,
+`asked_child_required`.
 Navigations answer with a redirect instead: `/welcome?external=failed` (the provider refused, or was cancelled),
 `/welcome?external=suspended`, `/welcome?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`
 `step_up_required`, `provider_account_in_use`, `cross_origin` or `method_disabled`.
