@@ -50,6 +50,34 @@ internal sealed class ActiveProfileReader(ToheDbContext db) : IActiveProfile
 /// <summary>A player as other modules may show it (e.g. on a leaderboard).</summary>
 public sealed record PlayerCard(Guid Id, string Name, string Avatar);
 
+/// <summary>A profile found by its public ID, as the rooms see it before asking it to a table (ADR 0033).</summary>
+public sealed record InviteTarget(Guid ProfileId, Guid AccountId, string Name, string Avatar, InviteScope Invites);
+
+/// <summary>Finds profiles by their public ID for other modules (ADR 0033).</summary>
+public interface IProfileDirectory
+{
+    /// <summary>
+    /// The profile with this ID as someone of <paramref name="askingAccount"/> may find it; null when there is none, when
+    /// it is a child of another account — a child is never found from outside its account — and when its account is
+    /// suspended.
+    /// </summary>
+    Task<InviteTarget?> FindAsync(string publicId, Guid askingAccount, CancellationToken cancellationToken);
+}
+
+internal sealed class ProfileDirectory(ToheDbContext db) : IProfileDirectory
+{
+    public async Task<InviteTarget?> FindAsync(string publicId, Guid askingAccount, CancellationToken cancellationToken) =>
+        await db.Profiles.AsNoTracking()
+            .Where(profile => profile.PublicId == publicId
+                && (profile.Kind == ProfileKind.Adult || profile.AccountId == askingAccount))
+            .Join(
+                db.Users.Where(account => account.SuspendedAt == null),
+                profile => profile.AccountId,
+                account => account.Id,
+                (profile, _) => new InviteTarget(profile.Id, profile.AccountId, profile.Name, profile.Avatar, profile.Invites))
+            .FirstOrDefaultAsync(cancellationToken);
+}
+
 /// <summary>Read access to an account's profiles for other modules.</summary>
 public interface IAccountProfiles
 {

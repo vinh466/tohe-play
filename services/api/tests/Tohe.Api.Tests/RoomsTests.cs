@@ -5,7 +5,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Registry;
 using Tohe.Api.Modules.Rooms;
@@ -262,6 +264,107 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var blocked = await bo.Client.PostAsync(Url($"/api/rooms/{others.Id}/join"), null, Ct);
         Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (blocked.StatusCode, await CodeAsync(blocked)));
         Assert.Single((await bo.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct))!);
+    }
+
+    [Fact]
+    public async Task A_profile_is_asked_by_its_id_as_its_owner_lets_and_a_child_is_never_found_from_outside()
+    {
+        var bo = await PersonAsync("Bố");
+        var open = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        Assert.Equal(HttpStatusCode.OK, (await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{open.Id}"), new { locked = true }, Ct)).StatusCode);
+        var chu = await PersonAsync("Chú");
+        var chuTable = await CreateAsync(chu, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        var chuId = chu.Me.Profiles[0].PublicId;
+        Assert.Equal("anyone", chu.Me.Profiles[0].Invites);
+
+        // Anyone with an adult's ID asks it, spaces and all: it reaches them, and opens the locked door.
+        var asked = await InviteByIdAsync(bo, open.Id, ProfileIds.Format(chuId));
+        Assert.Equal("Chú", (await asked.Content.ReadFromJsonAsync<InvitedPlayer>(Ct))!.Name);
+        var waiting = Assert.Single((await chu.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct))!);
+        Assert.Equal(("Bố", open.Id), (waiting.FromName, waiting.RoomId));
+        Assert.NotNull((await JoinAsync(chu, open.Id)).MySeat);
+
+        // A mistyped ID never leaves the phone; a table kept to the account stays the account's.
+        var typo = chuId[..11] + (char)('0' + ((chuId[11] - '0' + 1) % 10));
+        var mistyped = await InviteByIdAsync(bo, open.Id, typo);
+        Assert.Equal(HttpStatusCode.BadRequest, mistyped.StatusCode);
+        Assert.Contains("profile_id_invalid", await mistyped.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+        var outsider = await InviteByIdAsync(bo, family.Id, chuId);
+        Assert.Equal((HttpStatusCode.Forbidden, "room_account_only"), (outsider.StatusCode, await CodeAsync(outsider)));
+
+        // A child's ID is not found from outside its account — nothing says a child is there — and works within it.
+        var bin = await ChildAsync(chu, "Bin");
+        var binId = bin.Me.Profiles.Single(p => p.Id == bin.ProfileId).PublicId;
+        Assert.Equal("account", bin.Me.Profiles.Single(p => p.Id == bin.ProfileId).Invites);
+        var hidden = await InviteByIdAsync(bo, open.Id, binId);
+        Assert.Equal((HttpStatusCode.NotFound, "profile_not_found"), (hidden.StatusCode, await CodeAsync(hidden)));
+        // Playing as another profile closes the parent gate: open it again to manage the profiles.
+        await PlayAsAsync(chu, chu.ProfileId);
+        await UnlockAsync(chu);
+        Assert.Equal(HttpStatusCode.OK, (await InviteByIdAsync(chu, chuTable.Id, binId)).StatusCode);
+        var wider = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{bin.ProfileId}"), new { invites = "anyone" }, Ct);
+        Assert.Contains("child_invites_account_only", await wider.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+
+        // Its owner chooses who may ask: only the account, or people it sat at a hand with.
+        var co = await PersonAsync("Cô");
+        var coTable = await CreateAsync(co, new { gameId = "tien-len", seats = 3 });
+        foreach (var scope in (string[])["account", "played-with"])
+        {
+            var set = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{chu.ProfileId}"), new { invites = scope }, Ct);
+            Assert.Equal(scope, (await set.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles.Single(p => p.Id == chu.ProfileId).Invites);
+            var refused = await InviteByIdAsync(co, coTable.Id, chuId);
+            Assert.Equal((HttpStatusCode.Forbidden, "invite_not_allowed"), (refused.StatusCode, await CodeAsync(refused)));
+        }
+
+        await SatTogetherAsync(coTable.Id, co, chu);
+        Assert.Equal(HttpStatusCode.OK, (await InviteByIdAsync(co, coTable.Id, chuId)).StatusCode);
+        var odd = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{chu.ProfileId}"), new { invites = "everyone" }, Ct);
+        Assert.Contains("invites_invalid", await odd.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+
+        // A suspended account's profiles are not found either.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Users
+                .Where(account => account.Id == co.Me.Account.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(account => account.SuspendedAt, DateTimeOffset.UtcNow), Ct);
+        }
+
+        var suspended = await InviteByIdAsync(bo, open.Id, co.Me.Profiles[0].PublicId);
+        Assert.Equal((HttpStatusCode.NotFound, "profile_not_found"), (suspended.StatusCode, await CodeAsync(suspended)));
+    }
+
+    [Fact]
+    public async Task An_account_looks_up_twenty_ids_an_hour_and_ten_invitations_wait_for_a_profile_at_most()
+    {
+        // Twenty lookups an hour, found or not: IDs cannot be walked.
+        var di = await PersonAsync("Dì");
+        var table = await CreateAsync(di, new { gameId = "tien-len", seats = 3 });
+        for (var i = 0; i < 20; i++)
+        {
+            Assert.Equal(HttpStatusCode.NotFound, (await InviteByIdAsync(di, table.Id, ProfileIds.New())).StatusCode);
+        }
+
+        var over = await InviteByIdAsync(di, table.Id, ProfileIds.New());
+        Assert.Equal((HttpStatusCode.TooManyRequests, "invite_limit"), (over.StatusCode, await CodeAsync(over)));
+
+        // Ten invitations from other accounts wait for one profile at most: five hosts with two tables each.
+        var ong = await PersonAsync("Ông");
+        var ongId = ong.Me.Profiles[0].PublicId;
+        for (var i = 0; i < 5; i++)
+        {
+            var host = await PersonAsync($"Khách {i}");
+            for (var j = 0; j < 2; j++)
+            {
+                var room = await CreateAsync(host, new { gameId = "tien-len", seats = 3 });
+                Assert.Equal(HttpStatusCode.OK, (await InviteByIdAsync(host, room.Id, ongId)).StatusCode);
+            }
+        }
+
+        var last = await PersonAsync("Khách cuối");
+        var full = await InviteByIdAsync(last, (await CreateAsync(last, new { gameId = "tien-len", seats = 3 })).Id, ongId);
+        Assert.Equal((HttpStatusCode.TooManyRequests, "invitee_limit"), (full.StatusCode, await CodeAsync(full)));
+        Assert.Equal(10, (await ong.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct))!.Count);
     }
 
     [Fact]
@@ -582,6 +685,32 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var response = await person.Client.PostAsync(Url($"/api/rooms/{roomId}/join"), null, Ct);
         Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync(Ct));
         return (await response.Content.ReadFromJsonAsync<RoomView>(Ct))!;
+    }
+
+    private static Task<HttpResponseMessage> InviteByIdAsync(Person person, Guid roomId, string publicId) =>
+        person.Client.PostAsJsonAsync(Url($"/api/rooms/{roomId}/invite/by-id"), new { publicId }, Ct);
+
+    /// <summary>The two people's profiles sat at one finished hand of the room, as the rooms record it.</summary>
+    private async Task SatTogetherAsync(Guid roomId, params Person[] people)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        foreach (var (person, seat) in people.Select((person, seat) => (person, seat)))
+        {
+            db.RoomResults.Add(new RoomResult
+            {
+                RoomId = roomId,
+                GameId = "tien-len",
+                Hand = 1,
+                Seat = seat,
+                ProfileId = person.ProfileId,
+                AccountId = person.Me.Account.Id,
+                Place = seat,
+                At = DateTimeOffset.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync(Ct);
     }
 
     private static async Task<List<RoomSummary>> ListAsync(Person person) =>

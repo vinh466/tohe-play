@@ -276,7 +276,10 @@ internal sealed class RoomActor
         return null;
     }
 
-    /// <summary>A player at the table asks another profile of their account to it.</summary>
+    /// <summary>
+    /// A player at the table asks another profile to it: of their account, or by its ID (ADR 0033). The endpoints check
+    /// who may be asked; the table only that the asker is seated.
+    /// </summary>
     public string? Invite(Guid from, Guid to)
     {
         if (IsClosed)

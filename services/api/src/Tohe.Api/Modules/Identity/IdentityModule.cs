@@ -157,6 +157,8 @@ internal static class IdentityModule
         });
 
         services.AddScoped<SessionWriter>();
+        // Profiles found by their public ID, for invitations to tables (ADR 0033).
+        services.AddScoped<IProfileDirectory, ProfileDirectory>();
         services.AddExceptionHandler<AccountSuspendedHandler>();
         services.AddScoped<Attempts>();
         services.AddScoped<MeQueries>();

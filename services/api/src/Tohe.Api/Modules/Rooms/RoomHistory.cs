@@ -87,6 +87,8 @@ internal sealed class RoomResultConfiguration : IEntityTypeConfiguration<RoomRes
         builder.ToTable("results", "rooms");
         builder.Property(result => result.GameId).HasMaxLength(40);
         builder.HasIndex(result => new { result.ProfileId, result.GameId, result.At });
+        // Who sat at a hand: "played with" for invitations by ID (ADR 0033).
+        builder.HasIndex(result => new { result.RoomId, result.Hand }).HasDatabaseName("ix_rooms_results_room_id_hand");
         builder.HasIndex(result => new { result.AccountId, result.GameId, result.At });
         builder.HasOne<Room>().WithMany().HasForeignKey(result => result.RoomId).OnDelete(DeleteBehavior.Cascade);
     }

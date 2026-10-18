@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
+using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Registry;
 
@@ -25,6 +26,7 @@ internal static class RoomsModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddHttpClient<RulesSource>(client => client.Timeout = TimeSpan.FromSeconds(10));
         services.AddSingleton<RoomRegistry>();
+        services.AddSingleton<InviteLimits>();
         services.AddSignalR(options => options.MaximumReceiveMessageSize = 16 * 1024);
         if (builder.Configuration.GetValue($"{RoomsOptions.Section}:ClockEnabled", defaultValue: true) && !BuildTime.IsGeneratingOpenApi)
         {
@@ -205,6 +207,10 @@ internal static class RoomsModule
             .WithName("InviteToRoom")
             .WithSummary("Ask another of the account's profiles to the table: it shows in their hub for 10 minutes.");
 
+        rooms.MapPost("/{id:guid}/invite/by-id", InviteByIdAsync)
+            .WithName("InviteToRoomById")
+            .WithSummary("Ask a profile to the table by its 12-digit ID, if its owner lets you: it shows in their hub for 10 minutes.");
+
         rooms.MapGet("/invites", (HttpContext http, RoomRegistry registry) =>
             {
                 var player = PlayerOf(http);
@@ -221,7 +227,7 @@ internal static class RoomsModule
                     .ToList();
             })
             .WithName("ListRoomInvites")
-            .WithSummary("Tables the account's other profiles asked the active profile to, for the next 10 minutes.");
+            .WithSummary("Tables someone asked the active profile to — by its ID, or from its own account — for the next 10 minutes.");
 
         rooms.MapPost("/{id:guid}/leave", async Task<Results<NoContent, NotFound, ProblemHttpResult>> (Guid id, HttpContext http, RoomRegistry registry) =>
             {
@@ -299,6 +305,72 @@ internal static class RoomsModule
     }
 
     private static Player PlayerOf(HttpContext http) => (Player)http.Items[typeof(Player)]!;
+
+    /// <summary>
+    /// An invitation by public ID (ADR 0033): within the account as before; beyond it only to a table open to other
+    /// accounts, as the invitee's owner allows — anyone, or people it played with — within the limits of D-17.
+    /// </summary>
+    private static async Task<Results<Ok<InvitedPlayer>, NotFound, ValidationProblem, ProblemHttpResult>> InviteByIdAsync(
+        Guid id,
+        InviteByIdRequest request,
+        HttpContext http,
+        RoomRegistry registry,
+        IProfileDirectory directory,
+        InviteLimits limits,
+        ToheDbContext db,
+        CancellationToken ct)
+    {
+        var player = PlayerOf(http);
+        if (!ProfileIds.TryNormalize(request.PublicId, out var publicId))
+        {
+            return Problems.Field("publicId", "profile_id_invalid");
+        }
+
+        if (registry.Find(id) is not { } room)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // Every lookup counts, found or not: IDs cannot be walked.
+        if (!limits.TryTake(player.AccountId))
+        {
+            return Refused(RoomErrors.InviteLimit);
+        }
+
+        if (await directory.FindAsync(publicId, player.AccountId, ct) is not { } target || target.ProfileId == player.ProfileId)
+        {
+            return Refused(RoomErrors.ProfileNotFound);
+        }
+
+        if (target.AccountId != player.AccountId)
+        {
+            if (room.Room.AccountOnly)
+            {
+                return Refused(RoomErrors.AccountOnly);
+            }
+
+            var allowed = target.Invites switch
+            {
+                InviteScope.Anyone => true,
+                InviteScope.PlayedWith => await Tables.PlayedTogetherAsync(db, player.ProfileId, target.ProfileId, ct),
+                _ => false,
+            };
+            if (!allowed)
+            {
+                return Refused(RoomErrors.InviteNotAllowed);
+            }
+
+            // Asking again to this table renews the invitation rather than adding one.
+            var waiting = registry.All.Count(other => other.Id != room.Id && other.InvitationFor(target.ProfileId) is not null);
+            if (waiting >= limits.WaitingPerProfile)
+            {
+                return Refused(RoomErrors.InviteeLimit);
+            }
+        }
+
+        var problem = await room.RunAsync(() => Task.FromResult(room.Invite(player.ProfileId, target.ProfileId)));
+        return problem is null ? TypedResults.Ok(new InvitedPlayer(target.Name, target.Avatar)) : Refused(problem);
+    }
 
     /// <summary>Shown in the lobby to this player: public, and a table it may join.</summary>
     private static bool Listed(RoomActor room, Player player)
@@ -395,8 +467,9 @@ internal static class RoomsModule
                 or RoomErrors.Closed => StatusCodes.Status409Conflict,
             RoomErrors.RulesUnavailable => StatusCodes.Status503ServiceUnavailable,
             RoomErrors.InvalidOptions or RoomErrors.GameNotRooms => StatusCodes.Status400BadRequest,
-            RoomErrors.NotSeated => StatusCodes.Status404NotFound,
+            RoomErrors.NotSeated or RoomErrors.ProfileNotFound => StatusCodes.Status404NotFound,
             RoomErrors.SpectatorsOff or RoomErrors.NotInAccount => StatusCodes.Status403Forbidden,
+            RoomErrors.InviteLimit or RoomErrors.InviteeLimit => StatusCodes.Status429TooManyRequests,
             _ => StatusCodes.Status403Forbidden,
         },
         code,

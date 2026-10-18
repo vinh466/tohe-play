@@ -23,6 +23,8 @@ public sealed record CreateProfileRequest(
 /// <param name="PlayWithOthers">Let a child play online with other accounts (ADR 0016).</param>
 /// <param name="OnPublicBoards">Show the profile on public boards (ADR 0029).</param>
 /// <param name="AskedChild">Turning it on for a child: its owner asked the child first (D-06).</param>
+/// <param name="Invites">Who may ask it to a table by its ID: <c>anyone</c>, <c>played-with</c>, <c>account</c>; a child
+/// stays <c>account</c> (ADR 0033).</param>
 public sealed record UpdateProfileRequest(
     string? Name = null,
     string? Avatar = null,
@@ -31,7 +33,8 @@ public sealed record UpdateProfileRequest(
     bool? RemovePin = null,
     bool? PlayWithOthers = null,
     bool? OnPublicBoards = null,
-    bool? AskedChild = null);
+    bool? AskedChild = null,
+    string? Invites = null);
 
 /// <summary>The account's profiles and settings. Every change requires the parent gate (ADR 0011, 0023).</summary>
 internal static class ProfileEndpoints
@@ -115,8 +118,10 @@ internal static class ProfileEndpoints
             Avatar = request.Avatar,
             Kind = child ? ProfileKind.Child : ProfileKind.Adult,
             AgeBand = request.AgeBand,
-            // A child stays off public boards until its owner asks it (D-06).
+            // A child stays off public boards until its owner asks it (D-06), and is asked to tables only within the
+            // account (ADR 0033).
             OnPublicBoards = !child,
+            Invites = child ? InviteScope.Account : InviteScope.Anyone,
             CreatedAt = clock.GetUtcNow(),
         };
         if (!string.IsNullOrEmpty(request.Pin))
@@ -157,6 +162,18 @@ internal static class ProfileEndpoints
             return Problems.Field("askedChild", "asked_child_required");
         }
 
+        var invites = profile.Invites;
+        if (request.Invites is not null && !InviteScopes.TryParse(request.Invites, out invites))
+        {
+            return Problems.Field("invites", "invites_invalid");
+        }
+
+        // A child is asked to tables only within its account, and its ID is not found from outside (ADR 0033).
+        if (profile.Kind == ProfileKind.Child && invites != InviteScope.Account)
+        {
+            return Problems.Field("invites", "child_invites_account_only");
+        }
+
         if (request.Name is not null)
         {
             if (!ProfileNames.TryNormalize(request.Name, out var name, out var nameError))
@@ -169,6 +186,7 @@ internal static class ProfileEndpoints
 
         profile.Avatar = request.Avatar ?? profile.Avatar;
         profile.AgeBand = request.AgeBand ?? profile.AgeBand;
+        profile.Invites = invites;
         if (request.PlayWithOthers is { } others && profile.Kind == ProfileKind.Child)
         {
             profile.PlayWithOthers = others;

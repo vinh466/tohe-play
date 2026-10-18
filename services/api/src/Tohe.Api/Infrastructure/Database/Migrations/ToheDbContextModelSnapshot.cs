@@ -614,6 +614,12 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("hidden_from_boards_at");
 
+                    b.Property<string>("Invites")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character varying(12)")
+                        .HasColumnName("invites");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -1448,8 +1454,8 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_results");
 
-                    b.HasIndex("RoomId")
-                        .HasDatabaseName("ix_results_room_id");
+                    b.HasIndex("RoomId", "Hand")
+                        .HasDatabaseName("ix_rooms_results_room_id_hand");
 
                     b.HasIndex("AccountId", "GameId", "At")
                         .HasDatabaseName("ix_results_account_id_game_id_at");

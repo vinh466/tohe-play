@@ -2180,12 +2180,77 @@
         }
       }
     },
+    "/api/rooms/{id}/invite/by-id": {
+      "post": {
+        "tags": [
+          "Rooms"
+        ],
+        "summary": "Ask a profile to the table by its 12-digit ID, if its owner lets you: it shows in their hub for 10 minutes.",
+        "operationId": "InviteToRoomById",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InviteByIdRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InvitedPlayer"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/rooms/invites": {
       "get": {
         "tags": [
           "Rooms"
         ],
-        "summary": "Tables the account's other profiles asked the active profile to, for the next 10 minutes.",
+        "summary": "Tables someone asked the active profile to — by its ID, or from its own account — for the next 10 minutes.",
         "operationId": "ListRoomInvites",
         "responses": {
           "403": {
@@ -3277,6 +3342,20 @@
           }
         }
       },
+      "InviteByIdRequest": {
+        "required": [
+          "publicId"
+        ],
+        "type": "object",
+        "properties": {
+          "publicId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "InviteRequest": {
         "required": [
           "profileId"
@@ -3286,6 +3365,21 @@
           "profileId": {
             "type": "string",
             "format": "uuid"
+          }
+        }
+      },
+      "InvitedPlayer": {
+        "required": [
+          "name",
+          "avatar"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
           }
         }
       },
@@ -3606,7 +3700,8 @@
           "hasPin",
           "playWithOthers",
           "onPublicBoards",
-          "hiddenFromBoards"
+          "hiddenFromBoards",
+          "invites"
         ],
         "type": "object",
         "properties": {
@@ -3643,6 +3738,9 @@
           },
           "hiddenFromBoards": {
             "type": "boolean"
+          },
+          "invites": {
+            "type": "string"
           }
         }
       },
@@ -4638,6 +4736,12 @@
             "type": [
               "null",
               "boolean"
+            ]
+          },
+          "invites": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
