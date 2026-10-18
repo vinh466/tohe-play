@@ -2,6 +2,11 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (đêm, sau cùng) — agent
+
+- Owner muốn mọi host dưới `toheplay.io.vn`, không dính `vinetic`. Đề xuất hai phương án (D-13, Thảo luận); chưa
+  sửa gì — #239 chưa merge nên đổi host còn rẻ. Chờ owner chọn phương án và tên.
+
 ## 2026-10-18 (đêm, tiếp) — agent
 
 - Owner: email gửi từ `toheplay.io.vn`, key Resend của domain đó. #239 đổi người gửi sang `no-reply@toheplay.io.vn`;

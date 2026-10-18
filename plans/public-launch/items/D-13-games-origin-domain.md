@@ -118,3 +118,11 @@ Analytics tự chèn, Email Obfuscation) và A4 (DNS `toheplay.io.vn` → IP pro
 
 **owner** (2026-10-18, chat): "chắc tôi sẽ mua 1 domain mới, mà .io.vn vẫn được chứ, research cho tôi 1 name gợi ý đi"
 → Q1 = B. **agent:** `.io.vn` được; gợi ý `toheplay.io.vn`, dự phòng `tohebox.io.vn` (bảng trên).
+
+**owner** (2026-10-18, chat): "tôi muốn các subdomain sang nằm dưới toheplay.io.vn hết được không, ta sẽ không dính tới
+vinetic nữa, cho tôi review và subdomain hay". **agent:** được, mọi host đều từ `publicUrls.*`. Đề xuất (chờ owner duyệt):
+**1** — một domain: `toheplay.io.vn` = hub, `games.` = game, `docs.` = site, `www.` → apex; game cùng site với hub
+(đúng như local/UAT): Tò He tự che (`__Host-`, `SameOriginGuard`, sandbox, CSP), thêm `form-action 'none'` vào CSP game
+(Game Contract → ADR + conformance); Bot Fight Mode phải tắt cả zone. **2** — hai domain: hub + site như trên, game trên
+một domain thứ hai (`tohebox.io.vn` còn trống DNS) — tách hẳn như ADR 0039. Agent nghiêng về 1. Chọn xong: ADR 0040
+(sửa 0039), profile chart, #239, bản ghi Cloudflare.
