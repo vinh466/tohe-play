@@ -71,7 +71,7 @@ flowchart LR
 | Trước khi C2 lên UAT | E-02 Q2 đã trả lời: **Free** (2026-10-18). Còn: tạo API key, đưa vào `~/.config/tohe-uat/uat.env` |
 | ~~Trước lần deploy UAT tới~~ | Không cần: lần publish đầu của `main` (2026-10-18) ra 5 package GHCR **public**, máy UAT kéo không cần đăng nhập |
 | Trước khi C4 lên prod | Tạo OAuth client Google (*Web application*) và OAuth app GitHub, redirect URI `https://<hub>/api/auth/external/{google,github}/callback`; secret vào Infisical `/tohe` (`Auth__Providers__Google__ClientId`, `…__ClientSecret`, tương tự GitHub), chart nhận qua `api.extraEnvFrom` |
-| Trước khi merge A4 | Pre-step của `platform-infra`: role Postgres, `/tohe` trong Infisical, DNS |
+| Trước khi merge A4 | Pre-step của `platform-infra`: role Postgres (`02-role-secret.sh tohe`), `/tohe` trong Infisical; DNS ba host đã xong (2026-10-18) |
 | Trước F4 | D-13: `toheplay.io.vn` đã mua — zone Cloudflare và các thiết lập của nó ([item](items/D-13-games-origin-domain.md#rà-soát-2026-10-18)); duyệt văn bản điều khoản và quyền riêng tư (agent soạn, không phải tư vấn pháp lý) |
 
 ## Trạng thái

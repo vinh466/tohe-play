@@ -2,6 +2,11 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (khuya, sau cùng) — agent
+
+- Owner: "domain đã sẵn sàng, đã trỏ về server prod". Kiểm từ ngoài: ba host tới Traefik prod qua Cloudflare (`404`,
+  chưa có Ingress); "Always Use HTTPS" chưa bật. Gửi owner checklist việc tiếp theo (PLAN → Waiting on the owner).
+
 ## 2026-10-18 (khuya, cuối) — agent
 
 - Owner đã mua `toheplay.io.vn` → D-13 decided. Rà soát: mọi thứ đi theo `publicUrls.games`; chỉ file mẫu production

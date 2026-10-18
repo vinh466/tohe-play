@@ -27,7 +27,10 @@ Sau đó: F4 (ra mắt, E-10).
 2. **D-13** — `toheplay.io.vn` đã mua. Review [#67](https://github.com/vinh466/tohe-play/pull/67) (ADR 0039). Ở Cloudflare: thêm zone, đổi nameserver ở
    nhà đăng ký; SSL/TLS như `vinetic.io.vn`, bật "Always Use HTTPS"; **tắt** Bot Fight Mode / "I'm Under Attack" / WAF
    challenge, Hotlink Protection, Rocket Loader, Web Analytics tự chèn, Email Obfuscation
-   ([lý do](items/D-13-games-origin-domain.md#rà-soát-2026-10-18)). DNS và Ingress đi cùng A4.
+   ([lý do](items/D-13-games-origin-domain.md#rà-soát-2026-10-18)). Owner đã trỏ về prod; kiểm từ ngoài
+   (2026-10-18): `toheplay.io.vn`, `tohe.vinetic.io.vn`, `tohe-site.vinetic.io.vn` đều qua Cloudflare tới Traefik
+   prod (`404`, chưa có Ingress — đúng trước A4), không có challenge; **"Always Use HTTPS" chưa bật** (`http://`
+   trả `404`, không `301`).
 3. ~~GHCR Public~~ — không cần làm: lần publish đầu (2026-10-18) ra 5 package **public** (`api`, `hub`, `games`, `site`,
    `charts/tohe`), kéo ẩn danh được. Từ #47, `deploy/uat/deploy.sh` kéo image `sha-<commit>` từ GHCR — chỉ commit đã
    lên `main` mới có image, nên một PR lên UAT sau khi merge.
