@@ -90,6 +90,15 @@ export const SHELL_TARGETS = ['leaderboard', 'rooms'] as const;
 export const ShellTarget = z.enum(SHELL_TARGETS);
 export type ShellTarget = z.infer<typeof ShellTarget>;
 
+// ---------------------------------------------------------------- ranked runs (ADR 0030)
+
+/** Most moves a ranked run can hand in; a game's `ranked.maxMoves` may allow fewer. */
+export const MAX_RANKED_MOVES = 100_000;
+
+/** A ranked run the server opened: its id, and the seed the game plays it from (ADR 0030). */
+export const RankedRun = z.object({ run: z.string().min(1).max(64), seed: z.number().int() }).strict();
+export type RankedRun = z.infer<typeof RankedRun>;
+
 // ---------------------------------------------------------------- game -> host
 
 export const ReadyMessage = z.object({
@@ -159,6 +168,22 @@ export const OpenMessage = z.object({ ...envelope, type: z.literal('open'), what
 /** A `shell` game's player switched sound in the game; the hub remembers it for the device. */
 export const GameSettingsMessage = z.object({ ...envelope, type: z.literal('settings'), muted: z.boolean() });
 
+/**
+ * A `ranked` game asks for a ranked run as a new game starts (ADR 0030); `result.value` is a {@link RankedRun}. When
+ * the hub cannot open one — offline, a guest, an older hub — the result is not ok, and the game plays unranked.
+ */
+export const RankedStartMessage = z.object({ ...envelope, type: z.literal('ranked.start'), id: requestId });
+
+/** A ranked run ended: its moves in order and the score the game reached, for the server to replay. */
+export const RankedFinishMessage = z.object({
+  ...envelope,
+  type: z.literal('ranked.finish'),
+  id: requestId,
+  run: z.string().min(1).max(64),
+  moves: z.array(z.json()).max(MAX_RANKED_MOVES),
+  score: z.number().finite(),
+});
+
 export const GameMessage = z.discriminatedUnion('type', [
   ReadyMessage,
   SaveMessage,
@@ -172,6 +197,8 @@ export const GameMessage = z.discriminatedUnion('type', [
   MenuStateMessage,
   OpenMessage,
   GameSettingsMessage,
+  RankedStartMessage,
+  RankedFinishMessage,
 ]);
 export type GameMessage = z.infer<typeof GameMessage>;
 export type GameMessageInput = z.input<typeof GameMessage>;
@@ -215,6 +242,8 @@ export const ResultMessage = z.object({
   replyTo: requestId,
   ok: z.boolean(),
   error: z.string().optional(),
+  /** What the request answers with, when it answers with something: the run of `ranked.start` (ADR 0030). */
+  value: z.json().optional(),
 });
 
 /** The seat's whole view after a change, and the public events since the last one (ADR 0016). */

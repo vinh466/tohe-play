@@ -15,6 +15,8 @@ export {
   type JsonValue,
   normalizeSettings,
   PROTOCOL,
+  type RankedRun,
+  type RankedSession,
   type RoomSession,
   type RoomUpdate,
   type ScoreRun,

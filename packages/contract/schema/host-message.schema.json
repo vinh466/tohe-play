@@ -432,6 +432,9 @@
         },
         "error": {
           "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/__schema5"
         }
       },
       "required": [
@@ -454,13 +457,13 @@
           "const": "room.view"
         },
         "view": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema6"
         },
         "events": {
           "maxItems": 200,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema6"
+            "$ref": "#/$defs/__schema7"
           }
         },
         "seq": {
@@ -829,6 +832,37 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/__schema6"
+          }
+        }
+      ]
+    },
+    "__schema7": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema7"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema7"
           }
         }
       ]

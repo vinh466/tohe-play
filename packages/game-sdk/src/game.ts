@@ -15,7 +15,7 @@ import type {
 import { createTelemetry, disabledTelemetry, type Telemetry } from './telemetry.ts';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.7.0';
+export const SDK_VERSION = '0.8.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
@@ -75,6 +75,25 @@ export interface GameSession<TSave = JsonValue> {
   readonly replay: Replay | null;
   /** The game shell's side of the hub (ADR 0018), for games that declare `shell`. */
   readonly shell: ShellSession;
+  /** Ranked runs (ADR 0030), for games that declare `ranked`: the server deals the seed and replays the moves. */
+  readonly ranked: RankedSession;
+}
+
+/** A ranked run the server opened: its id, and the seed to play it from (ADR 0030). */
+export interface RankedRun {
+  run: string;
+  seed: number;
+}
+
+/** Ranked runs (ADR 0030): ask for one as a new game starts, hand in its moves when it ends. */
+export interface RankedSession {
+  /**
+   * A ranked run for a new game — play it from its `seed` and keep every move — or null when the hub cannot open one
+   * (offline, a guest, standalone): then play unranked, as before.
+   */
+  start(): Promise<RankedRun | null>;
+  /** The run ended: its moves in order and the score reached. The hub sends them on, or keeps them until it is online. */
+  finish(run: string, moves: JsonValue[], score: number): Promise<void>;
 }
 
 /** What a `shell` game asks of the hub (ADR 0018). The kit's `createShell` uses it; games rarely call it directly. */
@@ -131,6 +150,12 @@ export interface ScoreRun {
 type Listener = (payload: Settings) => void;
 
 /** Settings as the game sees them: complete even if a host leaves a field out (an older hub sends no theme). */
+/** What `ranked.start` answers with, when the hub opened a run. */
+function isRankedRun(value: unknown): value is RankedRun {
+  const run = value as Partial<RankedRun> | null;
+  return typeof run?.run === 'string' && run.run.length > 0 && Number.isInteger(run.seed);
+}
+
 export function normalizeSettings(raw: Partial<Settings> | undefined): Settings {
   return { muted: raw?.muted === true, theme: raw?.theme === 'dark' ? 'dark' : 'light' };
 }
@@ -162,7 +187,7 @@ export function connect<TSave = JsonValue>(options: ConnectOptions): Promise<Gam
 function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TSave>> {
   const transport = options.transport ?? parentWindowTransport();
   const emitter = new Emitter();
-  const pending = new Map<string, { resolve: () => void; reject: (error: Error) => void }>();
+  const pending = new Map<string, { resolve: (value: unknown) => void; reject: (error: Error) => void }>();
   let nextId = 0;
   const send = (message: GameMessageInput) => transport.post(message);
 
@@ -171,18 +196,20 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
       | { type: 'save'; data: JsonValue }
       | { type: 'score'; value: number; board: string; run?: string; final?: boolean }
       | { type: 'room.act'; action: JsonValue }
-      | { type: 'room.next' },
+      | { type: 'room.next' }
+      | { type: 'ranked.start' }
+      | { type: 'ranked.finish'; run: string; moves: JsonValue[]; score: number },
   ) =>
-    new Promise<void>((resolve, reject) => {
+    new Promise<unknown>((resolve, reject) => {
       const id = `r${++nextId}`;
       const timer = setTimeout(() => {
         pending.delete(id);
         reject(new Error(`${message.type} timed out`));
       }, 10_000);
       pending.set(id, {
-        resolve: () => {
+        resolve: (value) => {
           clearTimeout(timer);
-          resolve();
+          resolve(value);
         },
         reject: (error) => {
           clearTimeout(timer);
@@ -224,11 +251,14 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
               return settings;
             },
             on: (event: SessionEvent, listener: Listener) => emitter.on(event, listener),
-            save: (data) => request({ type: 'save', data: data as JsonValue }),
-            submitScore: (value, board = 'default') => request({ type: 'score', value, board }),
+            save: (data) => request({ type: 'save', data: data as JsonValue }).then(() => undefined),
+            submitScore: (value, board = 'default') =>
+              request({ type: 'score', value, board }).then(() => undefined),
             run: (run, board = 'default') => ({
-              update: (value) => request({ type: 'score', value, board, run, final: false }),
-              finish: (value) => request({ type: 'score', value, board, run, final: true }),
+              update: (value) =>
+                request({ type: 'score', value, board, run, final: false }).then(() => undefined),
+              finish: (value) =>
+                request({ type: 'score', value, board, run, final: true }).then(() => undefined),
             }),
             exit: () => {
               telemetry.flush();
@@ -248,11 +278,21 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
                 send({ tohe: PROTOCOL, type: 'settings', muted });
               },
             },
+            ranked: {
+              // Any refusal — offline, a guest, an older hub, a timeout — means: play unranked.
+              start: () =>
+                request({ type: 'ranked.start' }).then(
+                  (value) => (isRankedRun(value) ? value : null),
+                  () => null,
+                ),
+              finish: (run, moves, score) =>
+                request({ type: 'ranked.finish', run, moves, score }).then(() => undefined),
+            },
           };
           if (message.room) {
             room = roomSession(message.room, {
-              act: (action) => request({ type: 'room.act', action }),
-              next: () => request({ type: 'room.next' }),
+              act: (action) => request({ type: 'room.act', action }).then(() => undefined),
+              next: () => request({ type: 'room.next' }).then(() => undefined),
               react: (reaction) => send({ tohe: PROTOCOL, type: 'room.react', reaction }),
             });
             Object.assign(created, { room: room.session });
@@ -292,7 +332,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
           const entry = pending.get(message.replyTo);
           if (!entry) return;
           pending.delete(message.replyTo);
-          if (message.ok) entry.resolve();
+          if (message.ok) entry.resolve(message.value);
           else entry.reject(new Error(message.error ?? 'rejected by host'));
           return;
         }
@@ -408,6 +448,11 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
         settings = normalizeSettings({ ...settings, muted });
         emitter.emit('settings', settings);
       },
+    },
+    // Standalone, nobody deals a seed or replays a run: every run is unranked.
+    ranked: {
+      start: async () => null,
+      finish: async () => {},
     },
   };
 }

@@ -11,9 +11,9 @@ export const SemVer = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 's
 
 /**
  * What a game uses: `save`, `scores`, `rooms` (online tables, ADR 0016), `shell` (it draws its own main menu and
- * in-game menu with the way back to Tò He, ADR 0018).
+ * in-game menu with the way back to Tò He, ADR 0018), `ranked` (runs the server replays, ADR 0030).
  */
-export const Capability = z.enum(['save', 'scores', 'rooms', 'shell']);
+export const Capability = z.enum(['save', 'scores', 'rooms', 'shell', 'ranked']);
 export type Capability = z.infer<typeof Capability>;
 
 /** Light or dark (ADR 0013). */
@@ -75,6 +75,36 @@ export const RoomsManifest = z
   .strict();
 export type RoomsManifest = z.infer<typeof RoomsManifest>;
 
+/**
+ * A one-player game whose runs the server replays (ADR 0030): its verify module, the board ranked runs count on, and
+ * how fast a person can play.
+ */
+export const RankedManifest = z
+  .object({
+    verify: z
+      .string()
+      .regex(/^[\w-]+(?:\/[\w-]+)*\.m?js$/, 'a relative path to an ES module in the build')
+      .default('verify.js')
+      .describe('ES module in the build that exports `verify`; the API replays ranked runs with it'),
+    board: z.string().min(1).max(40).default('default').describe('The board ranked runs count on'),
+    minMsPerMove: z
+      .number()
+      .int()
+      .min(0)
+      .max(60_000)
+      .default(100)
+      .describe('A person needs at least this long per move; a faster run is held for a person to look at'),
+    maxMoves: z
+      .number()
+      .int()
+      .min(1)
+      .max(100_000)
+      .default(20_000)
+      .describe('Most moves a ranked run can have'),
+  })
+  .strict();
+export type RankedManifest = z.infer<typeof RankedManifest>;
+
 /** `game.json` — shipped next to every game build. */
 export const GameManifest = z
   .object({
@@ -99,9 +129,26 @@ export const GameManifest = z
     tags: z.array(z.string().max(20)).max(8).default([]),
     sizeBudgetKb: z.number().int().positive().max(50_000).default(3000),
     rooms: RoomsManifest.optional().describe('Online rooms (ADR 0016); required with the "rooms" capability'),
+    ranked: RankedManifest.optional().describe(
+      'Ranked runs (ADR 0030); required with the "ranked" capability',
+    ),
   })
   .strict()
   .superRefine((manifest, context) => {
+    if (manifest.capabilities.includes('ranked') !== (manifest.ranked !== undefined)) {
+      context.addIssue({
+        code: 'custom',
+        path: ['ranked'],
+        message: 'the "ranked" capability and block go together',
+      });
+    }
+    if (manifest.ranked && !manifest.capabilities.includes('scores')) {
+      context.addIssue({
+        code: 'custom',
+        path: ['capabilities'],
+        message: 'a ranked game keeps scores: declare "scores" too',
+      });
+    }
     const rooms = manifest.rooms;
     if (manifest.capabilities.includes('rooms') !== (rooms !== undefined)) {
       context.addIssue({
