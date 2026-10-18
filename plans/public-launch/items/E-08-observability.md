@@ -1,9 +1,10 @@
 # E-08 — Observability: `/metrics`, ServiceMonitor, cảnh báo tối thiểu
 
-- Status: **proposed** (2026-10-18) — chờ owner quyết Q1–Q3
+- Status: **decided** (2026-10-18, chat) — Q1 **A** (prometheus-net), Q3 các ngưỡng như đề xuất; **Q2 (cảnh báo gửi tới
+  đâu) vẫn mở** — không có đề xuất nào để nhận, và nó nằm ở `platform-infra`, không chặn phần của Tò He
 - Kind: enhancement — một thư viện NuGet mới, một cổng mới của API, hai template mới trong chart (ADR khi xây)
 - Blocks: E-10 (checklist ra mắt) · Blocked by: E-04 (chart, #44)
-- Decided: —
+- Decided: 2026-10-18 — F2a (API), F2b (chart)
 
 ## Vì sao
 
@@ -73,7 +74,7 @@ làm sau nếu owner muốn. Không đụng tới telemetry thiết bị.
 
 ## Quyết định
 
-—
+**owner** (2026-10-18, chat): "ok như bạn đề xuất, làm đi, và deploy uat tuần tự + kiểm tra, sau khi hoàn thành thì báo tôi verify" — A cùng bảng cảnh báo; Q2 chờ owner chọn kênh khi cấu hình Alertmanager của cluster.
 
 ## Thảo luận
 

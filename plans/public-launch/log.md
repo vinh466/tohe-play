@@ -2,6 +2,12 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (tối) — agent
+
+- Owner: "ok như bạn đề xuất, làm đi, và deploy uat tuần tự + kiểm tra, sau khi hoàn thành thì báo tôi verify". E-07,
+  E-08, E-09 → `decided` theo đề xuất (E-07 Q7 pháp lý và E-08 Q2 kênh cảnh báo vẫn mở); giả định của C5 được nhận.
+- Tiếp: chạy thử migration trên dump UAT, deploy #43 → #60 tuần tự, xây F1–F3, deploy, báo owner verify.
+
 ## 2026-10-18 (chiều, tiếp) — agent
 
 - C5 #60 sửa cho khớp design §3.15 ("lời mời luôn hỏi xác nhận kèm thẻ"): tra ID (`GET /api/profiles/by-id`) → thẻ →

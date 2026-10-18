@@ -1,9 +1,10 @@
 # E-09 — Chống bot đăng ký
 
-- Status: **proposed** (2026-10-18) — chờ owner quyết Q1–Q2
+- Status: **decided** (2026-10-18, chat) — Q1 **A** (ra mắt bằng mã mời), Q2 **C** (proof-of-work tự host, sau một công
+  tắc trong console, tắt sẵn)
 - Kind: enhancement — tuỳ phương án: không gì, một dịch vụ ngoài (ADR), hoặc một thư viện tự host (ADR)
 - Blocks: E-10 (checklist ra mắt) · Blocked by: D-12
-- Decided: —
+- Decided: 2026-10-18 — F3
 
 ## Vì sao
 
@@ -46,7 +47,8 @@ công tắc trong console — hợp với cách Tò He giữ mọi thứ trong n
 
 ## Quyết định
 
-—
+**owner** (2026-10-18, chat): "ok như bạn đề xuất, làm đi, và deploy uat tuần tự + kiểm tra, sau khi hoàn thành thì báo tôi verify" — A cho ngày ra mắt; C xây ngay ("làm đi"), sau một công tắc trong console, tắt sẵn, để bật khi chuyển đăng ký
+sang `open`. D (rule ở edge) là cấu hình Cloudflare, ngoài repo.
 
 ## Thảo luận
 

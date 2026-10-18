@@ -1,10 +1,10 @@
 # E-07 — Quyền riêng tư, xoá account và hồ sơ, kiểm duyệt tên
 
-- Status: **proposed** (2026-10-18) — chờ owner quyết Q1–Q7; phần pháp lý cần owner (hoặc luật sư) kiểm, agent không
-  tư vấn pháp lý
+- Status: **decided** (2026-10-18, chat) — theo đề xuất: Q1 chờ 7 ngày, Q2 xoá hẳn, Q3 nhật ký admin giữ một năm, Q4 có
+  bộ lọc (owner duyệt danh sách), Q5 5 lần mỗi ngày, Q6 báo cáo vi phạm để sau; **Q7 (pháp lý) vẫn là việc của owner**
 - Kind: enhancement — xoá dữ liệu xuyên module, một ngoại lệ có kiểm soát cho các bảng chỉ ghi thêm (ADR khi xây)
 - Blocks: E-10 (checklist ra mắt) · Blocked by: D-01, D-06, D-17
-- Decided: —
+- Decided: 2026-10-18 — F1a (xoá), F1b (kiểm duyệt tên)
 
 ## Vì sao
 
@@ -98,7 +98,10 @@ Khi có nút xoá, bản nháp chính sách đổi câu "liên hệ người v�
 
 ## Quyết định
 
-—
+**owner** (2026-10-18, chat): "ok như bạn đề xuất, làm đi, và deploy uat tuần tự + kiểm tra, sau khi hoàn thành thì báo tôi verify" — nhận các đề xuất ở trên: Q1 **A** (chờ 7 ngày), Q2 xoá hẳn kết quả qua một ngoại lệ duy nhất cho các bảng chỉ
+ghi thêm, Q3 nhật ký admin giữ **một năm** rồi xoá, Q4 có bộ lọc (danh sách để owner duyệt trong PR), Q5 5 lần đổi tên
+mỗi ngày, Q6 báo cáo vi phạm sau ra mắt. Q7 không quyết được bằng câu này: thời hạn và nghĩa vụ theo văn bản gốc vẫn chờ
+owner (hoặc luật sư) kiểm.
 
 ## Thảo luận
 
