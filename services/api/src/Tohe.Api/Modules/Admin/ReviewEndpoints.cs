@@ -1,8 +1,10 @@
+using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
+using Tohe.Api.Modules.Registry;
 
 namespace Tohe.Api.Modules.Admin;
 
@@ -24,6 +26,11 @@ public sealed record ReviewDetail(
 
 /// <param name="Note">What the reviewer saw, for the other admins.</param>
 public sealed record ReviewDecisionRequest(string? Note);
+
+/// <summary>A ranked run to watch in the game itself (ADR 0032): its seed and moves, and the build that played it.</summary>
+/// <param name="Version">The version of the build that played it.</param>
+/// <param name="Build">Where that build opens while the games origin serves it; null once the catalog moved on.</param>
+public sealed record RunReplay(string GameId, string Version, int Seed, JsonElement Moves, RegistryBuild? Build);
 
 /// <summary>
 /// The console's review (ADR 0029): the results the integrity engine held, oldest first; the ones people decided about or
@@ -50,6 +57,11 @@ internal static class ReviewEndpoints
             .RequirePermission(AdminPermissions.ResultsReview)
             .WithName("GetAdminReviewResult")
             .WithSummary("One result: where it stands, what its profile did before on the board, its evidence, every decision.");
+
+        admin.MapGet("/review/{id:long}/run", RunAsync)
+            .RequirePermission(AdminPermissions.ResultsReview)
+            .WithName("GetAdminReviewRun")
+            .WithSummary("A ranked run's seed and moves to watch in the game itself, and the build that played it while the games origin serves it.");
 
         admin.MapPost("/review/{id:long}/approve", ApproveAsync)
             .RequirePermission(AdminPermissions.ResultsReview)
@@ -87,6 +99,20 @@ internal static class ReviewEndpoints
     private static async Task<Results<Ok<ReviewDetail>, NotFound>> DetailAsync(
         long id, IntegrityReview review, AccountsAdmin accounts, CancellationToken ct) =>
         await DetailOfAsync(id, review, accounts, ct) is { } detail ? TypedResults.Ok(detail) : TypedResults.NotFound();
+
+    private static async Task<Results<Ok<RunReplay>, NotFound>> RunAsync(
+        long id, IntegrityReview review, RegistryFacts registry, CancellationToken ct)
+    {
+        if (await review.RunOfAsync(id, ct) is not { } run)
+        {
+            return TypedResults.NotFound();
+        }
+
+        // A build lives at {game}/{version}/ (ADR 0007).
+        var version = run.GamePath.TrimEnd('/').Split('/')[^1];
+        return TypedResults.Ok(new RunReplay(
+            run.GameId, version, run.Seed, run.Moves, await registry.BuildAsync(run.GameId, run.GamePath, ct)));
+    }
 
     private static Task<Results<Ok<ReviewDetail>, NotFound, ValidationProblem, ProblemHttpResult>> ApproveAsync(
         long id, ReviewDecisionRequest request, [AsParameters] DecisionServices services, CancellationToken ct) =>
