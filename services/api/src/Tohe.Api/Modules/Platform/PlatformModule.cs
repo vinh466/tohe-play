@@ -66,6 +66,7 @@ internal static class PlatformModule
     {
         // What the background workers last did, for the admin console (ADR 0027).
         builder.Services.AddSingleton<BackgroundWork>();
+        builder.AddMetrics();
         var options = builder.Services.AddOptions<GamesOptions>()
             .BindConfiguration(GamesOptions.Section)
             .ValidateDataAnnotations();
@@ -79,6 +80,41 @@ internal static class PlatformModule
         }
 
         return builder;
+    }
+
+    /// <summary>
+    /// Tò He's metrics and <c>/metrics</c> on a port of its own (ADR 0036): prometheus-net exports every .NET meter —
+    /// ASP.NET Core's requests by route and status, the runtime's, Npgsql's pool, and <see cref="ToheMetrics"/>. The
+    /// runtime's event counters are left out: the runtime's meter says the same.
+    /// </summary>
+    private static void AddMetrics(this WebApplicationBuilder builder)
+    {
+        builder.Services.AddOptions<MetricsOptions>().BindConfiguration(MetricsOptions.Section);
+        builder.Services.AddSingleton<ToheMetrics>();
+        var options = builder.Configuration.GetSection(MetricsOptions.Section).Get<MetricsOptions>() ?? new MetricsOptions();
+        if (options.Enabled && !BuildTime.IsGeneratingOpenApi)
+        {
+            Prometheus.Metrics.SuppressDefaultMetrics(new Prometheus.SuppressDefaultMetricOptions { SuppressEventCounters = true });
+            // Durations in seconds get the buckets ASP.NET Core advises for its own, not 25 exponential ones per series.
+            Prometheus.Metrics.ConfigureMeterAdapter(adapter => adapter.ResolveHistogramBuckets = instrument =>
+                instrument.Unit == "s" ? SecondsBuckets : Prometheus.MeterAdapterOptions.DefaultHistogramBuckets);
+            Prometheus.KestrelMetricServerExtensions.AddMetricServer(builder.Services, server => server.Port = (ushort)options.Port);
+            builder.Services.AddHostedService<MetricsStart>();
+        }
+    }
+
+    private static readonly double[] SecondsBuckets = [0.005, 0.01, 0.025, 0.05, 0.075, 0.1, 0.25, 0.5, 0.75, 1, 2.5, 5, 7.5, 10];
+
+    /// <summary>
+    /// prometheus-net starts listening to the .NET meters at its first collection: one when the API starts, so what is
+    /// counted before the first scrape — a sign-in, an email — is not lost.
+    /// </summary>
+    private sealed class MetricsStart : IHostedService
+    {
+        public Task StartAsync(CancellationToken cancellationToken) =>
+            Prometheus.Metrics.DefaultRegistry.CollectAndExportAsTextAsync(Stream.Null, cancellationToken);
+
+        public Task StopAsync(CancellationToken cancellationToken) => Task.CompletedTask;
     }
 
     /// <summary>

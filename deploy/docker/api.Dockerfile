@@ -13,6 +13,7 @@ FROM mcr.microsoft.com/dotnet/aspnet:10.0-noble-chiseled
 WORKDIR /app
 COPY --from=build /app .
 ENV ASPNETCORE_HTTP_PORTS=8080
-EXPOSE 8080
+# 9464: /metrics for Prometheus, never proxied by the hub (ADR 0036).
+EXPOSE 8080 9464
 USER app
 ENTRYPOINT ["dotnet", "Tohe.Api.dll"]

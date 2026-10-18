@@ -27,6 +27,7 @@
     </PackageReference>
     <PackageReference Include="Microsoft.Extensions.Diagnostics.HealthChecks.EntityFrameworkCore" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
+    <PackageReference Include="prometheus-net.AspNetCore" />
     <PackageReference Include="Scalar.AspNetCore" />
     <!-- Pins MimeKit's transitive dependency to its patched version (Directory.Packages.props). -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
