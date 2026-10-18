@@ -4,6 +4,7 @@ import type {
   GameMessageInput,
   HostMessage,
   Profile,
+  RankedReplay,
   Reaction,
   Replay,
   RoomInfo,
@@ -15,7 +16,7 @@ import type {
 import { createTelemetry, disabledTelemetry, type Telemetry } from './telemetry.ts';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.8.0';
+export const SDK_VERSION = '0.9.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
@@ -73,6 +74,11 @@ export interface GameSession<TSave = JsonValue> {
    * `options` and `carry`, then play `actions` back, showing `seat`'s view.
    */
   readonly replay: Replay | null;
+  /**
+   * A ranked run to watch (ADR 0032), or null: start from `seed`, play `moves` back with the game's own logic as its
+   * verify module would, and record nothing — no save, no score, no ranked run. Every `ranked` game must show one.
+   */
+  readonly rankedReplay: RankedReplay | null;
   /** The game shell's side of the hub (ADR 0018), for games that declare `shell`. */
   readonly shell: ShellSession;
   /** Ranked runs (ADR 0030), for games that declare `ranked`: the server deals the seed and replays the moves. */
@@ -268,6 +274,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
             telemetry,
             room: null,
             replay: message.replay ?? null,
+            rankedReplay: message.rankedReplay ?? null,
             shell: {
               can: message.shell ?? { leaderboard: false, rooms: false },
               menuChanged: (open) => send({ tohe: PROTOCOL, type: 'menu', open }),
@@ -439,6 +446,7 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
     telemetry: disabledTelemetry,
     room: null,
     replay: null,
+    rankedReplay: null,
     shell: {
       can: { leaderboard: false, rooms: false },
       menuChanged: () => {},

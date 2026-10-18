@@ -350,6 +350,23 @@ describe('ranked runs (ADR 0030)', () => {
     const { gameSide } = setup({ onRankedStart: () => ({ run: 'run-1', seed: 1 }) });
     expect(await (await connect({ gameId: 'hello', transport: gameSide })).ranked.start()).toBeNull();
   });
+
+  it('gives a game a ranked run to watch, and none otherwise (ADR 0032)', async () => {
+    const [gameSide, hostSide] = memoryTransportPair();
+    const host = createHost({
+      transport: hostSide,
+      manifest: rankedManifest,
+      init: () => ({ ...init(), rankedReplay: { seed: 913, moves: [0, 4, 2] } }),
+    });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    await host.ready;
+    expect(session.rankedReplay).toEqual({ seed: 913, moves: [0, 4, 2] });
+    expect(session.replay).toBeNull();
+
+    const [plainGame, plainHost] = memoryTransportPair();
+    createHost({ transport: plainHost, manifest: rankedManifest, init });
+    expect((await connect({ gameId: 'hello', transport: plainGame })).rankedReplay).toBeNull();
+  });
 });
 
 describe('createRng', () => {

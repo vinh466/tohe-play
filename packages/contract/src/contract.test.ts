@@ -261,4 +261,26 @@ describe('ranked runs (ADR 0030)', () => {
     const result = { tohe: 1, type: 'result', replyTo: 'r1', ok: true, value: { run: 'run-1', seed: 7 } };
     expect(HostMessage.parse(result)).toMatchObject({ value: { run: 'run-1', seed: 7 } });
   });
+
+  it('opens a game to watch a ranked run: its seed and moves, within the limit (ADR 0032)', () => {
+    const init = {
+      tohe: 1,
+      type: 'init',
+      profile: { id: 'p1', name: 'Na' },
+      locale: 'vi',
+      settings: { muted: true, theme: 'light' },
+      save: null,
+      seed: 1,
+      rankedReplay: { seed: 913, moves: [0, 4, 2] },
+    };
+    const parsed = HostMessage.parse(init);
+    expect(parsed.type === 'init' && parsed.rankedReplay).toEqual({ seed: 913, moves: [0, 4, 2] });
+    expect(
+      HostMessage.safeParse({ ...init, rankedReplay: { seed: 913, moves: Array(100_001).fill(0) } }).success,
+    ).toBe(false);
+    expect(HostMessage.safeParse({ ...init, rankedReplay: { seed: 1.5, moves: [] } }).success).toBe(false);
+    expect(HostMessage.safeParse({ ...init, rankedReplay: { seed: 1, moves: [], run: 'x' } }).success).toBe(
+      false,
+    );
+  });
 });
