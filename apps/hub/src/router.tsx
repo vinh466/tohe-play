@@ -29,9 +29,11 @@ const catalogRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', c
 const welcomeRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/welcome',
-  // ?external=failed: back from a provider that refused, or was cancelled (ADR 0026).
-  validateSearch: (search: Record<string, unknown>): { external?: string } => ({
+  // ?external=failed: back from a provider that refused, or was cancelled (ADR 0026). ?deleting=<when>: the account
+  // just asked to be deleted, and goes then (ADR 0034).
+  validateSearch: (search: Record<string, unknown>): { external?: string; deleting?: string } => ({
     external: typeof search.external === 'string' ? search.external : undefined,
+    deleting: typeof search.deleting === 'string' ? search.deleting : undefined,
   }),
   component: WelcomePage,
 });

@@ -47,6 +47,10 @@ public sealed record ProfileView(
     bool HiddenFromBoards,
     string Invites);
 
+/// <summary>An account its owner asked to delete (ADR 0034).</summary>
+/// <param name="DeleteAfter">When it goes for good, with everything of its profiles; signing in before keeps it.</param>
+public sealed record AccountDeletionView(DateTimeOffset DeleteAfter);
+
 /// <summary>A profile as someone outside its account sees it before asking it to a table (ADR 0033).</summary>
 public sealed record ProfileCardView(Guid Id, string PublicId, string Name, string Avatar);
 

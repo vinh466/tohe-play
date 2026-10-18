@@ -276,6 +276,24 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete the account (needs step-up level 2): it stops now, and goes for good after seven days unless someone signs in to it. */
+        delete: operations["DeleteAccount"];
+        options?: never;
+        head?: never;
+        /** Turn the account's telemetry on or off. */
+        patch: operations["UpdateAccount"];
+        trace?: never;
+    };
     "/api/auth/external/pending": {
         parameters: {
             query?: never;
@@ -466,23 +484,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/account": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        /** Turn the account's telemetry on or off. */
-        patch: operations["UpdateAccount"];
-        trace?: never;
-    };
     "/api/profiles": {
         parameters: {
             query?: never;
@@ -510,7 +511,7 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove one of the account's profiles — never the last one. */
+        /** Delete one of the account's profiles — never the last one — and everything of it, for good. */
         delete: operations["DeleteProfile"];
         options?: never;
         head?: never;
@@ -957,6 +958,10 @@ export interface components {
             since: null | string;
             rows: components["schemas"]["BoardRow"][];
         };
+        AccountDeletionView: {
+            /** Format: date-time */
+            deleteAfter: string;
+        };
         AccountView: {
             /** Format: uuid */
             id: string;
@@ -1370,6 +1375,7 @@ export interface components {
             name: null | string;
             avatar: null | string;
             bot: null | string;
+            deleted: boolean;
         };
         ResetPasswordRequest: {
             /** Format: uuid */
@@ -2046,6 +2052,59 @@ export interface operations {
             };
         };
     };
+    DeleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletionView"];
+                };
+            };
+        };
+    };
+    UpdateAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     GetPendingSignIn: {
         parameters: {
             query?: never;
@@ -2398,39 +2457,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeView"];
-                };
-            };
-        };
-    };
-    UpdateAccount: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["UpdateAccountRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MeView"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };

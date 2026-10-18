@@ -27,6 +27,8 @@ internal static class RoomsModule
         services.AddHttpClient<RulesSource>(client => client.Timeout = TimeSpan.FromSeconds(10));
         services.AddSingleton<RoomRegistry>();
         services.AddSingleton<RoomInvitations>();
+        // Deleted profiles leave the tables, and finished hands keep nothing of them (ADR 0034).
+        services.AddScoped<IProfileData, RoomsProfileData>();
         services.AddSignalR(options => options.MaximumReceiveMessageSize = 16 * 1024);
         if (builder.Configuration.GetValue($"{RoomsOptions.Section}:ClockEnabled", defaultValue: true) && !BuildTime.IsGeneratingOpenApi)
         {

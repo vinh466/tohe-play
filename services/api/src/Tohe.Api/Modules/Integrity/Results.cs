@@ -77,7 +77,10 @@ public sealed class IntegrityResult
     public string? DecidedBy { get; set; }
 }
 
-/// <summary>One change of a result's level, and why. Append-only: a trigger refuses to change or delete one.</summary>
+/// <summary>
+/// One change of a result's level, and why. Append-only: a trigger refuses to change or delete one — except with its
+/// result, when the profile's data is purged (ADR 0034).
+/// </summary>
 public sealed class IntegrityDecision
 {
     public long Id { get; set; }
@@ -150,6 +153,8 @@ internal sealed class IntegrityDecisionConfiguration : IEntityTypeConfiguration<
         builder.HasIndex(decision => new { decision.ResultId, decision.Id })
             .HasFilter("actor IS NOT NULL OR \"to\" = 'Rejected'")
             .HasDatabaseName("ix_integrity_decisions_decided");
-        builder.HasOne(decision => decision.Result).WithMany().HasForeignKey(decision => decision.ResultId).OnDelete(DeleteBehavior.Restrict);
+        // A result's decisions go only with it, and only in a profile's purge: the append-only trigger checks both
+        // (ADR 0034).
+        builder.HasOne(decision => decision.Result).WithMany().HasForeignKey(decision => decision.ResultId).OnDelete(DeleteBehavior.Cascade);
     }
 }

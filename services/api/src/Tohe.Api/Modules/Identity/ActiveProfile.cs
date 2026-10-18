@@ -56,7 +56,7 @@ public sealed record InviteTarget(Guid ProfileId, Guid AccountId, string PublicI
 
 /// <summary>
 /// Finds profiles for other accounts (ADR 0033): never a child of another account — a child is not found from outside
-/// its account — nor a profile of a suspended account.
+/// its account — nor a profile of an account suspended or waiting to be deleted (ADR 0034).
 /// </summary>
 public interface IProfileDirectory
 {
@@ -79,7 +79,7 @@ internal sealed class ProfileDirectory(ToheDbContext db) : IProfileDirectory
         await profiles.AsNoTracking()
             .Where(profile => profile.Kind == ProfileKind.Adult || profile.AccountId == askingAccount)
             .Join(
-                db.Users.Where(account => account.SuspendedAt == null),
+                db.Users.Where(account => account.SuspendedAt == null && account.DeleteAfter == null),
                 profile => profile.AccountId,
                 account => account.Id,
                 (profile, _) => new InviteTarget(

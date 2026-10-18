@@ -213,7 +213,7 @@ internal static class ExternalEndpoints
         if (owner is not null)
         {
             var playing = await AuthEndpoints.OnlyProfileAsync(db, owner.Id, ct);
-            await session.WriteAsync(owner, new DeviceSession(playing));
+            await session.SignInAsync(owner, new DeviceSession(playing), ct);
             return Results.Redirect("/profiles?auto=true");
         }
 
@@ -642,7 +642,7 @@ internal static class ExternalEndpoints
 
         Unbind(http);
         var state = new DeviceSession(await AuthEndpoints.OnlyProfileAsync(db, account.Id, ct));
-        await session.WriteAsync(account, state);
+        await session.SignInAsync(account, state, ct);
         return TypedResults.Ok(new ExternalOutcome((await me.LoadAsync(account.Id, state, ct))!, null));
     }
 

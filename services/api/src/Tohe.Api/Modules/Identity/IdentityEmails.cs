@@ -1,3 +1,5 @@
+using System.Globalization;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Modules.Email;
 
 namespace Tohe.Api.Modules.Identity;
@@ -133,6 +135,31 @@ internal static class IdentityEmails
             [$"Tài khoản Tò He của bạn không còn đăng nhập bằng {provider}, và mọi thiết bị khác đã được đăng xuất."],
             footnote: "Nếu không phải bạn, hãy đặt lại mật khẩu ngay bằng \"Quên mật khẩu?\" rồi báo người quản lý Tò He."));
 
+    /// <summary>The owner asked to delete the account (ADR 0034): the day it goes, and the way to keep it.</summary>
+    public static EmailMessage DeletionScheduled(string to, DateTimeOffset deleteAfter, Uri? signIn) => new(
+        "account-deleting",
+        to,
+        "Tài khoản Tò He sắp bị xoá",
+        EmailLayout.Render(
+            "Tài khoản sẽ bị xoá",
+            [
+                $"Tài khoản Tò He của bạn sẽ bị xoá hẳn vào ngày {Day(deleteAfter)}, cùng mọi hồ sơ trong đó: ván đã " +
+                "lưu, điểm và kết quả trên bảng xếp hạng. Mọi thiết bị đã được đăng xuất.",
+                "Đổi ý? Chỉ cần đăng nhập lại trước ngày đó: tài khoản được giữ nguyên như cũ.",
+            ],
+            footnote: "Nếu không phải bạn yêu cầu, hãy đăng nhập ngay để giữ tài khoản, rồi đổi mật khẩu.",
+            link: Link("Đăng nhập để giữ tài khoản", signIn)));
+
+    /// <summary>Someone signed in while the account waited to be deleted, which keeps it (design §3.14).</summary>
+    public static EmailMessage DeletionCancelled(string to) => new(
+        "account-kept",
+        to,
+        "Tài khoản Tò He sẽ không bị xoá",
+        EmailLayout.Render(
+            "Đã huỷ xoá tài khoản",
+            ["Tài khoản Tò He của bạn vừa được đăng nhập, nên nó được giữ lại như cũ và không bị xoá nữa."],
+            footnote: "Nếu không phải bạn đăng nhập, hãy đặt lại mật khẩu ngay bằng \"Quên mật khẩu?\"."));
+
     /// <summary>"nam@example.org" → "n•••@example.org": enough to recognise, not to learn.</summary>
     public static string Mask(string email)
     {
@@ -141,6 +168,10 @@ internal static class IdentityEmails
     }
 
     private static string Spaced(string code) => $"{code[..3]} {code[3..]}";
+
+    /// <summary>The day in Việt Nam, as people there read it: 25/10/2026.</summary>
+    private static string Day(DateTimeOffset at) =>
+        at.ToOffset(Weeks.VietnamOffset).ToString("dd/MM/yyyy", CultureInfo.InvariantCulture);
 
     private static EmailLink? Link(string label, Uri? url) => url is null ? null : new EmailLink(label, url);
 }

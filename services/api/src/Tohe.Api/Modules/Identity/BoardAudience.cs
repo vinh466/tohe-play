@@ -9,7 +9,7 @@ public sealed record BoardPlayer(Guid Id, string Name, string Avatar, string Pub
 
 /// <summary>
 /// Who may appear on public boards (ADR 0029): profiles switched on and not hidden by a moderator, of accounts that are
-/// not suspended.
+/// neither suspended nor waiting to be deleted (ADR 0034).
 /// </summary>
 public interface IBoardAudience
 {
@@ -26,7 +26,7 @@ internal sealed class BoardAudience(ToheDbContext db) : IBoardAudience
         await db.Profiles.AsNoTracking()
             .Where(profile => profileIds.Contains(profile.Id) && profile.OnPublicBoards && profile.HiddenFromBoardsAt == null)
             .Join(
-                db.Users.Where(account => account.SuspendedAt == null),
+                db.Users.Where(account => account.SuspendedAt == null && account.DeleteAfter == null),
                 profile => profile.AccountId,
                 account => account.Id,
                 (profile, account) => new BoardPlayer(profile.Id, profile.Name, profile.Avatar, profile.PublicId, account.CommunityId))

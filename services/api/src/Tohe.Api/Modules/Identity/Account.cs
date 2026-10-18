@@ -44,6 +44,12 @@ public sealed class Account : IdentityUser<Guid>
 
     /// <summary>The invite code it came with.</summary>
     public string? InviteCode { get; set; }
+
+    /// <summary>
+    /// Its owner asked to delete it (ADR 0034): from then on nobody plays from it, and when this time comes it is deleted
+    /// for good with everything of its profiles — unless someone signs in to it before.
+    /// </summary>
+    public DateTimeOffset? DeleteAfter { get; set; }
 }
 
 internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
@@ -63,6 +69,8 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(account => account.SuspendedReason).HasMaxLength(300);
         builder.Property(account => account.InviteCode).HasMaxLength(Invites.MaxLength);
         builder.HasIndex(account => account.CommunityId);
+        // The deletion job's question: whose wait is over (ADR 0034). Few accounts ever wait.
+        builder.HasIndex(account => account.DeleteAfter).HasFilter("delete_after IS NOT NULL");
         builder.HasOne<Community>()
             .WithMany()
             .HasForeignKey(account => account.CommunityId)

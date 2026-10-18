@@ -102,7 +102,10 @@ public sealed class Room
 
 /// <summary>A seat as stored: a person, a bot, or empty.</summary>
 /// <param name="Auto">A bot that filled an empty seat; a person who joins between hands takes its place.</param>
-public sealed record SeatRecord(Guid? ProfileId, Guid? AccountId, string? Name, string? Avatar, string? Bot, bool Auto = false)
+/// <param name="Deleted">A person whose profile was deleted (ADR 0034): the seat stays in finished hands for the others
+/// at the table, with nothing of them — a random id, no account, no name, no avatar.</param>
+public sealed record SeatRecord(
+    Guid? ProfileId, Guid? AccountId, string? Name, string? Avatar, string? Bot, bool Auto = false, bool Deleted = false)
 {
     public static readonly SeatRecord Empty = new(null, null, null, null, null);
 

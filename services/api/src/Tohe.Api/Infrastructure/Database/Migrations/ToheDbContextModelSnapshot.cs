@@ -295,6 +295,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset?>("DeleteAfter")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("delete_after");
+
                     b.Property<string>("DisplayName")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -399,6 +403,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
 
                     b.HasIndex("CommunityId")
                         .HasDatabaseName("ix_accounts_community_id");
+
+                    b.HasIndex("DeleteAfter")
+                        .HasDatabaseName("ix_accounts_delete_after")
+                        .HasFilter("delete_after IS NOT NULL");
 
                     b.HasIndex("NormalizedEmail")
                         .IsUnique()
@@ -696,6 +704,24 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasDatabaseName("ix_profile_names_profile_id_at");
 
                     b.ToTable("profile_names", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.RetiredProfileId", b =>
+                {
+                    b.Property<string>("PublicId")
+                        .HasMaxLength(12)
+                        .HasColumnType("character(12)")
+                        .HasColumnName("public_id")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("RetiredAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("retired_at");
+
+                    b.HasKey("PublicId")
+                        .HasName("pk_retired_profile_ids");
+
+                    b.ToTable("retired_profile_ids", "identity");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Integrity.IntegrityDecision", b =>
@@ -1888,7 +1914,7 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasOne("Tohe.Api.Modules.Integrity.IntegrityResult", "Result")
                         .WithMany()
                         .HasForeignKey("ResultId")
-                        .OnDelete(DeleteBehavior.Restrict)
+                        .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_decisions_integrity_results_result_id");
 

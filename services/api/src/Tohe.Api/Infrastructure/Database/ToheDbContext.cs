@@ -26,6 +26,8 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
 
     public DbSet<ProfileName> ProfileNameHistory => Set<ProfileName>();
 
+    public DbSet<RetiredProfileId> RetiredProfileIds => Set<RetiredProfileId>();
+
     public DbSet<Community> Communities => Set<Community>();
 
     public DbSet<InviteCode> InviteCodes => Set<InviteCode>();

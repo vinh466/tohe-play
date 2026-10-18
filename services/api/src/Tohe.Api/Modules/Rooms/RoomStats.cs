@@ -22,7 +22,8 @@ public sealed record RoomStatsView(PlayerStats AllTime, PlayerStats Week, IReadO
 public sealed record HandSummary(Guid RoomId, int Hand, DateTimeOffset FinishedAt, int Seat, int Place, int Points, int Players);
 
 /// <summary>A seat of a finished hand, as a replay shows it.</summary>
-public sealed record ReplaySeat(Guid? ProfileId, string? Name, string? Avatar, string? Bot);
+/// <param name="Deleted">A person whose profile was deleted since (ADR 0034): shown as such, with nothing of them.</param>
+public sealed record ReplaySeat(Guid? ProfileId, string? Name, string? Avatar, string? Bot, bool Deleted);
 
 public sealed record ReplayAction(int Seat, JsonElement Action);
 
@@ -125,7 +126,7 @@ internal static class RoomStats
                     record.Seed,
                     Parse(record.Options),
                     Parse(record.Carry ?? "null"),
-                    [.. seats.Select(s => new ReplaySeat(s.ProfileId, s.Name, s.Avatar, s.Bot))],
+                    [.. seats.Select(s => new ReplaySeat(s.ProfileId, s.Name, s.Avatar, s.Bot, s.Deleted))],
                     [.. actions.Select(a => new ReplayAction(a.Seat, Parse(a.Action)))],
                     Parse(record.Result),
                     played.Seat,

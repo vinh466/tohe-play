@@ -40,12 +40,12 @@ export function Brand({ subtitle }: { subtitle: string }) {
 }
 
 function SignIn() {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const setMe = useSetMe();
   const config = useQuery(configQuery);
-  const { external } = useSearch({ from: '/welcome' });
+  const { external, deleting } = useSearch({ from: '/welcome' });
   // The console's switches (ADR 0028).
   const passwordOn = config.data?.passwordSignIn ?? true;
   const registration = config.data?.registration ?? 'open';
@@ -111,6 +111,13 @@ function SignIn() {
         : external === 'disabled'
           ? t('external.disabled')
           : t('external.failed')}
+    </p>
+  ) : deleting && !Number.isNaN(Date.parse(deleting)) ? (
+    // Just asked to delete the account (ADR 0034): when it goes, and how to keep it.
+    <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink">
+      {t('welcome.deleting', {
+        date: new Date(deleting).toLocaleDateString(i18n.language === 'en' ? 'en-GB' : 'vi-VN'),
+      })}
     </p>
   ) : null;
 

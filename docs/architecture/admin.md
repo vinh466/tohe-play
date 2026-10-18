@@ -152,6 +152,11 @@ account, or `command line`), what, on what, more as JSON, and from which address
 `UPDATE`, `DELETE` and `TRUNCATE` on the table — the API cannot rewrite history, and nor can someone with its database
 credentials, short of dropping the trigger. Owners and admins read it in the console, newest first.
 
+It keeps a year ([ADR 0034](../decisions/0034-delete-accounts-and-profiles-for-good.md)): entries name accounts, some
+by their email. The `audit-retention` job deletes, once a day, the entries older than 365 days by the database's
+clock — the trigger's one exception, open only in a transaction that set `tohe.purge` to `audit`, and only for those
+entries.
+
 | Action | When |
 | --- | --- |
 | `setup.claim` | The first owner claimed the deployment |
@@ -172,7 +177,8 @@ credentials, short of dropping the trigger. Owners and admins read it in the con
 
 Accounts are found by email, username, display name or profile name, or by the first four digits or more of a profile
 ID; nothing typed lists the newest. An account's page shows how it signs in, its role, two-factor authentication,
-whether it is suspended and why, and each profile with the names it had. What may be done to it, behind step-up
+whether it is suspended and why, whether its owner asked to delete it and when it goes ("Chờ xoá",
+[Identity](identity.md#deleting)), and each profile with the names it had. What may be done to it, behind step-up
 level 2 and in the audit log:
 
 - **Suspend**, with a reason only admins see: no way in — the password, a provider, finishing a link, a new password
@@ -282,6 +288,8 @@ counts the failures in a row until a run goes well.
 | `email-delivery` | every `Email:PollInterval` |
 | `telemetry-maintenance` | every `Telemetry:MaintenanceInterval` |
 | `ranked-replays` | every `Integrity:ReplayInterval` ([ranked runs](integrity.md#ranked-runs)) |
+| `account-deletion` | every `Identity:DeletionCheckInterval` (an hour): accounts whose seven days are over ([Identity](identity.md#deleting)) |
+| `audit-retention` | once a day: audit entries older than a year ([above](#the-audit-log)) |
 
 ## API
 

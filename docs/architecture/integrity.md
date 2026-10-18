@@ -88,6 +88,11 @@ what the signals saw (`details`, JSON), the rule version, the actor (none for th
 `UPDATE`, `DELETE` and `TRUNCATE` on the table, as on the audit log (ADR 0027). A later decision reverses one; the
 result keeps its current level, its rule version and who decided it last (`decided_by`, a person only).
 
+One way out ([ADR 0034](../decisions/0034-delete-accounts-and-profiles-for-good.md)): when a profile is deleted, its
+results go, and each result's decisions with it — the foreign key cascades — in a transaction that set
+`tohe.purge` to `profiles`. The trigger lets a decision go only then, and only once its result is gone: nothing deletes
+a decision while its result stays, and nothing updates one.
+
 ## The account's board
 
 `GET /api/boards/{gameId}?board=default&period=week|all` — each of the account's profiles with its best: `reported`,
@@ -248,7 +253,7 @@ games origin no longer serves the old one, and the run is only numbers.
 | Table | Holds |
 | --- | --- |
 | `integrity.results` | One row per result: kind (`Run`, `Hand`), profile and account, game, board (`hands` for a hand), value, place, source (unique: `run:{profile}:{clientId}`, `hand:{room}:{hand}:{seat}`), final, level, public, the server's time, the device's, rule version, `decided_by` |
-| `integrity.decisions` | The append-only log above |
+| `integrity.decisions` | The append-only log above; a result's decisions go only with it, when its profile is deleted |
 | `integrity.ranked_runs` | One row per ranked run: profile and account, game, the build and verify module that started it, board, limits, seed, state (`Open`, `Submitted`, `Decided`, `Closed`), started and finished by the server's clock, the moves (JSON), the score claimed and replayed, tries, its result |
 
 Two partial indexes keep the review's lists small: the held results (`ix_integrity_results_held`), and people's

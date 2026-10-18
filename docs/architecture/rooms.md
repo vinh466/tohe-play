@@ -245,6 +245,13 @@ it again from its seed with its own rules module and plays it back from the play
 pause ([ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)). A hand played with an older version than
 the catalog's says it cannot be replayed: the games image only holds current builds.
 
+A player whose profile was deleted since keeps their seat in the hands they finished, for the others who played them
+([ADR 0034](../decisions/0034-delete-accounts-and-profiles-for-good.md)): the seat carries a fresh random id and
+`Deleted: true` — no account, name or avatar — and a replay shows it as **Người chơi đã xoá**. Their results keep the
+place and points with no profile, so a hand still counts its players. A deleted profile, or one whose account waits to
+be deleted, leaves the tables it sits at or watches at once — a bot finishes a hand in progress — and invitations to it
+end.
+
 ## Options
 
 **Platform options** (every online game):

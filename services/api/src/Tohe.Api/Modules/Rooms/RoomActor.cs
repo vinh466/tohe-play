@@ -355,6 +355,19 @@ internal sealed class RoomActor
         return null;
     }
 
+    /// <summary>
+    /// A profile deleted, or of an account waiting to be deleted, lets go of the table (ADR 0034): it leaves its seat —
+    /// a bot finishes a hand it is in — or stops watching, and an invitation to it ends. Those it sent end with its seat.
+    /// </summary>
+    public async Task WithdrawAsync(Guid profileId)
+    {
+        _invites.Remove(profileId);
+        if (!IsClosed && (SeatOf(profileId) is not null || _watchers.Contains(profileId)))
+        {
+            await LeaveAsync(profileId);
+        }
+    }
+
     public async Task<string?> LeaveAsync(Guid profileId)
     {
         if (_watchers.Remove(profileId))

@@ -179,6 +179,41 @@ public sealed class IntegrityTests(ApiFactory factory) : IClassFixture<ApiFactor
     }
 
     [Fact]
+    public async Task A_decision_goes_only_with_its_result_and_only_in_a_profiles_purge()
+    {
+        await Games.KnowAsync(factory, "merge-block");
+        var (client, me) = await PlayerAsync("Bố");
+        await RecordAsync(client, Run(Guid.NewGuid(), 10));
+        var profile = me.Profiles[0].Id;
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        // Outside a purge, the result cannot go either: its decisions would go with it.
+        var refused = await Assert.ThrowsAsync<PostgresException>(
+            () => db.Database.ExecuteSqlAsync($"DELETE FROM integrity.results WHERE profile_id = {profile}", Ct));
+        Assert.Contains("append-only", refused.MessageText, StringComparison.Ordinal);
+
+        await using (var transaction = await db.Database.BeginTransactionAsync(Ct))
+        {
+            await db.Database.ExecuteSqlRawAsync("SELECT set_config('tohe.purge', 'profiles', true)", Ct);
+            // Within a purge too, a decision does not go while its result stays.
+            refused = await Assert.ThrowsAsync<PostgresException>(() => db.Database.ExecuteSqlAsync(
+                $"DELETE FROM integrity.decisions d USING integrity.results r WHERE r.id = d.result_id AND r.profile_id = {profile}", Ct));
+            Assert.Contains("append-only", refused.MessageText, StringComparison.Ordinal);
+        }
+
+        await using (var transaction = await db.Database.BeginTransactionAsync(Ct))
+        {
+            await db.Database.ExecuteSqlRawAsync("SELECT set_config('tohe.purge', 'profiles', true)", Ct);
+            await db.Database.ExecuteSqlAsync($"DELETE FROM integrity.results WHERE profile_id = {profile}", Ct);
+            await transaction.CommitAsync(Ct);
+        }
+
+        Assert.False(await db.IntegrityResults.AnyAsync(r => r.ProfileId == profile, Ct));
+        Assert.False(await db.IntegrityDecisions.AnyAsync(d => !db.IntegrityResults.Any(r => r.Id == d.ResultId), Ct));
+    }
+
+    [Fact]
     public async Task The_week_starts_on_monday_in_viet_nam_and_all_time_keeps_every_week()
     {
         // 2026-10-18 is a Sunday: 16:59 UTC is still Sunday in Việt Nam, 17:00 is Monday.

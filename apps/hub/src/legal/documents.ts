@@ -3,7 +3,7 @@
 // in how to reach the operator, before Tò He opens to everyone.
 
 /** Change it with any change to either document: signed-in accounts accept the new version once. */
-export const TERMS_VERSION = '2026-10-18.2';
+export const TERMS_VERSION = '2026-10-18.3';
 
 export interface Section {
   heading: string;
@@ -81,6 +81,7 @@ export const privacy: LegalDocument = {
         'Trò chơi: ván đã lưu và điểm của từng hồ sơ. Ở phòng online: ai ngồi ghế nào, các nước đi và kết quả, để xem lại ván và tính thành tích.',
         'Mã xác nhận gửi qua email: chỉ lưu dạng băm, hết hạn sau 15 phút, bị xoá sau một ngày. Thư đã gửi: nội dung bị xoá ngay khi gửi xong; chỉ giữ người nhận, loại thư và thời gian trong 30 ngày.',
         'Dữ liệu kỹ thuật, nếu bật: loại máy, trình duyệt, lỗi và độ mượt của trò chơi — không có tên, tài khoản hay hồ sơ. Chi tiết giữ 30 ngày, số liệu cộng theo ngày giữ một năm. Bạn tắt được ở trang "Dữ liệu kỹ thuật".',
+        'Nhật ký quản trị: việc người vận hành làm trong trang quản trị (ví dụ khoá một tài khoản, đổi tên một hồ sơ), có thể kèm email của tài khoản liên quan. Giữ một năm rồi bị xoá.',
       ],
     },
     {
@@ -94,6 +95,7 @@ export const privacy: LegalDocument = {
       heading: 'Trẻ em',
       paragraphs: [
         'Trẻ dưới 16 tuổi không tự tạo tài khoản, không có email hay mật khẩu. Bố mẹ tạo hồ sơ cho con — đó là sự đồng ý của người đại diện — và quyết định con có được chơi với người ngoài tài khoản hay không (mặc định là không).',
+        'Bố mẹ rút lại sự đồng ý bất cứ lúc nào bằng cách xoá hồ sơ của con trong "Quản lý tài khoản": mọi dữ liệu của hồ sơ đó bị xoá ngay.',
       ],
     },
     {
@@ -112,7 +114,10 @@ export const privacy: LegalDocument = {
     {
       heading: 'Quyền của bạn',
       paragraphs: [
-        'Trong "Quản lý tài khoản", bạn xem và sửa tên, hồ sơ, email, mật khẩu; liên kết hoặc gỡ Google, GitHub; tắt dữ liệu kỹ thuật; xoá hồ sơ. Muốn xoá cả tài khoản, hãy liên hệ người vận hành cho tới khi Tò He có nút xoá.',
+        'Trong "Quản lý tài khoản", bạn xem và sửa tên, hồ sơ, email, mật khẩu; liên kết hoặc gỡ Google, GitHub; tắt dữ liệu kỹ thuật; xoá hồ sơ hoặc cả tài khoản.',
+        'Xoá một hồ sơ: ván đã lưu, điểm và kết quả trên bảng xếp hạng của nó bị xoá ngay, không lấy lại được.',
+        'Xoá tài khoản: mọi thiết bị được đăng xuất ngay và hồ sơ rời khỏi bảng xếp hạng; sau 7 ngày, tài khoản bị xoá hẳn cùng mọi hồ sơ và dữ liệu của chúng. Đăng nhập lại trong 7 ngày đó là tài khoản được giữ nguyên.',
+        'Ván online đã chơi vẫn còn cho người cùng bàn xem lại, nhưng chỗ của hồ sơ đã xoá chỉ hiện "Người chơi đã xoá". ID của hồ sơ đã xoá không bao giờ được cấp cho ai khác.',
       ],
     },
     { heading: 'Liên hệ', paragraphs: [contact] },

@@ -29,6 +29,21 @@ public sealed class IdentityOptions
     /// "every other session ends" takes at most this long (ADR 0024).
     /// </summary>
     public TimeSpan SessionCheckInterval { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// How long an account waits between its owner asking to delete it and its deletion (ADR 0034, E-07): signing in
+    /// meanwhile keeps it.
+    /// </summary>
+    public TimeSpan DeletionWait { get; set; } = TimeSpan.FromDays(7);
+
+    /// <summary>How often the deletion job looks for accounts whose wait is over.</summary>
+    public TimeSpan DeletionCheckInterval { get; set; } = TimeSpan.FromHours(1);
+
+    /// <summary>Accounts the deletion job deletes in one run at most; the rest go on the next.</summary>
+    public int DeletionBatch { get; set; } = 50;
+
+    /// <summary>The deletion job runs on its own (tests run it by hand).</summary>
+    public bool DeletionEnabled { get; set; } = true;
 }
 
 /// <summary>
@@ -160,10 +175,18 @@ internal static class IdentityModule
         });
 
         services.AddScoped<SessionWriter>();
+        // Deleting profiles and accounts, with every module's data (ADR 0034).
+        services.AddScoped<AccountDeletion>();
+        if (builder.Configuration.GetValue($"{IdentityOptions.Section}:{nameof(IdentityOptions.DeletionEnabled)}", true)
+            && !BuildTime.IsGeneratingOpenApi)
+        {
+            services.AddHostedService<AccountDeletionWorker>();
+        }
+
         // Profiles found by their public ID, for invitations to tables (ADR 0033).
         services.AddScoped<IProfileDirectory, ProfileDirectory>();
         services.AddSingleton<ProfileLookups>();
-        services.AddExceptionHandler<AccountSuspendedHandler>();
+        services.AddExceptionHandler<SessionRefusedHandler>();
         services.AddScoped<Attempts>();
         services.AddScoped<MeQueries>();
         // Platform roles and the counts the admin console reads (ADR 0027).

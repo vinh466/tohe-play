@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useSearch } from '@tanstack/react-router';
+import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { type FormEvent, type ReactNode, useEffect, useReducer, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, account, external, type MeView, type ProfileView, session } from '../api/client.ts';
@@ -96,6 +96,7 @@ function ManageAccount({ me }: { me: MeView }) {
           <Profiles me={me} startAdding={add} />
           <Security me={me} />
           <TechnicalData me={me} />
+          <DeleteAccount me={me} />
           <footer className="mt-auto flex flex-col items-center gap-2">
             {me.account.role ? (
               // The console is its own app on this origin (ADR 0027): a full navigation, not a hub route.
@@ -705,6 +706,58 @@ function TechnicalData({ me }: { me: MeView }) {
         {t('data.more')}
       </Link>
     </Card>
+  );
+}
+
+/**
+ * Deleting the account (ADR 0034, design §3.14): step-up level 2, then a last look at what goes and what stays. Every
+ * session ends — this one too — and the account goes for good after seven days, unless someone signs in to it.
+ */
+function DeleteAccount({ me }: { me: MeView }) {
+  const { t } = useTranslation();
+  const [open, setOpen] = useState(false);
+  return (
+    <Card title={t('deleteAccount.title')}>
+      <p className="text-ink-soft">{t('deleteAccount.hint')}</p>
+      <Button variant="danger" onClick={() => setOpen(true)}>
+        {t('deleteAccount.start')}
+      </Button>
+      <SecureModal me={me} open={open} title={t('deleteAccount.title')} onClose={() => setOpen(false)}>
+        {() => <ConfirmDeletion />}
+      </SecureModal>
+    </Card>
+  );
+}
+
+function ConfirmDeletion() {
+  const { t } = useTranslation();
+  const setMe = useSetMe();
+  const navigate = useNavigate();
+  const remove = useMutation({
+    mutationFn: () => account.deleteAccount(),
+    onSuccess: async ({ deleteAfter }) => {
+      // This device is signed out too: what the hub knew of the session goes with it.
+      await setMe(null);
+      await navigate({ to: '/welcome', search: { deleting: deleteAfter }, replace: true });
+    },
+  });
+  return (
+    <div className="flex flex-col gap-4">
+      <p className="font-semibold text-ink">{t('deleteAccount.body')}</p>
+      <ul className="flex list-disc flex-col gap-2 pl-5 text-ink-soft">
+        <li>{t('deleteAccount.goes')}</li>
+        <li>{t('deleteAccount.stays')}</li>
+        <li>{t('deleteAccount.keep')}</li>
+      </ul>
+      {remove.isError ? (
+        <p role="alert" className="text-danger">
+          {t(errorKey(remove.error))}
+        </p>
+      ) : null}
+      <Button variant="danger" busy={remove.isPending} onClick={() => remove.mutate()}>
+        {t('deleteAccount.confirm')}
+      </Button>
+    </div>
   );
 }
 
