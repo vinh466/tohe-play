@@ -69,7 +69,7 @@ flowchart LR
 | Mỗi PR | Review và merge |
 | Mỗi lần lên UAT | Nói "deploy" — agent chỉ chạy `deploy/uat/deploy.sh` khi được bảo |
 | Trước khi C2 lên UAT | E-02 Q2 đã trả lời: **Free** (2026-10-18). Còn: tạo API key, đưa vào `~/.config/tohe-uat/uat.env` |
-| Trước lần deploy UAT tới (#47 đã merge) | UAT giờ kéo image từ GHCR theo SHA: đặt 5 package GHCR thành Public (hoặc `docker login ghcr.io` trên máy UAT) sau lần publish đầu của `main` |
+| ~~Trước lần deploy UAT tới~~ | Không cần: lần publish đầu của `main` (2026-10-18) ra 5 package GHCR **public**, máy UAT kéo không cần đăng nhập |
 | Trước khi C4 lên prod | Tạo OAuth client Google (*Web application*) và OAuth app GitHub, redirect URI `https://<hub>/api/auth/external/{google,github}/callback`; secret vào Infisical `/tohe` (`Auth__Providers__Google__ClientId`, `…__ClientSecret`, tương tự GitHub), chart nhận qua `api.extraEnvFrom` |
 | Trước khi merge A4 | Pre-step của `platform-infra`: role Postgres, `/tohe` trong Infisical, DNS |
 | Trước F4 | Chốt D-13 (domain cho games — agent đề xuất B, [item](items/D-13-games-origin-domain.md)); duyệt văn bản điều khoản và quyền riêng tư (agent soạn, không phải tư vấn pháp lý) |
@@ -95,7 +95,7 @@ nữa** — sửa sau review đi bằng migration mới.
 | A2 | `feat/deploy-helm-chart` (trên A1) | [#44](https://github.com/vinh466/tohe-play/pull/44) — **merged** · CI xanh (cài lên kind, `helm test`, upgrade) |
 | B1 | `feat/api-transactional-email` (trên A1) | [#45](https://github.com/vinh466/tohe-play/pull/45) — **merged** · khối SMTP của chart làm sau khi A2 + B1 merge |
 | C1 | `feat/identity-accounts-own-profiles` (trên B1) | [#46](https://github.com/vinh466/tohe-play/pull/46) — **merged** · trước khi lên UAT: chạy thử migration trên bản dump UAT (E-01) |
-| A3 | `feat/deploy-publish-ghcr` (trên A2) | [#47](https://github.com/vinh466/tohe-play/pull/47) — **merged** · sau lần publish đầu: owner đặt 5 package GHCR thành Public |
+| A3 | `feat/deploy-publish-ghcr` (trên A2) | [#47](https://github.com/vinh466/tohe-play/pull/47) — **merged** · lần publish đầu (`ad83c45`): 5 package GHCR đã public, kéo ẩn danh được |
 | C2 | `feat/identity-email-sign-in` (trên C1) | [#48](https://github.com/vinh466/tohe-play/pull/48) — **merged** · trước khi lên UAT: relay email của UAT (E-02 Q2) |
 | C3 | `feat/identity-step-up-and-consent` (trên C2) | [#49](https://github.com/vinh466/tohe-play/pull/49) — **merged** · owner duyệt bản nháp Điều khoản + Quyền riêng tư (`apps/hub/src/legal/documents.ts`) |
 | C4 | `feat/identity-oauth-and-linking` (trên C3) | [#50](https://github.com/vinh466/tohe-play/pull/50) — **merged** · trước khi lên prod: OAuth app + secret (mục trên) |

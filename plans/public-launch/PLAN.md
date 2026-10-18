@@ -16,7 +16,7 @@
 ## Next — one item
 
 **A4 — `apps/tohe` trong `platform-infra`** (draft PR, phiên mở trong repo đó — E-06): #43–#65 đã merge (2026-10-18),
-`main` là `ad83c45` và CI của nó publish image + chart lên GHCR. Song song: owner review F1c
+`main` là `ad83c45`; CI của nó xanh và đã publish image + chart lên GHCR (5 package public). Song song: owner review F1c
 ([#66](https://github.com/vinh466/tohe-play/pull/66), ADR 0038) và chọn D-13 ([đề xuất](items/D-13-games-origin-domain.md)).
 Sau đó: F4 (ra mắt, E-10).
 
@@ -26,8 +26,9 @@ Sau đó: F4 (ra mắt, E-10).
    (E-07 Q7 theo lời owner). Merge, rồi nói "deploy" nếu muốn nó lên UAT.
 2. **D-13** — agent đề xuất **B**: một registrable domain riêng chỉ cho game, xong trước F4
    ([item](items/D-13-games-origin-domain.md)). Q1: B hay A; Q2: nếu B, owner chọn và mua tên.
-3. **GHCR** — sau lần publish đầu của `main`: đặt 5 package thành Public (hoặc `docker login ghcr.io` trên máy UAT).
-   Từ #47, `deploy/uat/deploy.sh` kéo image theo SHA từ GHCR thay vì build tại máy.
+3. ~~GHCR Public~~ — không cần làm: lần publish đầu (2026-10-18) ra 5 package **public** (`api`, `hub`, `games`, `site`,
+   `charts/tohe`), kéo ẩn danh được. Từ #47, `deploy/uat/deploy.sh` kéo image `sha-<commit>` từ GHCR — chỉ commit đã
+   lên `main` mới có image, nên một PR lên UAT sau khi merge.
 4. **E-02** — gói Free đã chốt; email trên UAT bật khi API key nằm trong `~/.config/tohe-uat/uat.env`.
 5. **E-08 Q2** — receiver email của Alertmanager ở `platform-infra` (namespace `monitoring` đã xác nhận).
 6. Mở console trên UAT: tự chạy lệnh cấp quyền chủ cho account của mình — agent không chọn account thay owner

@@ -9,7 +9,8 @@ Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang 
 - F1c: [#66](https://github.com/vinh466/tohe-play/pull/66) (ADR 0038) — hết 7 ngày account chờ admin xoá trong console;
   `pnpm verify` xanh; chưa merge, chưa lên UAT.
 - D-13: owner hỏi gợi ý → [proposed](items/D-13-games-origin-domain.md): B, một domain riêng cho game trước F4.
-- Chờ owner: review #66, D-13 Q1/Q2, GHCR Public, API key Resend cho UAT, receiver email ở `platform-infra`.
+- CI `main` xanh, publish lần đầu lên GHCR: 5 package đã public. Chờ owner: review #66, D-13 Q1/Q2, API key Resend
+  cho UAT, receiver email ở `platform-infra`.
 
 ## 2026-10-18 (tối, cuối) — agent
 
