@@ -5,7 +5,8 @@ sidebar:
   order: 27
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — the console frames the games origin, only to watch a ranked run, since
+  [ADR 0032](0032-watch-a-ranked-run-in-the-game-itself.md)
 - **Date:** 2026-10-18
 
 ## Context

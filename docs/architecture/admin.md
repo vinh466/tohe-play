@@ -24,8 +24,9 @@ flowchart LR
 
 - **`apps/admin`** — React with TanStack Router and Query and the design tokens; desktop first, usable on a phone. It
   is built into the hub's image under `/srv/admin` and served at `/admin/` by the hub's Caddy: the hub's origin, so
-  the hub's session cookie. Its CSP allows only its own origin — no games, no WebSocket, no inline styles — and it is
-  sent with `X-Robots-Tag: noindex`. It has no service worker, and the hub's leaves `/admin/` alone.
+  the hub's session cookie. Its CSP allows only its own origin — no WebSocket, no inline styles — and frames the
+  games origin only to watch a ranked run in the game itself ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md)); it is sent with
+  `X-Robots-Tag: noindex`. It has no service worker, and the hub's leaves `/admin/` alone.
 - **`/api/admin/*`** — the Admin module (`services/api/src/Tohe.Api/Modules/Admin`), described by its own OpenAPI
   document, `/api/openapi/admin.json`. The build writes it to `services/api/openapi/tohe-api_admin.json`, and
   `pnpm --filter @tohe/admin generate:api` (which regenerates the hub's types too) turns it into
@@ -198,7 +199,9 @@ What the integrity engine held waits for a person in **Xem xét kết quả**, o
 the engine rejected are found again under **Đã quyết**, to reopen one. A decision — approve, reject, reopen — needs
 step-up level 2, takes an optional note, and nobody makes one about their own account's results (`admin_self`). The
 levels, the evidence and the rules: [Integrity and boards](integrity.md#review). Rejecting does not suspend; the result
-links to its account for whoever may.
+links to its account for whoever may. A ranked run plays back in the game itself, in the build that played it, while
+the games origin still serves that build: the console hosts the game in a sandboxed iframe, loads the host only then,
+and keeps nothing the game sends.
 
 ## Sign-in and registration
 
@@ -257,7 +260,7 @@ It exits with 0 when done, 1 when no account signs in with the address, 2 for a 
 | Sức khoẻ thiết bị, `/admin/health?days=1\|7\|30` | The device telemetry report ([Device telemetry](telemetry.md)): devices, errors, frames and metrics per game version, plays and errors per day | `TelemetryReports` |
 | Hệ thống, `/admin/system` | The build, environment and start time · migrations applied and pending · what each background worker last did · settings, never secrets | `BackgroundWork`, EF Core, options |
 | Người dùng, `/admin/users`, `/admin/users/{id}` | Accounts found, then one account and its profiles, with what may be done to them | `AccountsAdmin` |
-| Xem xét kết quả, `/admin/review?list=held\|decided`, `/admin/review/{id}` | The held results, oldest first, or the decided ones, latest first; then one result — its evidence, its profile's history on the board, every change of level — and the decision | `IntegrityReview`, `AccountsAdmin` |
+| Xem xét kết quả, `/admin/review?list=held\|decided`, `/admin/review/{id}` | The held results, oldest first, or the decided ones, latest first; then one result — its evidence, a ranked run played back in the game itself, its profile's history on the board, every change of level — and the decision | `IntegrityReview`, `AccountsAdmin`, `RegistryFacts` |
 | Cộng đồng, `/admin/communities` | Communities with how many accounts came with each, their invite codes and links; new ones, revoking | `CommunitiesAdmin` |
 | Đăng nhập & đăng ký, `/admin/settings` | Each sign-in method and who relies on it alone; the registration mode; switching both | `RuntimeSettings`, `IdentityFacts` |
 | Nhật ký, `/admin/audit` | The audit log, newest first, a page at a time | `admin.audit_log` |
@@ -303,6 +306,7 @@ counts the failures in a row until a run goes well.
 | `POST` · `DELETE /api/admin/profiles/{id}/hidden` | `admin.profiles.moderate`, step-up | Hide a profile from public boards, with a reason · let it back |
 | `GET /api/admin/review?after=` · `GET /api/admin/review/decided?before=` | `admin.results.review` | Held results, oldest first · results people decided about or the engine rejected, the latest decision first; fifty at a time, with whose they are, how many are held, and the cursor of the next page |
 | `GET /api/admin/review/{id}` | `admin.results.review` | One result: where it stands and why, its evidence, its profile's history on the board, every change of level |
+| `GET /api/admin/review/{id}/run` | `admin.results.review` | A ranked run's seed and moves, and the build that played it — its entry URL — while the games origin serves it; 404 for a result with no ranked run |
 | `POST /api/admin/review/{id}/approve` · `/reject` · `/reopen` | `admin.results.review`, step-up | A decision, with an optional note; the result as it stands after |
 | `GET /api/admin/settings` | `admin.read` | Each sign-in method — configured, on, accounts relying on it alone — the registration mode, whether email is sent |
 | `PUT /api/admin/settings` | `admin.settings.write`, step-up | Switch methods by id and the registration mode; what is left out stays |

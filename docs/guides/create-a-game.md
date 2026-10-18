@@ -123,5 +123,9 @@ A one-player game whose logic is pure and seeded can put its runs on the public 
    most) and `maxMoves`.
 3. **In `stage.ts`**: ask `session.ranked.start()` as a new game starts (and play unranked if it answers `null`), play
    from its seed, keep every move in the save, and `session.ranked.finish(run, moves, score)` at the end.
+4. **Watching a run** ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md)): with `session.rankedReplay`, open straight into a stage that
+   plays its moves back from its seed with the same logic as the verify module, and saves, scores and hands in
+   nothing (`src/replay.ts`; the shell's `direct` mode).
 
-Conformance then plays runs with the module's bot and replays them, and checks that the game asks for a ranked run.
+Conformance then plays runs with the module's bot and replays them, checks that the game asks for a ranked run, and
+watches a run in the game, which must record nothing.
