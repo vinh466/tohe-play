@@ -450,6 +450,11 @@ function ProfileForm({
           onChange={setOnPublicBoards}
         />
       ) : null}
+      {profile?.hiddenFromBoards ? (
+        <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink">
+          {t('account.hiddenFromBoards')}
+        </p>
+      ) : null}
       {showingChild ? (
         <div className="flex flex-col gap-2">
           <label className="flex items-start gap-3 rounded-2xl bg-notice p-4 text-notice-ink">

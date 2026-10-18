@@ -31,6 +31,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
       hasPin: false,
       playWithOthers: true,
       onPublicBoards: true,
+      hiddenFromBoards: false,
     },
     {
       id: 'p-kid',
@@ -42,6 +43,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
       hasPin: true,
       playWithOthers: false,
       onPublicBoards: false,
+      hiddenFromBoards: false,
     },
   ],
   activeProfileId: null,

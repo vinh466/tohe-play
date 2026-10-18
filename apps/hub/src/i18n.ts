@@ -253,6 +253,8 @@ const vi = {
     onPublicBoardsChildHint:
       'Tắt sẵn cho các bé. Bật thì tên và hình của bé lên bảng của cộng đồng và của toàn Tò He.',
     askedChild: 'Tôi đã hỏi ý {{name}} và bé đồng ý hiện trên bảng.',
+    hiddenFromBoards:
+      'Người quản lý Tò He đã ẩn hồ sơ này khỏi bảng công khai: bật công tắc cũng không hiện lại. Bảng của tài khoản vẫn như cũ.',
     hasPin: 'Có mã PIN',
     publicId: 'ID hồ sơ',
     copyId: 'Chép ID',
@@ -711,6 +713,8 @@ const en: typeof vi = {
     onPublicBoardsChildHint:
       "Off for children. On puts the child's name and avatar on its community's board and on all of Tò He's.",
     askedChild: 'I asked {{name}}, and they agree to be on the boards.',
+    hiddenFromBoards:
+      "Tò He's operator hid this profile from public boards: the switch does not bring it back. The account's own board is unchanged.",
     hasPin: 'Has a PIN',
     publicId: 'Profile ID',
     copyId: 'Copy ID',
