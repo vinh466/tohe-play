@@ -62,6 +62,55 @@ public sealed class ProfileNamesTests
     }
 
     [Theory]
+    [InlineData("Thằng Lồn")]
+    [InlineData("LỒN")]
+    [InlineData("lồn")] // marks typed apart: o, circumflex, grave
+    [InlineData("lò̂n")] // in another order
+    [InlineData("lồnnnn")]
+    [InlineData("Đụ")]
+    [InlineData("Chó Đẻ 🐶")] // a two-word entry
+    [InlineData("khốn nạn")]
+    [InlineData("fuck")]
+    [InlineData("Na FUCK")]
+    [InlineData("f.u.c.k")] // dots inside a word
+    [InlineData("f u c k")] // letters typed apart
+    [InlineData("Fuuuck")]
+    [InlineData("ｆｕｃｋ")] // full-width letters
+    [InlineData("sh1t")]
+    [InlineData("$hit")]
+    [InlineData("b!tch")]
+    [InlineData("DCM")]
+    [InlineData("đcm")] // teen code, with or without đ
+    [InlineData("Bé vcl")]
+    [InlineData("dịt")] // without its marks, or with others, still teen code
+    public void Offensive_words_are_refused(string input)
+    {
+        Assert.False(ProfileNames.TryNormalize(input, out _, out var error));
+        Assert.Equal("name_inappropriate", error);
+    }
+
+    [Theory]
+    [InlineData("Bé Lớn")] // "lớn" is not "lồn": the marks decide
+    [InlineData("Các Bạn")]
+    [InlineData("Đi Chơi")]
+    [InlineData("Buổi Sáng")]
+    [InlineData("Diễm")]
+    [InlineData("Phở Bò")]
+    [InlineData("Dụ Dỗ")] // d is not đ
+    [InlineData("Cắc Kè")]
+    [InlineData("Lon Ton")]
+    [InlineData("Đeo Kính")]
+    [InlineData("Essex")] // a listed word inside another is not that word
+    [InlineData("Niger")] // nor the slur with one g
+    [InlineData("Dickens")]
+    [InlineData("Óc Chó")] // a walnut too: left to moderators
+    [InlineData("Na 2015")]
+    public void Everyday_words_that_look_alike_are_not(string input)
+    {
+        Assert.True(ProfileNames.TryNormalize(input, out _, out var error), error);
+    }
+
+    [Theory]
     [InlineData("Na‮evil")] // right-to-left override
     [InlineData("Na​na")] // zero-width space
     [InlineData("Na­na")] // soft hyphen

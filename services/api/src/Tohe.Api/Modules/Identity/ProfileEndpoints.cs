@@ -171,8 +171,13 @@ internal static class ProfileEndpoints
         return TypedResults.Ok(await context.MeAsync(ct));
     }
 
-    private static async Task<Results<Ok<MeView>, NotFound, ValidationProblem>> UpdateProfileAsync(
-        Guid id, UpdateProfileRequest request, Context context, TimeProvider clock, CancellationToken ct)
+    private static async Task<Results<Ok<MeView>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateProfileAsync(
+        Guid id,
+        UpdateProfileRequest request,
+        Context context,
+        TimeProvider clock,
+        IOptions<IdentityOptions> options,
+        CancellationToken ct)
     {
         var profile = await context.Db.Profiles
             .FirstOrDefaultAsync(p => p.Id == id && p.AccountId == context.Account.Id, ct);
@@ -215,6 +220,14 @@ internal static class ProfileEndpoints
             if (!ProfileNames.TryNormalize(request.Name, out var name, out var nameError))
             {
                 return Problems.Field("name", nameError);
+            }
+
+            // A few renames a day (E-07 Q5): enough for anyone, too few to swear and swap back. Moderators rename from
+            // the console, without a limit.
+            if (name != profile.Name
+                && await RenamesTodayAsync(context.Db, profile.Id, clock.GetUtcNow(), ct) >= options.Value.ProfileRenamesPerDay)
+            {
+                return Problems.Of(StatusCodes.Status429TooManyRequests, "rename_limit", "This profile was renamed enough for today");
             }
 
             profile.Name = name;
@@ -274,6 +287,18 @@ internal static class ProfileEndpoints
         await deletion.DeleteProfileAsync(profile, ct);
         await transaction.CommitAsync(ct);
         return TypedResults.Ok(await context.MeAsync(ct));
+    }
+
+    /// <summary>
+    /// Renames in the last 24 hours, read from the name history (D-17): every name it had but its first, the one it
+    /// was created with. A moderator's renames are in it too.
+    /// </summary>
+    private static async Task<int> RenamesTodayAsync(ToheDbContext db, Guid profileId, DateTimeOffset now, CancellationToken ct)
+    {
+        var names = db.ProfileNameHistory.Where(n => n.ProfileId == profileId);
+        var first = await names.MinAsync(n => (long?)n.Id, ct);
+        var since = now.AddDays(-1);
+        return await names.CountAsync(n => n.At > since && n.Id != first, ct);
     }
 
     /// <summary>

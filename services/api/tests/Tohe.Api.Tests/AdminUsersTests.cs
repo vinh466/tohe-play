@@ -121,6 +121,32 @@ public sealed class AdminUsersTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     [Fact]
+    public async Task An_owner_renames_a_profile_five_times_a_day_never_to_a_rude_name_and_a_moderator_still_can()
+    {
+        var moderator = await Admins.NewAsync(factory, "moderator");
+        var client = factory.CreateClient();
+        var player = await Accounts.SignUpAsync(factory, client, "Mèo");
+        var profile = player.Profiles[0].Id;
+        await Accounts.StepUpAsync(client);
+        var rename = (string name) => client.PatchAsJsonAsync(Url($"/api/profiles/{profile}"), new { name }, Ct);
+
+        var rude = await rename("Thằng Lồn");
+        Assert.Contains("name_inappropriate", (await ErrorsAsync(rude))["name"]);
+        foreach (var name in (string[])["Mèo 1", "Mèo 2", "Mèo 3", "Mèo 4", "Mèo 5"])
+        {
+            Assert.Equal(HttpStatusCode.OK, (await rename(name)).StatusCode);
+        }
+
+        var sixth = await rename("Mèo 6");
+        Assert.Equal((HttpStatusCode.TooManyRequests, "rename_limit"), (sixth.StatusCode, await CodeOfAsync(sixth)));
+        // Saving the profile with its name as it is renames nothing.
+        Assert.Equal(HttpStatusCode.OK, (await rename("Mèo 5")).StatusCode);
+        // A moderator is not held by the owner's limit.
+        var fixedName = await moderator.Client.PatchAsJsonAsync(Url($"/api/admin/profiles/{profile}"), new { name = "Mèo Con" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, fixedName.StatusCode);
+    }
+
+    [Fact]
     public async Task A_moderator_renames_a_profile_under_the_name_rules_and_the_history_keeps_both_names()
     {
         var moderator = await Admins.NewAsync(factory, "moderator");

@@ -39,6 +39,8 @@ const byCode: Record<string, string> = {
   name_invalid_character: 'errors.nameInvalidCharacter',
   name_too_long: 'errors.nameTooLong',
   name_reserved: 'errors.nameReserved',
+  name_inappropriate: 'errors.nameInappropriate',
+  rename_limit: 'errors.renameLimit',
   room_not_found: 'rooms.errors.notFound',
   room_closed: 'rooms.errors.closed',
   room_full: 'rooms.errors.full',

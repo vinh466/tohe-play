@@ -36,7 +36,7 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0020](0020-a-game-has-a-menu-stage-and-a-play-stage.md) | Give every game a menu stage and a play stage | Accepted |
 | [0021](0021-release-production-through-the-tohe-chart.md) | Release production through the Tò He Helm chart; one set of images configured at run time | Accepted |
 | [0022](0022-send-transactional-email-through-an-outbox.md) | Send transactional email through an outbox and an SMTP relay | Accepted |
-| [0023](0023-accounts-own-their-profiles.md) | Accounts own their profiles; every profile has a public ID and a free name | Accepted; inviting by ID since 0033; deletion and retired IDs since 0034 |
+| [0023](0023-accounts-own-their-profiles.md) | Accounts own their profiles; every profile has a public ID and a free name | Accepted; inviting by ID since 0033; deletion and retired IDs since 0034; the name filter since 0035 |
 | [0024](0024-email-identifies-an-account.md) | Email identifies an account; a code opens only the attempt it was sent for | Accepted; email change behind step-up by 0025; signing up may need an invite code, or be closed, by 0028 |
 | [0025](0025-step-up-in-two-levels-and-consent-at-sign-up.md) | Step up in two levels; sign up at 16 or older, accepting the terms | Accepted |
 | [0026](0026-sign-in-methods-and-account-linking.md) | Sign in with Google, GitHub or an OpenID Connect issuer; link a provider by its subject, after proof | Accepted; a configured provider can be switched off by 0028 |
@@ -48,3 +48,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0032](0032-watch-a-ranked-run-in-the-game-itself.md) | Watch a ranked run in the game itself, in the admin console | Accepted |
 | [0033](0033-invite-a-profile-by-its-id.md) | Invite a profile to a table by its ID, as its owner allows; a child is never found from outside | Accepted |
 | [0034](0034-delete-accounts-and-profiles-for-good.md) | Delete a profile at once and an account after seven days, with everything of them; the append-only logs get one way out each | Accepted |
+| [0035](0035-filter-offensive-names-and-limit-renames.md) | Refuse names with an offensive word, matched as people write it; an owner renames a profile five times a day | Accepted |
