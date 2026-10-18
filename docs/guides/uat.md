@@ -63,11 +63,12 @@ visibility on GitHub (**Packages → tohe-play/api → Package settings**), or s
 
 UAT sends no email until the relay's settings are in `~/.config/tohe-uat/uat.env`
 ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)). For Resend (port 587, STARTTLS — the
-username is the literal word `resend`, the password an API key):
+username is the literal word `resend`, the password an API key). Tò He sends from `toheplay.io.vn`, the domain
+verified in Resend for it, as production does; its key may send from that domain alone, so the sender must be on it:
 
 ```sh
 TOHE_UAT_EMAIL_MODE=Smtp
-TOHE_UAT_EMAIL_FROM='Tò He <no-reply@vinetic.io.vn>'   # quoted: deploy.sh sources this file
+TOHE_UAT_EMAIL_FROM='Tò He <no-reply@toheplay.io.vn>'   # quoted: deploy.sh sources this file
 TOHE_UAT_SMTP_HOST=smtp.resend.com
 TOHE_UAT_SMTP_USERNAME=resend
 TOHE_UAT_SMTP_PASSWORD=re_…
