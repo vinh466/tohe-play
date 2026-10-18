@@ -15,24 +15,23 @@
 
 ## Next — one item
 
-**Owner: pre-step rồi merge A4** ([platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239)) — Tò He lên production trên `toheplay.io.vn` (hub), `games.`, `docs.`
-(ADR 0040), chart ghim bản mới nhất của `main`. Rồi agent kiểm prod, owner nhận quyền chủ, rồi F4 (E-10).
+**Production chạy** ([platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239) merged 2026-10-19, chart `0.1.0-gd685547`): owner nhận quyền chủ, chuyển đăng ký sang mã
+mời (đang `open`), rồi F4 (E-10) — agent mở item E-10 và làm phần của mình khi owner đồng ý chạm vào prod.
 
 ## Waiting on the owner
 
-1. **A4 pre-step** ([platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239)): `infrastructure/postgres/bootstrap/02-role-secret.sh tohe` trên production **trước**;
-   Infisical `platform`/`prod`/`/tohe`: `postgres-password` (từ Secret `pg-role-tohe`), `email-smtp-password` (API key
-   Resend), `telemetry-operator-token` (tuỳ chọn). Rồi merge #239. Đăng nhập: email + mật khẩu trước (owner,
-   2026-10-18); Google/GitHub sau.
-2. **Cloudflare `toheplay.io.vn`**: `games`, `docs`, `www` và chuyển `www` → gốc đã có (kiểm 2026-10-19); còn
-   **`_dmarc`** TXT `v=DMARC1; p=none;`. Tò He không còn gì trên `vinetic.io.vn`.
-3. **Sau khi prod chạy** (owner: "sau khi deploy xong thì sẽ làm"): nhận quyền chủ (setup token trong log API), bật
-   2FA; duyệt Điều khoản + Quyền riêng tư (`2026-10-18.4`), điền liên hệ; chọn cộng đồng dùng thử, tạo mã mời; thử
-   iPhone trên prod.
-4. **E-08 Q2**: Alertmanager của `infrastructure/monitoring` đang tắt — 6 cảnh báo tính nhưng không báo ai. Bật kèm
-   receiver email là một PR riêng ở `platform-infra`: cần địa chỉ nhận và credential SMTP.
-5. **E-02**: email UAT bật khi API key nằm trong `~/.config/tohe-uat/uat.env`.
-6. E-07 **Q7** — thời hạn xoá theo văn bản gốc (ADR 0038).
+1. **Nhận quyền chủ trên prod**: đăng ký tài khoản của mình ở `https://toheplay.io.vn` (cũng là phép thử email thật),
+   rồi setup token (`kubectl -n tohe logs deploy/tohe-api | grep -i "setup token"`) ở `/admin/`, bật 2FA.
+2. **Chế độ đăng ký → Theo lời mời** (console → Đăng nhập & đăng ký): prod đang `open`, proof-of-work tắt; E-09 Q1
+   chốt ra mắt bằng mã mời.
+3. **`_dmarc`** TXT `v=DMARC1; p=none;` — chưa có trên DNS (kiểm 2026-10-19, Google và Cloudflare DoH).
+4. Trước khi mời người ngoài: duyệt Điều khoản + Quyền riêng tư và cách liên hệ người vận hành; tạo cộng đồng + mã
+   mời; thử iPhone trên prod (PWA, âm thanh, offline).
+5. Đồng ý cho agent làm phần F4 chạm vào prod: thử khôi phục backup, load test phòng, security review, thư tới
+   Gmail/Outlook/Yahoo.
+6. **E-08 Q2**: Alertmanager của production đang tắt — cần địa chỉ nhận và credential SMTP nếu muốn cảnh báo email.
+7. UAT: nói "deploy" để UAT lên `d685547` (CSP game mới); email UAT bật khi key nằm trong `uat.env`.
+8. E-07 **Q7** — thời hạn xoá theo văn bản gốc (ADR 0038).
 
 ## Board
 
