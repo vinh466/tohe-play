@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (đêm) — agent
+
+- Owner: Cloudflare xong; "merge giúp"; email + mật khẩu trước, "làm A4"; "deploy uat luôn". #66, #67 merged;
+  `main` = `c49746c`, CI xanh, publish GHCR. UAT deploy `c49746c` — lần đầu kéo image GHCR; mọi kiểm OK, backup trước.
+- A4: [platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239) (draft) — values, InfisicalStaticSecret `/tohe`, ApplicationSet wave 3, repo OCI công khai, role `tohe`
+  ở overlay production. Chờ owner: `02-role-secret.sh tohe`, `/tohe` trong Infisical, merge.
+
 ## 2026-10-18 (khuya, sau cùng) — agent
 
 - Owner: "domain đã sẵn sàng, đã trỏ về server prod". Kiểm từ ngoài: ba host tới Traefik prod qua Cloudflare (`404`,

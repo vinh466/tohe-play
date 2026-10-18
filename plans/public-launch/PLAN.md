@@ -15,34 +15,25 @@
 
 ## Next — one item
 
-**A4 — `apps/tohe` trong `platform-infra`** (draft PR, phiên mở trong repo đó — E-06): #43–#65 đã merge (2026-10-18),
-`main` là `ad83c45`; CI của nó xanh và đã publish image + chart lên GHCR (5 package public). Song song: owner review F1c
-([#66](https://github.com/vinh466/tohe-play/pull/66), ADR 0038) và games origin trên `toheplay.io.vn` ([#67](https://github.com/vinh466/tohe-play/pull/67), ADR 0039).
-Sau đó: F4 (ra mắt, E-10).
+**Owner: pre-step rồi merge A4** ([platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239), draft) — Tò He lên production từ chart `0.1.0-gc49746c`. Rồi agent kiểm
+prod, owner nhận quyền chủ, rồi F4 (ra mắt, E-10). `main` = `c49746c` (#66, #67 đã merge); UAT chạy đúng commit đó,
+image từ GHCR.
 
 ## Waiting on the owner
 
-1. **F1c** — review [#66](https://github.com/vinh466/tohe-play/pull/66): hết 7 ngày, account chờ admin xoá trong console
-   (E-07 Q7 theo lời owner). Merge, rồi nói "deploy" nếu muốn nó lên UAT.
-2. **D-13** — `toheplay.io.vn` đã mua. Review [#67](https://github.com/vinh466/tohe-play/pull/67) (ADR 0039). Ở Cloudflare: thêm zone, đổi nameserver ở
-   nhà đăng ký; SSL/TLS như `vinetic.io.vn`, bật "Always Use HTTPS"; **tắt** Bot Fight Mode / "I'm Under Attack" / WAF
-   challenge, Hotlink Protection, Rocket Loader, Web Analytics tự chèn, Email Obfuscation
-   ([lý do](items/D-13-games-origin-domain.md#rà-soát-2026-10-18)). Owner đã trỏ về prod; kiểm từ ngoài
-   (2026-10-18): `toheplay.io.vn`, `tohe.vinetic.io.vn`, `tohe-site.vinetic.io.vn` đều qua Cloudflare tới Traefik
-   prod (`404`, chưa có Ingress — đúng trước A4), không có challenge; **"Always Use HTTPS" chưa bật** (`http://`
-   trả `404`, không `301`).
-3. ~~GHCR Public~~ — không cần làm: lần publish đầu (2026-10-18) ra 5 package **public** (`api`, `hub`, `games`, `site`,
-   `charts/tohe`), kéo ẩn danh được. Từ #47, `deploy/uat/deploy.sh` kéo image `sha-<commit>` từ GHCR — chỉ commit đã
-   lên `main` mới có image, nên một PR lên UAT sau khi merge.
-4. **E-02** — gói Free đã chốt; email trên UAT bật khi API key nằm trong `~/.config/tohe-uat/uat.env`.
-5. **E-08 Q2** — receiver email của Alertmanager ở `platform-infra` (namespace `monitoring` đã xác nhận).
-6. Mở console trên UAT: tự chạy lệnh cấp quyền chủ cho account của mình — agent không chọn account thay owner
-   (`docs/guides/uat.md`, mục Inspect).
-7. Duyệt bản nháp Điều khoản + Quyền riêng tư (`apps/hub/src/legal/documents.ts`, bản `2026-10-18.4` ở #66), điền cách
-   liên hệ người vận hành.
-8. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).
-9. E-07 **Q7** — thời hạn xoá theo văn bản gốc; khi biết, nó thành cảnh báo trên `tohe_account_deletions_due` hoặc lại
-   một job (ADR 0038).
+1. **A4 pre-step** ([platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239)): `infrastructure/postgres/bootstrap/02-role-secret.sh tohe` trên production **trước**;
+   Infisical `platform`/`prod`/`/tohe`: `postgres-password` (từ Secret `pg-role-tohe`), `email-smtp-password` (API key
+   Resend), `telemetry-operator-token` (tuỳ chọn). Rồi merge #239. Đăng nhập: email + mật khẩu trước (owner,
+   2026-10-18); Google/GitHub sau.
+2. **HTTP → HTTPS** cho `tohe.vinetic.io.vn`, `tohe-site.vinetic.io.vn` (`toheplay.io.vn` đã chuyển): cookie phiên của
+   hub là `__Host-`/`Secure`, qua `http://` không giữ được đăng nhập.
+3. **Sau khi prod chạy** (owner: "sau khi deploy xong thì sẽ làm"): nhận quyền chủ (setup token trong log API), bật
+   2FA; duyệt Điều khoản + Quyền riêng tư (`2026-10-18.4`), điền liên hệ; chọn cộng đồng dùng thử, tạo mã mời; thử
+   iPhone trên prod.
+4. **E-08 Q2**: Alertmanager của `infrastructure/monitoring` đang tắt — 6 cảnh báo tính nhưng không báo ai. Bật kèm
+   receiver email là một PR riêng ở `platform-infra`: cần địa chỉ nhận và credential SMTP.
+5. **E-02**: email UAT bật khi API key nằm trong `~/.config/tohe-uat/uat.env`.
+6. E-07 **Q7** — thời hạn xoá theo văn bản gốc (ADR 0038).
 
 ## Board
 
