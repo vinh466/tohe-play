@@ -860,6 +860,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/rooms/{id}/invite/by-id": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ask a profile to the table by its 12-digit ID, if its owner lets you: it shows in their hub for 10 minutes. */
+        post: operations["InviteToRoomById"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/rooms/invites": {
         parameters: {
             query?: never;
@@ -867,7 +884,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Tables the account's other profiles asked the active profile to, for the next 10 minutes. */
+        /** Tables someone asked the active profile to — by its ID, or from its own account — for the next 10 minutes. */
         get: operations["ListRoomInvites"];
         put?: never;
         post?: never;
@@ -1185,9 +1202,16 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        InviteByIdRequest: {
+            publicId: null | string;
+        };
         InviteRequest: {
             /** Format: uuid */
             profileId: string;
+        };
+        InvitedPlayer: {
+            name: string;
+            avatar: string;
         };
         JsonElement: unknown;
         LeaderRow: {
@@ -1286,6 +1310,7 @@ export interface components {
             playWithOthers: boolean;
             onPublicBoards: boolean;
             hiddenFromBoards: boolean;
+            invites: string;
         };
         PublicBoardView: {
             gameId: string;
@@ -1548,6 +1573,7 @@ export interface components {
             playWithOthers?: null | boolean;
             onPublicBoards?: null | boolean;
             askedChild?: null | boolean;
+            invites?: null | string;
         };
         UpdateRoomRequest: {
             /** Format: int32 */
@@ -3339,6 +3365,57 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    InviteToRoomById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["InviteByIdRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InvitedPlayer"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
             };
             /** @description Forbidden */
             403: {

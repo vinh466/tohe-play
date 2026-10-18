@@ -53,6 +53,12 @@ const byCode: Record<string, string> = {
   rules_unavailable: 'rooms.errors.rulesUnavailable',
   spectators_off: 'rooms.errors.spectatorsOff',
   not_in_account: 'rooms.errors.notInAccount',
+  profile_id_invalid: 'rooms.errors.profileIdInvalid',
+  profile_not_found: 'rooms.errors.profileNotFound',
+  invite_not_allowed: 'rooms.errors.inviteNotAllowed',
+  invite_limit: 'rooms.errors.inviteLimit',
+  invitee_limit: 'rooms.errors.inviteeLimit',
+  child_invites_account_only: 'errors.childInvitesAccountOnly',
 };
 
 /** The i18n key to show for a failed request. */

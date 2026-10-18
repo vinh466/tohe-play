@@ -226,6 +226,9 @@ export const rooms = {
   /** Ask a member of the household to the table; it shows in their hub for 10 minutes. */
   invite: (id: string, profileId: string) =>
     call(api.POST('/api/rooms/{id}/invite', { params: { path: { id } }, body: { profileId } })),
+  /** Ask a profile to the table by its public ID (ADR 0033): the name and avatar of whom it reached. */
+  inviteById: (id: string, publicId: string) =>
+    call(api.POST('/api/rooms/{id}/invite/by-id', { params: { path: { id } }, body: { publicId } })),
   invites: () => call(api.GET('/api/rooms/invites')),
   replay: (id: string, hand: number) =>
     call(api.GET('/api/rooms/{id}/hands/{hand}', { params: { path: { id, hand } } })),
