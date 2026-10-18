@@ -7,27 +7,26 @@ import { openDb } from './storage/db.ts';
 import { hasProgress, loadSave, moveProgress, recordScore, storeSave } from './storage/repository.ts';
 
 const me = (overrides: Partial<MeView> = {}): MeView => ({
-  account: { id: 'a1', username: 'bo', displayName: 'Bố' },
-  household: { id: 'h1', name: 'Nhà Bố', members: [], invite: null, telemetry: true },
+  account: { id: 'a1', username: 'bo', displayName: 'Bố', telemetry: true },
   profiles: [
     {
       id: 'p-adult',
+      publicId: '572000000006',
       name: 'Bố',
       avatar: '🦊',
       kind: 'adult',
       ageBand: null,
       hasPin: false,
-      isMine: true,
       playWithOthers: true,
     },
     {
       id: 'p-kid',
+      publicId: '890000000001',
       name: 'Na',
       avatar: '🐼',
       kind: 'child',
       ageBand: '3-5',
       hasPin: true,
-      isMine: false,
       playWithOthers: false,
     },
   ],

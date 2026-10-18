@@ -218,8 +218,8 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
 
                     b.Property<string>("DisplayName")
                         .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("display_name");
 
                     b.Property<string>("Email")
@@ -230,10 +230,6 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<bool>("EmailConfirmed")
                         .HasColumnType("boolean")
                         .HasColumnName("email_confirmed");
-
-                    b.Property<Guid>("HouseholdId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("household_id");
 
                     b.Property<bool>("LockoutEnabled")
                         .HasColumnType("boolean")
@@ -269,6 +265,12 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("text")
                         .HasColumnName("security_stamp");
 
+                    b.Property<bool>("TelemetryEnabled")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("boolean")
+                        .HasDefaultValue(true)
+                        .HasColumnName("telemetry_enabled");
+
                     b.Property<bool>("TwoFactorEnabled")
                         .HasColumnType("boolean")
                         .HasColumnName("two_factor_enabled");
@@ -281,9 +283,6 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasKey("Id")
                         .HasName("pk_accounts");
 
-                    b.HasIndex("HouseholdId")
-                        .HasDatabaseName("ix_accounts_household_id");
-
                     b.HasIndex("NormalizedEmail")
                         .HasDatabaseName("EmailIndex");
 
@@ -294,48 +293,6 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("accounts", "identity");
                 });
 
-            modelBuilder.Entity("Tohe.Api.Modules.Identity.Household", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid")
-                        .HasColumnName("id");
-
-                    b.Property<DateTimeOffset>("CreatedAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("created_at");
-
-                    b.Property<string>("InviteCode")
-                        .HasMaxLength(16)
-                        .HasColumnType("character varying(16)")
-                        .HasColumnName("invite_code");
-
-                    b.Property<DateTimeOffset?>("InviteExpiresAt")
-                        .HasColumnType("timestamp with time zone")
-                        .HasColumnName("invite_expires_at");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(40)
-                        .HasColumnType("character varying(40)")
-                        .HasColumnName("name");
-
-                    b.Property<bool>("TelemetryEnabled")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("boolean")
-                        .HasDefaultValue(true)
-                        .HasColumnName("telemetry_enabled");
-
-                    b.HasKey("Id")
-                        .HasName("pk_households");
-
-                    b.HasIndex("InviteCode")
-                        .IsUnique()
-                        .HasDatabaseName("ix_households_invite_code");
-
-                    b.ToTable("households", "households");
-                });
-
             modelBuilder.Entity("Tohe.Api.Modules.Identity.Profile", b =>
                 {
                     b.Property<Guid>("Id")
@@ -343,7 +300,7 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
-                    b.Property<Guid?>("AccountId")
+                    b.Property<Guid>("AccountId")
                         .HasColumnType("uuid")
                         .HasColumnName("account_id");
 
@@ -362,10 +319,6 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
-                    b.Property<Guid>("HouseholdId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("household_id");
-
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -374,8 +327,8 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
 
                     b.Property<string>("Name")
                         .IsRequired()
-                        .HasMaxLength(20)
-                        .HasColumnType("character varying(20)")
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
                     b.Property<string>("PinHash")
@@ -388,17 +341,24 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasDefaultValue(false)
                         .HasColumnName("play_with_others");
 
+                    b.Property<string>("PublicId")
+                        .IsRequired()
+                        .HasMaxLength(12)
+                        .HasColumnType("character(12)")
+                        .HasColumnName("public_id")
+                        .IsFixedLength();
+
                     b.HasKey("Id")
                         .HasName("pk_profiles");
 
-                    b.HasIndex("AccountId")
+                    b.HasIndex("PublicId")
                         .IsUnique()
-                        .HasDatabaseName("ix_profiles_account_id");
+                        .HasDatabaseName("ix_profiles_public_id");
 
-                    b.HasIndex("HouseholdId")
-                        .HasDatabaseName("ix_profiles_household_id");
+                    b.HasIndex("AccountId", "CreatedAt")
+                        .HasDatabaseName("ix_profiles_account_id_created_at");
 
-                    b.ToTable("profiles", "households");
+                    b.ToTable("profiles", "identity");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Progress.SavedGame", b =>
@@ -590,6 +550,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("id");
 
+                    b.Property<bool>("AccountOnly")
+                        .HasColumnType("boolean")
+                        .HasColumnName("account_only");
+
                     b.Property<bool>("AllowSpectators")
                         .HasColumnType("boolean")
                         .HasColumnName("allow_spectators");
@@ -651,17 +615,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("hand_seats");
 
-                    b.Property<Guid>("HostHouseholdId")
+                    b.Property<Guid>("HostAccountId")
                         .HasColumnType("uuid")
-                        .HasColumnName("host_household_id");
+                        .HasColumnName("host_account_id");
 
                     b.Property<Guid>("HostProfileId")
                         .HasColumnType("uuid")
                         .HasColumnName("host_profile_id");
-
-                    b.Property<bool>("HouseholdOnly")
-                        .HasColumnType("boolean")
-                        .HasColumnName("household_only");
 
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean")
@@ -842,6 +802,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
 
                     NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
+                    b.Property<Guid?>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
                     b.Property<DateTimeOffset>("At")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("at");
@@ -855,10 +819,6 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<int>("Hand")
                         .HasColumnType("integer")
                         .HasColumnName("hand");
-
-                    b.Property<Guid?>("HouseholdId")
-                        .HasColumnType("uuid")
-                        .HasColumnName("household_id");
 
                     b.Property<int>("Place")
                         .HasColumnType("integer")
@@ -886,8 +846,8 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasIndex("RoomId")
                         .HasDatabaseName("ix_results_room_id");
 
-                    b.HasIndex("HouseholdId", "GameId", "At")
-                        .HasDatabaseName("ix_results_household_id_game_id_at");
+                    b.HasIndex("AccountId", "GameId", "At")
+                        .HasDatabaseName("ix_results_account_id_game_id_at");
 
                     b.HasIndex("ProfileId", "GameId", "At")
                         .HasDatabaseName("ix_results_profile_id_game_id_at");
@@ -1273,26 +1233,14 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasConstraintName("fk_account_tokens_accounts_user_id");
                 });
 
-            modelBuilder.Entity("Tohe.Api.Modules.Identity.Account", b =>
-                {
-                    b.HasOne("Tohe.Api.Modules.Identity.Household", "Household")
-                        .WithMany()
-                        .HasForeignKey("HouseholdId")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired()
-                        .HasConstraintName("fk_accounts_households_household_id");
-
-                    b.Navigation("Household");
-                });
-
             modelBuilder.Entity("Tohe.Api.Modules.Identity.Profile", b =>
                 {
-                    b.HasOne("Tohe.Api.Modules.Identity.Household", null)
-                        .WithMany("Profiles")
-                        .HasForeignKey("HouseholdId")
+                    b.HasOne("Tohe.Api.Modules.Identity.Account", null)
+                        .WithMany()
+                        .HasForeignKey("AccountId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
-                        .HasConstraintName("fk_profiles_households_household_id");
+                        .HasConstraintName("fk_profiles_accounts_account_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomAction", b =>
@@ -1335,11 +1283,6 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasConstraintName("fk_events_telemetry_sessions_session_id");
 
                     b.Navigation("Session");
-                });
-
-            modelBuilder.Entity("Tohe.Api.Modules.Identity.Household", b =>
-                {
-                    b.Navigation("Profiles");
                 });
 #pragma warning restore 612, 618
         }

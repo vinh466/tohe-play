@@ -4,14 +4,16 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Tohe.Api.Modules.Identity;
 
-/// <summary>An adult who can sign in. Children never have accounts, only profiles (ADR 0004, 0011).</summary>
+/// <summary>
+/// Someone who signs in. An account owns the profiles that play (ADR 0023); children only ever have profiles, made and
+/// managed by the account behind the parent gate.
+/// </summary>
 public sealed class Account : IdentityUser<Guid>
 {
     public required string DisplayName { get; set; }
 
-    public Guid HouseholdId { get; set; }
-
-    public Household? Household { get; set; }
+    /// <summary>The account's devices send technical telemetry (ADR 0015); its owner can turn it off.</summary>
+    public bool TelemetryEnabled { get; set; } = true;
 
     public DateTimeOffset CreatedAt { get; set; }
 }
@@ -21,11 +23,8 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
     public void Configure(EntityTypeBuilder<Account> builder)
     {
         builder.ToTable("accounts", "identity");
-        builder.Property(account => account.DisplayName).HasMaxLength(40);
-        builder.HasOne(account => account.Household)
-            .WithMany()
-            .HasForeignKey(account => account.HouseholdId)
-            .OnDelete(DeleteBehavior.Restrict);
+        builder.Property(account => account.DisplayName).HasMaxLength(200); // as a profile name (ProfileNames)
+        builder.Property(account => account.TelemetryEnabled).HasDefaultValue(true);
     }
 }
 

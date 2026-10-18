@@ -54,7 +54,7 @@ public sealed class RoomResult
     /// <summary>The person in the seat; null for a bot.</summary>
     public Guid? ProfileId { get; set; }
 
-    public Guid? HouseholdId { get; set; }
+    public Guid? AccountId { get; set; }
 
     /// <summary>0 for the winner.</summary>
     public int Place { get; set; }
@@ -87,7 +87,7 @@ internal sealed class RoomResultConfiguration : IEntityTypeConfiguration<RoomRes
         builder.ToTable("results", "rooms");
         builder.Property(result => result.GameId).HasMaxLength(40);
         builder.HasIndex(result => new { result.ProfileId, result.GameId, result.At });
-        builder.HasIndex(result => new { result.HouseholdId, result.GameId, result.At });
+        builder.HasIndex(result => new { result.AccountId, result.GameId, result.At });
         builder.HasOne<Room>().WithMany().HasForeignKey(result => result.RoomId).OnDelete(DeleteBehavior.Cascade);
     }
 }

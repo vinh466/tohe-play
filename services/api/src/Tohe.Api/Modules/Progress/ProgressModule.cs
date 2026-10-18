@@ -42,8 +42,8 @@ public sealed record LeaderboardEntry(
     bool InProgress);
 
 /// <summary>
-/// Saves and scores of the active profile, synced by the hub in the background (M2, ADR 0005), and the household
-/// leaderboard. Offline, the hub keeps writing to the device and pushes when the API is back.
+/// Saves and scores of the active profile, synced by the hub in the background (M2, ADR 0005), and the board of the
+/// account's profiles. Offline, the hub keeps writing to the device and pushes when the API is back.
 /// </summary>
 internal static partial class ProgressModule
 {
@@ -184,11 +184,11 @@ internal static partial class ProgressModule
                 string gameId,
                 HttpContext http,
                 ToheDbContext db,
-                IHouseholdProfiles household,
+                IAccountProfiles profiles,
                 CancellationToken ct,
                 string board = "default") =>
             {
-                var players = await household.ListAsync(Active(http).HouseholdId, ct);
+                var players = await profiles.ListAsync(Active(http).AccountId, ct);
                 var ids = players.Select(p => p.Id).ToList();
                 var best = await db.Scores.AsNoTracking()
                     .Where(s => s.GameId == gameId && s.Board == board && ids.Contains(s.ProfileId))
@@ -206,7 +206,7 @@ internal static partial class ProgressModule
                     .ToList();
             })
             .WithName("GetLeaderboard")
-            .WithSummary("Best score of each household member on a game's board.");
+            .WithSummary("Best score of each of the account's profiles on a game's board.");
 
         return api;
     }

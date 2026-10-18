@@ -40,7 +40,7 @@ internal static class SessionEndpoints
         session.MapPost("/parent-gate", UnlockParentGateAsync)
             .RequireRateLimiting(IdentityModule.AuthRateLimit)
             .WithName("UnlockParentGate")
-            .WithSummary("Re-enter the password to manage the household for a few minutes.");
+            .WithSummary("Re-enter the password to manage the account's profiles for a few minutes.");
 
         session.MapDelete("/parent-gate", async (HttpContext http, UserManager<Account> users, SessionWriter writer, MeQueries me, CancellationToken ct) =>
             {
@@ -56,7 +56,7 @@ internal static class SessionEndpoints
             })
             .Produces<MeView>()
             .WithName("LockParentGate")
-            .WithSummary("Lock household management again.");
+            .WithSummary("Lock profile management again.");
     }
 
     private static async Task<Results<Ok<MeView>, NotFound, ProblemHttpResult, UnauthorizedHttpResult>> SelectProfileAsync(
@@ -75,7 +75,7 @@ internal static class SessionEndpoints
         }
 
         var profile = await db.Profiles.AsNoTracking()
-            .FirstOrDefaultAsync(p => p.Id == request.ProfileId && p.HouseholdId == account.HouseholdId, ct);
+            .FirstOrDefaultAsync(p => p.Id == request.ProfileId && p.AccountId == account.Id, ct);
         if (profile is null)
         {
             return TypedResults.NotFound();

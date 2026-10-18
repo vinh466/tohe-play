@@ -7,7 +7,7 @@ import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 
 /**
- * Tables a household member asked this profile to (ADR 0016, phase 3): a banner on the catalog with one tap to the
+ * Tables another profile of the account asked this profile to (ADR 0016, phase 3): a banner on the catalog with one tap to the
  * room's preview. Checked every 20 s while the catalog shows; an invitation lasts 10 minutes.
  */
 export function RoomInvites({ player }: { player: Player }) {

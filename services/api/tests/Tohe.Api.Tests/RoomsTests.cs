@@ -56,13 +56,13 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Matches("^[0-9]{6}$", room.Code);
         Assert.Equal((0, "waiting"), (room.MySeat, room.Status));
 
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, householdOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, accountOnly = true });
         var chu = await PersonAsync("Chú");
         var chuSees = await ListAsync(chu);
         Assert.Contains(chuSees, r => r.Id == room.Id);
         Assert.DoesNotContain(chuSees, r => r.Id == family.Id);
 
-        // A child a parent has not allowed sees only the family's tables (children play on a parent's device session).
+        // A child the owner has not allowed sees only the account's own tables (children play on a parent's session).
         var be = await ChildAsync(chu, "Bé");
         Assert.DoesNotContain(await ListAsync(be), r => r.Id == room.Id);
         var na = await ChildAsync(bo, "Na");
@@ -82,13 +82,13 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal((room.Id, (int?)null), (preview!.Id, preview.MySeat));
         Assert.Equal(1, (await JoinAsync(chu, room.Id)).MySeat);
 
-        // A child of another household needs a parent's switch.
+        // A child of another account needs its owner's switch.
         var be = await ChildAsync(chu, "Bé");
         var refused = await be.Client.PostAsync(Url($"/api/rooms/{room.Id}/join"), null, Ct);
         Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (refused.StatusCode, await CodeAsync(refused)));
         await PlayAsAsync(chu, chu.Me.Profiles[0].Id);
         await UnlockAsync(chu);
-        var allowed = await chu.Client.PatchAsJsonAsync(Url($"/api/household/profiles/{be.ProfileId}"), new { playWithOthers = true }, Ct);
+        var allowed = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{be.ProfileId}"), new { playWithOthers = true }, Ct);
         Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
         await PlayAsAsync(chu, be.ProfileId);
         Assert.Equal(2, (await JoinAsync(chu, room.Id)).MySeat);
@@ -176,7 +176,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var stats = await bo.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct);
         Assert.Equal(1, stats!.AllTime.Hands);
         Assert.Equal(stats.AllTime, stats.Week);
-        var row = Assert.Single(stats.Household);
+        var row = Assert.Single(stats.Account);
         Assert.Equal((bo.ProfileId, "Bố", 1), (row.ProfileId, row.Name, row.Hands));
 
         var history = await bo.Client.GetFromJsonAsync<List<HandSummary>>(Url("/api/rooms/history?game=tien-len"), Ct);
@@ -204,7 +204,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         // Nobody else sees the hand again: its seed reveals every card.
         var chu = await PersonAsync("Chú");
         Assert.Equal(HttpStatusCode.NotFound, (await chu.Client.GetAsync(Url($"/api/rooms/{room.Id}/hands/1"), Ct)).StatusCode);
-        Assert.Empty((await chu.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct))!.Household);
+        Assert.Empty((await chu.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct))!.Account);
     }
 
     [Fact]
@@ -235,7 +235,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     public async Task An_invitation_opens_a_locked_door_for_the_family_but_never_the_parent_switch()
     {
         var bo = await PersonAsync("Bố");
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, householdOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, accountOnly = true });
         var others = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
         foreach (var id in new[] { family.Id, others.Id })
         {
@@ -246,7 +246,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         await PlayAsAsync(bo, bo.ProfileId);
         var chu = await PersonAsync("Chú");
         var stranger = await bo.Client.PostAsJsonAsync(Url($"/api/rooms/{family.Id}/invite"), new { profileId = chu.ProfileId }, Ct);
-        Assert.Equal((HttpStatusCode.Forbidden, "not_in_household"), (stranger.StatusCode, await CodeAsync(stranger)));
+        Assert.Equal((HttpStatusCode.Forbidden, "not_in_account"), (stranger.StatusCode, await CodeAsync(stranger)));
         foreach (var id in new[] { family.Id, others.Id })
         {
             var invited = await bo.Client.PostAsJsonAsync(Url($"/api/rooms/{id}/invite"), new { profileId = na.ProfileId }, Ct);
@@ -258,7 +258,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal(2, invites!.Count);
         Assert.All(invites, invite => Assert.Equal("Bố", invite.FromName));
         Assert.Equal(1, (await JoinAsync(bo, family.Id)).MySeat);
-        // The other table has people from other households: a child without the parent switch stays out.
+        // The other table has people from other accounts: a child without the owner's switch stays out.
         var blocked = await bo.Client.PostAsync(Url($"/api/rooms/{others.Id}/join"), null, Ct);
         Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (blocked.StatusCode, await CodeAsync(blocked)));
         Assert.Single((await bo.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct))!);
@@ -526,12 +526,12 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         return person;
     }
 
-    /// <summary>A child of the person's household, played on the same device (same session).</summary>
+    /// <summary>A child profile of the person's account, played on the same device (same session).</summary>
     private static async Task<Person> ChildAsync(Person parent, string name)
     {
         await UnlockAsync(parent);
         var response = await parent.Client.PostAsJsonAsync(
-            Url("/api/household/profiles"),
+            Url("/api/profiles"),
             new { name, avatar = ProfileOptions.Avatars[1], ageBand = "9-12" },
             Ct);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

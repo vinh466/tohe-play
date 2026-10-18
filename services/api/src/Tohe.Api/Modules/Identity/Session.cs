@@ -7,7 +7,7 @@ namespace Tohe.Api.Modules.Identity;
 
 /// <summary>
 /// The device session is the Identity cookie plus two claims of our own: the profile currently playing and
-/// until when household management is unlocked (the parent gate). Changing either re-issues the cookie.
+/// until when profile management is unlocked (the parent gate). Changing either re-issues the cookie.
 /// </summary>
 public static class SessionClaims
 {

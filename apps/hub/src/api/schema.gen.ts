@@ -28,7 +28,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Allowed avatars and age bands. */
+        /** Allowed avatars and age bands, and how many profiles an account may own. */
         get: operations["GetProfileOptions"];
         put?: never;
         post?: never;
@@ -47,7 +47,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create an adult account: a new household, or join one with an invite code. */
+        /** Create an account and its first profile. */
         post: operations["Register"];
         delete?: never;
         options?: never;
@@ -96,7 +96,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The device session (account, household, profiles, active profile, parent gate); 204 when signed out. */
+        /** The device session (account, profiles, active profile, parent gate); 204 when signed out. */
         get: operations["GetMe"];
         put?: never;
         post?: never;
@@ -133,16 +133,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Re-enter the password to manage the household for a few minutes. */
+        /** Re-enter the password to manage the account's profiles for a few minutes. */
         post: operations["UnlockParentGate"];
-        /** Lock household management again. */
+        /** Lock profile management again. */
         delete: operations["LockParentGate"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/household": {
+    "/api/account": {
         parameters: {
             query?: never;
             header?: never;
@@ -155,11 +155,11 @@ export interface paths {
         delete?: never;
         options?: never;
         head?: never;
-        /** Rename the household, or turn its telemetry on or off. */
-        patch: operations["UpdateHousehold"];
+        /** Turn the account's telemetry on or off. */
+        patch: operations["UpdateAccount"];
         trace?: never;
     };
-    "/api/household/invite": {
+    "/api/profiles": {
         parameters: {
             query?: never;
             header?: never;
@@ -168,25 +168,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** New invite code for another adult (replaces the previous one). */
-        post: operations["CreateInvite"];
-        /** Revoke the invite code. */
-        delete: operations["RevokeInvite"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/household/profiles": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Add a child profile. */
+        /** Add a profile to the account (at most five). */
         post: operations["CreateProfile"];
         delete?: never;
         options?: never;
@@ -194,7 +176,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/household/profiles/{id}": {
+    "/api/profiles/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -204,11 +186,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove a child profile. */
+        /** Remove one of the account's profiles — never the last one. */
         delete: operations["DeleteProfile"];
         options?: never;
         head?: never;
-        /** Edit a profile. Adults can only edit their own adult profile. */
+        /** Edit one of the account's profiles. */
         patch: operations["UpdateProfile"];
         trace?: never;
     };
@@ -304,7 +286,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Best score of each household member on a game's board. */
+        /** Best score of each of the account's profiles on a game's board. */
         get: operations["GetLeaderboard"];
         put?: never;
         post?: never;
@@ -390,7 +372,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The active profile's online results in a game, and its household's board over the last 7 days. */
+        /** The active profile's online results in a game, and its account's board over the last 7 days. */
         get: operations["GetRoomStats"];
         put?: never;
         post?: never;
@@ -512,7 +494,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ask a member of one's household to the table: it shows in their hub for 10 minutes. */
+        /** Ask another of the account's profiles to the table: it shows in their hub for 10 minutes. */
         post: operations["InviteToRoom"];
         delete?: never;
         options?: never;
@@ -527,7 +509,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Tables household members asked the active profile to, for the next 10 minutes. */
+        /** Tables the account's other profiles asked the active profile to, for the next 10 minutes. */
         get: operations["ListRoomInvites"];
         put?: never;
         post?: never;
@@ -597,6 +579,7 @@ export interface components {
             id: string;
             username: string;
             displayName: string;
+            telemetry: boolean;
         };
         ClientConfig: {
             gamesOrigin: string;
@@ -613,7 +596,7 @@ export interface components {
         CreateProfileRequest: {
             name: string;
             avatar: string;
-            ageBand: string;
+            ageBand?: null | string;
             pin?: null | string;
         };
         CreateRoomRequest: {
@@ -626,7 +609,7 @@ export interface components {
             /** @default true */
             isPublic: boolean;
             /** @default false */
-            householdOnly: boolean;
+            accountOnly: boolean;
             /** @default true */
             botsFill: boolean;
             botLevel?: null | string;
@@ -767,14 +750,6 @@ export interface components {
             /** Format: int32 */
             players: number;
         };
-        HouseholdView: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            members: components["schemas"]["MemberView"][];
-            invite: null | components["schemas"]["InviteView"];
-            telemetry: boolean;
-        };
         HttpValidationProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -789,11 +764,6 @@ export interface components {
         InviteRequest: {
             /** Format: uuid */
             profileId: string;
-        };
-        InviteView: {
-            code: string;
-            /** Format: date-time */
-            expiresAt: string;
         };
         JsonElement: unknown;
         LeaderRow: {
@@ -825,18 +795,11 @@ export interface components {
         };
         MeView: {
             account: components["schemas"]["AccountView"];
-            household: components["schemas"]["HouseholdView"];
             profiles: components["schemas"]["ProfileView"][];
             /** Format: uuid */
             activeProfileId: null | string;
             /** Format: date-time */
             parentUnlockedUntil: null | string;
-        };
-        MemberView: {
-            /** Format: uuid */
-            accountId: string;
-            displayName: string;
-            username: string;
         };
         MetricSummary: {
             name: string;
@@ -871,16 +834,18 @@ export interface components {
         ProfileOptionsView: {
             avatars: string[];
             ageBands: string[];
+            /** Format: int32 */
+            maxProfiles: number;
         };
         ProfileView: {
             /** Format: uuid */
             id: string;
+            publicId: string;
             name: string;
             avatar: string;
             kind: string;
             ageBand: null | string;
             hasPin: boolean;
-            isMine: boolean;
             playWithOthers: boolean;
         };
         PutSaveRequest: {
@@ -897,8 +862,6 @@ export interface components {
             displayName: string;
             username: string;
             password: string;
-            householdName?: null | string;
-            inviteCode?: null | string;
         };
         ReplayAction: {
             /** Format: int32 */
@@ -925,7 +888,7 @@ export interface components {
         RoomStatsView: {
             allTime: components["schemas"]["PlayerStats"];
             week: components["schemas"]["PlayerStats"];
-            household: components["schemas"]["LeaderRow"][];
+            account: components["schemas"]["LeaderRow"][];
         };
         RoomSummary: {
             /** Format: uuid */
@@ -954,7 +917,7 @@ export interface components {
             /** Format: uuid */
             hostProfileId: string;
             isPublic: boolean;
-            householdOnly: boolean;
+            accountOnly: boolean;
             locked: boolean;
             /** Format: int32 */
             seats: number;
@@ -1079,8 +1042,7 @@ export interface components {
             /** Format: int32 */
             events: number;
         };
-        UpdateHouseholdRequest: {
-            name?: null | string;
+        UpdateAccountRequest: {
             telemetry?: null | boolean;
         };
         UpdateProfileRequest: {
@@ -1095,7 +1057,7 @@ export interface components {
             /** Format: int32 */
             seats?: null | number;
             isPublic?: null | boolean;
-            householdOnly?: null | boolean;
+            accountOnly?: null | boolean;
             locked?: null | boolean;
             botsFill?: null | boolean;
             botLevel?: null | string;
@@ -1351,7 +1313,7 @@ export interface operations {
             };
         };
     };
-    UpdateHousehold: {
+    UpdateAccount: {
         parameters: {
             query?: never;
             header?: never;
@@ -1360,67 +1322,9 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateHouseholdRequest"];
+                "application/json": components["schemas"]["UpdateAccountRequest"];
             };
         };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MeView"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    CreateInvite: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["MeView"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-        };
-    };
-    RevokeInvite: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
         responses: {
             /** @description OK */
             200: {

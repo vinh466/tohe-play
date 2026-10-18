@@ -21,7 +21,8 @@ type Props =
 
 /**
  * Sends people where they belong: signed-out devices to /welcome, signed-in devices without a chosen player to
- * the profile picker, and away from the sign-in screens once signed in.
+ * the profile picker, and away from the sign-in screens once signed in. The picker is asked to choose by itself
+ * (`auto`) when the account leaves nothing to choose.
  */
 export function RequireSession(props: Props) {
   const { t } = useTranslation();
@@ -30,13 +31,17 @@ export function RequireSession(props: Props) {
 
   switch (props.need) {
     case 'signedOut':
-      return session.status === 'account' ? <Navigate to="/profiles" replace /> : props.children;
+      return session.status === 'account' ? (
+        <Navigate to="/profiles" search={{ auto: true }} replace />
+      ) : (
+        props.children
+      );
     case 'account':
       return session.status === 'account' ? props.children(session) : <Navigate to="/welcome" replace />;
     case 'player':
       if ((session.status === 'signedOut' || !session.player) && props.returnTo) rememberNext(props.returnTo);
       if (session.status === 'signedOut') return <Navigate to="/welcome" replace />;
-      if (!session.player) return <Navigate to="/profiles" replace />;
+      if (!session.player) return <Navigate to="/profiles" search={{ auto: true }} replace />;
       return props.children(session as PlayingSession);
   }
 }

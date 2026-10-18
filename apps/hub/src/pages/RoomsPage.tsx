@@ -241,7 +241,7 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
         <CreateRoom
           game={game}
           open={creating}
-          familyOnly={!mayPlayWithOthers}
+          ownAccountOnly={!mayPlayWithOthers}
           onClose={() => setCreating(false)}
           onCreated={open}
         />
@@ -254,7 +254,7 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
 export const settingsBody = (value: RoomSettingsValue) => ({
   seats: value.seats,
   isPublic: value.isPublic,
-  householdOnly: value.householdOnly,
+  accountOnly: value.accountOnly,
   botsFill: value.botsFill,
   botLevel: value.botLevel,
   botsTakeOver: value.botsTakeOver,
@@ -266,13 +266,13 @@ export const settingsBody = (value: RoomSettingsValue) => ({
 function CreateRoom({
   game,
   open,
-  familyOnly,
+  ownAccountOnly,
   onClose,
   onCreated,
 }: {
   game: GameSummary;
   open: boolean;
-  familyOnly: boolean;
+  ownAccountOnly: boolean;
   onClose(): void;
   onCreated(roomId: string): void;
 }) {
@@ -286,7 +286,7 @@ function CreateRoom({
       <RoomSettings
         game={game}
         initial={defaultSettings(game)}
-        familyOnly={familyOnly}
+        ownAccountOnly={ownAccountOnly}
         submitLabel={t('rooms.createGo')}
         busy={create.isPending}
         error={create.isError ? t(errorKey(create.error)) : null}
