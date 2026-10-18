@@ -56,6 +56,9 @@ public sealed class Profile
     /// <summary>When the account's owner said they asked the child, turning <see cref="OnPublicBoards"/> on.</summary>
     public DateTimeOffset? AskedChildAt { get; set; }
 
+    /// <summary>A moderator hid it from public boards (ADR 0029): its owner's switch does not bring it back.</summary>
+    public DateTimeOffset? HiddenFromBoardsAt { get; set; }
+
     public DateTimeOffset CreatedAt { get; set; }
 }
 

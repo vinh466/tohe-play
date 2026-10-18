@@ -21,6 +21,8 @@ internal static class IntegrityModule
         builder.Services.AddScoped<Boards>();
         builder.Services.AddScoped<IBoards>(services => services.GetRequiredService<Boards>());
         builder.Services.AddScoped<PublicBoards>();
+        // People's decisions about held results, for the admin console (ADR 0029).
+        builder.Services.AddScoped<IntegrityReview>();
         // Ranked runs (ADR 0030): dealt and taken in by the API, replayed in the background.
         builder.Services.AddOptions<IntegrityOptions>().BindConfiguration(IntegrityOptions.Section);
         builder.Services.AddScoped<RankedRuns>();

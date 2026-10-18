@@ -23,6 +23,12 @@ internal static class AuditActions
     public const string InviteCreate = "invite.create";
     public const string InviteRevoke = "invite.revoke";
 
+    public const string ResultApprove = "result.approve";
+    public const string ResultReject = "result.reject";
+    public const string ResultReopen = "result.reopen";
+    public const string ProfileHide = "profile.hide";
+    public const string ProfileShow = "profile.show";
+
     /// <summary>The console opened on a device: two-factor authentication passed.</summary>
     public const string ConsoleOpen = "console.open";
 

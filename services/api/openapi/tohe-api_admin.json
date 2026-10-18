@@ -682,6 +682,104 @@
         }
       }
     },
+    "/api/admin/profiles/{id}/hidden": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Hide a profile from public boards; its owner's switch does not bring it back.",
+        "operationId": "HideAdminProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HideProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Let a hidden profile back on public boards, as its owner's switch says.",
+        "operationId": "ShowAdminProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/settings": {
       "get": {
         "tags": [
@@ -899,6 +997,268 @@
           },
           "404": {
             "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/review": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Held results, waiting for a person: oldest first, fifty at a time.",
+        "operationId": "GetAdminReview",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/review/decided": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Results people decided about or the engine rejected: the latest decision first, fifty at a time.",
+        "operationId": "GetAdminReviewDecided",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "One result: where it stands, what its profile did before on the board, its evidence, every decision.",
+        "operationId": "GetAdminReviewResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}/approve": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approve a held result: verified when the server refereed or replayed it, checked otherwise.",
+        "operationId": "ApproveAdminReviewResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}/reject": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reject a result, at any level: it counts on no board.",
+        "operationId": "RejectAdminReviewResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}/reopen": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reopen a decided result — rejected, checked or verified: held again, for another look.",
+        "operationId": "ReopenAdminReviewResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -1275,7 +1635,8 @@
           "rooms",
           "errorsLastDay",
           "catalog",
-          "email"
+          "email",
+          "heldResults"
         ],
         "type": "object",
         "properties": {
@@ -1310,6 +1671,10 @@
           },
           "email": {
             "$ref": "#/components/schemas/OutboxState"
+          },
+          "heldResults": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -1635,6 +2000,56 @@
           }
         }
       },
+      "DecisionView": {
+        "required": [
+          "from",
+          "to",
+          "reason",
+          "details",
+          "ruleVersion",
+          "actor",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "details": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "ruleVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "DeviceShare": {
         "required": [
           "os",
@@ -1867,6 +2282,20 @@
           }
         }
       },
+      "HideProfileRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -1961,6 +2390,7 @@
           }
         }
       },
+      "JsonElement": { },
       "MetricSummary": {
         "required": [
           "name",
@@ -2042,6 +2472,42 @@
           }
         }
       },
+      "ProfileCard": {
+        "required": [
+          "id",
+          "name",
+          "avatar",
+          "publicId",
+          "accountId",
+          "account"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "ProfileDetail": {
         "required": [
           "id",
@@ -2051,7 +2517,9 @@
           "kind",
           "ageBand",
           "createdAt",
-          "names"
+          "names",
+          "onPublicBoards",
+          "hiddenFromBoards"
         ],
         "type": "object",
         "properties": {
@@ -2086,6 +2554,76 @@
             "items": {
               "$ref": "#/components/schemas/NameChange"
             }
+          },
+          "onPublicBoards": {
+            "type": "boolean"
+          },
+          "hiddenFromBoards": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RankedEvidence": {
+        "required": [
+          "moves",
+          "seconds",
+          "minMsPerMove",
+          "claimed",
+          "replayed"
+        ],
+        "type": "object",
+        "properties": {
+          "moves": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "seconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "minMsPerMove": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "claimed": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "replayed": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "RecentResult": {
+        "required": [
+          "id",
+          "value",
+          "level",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "level": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
           }
         }
       },
@@ -2114,6 +2652,203 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ReviewDecisionRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReviewDetail": {
+        "required": [
+          "result",
+          "player",
+          "history",
+          "ranked",
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReviewSummary"
+          },
+          "player": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileCard"
+              }
+            ]
+          },
+          "history": {
+            "$ref": "#/components/schemas/ReviewHistory"
+          },
+          "ranked": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RankedEvidence"
+              }
+            ]
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionView"
+            }
+          }
+        }
+      },
+      "ReviewEntry": {
+        "required": [
+          "result",
+          "player"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReviewSummary"
+          },
+          "player": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileCard"
+              }
+            ]
+          }
+        }
+      },
+      "ReviewHistory": {
+        "required": [
+          "best",
+          "runs",
+          "recent"
+        ],
+        "type": "object",
+        "properties": {
+          "best": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "runs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentResult"
+            }
+          }
+        }
+      },
+      "ReviewPage": {
+        "required": [
+          "held",
+          "results",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "held": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewEntry"
+            }
+          },
+          "next": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "ReviewSummary": {
+        "required": [
+          "id",
+          "kind",
+          "profileId",
+          "gameId",
+          "board",
+          "value",
+          "at",
+          "level",
+          "reason",
+          "since",
+          "by",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "level": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evidence": {
+            "type": "string"
           }
         }
       },

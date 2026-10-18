@@ -610,6 +610,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset?>("HiddenFromBoardsAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("hidden_from_boards_at");
+
                     b.Property<string>("Kind")
                         .IsRequired()
                         .HasMaxLength(10)
@@ -741,6 +745,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.HasIndex("ResultId")
                         .HasDatabaseName("ix_decisions_result_id");
 
+                    b.HasIndex("ResultId", "Id")
+                        .HasDatabaseName("ix_integrity_decisions_decided")
+                        .HasFilter("actor IS NOT NULL OR \"to\" = 'Rejected'");
+
                     b.ToTable("decisions", "integrity");
                 });
 
@@ -826,6 +834,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
 
                     b.HasKey("Id")
                         .HasName("pk_integrity_results");
+
+                    b.HasIndex("Id")
+                        .HasDatabaseName("ix_integrity_results_held")
+                        .HasFilter("level = 'Held'");
 
                     b.HasIndex("Source")
                         .IsUnique()

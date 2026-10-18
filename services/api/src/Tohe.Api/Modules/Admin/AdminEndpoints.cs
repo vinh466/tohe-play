@@ -8,6 +8,7 @@ using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
+using Tohe.Api.Modules.Integrity;
 using Tohe.Api.Modules.Platform;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
@@ -44,6 +45,7 @@ public sealed record AuditPage(IReadOnlyList<AuditEntryView> Entries, long? Befo
 /// <summary>The platform at a glance.</summary>
 /// <param name="Players">Profiles that saved a game or recorded a score.</param>
 /// <param name="ErrorsLastDay">Errors devices reported in the last day; none while telemetry is off.</param>
+/// <param name="HeldResults">Results the integrity engine held, waiting for a person (ADR 0029).</param>
 public sealed record AdminOverview(
     DateTimeOffset At,
     string Version,
@@ -53,7 +55,8 @@ public sealed record AdminOverview(
     AdminRooms Rooms,
     int? ErrorsLastDay,
     AdminCatalog Catalog,
-    OutboxState Email);
+    OutboxState Email,
+    int HeldResults);
 
 /// <param name="Online">Profiles connected to an open room right now.</param>
 public sealed record AdminRooms(int Open, int Playing, int Online);
@@ -161,6 +164,7 @@ internal static class AdminEndpoints
         TwoFactorEndpoints.Map(admin);
         UsersEndpoints.Map(admin);
         SettingsEndpoints.Map(admin);
+        ReviewEndpoints.Map(admin);
     }
 
     /// <summary>The account, its role and what the role may do, and the console's state on this device.</summary>
@@ -206,6 +210,7 @@ internal static class AdminEndpoints
         TelemetryFacts telemetry,
         RegistryFacts registry,
         EmailFacts email,
+        IntegrityReview review,
         BackgroundWork work,
         IOptions<AppOptions> app,
         IOptions<TelemetryOptions> telemetryOptions,
@@ -225,7 +230,8 @@ internal static class AdminEndpoints
             new AdminRooms(live.Open, live.Playing, live.Online),
             telemetryOptions.Value.Enabled ? await telemetry.ErrorsSinceAsync(now.AddDays(-1), ct) : null,
             new AdminCatalog(games.Count(game => game.Listed), games.Count(game => !game.Listed), catalog?.LastSuccessAt, catalog?.LastError),
-            await email.StateAsync(now, ct)));
+            await email.StateAsync(now, ct),
+            await review.HeldCountAsync(ct)));
     }
 
     private static async Task<Ok<IReadOnlyList<AdminGame>>> GamesAsync(

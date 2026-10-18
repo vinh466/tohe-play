@@ -55,6 +55,13 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
 
     public static string RunSource(Guid profileId, Guid clientId) => $"run:{profileId:N}:{clientId:N}";
 
+    /// <summary>
+    /// Left to people: held or rejected, or decided by a person. The engine judges it no more, and a report of it again
+    /// changes nothing — its value stays the one a person looks at, or looked at (ADR 0029).
+    /// </summary>
+    private static bool Settled(IntegrityResult result) =>
+        result.DecidedBy is not null || result.Level is TrustLevel.Held or TrustLevel.Rejected;
+
     public async Task SubmitRunsAsync(Guid profileId, Guid accountId, IReadOnlyList<RunClaim> runs, CancellationToken ct)
     {
         var now = clock.GetUtcNow();
@@ -88,7 +95,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
                 db.IntegrityResults.Add(result);
                 known[source] = result;
             }
-            else if (run.Value > result.Value || (run.Final && !result.Final))
+            else if (!Settled(result) && (run.Value > result.Value || (run.Final && !result.Final)))
             {
                 // A long run grows, then ends; its value only rises (ADR 0014).
                 if (run.Value > result.Value)
@@ -121,7 +128,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
             }
 
             // A person's decision stands, and only a person releases what the engine held: automation only hides.
-            if (result.DecidedBy is null && result.Level is not (TrustLevel.Held or TrustLevel.Rejected))
+            if (!Settled(result))
             {
                 var (level, reason, details) = await JudgeRunAsync(result, batch, now, TrustLevel.Checked, ct);
                 Move(result, isNew ? null : result.Level, level, reason, details, now, isNew);

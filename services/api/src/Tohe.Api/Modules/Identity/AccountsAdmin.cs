@@ -46,9 +46,15 @@ public sealed record ProfileDetail(
     string Kind,
     string? AgeBand,
     DateTimeOffset CreatedAt,
-    IReadOnlyList<NameChange> Names);
+    IReadOnlyList<NameChange> Names,
+    bool OnPublicBoards,
+    bool HiddenFromBoards);
 
 public sealed record NameChange(string Name, DateTimeOffset At);
+
+/// <summary>A profile as the console names it next to its results: never more than a moderator needs.</summary>
+/// <param name="Account">Its account's address, or an old account's username.</param>
+public sealed record ProfileCard(Guid Id, string Name, string Avatar, string PublicId, Guid AccountId, string? Account);
 
 /// <summary>
 /// What the admin console reads and changes of accounts and profiles (ADR 0027); the tables stay this module's. The
@@ -160,8 +166,25 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
                 profile.Kind == ProfileKind.Adult ? "adult" : "child",
                 profile.AgeBand,
                 profile.CreatedAt,
-                [.. names[profile.Id].Select(name => new NameChange(name.Name, name.At))]))]);
+                [.. names[profile.Id].Select(name => new NameChange(name.Name, name.At))],
+                profile.OnPublicBoards,
+                profile.HiddenFromBoardsAt is not null))]);
     }
+
+    public async Task<IReadOnlyDictionary<Guid, ProfileCard>> CardsAsync(IReadOnlyCollection<Guid> profileIds, CancellationToken ct) =>
+        await db.Profiles.AsNoTracking()
+            .Where(profile => profileIds.Contains(profile.Id))
+            .Join(
+                db.Users,
+                profile => profile.AccountId,
+                account => account.Id,
+                (profile, account) => new ProfileCard(
+                    profile.Id, profile.Name, profile.Avatar, profile.PublicId, account.Id, account.Email ?? account.UserName))
+            .ToDictionaryAsync(card => card.Id, ct);
+
+    /// <summary>Hides a profile from public boards, or shows it again (ADR 0029); its owner's switch stays as it is.</summary>
+    public void SetHiddenFromBoards(Profile profile, bool hidden, DateTimeOffset now) =>
+        profile.HiddenFromBoardsAt = hidden ? profile.HiddenFromBoardsAt ?? now : null;
 
     /// <summary>No way in until lifted; the new security stamp ends its sessions within the session check.</summary>
     public async Task SuspendAsync(Account account, string reason, DateTimeOffset now)
