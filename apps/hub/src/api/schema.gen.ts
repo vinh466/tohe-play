@@ -38,6 +38,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/profiles/by-id/{publicId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A profile's card by its public ID, as this account may find it: never a child of another account. */
+        get: operations["FindProfileById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/profiles/options": {
         parameters: {
             query?: never;
@@ -852,25 +869,8 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ask another of the account's profiles to the table: it shows in their hub for 10 minutes. */
+        /** Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): it shows in their hub for 10 minutes. */
         post: operations["InviteToRoom"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/rooms/{id}/invite/by-id": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Ask a profile to the table by its 12-digit ID, if its owner lets you: it shows in their hub for 10 minutes. */
-        post: operations["InviteToRoomById"];
         delete?: never;
         options?: never;
         head?: never;
@@ -1202,16 +1202,9 @@ export interface components {
                 [key: string]: string[];
             };
         };
-        InviteByIdRequest: {
-            publicId: null | string;
-        };
         InviteRequest: {
             /** Format: uuid */
             profileId: string;
-        };
-        InvitedPlayer: {
-            name: string;
-            avatar: string;
         };
         JsonElement: unknown;
         LeaderRow: {
@@ -1291,6 +1284,13 @@ export interface components {
             status?: null | number;
             detail?: null | string;
             instance?: null | string;
+        };
+        ProfileCardView: {
+            /** Format: uuid */
+            id: string;
+            publicId: string;
+            name: string;
+            avatar: string;
         };
         ProfileOptionsView: {
             avatars: string[];
@@ -1644,6 +1644,37 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    FindProfileById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileCardView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
             };
         };
     };
@@ -3365,57 +3396,6 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
-            /** @description Not Found */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    InviteToRoomById: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["InviteByIdRequest"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["InvitedPlayer"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
-                };
             };
             /** @description Forbidden */
             403: {

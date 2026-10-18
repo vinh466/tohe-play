@@ -8,6 +8,7 @@ export type GameSummary = Schemas['GameSummary'];
 export type ClientConfig = Schemas['ClientConfig'];
 export type MeView = Schemas['MeView'];
 export type ProfileView = Schemas['ProfileView'];
+export type ProfileCardView = Schemas['ProfileCardView'];
 export type ProfileOptionsView = Schemas['ProfileOptionsView'];
 export type SignUpRequest = Schemas['SignUpRequest'];
 export type AttemptView = Schemas['AttemptView'];
@@ -223,12 +224,15 @@ export const rooms = {
   history: (game: string) => call(api.GET('/api/rooms/history', { params: { query: { game } } })),
   /** Watch a table without a seat (when the host allows spectators). */
   watch: (id: string) => call(api.POST('/api/rooms/{id}/watch', { params: { path: { id } } })),
-  /** Ask a member of the household to the table; it shows in their hub for 10 minutes. */
+  /**
+   * Ask a profile to the table — one of the account's, or another account's as its owner allows (ADR 0033); it shows
+   * in their hub for 10 minutes.
+   */
   invite: (id: string, profileId: string) =>
     call(api.POST('/api/rooms/{id}/invite', { params: { path: { id } }, body: { profileId } })),
-  /** Ask a profile to the table by its public ID (ADR 0033): the name and avatar of whom it reached. */
-  inviteById: (id: string, publicId: string) =>
-    call(api.POST('/api/rooms/{id}/invite/by-id', { params: { path: { id } }, body: { publicId } })),
+  /** The card of the profile with this public ID, to confirm before asking it (ADR 0033). */
+  findProfile: (publicId: string) =>
+    call(api.GET('/api/profiles/by-id/{publicId}', { params: { path: { publicId } } })),
   invites: () => call(api.GET('/api/rooms/invites')),
   replay: (id: string, hand: number) =>
     call(api.GET('/api/rooms/{id}/hands/{hand}', { params: { path: { id, hand } } })),
