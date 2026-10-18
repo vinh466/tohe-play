@@ -28,3 +28,11 @@ networkPolicy:
   enabled: true
   ingressNamespaceLabels:
     kubernetes.io/metadata.name: kube-system
+# kube-prometheus-stack scrapes any ServiceMonitor in the cluster (ADR 0036).
+metrics:
+  serviceMonitor:
+    enabled: true
+  prometheusRule:
+    enabled: true
+  scraperNamespaceLabels:
+    kubernetes.io/metadata.name: monitoring

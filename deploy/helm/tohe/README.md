@@ -71,6 +71,14 @@ On every component (`api`, `hub`, `games`, `site`, with fallbacks in `defaults`)
 are `<release>-hub`, `<release>-games`, `<release>-site` on port 8080. `networkPolicy.enabled` lets only the hub reach
 the API and only the API reach the builtin PostgreSQL.
 
+**Metrics** (ADR 0036): the API serves `/metrics` for Prometheus on its port `metrics` (9464), which no ingress
+routes. With the Prometheus Operator's CRDs (kube-prometheus-stack), `metrics.serviceMonitor.enabled` scrapes it
+(`interval`, and `labels` if your Prometheus selects ServiceMonitors by label) and `metrics.prometheusRule.enabled`
+adds six alerts — the API not scraped, the database not answering (both critical), 5xx over 5 %, the 95th percentile
+over 1 second, email stuck, a background worker failing 3 times in a row. With `networkPolicy.enabled` and the
+ServiceMonitor on, only namespaces matching `metrics.scraperNamespaceLabels` reach the metrics port (empty: any). The
+API image must be one that serves `/metrics`, or `ToheApiDown` fires.
+
 ## Images
 
 `<global.image.registry>/<global.image.repository>/<component>:<tag>` — by default
