@@ -4,7 +4,7 @@
   tắc trong console, tắt sẵn)
 - Kind: enhancement — tuỳ phương án: không gì, một dịch vụ ngoài (ADR), hoặc một thư viện tự host (ADR)
 - Blocks: E-10 (checklist ra mắt) · Blocked by: D-12
-- Decided: 2026-10-18 — F3
+- Decided: 2026-10-18 — F3 ([#65](https://github.com/vinh466/tohe-play/pull/65), ADR 0037)
 
 ## Vì sao
 

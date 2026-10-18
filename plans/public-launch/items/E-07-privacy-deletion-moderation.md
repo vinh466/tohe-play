@@ -4,7 +4,7 @@
   bộ lọc (owner duyệt danh sách), Q5 5 lần mỗi ngày, Q6 báo cáo vi phạm để sau; **Q7 (pháp lý) vẫn là việc của owner**
 - Kind: enhancement — xoá dữ liệu xuyên module, một ngoại lệ có kiểm soát cho các bảng chỉ ghi thêm (ADR khi xây)
 - Blocks: E-10 (checklist ra mắt) · Blocked by: D-01, D-06, D-17
-- Decided: 2026-10-18 — F1a (xoá), F1b (kiểm duyệt tên)
+- Decided: 2026-10-18 — F1a (xoá, [#61](https://github.com/vinh466/tohe-play/pull/61), ADR 0034), F1b (kiểm duyệt tên, [#62](https://github.com/vinh466/tohe-play/pull/62), ADR 0035)
 
 ## Vì sao
 

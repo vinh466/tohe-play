@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (tối, cuối) — agent
+
+- F1–F3 xây xong, CI xanh: #61 xoá (ADR 0034), #62 kiểm duyệt tên (0035), #63 metrics (0036), #64 chart, #65
+  proof-of-work (0037). F1a chạy thử migration trên dump UAT trước.
+- UAT: #61 → #62 → #63 → #65 lên lần lượt, mỗi bước kiểm; UAT chạy `a42810dd9f0b`. Đã báo owner verify.
+- Chờ owner: verify, duyệt danh sách từ (#62), namespace `monitoring` (#64), E-02 Q2, E-07 Q7, E-08 Q2, D-13.
+
 ## 2026-10-18 (tối, tiếp) — agent
 
 - E-01: migration chạy thử trên dump UAT mới nhất — dữ liệu của nhà giữ nguyên ([kết quả](items/E-01-uat-migration.md#kết-quả-2026-10-18)).

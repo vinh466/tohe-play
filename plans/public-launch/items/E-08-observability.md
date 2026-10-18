@@ -4,7 +4,7 @@
   đâu) vẫn mở** — không có đề xuất nào để nhận, và nó nằm ở `platform-infra`, không chặn phần của Tò He
 - Kind: enhancement — một thư viện NuGet mới, một cổng mới của API, hai template mới trong chart (ADR khi xây)
 - Blocks: E-10 (checklist ra mắt) · Blocked by: E-04 (chart, #44)
-- Decided: 2026-10-18 — F2a (API), F2b (chart)
+- Decided: 2026-10-18 — F2a (API, [#63](https://github.com/vinh466/tohe-play/pull/63)), F2b (chart, [#64](https://github.com/vinh466/tohe-play/pull/64)) — ADR 0036
 
 ## Vì sao
 

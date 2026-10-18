@@ -27,30 +27,30 @@ Owner: "theo đề xuất bạn có thể impl toàn bộ giúp tôi k, planning
 | **E2** | Độ tin | Run tính hạng: seed của server, kênh gửi nước đi, module xác minh, `ReplayVerifier`, conformance; Ghép Khối là game đầu tiên | 0030 Ranked runs replayed by the server (Game Contract) | E1 | D-10 |
 | **E3a** | Độ tin | Hàng đợi "Chờ xem xét" + "Đã quyết" trong admin: duyệt / từ chối / mở lại sau xác thực lại, không quyết kết quả của chính mình; kết quả đã giao cho người giữ nguyên giá trị; ẩn hồ sơ khỏi bảng công khai | 0031 People decide what the engine held (sửa 0029) | D2, E2 | D-09, D-16 |
 | **E3b** | Độ tin | Xem lại run bằng chính game trong admin: chế độ xem lại trong Game Contract, admin nhúng game từ games origin | 0032 Watch a ranked run in the game itself (Game Contract, sửa 0027 và 0030) | E3a | D-16 |
-| **F1** | Public | Trang điều khoản và quyền riêng tư (bản nháp để owner duyệt), lưu phiên bản đồng ý, xoá hồ sơ / account có thời gian chờ, kiểm duyệt tên (từ dành riêng, từ thô tục, lịch sử tên) | — | C3 | E-07 |
-| **F2** | Public | `/metrics` + ServiceMonitor trong chart + cảnh báo tối thiểu | — | A2 | E-08 |
-| F3 | Public | Turnstile cho đăng ký (tuỳ chọn, mặc định tắt) | — | C2 | E-09 |
+| **F1** | Public | F1a: xoá hồ sơ ngay, xoá account sau 7 ngày (đăng nhập để giữ), dữ liệu mọi module, một lối ra cho bảng chỉ ghi thêm, nhật ký admin giữ một năm, ID không cấp lại. F1b: bộ lọc tên thô tục, 5 lần đổi tên mỗi ngày | 0034 Delete accounts and profiles for good · 0035 Filter offensive names | C5 | E-07 |
+| **F2** | Public | F2a: `/metrics` cổng 9464 (prometheus-net) + metric của Tò He. F2b: ServiceMonitor, PrometheusRule (6 cảnh báo), NetworkPolicy trong chart | 0036 Metrics for Prometheus on a port of its own | F1b (F2a), A3 (F2b) | E-08 |
+| **F3** | Public | Proof-of-work tự host trước khi xin mã (đăng ký, quên mật khẩu), công tắc trong console, tắt sẵn | 0037 Proof-of-work before a code by email | F2a | E-09 |
 | F4 | Ra mắt | Checklist: thử restore, load test phòng, `/security-review`, thử thư tới Gmail / Outlook / Yahoo, D-13, deploy prod, một cộng đồng dùng thử | — | mọi PR trên | E-10 |
 
 ```mermaid
 flowchart LR
   A1 --> A2 --> A3 --> A4
-  A2 --> F2
+  A3 --> F2b
   B1 --> C2
-  C1 --> C2 --> C3 --> F1
+  C1 --> C2 --> C3
   C2 --> C4 --> D3b
   C1 --> C5
-  C1 --> E1a --> E1b --> E2 --> E3a --> E3b
+  C1 --> E1a --> E1b --> E2 --> E3a --> E3b --> C5
+  C5 --> F1a --> F1b --> F2a --> F3
   D3b --> E1b
   D1 --> D2 --> D3a --> D3b
   C2 --> D2
   D2 --> E3a
-  C2 --> F3
   A3 --> F4
+  F2b --> F4
+  F3 --> F4
   D3b --> F4
   E3b --> F4
-  F1 --> F4
-  F2 --> F4
 ```
 
 ## Chạy song song thế nào
@@ -75,10 +75,11 @@ flowchart LR
 
 ## Trạng thái
 
-**UAT** (2026-10-18, owner: "deploy uat tuần tự + kiểm tra"): #43, #45, #46, #48 … #60 lên lần lượt theo thứ tự merge,
-mỗi bước kiểm phiên bản, migration, dữ liệu của nhà và log API — UAT chạy `15b69300f831` (đầu #60). #44 và #47 (chart,
-GHCR) không áp dụng cho UAT tới khi merge. Các PR này chưa merge mà đã lên UAT: **migration của chúng không sửa nữa** —
-sửa sau review đi bằng migration mới.
+**UAT** (2026-10-18, owner: "deploy uat tuần tự + kiểm tra"): #43, #45, #46, #48 … #60, rồi #61 → #62 → #63 → #65
+lên lần lượt theo thứ tự merge, mỗi bước kiểm phiên bản, migration, dữ liệu của nhà và log API — UAT chạy
+`a42810dd9f0b` (đầu #65). Migration của F1a chạy thử trên dump UAT trước (chỉ thêm, không mất dòng nào). #44, #47, #64
+(chart, GHCR) không áp dụng cho UAT tới khi merge. Các PR này chưa merge mà đã lên UAT: **migration của chúng không sửa
+nữa** — sửa sau review đi bằng migration mới.
 
 | PR | Nhánh | Trạng thái |
 |---|---|---|
@@ -100,5 +101,10 @@ sửa sau review đi bằng migration mới.
 | E3a | `feat/review-queue` (trên E2) | [#58](https://github.com/vinh466/tohe-play/pull/58) — CI xanh, chờ review; trên UAT: Người dùng → một hồ sơ → Ẩn khỏi bảng công khai, hub của chủ báo lý do |
 | E3b | `feat/run-replay` (trên E3a) | [#59](https://github.com/vinh466/tohe-play/pull/59) — CI xanh, chờ review; trên UAT (Ghép Khối 1.10.0): Xem xét kết quả → một kết quả xếp hạng → ▶ Xem lại run trong game |
 | C5 | `feat/invite-by-id` (trên E3b) | [#60](https://github.com/vinh466/tohe-play/pull/60) — CI xanh, chờ review; tra ID → thẻ → xác nhận → mời (design §3.15); giả định người lớn mặc định "Mọi người có ID" — owner nhận (2026-10-18); trên UAT: Quản lý tài khoản → hồ sơ → "Ai được mời vào phòng bằng ID", trong phòng → Mời người chơi → Mời bằng ID hồ sơ |
+| F1a | `feat/account-deletion` (trên C5) | [#61](https://github.com/vinh466/tohe-play/pull/61) — CI xanh; migration chạy thử trên dump UAT (chỉ thêm, không mất dòng nào); trên UAT: Quản lý tài khoản → Xoá tài khoản… (7 ngày, đăng nhập để giữ), xoá một hồ sơ thử |
+| F1b | `feat/name-moderation` (trên F1a) | [#62](https://github.com/vinh466/tohe-play/pull/62) — CI xanh; **owner duyệt danh sách từ** (khối thu gọn trong PR) |
+| F2a | `feat/api-metrics` (trên F1b) | [#63](https://github.com/vinh466/tohe-play/pull/63) — CI xanh; `/metrics` cổng 9464, UAT không mở ra ngoài |
+| F2b | `feat/chart-metrics` (trên A3 #47) | [#64](https://github.com/vinh466/tohe-play/pull/64) — CI xanh (cài lên kind); `promtool` nhận 6 cảnh báo; giả định namespace `monitoring` |
+| F3 | `feat/proof-of-work` (trên F2a) | [#65](https://github.com/vinh466/tohe-play/pull/65) — tắt sẵn; bật ở console → Đăng nhập & đăng ký → Chống bot đăng ký |
 
-Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58 → #59 → #60; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58 → #59 → #60 → #61 → #62 → #63 → #65; #47 sau #44, #64 sau #47. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.

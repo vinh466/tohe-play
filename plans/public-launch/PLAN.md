@@ -15,17 +15,19 @@
 
 ## Next — one item
 
-**Xây F1–F3, deploy lên UAT, báo owner verify** (owner 2026-10-18: "ok như bạn đề xuất, làm đi, và deploy uat tuần tự
-+ kiểm tra, sau khi hoàn thành thì báo tôi verify"). Đã xong: chạy thử migration (E-01) và #43 → #60 lên UAT lần lượt.
-Còn: F1a (xoá account/hồ sơ), F1b (kiểm duyệt tên), F2a/F2b (metrics, chart), F3 (proof-of-work), deploy chúng, rồi báo
-owner verify ([delivery](delivery.md#trạng-thái)).
+**Owner verify trên UAT** — đã xong (2026-10-18): chạy thử migration (E-01), #43 → #60 lên UAT lần lượt, F1–F3 xây
+(#61 xoá, #62 kiểm duyệt tên, #63 metrics, #64 chart, #65 proof-of-work — ADR 0034–0037, CI xanh) và lên UAT; UAT chạy
+`a42810dd9f0b`. Owner verify theo danh sách trong báo cáo ngày 2026-10-18, rồi review và merge theo thứ tự
+([delivery](delivery.md#trạng-thái)). Sau đó: F4 (ra mắt, E-10).
 
 ## Waiting on the owner
 
 1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? UAT đã chạy C2 mà email tắt: account cũ đăng
    nhập bằng username như trước, nhưng chưa ai đăng ký mới được tới khi có API key trong `~/.config/tohe-uat/uat.env`.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Verify trên UAT, rồi review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #59 → #60).
+3. Verify trên UAT, rồi review và merge từng PR (#43 → #44 → #47 → #64, #45 → #46 → #48 → … → #60 → #61 → #62 → #63 →
+   #65). Trong #62: **duyệt danh sách từ** (khối thu gọn). Trong #64: namespace giám sát trên `platform-infra` có phải
+   `monitoring` không.
 4. Mở console trên UAT: tự chạy lệnh cấp quyền chủ cho account của mình — agent không chọn account thay owner
    (`docs/guides/uat.md`, mục Inspect).
 5. Duyệt bản nháp Điều khoản + Quyền riêng tư (#49; #50 thêm phần đăng nhập bằng provider), điền cách liên hệ người vận hành.
