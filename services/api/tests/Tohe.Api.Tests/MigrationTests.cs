@@ -44,6 +44,7 @@ public sealed class MigrationTests : IAsyncLifetime
         var child = Guid.NewGuid();
         var removed = Guid.NewGuid();
         var room = Guid.NewGuid();
+        var run = Guid.NewGuid();
         var seats = $$"""
             [{"ProfileId":"{{dadProfile}}","HouseholdId":"{{household}}","Name":"Bố","Avatar":"🦊","Bot":null,"Auto":false},
              {"ProfileId":null,"HouseholdId":null,"Name":null,"Avatar":null,"Bot":"easy","Auto":true},
@@ -73,6 +74,8 @@ public sealed class MigrationTests : IAsyncLifetime
             VALUES ('{{room}}', 'tien-len', 1, 0, '{{dadProfile}}', '{{household}}', 0, 3, now()),
                    ('{{room}}', 'tien-len', 1, 1, '{{removed}}', '{{household}}', 1, 1, now()),
                    ('{{room}}', 'tien-len', 1, 2, null, null, 2, 0, now());
+            INSERT INTO progress.scores (profile_id, game_id, board, value, achieved_at, recorded_at, client_id, final)
+            VALUES ('{{child}}', 'merge-block', 'default', 420, now() - interval '1 day', now() - interval '1 day', '{{run}}', true);
             """);
 
         await migrator.MigrateAsync(cancellationToken: Ct);
@@ -109,6 +112,20 @@ public sealed class MigrationTests : IAsyncLifetime
             "SELECT count(*) FROM information_schema.schemata WHERE schema_name = 'households'",
             reader => reader.GetInt64(0));
         Assert.Equal(0, leftovers[0]);
+
+        // Results so far come into the integrity engine as they were trusted (ADR 0029): the run as reported, the hand
+        // as refereed — public, two people sat at it — each with its first decision.
+        var trusted = await QueryAsync(
+            "SELECT kind, profile_id, account_id, level, \"public\", source FROM integrity.results ORDER BY kind, source",
+            reader => (Kind: reader.GetString(0), Profile: reader.GetGuid(1), Account: reader.GetGuid(2), Level: reader.GetString(3),
+                Public: reader.GetBoolean(4), Source: reader.GetString(5)));
+        Assert.Equal(
+            [("Hand", dadProfile, dad, "Verified", true), ("Hand", removed, mum, "Verified", true), ("Run", child, mum, "Reported", true)],
+            trusted.Select(r => (r.Kind, r.Profile, r.Account, r.Level, r.Public)));
+        Assert.Equal($"run:{child:N}:{run:N}", trusted[2].Source);
+        var imported = await QueryAsync(
+            "SELECT count(*) FROM integrity.decisions WHERE reason = 'imported' AND \"from\" IS NULL", reader => reader.GetInt64(0));
+        Assert.Equal(3, imported[0]);
 
         // And the API's own model reads what the migration left.
         Assert.Equal(3, await db.Profiles.CountAsync(Ct));

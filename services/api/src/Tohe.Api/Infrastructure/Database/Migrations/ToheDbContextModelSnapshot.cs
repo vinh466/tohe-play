@@ -680,6 +680,161 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("profile_names", "identity");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.IntegrityDecision", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<string>("Actor")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("actor");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<string>("From")
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("from");
+
+                    b.Property<string>("Reason")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("reason");
+
+                    b.Property<long>("ResultId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("result_id");
+
+                    b.Property<int>("RuleVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("rule_version");
+
+                    b.Property<string>("To")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("to");
+
+                    b.HasKey("Id")
+                        .HasName("pk_decisions");
+
+                    b.HasIndex("ResultId")
+                        .HasDatabaseName("ix_decisions_result_id");
+
+                    b.ToTable("decisions", "integrity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.IntegrityResult", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Board")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("board");
+
+                    b.Property<string>("DecidedBy")
+                        .HasMaxLength(320)
+                        .HasColumnType("character varying(320)")
+                        .HasColumnName("decided_by");
+
+                    b.Property<DateTimeOffset?>("DeviceAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("device_at");
+
+                    b.Property<bool>("Final")
+                        .HasColumnType("boolean")
+                        .HasColumnName("final");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("level");
+
+                    b.Property<int?>("Place")
+                        .HasColumnType("integer")
+                        .HasColumnName("place");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<bool>("Public")
+                        .HasColumnType("boolean")
+                        .HasColumnName("public");
+
+                    b.Property<int>("RuleVersion")
+                        .HasColumnType("integer")
+                        .HasColumnName("rule_version");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("source");
+
+                    b.Property<double>("Value")
+                        .HasColumnType("double precision")
+                        .HasColumnName("value");
+
+                    b.HasKey("Id")
+                        .HasName("pk_integrity_results");
+
+                    b.HasIndex("Source")
+                        .IsUnique()
+                        .HasDatabaseName("ix_results_source");
+
+                    b.HasIndex("ProfileId", "GameId", "At")
+                        .HasDatabaseName("ix_integrity_results_profile_id_game_id_at");
+
+                    b.HasIndex("AccountId", "GameId", "Board", "At")
+                        .HasDatabaseName("ix_results_account_id_game_id_board_at");
+
+                    b.HasIndex("ProfileId", "GameId", "Board", "Value")
+                        .HasDatabaseName("ix_results_profile_id_game_id_board_value");
+
+                    b.ToTable("results", "integrity");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Progress.SavedGame", b =>
                 {
                     b.Property<Guid>("ProfileId")
@@ -1589,6 +1744,18 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_profile_names_profiles_profile_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.IntegrityDecision", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Integrity.IntegrityResult", "Result")
+                        .WithMany()
+                        .HasForeignKey("ResultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_decisions_integrity_results_result_id");
+
+                    b.Navigation("Result");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomAction", b =>

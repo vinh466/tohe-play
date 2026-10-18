@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Integrity;
 using Tohe.Api.Modules.Registry;
 
 namespace Tohe.Api.Modules.Rooms;
@@ -198,6 +199,13 @@ internal sealed class RoomOutbox(IServiceScopeFactory scopes, IHubContext<RoomsH
         var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
         db.RoomHands.Add(hand);
         db.RoomResults.AddRange(results);
+        // Refereed here, so verified for every person at the table; saved with the hand (ADR 0029).
+        scope.ServiceProvider.GetRequiredService<IResults>().SubmitHand(
+            hand.GameId,
+            hand.RoomId,
+            hand.Hand,
+            [.. results.Select(result => new HandSeat(result.Seat, result.ProfileId, result.AccountId, result.Place, result.Points))],
+            hand.FinishedAt);
         await db.SaveChangesAsync();
     }
 

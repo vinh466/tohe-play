@@ -244,10 +244,11 @@ try {
   const onServer = async () =>
     page.evaluate(async () => {
       const saves = (await (await fetch('/api/progress/saves')).json()) as { gameId: string }[];
-      const board = (await (await fetch('/api/progress/leaderboard/hello')).json()) as {
-        profileId: string;
-      }[];
-      return { saves: saves.map((s) => s.gameId), board: board.map((e) => e.profileId) };
+      // The account's board of the week (ADR 0029): the run counts once the integrity engine took it in.
+      const board = (await (await fetch('/api/boards/hello?period=week')).json()) as {
+        rows: { profileId: string }[];
+      };
+      return { saves: saves.map((s) => s.gameId), board: board.rows.map((e) => e.profileId) };
     });
   for (let attempt = 0; ; attempt++) {
     const server = await onServer();
