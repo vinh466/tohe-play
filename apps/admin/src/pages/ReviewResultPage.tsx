@@ -1,7 +1,14 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
-import { useState } from 'react';
-import { type AdminMe, ApiError, admin, type ReviewDecision, type ReviewDetail } from '../api/client.ts';
+import { lazy, Suspense, useState } from 'react';
+import {
+  type AdminMe,
+  ApiError,
+  admin,
+  type ProfileCard,
+  type ReviewDecision,
+  type ReviewDetail,
+} from '../api/client.ts';
 import {
   count,
   dateTime,
@@ -17,10 +24,13 @@ import { StepUp } from '../security/StepUp.tsx';
 import { Button, Field, problem } from '../ui/forms.tsx';
 import { Badge, Card, cell, Fact, Failed, Loading, PageTitle, row, Stat, Table } from '../ui/ui.tsx';
 
+/** The game in a frame, with the host it needs: loaded only when someone watches a run (ADR 0032). */
+const WatchRun = lazy(() => import('./WatchRun.tsx'));
+
 /**
  * One result as a person reviews it (ADR 0029): where it stands and why, what its profile did before on the board, a
- * ranked run's evidence, every change of level — and the decision, after step-up level 2. Nobody decides about their
- * own results.
+ * ranked run's evidence and the run itself in the game (ADR 0032), every change of level — and the decision, after
+ * step-up level 2. Nobody decides about their own results.
  */
 export function ReviewResultPage() {
   const { id } = useParams({ from: '/review/$id' });
@@ -107,6 +117,7 @@ export function ReviewResultPage() {
             <Fact label="Game báo">{ranked.claimed === null ? '—' : count(ranked.claimed)}</Fact>
             <Fact label="Máy chủ chơi lại ra">{ranked.replayed === null ? '—' : count(ranked.replayed)}</Fact>
           </div>
+          <RunWatch id={result.id} player={player} />
         </Card>
       ) : null}
       <Card title="Trước đó, cùng hồ sơ và bảng">
@@ -157,6 +168,40 @@ export function ReviewResultPage() {
         </ol>
       </Card>
     </>
+  );
+}
+
+/** The run played back by the game itself, in the build that played it — while the games origin still serves it. */
+function RunWatch({ id, player }: { id: number; player: ProfileCard | null }) {
+  const [open, setOpen] = useState(false);
+  const run = useQuery({
+    queryKey: ['admin', 'review', 'run', id],
+    queryFn: () => admin.reviewRun(id),
+    enabled: open,
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+
+  if (!open) {
+    return (
+      <Button variant="secondary" className="w-fit" onClick={() => setOpen(true)}>
+        ▶ Xem lại run trong game
+      </Button>
+    );
+  }
+  if (run.isPending) return <Loading />;
+  if (run.isError) return <Failed retry={() => void run.refetch()} />;
+  if (!run.data.build) {
+    return (
+      <p className="text-ink-soft text-sm">
+        Bản {run.data.version} đã chơi run này không còn trên máy chủ game, nên không xem lại bằng game được;
+        các con số ở trên vẫn đúng.
+      </p>
+    );
+  }
+  return (
+    <Suspense fallback={<Loading />}>
+      <WatchRun run={run.data} build={run.data.build} player={player} onClose={() => setOpen(false)} />
+    </Suspense>
   );
 }
 

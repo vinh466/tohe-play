@@ -22,6 +22,8 @@ export type Community = Schemas['CommunityView'];
 export type InviteCode = Schemas['InviteCodeView'];
 export type ReviewEntry = Schemas['ReviewEntry'];
 export type ReviewDetail = Schemas['ReviewDetail'];
+export type ProfileCard = Schemas['ProfileCard'];
+export type RunReplay = Schemas['RunReplay'];
 /** What a person decides about a result (ADR 0029). */
 export type ReviewDecision = 'approve' | 'reject' | 'reopen';
 
@@ -110,6 +112,8 @@ export const admin = {
   decided: (before?: number) =>
     call(api.GET('/api/admin/review/decided', { params: { query: before === undefined ? {} : { before } } })),
   reviewResult: (id: number) => call(api.GET('/api/admin/review/{id}', { params: { path: { id } } })),
+  /** A ranked run's seed and moves, and the build that played it while the games origin serves it (ADR 0032). */
+  reviewRun: (id: number) => call(api.GET('/api/admin/review/{id}/run', { params: { path: { id } } })),
   decide: (id: number, decision: ReviewDecision, note: string | null) => {
     const request = { params: { path: { id } }, body: { note } };
     return call(

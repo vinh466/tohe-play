@@ -26,9 +26,15 @@ importers:
       '@tanstack/react-router':
         specifier: ^1.170.0
         version: 1.170.42(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tohe/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
       '@tohe/design-tokens':
         specifier: workspace:*
         version: link:../../packages/design-tokens
+      '@tohe/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
       openapi-fetch:
         specifier: ^0.17.0
         version: 0.17.0
