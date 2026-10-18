@@ -329,6 +329,24 @@ export interface paths {
         patch: operations["RenameAdminProfile"];
         trace?: never;
     };
+    "/api/admin/profiles/{id}/hidden": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hide a profile from public boards; its owner's switch does not bring it back. */
+        post: operations["HideAdminProfile"];
+        /** Let a hidden profile back on public boards, as its owner's switch says. */
+        delete: operations["ShowAdminProfile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/settings": {
         parameters: {
             query?: never;
@@ -394,6 +412,108 @@ export interface paths {
         post?: never;
         /** Revoke an invite code: no sign-up uses it again. */
         delete: operations["RevokeAdminInviteCode"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/review": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Held results, waiting for a person: oldest first, fifty at a time. */
+        get: operations["GetAdminReview"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/review/decided": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Results people decided about or the engine rejected: the latest decision first, fifty at a time. */
+        get: operations["GetAdminReviewDecided"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/review/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** One result: where it stands, what its profile did before on the board, its evidence, every decision. */
+        get: operations["GetAdminReviewResult"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/review/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a held result: verified when the server refereed or replayed it, checked otherwise. */
+        post: operations["ApproveAdminReviewResult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/review/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a result, at any level: it counts on no board. */
+        post: operations["RejectAdminReviewResult"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/review/{id}/reopen": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reopen a decided result — rejected, checked or verified: held again, for another look. */
+        post: operations["ReopenAdminReviewResult"];
+        delete?: never;
         options?: never;
         head?: never;
         patch?: never;
@@ -505,6 +625,8 @@ export interface components {
             errorsLastDay: null | number;
             catalog: components["schemas"]["AdminCatalog"];
             email: components["schemas"]["OutboxState"];
+            /** Format: int32 */
+            heldResults: number;
         };
         AdminRooms: {
             /** Format: int32 */
@@ -591,6 +713,17 @@ export interface components {
             /** Format: int64 */
             plays: number;
         };
+        DecisionView: {
+            from: null | string;
+            to: string;
+            reason: string;
+            details: null | components["schemas"]["JsonElement"];
+            /** Format: int32 */
+            ruleVersion: number;
+            actor: null | string;
+            /** Format: date-time */
+            at: string;
+        };
         DeviceShare: {
             os: string;
             osVersion: string;
@@ -657,6 +790,9 @@ export interface components {
             /** Format: int32 */
             lastWeek: number;
         };
+        HideProfileRequest: {
+            reason: null | string;
+        };
         HttpValidationProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -682,6 +818,7 @@ export interface components {
             revokedAt: null | string;
             usable: boolean;
         };
+        JsonElement: unknown;
         MetricSummary: {
             name: string;
             /** Format: int32 */
@@ -709,6 +846,16 @@ export interface components {
             /** Format: date-time */
             oldestWaitingSince: null | string;
         };
+        ProfileCard: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            avatar: string;
+            publicId: string;
+            /** Format: uuid */
+            accountId: string;
+            account: null | string;
+        };
         ProfileDetail: {
             /** Format: uuid */
             id: string;
@@ -720,12 +867,82 @@ export interface components {
             /** Format: date-time */
             createdAt: string;
             names: components["schemas"]["NameChange"][];
+            onPublicBoards: boolean;
+            hiddenFromBoards: boolean;
+        };
+        RankedEvidence: {
+            /** Format: int32 */
+            moves: number;
+            /** Format: double */
+            seconds: number;
+            /** Format: int32 */
+            minMsPerMove: number;
+            /** Format: double */
+            claimed: null | number;
+            /** Format: double */
+            replayed: null | number;
+        };
+        RecentResult: {
+            /** Format: int64 */
+            id: number;
+            /** Format: double */
+            value: number;
+            level: string;
+            /** Format: date-time */
+            at: string;
         };
         RecoveryCodesView: {
             codes: string[];
         };
         RenameProfileRequest: {
             name: null | string;
+        };
+        ReviewDecisionRequest: {
+            note: null | string;
+        };
+        ReviewDetail: {
+            result: components["schemas"]["ReviewSummary"];
+            player: null | components["schemas"]["ProfileCard"];
+            history: components["schemas"]["ReviewHistory"];
+            ranked: null | components["schemas"]["RankedEvidence"];
+            decisions: components["schemas"]["DecisionView"][];
+        };
+        ReviewEntry: {
+            result: components["schemas"]["ReviewSummary"];
+            player: null | components["schemas"]["ProfileCard"];
+        };
+        ReviewHistory: {
+            /** Format: double */
+            best: null | number;
+            /** Format: int32 */
+            runs: number;
+            recent: components["schemas"]["RecentResult"][];
+        };
+        ReviewPage: {
+            /** Format: int32 */
+            held: number;
+            results: components["schemas"]["ReviewEntry"][];
+            /** Format: int64 */
+            next: null | number;
+        };
+        ReviewSummary: {
+            /** Format: int64 */
+            id: number;
+            kind: string;
+            /** Format: uuid */
+            profileId: string;
+            gameId: string;
+            board: string;
+            /** Format: double */
+            value: number;
+            /** Format: date-time */
+            at: string;
+            level: string;
+            reason: string;
+            /** Format: date-time */
+            since: string;
+            by: null | string;
+            evidence: string;
         };
         SetRoleRequest: {
             role: null | string;
@@ -1354,6 +1571,86 @@ export interface operations {
             };
         };
     };
+    HideAdminProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["HideProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ShowAdminProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
     GetAdminSignInSettings: {
         parameters: {
             query?: never;
@@ -1520,6 +1817,205 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["CommunityView"][];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetAdminReview: {
+        parameters: {
+            query?: {
+                after?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPage"];
+                };
+            };
+        };
+    };
+    GetAdminReviewDecided: {
+        parameters: {
+            query?: {
+                before?: number;
+            };
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewPage"];
+                };
+            };
+        };
+    };
+    GetAdminReviewResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ApproveAdminReviewResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RejectAdminReviewResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    ReopenAdminReviewResult: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewDecisionRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ReviewDetail"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
             /** @description Not Found */

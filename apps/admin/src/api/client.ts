@@ -20,6 +20,10 @@ export type SignInSettings = Schemas['SignInSettingsView'];
 export type SignInMethod = Schemas['SignInMethodView'];
 export type Community = Schemas['CommunityView'];
 export type InviteCode = Schemas['InviteCodeView'];
+export type ReviewEntry = Schemas['ReviewEntry'];
+export type ReviewDetail = Schemas['ReviewDetail'];
+/** What a person decides about a result (ADR 0029). */
+export type ReviewDecision = 'approve' | 'reject' | 'reopen';
 
 /** Same origin: the console is served at /admin/ by the hub's server, which proxies /api. */
 const api = createClient<paths>({ baseUrl: '' });
@@ -95,6 +99,27 @@ export const admin = {
     call(api.PUT('/api/admin/users/{id}/role', { params: { path: { id } }, body: { role } })),
   renameProfile: (id: string, name: string) =>
     call(api.PATCH('/api/admin/profiles/{id}', { params: { path: { id } }, body: { name } })),
+  hideProfile: (id: string, reason: string) =>
+    call(api.POST('/api/admin/profiles/{id}/hidden', { params: { path: { id } }, body: { reason } })),
+  showProfile: (id: string) =>
+    call(api.DELETE('/api/admin/profiles/{id}/hidden', { params: { path: { id } } })),
+  /** Held results, oldest first; `after` is the last page's `next`. */
+  held: (after?: number) =>
+    call(api.GET('/api/admin/review', { params: { query: after === undefined ? {} : { after } } })),
+  /** Results people decided about or the engine rejected, the latest first; `before` is the last page's `next`. */
+  decided: (before?: number) =>
+    call(api.GET('/api/admin/review/decided', { params: { query: before === undefined ? {} : { before } } })),
+  reviewResult: (id: number) => call(api.GET('/api/admin/review/{id}', { params: { path: { id } } })),
+  decide: (id: number, decision: ReviewDecision, note: string | null) => {
+    const request = { params: { path: { id } }, body: { note } };
+    return call(
+      decision === 'approve'
+        ? api.POST('/api/admin/review/{id}/approve', request)
+        : decision === 'reject'
+          ? api.POST('/api/admin/review/{id}/reject', request)
+          : api.POST('/api/admin/review/{id}/reopen', request),
+    );
+  },
   signInSettings: () => call(api.GET('/api/admin/settings')),
   /** Only what is given changes: methods by id, the registration mode. */
   saveSignInSettings: (change: { methods?: Record<string, boolean>; registration?: string }) =>

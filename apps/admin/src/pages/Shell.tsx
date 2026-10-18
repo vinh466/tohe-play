@@ -57,6 +57,7 @@ export function Shell() {
 
   const mayAudit = me.data.permissions.includes('admin.audit.read');
   const mayUsers = me.data.permissions.includes('admin.users.read');
+  const mayReview = me.data.permissions.includes('admin.results.review');
   return (
     <div className="min-h-dvh">
       <header className="border-line border-b bg-surface">
@@ -66,6 +67,7 @@ export function Shell() {
             {[
               ...pages,
               ...(mayUsers ? [{ to: '/users', label: 'Người dùng' } as const] : []),
+              ...(mayReview ? [{ to: '/review', label: 'Xem xét kết quả' } as const] : []),
               { to: '/communities', label: 'Cộng đồng' } as const,
               { to: '/settings', label: 'Đăng nhập & đăng ký' } as const,
               ...(mayAudit ? [{ to: '/audit', label: 'Nhật ký' } as const] : []),

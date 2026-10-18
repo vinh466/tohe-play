@@ -4,6 +4,8 @@ import { CommunitiesPage } from './pages/CommunitiesPage.tsx';
 import { GamesPage } from './pages/GamesPage.tsx';
 import { HEALTH_DAYS, HealthPage } from './pages/HealthPage.tsx';
 import { OverviewPage } from './pages/OverviewPage.tsx';
+import { type ReviewList, ReviewPage } from './pages/ReviewPage.tsx';
+import { ReviewResultPage } from './pages/ReviewResultPage.tsx';
 import { SecurityPage } from './pages/SecurityPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { Shell } from './pages/Shell.tsx';
@@ -40,6 +42,19 @@ const usersRoute = createRoute({
   component: UsersPage,
 });
 const userRoute = createRoute({ getParentRoute: () => rootRoute, path: '/users/$id', component: UserPage });
+const reviewRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/review',
+  validateSearch: (search: Record<string, unknown>): { list: ReviewList } => ({
+    list: search.list === 'decided' ? 'decided' : 'held',
+  }),
+  component: ReviewPage,
+});
+const reviewResultRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/review/$id',
+  component: ReviewResultPage,
+});
 const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/settings',
@@ -60,6 +75,8 @@ export const router = createRouter({
     systemRoute,
     usersRoute,
     userRoute,
+    reviewRoute,
+    reviewResultRoute,
     communitiesRoute,
     settingsRoute,
     auditRoute,

@@ -86,7 +86,7 @@ export function UserPage() {
             <ProfileRow
               key={profile.id}
               profile={profile}
-              canRename={may('admin.profiles.moderate') && !self && secure}
+              canModerate={may('admin.profiles.moderate') && !self && secure}
               onChange={show}
             />
           ))}
@@ -186,14 +186,24 @@ function Actions({
 
 function ProfileRow({
   profile,
-  canRename,
+  canModerate,
   onChange,
 }: {
   profile: ProfileDetail;
-  canRename: boolean;
+  canModerate: boolean;
   onChange: (next: AccountDetail) => void;
 }) {
   const [name, setName] = useState(profile.name);
+  const [reason, setReason] = useState('');
+  // Hidden from public boards (ADR 0029): the owner's switch stays as it is, and does not bring the profile back.
+  const hide = useMutation({
+    mutationFn: () => admin.hideProfile(profile.id, reason.trim()),
+    onSuccess: (next) => {
+      setReason('');
+      onChange(next);
+    },
+  });
+  const show = useMutation({ mutationFn: () => admin.showProfile(profile.id), onSuccess: onChange });
   // Composed, as the hub sends names: the API cannot normalize them itself (docs/architecture/identity.md#names).
   const rename = useMutation({
     mutationFn: () => admin.renameProfile(profile.id, name.normalize('NFC')),
@@ -210,13 +220,18 @@ function ProfileRow({
           {profile.kind === 'child' ? `Trẻ em ${profile.ageBand ?? ''}` : 'Người lớn'} · tạo{' '}
           {dateTime(profile.createdAt)}
         </span>
+        {profile.hiddenFromBoards ? <Badge tone="danger">Bị ẩn khỏi bảng công khai</Badge> : null}
       </div>
+      <p className="text-ink-soft text-sm">
+        Bảng công khai: chủ tài khoản {profile.onPublicBoards ? 'bật' : 'tắt'}
+        {profile.hiddenFromBoards ? ', nhưng hồ sơ đang bị ẩn' : ''}.
+      </p>
       {earlier.length > 0 ? (
         <p className="text-ink-soft text-sm">
           Tên trước đây: {earlier.map((change) => `${change.name} (đến ${dateTime(change.at)})`).join(', ')}
         </p>
       ) : null}
-      {canRename ? (
+      {canModerate ? (
         <form
           onSubmit={(event) => {
             event.preventDefault();
@@ -240,6 +255,39 @@ function ProfileRow({
             disabled={!name.trim() || name.normalize('NFC') === profile.name}
           >
             Đổi tên
+          </Button>
+        </form>
+      ) : null}
+      {canModerate && profile.hiddenFromBoards ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" busy={show.isPending} onClick={() => show.mutate()}>
+            Cho hiện lại trên bảng công khai
+          </Button>
+          {show.isError ? (
+            <span role="alert" className="text-danger text-sm">
+              {problem(show.error)}
+            </span>
+          ) : null}
+        </div>
+      ) : canModerate ? (
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            hide.mutate();
+          }}
+          className="flex flex-wrap items-end gap-2"
+        >
+          <div className="min-w-56 flex-1">
+            <Field
+              label="Lý do ẩn khỏi bảng công khai (chỉ quản trị viên thấy)"
+              maxLength={300}
+              value={reason}
+              onChange={(event) => setReason(event.target.value)}
+              error={hide.isError ? problem(hide.error) : null}
+            />
+          </div>
+          <Button type="submit" variant="danger" busy={hide.isPending} disabled={!reason.trim()}>
+            Ẩn khỏi bảng công khai
           </Button>
         </form>
       ) : null}

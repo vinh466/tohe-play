@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { admin } from '../api/client.ts';
 import { ago, count, dateTime, since } from '../format.ts';
+import { meKey } from '../security/Gate.tsx';
 import { Badge, Card, Failed, Loading, PageTitle, Stat } from '../ui/ui.tsx';
 
 /** The platform at a glance, refreshed every half minute. */
@@ -11,10 +12,12 @@ export function OverviewPage() {
     queryFn: admin.overview,
     refetchInterval: 30_000,
   });
+  const me = useQuery({ queryKey: meKey, queryFn: admin.me });
   if (overview.isPending) return <Loading />;
   if (overview.isError) return <Failed retry={() => void overview.refetch()} />;
 
-  const { accounts, profiles, players, rooms, errorsLastDay, catalog, email, at, version } = overview.data;
+  const { accounts, profiles, players, rooms, errorsLastDay, catalog, email, heldResults, at, version } =
+    overview.data;
   return (
     <>
       <PageTitle title="Tổng quan" aside={`Cập nhật ${dateTime(at)} · phiên bản ${version}`} />
@@ -44,6 +47,22 @@ export function OverviewPage() {
             <Stat label="Đang chơi" value={count(rooms.playing)} />
             <Stat label="Đang kết nối" value={count(rooms.online)} />
           </div>
+        </Card>
+        <Card
+          title="Kết quả chờ xem xét"
+          aside={
+            me.data?.permissions.includes('admin.results.review') ? (
+              <Link
+                to="/review"
+                search={{ list: 'held' }}
+                className="text-brand-ink text-sm underline underline-offset-4"
+              >
+                Xem
+              </Link>
+            ) : null
+          }
+        >
+          <Stat value={count(heldResults)} hint="engine giữ lại, chờ một người quyết" />
         </Card>
         <Card
           title="Lỗi trên thiết bị"

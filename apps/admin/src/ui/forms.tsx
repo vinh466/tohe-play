@@ -102,6 +102,8 @@ const reasons: Record<string, string> = {
   invite_code_invalid: 'Mã gồm 4–32 ký tự: chữ không dấu, số, dấu gạch ngang.',
   max_uses_invalid: 'Số lượt phải từ 1 trở lên.',
   expires_in_past: 'Ngày hết hạn phải ở phía trước.',
+  review_not_allowed: 'Kết quả này vừa đổi mức. Tải lại trang để xem.',
+  note_too_long: 'Ghi chú dài quá 300 ký tự.',
 };
 
 /** What went wrong, in Vietnamese; `own` words a code for the form at hand, e.g. a limit of its own. */
