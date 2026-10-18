@@ -5,7 +5,7 @@ sidebar:
   order: 23
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — inviting a profile by its ID, as its owner allows, since [ADR 0033](0033-invite-a-profile-by-its-id.md)
 - **Date:** 2026-10-18
 - **Supersedes:** [ADR 0004](0004-identity-households-and-profiles.md) (households) · **Amends:**
   [ADR 0011](0011-password-sign-in-first.md) (no invites; the parent gate guards the account and its profiles)
