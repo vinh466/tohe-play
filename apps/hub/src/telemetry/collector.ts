@@ -47,20 +47,20 @@ export const KEYS = {
 export interface TelemetrySwitches {
   /** The server's (GET /api/config); null until the config has loaded. */
   server: boolean | null;
-  /** The household's, set by a parent; true for guests, who have none. */
-  household: boolean;
+  /** The account's, set by its owner; true for guests, who have none. */
+  account: boolean;
   /** This device's, on the "Dữ liệu kỹ thuật" page. */
   device: boolean;
 }
 
-export function consentOf({ server, household, device }: TelemetrySwitches): Consent {
-  return !device || !household ? false : server;
+export function consentOf({ server, account, device }: TelemetrySwitches): Consent {
+  return !device || !account ? false : server;
 }
 
 /** Which switch keeps telemetry off, if any, for the transparency page. */
-export function statusOf(switches: TelemetrySwitches): 'on' | 'device' | 'household' | 'server' | 'unknown' {
+export function statusOf(switches: TelemetrySwitches): 'on' | 'device' | 'account' | 'server' | 'unknown' {
   if (!switches.device) return 'device';
-  if (!switches.household) return 'household';
+  if (!switches.account) return 'account';
   if (switches.server === false) return 'server';
   return switches.server === true ? 'on' : 'unknown';
 }

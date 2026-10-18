@@ -9,6 +9,7 @@
     "test": "dotnet test --solution Tohe.slnx"
   },
   "devDependencies": {
+    "@tohe/game-merge-block": "workspace:*",
     "@tohe/game-tien-len": "workspace:*"
   }
 }

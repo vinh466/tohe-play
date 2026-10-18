@@ -18,12 +18,19 @@ export function ReplayPage() {
   return <RequireSession need="player">{({ player }) => <Replayer player={player} />}</RequireSession>;
 }
 
-/** The replay as the game receives it in `init.replay`. */
-export function replayFor(hand: HandReplay): Replay {
+/**
+ * The replay as the game receives it in `init.replay`. A player whose profile was deleted since keeps their seat, under
+ * `deletedName` (ADR 0034).
+ */
+export function replayFor(hand: HandReplay, deletedName: string): Replay {
   return {
     seats: hand.seats.map((seat) => ({
       profile: seat.profileId
-        ? { id: seat.profileId, name: seat.name ?? '', avatar: seat.avatar ?? undefined }
+        ? {
+            id: seat.profileId,
+            name: seat.deleted ? deletedName : (seat.name ?? ''),
+            avatar: seat.avatar ?? undefined,
+          }
         : null,
       bot: seat.bot,
       connected: true,
@@ -49,7 +56,11 @@ function Replayer({ player }: { player: Player }) {
     staleTime: Number.POSITIVE_INFINITY,
   });
   const game = games.data?.find((g) => g.id === record.data?.gameId);
-  const replay = useMemo(() => (record.data ? replayFor(record.data) : undefined), [record.data]);
+  const deletedName = t('rooms.deletedPlayer');
+  const replay = useMemo(
+    () => (record.data ? replayFor(record.data, deletedName) : undefined),
+    [record.data, deletedName],
+  );
   const back = () => leaveTo({ to: '/rooms/$gameId', params: { gameId: record.data?.gameId ?? '' } });
 
   if (record.isError || (record.data && games.isSuccess && !game)) {

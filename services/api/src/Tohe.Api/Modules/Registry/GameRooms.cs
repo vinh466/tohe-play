@@ -82,14 +82,38 @@ public sealed class GameRooms
     }
 }
 
+/// <summary>
+/// A game's <c>ranked</c> block (ADR 0030), mirroring RankedManifest in packages/contract/src/manifest.ts: its verify
+/// module, the board ranked runs count on, and how fast a person can play.
+/// </summary>
+public sealed record GameRanked(string Verify, string Board, int MinMsPerMove, int MaxMoves)
+{
+    public static GameRanked Parse(string json)
+    {
+        using var document = JsonDocument.Parse(json);
+        var root = document.RootElement;
+        return new GameRanked(
+            root.TryGetProperty("verify", out var verify) ? verify.GetString() ?? "verify.js" : "verify.js",
+            root.TryGetProperty("board", out var board) ? board.GetString() ?? "default" : "default",
+            root.TryGetProperty("minMsPerMove", out var pace) ? pace.GetInt32() : 100,
+            root.TryGetProperty("maxMoves", out var most) ? most.GetInt32() : 20_000);
+    }
+}
+
 /// <summary>A game as other modules may see it, by id.</summary>
 /// <param name="Path">The immutable build's path on the games origin, e.g. <c>tien-len/0.2.0/</c>.</param>
-public sealed record RegistryGame(string Id, string Name, string Version, string Path, int MinAge, GameRooms? Rooms);
+/// <param name="Ranked">Set for games whose runs the server replays (ADR 0030).</param>
+public sealed record RegistryGame(
+    string Id, string Name, string Version, string Path, int MinAge, GameRooms? Rooms, GameRanked? Ranked = null);
 
 /// <summary>Read access to the registry for other modules (Rooms reads a game's rooms block and build path).</summary>
 public interface IRegistryGames
 {
+    /// <summary>A listed game; null when the catalog does not list it now.</summary>
     Task<RegistryGame?> GetAsync(string id, CancellationToken cancellationToken);
+
+    /// <summary>The registry has known the game, listed now or not: its scores can be real (ADR 0029).</summary>
+    Task<bool> KnowsAsync(string id, CancellationToken cancellationToken);
 }
 
 internal sealed class RegistryGames(ToheDbContext db) : IRegistryGames
@@ -99,6 +123,16 @@ internal sealed class RegistryGames(ToheDbContext db) : IRegistryGames
         var game = await db.Games.AsNoTracking().FirstOrDefaultAsync(g => g.Id == id && g.Listed, cancellationToken);
         return game is null
             ? null
-            : new RegistryGame(game.Id, game.Name, game.Version, game.Path, game.MinAge, game.Rooms is { } rooms ? GameRooms.Parse(rooms) : null);
+            : new RegistryGame(
+                game.Id,
+                game.Name,
+                game.Version,
+                game.Path,
+                game.MinAge,
+                game.Rooms is { } rooms ? GameRooms.Parse(rooms) : null,
+                game.Ranked is { } ranked ? GameRanked.Parse(ranked) : null);
     }
+
+    public Task<bool> KnowsAsync(string id, CancellationToken cancellationToken) =>
+        db.Games.AsNoTracking().AnyAsync(g => g.Id == id, cancellationToken);
 }

@@ -5,7 +5,8 @@ sidebar:
   order: 5
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — a ranked run needs the network when it starts, and only then, since
+  [ADR 0030](0030-ranked-runs-replayed-by-the-server.md)
 - **Date:** 2026-10-13
 
 ## Context

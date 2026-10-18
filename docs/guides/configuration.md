@@ -18,17 +18,37 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | --- | --- | --- |
 | `ConnectionStrings:Database` | PostgreSQL connection string | — required |
 | `Database:MigrateOnStartup` | Apply pending migrations when the API starts | `false` (compose and UAT: `true`) |
-| `App:PublicUrl` | The hub's public URL, e.g. `https://tohe.example.org` — no path. With `https`, every request counts as HTTPS and the session cookie is `Secure`, named `__Host-tohe.session` | unset: requests stay as they arrive |
+| `App:PublicUrl` | The hub's public URL, e.g. `https://tohe.example.org` — no path. With `https`, every request counts as HTTPS and the session cookie is `Secure`, named `__Host-tohe.session`. Emails link to the hub's pages under it | unset: requests stay as they arrive, emails carry codes without links |
 | `App:Version` | The commit the deployment built, shown by `GET /api/config` | the assembly's version, or `dev` |
 | `Games:PublicOrigin` | Origin browsers load game iframes from | — required |
 | `Games:CatalogUrl` | Where the API fetches `catalog.json` (often an internal address) | — required |
 | `Registry:SyncInterval` | How often the catalog is fetched | `00:05:00` |
 | `Telemetry:Enabled` | Server switch for device telemetry ([ADR 0015](../decisions/0015-device-telemetry.md)) | `true` |
 | `Telemetry:OperatorToken` | Token for `GET /api/telemetry/report` | empty: no reports |
-| `Identity:AuthRequestsPerMinute` | Sign-in, registration, PIN and parent-gate requests per client address | `10` |
+| `Identity:AuthRequestsPerMinute` | Requests per client address and minute in each of three buckets: signing in or asking for a code, typing a code back, a PIN or the parent gate (ADR 0024) | `10` |
+| `Identity:SessionCheckInterval` | How often a session is checked against its account's security stamp: after a password reset or an email change, other sessions end within this long | `00:05:00` |
+| `Email:Mode` | `Smtp` to send email, `Disabled` to send none — features that need email are then unavailable ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | `Disabled` (compose: Mailpit) |
+| `Email:From` | The sender, e.g. `Tò He <no-reply@example.org>` — an address the relay may send as | — required with `Smtp` |
+| `Email:Smtp:Host`, `Email:Smtp:Port`, `Email:Smtp:Security` | The relay; `Security` is `StartTls` (587), `SslOnConnect` (465) or `None` (a relay on the same network, like Mailpit) | —, `587`, `StartTls` |
+| `Email:Smtp:Username`, `Email:Smtp:Password` | The relay's credentials (Resend: `resend` and an API key) | empty: no authentication |
+| `Auth:Providers:Google:ClientId`, `Auth:Providers:Google:ClientSecret` | Google sign-in ([ADR 0026](../decisions/0026-sign-in-methods-and-account-linking.md)): an OAuth client of type *Web application* with the redirect URI `<App:PublicUrl>/api/auth/external/google/callback` | unset: no Google |
+| `Auth:Providers:GitHub:ClientId`, `Auth:Providers:GitHub:ClientSecret` | GitHub sign-in: an OAuth app with the callback URL `<App:PublicUrl>/api/auth/external/github/callback` | unset: no GitHub |
+| `Auth:Providers:Oidc:Authority`, `…:ClientId`, `…:ClientSecret`, `…:DisplayName` | One more OpenID Connect issuer (Dex, Keycloak…): its issuer URL, a confidential client with the redirect URI `<App:PublicUrl>/api/auth/external/oidc/callback`, and the name on its button | unset: none; the name defaults to `OpenID` |
+| `Auth:Providers:Oidc:RequireHttpsMetadata` | `false` only for a test issuer on plain HTTP | `true` |
 | `Rooms:*` | Timers, bots and limits of online rooms ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | see `RoomsOptions` |
+| `Integrity:Replays`, `Integrity:ReplayInterval` | Replay ranked runs in the background, and how often to look for new ones ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)) | `true`, `00:00:05` |
+| `Admin:SetupToken` | The token that makes a new deployment's first owner, at `/admin/setup` ([Admin console](../architecture/admin.md#the-first-owner)); keep it in the secret store | unset: made up at start and logged once while there is no owner |
+| `Admin:BootstrapEmails` | Addresses allowed to become the first owner (`Admin__BootstrapEmails__0`, `__1`…) | empty: any confirmed address with the token |
 
 The API trusts the `X-Forwarded-For` the hub sends, so nothing but the hub may reach it.
+
+A provider exists only with both its client ID and secret; the admin console then switches it on and off, as it does
+email and password, and decides who may sign up ([ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md),
+[Admin console](../architecture/admin.md#sign-in-and-registration)). `GET /api/config` lists the providers that exist
+and are on. Providers need
+`App:PublicUrl` with `https`: the redirect URI is built from the request — HTTPS, because of `App:PublicUrl`, and the
+host the browser used — so players reach the hub at that address, and the providers' own cookies are `Secure`.
+UAT and local development go without them (a developer may register an app for `http://localhost:4720`).
 
 ## Hub
 

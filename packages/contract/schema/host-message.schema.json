@@ -290,6 +290,28 @@
           ],
           "additionalProperties": false
         },
+        "rankedReplay": {
+          "type": "object",
+          "properties": {
+            "seed": {
+              "type": "integer",
+              "minimum": -9007199254740991,
+              "maximum": 9007199254740991
+            },
+            "moves": {
+              "maxItems": 100000,
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/__schema5"
+              }
+            }
+          },
+          "required": [
+            "seed",
+            "moves"
+          ],
+          "additionalProperties": false
+        },
         "shell": {
           "type": "object",
           "properties": {
@@ -432,6 +454,9 @@
         },
         "error": {
           "type": "string"
+        },
+        "value": {
+          "$ref": "#/$defs/__schema6"
         }
       },
       "required": [
@@ -454,13 +479,13 @@
           "const": "room.view"
         },
         "view": {
-          "$ref": "#/$defs/__schema5"
+          "$ref": "#/$defs/__schema7"
         },
         "events": {
           "maxItems": 200,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema6"
+            "$ref": "#/$defs/__schema8"
           }
         },
         "seq": {
@@ -829,6 +854,68 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/__schema6"
+          }
+        }
+      ]
+    },
+    "__schema7": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema7"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema7"
+          }
+        }
+      ]
+    },
+    "__schema8": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema8"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema8"
           }
         }
       ]

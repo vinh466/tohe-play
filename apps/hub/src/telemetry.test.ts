@@ -165,19 +165,19 @@ describe('the hub collector', () => {
 });
 
 describe('switches', () => {
-  it('sends only when the server, the household and the device all say yes', () => {
-    expect(consentOf({ server: true, household: true, device: true })).toBe(true);
-    expect(consentOf({ server: null, household: true, device: true })).toBeNull();
-    expect(consentOf({ server: true, household: false, device: true })).toBe(false);
-    expect(consentOf({ server: null, household: true, device: false })).toBe(false);
+  it('sends only when the server, the account and the device all say yes', () => {
+    expect(consentOf({ server: true, account: true, device: true })).toBe(true);
+    expect(consentOf({ server: null, account: true, device: true })).toBeNull();
+    expect(consentOf({ server: true, account: false, device: true })).toBe(false);
+    expect(consentOf({ server: null, account: true, device: false })).toBe(false);
   });
 
   it('names the switch that keeps it off', () => {
-    expect(statusOf({ server: true, household: true, device: true })).toBe('on');
-    expect(statusOf({ server: true, household: true, device: false })).toBe('device');
-    expect(statusOf({ server: true, household: false, device: true })).toBe('household');
-    expect(statusOf({ server: false, household: true, device: true })).toBe('server');
-    expect(statusOf({ server: null, household: true, device: true })).toBe('unknown');
+    expect(statusOf({ server: true, account: true, device: true })).toBe('on');
+    expect(statusOf({ server: true, account: true, device: false })).toBe('device');
+    expect(statusOf({ server: true, account: false, device: true })).toBe('account');
+    expect(statusOf({ server: false, account: true, device: true })).toBe('server');
+    expect(statusOf({ server: null, account: true, device: true })).toBe('unknown');
   });
 
   it('puts play time into ranges', () => {

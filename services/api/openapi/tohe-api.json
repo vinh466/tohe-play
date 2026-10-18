@@ -27,12 +27,87 @@
         }
       }
     },
+    "/api/account/logins/{provider}": {
+      "delete": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Remove a provider from the account (needs step-up level 2); never the last way in.",
+        "operationId": "UnlinkSignInMethod",
+        "parameters": [
+          {
+            "name": "provider",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/profiles/by-id/{publicId}": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A profile's card by its public ID, as this account may find it: never a child of another account.",
+        "operationId": "FindProfileById",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileCardView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/profiles/options": {
       "get": {
         "tags": [
           "Identity"
         ],
-        "summary": "Allowed avatars and age bands.",
+        "summary": "Allowed avatars and age bands, and how many profiles an account may own.",
         "operationId": "GetProfileOptions",
         "responses": {
           "200": {
@@ -48,18 +123,183 @@
         }
       }
     },
+    "/api/auth/challenge": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A proof-of-work to solve before signing up or asking for a password reset, when /api/config says proofOfWork.",
+        "operationId": "GetChallenge",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProofOfWorkChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "tags": [
           "Identity"
         ],
-        "summary": "Create an adult account: a new household, or join one with an invite code.",
+        "summary": "Start signing up: a code goes to the email. 202 whether or not the address has an account.",
         "operationId": "Register",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/RegisterRequest"
+                "$ref": "#/components/schemas/SignUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/register/confirm": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code from the email creates the account and its first profile, which plays at once.",
+        "operationId": "ConfirmRegistration",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/login": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Sign in; sets the session cookie. An only profile without a PIN plays at once.",
+        "operationId": "Login",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LoginRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password/forgot": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A code to set a new password goes to the email, if it has an account. 202 either way.",
+        "operationId": "ForgotPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ForgotPasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/password/reset": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code sets a new password; every other session ends.",
+        "operationId": "ResetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ResetPasswordRequest"
               }
             }
           },
@@ -89,37 +329,6 @@
         }
       }
     },
-    "/api/auth/login": {
-      "post": {
-        "tags": [
-          "Identity"
-        ],
-        "summary": "Sign in; sets the session cookie.",
-        "operationId": "Login",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/LoginRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/MeView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
     "/api/auth/logout": {
       "post": {
         "tags": [
@@ -139,7 +348,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "The device session (account, household, profiles, active profile, parent gate); 204 when signed out.",
+        "summary": "The device session (account, profiles, active profile, parent gate); 204 when signed out.",
         "operationId": "GetMe",
         "responses": {
           "200": {
@@ -154,6 +363,468 @@
           },
           "204": {
             "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/account/email": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A code goes to the new email. Needs step-up level 2, or the password with the request.",
+        "operationId": "ChangeEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AttemptView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/email/confirm": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code makes the new email the one that signs in; every other session ends.",
+        "operationId": "ConfirmEmailChange",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/manage-pin": {
+      "put": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Set or change the manage PIN (needs step-up level 2); opens profile management.",
+        "operationId": "SetManagePin",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ManagePinRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/password": {
+      "put": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Set or change the password (needs step-up level 2); every other session ends.",
+        "operationId": "SetPassword",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account/terms": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Accept the terms and privacy notice in the version the hub shows.",
+        "operationId": "AcceptTerms",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TermsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/account": {
+      "delete": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Delete the account (needs step-up level 2): it stops now, and goes for good after seven days unless someone signs in to it.",
+        "operationId": "DeleteAccount",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDeletionView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Turn the account's telemetry on or off.",
+        "operationId": "UpdateAccount",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateAccountRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The step a sign-in back from a provider waits for, on this browser; 404 when none.",
+        "operationId": "GetPendingSignIn",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PendingSignInView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Forget the sign-in waiting on this browser.",
+        "operationId": "CancelPendingSignIn",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/email": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The provider vouched for no address: a code goes to this one.",
+        "operationId": "PendingSignInEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PendingEmailRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/email/confirm": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code proves the address: an account with it is linked at once; otherwise sign-up follows.",
+        "operationId": "ConfirmPendingSignInEmail",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PendingCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalOutcome"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/link-code": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A code to the account's address, to prove it before the provider is linked.",
+        "operationId": "PendingSignInLinkCode",
+        "responses": {
+          "202": {
+            "description": "Accepted"
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/link": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The code, or the account's password, links the provider to the account and signs in.",
+        "operationId": "LinkPendingSignIn",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/LinkProofRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalOutcome"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/auth/external/pending/signup": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A name and the terms finish signing up with the provider; the first profile plays at once.",
+        "operationId": "CompletePendingSignUp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CompleteSignUpRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ExternalOutcome"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -216,7 +887,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Re-enter the password to manage the household for a few minutes.",
+        "summary": "The manage PIN opens profile management on this device for 10 minutes (step-up level 1).",
         "operationId": "UnlockParentGate",
         "requestBody": {
           "content": {
@@ -245,7 +916,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Lock household management again.",
+        "summary": "Lock profile management again.",
         "operationId": "LockParentGate",
         "responses": {
           "200": {
@@ -261,34 +932,24 @@
         }
       }
     },
-    "/api/household": {
-      "patch": {
+    "/api/session/step-up": {
+      "post": {
         "tags": [
           "Identity"
         ],
-        "summary": "Rename the household, or turn its telemetry on or off.",
-        "operationId": "UpdateHousehold",
+        "summary": "The password opens account security, and profile management, for 10 minutes (level 2).",
+        "operationId": "StepUp",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/UpdateHouseholdRequest"
+                "$ref": "#/components/schemas/StepUpRequest"
               }
             }
           },
           "required": true
         },
         "responses": {
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
           "200": {
             "description": "OK",
             "content": {
@@ -302,53 +963,45 @@
         }
       }
     },
-    "/api/household/invite": {
+    "/api/session/step-up/code": {
       "post": {
         "tags": [
           "Identity"
         ],
-        "summary": "New invite code for another adult (replaces the previous one).",
-        "operationId": "CreateInvite",
+        "summary": "A code to the account's email, for stepping up without the password.",
+        "operationId": "StepUpCode",
         "responses": {
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
+          "202": {
+            "description": "Accepted",
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/MeView"
+                  "$ref": "#/components/schemas/AttemptView"
                 }
               }
             }
           }
         }
-      },
-      "delete": {
+      }
+    },
+    "/api/session/step-up/confirm": {
+      "post": {
         "tags": [
           "Identity"
         ],
-        "summary": "Revoke the invite code.",
-        "operationId": "RevokeInvite",
-        "responses": {
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
+        "summary": "The code opens account security, and profile management, for 10 minutes (level 2).",
+        "operationId": "ConfirmStepUp",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConfirmCodeRequest"
               }
             }
           },
+          "required": true
+        },
+        "responses": {
           "200": {
             "description": "OK",
             "content": {
@@ -362,12 +1015,12 @@
         }
       }
     },
-    "/api/household/profiles": {
+    "/api/profiles": {
       "post": {
         "tags": [
           "Identity"
         ],
-        "summary": "Add a child profile.",
+        "summary": "Add a profile to the account (at most five).",
         "operationId": "CreateProfile",
         "requestBody": {
           "content": {
@@ -413,12 +1066,12 @@
         }
       }
     },
-    "/api/household/profiles/{id}": {
+    "/api/profiles/{id}": {
       "patch": {
         "tags": [
           "Identity"
         ],
-        "summary": "Edit a profile. Adults can only edit their own adult profile.",
+        "summary": "Edit one of the account's profiles.",
         "operationId": "UpdateProfile",
         "parameters": [
           {
@@ -481,7 +1134,7 @@
         "tags": [
           "Identity"
         ],
-        "summary": "Remove a child profile.",
+        "summary": "Delete one of the account's profiles — never the last one — and everything of it, for good.",
         "operationId": "DeleteProfile",
         "parameters": [
           {
@@ -725,13 +1378,13 @@
         }
       }
     },
-    "/api/progress/leaderboard/{gameId}": {
+    "/api/boards/{gameId}": {
       "get": {
         "tags": [
-          "Progress"
+          "Boards"
         ],
-        "summary": "Best score of each household member on a game's board.",
-        "operationId": "GetLeaderboard",
+        "summary": "The account's board of a game: each profile's best this week or of all time.",
+        "operationId": "GetAccountBoard",
         "parameters": [
           {
             "name": "gameId",
@@ -747,6 +1400,14 @@
             "schema": {
               "type": "string",
               "default": "default"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "week"
             }
           }
         ],
@@ -766,10 +1427,190 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "type": "array",
-                  "items": {
-                    "$ref": "#/components/schemas/LeaderboardEntry"
-                  }
+                  "$ref": "#/components/schemas/AccountBoardView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/boards/{gameId}/public": {
+      "get": {
+        "tags": [
+          "Boards"
+        ],
+        "summary": "A community's or the server's board of a game: the first 50 and the viewer's place, by trust.",
+        "operationId": "GetPublicBoard",
+        "parameters": [
+          {
+            "name": "gameId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "scope",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "server"
+            }
+          },
+          {
+            "name": "board",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "default"
+            }
+          },
+          {
+            "name": "period",
+            "in": "query",
+            "schema": {
+              "type": "string",
+              "default": "week"
+            }
+          }
+        ],
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PublicBoardView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/runs": {
+      "post": {
+        "tags": [
+          "Boards"
+        ],
+        "summary": "Open a ranked run of a game (ADR 0030): its id and the seed to play it from; it closes the last one.",
+        "operationId": "StartRankedRun",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRankedRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RankedRunView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/finish": {
+      "post": {
+        "tags": [
+          "Boards"
+        ],
+        "summary": "Hand a ranked run's moves and score in; the server replays them with the game's verify module.",
+        "operationId": "FinishRankedRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinishRankedRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -1006,7 +1847,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "The active profile's online results in a game, and its household's board over the last 7 days.",
+        "summary": "The active profile's online results in a game, and its account's board of the week.",
         "operationId": "GetRoomStats",
         "parameters": [
           {
@@ -1377,7 +2218,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "Ask a member of one's household to the table: it shows in their hub for 10 minutes.",
+        "summary": "Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): it shows in their hub for 10 minutes.",
         "operationId": "InviteToRoom",
         "parameters": [
           {
@@ -1425,7 +2266,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "Tables household members asked the active profile to, for the next 10 minutes.",
+        "summary": "Tables someone asked the active profile to — by its ID, or from its own account — for the next 10 minutes.",
         "operationId": "ListRoomInvites",
         "responses": {
           "403": {
@@ -1604,11 +2445,65 @@
   },
   "components": {
     "schemas": {
+      "AccountBoardView": {
+        "required": [
+          "gameId",
+          "board",
+          "period",
+          "since",
+          "rows"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "since": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "rows": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/BoardRow"
+            }
+          }
+        }
+      },
+      "AccountDeletionView": {
+        "required": [
+          "deleteAfter"
+        ],
+        "type": "object",
+        "properties": {
+          "deleteAfter": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
       "AccountView": {
         "required": [
           "id",
+          "email",
           "username",
-          "displayName"
+          "displayName",
+          "telemetry",
+          "hasPassword",
+          "hasManagePin",
+          "termsVersion",
+          "logins",
+          "role",
+          "community"
         ],
         "type": "object",
         "properties": {
@@ -1616,11 +2511,120 @@
             "type": "string",
             "format": "uuid"
           },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "username": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "displayName": {
             "type": "string"
+          },
+          "telemetry": {
+            "type": "boolean"
+          },
+          "hasPassword": {
+            "type": "boolean"
+          },
+          "hasManagePin": {
+            "type": "boolean"
+          },
+          "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "logins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "community": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AttemptView": {
+        "required": [
+          "attemptId"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        }
+      },
+      "BoardRow": {
+        "required": [
+          "profileId",
+          "name",
+          "avatar",
+          "value",
+          "at",
+          "inProgress",
+          "underReview"
+        ],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "inProgress": {
+            "type": "boolean"
+          },
+          "underReview": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ChangeEmailRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -1628,7 +2632,12 @@
         "required": [
           "gamesOrigin",
           "apiVersion",
-          "telemetry"
+          "telemetry",
+          "email",
+          "providers",
+          "passwordSignIn",
+          "registration",
+          "proofOfWork"
         ],
         "type": "object",
         "properties": {
@@ -1640,6 +2649,68 @@
           },
           "telemetry": {
             "type": "boolean"
+          },
+          "email": {
+            "type": "boolean"
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ExternalProvider"
+            }
+          },
+          "passwordSignIn": {
+            "type": "boolean"
+          },
+          "registration": {
+            "type": "string"
+          },
+          "proofOfWork": {
+            "type": "boolean"
+          }
+        }
+      },
+      "CompleteSignUpRequest": {
+        "required": [
+          "displayName",
+          "acceptTerms",
+          "termsVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string"
+          },
+          "acceptTerms": {
+            "type": "boolean"
+          },
+          "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inviteCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConfirmCodeRequest": {
+        "required": [
+          "attemptId",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
           }
         }
       },
@@ -1667,8 +2738,7 @@
       "CreateProfileRequest": {
         "required": [
           "name",
-          "avatar",
-          "ageBand"
+          "avatar"
         ],
         "type": "object",
         "properties": {
@@ -1679,7 +2749,10 @@
             "type": "string"
           },
           "ageBand": {
-            "type": "string"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "pin": {
             "type": [
@@ -1707,7 +2780,7 @@
             "type": "boolean",
             "default": true
           },
-          "householdOnly": {
+          "accountOnly": {
             "type": "boolean",
             "default": false
           },
@@ -1851,6 +2924,87 @@
           },
           "new": {
             "type": "boolean"
+          }
+        }
+      },
+      "ExternalOutcome": {
+        "required": [
+          "me",
+          "pending"
+        ],
+        "type": "object",
+        "properties": {
+          "me": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/MeView"
+              }
+            ]
+          },
+          "pending": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PendingSignInView"
+              }
+            ]
+          }
+        }
+      },
+      "ExternalProvider": {
+        "required": [
+          "id",
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          }
+        }
+      },
+      "FinishRankedRunRequest": {
+        "required": [
+          "moves",
+          "score"
+        ],
+        "type": "object",
+        "properties": {
+          "moves": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "ForgotPasswordRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "proof": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProofOfWorkSolution"
+              }
+            ]
           }
         }
       },
@@ -2185,44 +3339,6 @@
           }
         }
       },
-      "HouseholdView": {
-        "required": [
-          "id",
-          "name",
-          "members",
-          "invite",
-          "telemetry"
-        ],
-        "type": "object",
-        "properties": {
-          "id": {
-            "type": "string",
-            "format": "uuid"
-          },
-          "name": {
-            "type": "string"
-          },
-          "members": {
-            "type": "array",
-            "items": {
-              "$ref": "#/components/schemas/MemberView"
-            }
-          },
-          "invite": {
-            "oneOf": [
-              {
-                "type": "null"
-              },
-              {
-                "$ref": "#/components/schemas/InviteView"
-              }
-            ]
-          },
-          "telemetry": {
-            "type": "boolean"
-          }
-        }
-      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -2280,22 +3396,6 @@
           }
         }
       },
-      "InviteView": {
-        "required": [
-          "code",
-          "expiresAt"
-        ],
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": "string"
-          },
-          "expiresAt": {
-            "type": "string",
-            "format": "date-time"
-          }
-        }
-      },
       "JsonElement": { },
       "LeaderRow": {
         "required": [
@@ -2332,48 +3432,31 @@
           }
         }
       },
-      "LeaderboardEntry": {
-        "required": [
-          "profileId",
-          "name",
-          "avatar",
-          "value",
-          "achievedAt",
-          "inProgress"
-        ],
+      "LinkProofRequest": {
         "type": "object",
         "properties": {
-          "profileId": {
-            "type": "string",
-            "format": "uuid"
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
           },
-          "name": {
-            "type": "string"
-          },
-          "avatar": {
-            "type": "string"
-          },
-          "value": {
-            "type": "number",
-            "format": "double"
-          },
-          "achievedAt": {
-            "type": "string",
-            "format": "date-time"
-          },
-          "inProgress": {
-            "type": "boolean"
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
       "LoginRequest": {
         "required": [
-          "username",
+          "email",
           "password"
         ],
         "type": "object",
         "properties": {
-          "username": {
+          "email": {
             "type": "string"
           },
           "password": {
@@ -2381,21 +3464,29 @@
           }
         }
       },
+      "ManagePinRequest": {
+        "required": [
+          "pin"
+        ],
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string"
+          }
+        }
+      },
       "MeView": {
         "required": [
           "account",
-          "household",
           "profiles",
           "activeProfileId",
-          "parentUnlockedUntil"
+          "parentUnlockedUntil",
+          "secureUntil"
         ],
         "type": "object",
         "properties": {
           "account": {
             "$ref": "#/components/schemas/AccountView"
-          },
-          "household": {
-            "$ref": "#/components/schemas/HouseholdView"
           },
           "profiles": {
             "type": "array",
@@ -2416,26 +3507,13 @@
               "string"
             ],
             "format": "date-time"
-          }
-        }
-      },
-      "MemberView": {
-        "required": [
-          "accountId",
-          "displayName",
-          "username"
-        ],
-        "type": "object",
-        "properties": {
-          "accountId": {
-            "type": "string",
-            "format": "uuid"
           },
-          "displayName": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
+          "secureUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
           }
         }
       },
@@ -2472,12 +3550,71 @@
       },
       "ParentGateRequest": {
         "required": [
+          "pin"
+        ],
+        "type": "object",
+        "properties": {
+          "pin": {
+            "type": "string"
+          }
+        }
+      },
+      "PasswordRequest": {
+        "required": [
           "password"
         ],
         "type": "object",
         "properties": {
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "PendingCodeRequest": {
+        "required": [
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          }
+        }
+      },
+      "PendingEmailRequest": {
+        "required": [
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          }
+        }
+      },
+      "PendingSignInView": {
+        "required": [
+          "provider",
+          "step",
+          "email",
+          "hasPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "provider": {
+            "type": "string"
+          },
+          "step": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasPassword": {
+            "type": "boolean"
           }
         }
       },
@@ -2539,10 +3676,35 @@
           }
         }
       },
+      "ProfileCardView": {
+        "required": [
+          "id",
+          "publicId",
+          "name",
+          "avatar"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          }
+        }
+      },
       "ProfileOptionsView": {
         "required": [
           "avatars",
-          "ageBands"
+          "ageBands",
+          "maxProfiles"
         ],
         "type": "object",
         "properties": {
@@ -2557,25 +3719,35 @@
             "items": {
               "type": "string"
             }
+          },
+          "maxProfiles": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
       "ProfileView": {
         "required": [
           "id",
+          "publicId",
           "name",
           "avatar",
           "kind",
           "ageBand",
           "hasPin",
-          "isMine",
-          "playWithOthers"
+          "playWithOthers",
+          "onPublicBoards",
+          "hiddenFromBoards",
+          "invites"
         ],
         "type": "object",
         "properties": {
           "id": {
             "type": "string",
             "format": "uuid"
+          },
+          "publicId": {
+            "type": "string"
           },
           "name": {
             "type": "string"
@@ -2595,10 +3767,187 @@
           "hasPin": {
             "type": "boolean"
           },
-          "isMine": {
+          "playWithOthers": {
             "type": "boolean"
           },
-          "playWithOthers": {
+          "onPublicBoards": {
+            "type": "boolean"
+          },
+          "hiddenFromBoards": {
+            "type": "boolean"
+          },
+          "invites": {
+            "type": "string"
+          }
+        }
+      },
+      "ProofOfWorkChallenge": {
+        "required": [
+          "algorithm",
+          "challenge",
+          "salt",
+          "maxNumber",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string"
+          },
+          "challenge": {
+            "type": "string"
+          },
+          "salt": {
+            "type": "string"
+          },
+          "maxNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "ProofOfWorkSolution": {
+        "required": [
+          "token",
+          "number"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "PublicBoardView": {
+        "required": [
+          "gameId",
+          "board",
+          "scope",
+          "period",
+          "since",
+          "hands",
+          "reproducible",
+          "listed",
+          "players",
+          "top",
+          "me",
+          "around"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "scope": {
+            "type": "string"
+          },
+          "period": {
+            "type": "string"
+          },
+          "since": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "hands": {
+            "type": "boolean"
+          },
+          "reproducible": {
+            "type": "boolean"
+          },
+          "listed": {
+            "type": "boolean"
+          },
+          "players": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "top": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRow"
+            }
+          },
+          "me": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/PublicRow"
+              }
+            ]
+          },
+          "around": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicRow"
+            }
+          }
+        }
+      },
+      "PublicRow": {
+        "required": [
+          "rank",
+          "profileId",
+          "name",
+          "avatar",
+          "publicId",
+          "value",
+          "hands",
+          "firsts",
+          "verified"
+        ],
+        "type": "object",
+        "properties": {
+          "rank": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "hands": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "firsts": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "verified": {
             "type": "boolean"
           }
         }
@@ -2611,6 +3960,22 @@
         "properties": {
           "data": {
             "$ref": "#/components/schemas/JsonElement"
+          }
+        }
+      },
+      "RankedRunView": {
+        "required": [
+          "run",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int32"
           }
         }
       },
@@ -2640,37 +4005,6 @@
           }
         }
       },
-      "RegisterRequest": {
-        "required": [
-          "displayName",
-          "username",
-          "password"
-        ],
-        "type": "object",
-        "properties": {
-          "displayName": {
-            "type": "string"
-          },
-          "username": {
-            "type": "string"
-          },
-          "password": {
-            "type": "string"
-          },
-          "householdName": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "inviteCode": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "ReplayAction": {
         "required": [
           "seat",
@@ -2692,7 +4026,8 @@
           "profileId",
           "name",
           "avatar",
-          "bot"
+          "bot",
+          "deleted"
         ],
         "type": "object",
         "properties": {
@@ -2720,6 +4055,29 @@
               "null",
               "string"
             ]
+          },
+          "deleted": {
+            "type": "boolean"
+          }
+        }
+      },
+      "ResetPasswordRequest": {
+        "required": [
+          "attemptId",
+          "code",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
           }
         }
       },
@@ -2760,7 +4118,7 @@
         "required": [
           "allTime",
           "week",
-          "household"
+          "account"
         ],
         "type": "object",
         "properties": {
@@ -2770,7 +4128,7 @@
           "week": {
             "$ref": "#/components/schemas/PlayerStats"
           },
-          "household": {
+          "account": {
             "type": "array",
             "items": {
               "$ref": "#/components/schemas/LeaderRow"
@@ -2842,7 +4200,7 @@
           "status",
           "hostProfileId",
           "isPublic",
-          "householdOnly",
+          "accountOnly",
           "locked",
           "seats",
           "botsFill",
@@ -2883,7 +4241,7 @@
           "isPublic": {
             "type": "boolean"
           },
-          "householdOnly": {
+          "accountOnly": {
             "type": "boolean"
           },
           "locked": {
@@ -3087,6 +4445,74 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "SignUpRequest": {
+        "required": [
+          "email",
+          "password",
+          "displayName",
+          "acceptTerms",
+          "termsVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "acceptTerms": {
+            "type": "boolean"
+          },
+          "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inviteCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "proof": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProofOfWorkSolution"
+              }
+            ]
+          }
+        }
+      },
+      "StartRankedRunRequest": {
+        "required": [
+          "gameId"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          }
+        }
+      },
+      "StepUpRequest": {
+        "required": [
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": "string"
           }
         }
       },
@@ -3334,15 +4760,20 @@
           }
         }
       },
-      "UpdateHouseholdRequest": {
+      "TermsRequest": {
+        "required": [
+          "version"
+        ],
         "type": "object",
         "properties": {
-          "name": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
+          "version": {
+            "type": "string"
+          }
+        }
+      },
+      "UpdateAccountRequest": {
+        "type": "object",
+        "properties": {
           "telemetry": {
             "type": [
               "null",
@@ -3389,6 +4820,24 @@
               "null",
               "boolean"
             ]
+          },
+          "onPublicBoards": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "askedChild": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "invites": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3408,7 +4857,7 @@
               "boolean"
             ]
           },
-          "householdOnly": {
+          "accountOnly": {
             "type": [
               "null",
               "boolean"
@@ -3468,6 +4917,9 @@
     },
     {
       "name": "Progress"
+    },
+    {
+      "name": "Boards"
     },
     {
       "name": "Telemetry"

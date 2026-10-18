@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Integrity;
 using Tohe.Api.Modules.Registry;
 
 namespace Tohe.Api.Modules.Rooms;
@@ -38,6 +39,12 @@ public sealed class RoomsOptions
     /// <summary>Room codes one profile may look up per minute (guessing codes is the only way into a private room).</summary>
     public int CodeLookupsPerMinute { get; set; } = 20;
 
+    /// <summary>Invitations one account may send to other accounts' profiles in an hour (ADR 0033, D-17).</summary>
+    public int InvitationsPerHour { get; set; } = 20;
+
+    /// <summary>Invitations from other accounts that may wait for one profile at a time (ADR 0033, D-17).</summary>
+    public int InvitationsWaitingPerProfile { get; set; } = 10;
+
     /// <summary>The longest one call into a rules module may take (a hard bot's look-ahead is the slowest).</summary>
     public TimeSpan RulesTimeout { get; set; } = TimeSpan.FromSeconds(10);
 
@@ -45,6 +52,9 @@ public sealed class RoomsOptions
 
     public bool ClockEnabled { get; set; } = true;
 }
+
+/// <summary>The open rooms: how many, how many in a hand, the profiles connected to them, and the rooms of each game.</summary>
+public sealed record LiveRooms(int Open, int Playing, int Online, IReadOnlyDictionary<string, int> OpenByGame);
 
 /// <summary>
 /// The rooms in memory, one actor each (ADR 0016), loaded from the database when the API starts so a deploy does not
@@ -61,6 +71,18 @@ internal sealed partial class RoomRegistry(
     private readonly ConcurrentDictionary<Guid, int> _minSeats = new();
 
     public IEnumerable<RoomActor> All => _rooms.Values;
+
+    /// <summary>The open rooms right now, for the admin console (ADR 0027).</summary>
+    public LiveRooms Live()
+    {
+        var open = _rooms.Values.Where(room => !room.IsClosed).ToList();
+        return new LiveRooms(
+            open.Count,
+            open.Count(room => room.Room.Status == RoomStatus.Playing),
+            open.Sum(room => room.Online),
+            open.GroupBy(room => room.Room.GameId, StringComparer.Ordinal)
+                .ToDictionary(game => game.Key, game => game.Count(), StringComparer.Ordinal));
+    }
 
     public RoomActor? Find(Guid id) => _rooms.TryGetValue(id, out var room) && !room.IsClosed ? room : null;
 
@@ -183,6 +205,13 @@ internal sealed class RoomOutbox(IServiceScopeFactory scopes, IHubContext<RoomsH
         var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
         db.RoomHands.Add(hand);
         db.RoomResults.AddRange(results);
+        // Refereed here, so verified for every person at the table; saved with the hand (ADR 0029).
+        scope.ServiceProvider.GetRequiredService<IResults>().SubmitHand(
+            hand.GameId,
+            hand.RoomId,
+            hand.Hand,
+            [.. results.Select(result => new HandSeat(result.Seat, result.ProfileId, result.AccountId, result.Place, result.Points))],
+            hand.FinishedAt);
         await db.SaveChangesAsync();
     }
 

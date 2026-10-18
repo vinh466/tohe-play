@@ -1,13 +1,15 @@
 #!/usr/bin/env node
 // End-to-end test of online rooms (ADR 0016, 0017) against a running stack, on three phones. A parent opens a Tiến
 // Lên room from the lobby, a friend joins with the room's link, and the parent invites their child, who gets the
-// invitation on the family's second phone and watches the start of the hand. Both play it to the end with the game's
+// invitation on the parent's second phone and watches the start of the hand. Both play it to the end with the game's
 // 💡 hints next to bots, and the results reach both. Back in the lobby the hand is in the friend's results, and its
-// replay plays to the end. The hub's screens are checked in light and dark. Seven sign-in requests in all: the API
-// allows ten a minute from one address.
+// replay plays to the end. The hub's screens are checked in light and dark. Five sign-in requests in all (signing up
+// plays the new profile at once): the API allows ten a minute from one address, and the smoke test before this one
+// may share the minute.
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e rooms
 import { AxeBuilder } from '@axe-core/playwright';
 import { type Browser, chromium, type Frame, type Page } from 'playwright';
+import { codeSentTo } from './mailpit.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const step = (message: string) => console.log(`• ${message}`);
@@ -39,44 +41,45 @@ async function phone(name: string, target: Browser): Promise<Page> {
   return page;
 }
 
-/** Registers a family; returns its username. */
+/** Signs up with a new email and the code it receives; the only profile plays at once. Returns the email. */
 async function register(page: Page, displayName: string): Promise<string> {
-  const username = `e2e${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}`;
+  const email = `e2e${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}@e2e.test`;
   await page.goto(`${hubUrl}/register`);
-  await page.getByLabel('Tên của bạn').fill(displayName);
-  await page.getByLabel('Tên đăng nhập').fill(username);
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Tên khi chơi').fill(displayName);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByLabel('Nhập lại mật khẩu').fill(password);
+  await page.getByRole('checkbox', { name: /16 tuổi/ }).check();
+  await page.getByRole('button', { name: 'Gửi mã xác nhận' }).tap();
+  await page.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
-  await page.waitForURL(/\/profiles$/);
-  await page.getByRole('button', { name: new RegExp(displayName) }).tap();
   await page.waitForURL((url) => url.pathname === '/' || url.pathname.startsWith('/r/'));
-  return username;
+  return email;
 }
 
-/** The family's second phone: signs in to the same account and plays as `profile`. */
-async function signIn(page: Page, username: string, profile: string) {
+/** A second phone of the same account: signs in and plays as `profile`. */
+async function signIn(page: Page, email: string, profile: string) {
   await page.goto(`${hubUrl}/welcome`);
-  await page.getByLabel('Tên đăng nhập').fill(username);
+  await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập' }).tap();
-  await page.waitForURL(/\/profiles$/);
+  await page.waitForURL((url) => url.pathname === '/profiles');
   await page.getByRole('button', { name: new RegExp(profile) }).tap();
   await page.waitForURL((url) => url.pathname === '/');
 }
 
-/** A child in the signed-in family whose parent lets them play with other households (through the parent gate). */
+/** A child profile of the signed-in account, allowed to play with others (after stepping up with the password). */
 async function addChild(page: Page, name: string) {
   const problem = await page.evaluate(
     async ({ password, name }) => {
       const json = { 'content-type': 'application/json' };
-      const gate = await fetch('/api/session/parent-gate', {
+      const gate = await fetch('/api/session/step-up', {
         method: 'POST',
         headers: json,
         body: JSON.stringify({ password }),
       });
-      if (!gate.ok) return `parent gate: ${gate.status}`;
-      const created = await fetch('/api/household/profiles', {
+      if (!gate.ok) return `step-up: ${gate.status}`;
+      const created = await fetch('/api/profiles', {
         method: 'POST',
         headers: json,
         body: JSON.stringify({ name, avatar: '🐼', ageBand: '9-12' }),
@@ -84,7 +87,7 @@ async function addChild(page: Page, name: string) {
       if (!created.ok) return `new profile: ${created.status}`;
       const me = (await created.json()) as { profiles: { id: string; name: string }[] };
       const child = me.profiles.find((profile) => profile.name === name);
-      const allowed = await fetch(`/api/household/profiles/${child?.id}`, {
+      const allowed = await fetch(`/api/profiles/${child?.id}`, {
         method: 'PATCH',
         headers: json,
         body: JSON.stringify({ playWithOthers: true }),
@@ -168,14 +171,16 @@ try {
   const guest = await phone('guest', browser);
   const kid = await phone('kid', browser);
 
-  step('two families register, each on its own phone');
-  const family = await register(host, 'Bố Phòng');
+  step('two people register, each on their own phone');
+  const parentAccount = await register(host, 'Bố Phòng');
   await register(guest, 'Chú Khách');
 
-  step('the parent adds a child allowed to play with others; the child uses the family’s second phone');
+  step(
+    'the parent adds a child profile allowed to play with others; the child uses the parent’s second phone',
+  );
   await addChild(host, 'Bé Na');
   await host.reload();
-  await signIn(kid, family, 'Bé Na');
+  await signIn(kid, parentAccount, 'Bé Na');
 
   step("the host opens Tiến Lên: the game's title screen leads to the lobby (ADR 0020)");
   const card = host.getByRole('link', { name: /Tiến Lên/ });
@@ -224,8 +229,8 @@ try {
   await host.getByText('Chú Khách').waitFor();
 
   step('the host invites the child from the waiting room');
-  await host.getByRole('button', { name: 'Mời người trong nhà' }).tap();
-  const invite = host.getByRole('dialog', { name: 'Mời người trong nhà' });
+  await host.getByRole('button', { name: 'Mời người chơi' }).tap();
+  const invite = host.getByRole('dialog', { name: 'Mời người chơi' });
   await invite.getByRole('button', { name: /Bé Na/ }).tap();
   await invite.getByText('✓ Đã mời').waitFor();
   await shot(host, 'invite');

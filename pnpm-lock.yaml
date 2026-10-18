@@ -18,6 +18,58 @@ importers:
         specifier: ^7.0.2
         version: 7.0.2
 
+  apps/admin:
+    dependencies:
+      '@tanstack/react-query':
+        specifier: ^5.100.0
+        version: 5.104.2(react@19.3.0)
+      '@tanstack/react-router':
+        specifier: ^1.170.0
+        version: 1.170.42(react-dom@19.3.0(react@19.3.0))(react@19.3.0)
+      '@tohe/contract':
+        specifier: workspace:*
+        version: link:../../packages/contract
+      '@tohe/design-tokens':
+        specifier: workspace:*
+        version: link:../../packages/design-tokens
+      '@tohe/game-sdk':
+        specifier: workspace:*
+        version: link:../../packages/game-sdk
+      openapi-fetch:
+        specifier: ^0.17.0
+        version: 0.17.0
+      react:
+        specifier: ^19.2.0
+        version: 19.3.0
+      react-dom:
+        specifier: ^19.2.0
+        version: 19.3.0(react@19.3.0)
+      uqr:
+        specifier: ^0.1.3
+        version: 0.1.3
+    devDependencies:
+      '@tailwindcss/vite':
+        specifier: ^4.3.0
+        version: 4.3.3(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
+      '@types/react':
+        specifier: ^19.2.0
+        version: 19.3.0
+      '@types/react-dom':
+        specifier: ^19.2.0
+        version: 19.3.0(@types/react@19.3.0)
+      '@vitejs/plugin-react':
+        specifier: ^6.1.0
+        version: 6.1.2(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
+      tailwindcss:
+        specifier: ^4.3.0
+        version: 4.3.3
+      vite:
+        specifier: ^8.3.0
+        version: 8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1)
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
+
   apps/hub:
     dependencies:
       '@microsoft/signalr':
@@ -295,6 +347,9 @@ importers:
 
   services/api:
     devDependencies:
+      '@tohe/game-merge-block':
+        specifier: workspace:*
+        version: link:../../games/merge-block
       '@tohe/game-tien-len':
         specifier: workspace:*
         version: link:../../games/tien-len
