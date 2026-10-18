@@ -15,15 +15,18 @@
 
 ## Next — one item
 
-**E3b** ([delivery.md](delivery.md)): xem lại một run tính hạng bằng chính game trong admin (D-16) — đổi Game Contract
-(chế độ xem lại: host đưa seed và nước đi, game chiếu lại, không chơi được), conformance, admin nhúng game từ games
-origin (CSP `frame-src`), Ghép Khối trước; xếp trên E3a (#58). Đã mở: #43–#58 ([trạng thái](delivery.md#trạng-thái)).
+**C5** ([delivery.md](delivery.md)): mời đích danh bằng ID 12 số trong phòng (D-17) — cài đặt "ai được mời tôi" của
+mỗi hồ sơ (mọi người · người từng chơi cùng · chỉ trong account; trẻ em: chỉ trong account), ID hồ sơ trẻ em tra từ
+ngoài account là "không tìm thấy", giới hạn 20 lời mời gửi mỗi giờ và 10 lời mời đang chờ; có migration, xếp trên
+E3b (#59). F1–F3 chờ owner quyết E-07, E-08, E-09. Đã mở: #43–#59 ([trạng thái](delivery.md#trạng-thái)).
 
 ## Waiting on the owner
 
 1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? Không chặn code; cần trước khi C2 lên UAT.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #57 → #58); nói "deploy" cho mỗi lần lên UAT.
+3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #58 → #59); nói "deploy" cho mỗi lần lên UAT.
+7. **E-07, E-08, E-09** (quyền riêng tư và xoá account, observability, chống bot đăng ký) còn `open`: F1–F3 chờ các
+   quyết định này; agent sẽ soạn đề xuất khi tới lượt.
 4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).
 5. Duyệt bản nháp Điều khoản + Quyền riêng tư (#49; #50 thêm phần đăng nhập bằng provider), điền cách liên hệ người vận hành.
 6. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).

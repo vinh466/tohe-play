@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (trưa) — agent
+
+- E3a #58 CI xanh. E3b #59 (ADR 0032, đổi Game Contract): `init.rankedReplay`, SDK 0.9.0, conformance — game xếp hạng
+  chiếu lại run, không ghi gì; Ghép Khối 1.10.0 có màn xem lại (◀ ⏸ ▶, ×1/×4/×20, thanh trượt); admin nhúng đúng bản
+  đã chơi run (CSP admin thêm `frame-src` games origin). Thử thật: console làm host cho game thật, mock `/api`.
+- Chờ owner: review #43–#59; quyết E-07/E-08/E-09 cho F1–F3. Agent tiếp: C5 (mời bằng ID).
+
 ## 2026-10-18 (sáng, 07:40) — agent
 
 - E2 #57 CI xanh. E3 tách đôi: E3a #58 (ADR 0031) — "Chờ xem xét" + "Đã quyết" trong admin, duyệt / từ chối / mở lại
