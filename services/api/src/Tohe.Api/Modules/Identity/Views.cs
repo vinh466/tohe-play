@@ -47,6 +47,9 @@ public sealed record ProfileView(
     bool HiddenFromBoards,
     string Invites);
 
+/// <summary>A profile as someone outside its account sees it before asking it to a table (ADR 0033).</summary>
+public sealed record ProfileCardView(Guid Id, string PublicId, string Name, string Avatar);
+
 /// <summary>Everything the hub needs about the device session.</summary>
 /// <param name="Profiles">The account's profiles, its first (created with it) first.</param>
 /// <param name="ActiveProfileId">The profile playing on this device, if one was chosen.</param>

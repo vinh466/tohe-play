@@ -26,7 +26,7 @@ internal static class RoomsModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddHttpClient<RulesSource>(client => client.Timeout = TimeSpan.FromSeconds(10));
         services.AddSingleton<RoomRegistry>();
-        services.AddSingleton<InviteLimits>();
+        services.AddSingleton<RoomInvitations>();
         services.AddSignalR(options => options.MaximumReceiveMessageSize = 16 * 1024);
         if (builder.Configuration.GetValue($"{RoomsOptions.Section}:ClockEnabled", defaultValue: true) && !BuildTime.IsGeneratingOpenApi)
         {
@@ -186,7 +186,16 @@ internal static class RoomsModule
             .WithSummary("Watch a table without a seat, if its host allows spectators: only what is public is shown.");
 
         rooms.MapPost("/{id:guid}/invite", async Task<Results<NoContent, NotFound, ProblemHttpResult>> (
-                Guid id, InviteRequest request, HttpContext http, RoomRegistry registry, IAccountProfiles profiles, CancellationToken ct) =>
+                Guid id,
+                InviteRequest request,
+                HttpContext http,
+                RoomRegistry registry,
+                IAccountProfiles profiles,
+                IProfileDirectory directory,
+                RoomInvitations invitations,
+                IOptions<RoomsOptions> options,
+                ToheDbContext db,
+                CancellationToken ct) =>
             {
                 var player = PlayerOf(http);
                 if (registry.Find(id) is not { } room)
@@ -194,22 +203,24 @@ internal static class RoomsModule
                     return TypedResults.NotFound();
                 }
 
-                // Only the account's other profiles: the invitation shows in their hub, by name.
-                var own = await profiles.ListAsync(player.AccountId, ct);
-                if (own.All(profile => profile.Id != request.ProfileId) || request.ProfileId == player.ProfileId)
+                if (request.ProfileId == player.ProfileId)
                 {
                     return Refused(RoomErrors.NotInAccount);
+                }
+
+                // The account's other profiles, as always; another account's as its owner allows (ADR 0033).
+                var own = await profiles.ListAsync(player.AccountId, ct);
+                if (own.All(profile => profile.Id != request.ProfileId)
+                    && await BeyondAccountAsync(room, player, request.ProfileId, registry, directory, invitations, options.Value, db, ct) is { } refused)
+                {
+                    return refused;
                 }
 
                 var problem = await room.RunAsync(() => Task.FromResult(room.Invite(player.ProfileId, request.ProfileId)));
                 return problem is null ? TypedResults.NoContent() : Refused(problem);
             })
             .WithName("InviteToRoom")
-            .WithSummary("Ask another of the account's profiles to the table: it shows in their hub for 10 minutes.");
-
-        rooms.MapPost("/{id:guid}/invite/by-id", InviteByIdAsync)
-            .WithName("InviteToRoomById")
-            .WithSummary("Ask a profile to the table by its 12-digit ID, if its owner lets you: it shows in their hub for 10 minutes.");
+            .WithSummary("Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): it shows in their hub for 10 minutes.");
 
         rooms.MapGet("/invites", (HttpContext http, RoomRegistry registry) =>
             {
@@ -307,69 +318,50 @@ internal static class RoomsModule
     private static Player PlayerOf(HttpContext http) => (Player)http.Items[typeof(Player)]!;
 
     /// <summary>
-    /// An invitation by public ID (ADR 0033): within the account as before; beyond it only to a table open to other
-    /// accounts, as the invitee's owner allows — anyone, or people it played with — within the limits of D-17.
+    /// Why a profile of another account may not be asked to this table (ADR 0033), or null: it must be found — never a
+    /// child of another account, nor a suspended account's — the table open to other accounts, the profile's owner must
+    /// let the asker in, and the limits of D-17 hold. The invitation is counted when it may go.
     /// </summary>
-    private static async Task<Results<Ok<InvitedPlayer>, NotFound, ValidationProblem, ProblemHttpResult>> InviteByIdAsync(
-        Guid id,
-        InviteByIdRequest request,
-        HttpContext http,
+    private static async Task<ProblemHttpResult?> BeyondAccountAsync(
+        RoomActor room,
+        Player player,
+        Guid profileId,
         RoomRegistry registry,
         IProfileDirectory directory,
-        InviteLimits limits,
+        RoomInvitations invitations,
+        RoomsOptions options,
         ToheDbContext db,
         CancellationToken ct)
     {
-        var player = PlayerOf(http);
-        if (!ProfileIds.TryNormalize(request.PublicId, out var publicId))
-        {
-            return Problems.Field("publicId", "profile_id_invalid");
-        }
-
-        if (registry.Find(id) is not { } room)
-        {
-            return TypedResults.NotFound();
-        }
-
-        // Every lookup counts, found or not: IDs cannot be walked.
-        if (!limits.TryTake(player.AccountId))
-        {
-            return Refused(RoomErrors.InviteLimit);
-        }
-
-        if (await directory.FindAsync(publicId, player.AccountId, ct) is not { } target || target.ProfileId == player.ProfileId)
+        if (await directory.FindAsync(profileId, player.AccountId, ct) is not { } target)
         {
             return Refused(RoomErrors.ProfileNotFound);
         }
 
-        if (target.AccountId != player.AccountId)
+        if (room.Room.AccountOnly)
         {
-            if (room.Room.AccountOnly)
-            {
-                return Refused(RoomErrors.AccountOnly);
-            }
-
-            var allowed = target.Invites switch
-            {
-                InviteScope.Anyone => true,
-                InviteScope.PlayedWith => await Tables.PlayedTogetherAsync(db, player.ProfileId, target.ProfileId, ct),
-                _ => false,
-            };
-            if (!allowed)
-            {
-                return Refused(RoomErrors.InviteNotAllowed);
-            }
-
-            // Asking again to this table renews the invitation rather than adding one.
-            var waiting = registry.All.Count(other => other.Id != room.Id && other.InvitationFor(target.ProfileId) is not null);
-            if (waiting >= limits.WaitingPerProfile)
-            {
-                return Refused(RoomErrors.InviteeLimit);
-            }
+            return Refused(RoomErrors.AccountOnly);
         }
 
-        var problem = await room.RunAsync(() => Task.FromResult(room.Invite(player.ProfileId, target.ProfileId)));
-        return problem is null ? TypedResults.Ok(new InvitedPlayer(target.Name, target.Avatar)) : Refused(problem);
+        var open = target.Invites switch
+        {
+            InviteScope.Anyone => true,
+            InviteScope.PlayedWith => await Tables.PlayedTogetherAsync(db, player.ProfileId, target.ProfileId, ct),
+            _ => false,
+        };
+        if (!open)
+        {
+            return Refused(RoomErrors.InvitesClosed);
+        }
+
+        // Asking again to this table renews the invitation rather than adding one.
+        var waiting = registry.All.Count(other => other.Id != room.Id && other.InvitationFor(target.ProfileId) is not null);
+        if (waiting >= options.InvitationsWaitingPerProfile)
+        {
+            return Refused(RoomErrors.InviteeLimit);
+        }
+
+        return invitations.TryTake(player.AccountId, options.InvitationsPerHour) ? null : Refused(RoomErrors.InviteLimit);
     }
 
     /// <summary>Shown in the lobby to this player: public, and a table it may join.</summary>

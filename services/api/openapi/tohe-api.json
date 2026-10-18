@@ -61,6 +61,47 @@
         }
       }
     },
+    "/api/profiles/by-id/{publicId}": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A profile's card by its public ID, as this account may find it: never a child of another account.",
+        "operationId": "FindProfileById",
+        "parameters": [
+          {
+            "name": "publicId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProfileCardView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/profiles/options": {
       "get": {
         "tags": [
@@ -2137,7 +2178,7 @@
         "tags": [
           "Rooms"
         ],
-        "summary": "Ask another of the account's profiles to the table: it shows in their hub for 10 minutes.",
+        "summary": "Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): it shows in their hub for 10 minutes.",
         "operationId": "InviteToRoom",
         "parameters": [
           {
@@ -2176,71 +2217,6 @@
           },
           "404": {
             "description": "Not Found"
-          }
-        }
-      }
-    },
-    "/api/rooms/{id}/invite/by-id": {
-      "post": {
-        "tags": [
-          "Rooms"
-        ],
-        "summary": "Ask a profile to the table by its 12-digit ID, if its owner lets you: it shows in their hub for 10 minutes.",
-        "operationId": "InviteToRoomById",
-        "parameters": [
-          {
-            "name": "id",
-            "in": "path",
-            "required": true,
-            "schema": {
-              "type": "string",
-              "format": "uuid"
-            }
-          }
-        ],
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/InviteByIdRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "403": {
-            "description": "Forbidden",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/ProblemDetails"
-                }
-              }
-            }
-          },
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/InvitedPlayer"
-                }
-              }
-            }
-          },
-          "404": {
-            "description": "Not Found"
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
           }
         }
       }
@@ -3342,20 +3318,6 @@
           }
         }
       },
-      "InviteByIdRequest": {
-        "required": [
-          "publicId"
-        ],
-        "type": "object",
-        "properties": {
-          "publicId": {
-            "type": [
-              "null",
-              "string"
-            ]
-          }
-        }
-      },
       "InviteRequest": {
         "required": [
           "profileId"
@@ -3365,21 +3327,6 @@
           "profileId": {
             "type": "string",
             "format": "uuid"
-          }
-        }
-      },
-      "InvitedPlayer": {
-        "required": [
-          "name",
-          "avatar"
-        ],
-        "type": "object",
-        "properties": {
-          "name": {
-            "type": "string"
-          },
-          "avatar": {
-            "type": "string"
           }
         }
       },
@@ -3660,6 +3607,30 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "ProfileCardView": {
+        "required": [
+          "id",
+          "publicId",
+          "name",
+          "avatar"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
           }
         }
       },

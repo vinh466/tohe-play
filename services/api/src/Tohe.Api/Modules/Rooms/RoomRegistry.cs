@@ -39,8 +39,8 @@ public sealed class RoomsOptions
     /// <summary>Room codes one profile may look up per minute (guessing codes is the only way into a private room).</summary>
     public int CodeLookupsPerMinute { get; set; } = 20;
 
-    /// <summary>Profiles one account may look up by ID in an hour, to ask them to a table (ADR 0033, D-17).</summary>
-    public int InviteLookupsPerHour { get; set; } = 20;
+    /// <summary>Invitations one account may send to other accounts' profiles in an hour (ADR 0033, D-17).</summary>
+    public int InvitationsPerHour { get; set; } = 20;
 
     /// <summary>Invitations from other accounts that may wait for one profile at a time (ADR 0033, D-17).</summary>
     public int InvitationsWaitingPerProfile { get; set; } = 10;

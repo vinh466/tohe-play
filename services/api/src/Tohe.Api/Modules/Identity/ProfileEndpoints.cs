@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure.Database;
 
 namespace Tohe.Api.Modules.Identity;
@@ -41,6 +42,13 @@ internal static class ProfileEndpoints
 {
     public static void Map(IEndpointRouteBuilder api)
     {
+        // Outside the parent gate: whoever is signed in looks up an ID to ask its profile to a table (ADR 0033).
+        api.MapGet("/profiles/by-id/{publicId}", FindByIdAsync)
+            .WithTags("Identity")
+            .RequireAuthorization()
+            .WithName("FindProfileById")
+            .WithSummary("A profile's card by its public ID, as this account may find it: never a child of another account.");
+
         api.MapGet("/profiles/options", () => new ProfileOptionsView(
                 ProfileOptions.Avatars, ProfileOptions.AgeBands, ProfileOptions.MaxProfilesPerAccount))
             .WithTags("Identity")
@@ -73,6 +81,34 @@ internal static class ProfileEndpoints
         profiles.MapDelete("/{id:guid}", DeleteProfileAsync)
             .WithName("DeleteProfile")
             .WithSummary("Remove one of the account's profiles — never the last one.");
+    }
+
+    /// <summary>
+    /// The card of the profile with this ID — its name, avatar and ID — to confirm before asking it to a table
+    /// (ADR 0033, D-17). Every lookup counts, found or not, so IDs cannot be walked through.
+    /// </summary>
+    private static async Task<Results<Ok<ProfileCardView>, ValidationProblem, ProblemHttpResult>> FindByIdAsync(
+        string publicId,
+        HttpContext http,
+        IProfileDirectory directory,
+        ProfileLookups lookups,
+        IOptions<IdentityOptions> options,
+        CancellationToken ct)
+    {
+        if (!ProfileIds.TryNormalize(publicId, out var id))
+        {
+            return Problems.Field("publicId", "profile_id_invalid");
+        }
+
+        var accountId = SessionClaims.AccountId(http.User) ?? Guid.Empty;
+        if (!lookups.TryTake(accountId, options.Value.ProfileLookupsPerHour))
+        {
+            return Problems.Of(StatusCodes.Status429TooManyRequests, "lookup_limit", "Too many profile IDs looked up this hour");
+        }
+
+        return await directory.FindByPublicIdAsync(id, accountId, ct) is { } found
+            ? TypedResults.Ok(new ProfileCardView(found.ProfileId, found.PublicId, found.Name, found.Avatar))
+            : Problems.Of(StatusCodes.Status404NotFound, "profile_not_found", "No profile with that ID");
     }
 
     private static RouteGroupBuilder Gated(RouteGroupBuilder group) => group

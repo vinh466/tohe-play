@@ -97,14 +97,9 @@ public sealed record RoomSummary(
     bool Mine,
     bool Spectators);
 
-/// <param name="ProfileId">Another profile of the inviting player's account.</param>
+/// <param name="ProfileId">Another profile of the inviting player's account, or one of another account found by its
+/// public ID (<c>GET /api/profiles/by-id/{publicId}</c>, ADR 0033).</param>
 public sealed record InviteRequest(Guid ProfileId);
-
-/// <param name="PublicId">The profile's 12-digit public ID, spaces and dashes allowed (ADR 0033).</param>
-public sealed record InviteByIdRequest(string? PublicId);
-
-/// <summary>Whom an invitation by ID reached: the name and avatar its owner chose to show.</summary>
-public sealed record InvitedPlayer(string Name, string Avatar);
 
 /// <summary>
 /// Someone at a table asked the active profile to it — another profile of the account, or anyone by its ID (ADR 0033);
@@ -134,13 +129,13 @@ public static class RoomErrors
     public const string SpectatorsOff = "spectators_off";
     public const string NotInAccount = "not_in_account";
 
-    /// <summary>No profile with that ID that this player may find: none, a child of another account, a suspended one.</summary>
+    /// <summary>No such profile this player may ask: none, a child of another account, a suspended account's.</summary>
     public const string ProfileNotFound = "profile_not_found";
 
-    /// <summary>Its owner lets only people they played with, or only their account, ask it to a table.</summary>
-    public const string InviteNotAllowed = "invite_not_allowed";
+    /// <summary>Its owner lets only people it played with, or only its account, ask it to a table.</summary>
+    public const string InvitesClosed = "invites_closed";
 
-    /// <summary>This account looked up as many IDs as it may in an hour.</summary>
+    /// <summary>This account asked as many profiles of other accounts as it may in an hour.</summary>
     public const string InviteLimit = "invite_limit";
 
     /// <summary>That profile has as many invitations waiting as it may.</summary>
