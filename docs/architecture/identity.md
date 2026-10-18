@@ -483,7 +483,9 @@ which also chooses a lone PIN-less profile by itself when a page needs a player 
 
 ## Deleting
 
-A profile is deleted at once, an account after seven days ([ADR 0034](../decisions/0034-delete-accounts-and-profiles-for-good.md)).
+A profile is deleted at once. An account stops at once and, after seven days, waits for an admin to delete it for good
+([ADR 0034](../decisions/0034-delete-accounts-and-profiles-for-good.md),
+[ADR 0038](../decisions/0038-an-account-waits-for-an-admin-after-its-seven-days.md)).
 Every module that keeps something under a profile's id implements `IProfileData`: `WithdrawAsync` lets the profiles
 go at once — they leave their tables (a bot finishes a hand in progress), invitations to them end — and `PurgeAsync`
 deletes what the module stores, inside the caller's transaction.
@@ -495,17 +497,20 @@ sequenceDiagram
   participant H as Hub
   participant API
   participant M as Email outbox
+  actor A as Admin
   U->>H: Quản lý tài khoản → Xoá tài khoản (step-up level 2, a last look)
   H->>API: DELETE /api/account
   API->>API: DeleteAfter = now + 7 days · new security stamp · profiles leave tables
   API->>M: "Tài khoản Tò He sắp bị xoá" — the day, and how to keep it
   API-->>H: 200 {deleteAfter} and this device signed out
   H->>U: /welcome?deleting=… — "sign in before then to keep it"
-  alt someone signs in within 7 days (password, reset, provider)
+  alt someone signs in before an admin deletes it (password, reset, provider)
     API->>API: DeleteAfter cleared, then the session starts
     API->>M: "Tài khoản Tò He sẽ không bị xoá"
-  else the day passes
-    API->>API: account-deletion job (hourly): the account's row locked and read again,<br/>every module purges, public IDs retired, the account deleted
+  else the seven days pass: nothing deletes it by itself
+    API-->>A: console — overview "Tài khoản đến hạn xoá", Users "Chờ xoá"
+    A->>API: POST /api/admin/users/{id}/delete (step-up level 2)
+    API->>API: the account's row locked and read again,<br/>every module purges, public IDs retired, the account deleted, audit user.delete
   end
 ```
 
@@ -520,9 +525,11 @@ sequenceDiagram
 | Sent email records · audit entries | 30 days (ADR 0022) · a year ([Admin console](admin.md#the-audit-log)) |
 
 While an account waits, its profiles are on no public board and found by no ID — the board audience and the profile
-directory leave it out, as a suspended one — and the console's Users pages show it as "Chờ xoá". Deleting a profile
-stays where it was, behind the parent gate and never the last one; for a child it is the parent taking the consent
-back (R-07).
+directory leave it out, as a suspended one — and the console's Users pages show it as "Chờ xoá". Past its seven days
+it goes on waiting the same way — signing in still keeps it — until an admin deletes it from the console
+([Admin console](admin.md#users)): nothing deletes an account by itself while the law's deadlines are not known.
+Deleting a profile stays where it was, behind the parent gate and never the last one; for a child it is the parent
+taking the consent back (R-07).
 
 ## Names
 

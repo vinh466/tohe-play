@@ -7,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Admin;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Rooms;
@@ -119,7 +120,7 @@ public sealed class AccountDeletionTests(ApiFactory factory) : IClassFixture<Api
     }
 
     [Fact]
-    public async Task An_account_whose_wait_is_over_goes_for_good_with_all_its_profiles()
+    public async Task An_account_whose_wait_is_over_waits_for_an_admin_who_deletes_it_for_good()
     {
         await Games.KnowAsync(factory, "merge-block");
         var email = Accounts.NewEmail();
@@ -132,14 +133,29 @@ public sealed class AccountDeletionTests(ApiFactory factory) : IClassFixture<Api
         await Accounts.StepUpAsync(client);
         Assert.Equal(HttpStatusCode.OK, (await client.DeleteAsync(Url("/api/account"), Ct)).StatusCode);
 
-        // The wait is not over: nothing goes.
-        await PurgeAsync();
-        Assert.NotNull(await DeleteAfterAsync(me.Account.Id));
+        var admin = await Admins.NewAsync(factory, "admin");
+        var moderator = await Admins.NewAsync(factory, "moderator");
+        var deleteIt = (Admins.Admin who) => who.Client.PostAsync(Url($"/api/admin/users/{me.Account.Id}/delete"), null, Ct);
 
+        // In the console's list of accounts waiting to be deleted; not yet due — its owner may still keep it.
+        var waiting = (await admin.Client.GetFromJsonAsync<List<AccountSummary>>(Url("/api/admin/users?deleting=true"), Ct))!;
+        Assert.Contains(waiting, account => account.Id == me.Account.Id);
+        Assert.All(waiting, account => Assert.NotNull(account.DeleteAfter));
+        Assert.Equal("deletion_not_due", await CodeAsync(await deleteIt(admin)));
+
+        // Its seven days over, nothing deletes it by itself, and a moderator may not.
         await WaitIsOverAsync(me.Account.Id);
-        Assert.True(await PurgeAsync() >= 1);
+        Assert.True(await AccountExistsAsync(me.Account.Id));
+        Assert.Equal("admin_required", await CodeAsync(await deleteIt(moderator)));
+        // The overview counts it among the accounts due, so an admin sees there is something to do.
+        var due = (await admin.Client.GetFromJsonAsync<AdminOverview>(Url("/api/admin/overview"), Ct))!.DeletionsDue;
+        Assert.True(due >= 1);
 
+        var deleted = await deleteIt(admin);
+        Assert.Equal(HttpStatusCode.NoContent, deleted.StatusCode);
         Assert.False(await AccountExistsAsync(me.Account.Id));
+        Assert.Equal(due - 1, (await admin.Client.GetFromJsonAsync<AdminOverview>(Url("/api/admin/overview"), Ct))!.DeletionsDue);
+        Assert.Equal(HttpStatusCode.NotFound, (await deleteIt(admin)).StatusCode);
         Assert.Equal(new Kept(0, 0, 0, 0), await KeptAsync(me.Profiles[0].Id));
         Assert.True(await RetiredAsync(me.Profiles[0].PublicId));
         Assert.True(await RetiredAsync(child.PublicId));
@@ -148,6 +164,23 @@ public sealed class AccountDeletionTests(ApiFactory factory) : IClassFixture<Api
         // The address is nobody's any more: a new account may take it.
         await using var scope = factory.Services.CreateAsyncScope();
         Assert.Null(await scope.ServiceProvider.GetRequiredService<UserManager<Account>>().FindByEmailAsync(email));
+        // The audit log keeps who did it, for its year (ADR 0034).
+        var entry = await scope.ServiceProvider.GetRequiredService<ToheDbContext>().AuditLog
+            .SingleAsync(e => e.Action == AuditActions.UserDelete && e.Actor == admin.Email, Ct);
+        using var details = JsonDocument.Parse(entry.Details!);
+        Assert.Equal(2, details.RootElement.GetProperty("profiles").GetInt32());
+    }
+
+    [Fact]
+    public async Task The_console_deletes_only_an_account_whose_owner_asked()
+    {
+        var admin = await Admins.NewAsync(factory, "admin");
+        var (_, me) = await RegisterAsync("Bà");
+
+        var refused = await admin.Client.PostAsync(Url($"/api/admin/users/{me.Account.Id}/delete"), null, Ct);
+
+        Assert.Equal((HttpStatusCode.Conflict, "deletion_not_requested"), (refused.StatusCode, await CodeAsync(refused)));
+        Assert.True(await AccountExistsAsync(me.Account.Id));
     }
 
     // ------------------------------------------------------------------ helpers
@@ -193,12 +226,6 @@ public sealed class AccountDeletionTests(ApiFactory factory) : IClassFixture<Api
         await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Users
             .Where(a => a.Id == accountId)
             .ExecuteUpdateAsync(set => set.SetProperty(a => a.DeleteAfter, DateTimeOffset.UtcNow.AddMinutes(-1)), Ct);
-    }
-
-    private async Task<int> PurgeAsync()
-    {
-        await using var scope = factory.Services.CreateAsyncScope();
-        return await scope.ServiceProvider.GetRequiredService<AccountDeletion>().PurgeDueAsync(Ct);
     }
 
     /// <summary>A closed table where Na (seat 0, the host) and Bố (seat 1) finished a hand of Tiến Lên.</summary>

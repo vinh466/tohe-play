@@ -45,6 +45,7 @@ public sealed class MetricsTests(ApiFactory factory) : IClassFixture<ApiFactory>
                      "tohe_email_outbox_waiting 0",
                      "tohe_integrity_held 0",
                      "tohe_ranked_replays_waiting 0",
+                     "tohe_account_deletions_due 0",
                      "tohe_sign_ins{method=\"password\",outcome=\"refused\"} 1",
                      "tohe_worker_failures_in_row{worker=\"email-delivery\"} 1",
                  ])

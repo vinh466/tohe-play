@@ -395,6 +395,14 @@
             "schema": {
               "type": "string"
             }
+          },
+          {
+            "name": "deleting",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
           }
         ],
         "responses": {
@@ -530,6 +538,34 @@
                 }
               }
             }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/delete": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete for good an account whose owner asked and whose seven days are over (ADR 0038).",
+        "operationId": "DeleteAdminUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
           },
           "404": {
             "description": "Not Found"
@@ -1687,7 +1723,8 @@
           "errorsLastDay",
           "catalog",
           "email",
-          "heldResults"
+          "heldResults",
+          "deletionsDue"
         ],
         "type": "object",
         "properties": {
@@ -1724,6 +1761,10 @@
             "$ref": "#/components/schemas/OutboxState"
           },
           "heldResults": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletionsDue": {
             "type": "integer",
             "format": "int32"
           }

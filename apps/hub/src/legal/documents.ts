@@ -3,7 +3,7 @@
 // in how to reach the operator, before Tò He opens to everyone.
 
 /** Change it with any change to either document: signed-in accounts accept the new version once. */
-export const TERMS_VERSION = '2026-10-18.3';
+export const TERMS_VERSION = '2026-10-18.4';
 
 export interface Section {
   heading: string;
@@ -116,7 +116,7 @@ export const privacy: LegalDocument = {
       paragraphs: [
         'Trong "Quản lý tài khoản", bạn xem và sửa tên, hồ sơ, email, mật khẩu; liên kết hoặc gỡ Google, GitHub; tắt dữ liệu kỹ thuật; xoá hồ sơ hoặc cả tài khoản.',
         'Xoá một hồ sơ: ván đã lưu, điểm và kết quả trên bảng xếp hạng của nó bị xoá ngay, không lấy lại được.',
-        'Xoá tài khoản: mọi thiết bị được đăng xuất ngay và hồ sơ rời khỏi bảng xếp hạng; sau 7 ngày, tài khoản bị xoá hẳn cùng mọi hồ sơ và dữ liệu của chúng. Đăng nhập lại trong 7 ngày đó là tài khoản được giữ nguyên.',
+        'Xoá tài khoản: mọi thiết bị được đăng xuất ngay và hồ sơ rời khỏi bảng xếp hạng; sau 7 ngày, người vận hành xoá hẳn tài khoản cùng mọi hồ sơ và dữ liệu của chúng. Đăng nhập lại trong 7 ngày đó là tài khoản được giữ nguyên.',
         'Ván online đã chơi vẫn còn cho người cùng bàn xem lại, nhưng chỗ của hồ sơ đã xoá chỉ hiện "Người chơi đã xoá". ID của hồ sơ đã xoá không bao giờ được cấp cho ai khác.',
       ],
     },

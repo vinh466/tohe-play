@@ -39,6 +39,10 @@ internal sealed class IdentityFacts(ToheDbContext db)
         return logins.Any(on.Contains);
     }
 
+    /// <summary>Accounts whose owner asked to delete them and whose seven days are over: an admin's to delete (ADR 0038).</summary>
+    public Task<int> DeletionsDueAsync(DateTimeOffset now, CancellationToken ct) =>
+        db.Users.CountAsync(account => account.DeleteAfter != null && account.DeleteAfter <= now, ct);
+
     public async Task<Growth> ProfilesAsync(DateTimeOffset now, CancellationToken ct) => new(
         await db.Profiles.CountAsync(ct),
         await db.Profiles.CountAsync(profile => profile.CreatedAt > now.AddDays(-1), ct),
