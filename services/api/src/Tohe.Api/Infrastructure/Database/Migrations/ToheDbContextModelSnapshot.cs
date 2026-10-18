@@ -846,6 +846,110 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("results", "integrity");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.RankedRun", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<int>("Attempts")
+                        .HasColumnType("integer")
+                        .HasColumnName("attempts");
+
+                    b.Property<string>("Board")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("board");
+
+                    b.Property<double?>("Claimed")
+                        .HasColumnType("double precision")
+                        .HasColumnName("claimed");
+
+                    b.Property<DateTimeOffset?>("FinishedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("finished_at");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("GamePath")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("game_path");
+
+                    b.Property<int>("MaxMoves")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_moves");
+
+                    b.Property<int>("MinMsPerMove")
+                        .HasColumnType("integer")
+                        .HasColumnName("min_ms_per_move");
+
+                    b.Property<int>("MoveCount")
+                        .HasColumnType("integer")
+                        .HasColumnName("move_count");
+
+                    b.Property<string>("Moves")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("moves");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<double?>("Replayed")
+                        .HasColumnType("double precision")
+                        .HasColumnName("replayed");
+
+                    b.Property<long?>("ResultId")
+                        .HasColumnType("bigint")
+                        .HasColumnName("result_id");
+
+                    b.Property<int>("Seed")
+                        .HasColumnType("integer")
+                        .HasColumnName("seed");
+
+                    b.Property<DateTimeOffset>("StartedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("started_at");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("state");
+
+                    b.Property<string>("Verify")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("character varying(200)")
+                        .HasColumnName("verify");
+
+                    b.HasKey("Id")
+                        .HasName("pk_ranked_runs");
+
+                    b.HasIndex("ResultId")
+                        .HasDatabaseName("ix_ranked_runs_result_id");
+
+                    b.HasIndex("State", "FinishedAt")
+                        .HasDatabaseName("ix_ranked_runs_state_finished_at");
+
+                    b.HasIndex("ProfileId", "GameId", "State")
+                        .HasDatabaseName("ix_ranked_runs_profile_id_game_id_state");
+
+                    b.ToTable("ranked_runs", "integrity");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Progress.SavedGame", b =>
                 {
                     b.Property<Guid>("ProfileId")
@@ -998,6 +1102,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("path");
+
+                    b.Property<string>("Ranked")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("ranked");
 
                     b.Property<string>("Rooms")
                         .HasColumnType("jsonb")
@@ -1765,6 +1873,17 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Restrict)
                         .IsRequired()
                         .HasConstraintName("fk_decisions_integrity_results_result_id");
+
+                    b.Navigation("Result");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Integrity.RankedRun", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Integrity.IntegrityResult", "Result")
+                        .WithMany()
+                        .HasForeignKey("ResultId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .HasConstraintName("fk_ranked_runs_integrity_results_result_id");
 
                     b.Navigation("Result");
                 });

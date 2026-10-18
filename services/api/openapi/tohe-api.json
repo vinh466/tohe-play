@@ -1442,6 +1442,101 @@
         }
       }
     },
+    "/api/runs": {
+      "post": {
+        "tags": [
+          "Boards"
+        ],
+        "summary": "Open a ranked run of a game (ADR 0030): its id and the seed to play it from; it closes the last one.",
+        "operationId": "StartRankedRun",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StartRankedRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RankedRunView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/runs/{id}/finish": {
+      "post": {
+        "tags": [
+          "Boards"
+        ],
+        "summary": "Hand a ranked run's moves and score in; the server replays them with the game's verify module.",
+        "operationId": "FinishRankedRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/FinishRankedRunRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "202": {
+            "description": "Accepted"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/telemetry": {
       "post": {
         "tags": [
@@ -2779,6 +2874,22 @@
           }
         }
       },
+      "FinishRankedRunRequest": {
+        "required": [
+          "moves",
+          "score"
+        ],
+        "type": "object",
+        "properties": {
+          "moves": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "score": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
       "ForgotPasswordRequest": {
         "required": [
           "email"
@@ -3669,6 +3780,22 @@
           }
         }
       },
+      "RankedRunView": {
+        "required": [
+          "run",
+          "seed"
+        ],
+        "type": "object",
+        "properties": {
+          "run": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "RecordScoresRequest": {
         "required": [
           "scores"
@@ -4167,6 +4294,17 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "StartRankedRunRequest": {
+        "required": [
+          "gameId"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
           }
         }
       },

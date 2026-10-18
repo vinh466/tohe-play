@@ -21,6 +21,16 @@ internal static class IntegrityModule
         builder.Services.AddScoped<Boards>();
         builder.Services.AddScoped<IBoards>(services => services.GetRequiredService<Boards>());
         builder.Services.AddScoped<PublicBoards>();
+        // Ranked runs (ADR 0030): dealt and taken in by the API, replayed in the background.
+        builder.Services.AddOptions<IntegrityOptions>().BindConfiguration(IntegrityOptions.Section);
+        builder.Services.AddScoped<RankedRuns>();
+        builder.Services.AddScoped<RankedReplays>();
+        var options = builder.Configuration.GetSection(IntegrityOptions.Section).Get<IntegrityOptions>() ?? new IntegrityOptions();
+        if (options.Replays && !BuildTime.IsGeneratingOpenApi)
+        {
+            builder.Services.AddHostedService<RankedReplayWorker>();
+        }
+
         return builder;
     }
 
@@ -99,12 +109,74 @@ internal static class IntegrityModule
 
                 DateTimeOffset? since = period == "week" ? Weeks.StartOf(clock.GetUtcNow()) : null;
                 var hands = game.Rooms is not null;
+                var reproducible = game.Ranked is not null;
                 var name = hands ? IntegrityEngine.HandsBoard : board;
-                var (rows, listed) = await read.RankAsync(profile.Id, gameId, name, hands, community, since, ct);
-                return TypedResults.Ok(PublicBoards.View(gameId, name, scope, period, since, hands, listed, rows, profile.Id));
+                var (rows, listed) = await read.RankAsync(profile.Id, gameId, name, hands, reproducible, community, since, ct);
+                return TypedResults.Ok(PublicBoards.View(gameId, name, scope, period, since, hands, reproducible, listed, rows, profile.Id));
             })
             .WithName("GetPublicBoard")
             .WithSummary("A community's or the server's board of a game: the first 50 and the viewer's place, by trust.");
+
+        var runs = api.MapGroup("/runs")
+            .WithTags("Boards")
+            .RequireAuthorization()
+            .ProducesProblem(StatusCodes.Status403Forbidden);
+
+        runs.MapPost("/", async Task<Results<Ok<RankedRunView>, ProblemHttpResult>> (
+                StartRankedRunRequest request,
+                HttpContext http,
+                IActiveProfile active,
+                IRegistryGames registry,
+                RankedRuns ranked,
+                CancellationToken ct) =>
+            {
+                if (await active.GetAsync(http.User, ct) is not { } profile)
+                {
+                    return Problems.Of(StatusCodes.Status403Forbidden, "profile_required", "Choose a profile first");
+                }
+
+                if (await registry.GetAsync(request.GameId, ct) is not { Ranked: { } rules } game)
+                {
+                    return Problems.Of(StatusCodes.Status404NotFound, "not_ranked", "The catalog has no ranked game by that id");
+                }
+
+                if (await ranked.StartAsync(profile, game, rules, ct) is not { } run)
+                {
+                    return Problems.Of(StatusCodes.Status429TooManyRequests, "too_many_runs", "Too many runs started just now");
+                }
+
+                return TypedResults.Ok(new RankedRunView(run.Id.ToString("N"), run.Seed));
+            })
+            .WithName("StartRankedRun")
+            .WithSummary("Open a ranked run of a game (ADR 0030): its id and the seed to play it from; it closes the last one.");
+
+        runs.MapPost("/{id}/finish", async Task<Results<Accepted, ValidationProblem, ProblemHttpResult>> (
+                string id,
+                FinishRankedRunRequest request,
+                HttpContext http,
+                IActiveProfile active,
+                RankedRuns ranked,
+                CancellationToken ct) =>
+            {
+                if (await active.GetAsync(http.User, ct) is not { } profile)
+                {
+                    return Problems.Of(StatusCodes.Status403Forbidden, "profile_required", "Choose a profile first");
+                }
+
+                var refused = Guid.TryParse(id, out var run)
+                    ? await ranked.FinishAsync(profile.Id, run, request.Moves, request.Score, ct)
+                    : "not_found";
+                return refused switch
+                {
+                    null => TypedResults.Accepted((string?)null),
+                    "not_found" => Problems.Of(StatusCodes.Status404NotFound, "not_found", "No such run of this profile"),
+                    "run_closed" or "run_finished" => Problems.Of(StatusCodes.Status409Conflict, refused, "The run takes no moves now"),
+                    "score_invalid" => Problems.Field("score", refused),
+                    _ => Problems.Field("moves", refused),
+                };
+            })
+            .WithName("FinishRankedRun")
+            .WithSummary("Hand a ranked run's moves and score in; the server replays them with the game's verify module.");
 
         return api;
     }

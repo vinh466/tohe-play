@@ -89,6 +89,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Email:From", "Tò He <no-reply@tohe.test>");
         builder.UseSetting("Email:Smtp:Host", "smtp.tohe.test");
         builder.UseSetting("Email:DeliveryEnabled", "false");
+        // Tests replay ranked runs by hand (RankedReplays.RunAsync), not on a timer.
+        builder.UseSetting("Integrity:Replays", "false");
         builder.ConfigureTestServices(services => services.AddSingleton<ISmtpTransport>(Smtp));
         builder.ConfigureServices(services =>
         {
