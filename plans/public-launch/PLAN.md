@@ -15,13 +15,12 @@
 
 ## Next — one item
 
-**Production chạy** ([platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239) merged 2026-10-19, chart `0.1.0-gd685547`): owner nhận quyền chủ, chuyển đăng ký sang mã
-mời (đang `open`), rồi F4 (E-10) — agent mở item E-10 và làm phần của mình khi owner đồng ý chạm vào prod.
+**Owner tự dùng production một thời gian** (2026-10-19: "đăng ký sơ sơ, admin ổn, tôi sẽ test 1 mình chứ chưa mời ai 1
+thời gian"). Chưa mời ai, nên F4 (E-10) chờ owner báo; agent chờ phản hồi và sửa lỗi owner gặp.
 
 ## Waiting on the owner
 
-1. **Nhận quyền chủ trên prod**: đăng ký tài khoản của mình ở `https://toheplay.io.vn` (cũng là phép thử email thật),
-   rồi setup token (`kubectl -n tohe logs deploy/tohe-api | grep -i "setup token"`) ở `/admin/`, bật 2FA.
+1. ~~Nhận quyền chủ trên prod~~ — xong (owner, 2026-10-19: đăng ký được, admin ổn).
 2. **Chế độ đăng ký → Theo lời mời** (console → Đăng nhập & đăng ký): prod đang `open`, proof-of-work tắt; E-09 Q1
    chốt ra mắt bằng mã mời.
 3. **`_dmarc`** TXT `v=DMARC1; p=none;` — chưa có trên DNS (kiểm 2026-10-19, Google và Cloudflare DoH).

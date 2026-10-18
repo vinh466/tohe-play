@@ -2,6 +2,11 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (cuối) — agent
+
+- Owner: "đăng ký sơ sơ, admin ổn, tôi sẽ test 1 mình chứ chưa mời ai 1 thời gian xem sao, hiện là tạm ok rồi".
+  Prod: đăng ký vẫn `open`, proof-of-work tắt, `_dmarc` chưa có — nhắc owner. F4 chờ owner.
+
 ## 2026-10-19 (tiếp) — agent
 
 - Owner merged [platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239): **production chạy** `d685547` trên `toheplay.io.vn`. Kiểm ngoài: health, config (email bật,
