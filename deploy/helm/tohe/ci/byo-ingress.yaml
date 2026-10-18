@@ -1,0 +1,27 @@
+# Bring your own routing and connection string: no Ingress, no site, the whole connection string from a Secret, an
+# image mirror.
+publicUrls:
+  hub: https://play.example.org
+  games: https://games.example.org
+global:
+  image:
+    registry: registry.example.org
+    repository: mirror/tohe
+    tag: "1.0.0"
+site:
+  enabled: false
+infra:
+  postgres:
+    mode: external
+    external:
+      connectionStringKey: db-connection-string
+secrets:
+  existingSecret: tohe
+ingress:
+  enabled: false
+api:
+  config:
+    Rooms__GraceSeconds: "45"
+  extraEnvFrom:
+    - secretRef:
+        name: tohe-extra

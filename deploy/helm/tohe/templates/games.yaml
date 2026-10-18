@@ -1,0 +1,3 @@
+{{- /* The games origin: immutable game builds and catalog.json, embedded only by the hub (ADR 0002, 0007). */ -}}
+{{- $env := list (dict "name" "HUB_ORIGINS" "value" (include "tohe.origin" .Values.publicUrls.hub)) -}}
+{{ include "tohe.caddyWorkload" (dict "root" . "component" "games" "values" .Values.games "env" $env "probePath" "/catalog.json") }}

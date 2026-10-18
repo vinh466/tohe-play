@@ -1,0 +1,22 @@
+Tò He {{ include "tohe.tag" (dict "root" . "image" .Values.api.image) }} — release {{ .Release.Name }} in {{ .Release.Namespace }}.
+
+  Hub (and /api):  {{ .Values.publicUrls.hub }}
+  Games origin:    {{ .Values.publicUrls.games }}
+{{- if .Values.site.enabled }}
+  Site and docs:   {{ .Values.publicUrls.site }}
+{{- end }}
+
+The API migrates its database when it starts; the first start can take a minute:
+
+  kubectl -n {{ .Release.Namespace }} rollout status deploy/{{ include "tohe.componentName" (dict "root" . "component" "api") }}
+  helm -n {{ .Release.Namespace }} test {{ .Release.Name }}
+{{- if eq .Values.infra.postgres.mode "builtin" }}
+
+PostgreSQL runs inside this release (infra.postgres.mode=builtin) and nothing backs it up. Dump it yourself:
+
+  kubectl -n {{ .Release.Namespace }} exec statefulset/{{ include "tohe.componentName" (dict "root" . "component" "postgres") }} -- pg_dump -U {{ .Values.infra.postgres.username }} -d {{ .Values.infra.postgres.database }} > tohe.sql
+{{- end }}
+{{- if not .Values.ingress.enabled }}
+
+ingress.enabled=false: route the three hosts yourself — the hub to service {{ include "tohe.componentName" (dict "root" . "component" "hub") }}:8080, and so on.
+{{- end }}

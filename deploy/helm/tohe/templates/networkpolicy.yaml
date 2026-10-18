@@ -1,0 +1,86 @@
+{{- if .Values.networkPolicy.enabled }}
+{{- /*
+Defence in depth, off by default. The API believes the X-Forwarded-For the hub sends (ADR 0021), so nothing but the
+hub may reach it; only the API reaches the builtin PostgreSQL; the web pods take traffic from the ingress controller.
+Kubelet probes are not affected on the common CNIs.
+*/ -}}
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "tohe.componentName" (dict "root" . "component" "api") }}
+  labels:
+    {{- include "tohe.labels" (dict "root" . "component" "api") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "tohe.selectorLabels" (dict "root" . "component" "api") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "tohe.selectorLabels" (dict "root" . "component" "hub") | nindent 14 }}
+      ports:
+        - port: http
+    {{- if .Values.metrics.serviceMonitor.enabled }}
+    # Prometheus scrapes /metrics (ADR 0036): from its namespace, on the metrics port only.
+    - from:
+        - namespaceSelector:
+            {{- with .Values.metrics.scraperNamespaceLabels }}
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+            {{- else }} {}
+            {{- end }}
+      ports:
+        - port: metrics
+    {{- end }}
+{{- if eq .Values.infra.postgres.mode "builtin" }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "tohe.componentName" (dict "root" . "component" "postgres") }}
+  labels:
+    {{- include "tohe.labels" (dict "root" . "component" "postgres") | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "tohe.selectorLabels" (dict "root" . "component" "postgres") | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - podSelector:
+            matchLabels:
+              {{- include "tohe.selectorLabels" (dict "root" . "component" "api") | nindent 14 }}
+      ports:
+        - port: postgres
+{{- end }}
+{{- with .Values.networkPolicy.ingressNamespaceLabels }}
+{{- $labels := . }}
+{{- range $component := list "hub" "games" "site" }}
+{{- if or (ne $component "site") $.Values.site.enabled }}
+---
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ include "tohe.componentName" (dict "root" $ "component" $component) }}
+  labels:
+    {{- include "tohe.labels" (dict "root" $ "component" $component) | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels:
+      {{- include "tohe.selectorLabels" (dict "root" $ "component" $component) | nindent 6 }}
+  policyTypes: [Ingress]
+  ingress:
+    - from:
+        - namespaceSelector:
+            matchLabels:
+              {{- toYaml $labels | nindent 14 }}
+        # And this namespace — the hub's own calls, `helm test`.
+        - podSelector: {}
+      ports:
+        - port: http
+{{- end }}
+{{- end }}
+{{- end }}
+{{- end }}

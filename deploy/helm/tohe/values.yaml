@@ -1,0 +1,245 @@
+# Tò He chart values. Required: publicUrls.hub, publicUrls.games (and publicUrls.site while site.enabled), and the
+# secrets — secrets.existingSecret, or secrets.values. The chart refuses to render without them, with a message that
+# names the missing value. README.md describes every key; docs/guides/configuration.md what each image reads.
+
+# Release names: <release>-api, <release>-hub… unless overridden.
+nameOverride: ""
+fullnameOverride: ""
+
+publicUrls:
+  # The hub's public URL — the address people open. The API answers under /api on the same origin.
+  # https://… makes every request count as HTTPS and the session cookie Secure and host-locked (ADR 0021). No path.
+  hub: ""
+  # The games origin. Must differ from the hub's: games run in a sandboxed iframe that must never reach the hub's
+  # cookies or storage (ADR 0002).
+  games: ""
+  # The landing page and the docs. Required while site.enabled.
+  site: ""
+
+global:
+  image:
+    # Images are <registry>/<repository>/<component>:<tag>, e.g. ghcr.io/vinh466/tohe-play/api:sha-<commit>.
+    registry: ghcr.io
+    repository: vinh466/tohe-play
+    # One tag for the four images. Empty: the chart's appVersion — a published chart carries its commit's tag.
+    tag: ""
+    pullPolicy: IfNotPresent
+  imagePullSecrets: []
+
+# Applied to every workload; a component's own value of the same name replaces it.
+defaults:
+  # On the Deployment/StatefulSet itself — where Reloader looks for reloader.stakater.com/auto. The same annotation
+  # under podAnnotations would land on the pod template and do nothing.
+  annotations: {}
+  podAnnotations: {}
+  podLabels: {}
+  nodeSelector: {}
+  tolerations: []
+  affinity: {}
+  priorityClassName: ""
+
+api:
+  image:
+    repository: "" # default: <global.image.repository>/api
+    tag: "" # default: global.image.tag
+  # One instance, always: rooms live in memory, background jobs and start-up migrations assume a single API
+  # (ADR 0016). The chart refuses anything else, and the Deployment uses Recreate so two never overlap.
+  replicaCount: 1
+  # Apply pending database migrations when the API starts. Turn off only if you run them another way.
+  migrateOnStartup: true
+  # ASP.NET Core host filtering. Empty: the hub's host from publicUrls.hub. The probes send it as their Host.
+  allowedHosts: ""
+  # Extra non-secret configuration as environment variables, e.g. { Rooms__GraceSeconds: "45" }.
+  config: {}
+  # Extra environment: secrets go here as secretKeyRef, or whole Secrets in extraEnvFrom.
+  extraEnv: []
+  extraEnvFrom: []
+  extraVolumes: []
+  extraVolumeMounts: []
+  resources:
+    requests:
+      cpu: 50m
+      memory: 192Mi
+    limits:
+      memory: 512Mi
+  # The image runs as "app" (uid 1654); the kubelet needs the number to prove runAsNonRoot.
+  podSecurityContext:
+    runAsNonRoot: true
+    runAsUser: 1654
+    runAsGroup: 1654
+    seccompProfile:
+      type: RuntimeDefault
+  securityContext:
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+
+hub:
+  image:
+    repository: "" # default: <global.image.repository>/hub
+    tag: ""
+  replicaCount: 1
+  proxy:
+    # CIDRs of the proxies in front of the hub — the ingress controller's pods — that may say who the visitor is.
+    # Keep it narrow: anyone inside a trusted range can claim any address, and the API rate-limits sign-in by
+    # address. Empty: trust nobody (the hub is the edge).
+    trustedProxies: []
+    # Headers those proxies carry the visitor's address in. Behind Cloudflare: [CF-Connecting-IP].
+    clientIpHeaders: []
+  extraEnv: []
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+  podSecurityContext: &caddyPod
+    runAsNonRoot: true
+    runAsUser: 65532
+    runAsGroup: 65532
+    seccompProfile:
+      type: RuntimeDefault
+  # The caddy binary carries the NET_BIND_SERVICE file capability; with every capability dropped the kernel refuses
+  # to run it ("exec /usr/bin/caddy: operation not permitted"), so that one stays.
+  securityContext: &caddyContainer
+    allowPrivilegeEscalation: false
+    readOnlyRootFilesystem: true
+    capabilities:
+      drop: [ALL]
+      add: [NET_BIND_SERVICE]
+
+games:
+  image:
+    repository: "" # default: <global.image.repository>/games
+    tag: ""
+  replicaCount: 1
+  extraEnv: []
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+  podSecurityContext: *caddyPod
+  securityContext: *caddyContainer
+
+site:
+  # The landing page and the docs. Off: no site workload, no site host on the ingress.
+  enabled: true
+  image:
+    repository: "" # default: <global.image.repository>/site
+    tag: ""
+  replicaCount: 1
+  extraEnv: []
+  resources:
+    requests:
+      cpu: 10m
+      memory: 32Mi
+    limits:
+      memory: 128Mi
+  podSecurityContext: *caddyPod
+  securityContext: *caddyContainer
+
+infra:
+  postgres:
+    # builtin: a PostgreSQL StatefulSet in this release — for trying Tò He out and small self-hosting. It is NOT
+    #          backed up by anything in this chart.
+    # external: a server you already run (CloudNativePG, a managed database…).
+    mode: builtin
+    database: tohe
+    username: tohe
+    # The key holding the password in secrets.existingSecret (secrets.values.postgresPassword otherwise).
+    passwordKey: postgres-password
+    # Npgsql pool of the one API instance. On a shared server keep it under the role's connection limit.
+    maxPoolSize: 10
+    external:
+      host: ""
+      port: 5432
+      # Npgsql "SSL Mode": Disable, Prefer, Require, VerifyCA or VerifyFull.
+      sslMode: Disable
+      # Read the whole connection string from this key of secrets.existingSecret instead of building it from the
+      # parts above — for setups that already hand out connection strings.
+      connectionStringKey: ""
+    builtin:
+      image: postgres:18-alpine
+      # Its own pull policy: global.image.pullPolicy is for Tò He's images (CI sets Never for the ones it built).
+      pullPolicy: IfNotPresent
+      storage:
+        size: 5Gi
+        # Empty: the cluster's default StorageClass.
+        storageClass: ""
+      resources:
+        requests:
+          cpu: 50m
+          memory: 128Mi
+        limits:
+          memory: 512Mi
+      # postgres in the alpine image is uid 70.
+      podSecurityContext:
+        runAsNonRoot: true
+        runAsUser: 70
+        runAsGroup: 70
+        fsGroup: 70
+        seccompProfile:
+          type: RuntimeDefault
+      securityContext:
+        allowPrivilegeEscalation: false
+        readOnlyRootFilesystem: true
+        capabilities:
+          drop: [ALL]
+      nodeSelector: {}
+      tolerations: []
+      affinity: {}
+
+secrets:
+  # A Secret you manage — the Infisical operator, sealed-secrets, kubectl. Keys the chart reads from it:
+  #   <infra.postgres.passwordKey>       the database password (not with external.connectionStringKey)
+  #   <external.connectionStringKey>     the whole connection string, when set
+  #   telemetry-operator-token           optional: token for the telemetry report (ADR 0015)
+  existingSecret: ""
+  # Otherwise the chart renders a Secret from these values. Nothing is generated: under GitOps the chart is rendered
+  # with `helm template`, and a generated value would change on every render. For example:
+  #   --set secrets.values.postgresPassword=$(openssl rand -hex 24)
+  # Avoid ";" in the password: it ends up in an Npgsql connection string.
+  values:
+    postgresPassword: ""
+    telemetryOperatorToken: ""
+
+ingress:
+  enabled: true
+  # Empty: the cluster's default IngressClass.
+  className: ""
+  annotations: {}
+  # TLS for the hosts; leave empty when TLS ends before the ingress (Cloudflare in front).
+  #   - secretName: tohe-tls
+  #     hosts: [tohe.example.org, tohe-games.example.org, tohe-site.example.org]
+  tls: []
+
+networkPolicy:
+  # Only the hub reaches the API, only the API reaches the builtin PostgreSQL, and the web pods accept traffic from
+  # the ingress controller's namespace. Needs a CNI that enforces NetworkPolicy.
+  enabled: false
+  # Labels of the ingress controller's namespace, e.g. { kubernetes.io/metadata.name: kube-system }. Empty: any.
+  ingressNamespaceLabels: {}
+
+# The API's /metrics for Prometheus (ADR 0036): port 9464, which no ingress routes. Both need the Prometheus
+# Operator's CRDs (kube-prometheus-stack), and an API image that serves /metrics.
+metrics:
+  serviceMonitor:
+    # A ServiceMonitor that scrapes the API.
+    enabled: false
+    interval: 30s
+    # Labels the cluster's Prometheus selects ServiceMonitors by, e.g. { release: kube-prometheus-stack }.
+    labels: {}
+  prometheusRule:
+    # The six alerts: the API down, the database down, 5xx, slowness, stuck email, a failing background worker.
+    enabled: false
+    labels: {}
+  # With networkPolicy.enabled and the ServiceMonitor on: labels of the namespace Prometheus scrapes from, e.g.
+  # { kubernetes.io/metadata.name: monitoring }. Empty: any namespace may reach the metrics port.
+  scraperNamespaceLabels: {}
+
+tests:
+  # `helm test`: a pod that checks the hub serves the app and /api/health.
+  image: curlimages/curl:8.23.0

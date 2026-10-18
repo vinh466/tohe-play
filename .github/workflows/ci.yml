@@ -50,6 +50,52 @@ jobs:
           path: games/*/test-results/conformance/
           if-no-files-found: ignore
 
+  chart:
+    name: Helm chart (lint, guards, install on kind)
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v7
+      # Helm 3, as ArgoCD renders charts with it (ADR 0021).
+      - uses: azure/setup-helm@v5
+        with:
+          version: v3.16.3
+      - name: Lint, render every profile, check every guard
+        run: deploy/helm/tohe/ci/check.sh
+      - name: Build the images
+        run: |
+          docker build -f deploy/docker/api.Dockerfile -t tohe-api:ci .
+          for target in hub games site; do
+            docker build -f deploy/docker/web.Dockerfile --target "$target" -t "tohe-$target:ci" .
+          done
+      - uses: helm/kind-action@v1
+        with:
+          cluster_name: tohe
+      - name: Load the images into kind
+        run: kind load docker-image tohe-api:ci tohe-hub:ci tohe-games:ci tohe-site:ci --name tohe
+      - name: Install from scratch (builtin PostgreSQL, the chart's own Secret)
+        run: |
+          helm install tohe deploy/helm/tohe \
+            -f deploy/helm/tohe/ci/standalone.yaml -f deploy/helm/tohe/ci/kind/images.yaml \
+            --wait --timeout 10m
+      - name: helm test
+        run: helm test tohe --logs
+      - name: Upgrade in place
+        run: |
+          helm upgrade tohe deploy/helm/tohe \
+            -f deploy/helm/tohe/ci/standalone.yaml -f deploy/helm/tohe/ci/kind/images.yaml \
+            --set api.config.Rooms__GraceSeconds=45 --wait --timeout 10m
+          helm test tohe --logs
+      - name: Cluster state
+        if: failure()
+        run: |
+          kubectl get pods,pvc,events -o wide
+          kubectl describe pods
+          for component in api hub games site postgres; do
+            kubectl logs -l app.kubernetes.io/component=$component --tail=80 --all-containers || true
+          done
+
   stack:
     name: Docker stack + e2e smoke and rooms
     needs: verify
@@ -95,3 +141,53 @@ jobs:
           name: e2e
           path: tools/e2e/test-results/
           if-no-files-found: ignore
+
+  # What passed every check on main becomes the release (ADR 0021): four images tagged with the commit, and the chart
+  # whose appVersion is that tag. UAT deploys these images; production pins a chart version and a tag.
+  publish:
+    name: Publish images and chart to GHCR
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [verify, chart, stack]
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read
+      packages: write
+    env:
+      IMAGES: ghcr.io/${{ github.repository }}
+      CHARTS: oci://ghcr.io/${{ github.repository_owner }}/charts
+    steps:
+      - uses: actions/checkout@v7
+      - uses: azure/setup-helm@v5
+        with:
+          version: v3.16.3
+      - name: Sign in to ghcr.io
+        env:
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          ACTOR: ${{ github.actor }}
+        run: |
+          echo "$TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
+          echo "$TOKEN" | helm registry login ghcr.io --username "$ACTOR" --password-stdin
+      - name: Build and push the images (sha-<commit>)
+        run: |
+          tag="sha-$GITHUB_SHA"
+          labels=(--label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY"
+            --label "org.opencontainers.image.revision=$GITHUB_SHA")
+          docker build --pull -f deploy/docker/api.Dockerfile "${labels[@]}" -t "$IMAGES/api:$tag" .
+          for target in hub games site; do
+            docker build --pull -f deploy/docker/web.Dockerfile --target "$target" "${labels[@]}" -t "$IMAGES/$target:$tag" .
+          done
+          for component in api hub games site; do
+            docker push --quiet "$IMAGES/$component:$tag"
+          done
+      - name: Package and push the chart (<version>-g<short sha>)
+        run: |
+          version="$(sed -n 's/^version: *//p' deploy/helm/tohe/Chart.yaml)-g${GITHUB_SHA::7}"
+          helm package deploy/helm/tohe --version "$version" --app-version "sha-$GITHUB_SHA" --destination dist
+          helm push "dist/tohe-$version.tgz" "$CHARTS"
+          {
+            echo "### Published $GITHUB_SHA"
+            echo
+            echo "- Images: \`$IMAGES/{api,hub,games,site}:sha-$GITHUB_SHA\`"
+            echo "- Chart: \`helm install tohe $CHARTS/tohe --version $version\`"
+          } >>"$GITHUB_STEP_SUMMARY"
