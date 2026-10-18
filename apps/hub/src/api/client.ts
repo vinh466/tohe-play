@@ -125,10 +125,11 @@ export const external = {
         body: { code: proof.code ?? null, password: proof.password ?? null },
       }),
     ),
-  signUp: (displayName: string, termsVersion: string) =>
+  /** `inviteCode`: needed when registration is by invite, welcome otherwise (ADR 0028). */
+  signUp: (displayName: string, termsVersion: string, inviteCode: string | null) =>
     call(
       api.POST('/api/auth/external/pending/signup', {
-        body: { displayName, acceptTerms: true, termsVersion },
+        body: { displayName, acceptTerms: true, termsVersion, inviteCode },
       }),
     ),
   cancel: () => call(api.DELETE('/api/auth/external/pending')),

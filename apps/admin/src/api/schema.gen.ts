@@ -329,6 +329,76 @@ export interface paths {
         patch: operations["RenameAdminProfile"];
         trace?: never;
     };
+    "/api/admin/settings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The sign-in methods, which are on and who signs in only by each; the registration mode. */
+        get: operations["GetAdminSignInSettings"];
+        /** Switch sign-in methods and the registration mode; one method stays on, and you keep a way in. */
+        put: operations["UpdateAdminSignInSettings"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/communities": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Communities, how many accounts came with each, and their invite codes. */
+        get: operations["GetAdminCommunities"];
+        put?: never;
+        /** A new community. */
+        post: operations["CreateAdminCommunity"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/communities/{id}/codes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A new invite code for the community: given or made up, with an end and a limit of uses if wanted. */
+        post: operations["CreateAdminInviteCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/invite-codes/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke an invite code: no sign-up uses it again. */
+        delete: operations["RevokeAdminInviteCode"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -351,6 +421,7 @@ export interface components {
             /** Format: date-time */
             suspendedAt: null | string;
             suspendedReason: null | string;
+            community: null | string;
             profiles: components["schemas"]["ProfileDetail"][];
         };
         AccountSummary: {
@@ -484,12 +555,32 @@ export interface components {
         ClaimSetupRequest: {
             token: string;
         };
+        CommunityView: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: int32 */
+            members: number;
+            codes: components["schemas"]["InviteCodeView"][];
+        };
         CountSummary: {
             name: string;
             /** Format: int64 */
             total: number;
             /** Format: int32 */
             sessions: number;
+        };
+        CreateCommunityRequest: {
+            name: null | string;
+        };
+        CreateInviteCodeRequest: {
+            code: null | string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: int32 */
+            maxUses: null | number;
         };
         DailyPoint: {
             /** Format: date */
@@ -577,6 +668,20 @@ export interface components {
                 [key: string]: string[];
             };
         };
+        InviteCodeView: {
+            code: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: null | string;
+            /** Format: int32 */
+            maxUses: null | number;
+            /** Format: int32 */
+            uses: number;
+            /** Format: date-time */
+            revokedAt: null | string;
+            usable: boolean;
+        };
         MetricSummary: {
             name: string;
             /** Format: int32 */
@@ -629,6 +734,19 @@ export interface components {
             open: boolean;
             onlySomeEmails: boolean;
         };
+        SignInMethodView: {
+            id: string;
+            name: string;
+            configured: boolean;
+            on: boolean;
+            /** Format: int32 */
+            onlyWayIn: number;
+        };
+        SignInSettingsView: {
+            methods: components["schemas"]["SignInMethodView"][];
+            registration: string;
+            email: boolean;
+        };
         SuspendRequest: {
             reason: null | string;
         };
@@ -660,6 +778,12 @@ export interface components {
             openUntil: null | string;
             /** Format: int32 */
             recoveryCodesLeft: number;
+        };
+        UpdateSignInSettingsRequest: {
+            methods: null | {
+                [key: string]: boolean;
+            };
+            registration: null | string;
         };
         WorkerStatus: {
             name: string;
@@ -1219,6 +1343,183 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetAdminSignInSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInSettingsView"];
+                };
+            };
+        };
+    };
+    UpdateAdminSignInSettings: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSignInSettingsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SignInSettingsView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    GetAdminCommunities: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityView"][];
+                };
+            };
+        };
+    };
+    CreateAdminCommunity: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateCommunityRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityView"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    CreateAdminInviteCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateInviteCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityView"][];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RevokeAdminInviteCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CommunityView"][];
                 };
             };
             /** @description Not Found */

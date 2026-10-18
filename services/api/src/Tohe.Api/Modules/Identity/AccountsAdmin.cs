@@ -19,6 +19,7 @@ public sealed record AccountSummary(
 /// <summary>One account, as the admin console shows it.</summary>
 /// <param name="Logins">The providers it signs in with (ADR 0026).</param>
 /// <param name="SuspendedReason">Why, in the admin's words.</param>
+/// <param name="Community">The community it came with, by an invite code (ADR 0028).</param>
 public sealed record AccountDetail(
     Guid Id,
     string? Email,
@@ -33,6 +34,7 @@ public sealed record AccountDetail(
     IReadOnlyList<string> Logins,
     DateTimeOffset? SuspendedAt,
     string? SuspendedReason,
+    string? Community,
     IReadOnlyList<ProfileDetail> Profiles);
 
 /// <param name="Names">The names it had, newest first (D-17).</param>
@@ -131,6 +133,9 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
             .OrderBy(provider => provider)
             .ToListAsync(ct);
         var role = await roles.RoleOfAsync(id, ct);
+        var community = account.CommunityId is { } communityId
+            ? await db.Communities.AsNoTracking().Where(c => c.Id == communityId).Select(c => c.Name).FirstOrDefaultAsync(ct)
+            : null;
 
         return new AccountDetail(
             account.Id,
@@ -146,6 +151,7 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
             logins,
             account.SuspendedAt,
             account.SuspendedReason,
+            community,
             [.. profiles.Select(profile => new ProfileDetail(
                 profile.Id,
                 profile.PublicId,

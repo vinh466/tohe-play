@@ -41,7 +41,10 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 
 The API trusts the `X-Forwarded-For` the hub sends, so nothing but the hub may reach it.
 
-A provider exists only with both its client ID and secret, and `GET /api/config` lists the ones that do. Providers need
+A provider exists only with both its client ID and secret; the admin console then switches it on and off, as it does
+email and password, and decides who may sign up ([ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md),
+[Admin console](../architecture/admin.md#sign-in-and-registration)). `GET /api/config` lists the providers that exist
+and are on. Providers need
 `App:PublicUrl` with `https`: the redirect URI is built from the request — HTTPS, because of `App:PublicUrl`, and the
 host the browser used — so players reach the hub at that address, and the providers' own cookies are `Secure`.
 UAT and local development go without them (a developer may register an app for `http://localhost:4720`).

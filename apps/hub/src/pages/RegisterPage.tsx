@@ -8,6 +8,7 @@ import { configQuery } from '../api/queries.ts';
 import { ConsentCheckbox } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
 import { BackLink } from '../navigation/leave.tsx';
+import { invite } from '../session/invite.ts';
 import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -41,6 +42,7 @@ function useSignedUp() {
   const setMe = useSetMe();
   return async (me: MeView) => {
     guestMode.disable();
+    invite.forget();
     await setMe(me);
   };
 }
@@ -49,12 +51,19 @@ function Register() {
   const { t, i18n } = useTranslation();
   const signedUp = useSignedUp();
   const config = useQuery(configQuery);
+  const { invite: linked } = useSearch({ from: '/register' });
+  // A code from an invite link survives a trip to a sign-in provider (ADR 0028).
+  useEffect(() => {
+    if (linked) invite.remember(linked);
+  }, [linked]);
+  const registration = config.data?.registration ?? 'open';
   // The first profile's name is public, so it starts as a fun one rather than anyone's real name (D-17).
   const [form, setForm] = useState(() => ({
     email: '',
     displayName: funName(i18n.language),
     password: '',
     confirm: '',
+    inviteCode: (linked ?? invite.get()).toUpperCase(),
   }));
   const [showErrors, setShowErrors] = useState(false);
   const [agreed, setAgreed] = useState(false);
@@ -74,6 +83,7 @@ function Register() {
     password: form.password.length < 8 ? t('errors.passwordTooShort') : null,
     confirm: form.confirm !== form.password ? t('register.passwordsDiffer') : null,
     terms: agreed ? null : t('errors.termsRequired'),
+    inviteCode: registration === 'invite' && !form.inviteCode.trim() ? t('errors.inviteRequired') : null,
   };
 
   const start = useMutation({
@@ -84,6 +94,7 @@ function Register() {
         displayName,
         acceptTerms: agreed,
         termsVersion: TERMS_VERSION,
+        inviteCode: form.inviteCode.trim() || null,
       }),
     onSuccess: (attempt) => setAttemptId(attempt.attemptId),
   });
@@ -101,6 +112,52 @@ function Register() {
     if (Object.values(local).some(Boolean)) return;
     start.mutate();
   };
+
+  // By invite it is the way in, so it comes first; otherwise a community's code is a bonus, so it comes last.
+  const inviteField = (
+    <TextField
+      label={registration === 'invite' ? t('register.invite') : t('register.inviteOptional')}
+      hint={registration === 'invite' ? t('register.inviteRequiredHint') : t('register.inviteHint')}
+      name="inviteCode"
+      autoComplete="off"
+      autoCapitalize="characters"
+      spellCheck={false}
+      maxLength={40}
+      value={form.inviteCode}
+      onChange={(event) => setForm((f) => ({ ...f, inviteCode: event.target.value.toUpperCase() }))}
+      error={(showErrors && local.inviteCode) || fieldError('inviteCode')}
+    />
+  );
+
+  if (registration === 'closed') {
+    return (
+      <Screen narrow>
+        <Brand subtitle={t('register.subtitle')} />
+        <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink">
+          {t('register.closed')}
+        </p>
+        <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
+          {t('register.haveAccount')}
+        </BackLink>
+      </Screen>
+    );
+  }
+
+  // Signing up by email is off: only the providers that are on (ADR 0028).
+  if (config.data && !config.data.passwordSignIn) {
+    return (
+      <Screen narrow>
+        <Brand subtitle={t('register.subtitle')} />
+        <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink">
+          {t('register.passwordOff')}
+        </p>
+        <ProviderButtons alone />
+        <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
+          {t('register.haveAccount')}
+        </BackLink>
+      </Screen>
+    );
+  }
 
   if (config.data && !config.data.email) {
     return (
@@ -139,6 +196,7 @@ function Register() {
           />
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+            {registration === 'invite' ? inviteField : null}
             <TextField
               label={t('register.email')}
               hint={t('register.emailHint')}
@@ -197,6 +255,7 @@ function Register() {
               onChange={set('confirm')}
               error={showErrors ? local.confirm : null}
             />
+            {registration === 'invite' ? null : inviteField}
             <ConsentCheckbox
               checked={agreed}
               onChange={setAgreed}
@@ -204,6 +263,7 @@ function Register() {
             />
             {start.isError &&
             !server?.field('acceptTerms') &&
+            !server?.field('inviteCode') &&
             !server?.field('email') &&
             !server?.field('displayName') &&
             !server?.field('password') ? (

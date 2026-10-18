@@ -2274,7 +2274,9 @@
           "apiVersion",
           "telemetry",
           "email",
-          "providers"
+          "providers",
+          "passwordSignIn",
+          "registration"
         ],
         "type": "object",
         "properties": {
@@ -2295,6 +2297,12 @@
             "items": {
               "$ref": "#/components/schemas/ExternalProvider"
             }
+          },
+          "passwordSignIn": {
+            "type": "boolean"
+          },
+          "registration": {
+            "type": "string"
           }
         }
       },
@@ -2313,6 +2321,12 @@
             "type": "boolean"
           },
           "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inviteCode": {
             "type": [
               "null",
               "string"
@@ -3874,6 +3888,12 @@
             "type": "boolean"
           },
           "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "inviteCode": {
             "type": [
               "null",
               "string"

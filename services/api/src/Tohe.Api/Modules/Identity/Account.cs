@@ -38,6 +38,12 @@ public sealed class Account : IdentityUser<Guid>
 
     /// <summary>Why, in the admin's words; shown to admins only.</summary>
     public string? SuspendedReason { get; set; }
+
+    /// <summary>The community it came with, by an invite code (ADR 0028); none for accounts that came without one.</summary>
+    public Guid? CommunityId { get; set; }
+
+    /// <summary>The invite code it came with.</summary>
+    public string? InviteCode { get; set; }
 }
 
 internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
@@ -55,6 +61,12 @@ internal sealed class AccountConfiguration : IEntityTypeConfiguration<Account>
         builder.Property(account => account.TelemetryEnabled).HasDefaultValue(true);
         builder.Property(account => account.TermsVersion).HasMaxLength(Consent.MaxVersionLength);
         builder.Property(account => account.SuspendedReason).HasMaxLength(300);
+        builder.Property(account => account.InviteCode).HasMaxLength(Invites.MaxLength);
+        builder.HasIndex(account => account.CommunityId);
+        builder.HasOne<Community>()
+            .WithMany()
+            .HasForeignKey(account => account.CommunityId)
+            .OnDelete(DeleteBehavior.SetNull);
     }
 }
 

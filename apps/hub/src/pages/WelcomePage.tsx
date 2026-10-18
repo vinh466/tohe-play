@@ -46,6 +46,9 @@ function SignIn() {
   const setMe = useSetMe();
   const config = useQuery(configQuery);
   const { external } = useSearch({ from: '/welcome' });
+  // The console's switches (ADR 0028).
+  const passwordOn = config.data?.passwordSignIn ?? true;
+  const registration = config.data?.registration ?? 'open';
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   // Signed in, but an account from before email sign-in adds one first (ADR 0024).
@@ -101,63 +104,82 @@ function SignIn() {
     );
   }
 
+  const cameBack = external ? (
+    <p role="alert" className="text-danger">
+      {external === 'suspended'
+        ? t('errors.accountSuspended')
+        : external === 'disabled'
+          ? t('external.disabled')
+          : t('external.failed')}
+    </p>
+  ) : null;
+
   return (
     <Screen narrow>
       <Brand subtitle={t('welcome.subtitle')} />
-      <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
-        <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
-        {external ? (
-          <p role="alert" className="text-danger">
-            {external === 'suspended' ? t('errors.accountSuspended') : t('external.failed')}
-          </p>
-        ) : null}
-        <TextField
-          label={t('welcome.email')}
-          hint={t('welcome.emailHint')}
-          name="email"
-          inputMode="email"
-          autoComplete="username"
-          autoCapitalize="none"
-          autoCorrect="off"
-          spellCheck={false}
-          required
-          value={email}
-          onChange={(e) => setEmail(e.target.value)}
-        />
-        <TextField
-          label={t('welcome.password')}
-          name="password"
-          type="password"
-          autoComplete="current-password"
-          required
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-        />
-        {login.isError ? (
-          <p role="alert" className="text-danger">
-            {t(errorKey(login.error))}
-          </p>
-        ) : null}
-        <Button type="submit" busy={login.isPending}>
-          {t('welcome.signIn')}
-        </Button>
-        {config.data?.email ? (
-          <Link
-            to="/password/forgot"
-            className="text-center font-semibold text-accent underline underline-offset-4"
-          >
-            {t('welcome.forgot')}
-          </Link>
-        ) : null}
-      </form>
-      <ProviderButtons />
+      {passwordOn ? (
+        <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
+          <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
+          {cameBack}
+          <TextField
+            label={t('welcome.email')}
+            hint={t('welcome.emailHint')}
+            name="email"
+            inputMode="email"
+            autoComplete="username"
+            autoCapitalize="none"
+            autoCorrect="off"
+            spellCheck={false}
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+          <TextField
+            label={t('welcome.password')}
+            name="password"
+            type="password"
+            autoComplete="current-password"
+            required
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+          />
+          {login.isError ? (
+            <p role="alert" className="text-danger">
+              {t(errorKey(login.error))}
+            </p>
+          ) : null}
+          <Button type="submit" busy={login.isPending}>
+            {t('welcome.signIn')}
+          </Button>
+          {config.data?.email ? (
+            <Link
+              to="/password/forgot"
+              className="text-center font-semibold text-accent underline underline-offset-4"
+            >
+              {t('welcome.forgot')}
+            </Link>
+          ) : null}
+        </form>
+      ) : (
+        <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
+          <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
+          {cameBack}
+          <p className="text-ink-soft">{t('welcome.passwordOff')}</p>
+          <ProviderButtons alone />
+        </section>
+      )}
+      {passwordOn ? <ProviderButtons /> : null}
       <div className="flex flex-col items-center gap-3 text-center">
-        <p className="text-ink-soft">
-          {t('welcome.noAccount')}{' '}
-          <Link to="/register" className="font-bold text-brand-ink underline underline-offset-4">
-            {t('welcome.createAccount')}
-          </Link>
-        </p>
+        {registration === 'closed' ? (
+          <p className="text-ink-soft">{t('welcome.closed')}</p>
+        ) : (
+          <p className="text-ink-soft">
+            {t('welcome.noAccount')}{' '}
+            <Link to="/register" className="font-bold text-brand-ink underline underline-offset-4">
+              {t('welcome.createAccount')}
+            </Link>
+          </p>
+        )}
         <Button variant="ghost" onClick={() => void tryAsGuest()}>
           {t('welcome.tryAsGuest')}
         </Button>

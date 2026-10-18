@@ -1,13 +1,14 @@
 ---
 title: Admin console
-description: The operator's console at /admin/ on the hub's origin — who may open it, the first owner, two-factor authentication, the audit log, and what each page reads.
+description: The operator's console at /admin/ on the hub's origin — who may open it, the first owner, two-factor authentication, the audit log, users, sign-in and registration, and what each page reads.
 sidebar:
   order: 5
 ---
 
-Decision: [ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md). This page describes what exists: the
-console's app and API, roles and permissions, the first owner's setup, two-factor authentication, the audit log, the
-read-only pages and the users. Sign-in settings and registration modes come next.
+Decisions: [ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md),
+[ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md). This page describes what exists: the console's
+app and API, roles and permissions, the first owner's setup, two-factor authentication, the audit log, the read-only
+pages, the users, and sign-in and registration with communities.
 
 ## Where it lives
 
@@ -46,9 +47,10 @@ An account holds at most one platform role — `owner`, `admin`, `moderator` or 
 | `admin.users.write` | Suspend an account or lift it, end its sessions | owner, admin |
 | `admin.roles.write` | Give or take platform roles | owner |
 | `admin.profiles.moderate` | Rename a profile | owner, admin, moderator |
+| `admin.settings.write` | Switch sign-in methods and the registration mode; make communities and invite codes, revoke codes | owner, admin |
 
-A permission to change something new — sign-in settings, boards — arrives with the page that changes it, given to the
-roles that should hold it.
+A permission to change something new — boards — arrives with the page that changes it, given to the roles that should
+hold it.
 
 ```mermaid
 flowchart TD
@@ -156,6 +158,9 @@ credentials, short of dropping the trigger. Owners and admins read it in the con
 | `user.suspend`, `user.unsuspend` | An account suspended — the reason in the details — or the suspension lifted |
 | `user.sign-out` | Every session of an account ended |
 | `profile.rename` | A profile renamed, with the names before and after |
+| `settings.change` | Sign-in methods or the registration mode switched, with the new values |
+| `community.create` | A community made |
+| `invite.create`, `invite.revoke` | An invite code made — its community, end and limit of uses in the details — or revoked |
 | `two-factor.enable`, `two-factor.disable` | Two-factor authentication turned on or off |
 | `two-factor.recovery-codes` | New recovery codes |
 | `console.open` | The console opened on a device, with how: `authenticator` or `recovery-code` |
@@ -182,6 +187,39 @@ level 2 and in the audit log:
 Nobody acts on their own account here (`admin_self`) — that is what the hub is for — nor on an account whose role is as
 strong as theirs (`admin_rank`), except an owner on another owner.
 
+## Sign-in and registration
+
+The deployment decides which sign-in methods can exist — a provider needs its secrets
+([Configuration](../guides/configuration.md#api)); the console decides which are on and who may make an account
+([ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md)). The switches live in `admin.settings`. The one
+API process caches them and forgets the cache whenever the console saves, so a change holds at once — and the hub
+learns it from `GET /api/config`. Unset, every configured method is on and registration is open.
+
+```mermaid
+flowchart TD
+  ask["PUT /api/admin/settings<br/>methods to switch, the registration mode"] --> who{"admin.settings.write,<br/>step-up level 2?"}
+  who -- no --> refused["403 admin_required or step_up_required"]
+  who -- yes --> known{"Every method named<br/>configured here?"}
+  known -- no --> unknown["400 method_unknown"]
+  known -- yes --> left{"A method still on?"}
+  left -- no --> last["409 settings_last_method"]
+  left -- yes --> mine{"Does the admin who asks<br/>keep a way in?"}
+  mine -- no --> self["409 settings_lockout_self"]
+  mine -- yes --> saved["Saved, with an audit entry, in one transaction<br/>the cache forgotten: it holds at once"]
+```
+
+- **Đăng nhập & đăng ký**, `/admin/settings`: each method — on, off, or not configured — with how many accounts sign
+  in by it alone. Switching one off that some rely on asks once more: they cannot sign in until it is on again or they
+  get another way linked. Off means no signing in and no signing up with it — and for email and password no forgotten
+  password either ([Sign-in methods](identity.md#sign-in-methods)).
+- **Registration**: `open`, anyone; `invite`, only with a usable invite code; `closed`, nobody new
+  ([Registration](identity.md#registration)). The page warns when nobody could sign up by email anyway — email not
+  sent, or the password off.
+- **Cộng đồng**, `/admin/communities`: a community is a name, unique. Its invite codes are given (`BAN-CO-6A`) or made
+  up (`K7Q2-M9XD`, Crockford's base 32: no I, L, O or U to misread); they may end on a day and may be used a set number
+  of times, and once revoked are never used again. A usable code shows its link, `/register?invite=CODE`, to share.
+  How many accounts came with a community is counted from the accounts.
+
 ## Granting a role
 
 Roles also come from a command run inside the API's container — the same image and configuration as the running
@@ -206,6 +244,8 @@ It exits with 0 when done, 1 when no account signs in with the address, 2 for a 
 | Sức khoẻ thiết bị, `/admin/health?days=1\|7\|30` | The device telemetry report ([Device telemetry](telemetry.md)): devices, errors, frames and metrics per game version, plays and errors per day | `TelemetryReports` |
 | Hệ thống, `/admin/system` | The build, environment and start time · migrations applied and pending · what each background worker last did · settings, never secrets | `BackgroundWork`, EF Core, options |
 | Người dùng, `/admin/users`, `/admin/users/{id}` | Accounts found, then one account and its profiles, with what may be done to them | `AccountsAdmin` |
+| Cộng đồng, `/admin/communities` | Communities with how many accounts came with each, their invite codes and links; new ones, revoking | `CommunitiesAdmin` |
+| Đăng nhập & đăng ký, `/admin/settings` | Each sign-in method and who relies on it alone; the registration mode; switching both | `RuntimeSettings`, `IdentityFacts` |
 | Nhật ký, `/admin/audit` | The audit log, newest first, a page at a time | `admin.audit_log` |
 | Bảo mật, `/admin/security` | The account's two-factor authentication: until when the console is open here, recovery codes left; new recovery codes, or turning it off | Identity's two-factor stores |
 
@@ -245,9 +285,17 @@ counts the failures in a row until a run goes well.
 | `POST /api/admin/users/{id}/sign-out` | `admin.users.write`, step-up | End every session of the account |
 | `PUT /api/admin/users/{id}/role` | `admin.roles.write`, step-up | Give a role, or none |
 | `PATCH /api/admin/profiles/{id}` | `admin.profiles.moderate`, step-up | Rename a profile |
+| `GET /api/admin/settings` | `admin.read` | Each sign-in method — configured, on, accounts relying on it alone — the registration mode, whether email is sent |
+| `PUT /api/admin/settings` | `admin.settings.write`, step-up | Switch methods by id and the registration mode; what is left out stays |
+| `GET /api/admin/communities` | `admin.read` | Communities, their member counts and invite codes |
+| `POST /api/admin/communities` | `admin.settings.write`, step-up | A new community |
+| `POST /api/admin/communities/{id}/codes` | `admin.settings.write`, step-up | A new invite code — given or made up, an end and a limit of uses if wanted |
+| `DELETE /api/admin/invite-codes/{code}` | `admin.settings.write`, step-up | Revoke an invite code |
 
 Refusals: 401 signed out; 403 `admin_required`, `two_factor_setup_required`, `two_factor_required`,
 `step_up_required`, `email_required`, `setup_token_invalid`, `setup_email_not_allowed`, `admin_self`, `admin_rank`;
-409 `setup_closed`, `two_factor_enabled`, `authenticator_not_set_up`, `last_owner`; 400 with field codes
-`code_invalid`, `code_used`, `locked_out`, `reason_required`, `reason_too_long`, `role_invalid` and the name rules'.
+409 `setup_closed`, `two_factor_enabled`, `authenticator_not_set_up`, `last_owner`, `settings_last_method`,
+`settings_lockout_self`, `community_exists`, `invite_code_exists`; 400 with field codes `code_invalid`, `code_used`,
+`locked_out`, `reason_required`, `reason_too_long`, `role_invalid`, `registration_invalid`, `method_unknown`,
+`invite_code_invalid`, `max_uses_invalid`, `expires_in_past` and the name rules'.
 Generated reference: [Admin API](/docs/reference/admin-api/).

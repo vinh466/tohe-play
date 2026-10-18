@@ -37,7 +37,8 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0021](0021-release-production-through-the-tohe-chart.md) | Release production through the Tò He Helm chart; one set of images configured at run time | Accepted |
 | [0022](0022-send-transactional-email-through-an-outbox.md) | Send transactional email through an outbox and an SMTP relay | Accepted |
 | [0023](0023-accounts-own-their-profiles.md) | Accounts own their profiles; every profile has a public ID and a free name | Accepted |
-| [0024](0024-email-identifies-an-account.md) | Email identifies an account; a code opens only the attempt it was sent for | Accepted; email change behind step-up by 0025 |
+| [0024](0024-email-identifies-an-account.md) | Email identifies an account; a code opens only the attempt it was sent for | Accepted; email change behind step-up by 0025; signing up may need an invite code, or be closed, by 0028 |
 | [0025](0025-step-up-in-two-levels-and-consent-at-sign-up.md) | Step up in two levels; sign up at 16 or older, accepting the terms | Accepted |
-| [0026](0026-sign-in-methods-and-account-linking.md) | Sign in with Google, GitHub or an OpenID Connect issuer; link a provider by its subject, after proof | Accepted |
+| [0026](0026-sign-in-methods-and-account-linking.md) | Sign in with Google, GitHub or an OpenID Connect issuer; link a provider by its subject, after proof | Accepted; a configured provider can be switched off by 0028 |
 | [0027](0027-platform-admin-and-the-first-owner.md) | Run the platform from an admin console on the hub's origin; roles grant permissions; a setup token makes the first owner | Accepted |
+| [0028](0028-sign-in-and-registration-at-run-time.md) | Switch sign-in methods and registration at run time; communities join by invite code | Accepted |

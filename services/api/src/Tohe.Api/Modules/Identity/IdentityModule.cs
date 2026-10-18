@@ -164,6 +164,8 @@ internal static class IdentityModule
         services.AddScoped<PlatformRoles>();
         services.AddScoped<IdentityFacts>();
         services.AddScoped<AccountsAdmin>();
+        services.AddScoped<Invites>();
+        services.AddScoped<CommunitiesAdmin>();
         services.AddScoped<IActiveProfile, ActiveProfileReader>();
         services.AddScoped<IAccountProfiles, AccountProfilesReader>();
         return builder;

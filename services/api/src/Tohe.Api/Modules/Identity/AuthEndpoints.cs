@@ -18,7 +18,8 @@ public sealed record SignUpRequest(
     [Required(AllowEmptyStrings = true), StringLength(128)] string Password,
     [Required(AllowEmptyStrings = true)] string DisplayName,
     bool AcceptTerms,
-    string? TermsVersion);
+    string? TermsVersion,
+    string? InviteCode = null);
 
 /// <summary>A flow waiting for the code sent by email. The same answer whoever the address belongs to (ADR 0024).</summary>
 /// <param name="AttemptId">Send it back with the code: a code opens only the attempt it was sent for.</param>
@@ -107,9 +108,17 @@ internal static class AuthEndpoints
         Attempts attempts,
         IEmailOutbox outbox,
         UserManager<Account> users,
+        ISignInSettings settings,
+        Invites invites,
         ToheDbContext db,
+        TimeProvider clock,
         CancellationToken ct)
     {
+        if (!await settings.IsOnAsync(SignInMethods.Password, ct))
+        {
+            return Problems.MethodDisabled();
+        }
+
         if (!outbox.Enabled)
         {
             return Problems.EmailUnavailable();
@@ -136,6 +145,12 @@ internal static class AuthEndpoints
             return Problems.Field("acceptTerms", "terms_required");
         }
 
+        // Registration closed, or an invite code missing or spent (ADR 0028) — the same answer whoever the address is.
+        if (await invites.RefusalAsync(request.InviteCode, clock.GetUtcNow(), ct) is { } closed)
+        {
+            return closed == "registration_closed" ? Problems.RegistrationClosed() : Problems.Field("inviteCode", closed);
+        }
+
         if (await attempts.RefusalAsync(attempts.Normalize(email), ct) is { } refusal)
         {
             return Problems.TooManyCodes(refusal);
@@ -154,7 +169,8 @@ internal static class AuthEndpoints
             ct,
             passwordHash: existing is null ? passwordHash : null,
             displayName: displayName,
-            termsVersion: request.TermsVersion);
+            termsVersion: request.TermsVersion,
+            inviteCode: Invites.Normalize(request.InviteCode));
         outbox.Add(existing?.Email is { } signsIn
             ? IdentityEmails.AlreadyRegistered(signsIn, attempts.Link("/welcome"))
             : IdentityEmails.SignUpCode(email, code!, attempts.Link($"/register/confirm?attempt={attempt.Id}&code={code}")));
@@ -166,6 +182,7 @@ internal static class AuthEndpoints
         ConfirmCodeRequest request,
         Attempts attempts,
         UserManager<Account> users,
+        Invites invites,
         ToheDbContext db,
         SessionWriter session,
         MeQueries me,
@@ -187,6 +204,14 @@ internal static class AuthEndpoints
         }
 
         var now = clock.GetUtcNow();
+
+        // The registration mode and the invite code once more, now the account is made: the code counted (ADR 0028).
+        var (community, inviteCode, refusal) = await invites.AdmitAsync(attempt.InviteCode, now, ct);
+        if (refusal is not null)
+        {
+            return Problems.Of(StatusCodes.Status403Forbidden, refusal, "No new account now");
+        }
+
         var id = Guid.CreateVersion7(now);
         var account = new Account
         {
@@ -200,6 +225,8 @@ internal static class AuthEndpoints
             CreatedAt = now,
             TermsVersion = attempt.TermsVersion,
             TermsAcceptedAt = attempt.CreatedAt,
+            CommunityId = community,
+            InviteCode = inviteCode,
         };
 
         // Every account starts with a profile to play as (ADR 0023), and plays as it at once: nobody else to choose.
@@ -240,11 +267,17 @@ internal static class AuthEndpoints
         LoginRequest request,
         UserManager<Account> users,
         SignInManager<Account> signIn,
+        ISignInSettings settings,
         ToheDbContext db,
         SessionWriter session,
         MeQueries me,
         CancellationToken ct)
     {
+        if (!await settings.IsOnAsync(SignInMethods.Password, ct))
+        {
+            return Problems.MethodDisabled();
+        }
+
         // An email signs in. A username still does for an account from before email sign-in, until it adds an email.
         var login = request.Email.Trim();
         var account = login.Contains('@')
@@ -285,8 +318,15 @@ internal static class AuthEndpoints
         IEmailOutbox outbox,
         UserManager<Account> users,
         ToheDbContext db,
+        ISignInSettings settings,
         CancellationToken ct)
     {
+        // A new password signs in: with the password switched off it is no way in either (ADR 0028).
+        if (!await settings.IsOnAsync(SignInMethods.Password, ct))
+        {
+            return Problems.MethodDisabled();
+        }
+
         if (!outbox.Enabled)
         {
             return Problems.EmailUnavailable();
@@ -326,8 +366,15 @@ internal static class AuthEndpoints
         SessionWriter session,
         MeQueries me,
         TimeProvider clock,
+        ISignInSettings settings,
         CancellationToken ct)
     {
+        // Also a code asked for before the switch went off.
+        if (!await settings.IsOnAsync(SignInMethods.Password, ct))
+        {
+            return Problems.MethodDisabled();
+        }
+
         // A weak password costs no try.
         if (await PasswordProblemAsync(users, request.Password) is { } weak)
         {

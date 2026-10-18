@@ -1,4 +1,5 @@
 using Tohe.Api.Infrastructure;
+using Tohe.Api.Modules.Identity;
 
 namespace Tohe.Api.Modules.Admin;
 
@@ -17,6 +18,9 @@ internal static class AdminModule
         builder.Services.AddSingleton<SetupToken>();
         builder.Services.AddScoped<SetupState>();
         builder.Services.AddScoped<AdminAudit>();
+        // The console's switches of ADR 0028, which the Identity module asks through ISignInSettings.
+        builder.Services.AddSingleton<RuntimeSettings>();
+        builder.Services.AddSingleton<ISignInSettings>(services => services.GetRequiredService<RuntimeSettings>());
         if (!BuildTime.IsGeneratingOpenApi)
         {
             // Tells, when the API starts, how to claim a deployment without an owner: needs the database.

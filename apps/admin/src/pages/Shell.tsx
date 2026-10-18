@@ -66,6 +66,8 @@ export function Shell() {
             {[
               ...pages,
               ...(mayUsers ? [{ to: '/users', label: 'Người dùng' } as const] : []),
+              { to: '/communities', label: 'Cộng đồng' } as const,
+              { to: '/settings', label: 'Đăng nhập & đăng ký' } as const,
               ...(mayAudit ? [{ to: '/audit', label: 'Nhật ký' } as const] : []),
               { to: '/security', label: 'Bảo mật' } as const,
             ].map((page) => (

@@ -18,10 +18,11 @@ internal static class Admins
     /// A new account holding <paramref name="role"/> through the command, two-factor authentication on: the console is
     /// open on the returned client, and step-up level 2 too.
     /// </summary>
-    public static async Task<Admin> NewAsync(ApiFactory factory, string role, WebApplicationFactory<Program>? app = null)
+    public static async Task<Admin> NewAsync(
+        ApiFactory factory, string role, WebApplicationFactory<Program>? app = null, bool followRedirects = true)
     {
         var email = Accounts.NewEmail();
-        var client = (app ?? factory).CreateClient();
+        var client = (app ?? factory).CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = followRedirects });
         var me = await Accounts.SignUpAsync(factory, client, "Cô Ba", email);
         Assert.Equal(0, (await CommandAsync(factory, "admin", "grant", email, "--role", role)).Exit);
         return new Admin(client, email, await EnrolAsync(client), me.Account.Id);

@@ -16,6 +16,10 @@ export type TwoFactorView = Schemas['TwoFactorView'];
 export type AccountSummary = Schemas['AccountSummary'];
 export type AccountDetail = Schemas['AccountDetail'];
 export type ProfileDetail = Schemas['ProfileDetail'];
+export type SignInSettings = Schemas['SignInSettingsView'];
+export type SignInMethod = Schemas['SignInMethodView'];
+export type Community = Schemas['CommunityView'];
+export type InviteCode = Schemas['InviteCodeView'];
 
 /** Same origin: the console is served at /admin/ by the hub's server, which proxies /api. */
 const api = createClient<paths>({ baseUrl: '' });
@@ -91,6 +95,25 @@ export const admin = {
     call(api.PUT('/api/admin/users/{id}/role', { params: { path: { id } }, body: { role } })),
   renameProfile: (id: string, name: string) =>
     call(api.PATCH('/api/admin/profiles/{id}', { params: { path: { id } }, body: { name } })),
+  signInSettings: () => call(api.GET('/api/admin/settings')),
+  /** Only what is given changes: methods by id, the registration mode. */
+  saveSignInSettings: (change: { methods?: Record<string, boolean>; registration?: string }) =>
+    call(
+      api.PUT('/api/admin/settings', {
+        body: { methods: change.methods ?? null, registration: change.registration ?? null },
+      }),
+    ),
+  communities: () => call(api.GET('/api/admin/communities')),
+  createCommunity: (name: string) => call(api.POST('/api/admin/communities', { body: { name } })),
+  createInviteCode: (
+    communityId: string,
+    code: { code: string | null; expiresAt: string | null; maxUses: number | null },
+  ) =>
+    call(
+      api.POST('/api/admin/communities/{id}/codes', { params: { path: { id: communityId } }, body: code }),
+    ),
+  revokeInviteCode: (code: string) =>
+    call(api.DELETE('/api/admin/invite-codes/{code}', { params: { path: { code } } })),
 };
 
 /**

@@ -6,16 +6,16 @@ import { buttonClass } from '../ui/Button.tsx';
 
 /**
  * "Tiếp tục với Google" and every provider this server offers (ADR 0026). Each is a full trip to the provider and
- * back, so it is a link, not a button that fetches.
+ * back, so it is a link, not a button that fetches. `alone`: the only ways in — no "or" after a form.
  */
-export function ProviderButtons() {
+export function ProviderButtons({ alone = false }: { alone?: boolean }) {
   const { t } = useTranslation();
   const config = useQuery(configQuery);
   const providers = config.data?.providers ?? [];
   if (providers.length === 0) return null;
   return (
     <div className="flex flex-col gap-2">
-      <p className="text-center text-ink-soft text-sm">{t('external.or')}</p>
+      {alone ? null : <p className="text-center text-ink-soft text-sm">{t('external.or')}</p>}
       {providers.map((provider) => (
         <a key={provider.id} href={external.startUrl(provider.id)} className={buttonClass('secondary')}>
           {t('external.continueWith', { name: provider.name })}

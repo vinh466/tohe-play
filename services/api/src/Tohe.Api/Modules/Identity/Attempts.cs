@@ -72,7 +72,8 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
         Guid? accountId = null,
         string? passwordHash = null,
         string? displayName = null,
-        string? termsVersion = null)
+        string? termsVersion = null,
+        string? inviteCode = null)
     {
         var now = clock.GetUtcNow();
 
@@ -100,6 +101,7 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
             PasswordHash = passwordHash,
             DisplayName = displayName,
             TermsVersion = termsVersion,
+            InviteCode = inviteCode,
             TriesLeft = Codes.Tries,
             CreatedAt = now,
             ExpiresAt = now + Codes.LifetimeOf(purpose),

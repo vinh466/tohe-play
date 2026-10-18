@@ -681,6 +681,227 @@
           }
         }
       }
+    },
+    "/api/admin/settings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "The sign-in methods, which are on and who signs in only by each; the registration mode.",
+        "operationId": "GetAdminSignInSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInSettingsView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Switch sign-in methods and the registration mode; one method stays on, and you keep a way in.",
+        "operationId": "UpdateAdminSignInSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSignInSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInSettingsView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/communities": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Communities, how many accounts came with each, and their invite codes.",
+        "operationId": "GetAdminCommunities",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A new community.",
+        "operationId": "CreateAdminCommunity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommunityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityView"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/communities/{id}/codes": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A new invite code for the community: given or made up, with an end and a limit of uses if wanted.",
+        "operationId": "CreateAdminInviteCode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInviteCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/invite-codes/{code}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Revoke an invite code: no sign-up uses it again.",
+        "operationId": "RevokeAdminInviteCode",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -700,6 +921,7 @@
           "logins",
           "suspendedAt",
           "suspendedReason",
+          "community",
           "profiles"
         ],
         "type": "object",
@@ -766,6 +988,12 @@
             "format": "date-time"
           },
           "suspendedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "community": {
             "type": [
               "null",
               "string"
@@ -1280,6 +1508,39 @@
           }
         }
       },
+      "CommunityView": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "members",
+          "codes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "members": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InviteCodeView"
+            }
+          }
+        }
+      },
       "CountSummary": {
         "required": [
           "name",
@@ -1297,6 +1558,50 @@
           },
           "sessions": {
             "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateCommunityRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreateInviteCodeRequest": {
+        "required": [
+          "code",
+          "expiresAt",
+          "maxUses"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "maxUses": {
+            "type": [
+              "null",
+              "integer"
+            ],
             "format": "int32"
           }
         }
@@ -1607,6 +1912,55 @@
           }
         }
       },
+      "InviteCodeView": {
+        "required": [
+          "code",
+          "createdAt",
+          "expiresAt",
+          "maxUses",
+          "uses",
+          "revokedAt",
+          "usable"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "maxUses": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "uses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "usable": {
+            "type": "boolean"
+          }
+        }
+      },
       "MetricSummary": {
         "required": [
           "name",
@@ -1792,6 +2146,56 @@
           }
         }
       },
+      "SignInMethodView": {
+        "required": [
+          "id",
+          "name",
+          "configured",
+          "on",
+          "onlyWayIn"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "onlyWayIn": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SignInSettingsView": {
+        "required": [
+          "methods",
+          "registration",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "methods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SignInMethodView"
+            }
+          },
+          "registration": {
+            "type": "string"
+          },
+          "email": {
+            "type": "boolean"
+          }
+        }
+      },
       "SuspendRequest": {
         "required": [
           "reason"
@@ -1908,6 +2312,30 @@
           "recoveryCodesLeft": {
             "type": "integer",
             "format": "int32"
+          }
+        }
+      },
+      "UpdateSignInSettingsRequest": {
+        "required": [
+          "methods",
+          "registration"
+        ],
+        "type": "object",
+        "properties": {
+          "methods": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "registration": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

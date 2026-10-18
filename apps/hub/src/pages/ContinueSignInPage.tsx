@@ -4,8 +4,10 @@ import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, type ExternalOutcome, external, type PendingSignInView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { configQuery } from '../api/queries.ts';
 import { ConsentCheckbox } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
+import { invite } from '../session/invite.ts';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
@@ -240,13 +242,21 @@ function LinkStep({ step }: { step: PendingSignInView }) {
 function SignUpStep({ step }: { step: PendingSignInView }) {
   const { t, i18n } = useTranslation();
   const outcome = useOutcome();
+  const config = useQuery(configQuery);
+  const registration = config.data?.registration ?? 'open';
   const [name, setName] = useState(() => funName(i18n.language));
+  const [inviteCode, setInviteCode] = useState(() => invite.get().toUpperCase());
   const [agreed, setAgreed] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const signUp = useMutation({
-    mutationFn: () => external.signUp(cleanName(name), TERMS_VERSION),
-    onSuccess: outcome,
+    mutationFn: () => external.signUp(cleanName(name), TERMS_VERSION, inviteCode.trim() || null),
+    onSuccess: async (result) => {
+      invite.forget();
+      await outcome(result);
+    },
   });
+  const inviteError = registration === 'invite' && !inviteCode.trim() ? t('errors.inviteRequired') : null;
+  const server = signUp.error instanceof ApiError ? signUp.error : null;
   const nameError = !cleanName(name)
     ? t('errors.nameRequired')
     : visibleLength(cleanName(name)) > MAX_NAME_LENGTH
@@ -255,9 +265,21 @@ function SignUpStep({ step }: { step: PendingSignInView }) {
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setShowErrors(true);
-    if (nameError || !agreed) return;
+    if (nameError || inviteError || !agreed) return;
     signUp.mutate();
   };
+  if (registration === 'closed') {
+    return (
+      <div className="flex flex-col gap-4">
+        <h2 className="font-bold text-ink text-xl">
+          {t('external.signUpTitle', { provider: step.provider })}
+        </h2>
+        <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink">
+          {t('register.closed')}
+        </p>
+      </div>
+    );
+  }
   return (
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
       <h2 className="font-bold text-ink text-xl">{t('external.signUpTitle', { provider: step.provider })}</h2>
@@ -282,12 +304,23 @@ function SignUpStep({ step }: { step: PendingSignInView }) {
           🎲
         </Button>
       </div>
+      <TextField
+        label={registration === 'invite' ? t('register.invite') : t('register.inviteOptional')}
+        hint={registration === 'invite' ? t('register.inviteRequiredHint') : t('register.inviteHint')}
+        autoComplete="off"
+        autoCapitalize="characters"
+        spellCheck={false}
+        maxLength={40}
+        value={inviteCode}
+        onChange={(event) => setInviteCode(event.target.value.toUpperCase())}
+        error={(showErrors && inviteError) || (server?.field('inviteCode') ? t(errorKey(server)) : null)}
+      />
       <ConsentCheckbox
         checked={agreed}
         onChange={setAgreed}
         error={showErrors && !agreed ? t('errors.termsRequired') : null}
       />
-      {signUp.isError ? (
+      {signUp.isError && !server?.field('inviteCode') ? (
         <p role="alert" className="text-danger">
           {t(errorKey(signUp.error))}
         </p>

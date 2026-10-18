@@ -18,6 +18,11 @@ internal static class AuditActions
     public const string UserSignOut = "user.sign-out";
     public const string ProfileRename = "profile.rename";
 
+    public const string SettingsChange = "settings.change";
+    public const string CommunityCreate = "community.create";
+    public const string InviteCreate = "invite.create";
+    public const string InviteRevoke = "invite.revoke";
+
     /// <summary>The console opened on a device: two-factor authentication passed.</summary>
     public const string ConsoleOpen = "console.open";
 

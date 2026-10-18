@@ -36,6 +36,17 @@ internal static class Problems
     public static ProblemHttpResult AttemptClosed() =>
         Of(StatusCodes.Status400BadRequest, "attempt_closed", "This code no longer works; ask for a new one");
 
+    /// <summary>The admin console turned this sign-in method off (ADR 0028).</summary>
+    public static ProblemHttpResult MethodDisabled() =>
+        Of(StatusCodes.Status403Forbidden, "method_disabled", "This way of signing in is off");
+
+    /// <summary>
+    /// Nobody new may sign up now (ADR 0028). The other refusals of <c>Invites</c> — <c>invite_required</c>,
+    /// <c>invite_invalid</c> — go on the invite code's field.
+    /// </summary>
+    public static ProblemHttpResult RegistrationClosed() =>
+        Of(StatusCodes.Status403Forbidden, "registration_closed", "Nobody new may sign up now");
+
     /// <summary>Suspended from the admin console; said only to someone who proved the account is theirs.</summary>
     public static ProblemHttpResult AccountSuspended() =>
         Of(StatusCodes.Status403Forbidden, "account_suspended", "This account is suspended");
