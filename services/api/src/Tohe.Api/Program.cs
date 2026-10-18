@@ -38,6 +38,7 @@ builder.AddRoomsModule();
 var app = builder.Build();
 
 app.UseForwardedHeaders();
+app.UsePublicUrl();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
 app.UseSameOriginGuard();

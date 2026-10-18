@@ -75,5 +75,5 @@ pnpm --filter @tohe/telemetry-report report -- --env uat --days 7
 ## Limits (accepted for now)
 
 - Plain HTTP inside WireGuard/LAN: no service worker or "Add to Home Screen" on phones (needs HTTPS), session
-  cookies are not marked `Secure`. Moving to HTTPS is part of a future production setup.
+  cookies are not marked `Secure`. Production runs on HTTPS ([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md)).
 - One machine, no redundancy. Backups are local to the same disk.

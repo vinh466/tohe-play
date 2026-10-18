@@ -1,4 +1,7 @@
 # Site: landing page + developer docs (static Astro build).
+# Env: PUBLIC_HUB_URL (where "Vào chơi ngay" leads), TOHE_SITE_URL (this site's own URL, for canonical links,
+#      the sitemap and llms.txt). Both are read when the container starts, so one image serves every environment
+#      (ADR 0021): the build writes [[[env "TOHE_SITE_URL"]]] where the site's URL goes (web.Dockerfile).
 {
 	admin off
 }
@@ -10,14 +13,32 @@
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
+		# Browsers ignore this over plain HTTP (UAT, local); behind HTTPS it pins this one host, not its siblings.
+		Strict-Transport-Security "max-age=31536000"
 	}
 	@immutable path /_astro/*
 	header @immutable Cache-Control "public, max-age=31536000, immutable"
+
+	# The landing page's play button points here, so the hub's address is decided at run time, not at build time.
+	# Unset (a misconfigured container) it falls back to this site's home page rather than a broken redirect.
+	redir /play {$PUBLIC_HUB_URL:/} 302
+	redir /play/ {$PUBLIC_HUB_URL:/} 302
+
+	# Unusual delimiters: only the placeholders the build wrote are template actions; "{{" in the docs is just text.
+	templates {
+		# file_server serves .xml (the sitemap) as text/xml.
+		mime text/html text/xml application/xml text/plain
+		between [[[ ]]]
+	}
 
 	file_server
 
 	handle_errors {
 		rewrite * /404.html
+		templates {
+			mime text/html
+			between [[[ ]]]
+		}
 		file_server
 	}
 }

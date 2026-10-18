@@ -1,0 +1,19 @@
+---
+// "Vào chơi ngay" links to /play. In a container the site's Caddy redirects /play to PUBLIC_HUB_URL, read when the
+// container starts (deploy/docker/Caddyfile.site, ADR 0021), before this page is ever served. It exists for the Astro
+// dev server, where the hub runs on its usual local port.
+const hubUrl = import.meta.env.PUBLIC_HUB_URL ?? 'http://localhost:4720';
+---
+
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <meta http-equiv="refresh" content={`0; url=${hubUrl}`} />
+    <title>Tò He</title>
+  </head>
+  <body>
+    <a href={hubUrl}>Vào chơi</a>
+  </body>
+</html>

@@ -49,9 +49,11 @@ Three browser origins, on purpose:
 | Games | `http://localhost:4730` | `http://10.100.0.2:4830` | Game code — possibly AI-written — can never read the hub's cookies or storage. |
 | Site | `http://localhost:4710` | `http://10.100.0.2:4810` | Static, independent of the app; stays up if the app is down. |
 
-Environments are described in [ADR 0010](../decisions/0010-environments-dev-and-uat.md). For a future public
-production, hostnames must be flat (one level under `vinetic.io.vn`) because Cloudflare's free certificates only
-cover one subdomain level — see [ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md).
+Environments are described in [ADR 0010](../decisions/0010-environments-dev-and-uat.md). Production runs the same
+images on the `platform-infra` cluster through Tò He's Helm chart, configured when the containers start
+([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md), [Configuration](../guides/configuration.md)).
+Its hostnames must be flat (one level under `vinetic.io.vn`) because Cloudflare's free certificates only cover one
+subdomain level — see [ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md).
 
 ## Dependency rules
 
