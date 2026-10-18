@@ -175,6 +175,19 @@ try {
   }
   await shot('catalog');
 
+  step("the games origin's own front page leads to the hub, and search engines stay out of it (ADR 0039)");
+  const { gamesOrigin } = (await (await fetch(new URL('/api/config', hubUrl))).json()) as {
+    gamesOrigin: string;
+  };
+  const front = await fetch(new URL('/', gamesOrigin), { redirect: 'manual' });
+  const leadsTo = new URL(front.headers.get('location') ?? '/', gamesOrigin).origin;
+  if (front.status !== 302 || leadsTo !== new URL(hubUrl).origin) {
+    throw new Error(`${gamesOrigin}/ answered ${front.status} towards ${leadsTo}, not a redirect to the hub`);
+  }
+  if (!front.headers.get('x-robots-tag')?.includes('noindex')) {
+    throw new Error(`${gamesOrigin}/ does not keep search engines out (X-Robots-Tag)`);
+  }
+
   step(
     "launch it: the loading screen gives way to the game's own title screen, full screen, with no hub bar (ADR 0020)",
   );

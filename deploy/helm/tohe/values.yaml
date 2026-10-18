@@ -11,7 +11,9 @@ publicUrls:
   # https://… makes every request count as HTTPS and the session cookie Secure and host-locked (ADR 0021). No path.
   hub: ""
   # The games origin. Must differ from the hub's: games run in a sandboxed iframe that must never reach the hub's
-  # cookies or storage (ADR 0002).
+  # cookies or storage (ADR 0002). Best on a registrable domain of its own, e.g. https://tohe-games.example.net beside
+  # https://tohe.example.org: on a sibling subdomain, game code is on the same site as every app of that domain and
+  # can set cookies they all receive (ADR 0039).
   games: ""
   # The landing page and the docs. Required while site.enabled.
   site: ""

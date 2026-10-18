@@ -99,7 +99,7 @@ Everything the chart cannot express in values.schema.json. Each failure names th
 {{- fail (printf "publicUrls.hub must be an http(s) origin with no path, got %q" $urls.hub) -}}
 {{- end -}}
 {{- if not $urls.games -}}
-{{- fail "publicUrls.games is required: the games origin, e.g. https://tohe-games.example.org (ADR 0002)" -}}
+{{- fail "publicUrls.games is required: the games origin, best on a domain of its own, e.g. https://tohe-games.example.net (ADR 0002, 0039)" -}}
 {{- end -}}
 {{- if not (regexMatch $urlPattern $urls.games) -}}
 {{- fail (printf "publicUrls.games must be an http(s) origin with no path, got %q" $urls.games) -}}

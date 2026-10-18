@@ -5,7 +5,8 @@ sidebar:
   order: 2
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — the production games origin is a registrable domain of its own, `toheplay.io.vn`, since
+  [ADR 0039](0039-games-on-a-domain-of-their-own.md)
 - **Date:** 2026-10-13
 
 ## Context

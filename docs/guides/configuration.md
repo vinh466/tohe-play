@@ -55,7 +55,7 @@ UAT and local development go without them (a developer may register an app for `
 | Variable | What | Default |
 | --- | --- | --- |
 | `API_UPSTREAM` | `host:port` of the API, proxied at `/api` | — required |
-| `GAMES_ORIGIN` | Origin of the game iframes, written into the CSP | — required |
+| `GAMES_ORIGIN` | Origin of the game iframes, written into the CSP — the same as the API's `Games:PublicOrigin` | — required |
 | `TOHE_TRUSTED_PROXIES` | Space-separated CIDRs of proxies in front of the hub that may say who the visitor is — e.g. a cluster's ingress pods | `127.0.0.1/32`: nobody, the hub is the edge |
 | `TOHE_CLIENT_IP_HEADERS` | Headers those proxies carry the visitor's address in, e.g. `CF-Connecting-IP` behind Cloudflare | `X-Forwarded-For` |
 
@@ -67,6 +67,10 @@ sign-in by address.
 | Variable | What | Default |
 | --- | --- | --- |
 | `HUB_ORIGINS` | Space-separated hub origins allowed to embed games (`frame-ancestors`) | — required |
+| `PUBLIC_HUB_URL` | Where the games origin's own front page (`/`) leads | — required |
+
+Every response of the games origin carries `X-Robots-Tag: noindex, nofollow`: a game page is meant only inside the
+hub's frame ([ADR 0039](../decisions/0039-games-on-a-domain-of-their-own.md)).
 
 ## Site
 
