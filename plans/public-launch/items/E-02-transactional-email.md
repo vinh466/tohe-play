@@ -65,5 +65,10 @@ ADR 0037) và cân nhắc account/subdomain riêng như nhánh Free ở trên. R
 provider không đụng code. Email trên UAT bật khi owner đưa API key vào `~/.config/tohe-uat/uat.env`
 (`docs/guides/uat.md`, mục Email).
 
+**Người gửi, owner (2026-10-18, chat):** "tôi có setup email với toheplay.io.vn luôn rồi nha, password là api key cho
+toheplay.io.vn luôn rồi đó" → Tò He gửi từ `no-reply@toheplay.io.vn` (domain đã xác minh trong Resend, key chỉ gửi được
+từ domain đó): production ở platform-infra#239, UAT ở tohe-play#68 (`TOHE_UAT_EMAIL_FROM`). DNS 2026-10-18: DKIM, SPF
+và MX của `send.` có; **chưa có DMARC** (`_dmarc.toheplay.io.vn`).
+
 Nguồn: [Resend: What is Resend pricing](https://resend.com/docs/knowledge-base/what-is-resend-pricing) ·
 [Nuntly: Resend pricing 2026](https://nuntly.com/resend-pricing) · [AgentDeals: Resend free tier 2026](https://agentdeals.dev/vendor/resend)

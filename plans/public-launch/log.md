@@ -2,6 +2,11 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (đêm, tiếp) — agent
+
+- Owner: email gửi từ `toheplay.io.vn`, key Resend của domain đó. #239 đổi người gửi sang `no-reply@toheplay.io.vn`;
+  tohe-play#68 sửa ví dụ UAT. DNS mail đủ cho Resend, thiếu DMARC — đề xuất owner thêm.
+
 ## 2026-10-18 (đêm) — agent
 
 - Owner: Cloudflare xong; "merge giúp"; email + mật khẩu trước, "làm A4"; "deploy uat luôn". #66, #67 merged;
