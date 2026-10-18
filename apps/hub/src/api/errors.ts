@@ -27,6 +27,7 @@ const byCode: Record<string, string> = {
   asked_child_required: 'errors.askedChildRequired',
   no_community: 'errors.noCommunity',
   method_disabled: 'errors.methodDisabled',
+  proof_of_work_required: 'errors.proofOfWork',
   registration_closed: 'errors.registrationClosed',
   invite_required: 'errors.inviteRequired',
   invite_invalid: 'errors.inviteInvalid',

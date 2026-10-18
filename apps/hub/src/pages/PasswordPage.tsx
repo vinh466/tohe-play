@@ -1,10 +1,12 @@
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useSearch } from '@tanstack/react-router';
 import { type FormEvent, type ReactNode, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { configQuery } from '../api/queries.ts';
 import { BackLink } from '../navigation/leave.tsx';
+import { withProof } from '../session/proofOfWork.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
@@ -50,10 +52,12 @@ function Frame({ children }: { children: ReactNode }) {
 
 function Forgot() {
   const { t } = useTranslation();
+  const config = useQuery(configQuery);
   const [email, setEmail] = useState('');
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const start = useMutation({
-    mutationFn: () => auth.forgotPassword(email.trim()),
+    mutationFn: () =>
+      withProof(config.data?.proofOfWork, (proof) => auth.forgotPassword(email.trim(), proof)),
     onSuccess: (attempt) => setAttemptId(attempt.attemptId),
   });
 

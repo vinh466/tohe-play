@@ -237,6 +237,9 @@ flowchart TD
 - **Registration**: `open`, anyone; `invite`, only with a usable invite code; `closed`, nobody new
   ([Registration](identity.md#registration)). The page warns when nobody could sign up by email anyway — email not
   sent, or the password off.
+- **Chống bot đăng ký**: the [proof-of-work](identity.md#proof-of-work) before signing up and a password reset
+  ([ADR 0037](../decisions/0037-proof-of-work-before-a-code-by-email.md)), off by default; `proofOfWork` in the same
+  `PUT /api/admin/settings`, under the same step-up, in the same audit entry.
 - **Cộng đồng**, `/admin/communities`: a community is a name, unique. Its invite codes are given (`BAN-CO-6A`) or made
   up (`K7Q2-M9XD`, Crockford's base 32: no I, L, O or U to misread); they may end on a day and may be used a set number
   of times, and once revoked are never used again. A usable code shows its link, `/register?invite=CODE`, to share.

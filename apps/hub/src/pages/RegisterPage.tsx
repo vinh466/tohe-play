@@ -11,6 +11,7 @@ import { BackLink } from '../navigation/leave.tsx';
 import { invite } from '../session/invite.ts';
 import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
+import { withProof } from '../session/proofOfWork.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
@@ -88,14 +89,17 @@ function Register() {
 
   const start = useMutation({
     mutationFn: () =>
-      auth.register({
-        email,
-        password: form.password,
-        displayName,
-        acceptTerms: agreed,
-        termsVersion: TERMS_VERSION,
-        inviteCode: form.inviteCode.trim() || null,
-      }),
+      withProof(config.data?.proofOfWork, (proof) =>
+        auth.register({
+          email,
+          password: form.password,
+          displayName,
+          acceptTerms: agreed,
+          termsVersion: TERMS_VERSION,
+          inviteCode: form.inviteCode.trim() || null,
+          proof,
+        }),
+      ),
     onSuccess: (attempt) => setAttemptId(attempt.attemptId),
   });
   const confirm = useMutation({

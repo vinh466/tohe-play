@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/auth/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A proof-of-work to solve before signing up or asking for a password reset, when /api/config says proofOfWork. */
+        get: operations["GetChallenge"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/register": {
         parameters: {
             query?: never;
@@ -1004,6 +1021,7 @@ export interface components {
             providers: components["schemas"]["ExternalProvider"][];
             passwordSignIn: boolean;
             registration: string;
+            proofOfWork: boolean;
         };
         CompleteSignUpRequest: {
             displayName: string;
@@ -1105,6 +1123,7 @@ export interface components {
         };
         ForgotPasswordRequest: {
             email: string;
+            proof?: null | components["schemas"]["ProofOfWorkSolution"];
         };
         FrameGroup: {
             os: string;
@@ -1317,6 +1336,19 @@ export interface components {
             hiddenFromBoards: boolean;
             invites: string;
         };
+        ProofOfWorkChallenge: {
+            algorithm: string;
+            challenge: string;
+            salt: string;
+            /** Format: int32 */
+            maxNumber: number;
+            token: string;
+        };
+        ProofOfWorkSolution: {
+            token: string;
+            /** Format: int32 */
+            number: number;
+        };
         PublicBoardView: {
             gameId: string;
             board: string;
@@ -1489,6 +1521,7 @@ export interface components {
             acceptTerms: boolean;
             termsVersion: null | string;
             inviteCode?: null | string;
+            proof?: null | components["schemas"]["ProofOfWorkSolution"];
         };
         StartRankedRunRequest: {
             gameId: string;
@@ -1700,6 +1733,26 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ProfileOptionsView"];
+                };
+            };
+        };
+    };
+    GetChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProofOfWorkChallenge"];
                 };
             };
         };

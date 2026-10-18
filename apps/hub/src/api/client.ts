@@ -11,6 +11,8 @@ export type ProfileView = Schemas['ProfileView'];
 export type ProfileCardView = Schemas['ProfileCardView'];
 export type ProfileOptionsView = Schemas['ProfileOptionsView'];
 export type SignUpRequest = Schemas['SignUpRequest'];
+export type ProofOfWorkChallenge = Schemas['ProofOfWorkChallenge'];
+export type ProofOfWorkSolution = Schemas['ProofOfWorkSolution'];
 export type AttemptView = Schemas['AttemptView'];
 export type PendingSignInView = Schemas['PendingSignInView'];
 export type ExternalOutcome = Schemas['ExternalOutcome'];
@@ -97,7 +99,10 @@ export const auth = {
   register: (body: SignUpRequest) => call(api.POST('/api/auth/register', { body })),
   confirmRegistration: (attemptId: string, code: string) =>
     call(api.POST('/api/auth/register/confirm', { body: { attemptId, code } })),
-  forgotPassword: (email: string) => call(api.POST('/api/auth/password/forgot', { body: { email } })),
+  forgotPassword: (email: string, proof: ProofOfWorkSolution | null) =>
+    call(api.POST('/api/auth/password/forgot', { body: { email, proof } })),
+  /** A proof-of-work to solve first, when the config says `proofOfWork` (ADR 0037). */
+  challenge: () => call(api.GET('/api/auth/challenge')),
   resetPassword: (attemptId: string, code: string, password: string) =>
     call(api.POST('/api/auth/password/reset', { body: { attemptId, code, password } })),
   logout: () => call(api.POST('/api/auth/logout')),

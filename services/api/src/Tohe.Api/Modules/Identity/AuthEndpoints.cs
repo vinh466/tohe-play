@@ -14,13 +14,16 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="DisplayName">The account's name, which also names its first profile (ADR 0023).</param>
 /// <param name="AcceptTerms">"Tôi từ 16 tuổi trở lên và đồng ý Điều khoản và Chính sách quyền riêng tư" (ADR 0025).</param>
 /// <param name="TermsVersion">The version of the documents the hub showed.</param>
+/// <param name="Proof">The answer to a challenge from <c>GET /api/auth/challenge</c>, when the server asks for one
+/// (<c>proofOfWork</c> in <c>/api/config</c>, ADR 0037).</param>
 public sealed record SignUpRequest(
     [Required(AllowEmptyStrings = true)] string Email,
     [Required(AllowEmptyStrings = true), StringLength(128)] string Password,
     [Required(AllowEmptyStrings = true)] string DisplayName,
     bool AcceptTerms,
     string? TermsVersion,
-    string? InviteCode = null);
+    string? InviteCode = null,
+    ProofOfWorkSolution? Proof = null);
 
 /// <summary>A flow waiting for the code sent by email. The same answer whoever the address belongs to (ADR 0024).</summary>
 /// <param name="AttemptId">Send it back with the code: a code opens only the attempt it was sent for.</param>
@@ -35,7 +38,9 @@ public sealed record LoginRequest(
     [Required(AllowEmptyStrings = true)] string Email,
     [Required(AllowEmptyStrings = true)] string Password);
 
-public sealed record ForgotPasswordRequest([Required(AllowEmptyStrings = true)] string Email);
+/// <param name="Proof">The answer to a challenge from <c>GET /api/auth/challenge</c>, when the server asks for one
+/// (<c>proofOfWork</c> in <c>/api/config</c>, ADR 0037).</param>
+public sealed record ForgotPasswordRequest([Required(AllowEmptyStrings = true)] string Email, ProofOfWorkSolution? Proof = null);
 
 /// <param name="Password">The new password, at least 8 characters.</param>
 public sealed record ResetPasswordRequest(
@@ -54,6 +59,11 @@ internal static class AuthEndpoints
     public static void Map(IEndpointRouteBuilder api)
     {
         var auth = api.MapGroup("/auth").WithTags("Identity");
+
+        auth.MapGet("/challenge", (ProofOfWork proofs) => TypedResults.Ok(proofs.New()))
+            .RequireRateLimiting(IdentityModule.SignInRateLimit)
+            .WithName("GetChallenge")
+            .WithSummary("A proof-of-work to solve before signing up or asking for a password reset, when /api/config says proofOfWork.");
 
         auth.MapPost("/register", SignUpAsync)
             .RequireRateLimiting(IdentityModule.SignInRateLimit)
@@ -111,6 +121,7 @@ internal static class AuthEndpoints
         UserManager<Account> users,
         ISignInSettings settings,
         Invites invites,
+        ProofOfWork proofs,
         ToheDbContext db,
         TimeProvider clock,
         CancellationToken ct)
@@ -123,6 +134,12 @@ internal static class AuthEndpoints
         if (!outbox.Enabled)
         {
             return Problems.EmailUnavailable();
+        }
+
+        // Before anything else costs the server a thing (ADR 0037).
+        if (await settings.ProofOfWorkAsync(ct) && !proofs.Accepts(request.Proof))
+        {
+            return Problems.ProofOfWorkRequired();
         }
 
         if (Attempts.ParseEmail(request.Email) is not { } email)
@@ -322,6 +339,7 @@ internal static class AuthEndpoints
         UserManager<Account> users,
         ToheDbContext db,
         ISignInSettings settings,
+        ProofOfWork proofs,
         CancellationToken ct)
     {
         // A new password signs in: with the password switched off it is no way in either (ADR 0028).
@@ -333,6 +351,12 @@ internal static class AuthEndpoints
         if (!outbox.Enabled)
         {
             return Problems.EmailUnavailable();
+        }
+
+        // Asked of every address alike, so the answer still says nothing about who has an account (ADR 0037).
+        if (await settings.ProofOfWorkAsync(ct) && !proofs.Accepts(request.Proof))
+        {
+            return Problems.ProofOfWorkRequired();
         }
 
         if (Attempts.ParseEmail(request.Email) is not { } email)

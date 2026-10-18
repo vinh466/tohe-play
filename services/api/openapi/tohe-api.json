@@ -123,6 +123,27 @@
         }
       }
     },
+    "/api/auth/challenge": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "A proof-of-work to solve before signing up or asking for a password reset, when /api/config says proofOfWork.",
+        "operationId": "GetChallenge",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProofOfWorkChallenge"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/auth/register": {
       "post": {
         "tags": [
@@ -2615,7 +2636,8 @@
           "email",
           "providers",
           "passwordSignIn",
-          "registration"
+          "registration",
+          "proofOfWork"
         ],
         "type": "object",
         "properties": {
@@ -2642,6 +2664,9 @@
           },
           "registration": {
             "type": "string"
+          },
+          "proofOfWork": {
+            "type": "boolean"
           }
         }
       },
@@ -2970,6 +2995,16 @@
         "properties": {
           "email": {
             "type": "string"
+          },
+          "proof": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProofOfWorkSolution"
+              }
+            ]
           }
         }
       },
@@ -3746,6 +3781,50 @@
           }
         }
       },
+      "ProofOfWorkChallenge": {
+        "required": [
+          "algorithm",
+          "challenge",
+          "salt",
+          "maxNumber",
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "algorithm": {
+            "type": "string"
+          },
+          "challenge": {
+            "type": "string"
+          },
+          "salt": {
+            "type": "string"
+          },
+          "maxNumber": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "ProofOfWorkSolution": {
+        "required": [
+          "token",
+          "number"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          },
+          "number": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "PublicBoardView": {
         "required": [
           "gameId",
@@ -4401,6 +4480,16 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "proof": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProofOfWorkSolution"
+              }
             ]
           }
         }

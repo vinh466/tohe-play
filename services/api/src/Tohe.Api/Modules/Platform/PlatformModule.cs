@@ -51,6 +51,8 @@ public sealed class AppOptions
 /// order to show them.</param>
 /// <param name="PasswordSignIn">Email and password are on: signing in with them, and signing up by email (ADR 0028).</param>
 /// <param name="Registration"><c>open</c>, <c>invite</c> — signing up needs an invite code — or <c>closed</c>.</param>
+/// <param name="ProofOfWork">Signing up and asking for a password reset take a solved challenge from
+/// <c>GET /api/auth/challenge</c> (ADR 0037).</param>
 public sealed record ClientConfig(
     string GamesOrigin,
     string ApiVersion,
@@ -58,7 +60,8 @@ public sealed record ClientConfig(
     bool Email,
     IReadOnlyList<ExternalProvider> Providers,
     bool PasswordSignIn,
-    string Registration);
+    string Registration,
+    bool ProofOfWork);
 
 internal static class PlatformModule
 {
@@ -177,7 +180,8 @@ internal static class PlatformModule
                             RegistrationMode.Invite => "invite",
                             RegistrationMode.Closed => "closed",
                             _ => "open",
-                        });
+                        },
+                        await settings.ProofOfWorkAsync(ct));
                 })
             .WithName("GetConfig")
             .WithTags("Platform")

@@ -28,6 +28,15 @@ public sealed class IdentityOptions
     public int ProfileRenamesPerDay { get; set; } = 5;
 
     /// <summary>
+    /// How hard the proof-of-work is (ADR 0037): the number to find is below this, so a device hashes half of it on
+    /// average — about half a second on a phone.
+    /// </summary>
+    public int ProofOfWorkMaxNumber { get; set; } = 50_000;
+
+    /// <summary>How long a challenge may wait for its answer.</summary>
+    public TimeSpan ProofOfWorkLifetime { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
     /// How often a session is checked against its account's security stamp, which a new password or email changes:
     /// "every other session ends" takes at most this long (ADR 0024).
     /// </summary>
@@ -178,6 +187,8 @@ internal static class IdentityModule
         });
 
         services.AddScoped<SessionWriter>();
+        // The puzzle before a code by email, when the console turns it on (ADR 0037); spent answers live in it.
+        services.AddSingleton<ProofOfWork>();
         // Deleting profiles and accounts, with every module's data (ADR 0034).
         services.AddScoped<AccountDeletion>();
         if (builder.Configuration.GetValue($"{IdentityOptions.Section}:{nameof(IdentityOptions.DeletionEnabled)}", true)

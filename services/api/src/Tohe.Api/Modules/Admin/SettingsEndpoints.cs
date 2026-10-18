@@ -15,11 +15,14 @@ public sealed record SignInMethodView(string Id, string Name, bool Configured, b
 
 /// <param name="Registration"><c>open</c>, <c>invite</c> or <c>closed</c>.</param>
 /// <param name="Email">The server sends email, which signing up by email needs (ADR 0022).</param>
-public sealed record SignInSettingsView(IReadOnlyList<SignInMethodView> Methods, string Registration, bool Email);
+/// <param name="ProofOfWork">A device solves a proof-of-work before signing up or asking for a password reset (ADR 0037).</param>
+public sealed record SignInSettingsView(IReadOnlyList<SignInMethodView> Methods, string Registration, bool Email, bool ProofOfWork);
 
 /// <param name="Methods">The methods to switch, by id; those left out stay as they are.</param>
 /// <param name="Registration"><c>open</c>, <c>invite</c> or <c>closed</c>; none leaves it as it is.</param>
-public sealed record UpdateSignInSettingsRequest(IReadOnlyDictionary<string, bool>? Methods, string? Registration);
+/// <param name="ProofOfWork">Turn the proof-of-work on or off; none leaves it as it is.</param>
+public sealed record UpdateSignInSettingsRequest(
+    IReadOnlyDictionary<string, bool>? Methods, string? Registration, bool? ProofOfWork = null);
 
 public sealed record CreateCommunityRequest(string? Name);
 
@@ -139,6 +142,11 @@ internal static class SettingsEndpoints
         if (mode is { } given)
         {
             changes[RuntimeSettings.RegistrationKey] = RuntimeSettings.NameOf(given);
+        }
+
+        if (request.ProofOfWork is { } proofOfWork)
+        {
+            changes[RuntimeSettings.ProofOfWorkKey] = proofOfWork ? "on" : "off";
         }
 
         await using (var transaction = await db.Database.BeginTransactionAsync(ct))
@@ -310,7 +318,8 @@ internal static class SettingsEndpoints
                 provider.Id, provider.Name, true, await settings.IsOnAsync(provider.Id, ct), await identity.OnlyWayInAsync(provider.Id, ct)));
         }
 
-        return new SignInSettingsView(methods, RuntimeSettings.NameOf(await settings.RegistrationAsync(ct)), email.Enabled);
+        return new SignInSettingsView(
+            methods, RuntimeSettings.NameOf(await settings.RegistrationAsync(ct)), email.Enabled, await settings.ProofOfWorkAsync(ct));
     }
 
     private static async Task<AdminActor> ActorAsync(HttpContext http, UserManager<Account> users) =>

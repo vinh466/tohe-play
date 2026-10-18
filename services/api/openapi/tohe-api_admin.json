@@ -3029,7 +3029,8 @@
         "required": [
           "methods",
           "registration",
-          "email"
+          "email",
+          "proofOfWork"
         ],
         "type": "object",
         "properties": {
@@ -3043,6 +3044,9 @@
             "type": "string"
           },
           "email": {
+            "type": "boolean"
+          },
+          "proofOfWork": {
             "type": "boolean"
           }
         }
@@ -3186,6 +3190,12 @@
             "type": [
               "null",
               "string"
+            ]
+          },
+          "proofOfWork": {
+            "type": [
+              "null",
+              "boolean"
             ]
           }
         }

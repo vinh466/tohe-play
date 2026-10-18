@@ -5,13 +5,17 @@ using Tohe.Api.Modules.Identity;
 namespace Tohe.Api.Modules.Admin;
 
 /// <summary>
-/// The switches of ADR 0028 — the sign-in methods and the registration mode — kept in <c>admin.settings</c> and read
-/// through a cache: one API process serves them (ADR 0027), and the console forgets the cache when it saves. Unset, a
-/// method the deployment configured is on and registration is open; a method it did not configure is never on.
+/// The switches of ADR 0028 — the sign-in methods and the registration mode — and the proof-of-work of ADR 0037, kept
+/// in <c>admin.settings</c> and read through a cache: one API process serves them (ADR 0027), and the console forgets
+/// the cache when it saves. Unset, a method the deployment configured is on, registration is open and the
+/// proof-of-work off; a method it did not configure is never on.
 /// </summary>
 internal sealed class RuntimeSettings(IServiceScopeFactory scopes, ExternalProviderCatalog providers) : ISignInSettings
 {
     public const string RegistrationKey = "registration.mode";
+
+    /// <summary>The proof-of-work before a code by email (ADR 0037): <c>on</c>, else off.</summary>
+    public const string ProofOfWorkKey = "registration.proof-of-work";
 
     private readonly SemaphoreSlim _loading = new(1, 1);
     private volatile IReadOnlyDictionary<string, string>? _values;
@@ -39,6 +43,9 @@ internal sealed class RuntimeSettings(IServiceScopeFactory scopes, ExternalProvi
 
     public async ValueTask<RegistrationMode> RegistrationAsync(CancellationToken ct) =>
         ParseMode((await ValuesAsync(ct)).GetValueOrDefault(RegistrationKey)) ?? RegistrationMode.Open;
+
+    public async ValueTask<bool> ProofOfWorkAsync(CancellationToken ct) =>
+        (await ValuesAsync(ct)).GetValueOrDefault(ProofOfWorkKey) == "on";
 
     /// <summary>The next question reads the database again: the console saved a change.</summary>
     public void Forget() => _values = null;
