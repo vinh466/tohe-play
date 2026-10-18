@@ -2,7 +2,8 @@
 # Infisical-managed Secret, Traefik behind Cloudflare (TLS ends at Cloudflare), Reloader rolling on secret changes.
 publicUrls:
   hub: https://tohe.vinetic.io.vn
-  games: https://tohe-games.vinetic.io.vn
+  # A registrable domain of its own, not a sibling of the hub (ADR 0039).
+  games: https://toheplay.io.vn
   site: https://tohe-site.vinetic.io.vn
 global:
   image:

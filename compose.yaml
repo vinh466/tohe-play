@@ -69,6 +69,7 @@ services:
       target: games
     environment:
       HUB_ORIGINS: http://${TOHE_PUBLIC_HOST:-localhost}:4720
+      PUBLIC_HUB_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4720
     ports:
       - "4730:8080"
 

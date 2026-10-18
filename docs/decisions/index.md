@@ -15,7 +15,7 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | # | Decision | Status |
 | --- | --- | --- |
 | [0001](0001-monorepo-with-independent-games.md) | One monorepo; games independent through a contract | Accepted |
-| [0002](0002-games-in-sandboxed-iframe-on-own-origin.md) | Games run in a sandboxed iframe on their own origin | Accepted |
+| [0002](0002-games-in-sandboxed-iframe-on-own-origin.md) | Games run in a sandboxed iframe on their own origin | Accepted; in production on a domain of their own since 0039 |
 | [0003](0003-backend-dotnet-modular-monolith-postgres.md) | Backend: .NET 10 modular monolith + PostgreSQL | Accepted |
 | [0004](0004-identity-households-and-profiles.md) | Identity: households, adult accounts and child profiles | Superseded by 0023 |
 | [0005](0005-offline-first.md) | Offline first: games keep working without the API | Accepted; a ranked run needs the network to start, since 0030 |
@@ -51,3 +51,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0035](0035-filter-offensive-names-and-limit-renames.md) | Refuse names with an offensive word, matched as people write it; an owner renames a profile five times a day | Accepted |
 | [0036](0036-metrics-for-prometheus-on-a-port-of-its-own.md) | Export metrics for Prometheus with prometheus-net, on a port of the API's own | Accepted |
 | [0037](0037-proof-of-work-before-a-code-by-email.md) | A self-hosted proof-of-work before a code by email, behind a switch of the console | Accepted |
+| [0039](0039-games-on-a-domain-of-their-own.md) | Serve games from a registrable domain of their own | Accepted |

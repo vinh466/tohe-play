@@ -53,8 +53,12 @@ Three browser origins, on purpose:
 Environments are described in [ADR 0010](../decisions/0010-environments-dev-and-uat.md). Production runs the same
 images on the `platform-infra` cluster through Tò He's Helm chart, configured when the containers start
 ([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md), [Configuration](../guides/configuration.md)).
-Its hostnames must be flat (one level under `vinetic.io.vn`) because Cloudflare's free certificates only cover one
-subdomain level — see [ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md).
+There the hub and the site are flat hostnames under `vinetic.io.vn` (`tohe.`, `tohe-site.`), because Cloudflare's free
+certificates only cover one subdomain level ([ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md)),
+and the games origin is a registrable domain of its own, `toheplay.io.vn`: a different *site* from every
+`vinetic.io.vn` app, so game code cannot set cookies they receive
+([ADR 0039](../decisions/0039-games-on-a-domain-of-their-own.md)). Locally and on UAT only the port tells the
+origins apart: they are the same site, and the API's same-origin checks matter there.
 
 ## Dependency rules
 
