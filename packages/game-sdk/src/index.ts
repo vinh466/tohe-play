@@ -1,5 +1,6 @@
 export type {
   Profile,
+  RankedReplay,
   Reaction,
   Replay,
   RoomSeat,

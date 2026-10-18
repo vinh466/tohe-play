@@ -16,6 +16,7 @@ import {
   roleName,
   since,
 } from './format.ts';
+import { manifestOf, replayInit } from './watch.ts';
 
 // The console's CSP forbids inline scripts, as the hub's, so it serves the shared pre-paint script as a copy.
 // When the original changes: cp ../../packages/design-tokens/theme-init.js public/
@@ -89,6 +90,39 @@ describe('how the console writes things', () => {
     expect(reasonName('personal_jump')).toBe('Vượt xa kỷ lục của chính hồ sơ');
     expect(reasonName('a_rule_of_tomorrow')).toBe('a_rule_of_tomorrow');
     expect(evidenceName('replayed')).toBe('Máy chủ chơi lại, khớp điểm');
+  });
+
+  it('opens the build that played a run, to play its moves back and record nothing (ADR 0032)', () => {
+    const build = {
+      name: 'Ghép Khối',
+      version: '1.10.0',
+      entryUrl: 'https://games.example.test/merge-block/1.10.0/index.html',
+      orientation: 'portrait',
+      capabilities: ['save', 'scores', 'ranked', 'shell', 'a-capability-of-tomorrow'],
+    };
+    const run = { gameId: 'merge-block', version: '1.10.0', seed: 913, moves: [0, 4, 2], build };
+    expect(manifestOf(run, build)).toMatchObject({
+      id: 'merge-block',
+      version: '1.10.0',
+      entry: 'index.html',
+      capabilities: ['save', 'scores', 'ranked', 'shell'],
+    });
+    const player = {
+      id: 'p1',
+      name: 'Bé Su',
+      avatar: '🐰',
+      publicId: '482913570264',
+      accountId: 'a1',
+      account: null,
+    };
+    expect(replayInit(run, player, 'dark')).toEqual({
+      profile: { id: 'p1', name: 'Bé Su', avatar: '🐰' },
+      locale: 'vi',
+      settings: { muted: true, theme: 'dark' },
+      save: null,
+      seed: 913,
+      rankedReplay: { seed: 913, moves: [0, 4, 2] },
+    });
   });
 
   it("writes what a rule saw, or a person's note, on one line", () => {

@@ -56,6 +56,14 @@ brings its content:
    the board, the current block and the next block behind it at once, **Quay lại** returns to the panel; 🔄 Ván mới (asks) · ❓ Cách chơi · 🏠 Menu chính (saves; the title then offers Chơi tiếp).
 5. **Game over:** board dims and settles, card with score/best, confetti for a record, **▶ Chơi lại**, **🏠 Menu
    chính**; Back goes to the title screen.
+6. **Watching a ranked run** (the admin console, ADR 0032): no title screen. The board starts from the run's seed and
+   plays at once, like a video, with the kit's HUD — ☰, score, the next block, **Nước n/m** — and a bar under it: a
+   slider to any move, **◀** one back, **▶ Phát / ⏸ Dừng**, **▶** one on (stepping and the slider wait for ⏸), and
+   the speed: **×1** shows where each block goes, then drops it; **×4**
+   drops them one after another; **×20** only draws the boards. The board takes no taps. At the end the bar says how
+   the run ended — "Hết ván: n điểm.", "Run dừng ở đây, ván chưa hết.", or for a run with a move that is not legal
+   "Nước k không hợp lệ: chiếu đến trước nó." (it plays up to that move). The panel: ▶ Tiếp tục (playing stops when
+   it opens), 🔊, 🎨 Màu khối (not saved), ❓, **Thoát xem lại**. Nothing is saved, scored or handed in.
 
 ## Feel (juice), in tiers
 
@@ -107,7 +115,7 @@ with **Hoàng hôn**. Each game keeps its own choice (games do not share saves).
 | --- | --- |
 | `save` | After every move: `{ best, game, tutorialSeen, run, palette, ranked? }` where `game` is the full state (board, current, next, score, PRNG), `run` its leaderboard id, `palette` the player's colour preset (also saved when it changes) and `ranked` the ranked run in progress — its id, seed and every column dropped. Opening the game resumes it. |
 | `scores` | A live run (ADR 0014): `session.run(id).update(score)` after each move that scores, so the account's board shows the game in progress; `finish(score)` at game over, or when the player starts a new game (an unfinished game keeps the best score it reached). One run id per game, kept in the save. |
-| `ranked` | Every new game asks for a ranked run (ADR 0030) and waits up to 2.5 s: with one, the game plays from the server's seed and records each column dropped; at game over, or when the player starts a new game, it hands the columns and the score in. Without one — offline, a guest — it plays unranked, as before. The verify module (`src/verify.ts` → `verify.js`) replays a run with `logic.ts` itself; its `bot` drops into a column the run's own PRNG picks. |
+| `ranked` | Every new game asks for a ranked run (ADR 0030) and waits up to 2.5 s: with one, the game plays from the server's seed and records each column dropped; at game over, or when the player starts a new game, it hands the columns and the score in. Without one — offline, a guest — it plays unranked, as before. The verify module (`src/verify.ts` → `verify.js`) replays a run with `logic.ts` itself (`replayMoves`); its `bot` drops into a column the run's own PRNG picks. With `init.rankedReplay` (ADR 0032) the game plays a run back instead of a game (`src/replay.ts`), with the same `replayMoves`, so it shows the game the server judged. |
 | settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of an unranked new game; a ranked one plays from the server's seed. |
 

@@ -1,5 +1,6 @@
 // The menu stage (ADR 0020): Ghép Khối's own first screen — title, play, ⚙️ (block colours), ❓, 🏆 — with no engine
-// running. Play loads stage.ts (fetched in the background meanwhile). Shared state lives in app.ts.
+// running. Play loads stage.ts (fetched in the background meanwhile). Shared state lives in app.ts. Watching a ranked
+// run (ADR 0032) has no menu stage: the game opens straight into replay.ts.
 import '@tohe/game-kit/overlay.css';
 import './style.css';
 import {
@@ -11,7 +12,7 @@ import {
   hintList,
   type Theme,
 } from '@tohe/game-kit';
-import { persist, session, sfx, store, t } from './app.ts';
+import { persist, rankedReplay, session, sfx, store, t } from './app.ts';
 import { PALETTE_IDS } from './palette.ts';
 import { samples } from './swatches.ts';
 
@@ -61,6 +62,7 @@ const shell = createShell({
     },
   ],
   leaderboard: true,
-  stage: () => import('./stage.ts'),
+  stage: () => (rankedReplay ? import('./replay.ts') : import('./stage.ts')),
+  direct: rankedReplay ? { exitLabel: t.replay.leave, goesOn: false } : undefined,
 });
 shell.start();

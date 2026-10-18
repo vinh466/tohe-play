@@ -14,7 +14,9 @@
   "dependencies": {
     "@tanstack/react-query": "^5.100.0",
     "@tanstack/react-router": "^1.170.0",
+    "@tohe/contract": "workspace:*",
     "@tohe/design-tokens": "workspace:*",
+    "@tohe/game-sdk": "workspace:*",
     "openapi-fetch": "^0.17.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

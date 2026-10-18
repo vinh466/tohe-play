@@ -1098,6 +1098,41 @@
         }
       }
     },
+    "/api/admin/review/{id}/run": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A ranked run's seed and moves to watch in the game itself, and the build that played it while the games origin serves it.",
+        "operationId": "GetAdminReviewRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunReplay"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
     "/api/admin/review/{id}/approve": {
       "post": {
         "tags": [
@@ -2641,6 +2676,36 @@
           }
         }
       },
+      "RegistryBuild": {
+        "required": [
+          "name",
+          "version",
+          "entryUrl",
+          "orientation",
+          "capabilities"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "entryUrl": {
+            "type": "string"
+          },
+          "orientation": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
       "RenameProfileRequest": {
         "required": [
           "name"
@@ -2849,6 +2914,41 @@
           },
           "evidence": {
             "type": "string"
+          }
+        }
+      },
+      "RunReplay": {
+        "required": [
+          "gameId",
+          "version",
+          "seed",
+          "moves",
+          "build"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "moves": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "build": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RegistryBuild"
+              }
+            ]
           }
         }
       },

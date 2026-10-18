@@ -2,11 +2,9 @@
 // destroys it when they go back to the menu; leave() saves and stops everything start() started. Rules live in
 // logic.ts, drawing in view.ts, the save in app.ts.
 import {
-  bump,
   choiceList,
   createHud,
   formatScore,
-  formatValue,
   newRunId,
   type PlayStage,
   type StageContext,
@@ -14,9 +12,10 @@ import {
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
 import { finishRanked, persist, session, sfx, startRanked, store, t } from './app.ts';
-import { blockValue, drop, type Exponent, newGame, type State } from './logic.ts';
-import { BOARD, blockStyle, PALETTE_IDS, type PaletteId } from './palette.ts';
-import { cssColor, samples } from './swatches.ts';
+import { drop, newGame, type State } from './logic.ts';
+import { createNextBlock } from './next.ts';
+import { BOARD, PALETTE_IDS, type PaletteId } from './palette.ts';
+import { samples } from './swatches.ts';
 import { BoardScene } from './view.ts';
 
 /** Taps closer together than this are one bouncing finger, not two drops. */
@@ -64,33 +63,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const scores = hud.score({ score: t.score, best: t.best });
   scores.setBest(store.best);
-  const nextBox = document.createElement('div');
-  nextBox.className = 'next';
-  const nextLabel = document.createElement('span');
-  nextLabel.className = 'tohe-stat-label';
-  nextLabel.textContent = t.next;
-  const nextBlock = document.createElement('span');
-  nextBlock.className = 'mini-block';
-  nextBox.append(nextLabel, nextBlock);
-  hud.center.append(nextBox);
-
   let theme: Theme = session.settings.theme;
-  /** The next block shown in the HUD, kept to repaint it when the player picks other colours. */
-  let shownNext: Exponent | null = null;
-  /** The next block sits in the HUD, so the current block can hover over any column without covering it. */
-  function showNext(exp: Exponent | null, animate: boolean) {
-    shownNext = exp;
-    nextBox.classList.toggle('is-hidden', exp === null);
-    if (exp === null) return;
-    const style = blockStyle(exp, theme, store.palette);
-    const value = formatValue(blockValue(exp));
-    nextBlock.textContent = value;
-    nextBlock.classList.toggle('is-long', value.length > 2);
-    nextBlock.style.setProperty('--fill', cssColor(style.fill));
-    nextBlock.style.setProperty('--edge', cssColor(style.edge));
-    nextBlock.style.setProperty('--text', style.text);
-    if (animate) bump(nextBlock);
-  }
+  const nextBlock = createNextBlock(hud.center, theme);
   const showScore = (score: number, animate = true) => scores.set(score, animate);
 
   // ------------------------------------------------------------------ the board
@@ -113,7 +87,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         {
           onDrop: (col) => requestMove(col),
           onScore: (score) => showScore(score),
-          onUpcoming: (next, animate) => showNext(next, animate),
+          onUpcoming: (next, animate) => nextBlock.show(next, animate),
         },
         theme,
         store.palette,
@@ -137,14 +111,14 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     theme = settings.theme;
     board.setTheme(theme);
     kit.setBackground(BOARD[theme].background);
-    showNext(shownNext, false);
+    nextBlock.repaint(theme);
   });
 
   function setPalette(id: PaletteId) {
     sfx.play('click');
     store.palette = id;
     board.setPalette(id);
-    showNext(shownNext, false);
+    nextBlock.repaint(theme);
     void save();
   }
 

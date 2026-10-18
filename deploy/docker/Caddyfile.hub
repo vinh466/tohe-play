@@ -28,11 +28,12 @@
 	}
 
 	# The admin console (ADR 0027): its own app at /admin/, built into this image. Never indexed, and stricter than the
-	# hub: no games origin, no WebSocket, no inline styles. Its header replaces the hub's CSP set above.
+	# hub: no WebSocket, no inline styles, no images from the games origin; it frames that origin only to watch a ranked
+	# run in the game itself (ADR 0032). Its header replaces the hub's CSP set above.
 	redir /admin /admin/ 308
 	handle /admin/* {
 		header {
-			Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+			Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src {$GAMES_ORIGIN}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
 			X-Robots-Tag "noindex, nofollow"
 		}
 		root * /srv

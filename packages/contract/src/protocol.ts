@@ -99,6 +99,16 @@ export const MAX_RANKED_MOVES = 100_000;
 export const RankedRun = z.object({ run: z.string().min(1).max(64), seed: z.number().int() }).strict();
 export type RankedRun = z.infer<typeof RankedRun>;
 
+/**
+ * A ranked run to watch instead of playing (ADR 0032): the game starts from `seed` and plays `moves` back with its own
+ * logic, the way its verify module replays them, and records nothing — no save, no score, no ranked run. Only with the
+ * build that played it: builds are immutable, so the same logic shows the same run.
+ */
+export const RankedReplay = z
+  .object({ seed: z.number().int(), moves: z.array(z.json()).max(MAX_RANKED_MOVES) })
+  .strict();
+export type RankedReplay = z.infer<typeof RankedReplay>;
+
 // ---------------------------------------------------------------- game -> host
 
 export const ReadyMessage = z.object({
@@ -221,6 +231,8 @@ export const InitMessage = z.object({
   room: RoomInfo.optional(),
   /** A finished hand to replay instead of playing (ADR 0016); never together with `room`. */
   replay: Replay.optional(),
+  /** A ranked run to watch instead of playing (ADR 0032); never together with `room` or `replay`. */
+  rankedReplay: RankedReplay.optional(),
   /** For a `shell` game (ADR 0018): what the hub can open for this player. */
   shell: ShellInfo.optional(),
 });

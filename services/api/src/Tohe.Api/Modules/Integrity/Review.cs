@@ -59,6 +59,10 @@ public sealed record DecisionView(
 /// <param name="Seconds">Between the start and the hand-in, by the server's clock.</param>
 public sealed record RankedEvidence(int Moves, double Seconds, int MinMsPerMove, double? Claimed, double? Replayed);
 
+/// <summary>A ranked run as it was handed in (ADR 0032): the build that played it, its seed and its moves.</summary>
+/// <param name="GamePath">The build, e.g. <c>merge-block/1.9.0/</c>.</param>
+public sealed record RankedRunRecord(string GameId, string GamePath, int Seed, JsonElement Moves);
+
 /// <summary>A result as a person reviews it: where it stands, what the profile did before, the evidence, every decision.</summary>
 public sealed record ReviewItem(
     ReviewSummary Result, ReviewHistory History, RankedEvidence? Ranked, IReadOnlyList<DecisionView> Decisions);
@@ -155,6 +159,18 @@ internal sealed class IntegrityReview(ToheDbContext db)
                 decision.RuleVersion,
                 decision.Actor,
                 decision.At))]);
+    }
+
+    /// <summary>The ranked run behind a result, to watch in the game itself (ADR 0032); null for any other result.</summary>
+    public async Task<RankedRunRecord?> RunOfAsync(long resultId, CancellationToken ct)
+    {
+        var run = await db.RankedRuns.AsNoTracking()
+            .Where(run => run.ResultId == resultId)
+            .Select(run => new { run.GameId, run.GamePath, run.Seed, run.Moves })
+            .FirstOrDefaultAsync(ct);
+        return run is { Moves: { } moves } && Parse(moves) is { } parsed
+            ? new RankedRunRecord(run.GameId, run.GamePath, run.Seed, parsed)
+            : null;
     }
 
     /// <summary>The account a result belongs to, so nobody decides about their own.</summary>

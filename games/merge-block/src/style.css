@@ -84,3 +84,44 @@ body {
   font-size: 0.72rem;
   font-weight: 900;
 }
+
+/* Watching a ranked run (ADR 0032): the bar under the board — where the run is, back, play, forward, speed. */
+.replay-bar {
+  display: flex;
+  flex-direction: column;
+  align-self: center;
+  gap: 0.5rem;
+  width: 100%;
+  max-width: 32rem;
+  padding: 0.5rem 1rem 0.75rem;
+}
+
+.replay-scrub {
+  width: 100%;
+  accent-color: var(--tohe-brand);
+}
+
+.replay-buttons {
+  display: grid;
+  grid-template-columns: 1fr 2fr 1fr 1fr;
+  gap: 0.5rem;
+}
+
+.replay-buttons .tohe-button {
+  min-height: 3rem;
+  padding: 0 0.5rem;
+  font-size: 1.1rem;
+}
+
+.replay-buttons .tohe-button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.replay-status {
+  min-height: 1.25rem;
+  margin: 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.95rem;
+  text-align: center;
+}

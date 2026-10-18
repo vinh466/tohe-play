@@ -235,7 +235,13 @@ afterwards — a run grows only until it ends ([ADR 0014](../decisions/0014-live
 Rejecting does not suspend: the result links to its account, where whoever may suspends ([Users](admin.md#users)). A
 moderator also hides a profile from public boards, with a reason, and lets it back. The owner's switch stays as it is
 and does not bring it back; the hub tells the owner, under the switch, that Tò He's operator hid the profile, and the
-account's own board is unchanged. Watching a run in the game itself (E3b) comes later.
+account's own board is unchanged.
+
+A ranked run is also watched in the game itself: **▶ Xem lại run trong game** asks
+`GET /api/admin/review/{id}/run` for its seed and moves and the build that played it, and the console opens that
+build with `init.rankedReplay` — the game plays the moves back from the seed with its own logic, as the server replayed
+them, up to a move that is not legal ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md)). Once the catalog moved on to a newer build the
+games origin no longer serves the old one, and the run is only numbers.
 
 ## Data
 

@@ -8,6 +8,7 @@ using Tohe.Api.Modules.Admin;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
 using Tohe.Api.Modules.Progress;
+using Tohe.Api.Modules.Registry;
 
 namespace Tohe.Api.Tests;
 
@@ -128,6 +129,36 @@ public sealed class AdminReviewTests(ApiFactory factory) : IClassFixture<ApiFact
     }
 
     [Fact]
+    public async Task A_ranked_run_is_watched_with_the_build_that_played_it_while_the_games_origin_serves_it()
+    {
+        await Games.KnowAsync(factory, "watch-block");
+        var moderator = await Admins.NewAsync(factory, "moderator");
+        var viewer = await Admins.NewAsync(factory, "viewer");
+        var (_, me) = await PlayerAsync("Bé Xem");
+        var id = await HeldRankedRunAsync(me.Account.Id, "watch-block", "watch-block/1.0.0/", "[0,4,2]");
+
+        var run = (await moderator.Client.GetFromJsonAsync<RunReplay>(Url($"/api/admin/review/{id}/run"), Ct))!;
+        Assert.Equal(("watch-block", "1.0.0", 7, "[0,4,2]"), (run.GameId, run.Version, run.Seed, run.Moves.GetRawText()));
+        Assert.Equal(("1.0.0", "https://games.example.test/watch-block/1.0.0/index.html"), (run.Build!.Version, run.Build.EntryUrl));
+
+        // The catalog moved on: the games origin no longer serves the build that played it, and no other may show it.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Games
+                .Where(game => game.Id == "watch-block")
+                .ExecuteUpdateAsync(s => s.SetProperty(game => game.Path, "watch-block/1.1.0/").SetProperty(game => game.Version, "1.1.0"), Ct);
+        }
+
+        var moved = (await moderator.Client.GetFromJsonAsync<RunReplay>(Url($"/api/admin/review/{id}/run"), Ct))!;
+        Assert.Equal(("1.0.0", null), (moved.Version, moved.Build));
+
+        // Only a ranked run has moves to watch; a viewer does not review.
+        var plain = await HeldRankedRunAsync(me.Account.Id, "watch-block", ranked: false);
+        Assert.Equal(HttpStatusCode.NotFound, (await moderator.Client.GetAsync(Url($"/api/admin/review/{plain}/run"), Ct)).StatusCode);
+        Assert.Equal("admin_required", await CodeOfAsync(await viewer.Client.GetAsync(Url($"/api/admin/review/{id}/run"), Ct)));
+    }
+
+    [Fact]
     public async Task A_hidden_profile_is_off_public_boards_whatever_its_switch_says_and_its_owner_is_told()
     {
         await Games.KnowAsync(factory, "merge-block");
@@ -193,8 +224,12 @@ public sealed class AdminReviewTests(ApiFactory factory) : IClassFixture<ApiFact
         return jump;
     }
 
-    /// <summary>A ranked run of the account's first profile whose replay agreed, held as faster than a person plays.</summary>
-    private async Task<long> HeldRankedRunAsync(Guid accountId)
+    /// <summary>
+    /// A ranked run of the account's first profile whose replay agreed, held as faster than a person plays — or, without
+    /// <paramref name="ranked"/>, a held result with no run behind it.
+    /// </summary>
+    private async Task<long> HeldRankedRunAsync(
+        Guid accountId, string game = "merge-block", string path = "merge-block/1.9.0/", string moves = "[]", bool ranked = true)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
@@ -205,7 +240,7 @@ public sealed class AdminReviewTests(ApiFactory factory) : IClassFixture<ApiFact
             Kind = ResultKind.Run,
             ProfileId = profile,
             AccountId = accountId,
-            GameId = "merge-block",
+            GameId = game,
             Board = "default",
             Value = 700,
             Source = $"test:{Guid.NewGuid():N}",
@@ -215,13 +250,19 @@ public sealed class AdminReviewTests(ApiFactory factory) : IClassFixture<ApiFact
             RuleVersion = IntegrityEngine.RuleVersion,
         };
         db.IntegrityDecisions.Add(new IntegrityDecision { Result = result, To = TrustLevel.Held, Reason = "too_fast", RuleVersion = IntegrityEngine.RuleVersion, At = now });
+        if (!ranked)
+        {
+            await db.SaveChangesAsync(Ct);
+            return result.Id;
+        }
+
         db.RankedRuns.Add(new RankedRun
         {
             Id = Guid.CreateVersion7(),
             ProfileId = profile,
             AccountId = accountId,
-            GameId = "merge-block",
-            GamePath = "merge-block/1.9.0/",
+            GameId = game,
+            GamePath = path,
             Verify = "verify.js",
             Board = "default",
             MinMsPerMove = 150,
@@ -230,7 +271,7 @@ public sealed class AdminReviewTests(ApiFactory factory) : IClassFixture<ApiFact
             State = RankedRunState.Decided,
             StartedAt = now.AddSeconds(-3),
             FinishedAt = now,
-            Moves = "[]",
+            Moves = moves,
             MoveCount = 40,
             Claimed = 700,
             Replayed = 700,

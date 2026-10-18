@@ -27,7 +27,7 @@ import { createHost, type Transport } from '@tohe/game-sdk/host';
 import { type Browser, type BrowserContext, chromium, type Frame, type Page } from 'playwright';
 import { checkRules, defaultOptions, loadRules, pure } from './rules.ts';
 import { serveStatic } from './static-server.ts';
-import { checkVerify, loadVerify, replayRanked } from './verify.ts';
+import { checkVerify, loadVerify, playRanked, replayRanked } from './verify.ts';
 
 export interface Check {
   name: string;
@@ -313,6 +313,22 @@ export async function runConformance(
       }).catch((error: Error) => ({ ok: false, detail: error.message }));
       check('replays a finished hand with its rules module', replayed.ok, replayed.detail);
       if (replayed.ok) screenshots.push(join(outDir, `${manifest.id}-replay.png`));
+    }
+
+    if (manifest.ranked && handshake === null) {
+      const outDir = resolve(options.outDir ?? 'test-results/conformance');
+      const watched = await rankedReplayRun({
+        context,
+        manifest,
+        dist,
+        hostUrl: hostServer.url,
+        gameUrl: gameServer.url,
+        errors,
+        protocolErrors,
+        screenshot: join(outDir, `${manifest.id}-ranked-replay.png`),
+      }).catch((error: Error) => ({ ok: false, detail: error.message }));
+      check('plays a ranked run back to watch, and records nothing', watched.ok, watched.detail);
+      if (watched.ok) screenshots.push(join(outDir, `${manifest.id}-ranked-replay.png`));
     }
 
     check('no console errors or uncaught exceptions', errors.length === 0, errors.slice(0, 5).join('\n'));
@@ -760,6 +776,81 @@ async function replayRun(run: {
     mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
     await page.screenshot({ path: run.screenshot });
     return { ok: true, detail: `${actions.length} actions` };
+  } finally {
+    host.dispose();
+    await page.close();
+  }
+}
+
+/**
+ * The game opened with `init.rankedReplay` (ADR 0032): a run its verify module's bot played, to watch instead of play.
+ * Checks that it opens and plays back without errors, and that watching records nothing — no save, no score, no
+ * ranked run.
+ */
+async function rankedReplayRun(run: {
+  context: BrowserContext;
+  manifest: GameManifest;
+  dist: string;
+  hostUrl: string;
+  gameUrl: string;
+  errors: string[];
+  protocolErrors: string[];
+  screenshot: string;
+}): Promise<{ ok: boolean; detail: string }> {
+  const ranked = run.manifest.ranked;
+  if (!ranked) return { ok: false, detail: 'no ranked block' };
+  const verify = await loadVerify(run.dist, ranked);
+  const seed = 20261018;
+  const moves = playRanked(verify, seed, Math.min(ranked.maxMoves, 400)) as JsonValue[];
+  const recorded = new Set<string>();
+  const page = await run.context.newPage();
+  page.on('console', (message) => {
+    if (message.type() === 'error') run.errors.push(`console (ranked replay): ${message.text()}`);
+  });
+  page.on('pageerror', (error) => run.errors.push(`uncaught (ranked replay): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (ranked replay)'));
+  const listeners = new Set<(message: unknown) => void>();
+  await page.exposeFunction('__toNode', (message: unknown) => {
+    for (const listener of listeners) listener(message);
+  });
+  const host = createHost({
+    transport: {
+      post: (message) =>
+        void page.evaluate((m) => (window as unknown as Bridge).__toGame(m), message).catch(() => {}),
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    manifest: run.manifest,
+    readyTimeoutMs: 10_000,
+    init: () => ({
+      profile: { id: 'conformance', name: 'Tester' },
+      locale: 'vi',
+      settings: { muted: true, theme: run.manifest.themes[0] ?? 'light' },
+      save: null,
+      seed: 20261016,
+      rankedReplay: { seed, moves },
+    }),
+    onSave: () => void recorded.add('save'),
+    onScore: () => void recorded.add('score'),
+    onRankedStart: () => {
+      recorded.add('ranked.start');
+      throw new Error('watching a run');
+    },
+    onRankedFinish: () => void recorded.add('ranked.finish'),
+    onProtocolError: (error) => run.protocolErrors.push(`ranked replay: ${error}`),
+  });
+  try {
+    await page.goto(run.hostUrl);
+    await host.ready;
+    await gameFrame(page, run.gameUrl);
+    await page.waitForTimeout(4000);
+    mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
+    await page.screenshot({ path: run.screenshot });
+    return recorded.size === 0
+      ? { ok: true, detail: `${moves.length} moves` }
+      : { ok: false, detail: `recorded while watching: ${[...recorded].join(', ')}` };
   } finally {
     host.dispose();
     await page.close();

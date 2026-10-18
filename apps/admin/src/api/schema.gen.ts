@@ -468,6 +468,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/review/{id}/run": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A ranked run's seed and moves to watch in the game itself, and the build that played it while the games origin serves it. */
+        get: operations["GetAdminReviewRun"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/admin/review/{id}/approve": {
         parameters: {
             query?: never;
@@ -894,6 +911,13 @@ export interface components {
         RecoveryCodesView: {
             codes: string[];
         };
+        RegistryBuild: {
+            name: string;
+            version: string;
+            entryUrl: string;
+            orientation: string;
+            capabilities: string[];
+        };
         RenameProfileRequest: {
             name: null | string;
         };
@@ -943,6 +967,14 @@ export interface components {
             since: string;
             by: null | string;
             evidence: string;
+        };
+        RunReplay: {
+            gameId: string;
+            version: string;
+            /** Format: int32 */
+            seed: number;
+            moves: components["schemas"]["JsonElement"];
+            build: null | components["schemas"]["RegistryBuild"];
         };
         SetRoleRequest: {
             role: null | string;
@@ -1890,6 +1922,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["ReviewDetail"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetAdminReviewRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: number;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RunReplay"];
                 };
             };
             /** @description Not Found */

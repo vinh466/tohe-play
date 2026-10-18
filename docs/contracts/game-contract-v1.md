@@ -112,6 +112,16 @@ Ask for a run when a new game starts, and wait only a moment (Ghép Khối waits
 the moves with the game's own state, so a run saved mid-way continues on any device. A run the game reports as a score
 (`run(id)`) still counts on the account's board as before; the ranked run is what the public boards trust.
 
+**Watching a run.** A `ranked` game also plays a run back ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md)): opened with
+`init.rankedReplay` (`seed`, `moves`) instead of a game, it starts from the seed and plays the moves back with the
+same logic its verify module replays them with, showing the board as it goes, and records nothing — no save, no score,
+no ranked run. A move that is not legal ends the playback there. The admin console opens it, in the build that played
+the run, for a person reviewing it.
+
+```ts
+if (session.rankedReplay) watch(session.rankedReplay);  // { seed, moves }: play back, never save, score or rank
+```
+
 ### Game shell
 
 Every game has two stages — its own menu stage (the title screen, its option screens, the only way back to Tò He) and
@@ -207,6 +217,7 @@ run.finish(score);                               // at game over, or when the pl
 | `log(level, message)` | Forward a diagnostic line to the hub's console; `warn` and `error` lines also reach [telemetry](../architecture/telemetry.md). |
 | `room` | At an online table (ADR 0016, SDK 0.5.0), else `null`: `id`, `seat` (-1: spectator; may move between hands), `seats` (`{ profile, bot, connected, score }` in the rules module's order), `options`, `latest` (the newest view, which may arrive before the game listens), `onView(fn)` (`{ view, events, seq, turnMs }`; empty `events` after a reconnection: redraw), `onSeats(fn)`, `onReaction(fn)`, `act(action)` (rejects with the rules' error code), `next()` (ready for the next hand), `react(reaction)` (`wave`, `laugh`, `wow`, `clap`, `hurry`, `gg`, `sad`, `heart`; `REACTIONS` maps each to its emoji). |
 | `replay` | A finished hand to replay (ADR 0017, SDK 0.6.0), else `null`: `seats` (as in `room`), `seat` (whose view to show), `seed`, `options`, `carry`, `actions` (`{ seat, action }` in order). Never together with `room`. |
+| `rankedReplay` | A ranked run to watch ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md), SDK 0.9.0), else `null`: `seed`, `moves` — play them back from the seed, and save, score and hand in nothing. Never together with `room` or `replay`. |
 | `telemetry` | Technical telemetry (ADR 0015, SDK 0.4.0): `count(name, n?)`, `metric(name, value)`, `error(error)`, `frames(summary)`, `flush()`, `enabled`. Uncaught errors are reported without calling it; pass it to the kit (`createGame({ telemetry })`, `createSfx({ telemetry })`) for frame times and renderer events. A no-op when the hub does not collect telemetry, and in standalone mode. |
 
 In **standalone** mode (opening the game's dev server directly) the SDK fakes the host with `localStorage`, so a
@@ -224,7 +235,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | Direction | `type` | Fields | Notes |
 | --- | --- | --- | --- |
 | game → host | `ready` | `gameId`, `sdkVersion` | First message. Sent to `*` because the host is not known yet; carries no data. |
-| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?`, `replay?`, `shell?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table; `replay` (`seats`, `seat`, `seed`, `options`, `carry`, `actions` ≤ 5000) when opened to replay a finished hand. `shell` (`leaderboard`, `rooms`) for `shell` games: what the hub can open now. |
+| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?`, `replay?`, `rankedReplay?`, `shell?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table; `replay` (`seats`, `seat`, `seed`, `options`, `carry`, `actions` ≤ 5000) when opened to replay a finished hand; `rankedReplay` (`seed`, `moves` ≤ 100000) when opened to watch a ranked run. `shell` (`leaderboard`, `rooms`) for `shell` games: what the hub can open now. |
 | game → host | `save` | `id`, `data` | Request; answered by `result`. |
 | game → host | `score` | `id`, `value`, `board`, `run?`, `final` | Request; answered by `result`. `run` groups the reports of one run; `final` (default `true`) is `false` while it goes on. |
 | host → game | `result` | `replyTo`, `ok`, `error?`, `value?` | Answer to a request; `value` is what it answers with — the run of `ranked.start`. |
@@ -282,10 +293,13 @@ origin, and checks:
 9. with `ranked`: the verify module exists, is at most 256 KB and mentions no browser API, loads on its own with
    `replay` and `bot`, plays runs from three seeds with its own bot to the end (or `maxMoves`, at most 5000 here) with
    `Math.random` and `Date.now` throwing, replays each twice to the same score, and its moves survive JSON; under the
-   random input of check 3 the game asks for a ranked run, and any run it hands in replays to the score it claimed.
+   random input of check 3 the game asks for a ranked run, and any run it hands in replays to the score it claimed;
+   then it is opened with `init.rankedReplay` to watch a run its bot played (at most 400 moves), and plays it back
+   without errors, sending no `save`, `score`, `ranked.start` or `ranked.finish`.
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
-`<id>-<theme>.png` per theme, `<id>-room.png` at a table and `<id>-replay.png` replaying — look at them.
+`<id>-<theme>.png` per theme, `<id>-room.png` at a table, `<id>-replay.png` replaying a hand and
+`<id>-ranked-replay.png` watching a run — look at them.
 
 ## Versioning
 
@@ -295,7 +309,8 @@ It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` aft
   older builds; `rooms` (ADR 0016), a capability older games do not declare; and `init.replay` (ADR 0017), sent only
   to games that declare `rooms`; `shell` (ADR 0018), its messages and `init.shell`, which only `shell` games send or
   get; `ranked` (ADR 0030), its block and messages, and `result.value` — an older hub refuses `ranked.start`, so the
-  game plays unranked.
+  game plays unranked; and `init.rankedReplay` (ADR 0032), which only `ranked` games get, from the console, in the
+  build that played the run.
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;
   games are migrated before N−1 is dropped.
 - The SDK follows semver independently; its major version changes only with the protocol.
