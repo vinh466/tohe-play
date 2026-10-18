@@ -2,7 +2,8 @@
 
 - Status: **decided** (2026-10-18, chat) — Q1 = B; Q2: owner đã mua **`toheplay.io.vn`** ("toheplay.io.vn, tôi đã mua
   r, chưa trỏ về")
-- Decided: 2026-10-18 — [#67](https://github.com/vinh466/tohe-play/pull/67) (ADR 0039), chờ owner review
+- Decided: 2026-10-18 — [#67](https://github.com/vinh466/tohe-play/pull/67) (ADR 0039, merged); 2026-10-19 — mọi host
+  dưới `toheplay.io.vn`: [#69](https://github.com/vinh466/tohe-play/pull/69) (ADR 0040, merged)
 - Kind: decision — đổi hostname production của games origin (ADR 0002) là quyết định về origin → ADR khi chốt
 - Blocks: E-10 (checklist ra mắt), F4 · Blocked by: —
 
@@ -126,3 +127,8 @@ vinetic nữa, cho tôi review và subdomain hay". **agent:** được, mọi ho
 (Game Contract → ADR + conformance); Bot Fight Mode phải tắt cả zone. **2** — hai domain: hub + site như trên, game trên
 một domain thứ hai (`tohebox.io.vn` còn trống DNS) — tách hẳn như ADR 0039. Agent nghiêng về 1. Chọn xong: ADR 0040
 (sửa 0039), profile chart, #239, bản ghi Cloudflare.
+
+**owner** (2026-10-19, chat): "phương án 1, hãy giúp tôi làm tận gốc nhé" → ADR 0040 ([#69](https://github.com/vinh466/tohe-play/pull/69)): hub `toheplay.io.vn`,
+game `games.toheplay.io.vn`, site `docs.toheplay.io.vn`, `www` → gốc; CSP game thêm `form-action 'none'`. Cùng PR: test
+bảng tuần hỏng mỗi thứ Hai 00:00–00:30, và CI chạy conformance riêng, tuần tự (flake `tap-merge` do 4 nhân CI quá tải).
+Cloudflare (owner, kiểm 2026-10-19): `games`, `docs`, `www` có, `www` → gốc 301; còn thiếu `_dmarc`.

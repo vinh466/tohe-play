@@ -2,6 +2,12 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 — agent
+
+- Owner chọn phương án 1, "làm tận gốc" → [#69](https://github.com/vinh466/tohe-play/pull/69) merged (ADR 0040): hub `toheplay.io.vn`, `games.`, `docs.`;
+  CSP game `form-action 'none'`. Cùng PR: test bảng tuần (thứ Hai 00:00–00:30), CI chạy conformance tuần tự → xanh ngay.
+- [platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239) theo host mới, ghim chart của `d685547`. Chờ owner: `_dmarc`, pre-step A4, merge.
+
 ## 2026-10-18 (đêm, sau cùng) — agent
 
 - Owner muốn mọi host dưới `toheplay.io.vn`, không dính `vinetic`. Đề xuất hai phương án (D-13, Thảo luận); chưa

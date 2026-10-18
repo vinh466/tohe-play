@@ -116,6 +116,7 @@ nữa** — sửa sau review đi bằng migration mới.
 | F3 | `feat/proof-of-work` (trên F2a) | [#65](https://github.com/vinh466/tohe-play/pull/65) — **merged** · tắt sẵn; bật ở console → Đăng nhập & đăng ký → Chống bot đăng ký |
 | F1c | `feat/deletion-waits-for-admin` (trên `main`) | [#66](https://github.com/vinh466/tohe-play/pull/66) — **merged** (`fc347cf`); lên UAT `c49746c`; trên UAT: console → Tổng quan "Tài khoản đến hạn xoá", Người dùng → "Chờ xoá" |
 | D-13 | `feat/games-own-domain` (trên `main`) | [#67](https://github.com/vinh466/tohe-play/pull/67) — games origin production `toheplay.io.vn` (ADR 0039); `/` → hub, `noindex`; **merged** (`c49746c`); lên UAT `c49746c` |
+| D-13b | `feat/all-on-toheplay` (trên `main`) | [#69](https://github.com/vinh466/tohe-play/pull/69) — **merged** (`d685547`): ADR 0040, mọi host dưới `toheplay.io.vn`, CSP game `form-action 'none'`; sửa test bảng tuần thứ Hai 00:00–00:30; `verify` chạy conformance riêng, tuần tự |
 | A4 | `feat/tohe` ở `vinetic-spaces/platform-infra` | [platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239) — draft; chart `0.1.0-gc49746c`; role `tohe` ở overlay production (83/100); owner làm pre-step rồi merge |
 
 Thứ tự merge (đã merge hết, 2026-10-18 — chuỗi chính trước, dòng chart sau): #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58 → #59 → #60 → #61 → #62 → #63 → #65; #47 sau #44, #64 sau #47. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.

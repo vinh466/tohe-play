@@ -15,9 +15,8 @@
 
 ## Next — one item
 
-**Owner: pre-step rồi merge A4** ([platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239), draft) — Tò He lên production từ chart `0.1.0-gc49746c`. Rồi agent kiểm
-prod, owner nhận quyền chủ, rồi F4 (ra mắt, E-10). `main` = `c49746c` (#66, #67 đã merge); UAT chạy đúng commit đó,
-image từ GHCR.
+**Owner: pre-step rồi merge A4** ([platform-infra#239](https://github.com/vinetic-spaces/platform-infra/pull/239)) — Tò He lên production trên `toheplay.io.vn` (hub), `games.`, `docs.`
+(ADR 0040), chart ghim bản mới nhất của `main`. Rồi agent kiểm prod, owner nhận quyền chủ, rồi F4 (E-10).
 
 ## Waiting on the owner
 
@@ -25,8 +24,8 @@ image từ GHCR.
    Infisical `platform`/`prod`/`/tohe`: `postgres-password` (từ Secret `pg-role-tohe`), `email-smtp-password` (API key
    Resend), `telemetry-operator-token` (tuỳ chọn). Rồi merge #239. Đăng nhập: email + mật khẩu trước (owner,
    2026-10-18); Google/GitHub sau.
-2. **HTTP → HTTPS** cho `tohe.vinetic.io.vn`, `tohe-site.vinetic.io.vn` (`toheplay.io.vn` đã chuyển): cookie phiên của
-   hub là `__Host-`/`Secure`, qua `http://` không giữ được đăng nhập.
+2. **Cloudflare `toheplay.io.vn`**: `games`, `docs`, `www` và chuyển `www` → gốc đã có (kiểm 2026-10-19); còn
+   **`_dmarc`** TXT `v=DMARC1; p=none;`. Tò He không còn gì trên `vinetic.io.vn`.
 3. **Sau khi prod chạy** (owner: "sau khi deploy xong thì sẽ làm"): nhận quyền chủ (setup token trong log API), bật
    2FA; duyệt Điều khoản + Quyền riêng tư (`2026-10-18.4`), điền liên hệ; chọn cộng đồng dùng thử, tạo mã mời; thử
    iPhone trên prod.
@@ -51,7 +50,7 @@ image từ GHCR.
 | D-10 | [Verifier replay (đổi contract)](items/D-10-verified-runs.md) | T5 | decision | **decided** | D-16 |
 | D-11 | [Bảng & hạng của phòng](items/D-11-room-boards.md) | T5 | decision | **decided** | D-09 |
 | D-12 | [Chế độ đăng ký & mã mời cộng đồng](items/D-12-registration-modes.md) | T7 | decision | **decided** | D-02 |
-| D-13 | [Games origin trên domain riêng](items/D-13-games-origin-domain.md) | T7 | decision | **decided** — `toheplay.io.vn` (owner đã mua), #67 ADR 0039 | — |
+| D-13 | [Games origin trên domain riêng](items/D-13-games-origin-domain.md) | T7 | decision | **decided** — mọi host dưới `toheplay.io.vn` (#67 ADR 0039, #69 ADR 0040) | — |
 | D-14 | [Release bằng chart + GHCR + promote](items/D-14-release-via-chart.md) | T1 | decision | **decided** | — |
 | D-15 | [UAT có HTTPS](items/D-15-uat-https.md) | T1 | decision | deferred | — |
 | D-16 | [Engine độ tin](items/D-16-integrity-engine.md) | T5 | decision | **decided** | D-09 |
