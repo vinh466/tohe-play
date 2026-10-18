@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (sáng, 07:40) — agent
+
+- E2 #57 CI xanh. E3 tách đôi: E3a #58 (ADR 0031) — "Chờ xem xét" + "Đã quyết" trong admin, duyệt / từ chối / mở lại
+  sau xác thực lại, không ai quyết kết quả của chính mình, kiểm duyệt viên cũng xem xét; ẩn hồ sơ khỏi bảng công khai
+  (hub báo chủ). Tự review bắt được lỗ: run đã duyệt vẫn tăng điểm khi báo lại — giờ giữ nguyên (test đỏ khi bỏ fix).
+- Chờ owner: review #43–#58. Agent tiếp: E3b (xem lại run bằng chính game, đổi Game Contract), xếp trên E3a.
+
 ## 2026-10-18 (sáng, tiếp) — agent
 
 - E1a #55 và E1b #56 CI xanh. E1b: bảng cộng đồng + toàn server đọc từ kết quả theo mức tin, top 50 + quanh tôi, công tắc

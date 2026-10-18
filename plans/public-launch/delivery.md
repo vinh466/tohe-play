@@ -25,7 +25,8 @@ Owner: "theo đề xuất bạn có thể impl toàn bộ giúp tôi k, planning
 | **E1a** | Độ tin | Engine `Integrity` (mức tin, `RoomVerifier`, tín hiệu `Bounds` / `PersonalJump` / `Rate`, luật hai người thật như phạm vi, `held` / `rejected`, nhật ký quyết định chỉ ghi thêm) + bảng trong account, tuần (thứ Hai 00:00 giờ Việt Nam) + mọi lúc | 0029 Integrity engine and boards by trust | C1 | D-09, D-11, D-16 |
 | **E1b** | Độ tin | Bảng công khai: cộng đồng + toàn server, một dòng mỗi hồ sơ/bảng/chu kỳ, top 50 + quanh tôi; công tắc "hiện trên bảng công khai" của hồ sơ (trẻ em tắt sẵn, "Tôi đã hỏi ý bé") | (0029) | E1a, D3b | D-01, D-06, D-09 |
 | **E2** | Độ tin | Run tính hạng: seed của server, kênh gửi nước đi, module xác minh, `ReplayVerifier`, conformance; Ghép Khối là game đầu tiên | 0030 Ranked runs replayed by the server (Game Contract) | E1 | D-10 |
-| **E3** | Độ tin | Hàng đợi "Chờ xem xét" trong admin, xem lại run bằng chính game | — | D2, E2 | D-16 |
+| **E3a** | Độ tin | Hàng đợi "Chờ xem xét" + "Đã quyết" trong admin: duyệt / từ chối / mở lại sau xác thực lại, không quyết kết quả của chính mình; kết quả đã giao cho người giữ nguyên giá trị; ẩn hồ sơ khỏi bảng công khai | 0031 People decide what the engine held (sửa 0029) | D2, E2 | D-09, D-16 |
+| **E3b** | Độ tin | Xem lại run bằng chính game trong admin: chế độ xem lại trong Game Contract, admin nhúng game từ games origin | (Game Contract) | E3a | D-16 |
 | **F1** | Public | Trang điều khoản và quyền riêng tư (bản nháp để owner duyệt), lưu phiên bản đồng ý, xoá hồ sơ / account có thời gian chờ, kiểm duyệt tên (từ dành riêng, từ thô tục, lịch sử tên) | — | C3 | E-07 |
 | **F2** | Public | `/metrics` + ServiceMonitor trong chart + cảnh báo tối thiểu | — | A2 | E-08 |
 | F3 | Public | Turnstile cho đăng ký (tuỳ chọn, mặc định tắt) | — | C2 | E-09 |
@@ -39,24 +40,24 @@ flowchart LR
   C1 --> C2 --> C3 --> F1
   C2 --> C4 --> D3b
   C1 --> C5
-  C1 --> E1a --> E1b --> E2 --> E3
+  C1 --> E1a --> E1b --> E2 --> E3a --> E3b
   D3b --> E1b
   D1 --> D2 --> D3a --> D3b
   C2 --> D2
-  D2 --> E3
+  D2 --> E3a
   C2 --> F3
   A3 --> F4
   D3b --> F4
-  E3 --> F4
+  E3b --> F4
   F1 --> F4
   F2 --> F4
 ```
 
 ## Chạy song song thế nào
 
-- **Bắt đầu được ngay, độc lập với nhau:** A1, B1, C1, D1. Sau đó: A2/A3 (release), C2→C3→C4 (identity), E1a→E1b→E2 (độ tin),
+- **Bắt đầu được ngay, độc lập với nhau:** A1, B1, C1, D1. Sau đó: A2/A3 (release), C2→C3→C4 (identity), E1a→E1b→E2→E3a→E3b (độ tin),
   D2→D3a→D3b (admin).
-- **Không chạy song song được:** các PR cùng thêm migration EF Core (C1, C2, C3, C4, D2, D3a, D3b, E1a, E1b, E2) đụng chung
+- **Không chạy song song được:** các PR cùng thêm migration EF Core (C1, C2, C3, C4, D2, D3a, D3b, E1a, E1b, E2, E3a) đụng chung
   `ToheDbContextModelSnapshot.cs` — merge từng cái một, cái sau rebase lên cái trước. Tương tự với các file sinh ra
   (`services/api/openapi/`, `apps/hub/src/api/schema.gen.ts`): sinh lại sau khi rebase, không sửa tay.
 - **Mỗi lane một worktree và một nhánh**; plan này là bảng điều phối chung.
@@ -90,5 +91,7 @@ flowchart LR
 | D3b | `feat/signin-and-registration-settings` (trên D3a) | [#54](https://github.com/vinh466/tohe-play/pull/54) — CI xanh, chờ review; trên UAT (chỉ email) thử chế độ theo lời mời bằng link mã trên điện thoại |
 | E1a | `feat/integrity-engine` (trên D3b) | [#55](https://github.com/vinh466/tohe-play/pull/55) — CI xanh, chờ review; trên UAT: bảng 🏆 mở ở "Tuần này", kỷ lục cũ của nhà ở "Mọi lúc" |
 | E1b | `feat/public-boards` (trên E1a) | [#56](https://github.com/vinh466/tohe-play/pull/56) — CI xanh, chờ review; trên UAT: hồ sơ người lớn lên bảng công khai, hồ sơ trẻ em tắt cho tới khi bật kèm "Tôi đã hỏi ý bé" |
+| E2 | `feat/ranked-runs` (trên E1b) | [#57](https://github.com/vinh466/tohe-play/pull/57) — CI xanh, chờ review; trên UAT (Ghép Khối 1.9.0): chơi một ván khi đã đăng nhập, run lên "Toàn Tò He" vài giây sau khi xong |
+| E3a | `feat/review-queue` (trên E2) | [#58](https://github.com/vinh466/tohe-play/pull/58) — CI đang chạy; trên UAT: Người dùng → một hồ sơ → Ẩn khỏi bảng công khai, hub của chủ báo lý do |
 
-Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
+Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
