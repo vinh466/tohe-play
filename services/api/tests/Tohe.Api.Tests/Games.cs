@@ -8,13 +8,24 @@ namespace Tohe.Api.Tests;
 /// <summary>Games the registry knows, put there directly: the engine rejects scores of a game it never heard of.</summary>
 internal static class Games
 {
-    public static Task KnowAsync(ApiFactory factory, params string[] ids) => AddAsync(factory, rooms: null, ids);
+    public static Task KnowAsync(ApiFactory factory, params string[] ids) => AddAsync(factory, rooms: null, ranked: null, ids);
 
     /// <summary>A game played at tables (ADR 0016): its boards are hands.</summary>
     public static Task KnowRoomGameAsync(ApiFactory factory, string id) =>
-        AddAsync(factory, """{ "seats": { "min": 2, "max": 4 } }""", id);
+        AddAsync(factory, """{ "seats": { "min": 2, "max": 4 } }""", ranked: null, id);
 
-    private static async Task AddAsync(ApiFactory factory, string? rooms, params string[] ids)
+    /// <summary>A game whose runs the server replays (ADR 0030), with its verify module served from its build.</summary>
+    public static Task KnowRankedGameAsync(ApiFactory factory, string id, string verify, int minMsPerMove = 0, int maxMoves = 5)
+    {
+        factory.Catalog.Files[$"/{id}/1.0.0/verify.js"] = verify;
+        return AddAsync(
+            factory,
+            rooms: null,
+            ranked: $$"""{ "verify": "verify.js", "board": "default", "minMsPerMove": {{minMsPerMove}}, "maxMoves": {{maxMoves}} }""",
+            id);
+    }
+
+    private static async Task AddAsync(ApiFactory factory, string? rooms, string? ranked, params string[] ids)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
@@ -34,6 +45,7 @@ internal static class Games
                 Entry = "index.html",
                 Orientation = "portrait",
                 Rooms = rooms,
+                Ranked = ranked,
                 FirstSeenAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             });

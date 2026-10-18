@@ -223,3 +223,42 @@ describe('rooms (ADR 0016)', () => {
     expect(GameMessage.safeParse({ tohe: 1, type: 'room.react', reaction: 'free text' }).success).toBe(false);
   });
 });
+
+describe('ranked runs (ADR 0030)', () => {
+  const base = { id: 'merge-block', name: 'Ghép Khối', version: '1.6.0', protocol: 1 };
+
+  it('accepts the ranked capability and block with scores, defaulting the module, the board and the limits', () => {
+    const manifest = GameManifest.parse({ ...base, capabilities: ['save', 'scores', 'ranked'], ranked: {} });
+    expect(manifest.ranked).toEqual({
+      verify: 'verify.js',
+      board: 'default',
+      minMsPerMove: 100,
+      maxMoves: 20_000,
+    });
+  });
+
+  it.each([
+    ['the capability without the block', { capabilities: ['scores', 'ranked'] }],
+    ['the block without the capability', { capabilities: ['scores'], ranked: {} }],
+    ['a ranked game that keeps no scores', { capabilities: ['ranked'], ranked: {} }],
+    [
+      'a verify module outside the build',
+      { capabilities: ['scores', 'ranked'], ranked: { verify: '../x.js' } },
+    ],
+    ['too many moves', { capabilities: ['scores', 'ranked'], ranked: { maxMoves: 100_001 } }],
+  ])('rejects %s', (_label, extra) => {
+    expect(GameManifest.safeParse({ ...base, ...extra }).success).toBe(false);
+  });
+
+  it('asks for a run, hands in its moves, and carries the run back in the result', () => {
+    expect(GameMessage.parse({ tohe: 1, type: 'ranked.start', id: 'r1' })).toMatchObject({
+      type: 'ranked.start',
+    });
+    const finish = { tohe: 1, type: 'ranked.finish', id: 'r2', run: 'run-1', moves: [0, 3, 4], score: 128 };
+    expect(GameMessage.parse(finish)).toMatchObject({ moves: [0, 3, 4], score: 128 });
+    expect(GameMessage.safeParse({ ...finish, score: Number.NaN }).success).toBe(false);
+    expect(GameMessage.safeParse({ ...finish, moves: Array(100_001).fill(0) }).success).toBe(false);
+    const result = { tohe: 1, type: 'result', replyTo: 'r1', ok: true, value: { run: 'run-1', seed: 7 } };
+    expect(HostMessage.parse(result)).toMatchObject({ value: { run: 'run-1', seed: 7 } });
+  });
+});

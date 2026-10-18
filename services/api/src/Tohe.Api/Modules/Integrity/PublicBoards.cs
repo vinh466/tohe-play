@@ -53,18 +53,14 @@ internal sealed class PublicBoards(ToheDbContext db, IBoardAudience audience)
 
     private const int Neighbours = 2;
 
-    /// <summary>
-    /// Games a verifier can reproduce a run of. None yet: ranked runs (D-10) add them, and from then on their community
-    /// boards take verified runs only (D-16 Q4).
-    /// </summary>
-    public static bool CanReproduce(string gameId) => false;
-
+    /// <param name="reproducible">The server can replay the game's runs (ADR 0030): its community boards then take
+    /// verified runs only, as its server board does (D-16 Q4).</param>
     public async Task<(IReadOnlyList<PublicRow> Rows, bool Listed)> RankAsync(
-        Guid viewer, string gameId, string board, bool hands, Guid? community, DateTimeOffset? since, CancellationToken ct)
+        Guid viewer, string gameId, string board, bool hands, bool reproducible, Guid? community, DateTimeOffset? since, CancellationToken ct)
     {
         var standings = hands
             ? await HandsAsync(gameId, since, ct)
-            : await RunsAsync(gameId, board, community is not null && !CanReproduce(gameId), since, ct);
+            : await RunsAsync(gameId, board, community is not null && !reproducible, since, ct);
         var listed = await audience.ListedAsync([.. standings.Select(standing => standing.ProfileId).Append(viewer).Distinct()], ct);
         var rows = standings
             .Where(standing => listed.TryGetValue(standing.ProfileId, out var player) && (community is null || player.CommunityId == community))
@@ -79,14 +75,23 @@ internal sealed class PublicBoards(ToheDbContext db, IBoardAudience audience)
     }
 
     public static PublicBoardView View(
-        string gameId, string board, string scope, string period, DateTimeOffset? since, bool hands, bool listed, IReadOnlyList<PublicRow> rows, Guid viewer)
+        string gameId,
+        string board,
+        string scope,
+        string period,
+        DateTimeOffset? since,
+        bool hands,
+        bool reproducible,
+        bool listed,
+        IReadOnlyList<PublicRow> rows,
+        Guid viewer)
     {
         var me = rows.FirstOrDefault(row => row.ProfileId == viewer);
         var around = me is { Rank: > TopSize }
             ? rows.Skip(me.Rank - 1 - Neighbours).Take((2 * Neighbours) + 1).ToList()
             : [];
         return new PublicBoardView(
-            gameId, board, scope, period, since, hands, hands || CanReproduce(gameId), listed, rows.Count, [.. rows.Take(TopSize)], me, around);
+            gameId, board, scope, period, since, hands, hands || reproducible, listed, rows.Count, [.. rows.Take(TopSize)], me, around);
     }
 
     /// <summary>Each profile's best run: verified — and checked on a community board, for a game nothing can replay yet.</summary>

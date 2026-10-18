@@ -56,6 +56,8 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
 
     public DbSet<IntegrityDecision> IntegrityDecisions => Set<IntegrityDecision>();
 
+    public DbSet<RankedRun> RankedRuns => Set<RankedRun>();
+
     public DbSet<OutboxEmail> EmailOutbox => Set<OutboxEmail>();
 
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();

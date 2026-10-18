@@ -72,6 +72,10 @@ internal sealed partial class CatalogSync(
                 && (manifest.Capabilities ?? []).Contains("rooms")
                 ? rooms.GetRawText()
                 : null;
+            game.Ranked = manifest.Ranked is { ValueKind: System.Text.Json.JsonValueKind.Object } ranked
+                && (manifest.Capabilities ?? []).Contains("ranked")
+                ? ranked.GetRawText()
+                : null;
             game.Listed = true;
             game.UpdatedAt = now;
         }

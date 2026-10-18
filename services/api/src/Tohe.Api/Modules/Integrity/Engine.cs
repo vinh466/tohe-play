@@ -123,7 +123,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
             // A person's decision stands, and only a person releases what the engine held: automation only hides.
             if (result.DecidedBy is null && result.Level is not (TrustLevel.Held or TrustLevel.Rejected))
             {
-                var (level, reason, details) = await JudgeRunAsync(result, batch, now, ct);
+                var (level, reason, details) = await JudgeRunAsync(result, batch, now, TrustLevel.Checked, ct);
                 Move(result, isNew ? null : result.Level, level, reason, details, now, isNew);
             }
         }
@@ -163,12 +163,56 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
     }
 
     /// <summary>
+    /// A ranked run the server replayed to the score it claimed (ADR 0030): verified, unless a signal fires as for any
+    /// run — a replay proves the moves are legal, not that a person played them. Added to the caller's unit of work.
+    /// </summary>
+    public async Task<IntegrityResult> AddReplayedAsync(RankedRun ranked, double score, DateTimeOffset at, CancellationToken ct)
+    {
+        var result = AddRanked(ranked, score, at);
+        var (level, reason, details) = await JudgeRunAsync(result, [result], at, TrustLevel.Verified, ct);
+        result.Level = level;
+        Log(result, null, level, reason, details, at);
+        return result;
+    }
+
+    /// <summary>A ranked run its replay refused — hard proof (rejected), or not like a person (held) — and why.</summary>
+    public IntegrityResult AddRefused(RankedRun ranked, double score, TrustLevel level, string reason, object details, DateTimeOffset at)
+    {
+        var result = AddRanked(ranked, score, at);
+        result.Level = level;
+        Log(result, null, level, reason, details, at);
+        return result;
+    }
+
+    private IntegrityResult AddRanked(RankedRun ranked, double score, DateTimeOffset at)
+    {
+        var result = new IntegrityResult
+        {
+            Kind = ResultKind.Run,
+            ProfileId = ranked.ProfileId,
+            AccountId = ranked.AccountId,
+            GameId = ranked.GameId,
+            Board = ranked.Board,
+            Value = score,
+            Source = $"ranked:{ranked.Id:N}",
+            Final = true,
+            Level = TrustLevel.Reported,
+            At = at,
+            RuleVersion = RuleVersion,
+        };
+        db.IntegrityResults.Add(result);
+        return result;
+    }
+
+    /// <summary>
     /// The rules of version 1 for a final run: <c>Bounds</c> — a game the registry knows; then, only for a run that
-    /// would move a board (a best of the week), <c>PersonalJump</c> and <c>Rate</c>.
+    /// would move a board (a best of the week), <c>PersonalJump</c> and <c>Rate</c>. A run that passes gets
+    /// <paramref name="passed"/>: checked for what a device reported, verified for what the server replayed.
     /// </summary>
     private async Task<(TrustLevel Level, string Reason, object? Details)> JudgeRunAsync(
-        IntegrityResult run, List<IntegrityResult> batch, DateTimeOffset now, CancellationToken ct)
+        IntegrityResult run, List<IntegrityResult> batch, DateTimeOffset now, TrustLevel passed, CancellationToken ct)
     {
+        var pass = (passed, passed == TrustLevel.Verified ? "replayed" : "checked", (object?)null);
         if (!_games.TryGetValue(run.GameId, out var knownGame))
         {
             _games[run.GameId] = knownGame = await registry.KnowsAsync(run.GameId, ct);
@@ -194,7 +238,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
         if (weekBest is { } best && run.Value <= best)
         {
             // It moves no board: nothing more to look at.
-            return (TrustLevel.Checked, "checked", null);
+            return pass;
         }
 
         var allBest = Max(await earlier.MaxAsync(result => (double?)result.Value, ct), mine.Select(result => (double?)result.Value).Max());
@@ -214,7 +258,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
             return (TrustLevel.Held, "rate", new { runs = recent, minutes = RateWindow.TotalMinutes });
         }
 
-        return (TrustLevel.Checked, "checked", null);
+        return pass;
     }
 
     private void Move(IntegrityResult result, TrustLevel? from, TrustLevel to, string reason, object? details, DateTimeOffset at, bool first)

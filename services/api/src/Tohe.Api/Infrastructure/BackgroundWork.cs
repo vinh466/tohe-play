@@ -24,6 +24,7 @@ public sealed class BackgroundWork(TimeProvider clock)
     public const string CatalogSync = "catalog-sync";
     public const string EmailDelivery = "email-delivery";
     public const string TelemetryMaintenance = "telemetry-maintenance";
+    public const string RankedReplays = "ranked-replays";
 
     private const int MaxErrorLength = 300;
 

@@ -39,6 +39,8 @@ A game whose run lasts across sittings reports it as it grows (`run(id).update`)
 - A push marks a row synced only if it still holds what was sent, so a report made during the request is pushed
   next time.
 - The server applies the same rules to a `clientId` it already has.
+- A ranked run handed in ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)) waits in `ranked` until
+  the API takes it; a run the API will never take — a newer one closed it — is dropped, anything else is tried again.
 - A profile's best on the account's board can be a run in progress (`inProgress`, shown as "▶ đang chơi"); the engine
   judges a run once it is final.
 
@@ -58,7 +60,7 @@ in the table but no longer appear on a board.
 
 | Piece | Where |
 | --- | --- |
-| Local tables (`saves`, `scores` with `clientId`) | `apps/hub/src/storage/db.ts` (Dexie, version 2) |
+| Local tables (`saves`, `scores` with `clientId`, `ranked` — runs handed in, ADR 0030) | `apps/hub/src/storage/db.ts` (Dexie, version 3) |
 | Push / pull rules | `apps/hub/src/storage/sync.ts` — tested in `src/sync.test.ts` against an in-memory server |
 | When it runs | `src/session/useBackgroundSync.ts` (screens, coming online), `PlayPage` (before a game, after saves) |
 | Leaderboard | 🏆 on each catalog card (`src/ui/Leaderboard.tsx`): this week or all time; it pushes the device's newest scores first |

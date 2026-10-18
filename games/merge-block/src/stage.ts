@@ -13,7 +13,7 @@ import {
   type Theme,
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
-import { persist, session, sfx, store, t } from './app.ts';
+import { finishRanked, persist, session, sfx, startRanked, store, t } from './app.ts';
 import { blockValue, drop, type Exponent, newGame, type State } from './logic.ts';
 import { BOARD, blockStyle, PALETTE_IDS, type PaletteId } from './palette.ts';
 import { cssColor, samples } from './swatches.ts';
@@ -41,9 +41,13 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     if (previous && !previous.over && previous.score > 0 && store.run) {
       void session.run(store.run).finish(previous.score).catch(scoreFailed);
     }
-    // The next game continues the PRNG sequence, so every new game differs but stays reproducible.
-    state = newGame(previous?.rng ?? session.seed, store.best);
-    runId = newRunId();
+    if (previous && !previous.over) finishRanked(previous.score);
+    // A ranked run plays from the server's seed (ADR 0030); otherwise the next game continues the PRNG sequence, so
+    // every new game differs but stays reproducible.
+    const ranked = await startRanked();
+    state = newGame(ranked?.seed ?? previous?.rng ?? session.seed, store.best);
+    store.ranked = ranked ? { run: ranked.run, seed: ranked.seed, moves: [] } : null;
+    runId = ranked?.run ?? newRunId();
   }
   // The leaderboard shows the game in progress as it grows, and its best score stays when it ends.
   let run = session.run(runId);
@@ -163,6 +167,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     moving = true;
     const before = state.score;
     state = result.state;
+    store.ranked?.moves.push(col);
     await board.play(result.events, state, before);
     if (left) return;
     showScore(state.score);
@@ -181,6 +186,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       const record = state.score > store.best;
       void save();
       void run.finish(state.score).catch(scoreFailed);
+      finishRanked(state.score);
       ctx.gameOver({
         icon: record ? '🏆' : '🧱',
         title: record ? t.record : t.over,
@@ -191,14 +197,22 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     }
   }
 
-  function startNewGame() {
+  async function startNewGame() {
     if (!state.over && state.score > 0) void run.finish(state.score).catch(scoreFailed);
-    runId = newRunId();
+    if (!state.over) finishRanked(state.score);
+    // No drop on the old board while the new one waits for its seed.
+    moving = true;
+    const ranked = await startRanked();
+    if (left) return;
+    store.ranked = ranked ? { run: ranked.run, seed: ranked.seed, moves: [] } : null;
+    runId = ranked?.run ?? newRunId();
     run = session.run(runId);
-    state = newGame(state.rng, store.best);
+    state = newGame(ranked?.seed ?? state.rng, store.best);
     board.setBoard(state);
     scores.setBest(store.best);
     showScore(0, false);
+    moving = false;
+    queued = null;
     void save();
   }
 
@@ -226,7 +240,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     resume: () => kit.resume(),
     newGame: () => {
       sfx.play('click');
-      startNewGame();
+      void startNewGame();
     },
     // 🎨 Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
     quick: () => [

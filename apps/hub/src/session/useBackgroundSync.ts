@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { ApiError, progress } from '../api/client.ts';
+import { ApiError, progress, runs } from '../api/client.ts';
 import { db } from '../storage/db.ts';
 import { createSyncer, type ProgressApi } from '../storage/sync.ts';
 import { telemetry } from '../telemetry/telemetry.ts';
@@ -23,6 +23,15 @@ const trackedProgress: ProgressApi = {
   listSaves: () => counted(progress.listSaves()),
   putSave: (gameId, data) => counted(progress.putSave(gameId, data)),
   recordScores: (scores) => counted(progress.recordScores(scores)),
+  finishRun: (run, moves, score) =>
+    counted(runs.finish(run, moves, score)).then(
+      () => 'taken' as const,
+      (error: unknown) => {
+        // The API will never take it (closed by a newer run, not this profile's, too many moves): drop it.
+        if (error instanceof ApiError && [400, 404, 409].includes(error.status)) return 'refused' as const;
+        throw error;
+      },
+    ),
 };
 
 /** The hub's one syncer (M2): saves and scores of the playing profile, to and from the API. */

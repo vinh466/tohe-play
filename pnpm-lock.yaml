@@ -341,6 +341,9 @@ importers:
 
   services/api:
     devDependencies:
+      '@tohe/game-merge-block':
+        specifier: workspace:*
+        version: link:../../games/merge-block
       '@tohe/game-tien-len':
         specifier: workspace:*
         version: link:../../games/tien-len
