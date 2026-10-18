@@ -417,6 +417,43 @@
         }
       }
     },
+    "metrics": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "serviceMonitor": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "interval": {
+              "type": "string",
+              "pattern": "^[0-9]+(ms|s|m|h)$"
+            },
+            "labels": {
+              "$ref": "#/definitions/stringMap"
+            }
+          }
+        },
+        "prometheusRule": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            },
+            "labels": {
+              "$ref": "#/definitions/stringMap"
+            }
+          }
+        },
+        "scraperNamespaceLabels": {
+          "$ref": "#/definitions/stringMap"
+        }
+      }
+    },
     "tests": {
       "type": "object",
       "additionalProperties": false,

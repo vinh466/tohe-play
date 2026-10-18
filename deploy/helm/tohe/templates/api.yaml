@@ -58,6 +58,9 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            # /metrics for Prometheus (ADR 0036): no ingress routes it.
+            - name: metrics
+              containerPort: 9464
           env:
             - name: ASPNETCORE_ENVIRONMENT
               value: Production
@@ -179,3 +182,6 @@ spec:
     - name: http
       port: 8080
       targetPort: http
+    - name: metrics
+      port: 9464
+      targetPort: metrics

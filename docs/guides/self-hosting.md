@@ -101,6 +101,23 @@ hub:
 
 The API never needs `X-Forwarded-Proto` to know it is on HTTPS: `publicUrls.hub` says so.
 
+## Metrics and alerts
+
+The API serves Prometheus metrics on a port of its own, 9464, which no ingress routes (ADR 0036). If the cluster runs
+the Prometheus Operator — kube-prometheus-stack, for example:
+
+```yaml
+metrics:
+  serviceMonitor:
+    enabled: true
+    labels: {} # e.g. { release: kube-prometheus-stack } if your Prometheus selects by label
+  prometheusRule:
+    enabled: true # six alerts: the API or the database down, 5xx, slowness, stuck email, a failing worker
+  scraperNamespaceLabels: { kubernetes.io/metadata.name: monitoring } # with networkPolicy.enabled
+```
+
+Who receives the alerts is your Alertmanager's configuration. The chart's README lists the alerts.
+
 ## Updating
 
 `helm upgrade` to a newer chart version (its images come with it), or with a new `global.image.tag` on the same

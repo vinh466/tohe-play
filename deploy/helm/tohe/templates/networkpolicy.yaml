@@ -22,6 +22,18 @@ spec:
               {{- include "tohe.selectorLabels" (dict "root" . "component" "hub") | nindent 14 }}
       ports:
         - port: http
+    {{- if .Values.metrics.serviceMonitor.enabled }}
+    # Prometheus scrapes /metrics (ADR 0036): from its namespace, on the metrics port only.
+    - from:
+        - namespaceSelector:
+            {{- with .Values.metrics.scraperNamespaceLabels }}
+            matchLabels:
+              {{- toYaml . | nindent 14 }}
+            {{- else }} {}
+            {{- end }}
+      ports:
+        - port: metrics
+    {{- end }}
 {{- if eq .Values.infra.postgres.mode "builtin" }}
 ---
 apiVersion: networking.k8s.io/v1

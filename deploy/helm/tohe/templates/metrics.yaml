@@ -1,0 +1,103 @@
+{{- /*
+The API's metrics for the Prometheus Operator (ADR 0036, E-08): a ServiceMonitor that scrapes /metrics on the API's
+port 9464, and the six alerts as a PrometheusRule. Both need its CRDs (kube-prometheus-stack), so both are off by
+default. Who receives the alerts is the cluster's Alertmanager.
+*/ -}}
+{{- $name := include "tohe.componentName" (dict "root" . "component" "api") }}
+{{- $ns := .Release.Namespace }}
+{{- with .Values.metrics.serviceMonitor }}
+{{- if .enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "tohe.labels" (dict "root" $ "component" "api") | nindent 4 }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  selector:
+    matchLabels:
+      {{- include "tohe.selectorLabels" (dict "root" $ "component" "api") | nindent 6 }}
+  endpoints:
+    - port: metrics
+      path: /metrics
+      interval: {{ .interval }}
+{{- end }}
+{{- end }}
+{{- with .Values.metrics.prometheusRule }}
+{{- if .enabled }}
+{{- /* Every series is the API's of this release: its job (the Service's name) and its namespace. */}}
+{{- $in := printf "namespace=%q" $ns }}
+{{- $requests := printf "microsoft_aspnetcore_hosting_http_server_request_duration_count{%s}" $in }}
+---
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: {{ $name }}
+  labels:
+    {{- include "tohe.labels" (dict "root" $ "component" "api") | nindent 4 }}
+    {{- with .labels }}
+    {{- toYaml . | nindent 4 }}
+    {{- end }}
+spec:
+  groups:
+    - name: tohe
+      rules:
+        - alert: ToheApiDown
+          expr: up{job="{{ $name }}",{{ $in }}} == 0 or absent(up{job="{{ $name }}",{{ $in }}})
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Tò He's API has not been scraped for 5 minutes
+            description: Prometheus cannot reach /metrics on the API's port 9464 in {{ $ns }} — the API is down, or not up yet.
+        - alert: ToheDatabaseUnhealthy
+          expr: max(tohe_database_up{ {{- $in -}} }) == 0
+          for: 5m
+          labels:
+            severity: critical
+          annotations:
+            summary: Tò He's database has not answered for 5 minutes
+            description: The API's samples cannot reach PostgreSQL in {{ $ns }}; /api/health fails too.
+        - alert: ToheApiErrors
+          expr: |
+            (
+              sum(rate({{ printf "microsoft_aspnetcore_hosting_http_server_request_duration_count{%s,http_response_status_code=~\"5..\"}" $in }}[10m]))
+              / sum(rate({{ $requests }}[10m]))
+            ) > 0.05
+            and sum(increase({{ $requests }}[10m])) > 20
+          labels:
+            severity: warning
+          annotations:
+            summary: More than 5 % of Tò He's requests answered 5xx over 10 minutes
+            description: The API's log in {{ $ns }} has the exceptions.
+        - alert: ToheApiSlow
+          # The rooms' hub is one request for as long as a phone stays at a table: left out.
+          expr: |
+            histogram_quantile(0.95, sum by (le) (rate({{ printf "microsoft_aspnetcore_hosting_http_server_request_duration_bucket{%s,http_route!~\"/api/rooms/hub.*\"}" $in }}[5m]))) > 1
+          for: 15m
+          labels:
+            severity: warning
+          annotations:
+            summary: Tò He's requests are slow — the 95th percentile over 1 second for 15 minutes
+            description: Look at the slowest routes, the database and the node in {{ $ns }}.
+        - alert: ToheEmailStuck
+          expr: |
+            max(tohe_email_outbox_oldest_seconds{ {{- $in -}} }) > 900
+            or sum(increase(tohe_email_failed{ {{- $in -}} }[1h])) > 0
+          labels:
+            severity: warning
+          annotations:
+            summary: Tò He's email is stuck — waiting over 15 minutes, or given up on in the last hour
+            description: Codes and notices are not arriving; the console's overview shows the outbox, the API's log the relay's answer.
+        - alert: ToheWorkerFailing
+          expr: max by (worker) (tohe_worker_failures_in_row{ {{- $in -}} }) >= 3
+          labels:
+            severity: warning
+          annotations:
+            summary: "Tò He's background worker {{ "{{" }} $labels.worker {{ "}}" }} failed 3 times in a row"
+            description: The console's System page shows its last error.
+{{- end }}
+{{- end }}

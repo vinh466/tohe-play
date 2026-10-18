@@ -223,6 +223,23 @@ networkPolicy:
   # Labels of the ingress controller's namespace, e.g. { kubernetes.io/metadata.name: kube-system }. Empty: any.
   ingressNamespaceLabels: {}
 
+# The API's /metrics for Prometheus (ADR 0036): port 9464, which no ingress routes. Both need the Prometheus
+# Operator's CRDs (kube-prometheus-stack), and an API image that serves /metrics.
+metrics:
+  serviceMonitor:
+    # A ServiceMonitor that scrapes the API.
+    enabled: false
+    interval: 30s
+    # Labels the cluster's Prometheus selects ServiceMonitors by, e.g. { release: kube-prometheus-stack }.
+    labels: {}
+  prometheusRule:
+    # The six alerts: the API down, the database down, 5xx, slowness, stuck email, a failing background worker.
+    enabled: false
+    labels: {}
+  # With networkPolicy.enabled and the ServiceMonitor on: labels of the namespace Prometheus scrapes from, e.g.
+  # { kubernetes.io/metadata.name: monitoring }. Empty: any namespace may reach the metrics port.
+  scraperNamespaceLabels: {}
+
 tests:
   # `helm test`: a pod that checks the hub serves the app and /api/health.
   image: curlimages/curl:8.23.0
