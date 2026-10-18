@@ -105,10 +105,11 @@ with **Hoàng hôn**. Each game keeps its own choice (games do not share saves).
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game, tutorialSeen, run, palette }` where `game` is the full state (board, current, next, score, PRNG), `run` its leaderboard id and `palette` the player's colour preset (also saved when it changes). Opening the game resumes it. |
-| `scores` | A live run (ADR 0014): `session.run(id).update(score)` after each move that scores, so the household leaderboard shows the game in progress; `finish(score)` at game over, or when the player starts a new game (an unfinished game keeps the best score it reached). One run id per game, kept in the save. |
+| `save` | After every move: `{ best, game, tutorialSeen, run, palette, ranked? }` where `game` is the full state (board, current, next, score, PRNG), `run` its leaderboard id, `palette` the player's colour preset (also saved when it changes) and `ranked` the ranked run in progress — its id, seed and every column dropped. Opening the game resumes it. |
+| `scores` | A live run (ADR 0014): `session.run(id).update(score)` after each move that scores, so the account's board shows the game in progress; `finish(score)` at game over, or when the player starts a new game (an unfinished game keeps the best score it reached). One run id per game, kept in the save. |
+| `ranked` | Every new game asks for a ranked run (ADR 0030) and waits up to 2.5 s: with one, the game plays from the server's seed and records each column dropped; at game over, or when the player starts a new game, it hands the columns and the score in. Without one — offline, a guest — it plays unranked, as before. The verify module (`src/verify.ts` → `verify.js`) replays a run with `logic.ts` itself; its `bot` drops into a column the run's own PRNG picks. |
 | settings | Respects `muted`; follows `theme`. |
-| seed | Seeds the PRNG of a new game. |
+| seed | Seeds the PRNG of an unranked new game; a ranked one plays from the server's seed. |
 
 ## Invariants (checked by the random-play bot)
 
