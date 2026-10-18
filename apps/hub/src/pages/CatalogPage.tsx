@@ -14,19 +14,10 @@ import { Screen } from '../ui/Screen.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 export function CatalogPage() {
-  return (
-    <RequireSession need="player">
-      {(session) => (
-        <Catalog
-          player={session.player}
-          household={session.status === 'account' ? session.me.household.name : null}
-        />
-      )}
-    </RequireSession>
-  );
+  return <RequireSession need="player">{(session) => <Catalog player={session.player} />}</RequireSession>;
 }
 
-function Catalog({ player, household }: { player: Player; household: string | null }) {
+function Catalog({ player }: { player: Player }) {
   const { t } = useTranslation();
   const games = useQuery(gamesQuery(player.id));
   const isGuest = player.kind === 'guest';
@@ -37,7 +28,7 @@ function Catalog({ player, household }: { player: Player; household: string | nu
       <header className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-black text-3xl text-brand-ink">{t('appName')}</h1>
-          <p className="truncate text-ink-soft">{household ?? t('tagline')}</p>
+          <p className="truncate text-ink-soft">{t('tagline')}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <ThemeButton />

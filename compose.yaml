@@ -33,11 +33,19 @@ services:
       Games__PublicOrigin: http://${TOHE_PUBLIC_HOST:-localhost}:4730
       Games__CatalogUrl: http://games:8080/catalog.json
       Registry__SyncInterval: "00:00:20"
+      # Mail goes to Mailpit: read it at http://localhost:4760 (ADR 0022).
+      Email__Mode: Smtp
+      Email__From: Tò He <no-reply@tohe.localhost>
+      Email__Smtp__Host: mailpit
+      Email__Smtp__Port: "1025"
+      Email__Smtp__Security: None
       # Development token for the telemetry report (local containers only, like the database password).
       Telemetry__OperatorToken: tohe-dev-only
     depends_on:
       postgres:
         condition: service_healthy
+      mailpit:
+        condition: service_started
     ports:
       - "4740:8080"
 
@@ -74,6 +82,13 @@ services:
       TOHE_SITE_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4710
     ports:
       - "4710:8080"
+
+  # Catches every email the API sends, locally: web UI on 4760, SMTP on 4761 for `pnpm dev`.
+  mailpit:
+    image: axllent/mailpit:v1.31
+    ports:
+      - "127.0.0.1:4760:8025"
+      - "127.0.0.1:4761:1025"
 
 volumes:
   postgres-data:

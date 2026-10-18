@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
+using Tohe.Api.Modules.Integrity;
 using Tohe.Api.Modules.Progress;
 
 namespace Tohe.Api.Tests;
@@ -18,6 +19,7 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
     public async Task Progress_needs_a_chosen_profile()
     {
         var (client, _) = await RegisterAsync("Bố");
+        await client.DeleteAsync(Url("/api/session/profile"), Ct); // back to "Ai đang chơi?"
 
         var response = await client.GetAsync(Url("/api/progress/saves"), Ct);
 
@@ -73,8 +75,9 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
     }
 
     [Fact]
-    public async Task Scores_are_stored_once_and_the_leaderboard_ranks_the_household_only()
+    public async Task Scores_are_stored_once_and_the_board_ranks_the_accounts_profiles_only()
     {
+        await Games.KnowAsync(factory, "merge-block", "hello");
         var (client, me) = await RegisterAsync("Bố");
         await UnlockAsync(client);
         var child = await AddChildAsync(client, "Na");
@@ -92,13 +95,14 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
         await PlayAsAsync(stranger, strangerMe.Profiles[0].Id);
         await RecordAsync(stranger, Score("merge-block", 5000));
 
-        var board = await client.GetFromJsonAsync<List<LeaderboardEntry>>(Url("/api/progress/leaderboard/merge-block"), Ct);
-        Assert.Equal([("Na", 300d), ("Bố", 120d)], board!.Select(e => (e.Name, e.Value)));
+        var board = (await client.GetFromJsonAsync<AccountBoardView>(Url("/api/boards/merge-block?period=all"), Ct))!;
+        Assert.Equal([("Na", 300d), ("Bố", 120d)], board.Rows.Select(e => (e.Name, e.Value)));
     }
 
     [Fact]
     public async Task A_long_run_is_one_score_that_rises_and_shows_in_progress_until_it_is_final()
     {
+        await Games.KnowAsync(factory, "merge-block");
         var (client, me) = await RegisterAsync("Bố");
         await PlayAsAsync(client, me.Profiles[0].Id);
         var run = Guid.NewGuid();
@@ -108,11 +112,11 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
         await RecordAsync(client, Report(350, final: false));
         Assert.Equal(0, await RecordAsync(client, Report(200, final: false))); // lower, nothing changes
 
-        var live = Assert.Single((await client.GetFromJsonAsync<List<LeaderboardEntry>>(Url("/api/progress/leaderboard/merge-block"), Ct))!);
+        var live = Assert.Single((await client.GetFromJsonAsync<AccountBoardView>(Url("/api/boards/merge-block"), Ct))!.Rows);
         Assert.Equal((350d, true), (live.Value, live.InProgress));
 
         await RecordAsync(client, Report(350, final: true));
-        var done = Assert.Single((await client.GetFromJsonAsync<List<LeaderboardEntry>>(Url("/api/progress/leaderboard/merge-block"), Ct))!);
+        var done = Assert.Single((await client.GetFromJsonAsync<AccountBoardView>(Url("/api/boards/merge-block"), Ct))!.Rows);
         Assert.Equal((350d, false), (done.Value, done.InProgress));
 
         await using var scope = factory.Services.CreateAsyncScope();
@@ -147,24 +151,18 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
     private async Task<(HttpClient Client, MeView Me)> RegisterAsync(string displayName)
     {
         var client = factory.CreateClient();
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName, username = $"u{Guid.NewGuid():N}"[..16], password = Password },
-            Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (client, (await response.Content.ReadFromJsonAsync<MeView>(Ct))!);
+        return (client, await Accounts.SignUpAsync(factory, client, displayName));
     }
 
     private static async Task UnlockAsync(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        await Accounts.StepUpAsync(client);
     }
 
     private static async Task<ProfileView> AddChildAsync(HttpClient client, string name)
     {
         var response = await client.PostAsJsonAsync(
-            Url("/api/household/profiles"),
+            Url("/api/profiles"),
             new { name, avatar = ProfileOptions.Avatars[1], ageBand = "6-8" },
             Ct);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);

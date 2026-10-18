@@ -36,6 +36,19 @@ export interface LocalScore {
   final?: boolean;
 }
 
+/** A ranked run handed in (ADR 0030), kept until the API took it for its replay. */
+export interface LocalRanked {
+  id?: number;
+  profileId: string;
+  gameId: string;
+  /** The run the API opened. */
+  run: string;
+  moves: JsonValue[];
+  score: number;
+  at: number;
+  synced: 0 | 1;
+}
+
 export interface CacheEntry {
   key: string;
   value: unknown;
@@ -46,6 +59,7 @@ export type ToheDb = Dexie & {
   profiles: EntityTable<LocalProfile, 'id'>;
   saves: Dexie.Table<LocalSave, [string, string]>;
   scores: EntityTable<LocalScore, 'id'>;
+  ranked: EntityTable<LocalRanked, 'id'>;
   cache: EntityTable<CacheEntry, 'key'>;
 };
 
@@ -78,6 +92,8 @@ export function openDb(name = 'tohe'): ToheDb {
           score.clientId ??= newId();
         }),
     );
+  // v3 (ADR 0030): ranked runs handed in, waiting to reach the API.
+  db.version(3).stores({ ranked: '++id, synced' });
   return db;
 }
 

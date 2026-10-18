@@ -11,6 +11,7 @@ import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame, type RoomBridge, type RoomUpdate } from '../launcher/GameFrame.tsx';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected, roomsHub } from '../rooms/connection.ts';
+import { InviteById } from '../rooms/InviteById.tsx';
 import { formatCode, gameSeats, joinLink } from '../rooms/model.ts';
 import { RoomSettings, type RoomSettingsValue } from '../rooms/RoomSettings.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -19,6 +20,7 @@ import { telemetry } from '../telemetry/telemetry.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
+import { copyText } from '../ui/copyText.ts';
 import { Modal } from '../ui/Modal.tsx';
 import { QrCode } from '../ui/QrCode.tsx';
 import { Screen } from '../ui/Screen.tsx';
@@ -32,7 +34,7 @@ export function RoomPage() {
         session.status === 'account' ? (
           <Room
             player={session.player}
-            household={session.me.profiles}
+            accountProfiles={session.me.profiles}
             mayPlayWithOthers={
               session.me.profiles.find((p) => p.id === session.player.id)?.playWithOthers ?? false
             }
@@ -53,11 +55,11 @@ const forPlayer = (room: RoomView, playerId: string): RoomView => {
 
 function Room({
   player,
-  household,
+  accountProfiles,
   mayPlayWithOthers,
 }: {
   player: Player;
-  household: ProfileView[];
+  accountProfiles: ProfileView[];
   mayPlayWithOthers: boolean;
 }) {
   const { roomId } = useParams({ from: '/room/$roomId' });
@@ -252,8 +254,8 @@ function Room({
         room={room}
         game={game}
         player={player}
-        household={household}
-        familyOnly={!mayPlayWithOthers}
+        accountProfiles={accountProfiles}
+        ownAccountOnly={!mayPlayWithOthers}
         onLeave={askToLeave}
       />
       {reconnecting ? (
@@ -269,41 +271,19 @@ function Room({
   );
 }
 
-/** Copies a text even on a plain-HTTP home server, where the Clipboard API is missing. */
-async function copyText(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard && window.isSecureContext) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch {
-    // fall back below
-  }
-  const field = document.createElement('textarea');
-  field.value = text;
-  field.setAttribute('readonly', '');
-  field.style.position = 'fixed';
-  field.style.opacity = '0';
-  document.body.append(field);
-  field.select();
-  const ok = document.execCommand('copy');
-  field.remove();
-  return ok;
-}
-
 function WaitingRoom({
   room,
   game,
   player,
-  household,
-  familyOnly,
+  accountProfiles,
+  ownAccountOnly,
   onLeave,
 }: {
   room: RoomView;
   game: GameSummary;
   player: Player;
-  household: ProfileView[];
-  familyOnly: boolean;
+  accountProfiles: ProfileView[];
+  ownAccountOnly: boolean;
   onLeave(): void;
 }) {
   const { t } = useTranslation();
@@ -316,7 +296,7 @@ function WaitingRoom({
     onSuccess: (_, profileId) => setInvited((current) => new Set(current).add(profileId)),
   });
   const seated = new Set(room.seatList.map((s) => s.profileId).filter(Boolean));
-  const invitable = household.filter((profile) => profile.id !== player.id && !seated.has(profile.id));
+  const invitable = accountProfiles.filter((profile) => profile.id !== player.id && !seated.has(profile.id));
   const [copied, setCopied] = useState(false);
   const isHost = room.hostProfileId === player.id;
   const link = joinLink(room.code);
@@ -452,6 +432,7 @@ function WaitingRoom({
       </Button>
 
       <Modal open={inviting} title={t('rooms.invite')} onClose={() => setInviting(false)}>
+        <h3 className="mb-2 font-semibold text-ink-soft text-sm">{t('rooms.inviteAccount')}</h3>
         {invitable.length === 0 ? <p className="text-ink-soft">{t('rooms.inviteNone')}</p> : null}
         <ul className="flex flex-col gap-2">
           {invitable.map((profile) => (
@@ -465,7 +446,7 @@ function WaitingRoom({
                 <Avatar avatar={profile.avatar} size="sm" />
                 <span className="flex-1 font-bold text-ink">{profile.name}</span>
                 <span className="font-semibold text-accent text-sm">
-                  {invited.has(profile.id) ? `✓ ${t('rooms.invited')}` : t('rooms.invite')}
+                  {invited.has(profile.id) ? `✓ ${t('rooms.invited')}` : t('rooms.inviteOne')}
                 </span>
               </button>
             </li>
@@ -476,6 +457,7 @@ function WaitingRoom({
             {t(errorKey(invite.error))}
           </p>
         ) : null}
+        <InviteById roomId={room.id} accountOnly={room.accountOnly} />
       </Modal>
 
       <Modal open={editing} title={t('rooms.settingsTitle')} onClose={() => setEditing(false)}>
@@ -484,7 +466,7 @@ function WaitingRoom({
           initial={{
             seats: room.seats,
             isPublic: room.isPublic,
-            householdOnly: room.householdOnly,
+            accountOnly: room.accountOnly,
             botsFill: room.botsFill,
             botLevel: room.botLevel,
             botsTakeOver: room.botsTakeOver,
@@ -492,7 +474,7 @@ function WaitingRoom({
             spectators: room.spectators,
             options: room.options as Record<string, unknown>,
           }}
-          familyOnly={familyOnly}
+          ownAccountOnly={ownAccountOnly}
           submitLabel={t('rooms.saveSettings')}
           busy={update.isPending}
           error={update.isError ? t(errorKey(update.error)) : null}

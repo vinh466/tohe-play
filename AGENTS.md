@@ -15,6 +15,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `packages/design-tokens` | Light and dark colour tokens shared by the hub, the site and the kit (ADR 0013) |
 | `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
+| `apps/admin` | The operator's console at `/admin/` on the hub's origin, with its own API at `/api/admin` (ADR 0027) |
 | `apps/site` | Landing (vi) + docs site (en) |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
 | `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report |
@@ -24,7 +25,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - Spec first; decisions that are expensive to reverse get an ADR (`docs/decisions/`, skill `/new-adr`).
 - Changing `packages/contract` changes the Game Contract: ADR + docs + conformance in the same PR.
 - Games never call the API, never use their own storage, never make network requests outside their folder.
-- Never edit generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/hub/src/api/schema.gen.ts`);
+- Never edit generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/*/src/api/schema.gen.ts`);
   regenerate them.
 - Never weaken a check (tests, conformance, CSP, pnpm's minimum release age) to make it pass.
 - UI colours come from the design tokens (`bg-surface`, `text-ink`…), never raw palette classes like
@@ -39,7 +40,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 
 ```sh
 pnpm install && dotnet tool restore
-docker compose up -d postgres && pnpm dev      # hub http://localhost:4720
+docker compose up -d postgres mailpit && pnpm dev   # hub http://localhost:4720, mail :4760
 pnpm verify                                    # Definition of Done, run before every PR
 pnpm --filter @tohe/e2e smoke                  # against a running stack
 ```

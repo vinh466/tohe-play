@@ -5,8 +5,10 @@ import {
   GameMessage,
   type HostMessage,
   type InitPayload,
+  MAX_RANKED_MOVES,
   MAX_SAVE_BYTES,
   PROTOCOL_VERSION,
+  type RankedRun,
   type Reaction,
   type RoomSeat,
   type Settings,
@@ -44,6 +46,13 @@ export interface HostOptions {
   onOpen?(what: ShellTarget): void;
   /** A `shell` game's player switched sound in the game. */
   onSettings?(change: { muted: boolean }): void;
+  /**
+   * A `ranked` game asks for a ranked run as a new game starts (ADR 0030): resolve with the run the server opened, or
+   * throw to refuse — the game then plays unranked. Without it, every request is refused.
+   */
+  onRankedStart?(): RankedRun | Promise<RankedRun>;
+  /** A ranked run ended: its moves and the score the game reached, for the server to replay. */
+  onRankedFinish?(finish: { run: string; moves: JsonValue[]; score: number }): void | Promise<void>;
   /** A message that failed validation or broke the protocol. */
   onProtocolError?(error: string, raw: unknown): void;
   /** Rejects `ready` if the game does not say ready in time. Default 10000 ms. */
@@ -73,8 +82,8 @@ export function createHost(options: HostOptions): HostHandle {
   const can = (capability: GameManifest['capabilities'][number]) =>
     manifest.capabilities.includes(capability);
   const send = (message: HostMessage) => transport.post(message);
-  const reply = (replyTo: string, error?: string) =>
-    send({ tohe: PROTOCOL_VERSION, type: 'result', replyTo, ok: error === undefined, error });
+  const reply = (replyTo: string, error?: string, value?: JsonValue) =>
+    send({ tohe: PROTOCOL_VERSION, type: 'result', replyTo, ok: error === undefined, error, value });
   const fail = (error: string, raw: unknown) => options.onProtocolError?.(error, raw);
 
   let handshaken = false;
@@ -155,6 +164,28 @@ export function createHost(options: HostOptions): HostHandle {
       case 'settings':
         if (!can('shell')) return fail('settings without the "shell" capability', raw);
         return options.onSettings?.({ muted: message.muted });
+      case 'ranked.start': {
+        if (!can('ranked')) return reply(message.id, 'capability "ranked" not declared in game.json');
+        const start = options.onRankedStart;
+        if (!start) return reply(message.id, 'ranked runs are not available here');
+        try {
+          return reply(message.id, undefined, (await start()) as JsonValue);
+        } catch (error) {
+          return reply(message.id, error instanceof Error ? error.message : String(error));
+        }
+      }
+      case 'ranked.finish': {
+        if (!can('ranked')) return reply(message.id, 'capability "ranked" not declared in game.json');
+        const most = manifest.ranked?.maxMoves ?? MAX_RANKED_MOVES;
+        if (message.moves.length > most) return reply(message.id, `a ranked run has at most ${most} moves`);
+        return settle(message.id, () =>
+          options.onRankedFinish?.({
+            run: message.run,
+            moves: message.moves as JsonValue[],
+            score: message.score,
+          }),
+        );
+      }
     }
   };
 

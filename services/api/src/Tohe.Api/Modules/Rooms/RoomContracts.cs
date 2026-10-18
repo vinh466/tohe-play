@@ -5,7 +5,7 @@ namespace Tohe.Api.Modules.Rooms;
 
 /// <param name="Seats">Seats at the table, within the game's range.</param>
 /// <param name="IsPublic">Listed in the lobby; otherwise the code or the link only.</param>
-/// <param name="HouseholdOnly">Only the host's household may join.</param>
+/// <param name="AccountOnly">Only profiles of the host's account may join.</param>
 /// <param name="BotsFill">Empty seats get a bot when a hand starts.</param>
 /// <param name="BotLevel">One of the game's bot levels; the game's middle level when left out.</param>
 /// <param name="BotsTakeOver">A bot plays for a player whose phone is gone longer than the grace period.</param>
@@ -15,7 +15,7 @@ public sealed record CreateRoomRequest(
     [Required, StringLength(40)] string GameId,
     [Range(2, 8)] int Seats = 4,
     bool IsPublic = true,
-    bool HouseholdOnly = false,
+    bool AccountOnly = false,
     bool BotsFill = true,
     [StringLength(16)] string? BotLevel = null,
     bool BotsTakeOver = true,
@@ -27,7 +27,7 @@ public sealed record CreateRoomRequest(
 public sealed record UpdateRoomRequest(
     [Range(2, 8)] int? Seats = null,
     bool? IsPublic = null,
-    bool? HouseholdOnly = null,
+    bool? AccountOnly = null,
     bool? Locked = null,
     bool? BotsFill = null,
     [StringLength(16)] string? BotLevel = null,
@@ -67,7 +67,7 @@ public sealed record RoomView(
     string Status,
     Guid HostProfileId,
     bool IsPublic,
-    bool HouseholdOnly,
+    bool AccountOnly,
     bool Locked,
     int Seats,
     bool BotsFill,
@@ -97,10 +97,14 @@ public sealed record RoomSummary(
     bool Mine,
     bool Spectators);
 
-/// <param name="ProfileId">A profile of the inviting player's household.</param>
+/// <param name="ProfileId">Another profile of the inviting player's account, or one of another account found by its
+/// public ID (<c>GET /api/profiles/by-id/{publicId}</c>, ADR 0033).</param>
 public sealed record InviteRequest(Guid ProfileId);
 
-/// <summary>A household member asked the active profile to their table; valid for 10 minutes.</summary>
+/// <summary>
+/// Someone at a table asked the active profile to it — another profile of the account, or anyone by its ID (ADR 0033);
+/// valid for 10 minutes.
+/// </summary>
 public sealed record RoomInvite(Guid RoomId, string GameId, string Code, string FromName, string FromAvatar, DateTimeOffset ExpiresAt);
 
 /// <summary>Machine-readable reasons a room operation is refused, shown by the hub in Vietnamese.</summary>
@@ -110,7 +114,7 @@ public static class RoomErrors
     public const string Closed = "room_closed";
     public const string Full = "room_full";
     public const string Locked = "room_locked";
-    public const string HouseholdOnly = "room_household_only";
+    public const string AccountOnly = "room_account_only";
     public const string ParentPermission = "parent_permission";
     public const string TooYoung = "game_too_young";
     public const string GameNotRooms = "game_not_rooms";
@@ -123,5 +127,17 @@ public static class RoomErrors
     public const string RulesUnavailable = "rules_unavailable";
     public const string ActionInvalid = "action_invalid";
     public const string SpectatorsOff = "spectators_off";
-    public const string NotInHousehold = "not_in_household";
+    public const string NotInAccount = "not_in_account";
+
+    /// <summary>No such profile this player may ask: none, a child of another account, a suspended account's.</summary>
+    public const string ProfileNotFound = "profile_not_found";
+
+    /// <summary>Its owner lets only people it played with, or only its account, ask it to a table.</summary>
+    public const string InvitesClosed = "invites_closed";
+
+    /// <summary>This account asked as many profiles of other accounts as it may in an hour.</summary>
+    public const string InviteLimit = "invite_limit";
+
+    /// <summary>That profile has as many invitations waiting as it may.</summary>
+    public const string InviteeLimit = "invitee_limit";
 }
