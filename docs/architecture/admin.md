@@ -264,6 +264,7 @@ counts the failures in a row until a run goes well.
 | `catalog-sync` | when the API starts, then every `Registry:SyncInterval` |
 | `email-delivery` | every `Email:PollInterval` |
 | `telemetry-maintenance` | every `Telemetry:MaintenanceInterval` |
+| `ranked-replays` | every `Integrity:ReplayInterval` ([ranked runs](integrity.md#ranked-runs)) |
 
 ## API
 

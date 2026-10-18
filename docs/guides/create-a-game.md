@@ -110,3 +110,18 @@ adds three things to the steps above; `games/tien-len` is the reference:
    actions with `session.room.act` and show a refusal's error code in words, and `next()` after a hand.
 
 Conformance then checks the module the way the API runs it, and opens the game at a table refereed by it.
+
+## Scores the server verifies (ranked runs)
+
+A one-player game whose logic is pure and seeded can put its runs on the public boards
+([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)); `games/merge-block` is the reference:
+
+1. **A verify module**: `src/verify.ts` exports `verify` with `replay({ seed, moves })` and `bot({ seed, moves })`
+   ([the interface](../contracts/game-contract-v1.md#ranked-runs)), built on the game's own pure logic. A second Vite
+   build (`vite.verify.config.ts`) writes it to `dist/verify.js`.
+2. **`game.json`**: the `ranked` capability and block — the board, `minMsPerMove` (how fast a person can play at the
+   most) and `maxMoves`.
+3. **In `stage.ts`**: ask `session.ranked.start()` as a new game starts (and play unranked if it answers `null`), play
+   from its seed, keep every move in the save, and `session.ranked.finish(run, moves, score)` at the end.
+
+Conformance then plays runs with the module's bot and replays them, and checks that the game asks for a ranked run.

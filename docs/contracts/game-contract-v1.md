@@ -39,12 +39,13 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `entry` | string | `index.html` | Entry file relative to the build folder. |
 | `icon` | string | — | Icon file relative to the build folder (SVG or PNG, square). |
 | `orientation` | `portrait` \| `landscape` \| `any` | `portrait` | Preferred orientation. |
-| `capabilities` | array of `save`, `scores`, `rooms`, `shell` | `[]` | Platform services the game uses. Undeclared calls are rejected. `shell`: the game draws its own title screen and menu with the way back to Tò He (below). |
+| `capabilities` | array of `save`, `scores`, `rooms`, `shell`, `ranked` | `[]` | Platform services the game uses. Undeclared calls are rejected. `shell`: the game draws its own title screen and menu with the way back to Tò He (below). `ranked`: the server replays its runs (below). |
 | `themes` | array of `light`, `dark` | `["light"]` | Looks the game has ([ADR 0013](../decisions/0013-light-and-dark-themes.md)). With both, it follows the hub through `settings.theme`; with one, it keeps that look. |
 | `minAge` | 0–18 | `0` | Hidden from younger profiles (M1). |
 | `tags` | string[] | `[]` | Up to 8 short tags. |
 | `sizeBudgetKb` | integer | `3000` | Upper bound for the build size (source maps excluded). Conformance fails above it. |
 | `rooms` | object | — | A game played online at a table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); required with the `rooms` capability, and only with it. See [Online rooms](#online-rooms). |
+| `ranked` | object | — | A one-player game whose runs the server replays ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)); required with the `ranked` capability, which needs `scores` too. See [Ranked runs](#ranked-runs). |
 
 ### Online rooms
 
@@ -75,6 +76,41 @@ A rooms game also **replays** a finished hand ([ADR 0017](../decisions/0017-repl
 opened with `init.replay` instead of `init.room`, it calls `setup` with the hand's seed, options and carry, then
 `act` for each recorded action, and draws `view(state, seat)` for the seat that asked, with controls to step back,
 forward, play and pause.
+
+### Ranked runs
+
+A one-player game whose logic is pure and seeded can let the server verify its runs: it declares `"ranked"` in
+`capabilities` and a `ranked` block. Each ranked run starts from a seed the API deals and ends with the moves played,
+which the API replays with the game's **verify module** — only a verified run counts on the server's board
+([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md), [Integrity and boards](../architecture/integrity.md#ranked-runs)).
+
+| `ranked` field | Type | Default | Meaning |
+| --- | --- | --- | --- |
+| `verify` | string | `verify.js` | ES module in the build that exports `verify` (below). |
+| `board` | string | `default` | The board ranked runs count on. |
+| `minMsPerMove` | 0–60000 | `100` | A person needs at least this long per move; a run faster than this, by the server's clock, is held for a person to look at. |
+| `maxMoves` | 1–100000 | `20000` | Most moves a run can hand in. |
+
+The verify module is pure and deterministic like a rules module — no DOM, timers, network, `Math.random` or
+`Date.now` — and its moves are JSON:
+
+| Function | Returns |
+| --- | --- |
+| `replay({ seed, moves })` | `{ score, over }` — the run's score, and whether it reached its end — or `{ error }` for a move that is not legal |
+| `bot({ seed, moves })` | A legal next move, or `null` once the run is over; conformance plays runs with it |
+
+The game's side, with the SDK:
+
+```ts
+const ranked = await session.ranked.start();     // { run, seed } — or null: offline, a guest, standalone
+const game = newGame(ranked?.seed ?? localSeed);  // play from the server's seed, and keep every move (in the save)
+// … at the end of the run, or when the player leaves it for a new one
+if (ranked) await session.ranked.finish(ranked.run, moves, score);
+```
+
+Ask for a run when a new game starts, and wait only a moment (Ghép Khối waits 2.5 s) before playing unranked. Keep
+the moves with the game's own state, so a run saved mid-way continues on any device. A run the game reports as a score
+(`run(id)`) still counts on the account's board as before; the ranked run is what the public boards trust.
 
 ### Game shell
 
@@ -162,6 +198,7 @@ run.finish(score);                               // at game over, or when the pl
 | `settings` | `{ muted, theme }`, kept up to date. `theme` is the hub's `light` or `dark`. |
 | `on('menu', fn)` | The player pressed Back (shell games, ADR 0018, SDK 0.7.0). |
 | `shell` | For `shell` games (SDK 0.7.0): `can` (`{ leaderboard, rooms }`: what the hub can open for this player), `menuChanged(open)`, `open('leaderboard' \| 'rooms')`, `setMuted(muted)` (updates `settings` at once). |
+| `ranked` | For `ranked` games (SDK 0.8.0, [ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)): `start()` → `{ run, seed }`, or `null` when the hub cannot open a run — play unranked; `finish(run, moves, score)` hands the run in (the hub keeps it until it is online). Standalone, `start()` is always `null`. |
 | `on(event, fn)` | `pause`, `resume`, `settings`. Returns an unsubscribe function. |
 | `save(data)` | JSON, ≤ 64 KB. Resolves when the hub stored it; rejects with the hub's reason. |
 | `submitScore(value, board?)` | Finite number; board defaults to `default`. |
@@ -190,7 +227,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?`, `replay?`, `shell?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table; `replay` (`seats`, `seat`, `seed`, `options`, `carry`, `actions` ≤ 5000) when opened to replay a finished hand. `shell` (`leaderboard`, `rooms`) for `shell` games: what the hub can open now. |
 | game → host | `save` | `id`, `data` | Request; answered by `result`. |
 | game → host | `score` | `id`, `value`, `board`, `run?`, `final` | Request; answered by `result`. `run` groups the reports of one run; `final` (default `true`) is `false` while it goes on. |
-| host → game | `result` | `replyTo`, `ok`, `error?` | Answer to a request. |
+| host → game | `result` | `replyTo`, `ok`, `error?`, `value?` | Answer to a request; `value` is what it answers with — the run of `ranked.start`. |
 | host → game | `pause` / `resume` | — | Tab hidden / shown, system dialogs. |
 | host → game | `settings` | `settings` | `{ muted, theme }`: mute or theme changed. |
 | game → host | `exit` | — | Close the game. |
@@ -198,6 +235,8 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | game → host | `menu` | `open` | Shell: the game's menu opened or closed — the answer to `menu`; without one (or `exit`) within 1.5 s the hub offers its own way out. |
 | game → host | `open` | `what` | Shell: `leaderboard` (the hub's board over the game) or `rooms` (the game's lobby). |
 | game → host | `settings` | `muted` | Shell: the player switched sound in the game; the hub remembers it for the device. |
+| game → host | `ranked.start` | `id` | Ranked: request a ranked run as a new game starts; `result.value` is `{ run, seed }`, or the result is not ok and the game plays unranked. |
+| game → host | `ranked.finish` | `id`, `run`, `moves` (≤ 100000, ≤ `ranked.maxMoves`), `score` | Ranked: request; the run ended, with its moves in order and the score reached. |
 | game → host | `log` | `level`, `message` | Diagnostics. |
 | host → game | `room.view` | `view`, `events` (≤ 200), `seq`, `turnMs` | Rooms: the seat's view after a change and the events since the last one; drop a `seq` lower than the newest. |
 | host → game | `room.seats` | `seats`, `seat` | Rooms: the players changed; `seat` is this phone's. |
@@ -240,6 +279,10 @@ origin, and checks:
    `[data-tohe-main-menu]` to the title screen leaving no `<canvas>` behind, and the title screen's
    `[data-tohe-exit]` sends `exit`. The random input of check 3 starts from **Chơi**. Screenshots:
    `<id>-shell-title.png` (the title screen) and `<id>-shell.png` (the panel after Back).
+9. with `ranked`: the verify module exists, is at most 256 KB and mentions no browser API, loads on its own with
+   `replay` and `bot`, plays runs from three seeds with its own bot to the end (or `maxMoves`, at most 5000 here) with
+   `Math.random` and `Date.now` throwing, replays each twice to the same score, and its moves survive JSON; under the
+   random input of check 3 the game asks for a ranked run, and any run it hands in replays to the score it claimed.
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
 `<id>-<theme>.png` per theme, `<id>-room.png` at a table and `<id>-replay.png` replaying — look at them.
@@ -251,7 +294,8 @@ It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` aft
   a host does not send it. Likewise `run` and `final` on `score` (ADR 0014): a score without them is final, as in
   older builds; `rooms` (ADR 0016), a capability older games do not declare; and `init.replay` (ADR 0017), sent only
   to games that declare `rooms`; `shell` (ADR 0018), its messages and `init.shell`, which only `shell` games send or
-  get.
+  get; `ranked` (ADR 0030), its block and messages, and `result.value` — an older hub refuses `ranked.start`, so the
+  game plays unranked.
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;
   games are migrated before N−1 is dropped.
 - The SDK follows semver independently; its major version changes only with the protocol.

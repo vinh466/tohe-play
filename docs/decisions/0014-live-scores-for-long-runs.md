@@ -6,7 +6,8 @@ sidebar:
 ---
 
 - **Status:** Accepted — a run's place on a board follows the server's clock and its trust level since
-  [ADR 0029](0029-integrity-engine-and-boards-by-trust.md)
+  [ADR 0029](0029-integrity-engine-and-boards-by-trust.md); a long ranked run is verified when it ends, since
+  [ADR 0030](0030-ranked-runs-replayed-by-the-server.md)
 - **Date:** 2026-10-14
 
 ## Context

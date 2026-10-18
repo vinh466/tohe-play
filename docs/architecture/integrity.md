@@ -7,7 +7,8 @@ sidebar:
 
 Decision: [ADR 0029](../decisions/0029-integrity-engine-and-boards-by-trust.md). This page describes what exists: the
 engine, its rules of version 1, the decision log, the account's boards and the public ones — a community's and the
-server's. The console's queue of results waiting for a person comes next.
+server's — and ranked runs, which the server replays ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)).
+The console's queue of results waiting for a person comes next.
 
 ## Levels
 
@@ -15,7 +16,7 @@ server's. The console's queue of results waiting for a person comes next.
 | --- | --- | --- |
 | `reported` | Only the device's number: a run still going on, or one from before the engine | Yes |
 | `checked` | Passed the rules of its version | Yes |
-| `verified` | The server refereed it: a room hand | Yes |
+| `verified` | The server refereed it — a room hand — or replayed it — a ranked run | Yes |
 | `held` | A signal fired; it waits for a person | Only for its own player, labelled "Đang được xem xét" |
 | `rejected` | Hard proof that it is false | No |
 
@@ -136,12 +137,58 @@ flowchart TD
 - **The hub**: the 🏆 sheet has *Nhà mình*, *Cộng đồng* (when the account has one) and *Toàn Tò He*, each this week or all
   time; a room game's lobby shows the three boards of the week.
 
+## Ranked runs
+
+A one-player game that declares `ranked` ([Game Contract](../contracts/game-contract-v1.md#ranked-runs)) plays each
+ranked run from a seed the API deals, and hands its moves in at the end; the API replays them with the game's own
+verify module, the `ReplayVerifier`.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  participant G as Game
+  participant H as Hub
+  participant A as API
+  participant R as Replays (background)
+  G->>H: ranked.start, as a new game starts
+  H->>A: POST /api/runs {gameId}
+  A->>A: the profile's open run of the game closed, a new one: a seed of the server's own, the server's time
+  A-->>H: {run, seed}
+  H-->>G: result.value — or not ok (offline, a guest), and the game plays unranked
+  G->>G: plays from the seed, keeps every move in its save
+  G->>H: ranked.finish {run, moves, score}
+  H->>H: kept on the device until it is online
+  H->>A: POST /api/runs/{id}/finish {moves, score}
+  A-->>H: 202 — or 409 run_closed (a newer run closed it): the hub drops it
+  R->>R: the verify module of the build that started the run, in Jint
+  alt a move is not legal, or the replay scores otherwise
+    R->>R: rejected · illegal_move or replay_mismatch
+  else faster than a person — under minMsPerMove a move by the server's clock
+    R->>R: held · too_fast
+  else the same score
+    R->>R: the engine's signals, as for any run — verified · replayed, or held
+  end
+```
+
+- **One open run per profile and game**: a new run closes the last, so nobody picks the best of many seeds; a run open
+  for 30 days closes. A profile may start 20 runs a minute (`too_many_runs`).
+- **The replay** runs in the background every `Integrity:ReplayInterval` (5 s), ten runs at a time, oldest first, with
+  the verify module of the build that started each — builds are immutable, so the code is the code that played. Jint
+  runs it within 10 s and the limits rooms use, `Math.random` and `Date.now` throwing.
+- **What it decides** joins the engine as a result of its own (source `ranked:{run}`), on the run's board, at the time
+  the moves arrived: `verified · replayed`, or what a signal says; `rejected · illegal_move` or `replay_mismatch` —
+  hard proof; `held · too_fast`; `held · replay_failed` when the module broke on the run, and `held · replay_unavailable`
+  after five tries without reaching it. A decided run keeps its result's id.
+- **What counts where**: a game the server replays has verified runs only on its public boards — its community's too
+  (D-16 Q4); the run the game also reported as a score still counts on the account's board.
+
 ## Data
 
 | Table | Holds |
 | --- | --- |
 | `integrity.results` | One row per result: kind (`Run`, `Hand`), profile and account, game, board (`hands` for a hand), value, place, source (unique: `run:{profile}:{clientId}`, `hand:{room}:{hand}:{seat}`), final, level, public, the server's time, the device's, rule version, `decided_by` |
 | `integrity.decisions` | The append-only log above |
+| `integrity.ranked_runs` | One row per ranked run: profile and account, game, the build and verify module that started it, board, limits, seed, state (`Open`, `Submitted`, `Decided`, `Closed`), started and finished by the server's clock, the moves (JSON), the score claimed and replayed, tries, its result |
 
 The migration `IntegrityEngine` brought every earlier result in as it was trusted: runs as `reported`, hands as
 `verified` — public when two people sat at the table — each with an `imported` decision of rule version 0.
@@ -157,6 +204,7 @@ The migration `IntegrityEngine` brought every earlier result in as it was truste
 | A held result shows only to its own player | `Boards` |
 | A public board shows only profiles switched on, of accounts not suspended — and only what its audience can trust | `PublicBoards`, Identity's `IBoardAudience` |
 | A child is on public boards only once its owner says they asked it | `ProfileEndpoints` (`asked_child_required`) |
+| A ranked run starts from the server's seed, one open per profile and game; its replay decides — the same score verified, a wrong one or a move that is not legal rejected, faster than a person held | `RankedRuns`, `RankedReplays`, `VerifyHost` |
 | Modules keep their tables: Progress and Rooms hand results over through `IResults`; names and avatars come from Identity's `IAccountProfiles` and `IBoardAudience`; the registry answers `IRegistryGames` | `IntegrityModule` |
 
 ## API
@@ -165,6 +213,10 @@ The migration `IntegrityEngine` brought every earlier result in as it was truste
 | --- | --- | --- |
 | `GET /api/boards/{gameId}?board=default&period=week` | session, a chosen profile | The account's board of a game: each profile's best this week (`week`) or ever (`all`) |
 | `GET /api/boards/{gameId}/public?scope=server&board=default&period=week` | session, a chosen profile | A community's (`community`, the account's) or the server's (`server`) board: the first 50, the viewer's place and its neighbours |
+| `POST /api/runs` | session, a chosen profile | Open a ranked run of a game: `{ run, seed }`; it closes the last open one of that game |
+| `POST /api/runs/{id}/finish` | session, a chosen profile | Hand its moves and score in for the replay: 202; the same moves again are taken once |
 
-Refusals: 403 `profile_required`; 400 `period_invalid`, `scope_invalid`; 404 for a game the catalog does not list, and
-`no_community` for a community's board of an account without one.
+Refusals: 403 `profile_required`; 400 `period_invalid`, `scope_invalid`, and for a run `moves_invalid`,
+`too_many_moves`, `score_invalid`; 404 for a game the catalog does not list, `no_community` for a community's board of
+an account without one, `not_ranked` for a run of a game that is not ranked, `not_found` for another profile's run;
+409 `run_closed`, `run_finished`; 429 `too_many_runs`.
