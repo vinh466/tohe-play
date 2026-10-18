@@ -92,6 +92,6 @@ flowchart LR
 | E1a | `feat/integrity-engine` (trên D3b) | [#55](https://github.com/vinh466/tohe-play/pull/55) — CI xanh, chờ review; trên UAT: bảng 🏆 mở ở "Tuần này", kỷ lục cũ của nhà ở "Mọi lúc" |
 | E1b | `feat/public-boards` (trên E1a) | [#56](https://github.com/vinh466/tohe-play/pull/56) — CI xanh, chờ review; trên UAT: hồ sơ người lớn lên bảng công khai, hồ sơ trẻ em tắt cho tới khi bật kèm "Tôi đã hỏi ý bé" |
 | E2 | `feat/ranked-runs` (trên E1b) | [#57](https://github.com/vinh466/tohe-play/pull/57) — CI xanh, chờ review; trên UAT (Ghép Khối 1.9.0): chơi một ván khi đã đăng nhập, run lên "Toàn Tò He" vài giây sau khi xong |
-| E3a | `feat/review-queue` (trên E2) | [#58](https://github.com/vinh466/tohe-play/pull/58) — CI đang chạy; trên UAT: Người dùng → một hồ sơ → Ẩn khỏi bảng công khai, hub của chủ báo lý do |
+| E3a | `feat/review-queue` (trên E2) | [#58](https://github.com/vinh466/tohe-play/pull/58) — CI xanh, chờ review; trên UAT: Người dùng → một hồ sơ → Ẩn khỏi bảng công khai, hub của chủ báo lý do |
 
 Thứ tự merge: #43 → #44 và #45 (hai cái độc lập) → #46 → #48 → #49 → #50 → #51 → #52 → #53 → #54 → #55 → #56 → #57 → #58; #47 sau #44. Số ADR được cấp khi PR mở. Mỗi PR xếp chồng tự đổi base về `main` khi PR dưới nó merge.
