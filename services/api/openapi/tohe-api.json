@@ -2186,7 +2186,8 @@
           "hasPassword",
           "hasManagePin",
           "termsVersion",
-          "logins"
+          "logins",
+          "role"
         ],
         "type": "object",
         "properties": {
@@ -2229,6 +2230,12 @@
             "items": {
               "type": "string"
             }
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

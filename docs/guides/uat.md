@@ -93,6 +93,14 @@ token is `TOHE_UAT_TELEMETRY_TOKEN` in `~/.config/tohe-uat/uat.env`, added by th
 pnpm --filter @tohe/telemetry-report report -- --env uat --days 7
 ```
 
+The admin console, `http://10.100.0.2:4820/admin/`, shows the same and more ([Admin console](../architecture/admin.md)).
+It opens for an account with a platform role, granted inside the API's container:
+
+```sh
+docker compose -p tohe-uat exec api dotnet Tohe.Api.dll admin grant <email or old username> --role owner
+docker compose -p tohe-uat exec api dotnet Tohe.Api.dll admin list
+```
+
 ## Limits (accepted for now)
 
 - Plain HTTP inside WireGuard/LAN: no service worker or "Add to Home Screen" on phones (needs HTTPS), session

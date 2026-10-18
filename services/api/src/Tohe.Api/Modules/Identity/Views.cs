@@ -11,6 +11,8 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="HasManagePin">Its manage PIN is set, so profile management opens with it (ADR 0025).</param>
 /// <param name="TermsVersion">The terms its owner accepted, at 16 or older; the hub asks again for newer ones.</param>
 /// <param name="Logins">The providers it signs in with besides its email (ADR 0026): <c>google</c>, <c>github</c>, <c>oidc</c>.</param>
+/// <param name="Role">Its platform role (ADR 0027) — <c>owner</c>, <c>admin</c>, <c>moderator</c> or <c>viewer</c> — which opens
+/// the admin console; none for players.</param>
 public sealed record AccountView(
     Guid Id,
     string? Email,
@@ -20,7 +22,8 @@ public sealed record AccountView(
     bool HasPassword,
     bool HasManagePin,
     string? TermsVersion,
-    IReadOnlyList<string> Logins);
+    IReadOnlyList<string> Logins,
+    string? Role);
 
 /// <param name="PublicId">12 digits, the profile's public identifier (ADR 0023).</param>
 /// <param name="Kind"><c>adult</c> or <c>child</c>.</param>
@@ -47,7 +50,7 @@ public sealed record MeView(
     DateTimeOffset? ParentUnlockedUntil,
     DateTimeOffset? SecureUntil);
 
-internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
+internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, TimeProvider clock)
 {
     public async Task<MeView?> LoadAsync(Guid accountId, DeviceSession session, CancellationToken cancellationToken)
     {
@@ -67,6 +70,7 @@ internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
             .Select(login => login.LoginProvider)
             .OrderBy(provider => provider)
             .ToListAsync(cancellationToken);
+        var role = await roles.RoleOfAsync(accountId, cancellationToken);
         var active = views.Any(p => p.Id == session.ProfileId) ? session.ProfileId : null;
         var now = clock.GetUtcNow();
 
@@ -80,7 +84,8 @@ internal sealed class MeQueries(ToheDbContext db, TimeProvider clock)
                 account.PasswordHash is not null,
                 account.ManagePinHash is not null,
                 account.TermsVersion,
-                logins),
+                logins,
+                role is { } held ? PlatformRoles.NameOf(held) : null),
             views,
             active,
             session.ParentUntil > now ? session.ParentUntil : null,

@@ -17,6 +17,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
     hasManagePin: false,
     termsVersion: '2026-10-18',
     logins: [],
+    role: null,
   },
   profiles: [
     {

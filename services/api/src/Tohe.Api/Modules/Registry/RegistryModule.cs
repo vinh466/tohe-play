@@ -50,6 +50,7 @@ internal static class RegistryModule
         builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.AddHttpClient<CatalogSync>(client => client.Timeout = TimeSpan.FromSeconds(10));
         builder.Services.AddScoped<IRegistryGames, RegistryGames>();
+        builder.Services.AddScoped<RegistryFacts>();
         if (builder.Configuration.GetValue($"{RegistryOptions.Section}:SyncEnabled", defaultValue: true)
             && !BuildTime.IsGeneratingOpenApi)
         {

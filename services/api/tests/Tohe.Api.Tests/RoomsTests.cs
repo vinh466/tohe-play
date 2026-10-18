@@ -430,6 +430,29 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task The_admin_console_counts_who_is_at_a_table()
+    {
+        var bo = await PersonAsync("Bố");
+        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 2 });
+        var registry = factory.Services.GetRequiredService<RoomRegistry>();
+
+        await using (await TableAsync(bo, room.Id, autoplay: false))
+        {
+            Assert.Equal(1, registry.Find(room.Id)!.Online);
+            Assert.True(registry.Live().OpenByGame["tien-len"] >= 1);
+        }
+
+        // The phone hung up: the room hears of it, and counts nobody.
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (registry.Find(room.Id)!.Online > 0 && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(50, Ct);
+        }
+
+        Assert.Equal(0, registry.Find(room.Id)!.Online);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private sealed record Person(HttpClient Client, CookieJar Jar, MeView Me, Guid ProfileId);

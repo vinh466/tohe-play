@@ -53,6 +53,13 @@ internal static partial class ProgressModule
     [GeneratedRegex("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")]
     private static partial Regex GameIdPattern();
 
+    public static WebApplicationBuilder AddProgressModule(this WebApplicationBuilder builder)
+    {
+        // What the admin console counts about play (ADR 0027).
+        builder.Services.AddScoped<ProgressFacts>();
+        return builder;
+    }
+
     public static IEndpointRouteBuilder MapProgressEndpoints(this IEndpointRouteBuilder api)
     {
         var progress = api.MapGroup("/progress")

@@ -2,6 +2,7 @@ using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Infrastructure.Security;
+using Tohe.Api.Modules.Admin;
 using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Platform;
@@ -34,10 +35,18 @@ builder.AddPlatformModule();
 builder.AddEmailModule();
 builder.AddIdentityModule();
 builder.AddRegistryModule();
+builder.AddProgressModule();
 builder.AddTelemetryModule();
 builder.AddRoomsModule();
+builder.AddAdminModule();
 
 var app = builder.Build();
+
+// `dotnet Tohe.Api.dll admin …` inside the API's container: platform roles from the command line (ADR 0027).
+if (AdminCommand.Matches(args))
+{
+    return await AdminCommand.RunAsync(app.Services, args, Console.Out, Console.Error);
+}
 
 app.UseForwardedHeaders();
 app.UsePublicUrl();
@@ -65,8 +74,10 @@ api.MapRegistryEndpoints();
 api.MapProgressEndpoints();
 api.MapTelemetryEndpoints();
 api.MapRoomsEndpoints(app);
+api.MapAdminEndpoints();
 
 await app.RunAsync();
+return 0;
 
 /// <summary>Entry point; public so integration tests can host it with WebApplicationFactory.</summary>
 public partial class Program;

@@ -1,0 +1,917 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Tò He Admin API",
+    "description": "The admin console's API (ADR 0027). Every endpoint needs a platform role.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/admin/me": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "The account using the console: its role, if any, and what the role may do.",
+        "operationId": "GetAdminMe",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/overview": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Accounts, players, rooms, errors, the catalog and the outbox at a glance.",
+        "operationId": "GetAdminOverview",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/games": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Every game in the registry, listed or not, with its players in the last week and open rooms.",
+        "operationId": "GetAdminGames",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminGame"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/health": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Device telemetry over the last days (1 to 30): errors, frames, metrics per game version.",
+        "operationId": "GetAdminHealth",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 7
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/system": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "The running build, its database migrations, background workers and settings without secrets.",
+        "operationId": "GetAdminSystem",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSystem"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "ActivePlayers": {
+        "required": [
+          "lastDay",
+          "lastWeek"
+        ],
+        "type": "object",
+        "properties": {
+          "lastDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastWeek": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminCatalog": {
+        "required": [
+          "listed",
+          "unlisted",
+          "lastSyncAt",
+          "lastError"
+        ],
+        "type": "object",
+        "properties": {
+          "listed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unlisted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastSyncAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminDatabase": {
+        "required": [
+          "applied",
+          "pending",
+          "latest"
+        ],
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "latest": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminGame": {
+        "required": [
+          "id",
+          "name",
+          "version",
+          "listed",
+          "minAge",
+          "capabilities",
+          "tags",
+          "online",
+          "sizeKb",
+          "firstSeenAt",
+          "updatedAt",
+          "playersLastWeek",
+          "openRooms"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "listed": {
+            "type": "boolean"
+          },
+          "minAge": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "sizeKb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "playersLastWeek": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openRooms": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminMeView": {
+        "required": [
+          "accountId",
+          "displayName",
+          "email",
+          "role",
+          "permissions"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "AdminOverview": {
+        "required": [
+          "at",
+          "version",
+          "accounts",
+          "profiles",
+          "players",
+          "rooms",
+          "errorsLastDay",
+          "catalog",
+          "email"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          },
+          "accounts": {
+            "$ref": "#/components/schemas/Growth"
+          },
+          "profiles": {
+            "$ref": "#/components/schemas/Growth"
+          },
+          "players": {
+            "$ref": "#/components/schemas/ActivePlayers"
+          },
+          "rooms": {
+            "$ref": "#/components/schemas/AdminRooms"
+          },
+          "errorsLastDay": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "catalog": {
+            "$ref": "#/components/schemas/AdminCatalog"
+          },
+          "email": {
+            "$ref": "#/components/schemas/OutboxState"
+          }
+        }
+      },
+      "AdminRooms": {
+        "required": [
+          "open",
+          "playing",
+          "online"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "playing": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "online": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminSettings": {
+        "required": [
+          "publicUrl",
+          "gamesOrigin",
+          "emailMode",
+          "emailFrom",
+          "providers",
+          "telemetry",
+          "operatorReport"
+        ],
+        "type": "object",
+        "properties": {
+          "publicUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gamesOrigin": {
+            "type": "string"
+          },
+          "emailMode": {
+            "type": "string"
+          },
+          "emailFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "telemetry": {
+            "type": "boolean"
+          },
+          "operatorReport": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AdminSystem": {
+        "required": [
+          "version",
+          "environment",
+          "startedAt",
+          "database",
+          "workers",
+          "settings"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "database": {
+            "$ref": "#/components/schemas/AdminDatabase"
+          },
+          "workers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkerStatus"
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AdminSettings"
+          }
+        }
+      },
+      "CountSummary": {
+        "required": [
+          "name",
+          "total",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "DailyPoint": {
+        "required": [
+          "day",
+          "gameId",
+          "errors",
+          "plays"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "gameId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "plays": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DeviceShare": {
+        "required": [
+          "os",
+          "osVersion",
+          "browser",
+          "deviceClass",
+          "devices",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "os": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "deviceClass": {
+            "type": "string"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ErrorGroup": {
+        "required": [
+          "source",
+          "fingerprint",
+          "message",
+          "stack",
+          "occurrences",
+          "sessions",
+          "devices",
+          "firstSeen",
+          "lastSeen",
+          "new"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurrences": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstSeen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "new": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FrameGroup": {
+        "required": [
+          "os",
+          "browser",
+          "deviceClass",
+          "renderer",
+          "sessions",
+          "frames",
+          "slowShare",
+          "p95",
+          "slowestMs",
+          "stepP95Ms"
+        ],
+        "type": "object",
+        "properties": {
+          "os": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "deviceClass": {
+            "type": "string"
+          },
+          "renderer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "frames": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slowShare": {
+            "type": "number",
+            "format": "double"
+          },
+          "p95": {
+            "type": "string"
+          },
+          "slowestMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "stepP95Ms": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "GameHealth": {
+        "required": [
+          "gameId",
+          "gameVersion",
+          "sessions",
+          "devices",
+          "sessionsWithErrors",
+          "errors",
+          "frames",
+          "metrics",
+          "counts"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gameVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessionsWithErrors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorGroup"
+            }
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FrameGroup"
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricSummary"
+            }
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CountSummary"
+            }
+          }
+        }
+      },
+      "Growth": {
+        "required": [
+          "total",
+          "lastDay",
+          "lastWeek"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastWeek": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "MetricSummary": {
+        "required": [
+          "name",
+          "samples",
+          "p50",
+          "p95",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "samples": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "p50": {
+            "type": "number",
+            "format": "double"
+          },
+          "p95": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "OutboxState": {
+        "required": [
+          "enabled",
+          "waiting",
+          "sentLastDay",
+          "failedLastDay",
+          "oldestWaitingSince"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "waiting": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sentLastDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedLastDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "oldestWaitingSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "TelemetryReport": {
+        "required": [
+          "from",
+          "to",
+          "totals",
+          "devices",
+          "games",
+          "daily"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TelemetryTotals"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceShare"
+            }
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GameHealth"
+            }
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyPoint"
+            }
+          }
+        }
+      },
+      "TelemetryTotals": {
+        "required": [
+          "devices",
+          "sessions",
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "events": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "WorkerStatus": {
+        "required": [
+          "name",
+          "lastRunAt",
+          "lastSuccessAt",
+          "lastError",
+          "failuresInARow"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "lastRunAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "failuresInARow": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Admin"
+    }
+  ]
+}

@@ -59,6 +59,8 @@ internal static class PlatformModule
 {
     public static WebApplicationBuilder AddPlatformModule(this WebApplicationBuilder builder)
     {
+        // What the background workers last did, for the admin console (ADR 0027).
+        builder.Services.AddSingleton<BackgroundWork>();
         var options = builder.Services.AddOptions<GamesOptions>()
             .BindConfiguration(GamesOptions.Section)
             .ValidateDataAnnotations();
@@ -92,14 +94,16 @@ internal static class PlatformModule
             });
     }
 
-    public static IEndpointRouteBuilder MapPlatformEndpoints(this IEndpointRouteBuilder api)
-    {
-        // Deployments set App:Version to the git commit they built (deploy/uat/deploy.sh, the chart).
-        var app = api.ServiceProvider.GetRequiredService<IOptions<AppOptions>>().Value;
-        var version = app.Version is { Length: > 0 } deployed
+    /// <summary>The build that runs: the commit a deployment built (deploy/uat/deploy.sh, the chart), else the assembly's.</summary>
+    internal static string VersionOf(AppOptions app) =>
+        app.Version is { Length: > 0 } deployed
             ? deployed
             : typeof(PlatformModule).Assembly
                 .GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion ?? "dev";
+
+    public static IEndpointRouteBuilder MapPlatformEndpoints(this IEndpointRouteBuilder api)
+    {
+        var version = VersionOf(api.ServiceProvider.GetRequiredService<IOptions<AppOptions>>().Value);
 
         api.MapGet(
                 "/config",

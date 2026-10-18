@@ -3,12 +3,15 @@
 // Opens the hub on a phone-sized viewport, launches the sample game, plays one round and checks that the
 // hub stored the score and the save locally. Every screen — hub, landing page, docs — is checked in the light and
 // the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke (SITE_URL defaults to :4710)
+// With ADMIN_GRANT_COMMAND (CI: the API container's `admin grant`, ADR 0027) it also walks the admin console's pages.
+import { execFileSync } from 'node:child_process';
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
 import { codeSentTo } from './mailpit.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
+const grantCommand = process.env.ADMIN_GRANT_COMMAND?.split(' ').filter(Boolean);
 const step = (message: string) => console.log(`• ${message}`);
 
 const browser = await chromium.launch().catch(() => chromium.launch({ channel: 'chrome' }));
@@ -339,6 +342,31 @@ try {
   await shot('docs');
   await page.goto(hubUrl);
   await expectTheme('dark');
+
+  step('the admin console (/admin/) knows this account has no role, and says how one is granted');
+  await page.goto(`${hubUrl}/admin/`);
+  await page.getByText('chưa có vai trò quản trị').waitFor();
+  await expectTheme('dark');
+  await shot('admin-no-role');
+
+  if (grantCommand) {
+    const [command = '', ...args] = grantCommand;
+    step(`granted a role in the API's container, the console opens on its pages`);
+    execFileSync(command, [...args, email, '--role', 'viewer'], { stdio: 'inherit' });
+    await page.reload();
+    await page.getByRole('heading', { name: 'Tổng quan' }).waitFor();
+    await shot('admin-overview');
+    for (const [link, heading] of [
+      ['Game', 'Game'],
+      ['Sức khoẻ thiết bị', 'Sức khoẻ thiết bị'],
+      ['Hệ thống', 'Hệ thống'],
+    ] as const) {
+      await page.getByRole('link', { name: link, exact: true }).click();
+      await page.getByRole('heading', { name: heading, exact: true }).waitFor();
+      await shot(`admin-${link}`);
+    }
+  }
+  await page.goto(hubUrl);
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);
   await context.tracing.stop();

@@ -27,7 +27,8 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 | Port | Service |
 | --- | --- |
 | 4710 | Site (landing + docs) |
-| 4720 | Hub (open this) — proxies `/api` to the API |
+| 4720 | Hub (open this) — proxies `/api` to the API, and `/admin` to the admin console |
+| 4721 | The admin console's dev server; open it through the hub, at `http://localhost:4720/admin/` ([Admin console](../architecture/admin.md)) |
 | 4730 | Games origin |
 | 4731 | A single game's standalone dev server (`dev:standalone`) |
 | 4740 | Platform API (direct, for debugging; Scalar at `/api/docs`) |

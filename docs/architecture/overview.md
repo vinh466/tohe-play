@@ -38,6 +38,7 @@ flowchart TB
 | Platform API | `services/api` | Identity (M1), registry, saves and scores (M2), parental settings. The only writer to the database. |
 | Games origin | `games/*` → `tools/games-host` | Immutable static builds under `/<id>/<version>/` plus `catalog.json`. |
 | Site | `apps/site` + `docs/` | Landing page (Vietnamese) and developer docs (English). |
+| Admin console | `apps/admin` | The operator's pages at `/admin/`, served by the hub's server on the hub's origin ([Admin console](admin.md)). |
 
 ## Origins
 
@@ -78,6 +79,7 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | Parental | later | play-time limits, per-profile game visibility |
 | Email | done ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | none — other modules add messages to its outbox |
 | Telemetry | done ([ADR 0015](../decisions/0015-device-telemetry.md)) | `/api/telemetry`, `/api/telemetry/report` — see [Device telemetry](telemetry.md) |
+| Admin | read-only pages ([ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md)) | `/api/admin/*`, an OpenAPI document of its own; reads what the other modules expose — see [Admin console](admin.md) |
 | Rooms | done ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | `/api/rooms/*`, SignalR `/api/rooms/hub` — see [Online rooms](rooms.md) |
 
 Generated reference: [Platform API](/docs/reference/api/).

@@ -55,6 +55,8 @@ internal sealed class RoomActor
     private string? _state;
     private int _seq;
     private readonly Dictionary<Guid, HashSet<string>> _connections = [];
+    /// <summary>Profiles with a live connection, counted after every change for readers outside the actor.</summary>
+    private int _online;
     private readonly Dictionary<int, DateTimeOffset> _goneSince = [];
     /// <summary>Room seats a bot plays for their player until they come back.</summary>
     private readonly HashSet<int> _takenOver = [];
@@ -95,6 +97,9 @@ internal sealed class RoomActor
     public IReadOnlyList<SeatRecord> Seats => _seats;
 
     public bool IsClosed => Room.Status == RoomStatus.Closed;
+
+    /// <summary>Profiles connected to the room right now; safe to read from outside the actor (the admin console).</summary>
+    public int Online => Volatile.Read(ref _online);
 
     /// <summary>The rules module's state of the hand in progress, JSON (tests compare it after a rebuild).</summary>
     internal string? State => _state;
@@ -352,6 +357,7 @@ internal sealed class RoomActor
         if (_watchers.Remove(profileId))
         {
             _connections.Remove(profileId);
+            CountOnline();
             await _outbox.RoomChangedAsync(this);
             return null;
         }
@@ -375,6 +381,7 @@ internal sealed class RoomActor
         _takenOver.Remove(seat);
         _goneSince.Remove(seat);
         _connections.Remove(profileId);
+        CountOnline();
         Touch();
         if (!_seats.Any(s => s.ProfileId is not null))
         {
@@ -422,6 +429,7 @@ internal sealed class RoomActor
         }
 
         set.Add(connectionId);
+        CountOnline();
         if (SeatOf(profileId) is { } seat)
         {
             _goneSince.Remove(seat);
@@ -443,6 +451,8 @@ internal sealed class RoomActor
                 continue;
             }
 
+            CountOnline();
+
             if (SeatOf(profileId) is { } seat)
             {
                 _goneSince[seat] = _clock.GetUtcNow();
@@ -451,6 +461,8 @@ internal sealed class RoomActor
             await _outbox.RoomChangedAsync(this);
         }
     }
+
+    private void CountOnline() => Volatile.Write(ref _online, _connections.Count(connection => connection.Value.Count > 0));
 
     // ------------------------------------------------------------------ the host's controls
 
@@ -529,6 +541,7 @@ internal sealed class RoomActor
         if (_seats[seat].ProfileId is { } removed)
         {
             _connections.Remove(removed);
+            CountOnline();
         }
 
         _seats[seat] = bot is null ? SeatRecord.Empty : new SeatRecord(null, null, null, null, bot);

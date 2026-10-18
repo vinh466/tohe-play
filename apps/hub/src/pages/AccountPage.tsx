@@ -90,6 +90,12 @@ function ManageAccount({ me }: { me: MeView }) {
           <Security me={me} />
           <TechnicalData me={me} />
           <footer className="mt-auto flex flex-col items-center gap-2">
+            {me.account.role ? (
+              // The console is its own app on this origin (ADR 0027): a full navigation, not a hub route.
+              <a href="/admin/" className="font-semibold text-accent underline underline-offset-4">
+                {t('account.admin')}
+              </a>
+            ) : null}
             <Button variant="secondary" busy={lock.isPending} onClick={() => lock.mutate(undefined)}>
               🔒 {t('account.lock')}
             </Button>
