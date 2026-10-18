@@ -30,3 +30,14 @@ A1); gia đình dùng chung account của A1 trên máy gia đình, đồng sở
 Khôi phục bản dump UAT mới nhất (`~/backups/tohe-uat/`) vào một database dev riêng, chạy migration, kiểm tra từng
 household bằng tay, rồi mới deploy bằng `deploy/uat/deploy.sh` (script tự backup trước). Username bị bỏ hẳn khi mọi
 account trên UAT đã có email.
+
+## Kết quả (2026-10-18)
+
+- **Chạy thử** trên dump `tohe-20261018-133316.sql.gz`, trong một container Postgres 18 tạm (đã xoá sau đó): 13 migration
+  (TransactionalEmail → InviteById) chạy hết. Một household, ba hồ sơ → một account sở hữu ba hồ sơ (người lớn + hai
+  trẻ em), mỗi hồ sơ một ID 12 số; 7 ván đã lưu, 21 điểm, 5 phòng / 4 ván / 16 kết quả / 220 nước đi, telemetry, khoá
+  Data Protection giữ nguyên, không dòng nào trỏ vào hồ sơ không có. Engine độ tin nhập 21 run (`Reported`) và 5 ván
+  Tiến Lên (`Verified`), mỗi cái một quyết định. Người lớn: mời bằng ID "mọi người", lên bảng công khai; trẻ em: "chỉ
+  trong account", không lên bảng.
+- **UAT thật** (owner: "deploy uat tuần tự + kiểm tra"): #43 → #60 lên lần lượt bằng `deploy/uat/deploy.sh`, mỗi bước
+  kiểm phiên bản, migration mới nhất, số dòng của nhà, log API; kết quả cuối khớp đúng bản chạy thử.

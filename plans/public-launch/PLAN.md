@@ -15,22 +15,23 @@
 
 ## Next — one item
 
-**Xây F1–F3 và deploy UAT tuần tự** (owner 2026-10-18: "ok như bạn đề xuất, làm đi, và deploy uat tuần tự + kiểm tra,
-sau khi hoàn thành thì báo tôi verify"): chạy thử migration trên bản dump UAT (E-01), deploy #43 → #60 lần lượt và kiểm
-tra sau mỗi bước, xây F1a (xoá account/hồ sơ), F1b (kiểm duyệt tên), F2a/F2b (metrics, chart), F3 (proof-of-work),
-deploy chúng, rồi báo owner verify ([delivery](delivery.md#trạng-thái)).
+**Xây F1–F3, deploy lên UAT, báo owner verify** (owner 2026-10-18: "ok như bạn đề xuất, làm đi, và deploy uat tuần tự
++ kiểm tra, sau khi hoàn thành thì báo tôi verify"). Đã xong: chạy thử migration (E-01) và #43 → #60 lên UAT lần lượt.
+Còn: F1a (xoá account/hồ sơ), F1b (kiểm duyệt tên), F2a/F2b (metrics, chart), F3 (proof-of-work), deploy chúng, rồi báo
+owner verify ([delivery](delivery.md#trạng-thái)).
 
 ## Waiting on the owner
 
-1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? Không chặn code; cần trước khi C2 lên UAT.
+1. **E-02 Q2** — account Resend của platform đang **Free** hay **Pro**? UAT đã chạy C2 mà email tắt: account cũ đăng
+   nhập bằng username như trước, nhưng chưa ai đăng ký mới được tới khi có API key trong `~/.config/tohe-uat/uat.env`.
 2. **D-13** — games origin giữ `tohe-games.vinetic.io.vn` (ADR 0002) hay domain riêng? Cần trước F4 (ra mắt).
-3. Review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #59 → #60); nói "deploy" cho mỗi lần lên UAT.
-   Với #60: xác nhận hồ sơ người lớn mặc định "Mọi người có ID" (D-17 chỉ quy định hồ sơ trẻ em).
-7. Còn mở sau quyết định 2026-10-18: E-07 **Q7** (pháp lý theo văn bản gốc), E-08 **Q2** (cảnh báo gửi tới đâu, cấu hình
-   ở `platform-infra`). Email trên UAT vẫn tắt tới khi có E-02 Q2 và API key trong `~/.config/tohe-uat/uat.env`.
-4. Trước khi C1 lên UAT: cho phép agent chạy thử migration trên bản dump UAT mới nhất trong một container tạm (E-01).
+3. Verify trên UAT, rồi review và merge từng PR (#43 → #44 → #47, #45 → #46 → #48 → … → #59 → #60).
+4. Mở console trên UAT: tự chạy lệnh cấp quyền chủ cho account của mình — agent không chọn account thay owner
+   (`docs/guides/uat.md`, mục Inspect).
 5. Duyệt bản nháp Điều khoản + Quyền riêng tư (#49; #50 thêm phần đăng nhập bằng provider), điền cách liên hệ người vận hành.
 6. Trước khi C4 lên prod: OAuth app Google + GitHub và secret ([delivery.md](delivery.md#việc-chỉ-owner-làm-được)).
+7. Còn mở sau quyết định 2026-10-18: E-07 **Q7** (pháp lý theo văn bản gốc), E-08 **Q2** (cảnh báo gửi tới đâu, cấu hình
+   ở `platform-infra`).
 
 ## Board
 

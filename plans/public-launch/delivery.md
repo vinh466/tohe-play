@@ -75,6 +75,11 @@ flowchart LR
 
 ## Trạng thái
 
+**UAT** (2026-10-18, owner: "deploy uat tuần tự + kiểm tra"): #43, #45, #46, #48 … #60 lên lần lượt theo thứ tự merge,
+mỗi bước kiểm phiên bản, migration, dữ liệu của nhà và log API — UAT chạy `15b69300f831` (đầu #60). #44 và #47 (chart,
+GHCR) không áp dụng cho UAT tới khi merge. Các PR này chưa merge mà đã lên UAT: **migration của chúng không sửa nữa** —
+sửa sau review đi bằng migration mới.
+
 | PR | Nhánh | Trạng thái |
 |---|---|---|
 | A1 | `feat/deploy-env-agnostic-images` | [#43](https://github.com/vinh466/tohe-play/pull/43) — CI xanh, chờ review |

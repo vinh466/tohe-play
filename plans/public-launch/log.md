@@ -2,6 +2,12 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-18 (tối, tiếp) — agent
+
+- E-01: migration chạy thử trên dump UAT mới nhất — dữ liệu của nhà giữ nguyên ([kết quả](items/E-01-uat-migration.md#kết-quả-2026-10-18)).
+- UAT: #43 → #60 lên lần lượt, mỗi bước kiểm; UAT chạy `15b69300f831`. Migration đã lên UAT không sửa nữa.
+- Đang xây F1a (xoá account/hồ sơ, ADR 0034); tiếp F1b, F2, F3.
+
 ## 2026-10-18 (tối) — agent
 
 - Owner: "ok như bạn đề xuất, làm đi, và deploy uat tuần tự + kiểm tra, sau khi hoàn thành thì báo tôi verify". E-07,
