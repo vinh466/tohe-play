@@ -303,6 +303,10 @@ It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` aft
 `<id>-<theme>.png` per theme, `<id>-room.png` at a table, `<id>-replay.png` replaying a hand and
 `<id>-ranked-replay.png` watching a run — look at them.
 
+Some checks are timed (a menu within 1.5 s of Back or `pause`), so `pnpm verify` runs the kit on its own after
+everything else, one game at a time: on a busy machine — CI's four cores also running the API's tests and every
+build — a game that answers at once would otherwise miss them.
+
 ## Versioning
 
 - `protocol` is an integer. Additive, optional changes (a new optional field, a new capability) keep the number.
