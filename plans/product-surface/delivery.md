@@ -57,16 +57,24 @@ flowchart LR
 Owner (2026-10-20): "lập ra 1 rule và làm theo dạng như là sẽ quyết định làm việc gì với model gì bằng cách spawn ra agent
 phù hợp làm riêng xong sau đó phối hợp trên 1 luồng master".
 
-**Master** = phiên chính (Opus 5.5 · xhigh). Chỉ master: nói chuyện và chốt với owner; viết *gói việc*; viết và giữ
+**Trần chi phí** (owner, 2026-10-20: "tối đa chỉ được dùng Opus 5.5 và effort tối đa là xhigh th nha (tối đa là master, k
+đc hơn, tôi k có nhìu chi phí)"): **không model nào trên Opus 5.5, không effort nào trên xhigh**; chỉ master được xhigh;
+không Fable, không `max`, không `/fast` (giá gấp đôi).
+
+**Master** = phiên chính (Opus 5.5 · xhigh — trần). Chỉ master: nói chuyện và chốt với owner; viết *gói việc*; viết và giữ
 `plans/`, memory, bảng *Trạng thái*; review diff; chạy lại `pnpm verify`; mở PR; gắn tag, deploy theo lời khoá (E-01).
 Worker không quyết thiết kế, không push, không mở PR, không merge, không deploy, không đụng UAT/prod.
 
 | Worker | Model · effort | Làm gì | Quyền | Cách ly |
 |---|---|---|---|---|
 | `scout` | Haiku 5.5 · low | tìm trong code, log, docs, web; trả về sự thật + đường dẫn | chỉ đọc | — |
-| `builder` | Opus 5.5 · high | làm **một PR** theo gói việc: code + test + docs, `pnpm verify`, commit trên nhánh của nó | sửa trong worktree của nó | worktree riêng |
+| `builder` | **Sonnet 5.5 · high** cho PR đã rõ (N2, N3, B2, B3, B5, S2, S4) · **Opus 5.5 · high** cho PR khó (B1, B4, I1–I4) | làm **một PR** theo gói việc: code + test + docs, `pnpm verify`, commit trên nhánh của nó | sửa trong worktree của nó | worktree riêng |
 | `chore` | Sonnet 5.5 · medium | việc cơ học: đổi tên, sinh lại file, sửa CI, nâng phụ thuộc | sửa trong worktree của nó | worktree riêng |
-| `reviewer` | Fable 5.1 · high | đọc ADR/spec/diff đối chiếu item của plan, tìm lỗ hổng; không sửa | chỉ đọc | — |
+| `reviewer` | Opus 5.5 · high | đọc ADR/spec/diff đối chiếu item của plan, tìm lỗ hổng; không sửa — mắt mới vì ngữ cảnh mới, không vì model mạnh hơn | chỉ đọc | — |
+
+**Tiết kiệm**: mở agent chỉ khi nó giữ được ngữ cảnh của master gọn hoặc làm song song được; việc nhỏ master tự làm;
+tối đa **2 worker cùng lúc**; `reviewer` chỉ cho 5 PR có ADR; master hạ effort xuống high cho các lượt điều phối thường
+(cập nhật plan, mở PR) khi owner muốn tiết kiệm thêm.
 
 **Luật chọn**
 
@@ -76,7 +84,7 @@ Worker không quyết thiết kế, không push, không mở PR, không merge, k
 | Một PR trong `delivery.md` đã có gói việc | một `builder` cho cả PR (không chia một PR cho nhiều agent) |
 | Việc cơ học không cần phán đoán | `chore` |
 | Tìm kiếm rộng, đọc log, research | `scout` |
-| PR có ADR (N1, B1, I1, I3, I4) trước khi mở | `reviewer` một lượt; master quyết sửa gì |
+| PR có ADR (N1, B1, I1, I3, I4) trước khi mở | `reviewer` (Opus · high) một lượt; master quyết sửa gì |
 | Việc nhỏ (< ~15 phút, vài file) | master tự làm — mở agent tốn hơn làm |
 
 **Gói việc** (master viết, mỗi worker một gói): mục tiêu một câu · item/ADR liên quan (đường dẫn) · phạm vi trong/ngoài ·
@@ -85,7 +93,7 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 
 **Giữ ổn định**
 
-- Tối đa **3 worker chạy cùng lúc**; không bao giờ hai worker đụng cùng khu vực (migration EF, file sinh, router/Caddy của hub)
+- Tối đa **2 worker chạy cùng lúc** (trần chi phí); không bao giờ hai worker đụng cùng khu vực (migration EF, file sinh, router/Caddy của hub)
   — theo *Chạy song song thế nào* ở trên.
 - Master **không tin báo cáo suông**: đọc diff, chạy lại `pnpm verify`, chỉ báo owner điều đã kiểm.
 - Worker trượt kiểm: master gửi lại một lần kèm lỗi; trượt lần hai thì master tự làm tiếp.
