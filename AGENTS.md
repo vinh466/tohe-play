@@ -9,6 +9,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | Path | What |
 | --- | --- |
 | `docs/` | Spec: overview, architecture, contracts, guides, conventions, ADRs, roadmap |
+| `plans/` | Plan spaces: large changes thought through with the owner before the spec — intent, not spec ([plans/README.md](plans/README.md)) |
 | `packages/contract` | Game Contract v1 (Zod) — source of truth for game.json, catalog, protocol, CSP |
 | `packages/game-sdk` | Game side (no runtime deps) and host side (`/host`) of the contract |
 | `packages/game-kit` | Game shell (menu stage, play stage, quick panel, HUD), Phaser setup, sounds, haptics, juice — use it for every new game (ADR 0012, 0020) |
