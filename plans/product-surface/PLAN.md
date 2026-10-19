@@ -16,13 +16,14 @@
 
 ## Next — one item
 
-**Owner review đợt đầu** ([delivery.md → Trạng thái](delivery.md#trạng-thái)): N2 [#76](https://github.com/vinh466/tohe-play/pull/76),
-N3 [#75](https://github.com/vinh466/tohe-play/pull/75), B1 [#77](https://github.com/vinh466/tohe-play/pull/77), S3
-[#78](https://github.com/vinh466/tohe-play/pull/78), K1 [#74](https://github.com/vinh466/tohe-play/pull/74). B1 merge xong thì agent mở B2 và B4 (hai worker).
+**B2 + B4** (hai worker) khi owner nói "làm" — B1, N2, S3 đã merge (2026-10-19). Còn chờ owner: merge N3
+[#75](https://github.com/vinh466/tohe-play/pull/75), đọc K1 [#74](https://github.com/vinh466/tohe-play/pull/74),
+"deploy" rồi "lên prod" cho B1 ([delivery.md → Trạng thái](delivery.md#trạng-thái)).
 
 ## Waiting on the owner
 
-1. Review và merge #75, #76, #77, #78; duyệt từng câu #74.
+1. Merge #75 (CI xanh); duyệt từng câu #74. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` — agent
+   không tự merge được (chế độ auto chặn).
 2. **Trước khi bật Google** (S3, #78): chọn chế độ Đăng ký ở console — Google có khoá là bật ngay khi API lên, prod đang `Mở`.
 3. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-19).
 4. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).

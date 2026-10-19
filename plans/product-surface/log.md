@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (tối, merge) — agent
+
+- Owner "merge PR giúp tôi" → chế độ auto chặn `gh pr merge` của agent; owner tự merge #77, #78, #76. Agent thử trước
+  thứ tự trên máy: #75 xung đột (`package.json`, `compose.yaml`, giữ cả hai) → merge `main` vào, `pnpm verify` xanh.
+- Đã gửi owner danh sách quyết định: #74, deploy B1, B2 + B4, chế độ Đăng ký (đề xuất invite), proof-of-work (bật),
+  E-02 Q2 (đề xuất `ai-train=no`), Cloudflare AI Crawl Control.
+
 ## 2026-10-19 (tối, đợt đầu) — agent
 
 - Owner "enhance CI" → [#73](https://github.com/vinh466/tohe-play/pull/73) merged (PR docs ~50 s, PR code ~8,6 phút). Owner
