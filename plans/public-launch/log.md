@@ -2,6 +2,12 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (tối) — agent
+
+- Owner đặt hướng mới sau ngày lên prod (luồng môi trường trước, rồi bề mặt sản phẩm; hub và game để sau) → mở
+  [`plans/product-surface`](../product-surface/PLAN.md). Plan này sang **Close**: E-10 và việc owner chuyển sang đó (E-05),
+  đã rà ở R-01 của nó. Kiểm lại: `_dmarc` vẫn thiếu — bản ghi đang ở TXT của gốc.
+
 ## 2026-10-19 (cuối) — agent
 
 - Owner: "đăng ký sơ sơ, admin ổn, tôi sẽ test 1 mình chứ chưa mời ai 1 thời gian xem sao, hiện là tạm ok rồi".

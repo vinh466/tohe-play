@@ -3,8 +3,9 @@
 - Goal: Tò He sẵn sàng mở cho mọi người — user-first (một account, nhiều hồ sơ, mỗi hồ sơ một ID để mời đích danh),
   đăng nhập bằng email và Google/GitHub, admin console, bảng xếp hạng do một engine độ tin bảo đảm, chạy trên cluster
   `platform-infra` bằng chart của chính nó.
-- Phase: **Graduate** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)); mọi
-  item cần cho việc xây đã decided; thứ tự xây theo pull request ở **[delivery.md](delivery.md)**.
+- Phase: **Close** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)); mọi PR ở
+  **[delivery.md](delivery.md)** đã merge và chạy trên prod; phần còn lại (E-10 và việc của owner) chuyển sang
+  [`product-surface`](../product-surface/PLAN.md) E-05 (2026-10-19).
 - Started: 2026-10-17 · Branch: `plan/public-launch` · PR: [tohe-play#42](https://github.com/vinh466/tohe-play/pull/42) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** ·
   **Delivery: [delivery.md](delivery.md)** · Log: [log.md](log.md)
@@ -15,15 +16,19 @@
 
 ## Next — one item
 
-**Owner tự dùng production một thời gian** (2026-10-19: "đăng ký sơ sơ, admin ổn, tôi sẽ test 1 mình chứ chưa mời ai 1
-thời gian"). Chưa mời ai, nên F4 (E-10) chờ owner báo; agent chờ phản hồi và sửa lỗi owner gặp.
+**Không còn việc ở đây — làm tiếp ở [`plans/product-surface`](../product-surface/PLAN.md)** (2026-10-19, owner đặt hướng
+mới: luồng môi trường trước, rồi bề mặt sản phẩm). Danh sách dưới đây đã được rà và xếp mức ở
+[product-surface R-01](../product-surface/research/R-01-backlog-review.md); E-10 thành
+[product-surface E-05](../product-surface/items/E-05-gate-before-outsiders.md). Plan này đóng (xoá folder) ở PR cuối khi
+owner muốn.
 
-## Waiting on the owner
+## Waiting on the owner (đã chuyển sang `product-surface`)
 
 1. ~~Nhận quyền chủ trên prod~~ — xong (owner, 2026-10-19: đăng ký được, admin ổn).
 2. **Chế độ đăng ký → Theo lời mời** (console → Đăng nhập & đăng ký): prod đang `open`, proof-of-work tắt; E-09 Q1
    chốt ra mắt bằng mã mời.
-3. **`_dmarc`** TXT `v=DMARC1; p=none;` — chưa có trên DNS (kiểm 2026-10-19, Google và Cloudflare DoH).
+3. **`_dmarc`** TXT `v=DMARC1; p=none;` — vẫn chưa có ở `_dmarc.toheplay.io.vn`; bản ghi đang nằm ở TXT của **gốc**
+   (kiểm lại 2026-10-19 tối) → đổi *Name* thành `_dmarc`.
 4. Trước khi mời người ngoài: duyệt Điều khoản + Quyền riêng tư và cách liên hệ người vận hành; tạo cộng đồng + mã
    mời; thử iPhone trên prod (PWA, âm thanh, offline).
 5. Đồng ý cho agent làm phần F4 chạm vào prod: thử khôi phục backup, load test phòng, security review, thư tới
@@ -62,7 +67,7 @@ thời gian"). Chưa mời ai, nên F4 (E-10) chờ owner báo; agent chờ ph�
 | E-07 | [Quyền riêng tư, xoá account, kiểm duyệt tên](items/E-07-privacy-deletion-moderation.md) | T7 | enhancement | **decided** (Q7 → F1c #66: chờ admin; thời hạn chờ owner) | D-06, D-17 |
 | E-08 | [Observability](items/E-08-observability.md) | T8 | enhancement | **decided** (Q2 email, cấu hình ở `platform-infra`) | E-04 |
 | E-09 | [Chống bot đăng ký](items/E-09-bot-protection.md) | T7 | enhancement | **decided** | D-12 |
-| E-10 | Checklist ra mắt | — | enhancement | open | E-07, E-08, E-09, D-13 |
+| E-10 | Checklist ra mắt | — | enhancement | chuyển → [product-surface E-05](../product-surface/items/E-05-gate-before-outsiders.md) | E-07, E-08, E-09, D-13 |
 
 Item chưa có link = chưa mở file; file được tạo khi item rời `open`.
 
