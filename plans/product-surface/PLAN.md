@@ -3,8 +3,8 @@
 - Goal: một người chưa biết Tò He tìm thấy nó, chơi ngay không cần tài khoản, được rủ vào đúng bàn hay đúng game bằng một
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
-- Phase: **Converge** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-20); thứ tự xây theo pull
-  request ở **[delivery.md](delivery.md)**; sang *Graduate* khi PR đầu tiên (N1) mở. Còn mở: E-02 Q2 (không chặn), E-05 (Cổng).
+- Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-20); thứ tự xây theo pull
+  request ở **[delivery.md](delivery.md)**; N1 đang làm (2026-10-20). Còn mở: E-02 Q2 (không chặn), E-05 (Cổng).
 - Started: 2026-10-19 · Branch: `plan/product-surface` (xếp trên `plan/public-launch`) · PR:
   [tohe-play#70](https://github.com/vinh466/tohe-play/pull/70) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
@@ -15,12 +15,12 @@
 
 ## Next — one item
 
-**N1 — spec môi trường** ([delivery.md](delivery.md)): `docs/guides/environments.md` + ADR *Environments, tags and
-promotion* + dòng prod trong `AGENTS.md` + sửa sự thật ở `uat.md`/`index.md`/roadmap. Agent bắt đầu khi owner nói "làm".
+**N1 — spec môi trường — đang làm** ([delivery.md](delivery.md)): `docs/guides/environments.md` + ADR *Environments, tags and
+promotion* + dòng prod trong `AGENTS.md` + định nghĩa agent `.claude/agents/` + sửa sự thật ở `uat.md`/`index.md`/roadmap.
 
 ## Waiting on the owner
 
-1. Nói **"làm"** để bắt đầu N1 (rồi N2, N3, B1, K1 song song).
+1. Review PR của N1 khi agent báo.
 2. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-20).
 3. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).
 4. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (không chặn gì; cần trước S1).

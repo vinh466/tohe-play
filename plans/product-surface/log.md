@@ -2,6 +2,11 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-20 (tiếp) — agent
+
+- Owner đặt trần chi phí: tối đa Opus 5.5 · xhigh (chỉ master), không Fable/max/fast → rule điều phối chỉnh theo; owner
+  "ok triển đi" → **rule chốt**, **Graduate** bắt đầu: N1 trên nhánh `docs/n1-environments`.
+
 ## 2026-10-20 — agent
 
 - Owner: "ok r đó, chốt nha … Q8 dổi luôn key của chart cho đồng bộ, Q9 dùng console. lun" → **D-01 decided**: L1, console

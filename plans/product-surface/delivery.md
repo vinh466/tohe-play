@@ -52,7 +52,7 @@ flowchart LR
 - **B2 → B3 → S1** cùng đụng router/Caddy của hub — tuần tự.
 - Mỗi PR một nhánh + worktree; plan này là bảng điều phối.
 
-## Điều phối agent: một master, nhiều worker (đề xuất — chờ owner chốt)
+## Điều phối agent: một master, nhiều worker (chốt — owner, 2026-10-20: "ok triển đi")
 
 Owner (2026-10-20): "lập ra 1 rule và làm theo dạng như là sẽ quyết định làm việc gì với model gì bằng cách spawn ra agent
 phù hợp làm riêng xong sau đó phối hợp trên 1 luồng master".
@@ -119,4 +119,4 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 
 | PR | Nhánh | Trạng thái |
 |---|---|---|
-| N1 | — | chờ owner nói "làm" |
+| N1 | `docs/n1-environments` | đang làm (2026-10-20) — master: ADR; builder (Sonnet · high): docs; reviewer (Opus · high): ADR |
