@@ -159,6 +159,9 @@ sequenceDiagram
 | game → host | `entry` (`result`: `handled` · `unsupported` · `invalid`) · `identity.require` (`level`, `reason`) · `share` (`payload`, `text`) |
 | SDK | `session.entry`, `session.identity.require()`, `session.share()` |
 
+Tương thích ngược: game **không khai báo** `entries` thì SDK tự trả `entry.result: unsupported` và hub mở menu như hôm nay —
+bốn game hiện có không phải sửa gì cho tới khi muốn nhận lối vào.
+
 ### 7. Thẻ xem trước, chống lạm dụng, đo lường
 
 - **Thẻ xem trước**: `/r/<mã>` và `/s/<mã>` trả HTML có `og:` theo link ("Lan mời bạn vào bàn Tiến Lên", ảnh của game) —

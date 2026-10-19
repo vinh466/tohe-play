@@ -38,6 +38,7 @@ ký luôn tạo một hồ sơ mặc định mới (ADR 0023).
 | S10 | Xoá account (ADR 0034) | hồ sơ đã liên kết bị xoá như hồ sơ tài khoản | hồ sơ máy chưa liên kết không bị ảnh hưởng |
 | S11 | Account bị tạm khoá | không liên kết được (như mọi lối vào account) | hồ sơ máy vẫn chơi được |
 | S12 | Thêm hồ sơ máy của bé vào account | người lớn chọn mẫu người lớn / trẻ em ngay lúc thêm (ADR 0025) | — |
+| S13 | Người chơi xoá hồ sơ máy | xoá trên thiết bị **và** bản trên server (nếu có), như xoá hồ sơ ngay của ADR 0034 | — |
 
 ### Gộp dữ liệu (S2 "gộp", S3, S6)
 

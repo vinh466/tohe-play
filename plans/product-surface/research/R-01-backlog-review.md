@@ -23,7 +23,7 @@ phía owner — và mỗi việc cần tới mức nào, xếp vào đâu?
 
 | # | Việc | Sự thật hôm nay (kiểm 2026-10-19) | Mức | Ghi chú |
 |---|---|---|---|---|
-| A1 | **DMARC** | `_dmarc.toheplay.io.vn` **không có** bản ghi; `v=DMARC1; p=none;` đang nằm ở TXT của **gốc** `toheplay.io.vn` — sai chỗ, không có tác dụng (dns.google DoH) | **Ngay** | Cloudflare → DNS: sửa *Name* của bản ghi đó từ `@` thành `_dmarc`. |
+| A1 | **DMARC** — ✔ owner sửa xong (kiểm lại 2026-10-19 tối: `_dmarc.toheplay.io.vn` = `v=DMARC1; p=none;`) | lúc rà: `_dmarc.toheplay.io.vn` **không có** bản ghi; `v=DMARC1; p=none;` đang nằm ở TXT của **gốc** `toheplay.io.vn` — sai chỗ, không có tác dụng (dns.google DoH) | **Ngay** | Cloudflare → DNS: sửa *Name* của bản ghi đó từ `@` thành `_dmarc`. |
 | A2 | Chế độ đăng ký + proof-of-work | `/api/config`: `registration: open`, `proofOfWork: false` | **Ngay** (bật proof-of-work) · chế độ đăng ký → **D-03** | Domain đã công khai; bot đăng ký được thì tốn quota Resend (100 thư/ngày gói Free) và uy tín gửi thư. Chuyển sang "theo lời mời" **chặn luôn link mời vào bàn** của người mới (xem E-03) — nên quyết ở D-03, còn proof-of-work bật được ngay. |
 | A3 | Duyệt Điều khoản + Quyền riêng tư, cách liên hệ người vận hành | bản nháp trong `apps/hub/src/legal/documents.ts` | **Cổng** (+ P1: trang công khai cần link tới) | |
 | A4 | Đồng ý cho agent làm phần F4 chạm vào prod | chưa | **Cổng** | thử khôi phục backup, load test phòng, security review, thư tới Gmail/Outlook/Yahoo |

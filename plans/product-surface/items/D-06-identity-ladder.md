@@ -70,6 +70,12 @@ flowchart TD
 - Độ tin thấp nhất (ADR 0029): kết quả của hồ sơ máy chỉ ở bàn và bảng của chính nó, **không** lên bảng công khai.
 - Trẻ em: hồ sơ trẻ em trong account với công tắc "chơi với người ngoài" tắt thì không bao giờ ngồi cùng hồ sơ máy lạ (hồ
   sơ máy luôn là "người ngoài").
+- **Tuổi và sự đồng ý — lỗ hổng tìm thấy khi rà (2026-10-19)**: hồ sơ "khách" hôm nay được đối xử như người lớn (không lọc
+  `minAge`, `apps/hub/src/session/session.ts`) và chưa bao giờ lên server. Hồ sơ máy **lên server** (tên, hình, ngồi bàn
+  với người lạ) là xử lý dữ liệu của một người có thể dưới 16 tuổi — Nghị định 13/2023 Điều 20 đòi sự đồng ý của cha mẹ
+  (và của trẻ từ 7 tuổi) ([R-07 của `public-launch`](../../public-launch/research/R-07-children-data-law.md)). Bậc `any`
+  (chỉ trên máy) không gửi gì đi nên không vướng. → Q6.
+- Xoá: "Xoá hồ sơ trên máy này" xoá luôn bản trên server (D-07 S13).
 
 ```mermaid
 erDiagram
@@ -123,3 +129,4 @@ Bậc yêu cầu là một luật duy nhất cho game hôm nay và game sau này
 | Q3 | Mỗi thiết bị tối đa bao nhiêu hồ sơ máy? | **5** (như account; đủ cho máy tính bảng cả nhà) |
 | Q4 | Hồ sơ máy trên server không dùng bao lâu thì xoá? | **90 ngày** (bản trên thiết bị vẫn còn) |
 | Q5 | Bàn mới mặc định "Ai có link cũng vào" (`named`)? | **Có**; người tạo đổi sang "Chỉ tài khoản" được |
+| Q6 | Hồ sơ máy **lên server** (bậc `named` online) cần gì về tuổi/đồng ý? **A** một dòng trong màn tên: "Tôi đồng ý Điều khoản và từ 16 tuổi trở lên, hoặc bố mẹ đã cho phép" (như cổng tuổi khi đăng ký, ADR 0025); dưới 16 → "Nhờ bố mẹ" (hồ sơ trẻ em trong account) · **B** chỉ cho tên gợi ý sẵn (không tên tự do), không hỏi tuổi · **C** A + B | **A** — cùng cách với đăng ký hôm nay, một chạm; owner duyệt câu chữ cùng văn bản pháp lý (E-05; agent không tư vấn pháp lý) |

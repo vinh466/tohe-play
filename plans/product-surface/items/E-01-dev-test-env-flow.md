@@ -1,6 +1,6 @@
 # E-01 — Chốt luồng phát triển · kiểm thử · môi trường thành spec
 
-- Status: **proposed** — phần đã chốt ghi ở *Decision*; còn Q2, Q5, Q6 (2026-10-19)
+- Status: **decided** (2026-10-19, chat) — trừ Q6 (dev local, proposed) và Q4 (để tới Cổng); xem *Decision*
 - Kind: enhancement — luồng đã chạy tốt, chỉ chưa nằm trong spec ở một chỗ; thêm luật cho production và tag môi trường
 - Blocks: mọi item khác (nền) · Blocked by: —
 - Research: [R-04 mô hình giao hàng](../research/R-04-delivery-model.md)
@@ -38,7 +38,7 @@ script trong thư mục tạm. Production đã chạy mà spec chưa có một d
 | **Chạy gì** | mã đang sửa | mã của PR / `main` | image của commit có tag `uat-*` mới nhất | image của commit có tag `prod-*` mới nhất |
 | **Dữ liệu** | vứt đi được, có dữ liệu mẫu | tạm (Testcontainers, kind) | thật, của gia đình — quý | hôm nay chưa quý; từ Cổng (E-05) là thật |
 | **Cấu hình ở** | `compose.yaml`, mặc định dev | workflow | `~/.config/tohe-uat/uat.env` | values ở `platform-infra` + Infisical `/tohe` |
-| **Agent được** | mọi thứ | — | gắn tag `uat-*` + `deploy.sh` khi owner nói "deploy"; đọc log | **chỉ đọc từ ngoài**; gắn tag `prod-*` khi owner nói "lên prod"; mọi thay đổi hạ tầng là PR ở `platform-infra`; không `kubectl` ghi |
+| **Agent được** | mọi thứ | — | khi owner nói "deploy": gắn tag `uat-*` rồi **tự chạy** `deploy.sh` + `check:uat`; đọc log | **chỉ đọc từ ngoài**; khi owner nói "lên prod": gắn tag `prod-*`, **tự mở và tự merge** PR đổi `targetRevision` của `apps/tohe` ở `platform-infra`, rồi `check:prod`. Mọi thay đổi hạ tầng khác vẫn là PR chờ owner; không `kubectl` ghi |
 
 ### 2. Một nhánh, build một lần, tag là môi trường ([R-04](../research/R-04-delivery-model.md))
 
@@ -49,21 +49,24 @@ flowchart LR
   big -- không --> spec["docs/ + ADR<br/>(spec trước)"]
   spec --> pr["Nhánh ngắn + worktree<br/>PR · pnpm verify"] --> ci{{CI xanh}}
   ci --> review["Owner: “merge”"] --> main[("main<br/>build một lần:<br/>image sha-…")]
-  main --> uat["Owner: “deploy”<br/>tag uat-YYYY-MM-DD.N<br/>deploy.sh · check:uat"]
+  main --> uat["Owner: “deploy”<br/>agent: tag uat-YYYY-MM-DD.N<br/>deploy.sh · check:uat"]
   uat --> soak{{Owner/gia đình<br/>dùng thử ổn}}
-  soak --> prod["Owner: “lên prod”<br/>tag prod-YYYY-MM-DD.N"]
-  prod --> rel["release.yml: kiểm luật<br/>GitHub Release · PR platform-infra"]
-  rel --> merge["Owner merge PR<br/>Argo CD · check:prod"]
+  soak --> prod["Owner: “lên prod”<br/>agent: tag prod-YYYY-MM-DD.N"]
+  prod --> rel["agent: kiểm luật tag<br/>GitHub Release"]
+  rel --> merge["agent: mở + merge PR targetRevision<br/>ở platform-infra → Argo CD · check:prod"]
 ```
+
+**Cầu nối tạm, rẻ** (owner, 2026-10-19): tag mang nghĩa *deploy*; phía sau agent làm tay — UAT tự chạy `deploy.sh`, prod tự
+mở và merge PR ở `platform-infra`. Tự động hoá bằng workflow là việc **sau**, khi luồng đã ổn định (owner tự nối).
 
 - `main` là nhánh duy nhất sống lâu; không `develop`, không nhánh theo môi trường.
 - Tag annotated, **không di chuyển, không xoá**. Môi trường đang chạy = tag mới nhất cùng tiền tố; quay lui = tag mới trỏ
   vào commit cũ.
-- Một workflow kiểm mỗi tag được push: commit nằm trên `main`, CI xanh, image đã có; `prod-*` chỉ được trỏ vào commit đã
-  có `uat-*`. Sai thì đỏ và không làm gì.
-- `release.yml` (khi push `prod-*`): GitHub Release với ghi chú tự sinh từ các PR kể từ tag `prod-*` trước, rồi mở PR đổi
-  `targetRevision` ở `platform-infra` (Q2).
+- Trước khi gắn tag, agent chạy `pnpm release:check <tag>` (trong `tools/env-check`): commit nằm trên `main`, CI xanh,
+  image đã có; `prod-*` chỉ được trỏ vào commit đã có `uat-*`. Sai thì dừng.
+- Khi gắn `prod-*`: `gh release create --generate-notes` (ghi chú tự sinh từ các PR kể từ tag `prod-*` trước).
 - Sửa gấp: cùng đường, chỉ rút ngắn thời gian thử trên UAT.
+- **Sau** (owner nối khi ổn định): workflow chạy khi push tag làm thay agent các bước trên.
 
 ### 3. Kiểm thử theo tầng — chạy ở đâu
 
@@ -105,20 +108,20 @@ flowchart LR
 ## Spec sẽ viết (khi chốt)
 
 - `docs/guides/environments.md` (mới): §1–§6. `uat.md`, `local-development.md`, `self-hosting.md` link về đây.
-- **ADR mới — Environments, tags and promotion** (số cấp khi mở PR; sửa ADR 0010, 0021 §5): vai trò bốn môi trường,
-  `main` + tag, prod chỉ chạy commit đã lên UAT, quyền của agent ở prod.
+- **ADR mới — Environments, tags and promotion** (số cấp khi mở PR; sửa ADR 0010, và 0021 §5: PR promote do agent mở và
+  merge sau tag `prod-*` của owner): vai trò bốn môi trường, `main` + tag, prod chỉ chạy commit đã lên UAT, quyền của agent.
 - `AGENTS.md` một dòng production; `docs/guides/working-with-agents.md` → *Environment rules*.
-- Workflow kiểm tag + `release.yml`; `tools/env-check`; Mode C + dữ liệu mẫu.
+- `tools/env-check` (`check:uat`, `check:prod`, `release:check`); Mode C + dữ liệu mẫu.
 
 ## Câu hỏi cho owner
 
 | Q | Câu hỏi | Đề xuất |
 |---|---|---|
 | ~~Q1~~ | Prod chỉ chạy commit đã lên UAT? | **chốt: có** |
-| Q2 | PR ở `platform-infra` khi có tag `prod-*`: **A** workflow mở PR bằng token, owner merge · **B** một chìa (tag là deploy, Argo CD theo semver) | **A** — đúng ADR 0021; owner tạo token (GitHub App hoặc fine-grained PAT chỉ cho `platform-infra`) |
+| ~~Q2~~ | PR ở `platform-infra` khi có tag `prod-*` | **chốt: tag là deploy; agent tự mở + merge PR `targetRevision` (cầu nối tạm); workflow sau** |
 | ~~Q3~~ | Tag khi lên prod? | **chốt: `prod-…`** (đề xuất thêm `uat-…` cho UAT — Q5) |
 | Q4 | Gia đình ở UAT mãi, hay lên prod khi mở cửa? | quyết ở Cổng (E-05) |
-| Q5 | Gắn tag `uat-YYYY-MM-DD.N` cho mỗi lần deploy UAT (để luật "prod sau UAT" kiểm được bằng máy)? | **Có** |
+| ~~Q5~~ | Gắn tag `uat-YYYY-MM-DD.N` cho mỗi lần deploy UAT? | **chốt: có** |
 | Q6 | Thêm Mode C + dữ liệu mẫu cho dev? | **Có**, PR riêng sau P0-1 |
 
 ## Decision
@@ -127,7 +130,12 @@ flowchart LR
 - "đúng migration vẫn theo hướng phát triển thêm, 1 migration tạo là đã chốt r ta k chỉnh, muốn sữa thì là thêm 1 cái mới
   fix, và mạnh tay là về hành vi sản phảm hay thiết kế luồng cần thiết" → §5.
 - "prod chỉ chạy commit đã lên UAT, lên prod sẽ là gắn tag prod-... nhé, nhánh main sẽ là nhánh chính" → Q1, Q3, `main`
-  là nhánh chính; hỏi thêm "chia môi trường bằng tag" và dev local → trả lời ở R-04 và §2, §4 (chờ owner xem).
+  là nhánh chính; hỏi thêm "chia môi trường bằng tag" và dev local → trả lời ở R-04 và §2, §4.
+- Lượt ba: "theo luồng gắn tag là ý nghĩa sẽ deploy, đằng sau bạn sẽ giúp tôi thủ công tạo và merge PR bên infra cho prod,
+  và tự chạy deploy uat, đây là cách nối tạm và rẻ, sau này tôi sẽ nỗi workflow tự động khi ôn định sau" → Q2, §1, §2;
+  "đồng ý" → Q5 (tag `uat-…`).
+- Agent hiểu: **owner vẫn là người quyết lúc nào** ("deploy", "lên prod", hoặc tự gắn tag); agent không tự quyết thời điểm,
+  chỉ làm hết phần cơ học sau đó. Quyền merge chỉ cho **một loại PR**: đổi `targetRevision` của `apps/tohe`.
 
 ## Chi phí
 

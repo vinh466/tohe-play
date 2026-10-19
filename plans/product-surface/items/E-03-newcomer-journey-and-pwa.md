@@ -63,10 +63,14 @@ flowchart TD
    có mã chuyển máy".
 9. **Manifest**: `id "/"`, `start_url "/play"`, mô tả user-first, `screenshots`, `shortcuts` ("Ghép Khối", "Nhập mã bàn").
 10. **Xem trước link**: `og:` tĩnh + ảnh trong HTML của hub; thẻ theo link cho `/r/` và `/s/` (D-08 §7).
-11. **E2E hành trình** (Playwright, CI `stack`): người mới → landing → chơi → xong ván → nhắc; link bàn khi chưa có gì →
+11. **Góp ý**: một mục "Góp ý / báo lỗi" trong menu → `hello@toheplay.io.vn` (sau Email Routing) — người dùng mới cần một
+    đường nói lại với người vận hành.
+12. **Mục tiêu đo được**: từ lúc chạm link tới khung hình đầu của game **≤ 10 giây** trên A55 qua 4G (đo bằng telemetry
+    thời gian tải sẵn có, ADR 0015).
+13. **E2E hành trình** (Playwright, CI `stack`): người mới → landing → chơi → xong ván → nhắc; link bàn khi chưa có gì →
     màn tên → ngồi bàn; link chia sẻ → game đúng seed; hồ sơ máy → Google giả (`mock-oauth2-server`, đã có từ #50) → cùng id;
     giả `beforeinstallprompt`; User-Agent iPhone / Zalo.
-12. **Vòng thử thiết bị** (owner, trên prod — E-01 §4): Android Chrome (A55), iPhone iOS 26 Safari + app đã cài, Zalo và
+14. **Vòng thử thiết bị** (owner, trên prod — E-01 §4): Android Chrome (A55), iPhone iOS 26 Safari + app đã cài, Zalo và
     Messenger trên cả hai, Chrome máy tính; gộp các việc iPhone còn treo: âm thanh (#30), phòng chơi (S5), polish #41.
 
 ## Câu hỏi cho owner

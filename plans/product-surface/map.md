@@ -6,7 +6,7 @@ Mọi item mục tiêu cần, và cái nào chặn cái nào. Cạnh `A --> B` �
 ```mermaid
 flowchart TD
   subgraph P0 ["Phase 0 — nền"]
-    E01["E-01 Luồng dev · test · môi trường<br/>(main + tag)"]
+    E01["E-01 Luồng dev · test · môi trường<br/>(main + tag) ✔"]
     E04a["E-04a Spec đúng (sự thật)"]
   end
   subgraph P1A ["Phase 1A — bề mặt"]

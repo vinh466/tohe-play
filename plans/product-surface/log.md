@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (khuya) — agent
+
+- Owner: tag là deploy; agent tự chạy deploy UAT và tự mở + merge PR `targetRevision` ở `platform-infra` — cầu nối tạm,
+  workflow sau; "đồng ý" tag `uat-…` → **E-01 decided** (Q6 còn proposed). Owner hỏi "còn gì nữa k … review toàn cảnh".
+- Rà toàn cảnh, thêm vào item: tuổi/đồng ý khi hồ sơ máy lên server (D-06 Q6, NĐ 13/2023 Đ20); xoá hồ sơ máy (D-07 S13);
+  SDK tự trả `unsupported` nên game cũ không phải sửa (D-08); Góp ý + mục tiêu ≤ 10 s tới khung hình đầu (E-03); văn bản pháp
+  lý phủ hồ sơ máy/link/Google (E-05). DMARC ✔; MX và proof-of-work chưa. PLAN: một lượt "đồng ý theo đề xuất"; Next P0-1.
+
 ## 2026-10-19 (tối) — agent
 
 - Owner chốt: migration tạo ra là chốt; prod chỉ chạy commit đã lên UAT, tag `prod-…`, `main` là nhánh chính (E-01 một
