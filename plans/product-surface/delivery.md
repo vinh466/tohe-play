@@ -68,7 +68,7 @@ Worker không quyết thiết kế, không push, không mở PR, không merge, k
 | Worker | Model · effort | Làm gì | Quyền | Cách ly |
 |---|---|---|---|---|
 | `scout` | Haiku 5.5 · low | tìm trong code, log, docs, web; trả về sự thật + đường dẫn | chỉ đọc | — |
-| `builder` | **Sonnet 5.5 · high** cho PR đã rõ (N2, N3, B2, B3, B5, S2, S4) · **Opus 5.5 · high** cho PR khó (B1, B4, I1–I4) | làm **một PR** theo gói việc: code + test + docs, `pnpm verify`, commit trên nhánh của nó | sửa trong worktree của nó | worktree riêng |
+| `builder` | **Sonnet 5.5 · high** cho PR đã rõ (N2, N3, B2, B3, B5, S2, S4) · **Opus 5.5 · high** cho PR khó (B1, B4, I1–I4) | làm **một PR** theo gói việc: code + test + docs, `pnpm verify`; **không commit** — master review diff rồi commit | sửa trong worktree của nó | worktree riêng |
 | `chore` | Sonnet 5.5 · medium | việc cơ học: đổi tên, sinh lại file, sửa CI, nâng phụ thuộc | sửa trong worktree của nó | worktree riêng |
 | `reviewer` | Opus 5.5 · high | đọc ADR/spec/diff đối chiếu item của plan, tìm lỗ hổng; không sửa — mắt mới vì ngữ cảnh mới, không vì model mạnh hơn | chỉ đọc | — |
 
@@ -119,4 +119,4 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 
 | PR | Nhánh | Trạng thái |
 |---|---|---|
-| N1 | `docs/n1-environments` | đang làm (2026-10-20) — master: ADR; builder (Sonnet · high): docs; reviewer (Opus · high): ADR |
+| N1 | `docs/n1-environments` | [#71](https://github.com/vinh466/tohe-play/pull/71) mở (2026-10-20), chờ owner review — master: ADR 0041; builder (Sonnet · high): docs + `.claude/agents`; reviewer (Opus · high): 0 blocker, 5 major, 9 minor, đã sửa; `pnpm verify` xanh |

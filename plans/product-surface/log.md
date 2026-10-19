@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-20 (N1) — agent
+
+- Lần chạy đầu của rule: master viết ADR 0041; builder (Sonnet · high) viết `environments.md`, sửa docs, 4 agent
+  `.claude/agents/`; reviewer (Opus · high) tìm 0 blocker / 5 major / 9 minor — master sửa hết, `pnpm verify` xanh →
+  [#71](https://github.com/vinh466/tohe-play/pull/71). Worker không commit (master commit sau review) — rule ghi lại.
+- Owner đã merge #42 (plan public-launch) vào `main` và #70 vào `plan/public-launch`; plan này mở PR mới về `main`.
+
 ## 2026-10-20 (tiếp) — agent
 
 - Owner đặt trần chi phí: tối đa Opus 5.5 · xhigh (chỉ master), không Fable/max/fast → rule điều phối chỉnh theo; owner
