@@ -8,6 +8,9 @@ mini farms and light RPGs) that run in a phone browser or as an installed PWA. I
 its friends, and it is designed so that **new games can be made quickly — including by AI agents — on top of a
 stable technical foundation**.
 
+Tò He runs in production at toheplay.io.vn ([ADR 0040](decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)),
+with a UAT environment on the homelab where the family plays first.
+
 These pages are the specification. If the code and the docs disagree, one of them is a bug; fix it in the same
 change. Agents working in this repository must read [Working with agents](guides/working-with-agents.md) first.
 
@@ -49,6 +52,7 @@ flowchart LR
 | Run everything on your machine | [Local development](guides/local-development.md) |
 | See how the pieces fit | [Architecture overview](architecture/overview.md) |
 | Build a game | [Create a game](guides/create-a-game.md) and the [Game Contract](contracts/game-contract-v1.md) |
+| Ship a change to UAT and production | [Environments and releases](guides/environments.md) |
 | Know why something is the way it is | [Decisions (ADR)](decisions/index.md) |
 | Know what is next | [Walking skeleton](roadmap/walking-skeleton.md) |
 | Know when a change is finished | [Definition of Done](conventions/definition-of-done.md) |

@@ -2,7 +2,7 @@
 title: Configuration
 description: What each of the four images reads when it starts — the same images run locally, on UAT and in production.
 sidebar:
-  order: 5
+  order: 6
 ---
 
 Tò He ships four images — `api`, `hub`, `games`, `site` — and the same build runs in every environment

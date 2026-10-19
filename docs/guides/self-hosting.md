@@ -2,13 +2,14 @@
 title: Self-hosting on Kubernetes
 description: Install Tò He with its Helm chart — from scratch with its own PostgreSQL, or on a database and secrets you already run.
 sidebar:
-  order: 6
+  order: 7
 ---
 
 The `tohe` chart in [`deploy/helm/tohe`](https://github.com/vinh466/tohe-play/tree/main/deploy/helm/tohe) runs the
 four images — hub, API, games origin, site — on Kubernetes
 ([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md)). Its README lists every value; this page
-walks through an install. What each image reads: [Configuration](configuration.md).
+walks through an install. What each image reads: [Configuration](configuration.md). How Tò He itself moves a build from
+UAT to production: [Environments and releases](environments.md).
 
 ## What you need
 
