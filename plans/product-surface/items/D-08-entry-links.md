@@ -1,6 +1,6 @@
 # D-08 — Lối vào: một mô hình cho mọi link mời và link chia sẻ
 
-- Status: **proposed** (2026-10-19)
+- Status: **decided** (2026-10-19, chat) — B: một mô hình lối vào, một đường ống ở hub, link chia sẻ là đối tượng
 - Kind: decision — module mới ở API, đường ống ở hub, thêm vào Game Contract → ADR
 - Blocks: E-03 · Blocked by: D-06, D-07
 - Research: [R-05](../research/R-05-identity-and-entry-prior-art.md), [R-03](../research/R-03-pwa-install-newcomer.md)
@@ -191,3 +191,9 @@ nền tảng chứ không phải việc của từng màn hình. Game chỉ khai
 | Q2 | Link chia sẻ hết hạn mặc định sau bao lâu? | **30 ngày**, người tạo đổi được |
 | Q3 | Game đầu tiên dùng `share`? | **Ghép Khối**: "Thách bạn" cùng seed, vượt điểm của tôi |
 | Q4 | Mỗi hồ sơ tạo tối đa bao nhiêu link/ngày? | **30** |
+
+## Decision
+
+**owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
+
+Q1 = **B** · Q2 = link hết hạn sau 30 ngày (người tạo đổi được) · Q3 = Ghép Khối "Thách bạn" đầu tiên · Q4 = 30 link mỗi hồ sơ mỗi ngày.

@@ -1,9 +1,9 @@
 # E-04 — Spec nói đúng Tò He hôm nay
 
-- Status: **proposed** (2026-10-19)
+- Status: **decided** (2026-10-19, chat)
 - Kind: enhancement — docs
 - Blocks: E-02, E-03 (agent đọc spec trước khi xây) · Blocked by: — (D-03 decided 2026-10-19)
-- Decided: —
+- Decided: owner, 2026-10-19, chat — xem *Decision*
 
 ## Vì sao
 
@@ -30,3 +30,9 @@ cáo, không mua trong app, không chat tự do, không app native — trừ khi
 ## Chi phí
 
 Một PR docs nhỏ cho (a); một PR cho (b).
+
+## Decision
+
+**owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
+
+(a) đi cùng P0-1; (b) viết lại `vision.md` ở P1-9, owner duyệt từng câu.

@@ -1,7 +1,7 @@
 # D-01 — Mỗi thành phần nằm ở host và đường dẫn nào trên domain?
 
-- Status: **proposed** (2026-10-19)
-- Kind: decision — đổi origin/đường dẫn công khai → ADR (sửa ADR 0040 về đường dẫn, ADR 0021 về vai trò của site)
+- Status: **proposed v2** (2026-10-19) — owner đang review ("về bố cục host .. các đề xuất ra sao, cho tôi review nào")
+- Kind: decision — đổi đường dẫn công khai trên origin của hub → ADR (sửa ADR 0040 về đường dẫn, ADR 0021 về vai trò site)
 - Blocks: E-02, E-03 · Blocked by: — (D-02 decided: `toheplay.io.vn` là domain duy nhất, chia subdomain theo vai)
 - Decided: —
 
@@ -19,85 +19,100 @@ Hai vấn đề có thật trên prod ([R-01](../research/R-01-backlog-review.md
 
 1. **Chỉ vài thứ đắt khi đổi** (R-02): origin của hub, `id` của manifest, URL trang công khai, domain gửi thư. Làm đúng
    bốn thứ đó trước khi có người cài app; phần còn lại để linh hoạt.
-2. **Một sản phẩm, một host**: thứ người chơi thấy (giới thiệu, trang game, hướng dẫn, app) ở cùng host. Khán giả khác
-   (người làm game, đọc tiếng Anh) → subdomain. Code không tin được (game) → subdomain (ADR 0040).
-3. **Không gắn tên domain vào code**: mọi host đi từ `publicUrls` của chart (đã vậy); bố cục là "gốc / `games.` / `docs.`",
-   chuyển sang domain khác chỉ là đổi cấu hình + redirect (D-02).
+2. **Subdomain theo vai** (D-02): thứ người chơi thấy (giới thiệu, trang game, hướng dẫn, app) ở **cùng một host** — PWA,
+   cookie phiên và tiến độ của hồ sơ máy gắn với một origin. Khán giả khác (người làm game, tiếng Anh) → `docs.`. Code
+   không tin được (game) → `games.` (ADR 0040).
+3. **Không gắn tên domain vào code**: mọi host đi từ `publicUrls` của chart (đã vậy).
 
-## Đề xuất: bố cục mục tiêu
+## Trước → sau, từng thành phần
+
+| Thành phần | Hôm nay (prod) | Đề xuất | Đổi gì |
+|---|---|---|---|
+| **Giới thiệu** (landing) | `docs.toheplay.io.vn/` | `toheplay.io.vn/` | dời về gốc, HTML tĩnh |
+| Trang mỗi game, hướng dẫn, hỏi đáp | — | `toheplay.io.vn/tro-choi/<slug>`, `/huong-dan/…`, `/hoi-dap`, `/gioi-thieu` | mới (E-02) |
+| Điều khoản, quyền riêng tư | `toheplay.io.vn/legal/*` (trong SPA) | `/dieu-khoan`, `/quyen-rieng-tu` (tĩnh; `/legal/*` → 301) | tĩnh, đọc được không cần JS |
+| **App** ("portal" người chơi) | `toheplay.io.vn/` (danh mục) | `toheplay.io.vn/play` (danh mục = `start_url`) | chỉ danh mục dời; mọi đường dẫn khác giữ nguyên |
+| Link bàn, link chia sẻ (D-08) | `/r/<mã>` | `/r/<mã>`, `/s/<mã>` | thêm `/s/` |
+| **Console admin** | `toheplay.io.vn/admin/` | giữ | — (`admin.` để dành) |
+| **API** | `toheplay.io.vn/api/*` | giữ cùng origin | — |
+| Tài liệu API (Scalar) | `toheplay.io.vn/api/docs` | tắt ở prod; bản đọc ở `docs.toheplay.io.vn/docs/reference/api/` | tắt một thứ trùng |
+| **Tài liệu kỹ thuật** (en) | `docs.toheplay.io.vn/docs/…` | giữ; `docs.toheplay.io.vn/` → `/docs/` | landing rời khỏi host này |
+| **Game** | `games.toheplay.io.vn` | giữ | — |
+| `www` | 301 → gốc | giữ | — |
+| Thư gửi | `no-reply@toheplay.io.vn` (Resend, return-path `send.`) | giữ | — |
+| Thư nhận | không có (không MX) | `hello@`, `security@` → hộp thư owner (Cloudflare Email Routing) | owner bật |
+| Máy đọc | soft-404, không robots/sitemap ở gốc | `robots.txt`, `sitemap.xml`, `/.well-known/security.txt` thật; 404 thật | mới |
+
+**Tên để dành** (không tạo DNS bây giờ): `admin.` (console tách phiên riêng), `status.` (trang trạng thái), `uat.` (D-15),
+`api.` (chỉ khi có API cho bên thứ ba), `notify.` (gửi thư từ subdomain). `send.` đã là của Resend.
+
+## Hub quyết định trả gì
 
 ```mermaid
-flowchart TB
-  subgraph root ["toheplay.io.vn — một origin, image hub"]
-    pub["Trang công khai (HTML tĩnh, index)<br/>/ · /tro-choi/… · /huong-dan/… · /hoi-dap · /gioi-thieu<br/>/dieu-khoan · /quyen-rieng-tu · robots · sitemap · /.well-known/…"]
-    app["App (SPA, noindex)<br/>/play (start_url) · /play/&lt;game&gt; · /r/&lt;code&gt; · /rooms/… · /welcome · /register · /account…"]
-    api["/api/* → API"]
-    admin["/admin/* → console (noindex)"]
-  end
-  games["games.toheplay.io.vn<br/>build game · noindex"]
-  docs["docs.toheplay.io.vn<br/>tài liệu kỹ thuật (en) · API reference · llms.txt"]
-  www["www → 301 gốc"]
-  app -- iframe --> games
+flowchart TD
+  req([Request tới toheplay.io.vn]) --> api{"/api/*"}
+  api -- có --> toapi["→ API (như nay)"]
+  api -- không --> adm{"/admin/*"}
+  adm -- có --> console["→ console (như nay, noindex)"]
+  adm -- không --> file{"Có file tĩnh của<br/>trang công khai?"}
+  file -- có --> pub["Trang công khai<br/>(index, CSP riêng)"]
+  file -- không --> route{"Thuộc danh sách<br/>đường dẫn của app?"}
+  route -- có --> spa["index.html của SPA<br/>(X-Robots-Tag: noindex)"]
+  route -- không --> nf["404 thật (trang tĩnh)"]
 ```
 
-| Host / đường dẫn | Là gì | Index | Đổi về sau |
+- **Danh sách đường dẫn của app sinh từ router của hub lúc build** (kèm một test so với Caddy) — thêm route mới không thể
+  quên khai báo, không có soft-404.
+- `/` cho người đã có hồ sơ/phiên, hoặc đang mở trong app đã cài: một script nhỏ trong `<head>` (chạy trước khi vẽ) đưa
+  thẳng tới `/play` — người mới và máy đọc thấy trang giới thiệu.
+- Service worker của hub: `navigateFallback` chỉ cho đường dẫn của app.
+- Manifest: `id "/"`, `start_url "/play"`, `scope "/"`.
+
+## Ở mỗi môi trường
+
+| | Dev | UAT | Prod |
 |---|---|---|---|
-| `toheplay.io.vn/` | **Trang giới thiệu** tĩnh. Ai đã đăng nhập, hoặc đang mở trong app đã cài, được đưa thẳng tới `/play` (một script nhỏ đọc cờ trong localStorage do hub đặt) | có | đắt (SEO) |
-| `/tro-choi/`, `/tro-choi/<slug>` | Danh sách game và một trang cho mỗi game: ảnh, cách chơi, nút "Chơi ngay" → `/play/<id>` | có | đắt (SEO) |
-| `/huong-dan/…`, `/hoi-dap`, `/gioi-thieu` | Cài app trên Android/iPhone, hồ sơ cho bé, chơi cùng bạn bè; hỏi đáp; giới thiệu | có | đắt (SEO) |
-| `/dieu-khoan`, `/quyen-rieng-tu` | Văn bản pháp lý **tĩnh** (hôm nay nằm trong SPA ở `/legal/*`) | có | — |
-| `/robots.txt`, `/sitemap.xml`, `/.well-known/security.txt` | thật, không còn rơi vào SPA. `/.well-known/` dành chỗ cho `assetlinks.json` (app Android qua TWA sau này) | — | — |
-| `/play` | **Danh mục game = `start_url` của PWA**. Manifest có `id: "/"` để danh tính app không phụ thuộc `start_url` nữa | không | **đắt nhất** — chốt trước khi mời ai |
-| `/play/<id>`, `/r/<code>`, `/rooms/…`, `/room/…`, `/replay/…`, `/welcome`, `/register…`, `/password/…`, `/profiles`, `/account…`, `/data` | Giữ nguyên như hôm nay → link đã gửi, QR, email không gãy | không (`X-Robots-Tag: noindex`) | — |
-| đường dẫn lạ | **404 thật** (trang tĩnh) — Caddy chỉ trả SPA cho danh sách đường dẫn của app | — | — |
-| `/api/*` | Giữ **cùng origin**: cookie first-party, không CORS, `SameOriginGuard` đơn giản. Không tách `api.` | — | rẻ |
-| `/admin/*` | Giữ. Tách ra `admin.` (phiên admin riêng, hub có lỗi XSS cũng không chạm được) để **Sau** | — | rẻ |
-| `games.toheplay.io.vn` | Giữ (ADR 0040) | không | rẻ |
-| `docs.toheplay.io.vn` | **Chỉ** tài liệu kỹ thuật (en) + API reference sinh ra + `llms.txt`. `/` → `/docs/`; đường dẫn landing cũ → 301 về gốc | có | rẻ |
-| `www.` | 301 → gốc (Cloudflare, giữ) | — | — |
+| Gốc (giới thiệu + app + `/api` + `/admin`) | `localhost:4720` — Vite của hub chuyển trang công khai sang dev server của `apps/web` (cổng mới, như `/admin` → 4721 hôm nay) | `10.100.0.2:4820` | `toheplay.io.vn` |
+| Tài liệu kỹ thuật | `localhost:4710` | `10.100.0.2:4810` | `docs.toheplay.io.vn` |
+| Game | `localhost:4730` | `10.100.0.2:4830` | `games.toheplay.io.vn` |
 
-**Tên để dành (không tạo DNS bây giờ):** `admin.` (console tách riêng), `status.` (trang trạng thái), `uat.` (D-15 nếu UAT
-có HTTPS), `api.` (chỉ khi có API công khai cho bên thứ ba — không có trong kế hoạch), `mail.`/`notify.` (gửi thư từ
-subdomain — D-02). `send.` **đã bị Resend dùng** làm return-path.
+Trang công khai **build vào image hub** → UAT, compose và chart y nhau, không thêm container. `apps/site` chỉ còn tài liệu.
 
-**Hộp thư nhận:** thêm Cloudflare Email Routing (MX ở gốc) → `hello@` / `security@toheplay.io.vn` chuyển về hộp thư của
-owner. Cần cho "liên hệ người vận hành" (E-05) và `security.txt`. Không đụng `send.`.
+## Cái gì không đổi
 
-### Phục vụ thế nào
-
-- Trang công khai là một app Astro mới, `apps/web` (tiếng Việt, không Starlight, không JS trừ chỗ cần), **build vào image
-  hub**: Caddy của hub phục vụ các đường dẫn công khai trước, rồi tới danh sách đường dẫn của app (SPA), rồi 404. Một image
-  phục vụ cả gốc → UAT, compose và chart chạy y nhau, không thêm container.
-- `apps/site` chỉ còn tài liệu kỹ thuật (đổi tên `apps/docs` để sau).
-- Service worker của hub: `navigateFallback` chỉ cho đường dẫn của app; trang công khai không bị SPA nuốt.
-- CSP riêng cho trang công khai (chặt hơn hub: không `connect-src` ngoài `'self'`, không frame).
+DNS, Cloudflare (trừ Email Routing), `platform-infra`, ingress và host của chart: **vẫn ba host như hôm nay**. Mọi link đã
+gửi (`/r/…`, link trong email) vẫn chạy. Việc nằm hết trong code của Tò He + một ADR.
 
 ## Phương án
 
 | | Cách | Được | Mất |
 |---|---|---|---|
-| **A** | Giữ ADR 0040; chỉ thêm `og:`/description vào HTML của hub, robots/sitemap thật | ít việc nhất | gốc vẫn trống với crawler AI; landing vẫn ở `docs.`; người mới vẫn gặp form đăng nhập; đổi sau đắt hơn |
-| **B** ⭐ | **Gốc là cửa trước**: trang công khai tĩnh + app cùng origin (bảng trên) | một sản phẩm một chỗ; SEO/GEO đọc được; landing → app không qua redirect; link cũ giữ nguyên; `id` manifest chốt sớm | app Astro mới, Caddy/router/service worker của hub, e2e, docs, một ADR |
-| **C** | Landing ở gốc, app ở `app.`/`choi.toheplay.io.vn` | tách hẳn hai bên | URL app dài hơn ở mọi link; cài app phải sang host khác; landing không đưa link vào app đã cài được (khác origin); ADR 0040 đã loại vì hub nên giữ tên ngắn nhất |
+| **A** | Giữ ADR 0040; chỉ thêm `og:`/description vào HTML của hub, robots/sitemap thật | ít việc nhất | gốc vẫn trống với crawler AI; landing vẫn ở `docs.`; đổi sau đắt hơn |
+| **B** ⭐ | **Gốc là cửa trước**: trang công khai tĩnh + app cùng origin (trên) | một sản phẩm một chỗ; SEO/GEO đọc được; landing → app không qua redirect; link cũ giữ nguyên; `id` manifest chốt sớm; không đổi hạ tầng | app Astro mới, Caddy/router/service worker của hub, e2e, docs, một ADR |
+| **C** | Landing ở gốc, app ở `app.`/`choi.toheplay.io.vn` | tách hẳn hai bên | URL app dài hơn ở mọi link; cài app ở host khác; landing không đưa link vào app đã cài được (khác origin); hồ sơ máy và phiên phải sống ở host app; thêm DNS + host ở `platform-infra` |
 | **D** | Hub render HTML phía server (SSR) | một codebase | đổi framework hub, phức tạp hơn nhiều so với nhu cầu |
 
 ## Đề xuất của agent
 
-**B.** Đúng nguyên tắc "một sản phẩm, một host", giữ mọi link đang có, và chốt ngay hai thứ đắt nhất (origin + `id` của
-manifest) khi chưa có ai cài app. Chi phí chấp nhận: một app Astro nhỏ và việc sửa Caddy/router của hub — gói trong một
-PR có ADR (P1-1 ở PLAN).
+**B.** Đúng "subdomain theo vai" của D-02, giữ mọi link đang có, không đụng hạ tầng, và chốt ngay hai thứ đắt nhất (origin
++ `id` của manifest) khi chưa có ai cài app. Chi phí: một app Astro nhỏ và việc sửa Caddy/router của hub — một PR có ADR
+(P1-1).
 
 ## Câu hỏi cho owner
 
 | Q | Câu hỏi | Đề xuất |
 |---|---|---|
 | Q1 | Bố cục B? | **B** |
-| Q2 | Đường dẫn danh mục game (start_url): `/play`, `/choi` hay `/app`? | **`/play`** — khớp `/play/<id>` đang có và nút "Vào chơi" |
+| Q2 | Đường dẫn danh mục game (`start_url`): `/play`, `/choi` hay `/app`? | **`/play`** — khớp `/play/<id>` đang có và nút "Vào chơi" |
 | Q3 | Slug trang công khai tiếng Việt không dấu (`/tro-choi/ghep-khoi`)? | **Có** — người Việt đọc được, khớp từ khoá |
 | Q4 | Thêm Cloudflare Email Routing cho `hello@`/`security@`? | **Có** (owner làm trong Cloudflare, vài phút) |
-| Q5 | Scalar `/api/docs` trên prod: giữ hay tắt? | **Tắt ở prod** (tài liệu API đã có ở `docs.`); không gấp |
+| Q5 | Scalar `/api/docs` trên prod: giữ hay tắt? | **Tắt ở prod** (tài liệu API đã có ở `docs.`) |
+| Q6 | Tài liệu kỹ thuật: giữ tiền tố `/docs/` (gốc `docs.` chuyển hướng) hay dời lên gốc host? | **Giữ `/docs/`** bây giờ (ít đổi nhất); dời sau nếu muốn — host này đổi lúc nào cũng rẻ |
 
 ## Discussion
 
 **agent** (2026-10-19): ADR 0040 chọn "hub ở gốc vì đó là nơi người ta tới" — B giữ nguyên điều đó (gốc vẫn thuộc image
-hub, app vẫn ở gốc của origin), chỉ thêm một lớp HTML tĩnh phía trước cho người mới và cho máy đọc.
+hub, app vẫn ở origin gốc), chỉ thêm một lớp HTML tĩnh phía trước cho người mới và cho máy đọc.
+
+**owner** (2026-10-19): "ổn nha, theo đề xuất, mà về bố cục host .. các đề xuất ra sao, cho tôi review nào" → v2 thêm bảng
+trước → sau, sơ đồ hub quyết định trả gì, bố cục ở từng môi trường, cái không đổi, Q6.

@@ -1,9 +1,9 @@
 # E-02 — Trang công khai: giới thiệu, trang game, hướng dẫn — tìm thấy được (SEO) và trích được (GEO)
 
-- Status: **proposed** (2026-10-19)
+- Status: **decided** (2026-10-19, chat) — trừ Q2 (cho AI huấn luyện?) còn mở
 - Kind: enhancement — thay landing hiện tại
 - Blocks: — · Blocked by: D-01 (ở đâu) · D-03 decided: user-first, không chia đối tượng
-- Decided: —
+- Decided: owner, 2026-10-19, chat — xem *Decision*
 
 ## Vì sao
 
@@ -62,3 +62,9 @@ thiệu hướng dẫn user dùng đc ToHe".
 
 App `apps/web` (Astro) + nội dung tiếng Việt cho ~10 trang + ảnh chụp game + kiểm SEO trong build. Viết nội dung là phần
 tốn công nhất và cần owner duyệt giọng văn.
+
+## Decision
+
+**owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
+
+Q1 = chỉ tiếng Việt ở Phase 1 · Q3 = ảnh tĩnh trước, clip sau · **Q2 còn mở** — không có đề xuất mặc định (sở thích của owner); `search` và `ai-input` bật.

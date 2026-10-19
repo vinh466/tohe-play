@@ -2,6 +2,12 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (gần nửa đêm) — agent
+
+- Owner: "ổn nha, theo đề xuất" → decided: E-01 Q6, E-04, D-04, D-05, D-06 (Q6 = A), D-07, D-08, E-02 (trừ Q2), E-03.
+- Owner muốn review bố cục host → **D-01 v2**: bảng trước → sau, sơ đồ hub quyết định trả gì (danh sách route của app sinh
+  từ router), từng môi trường, cái không đổi (DNS, `platform-infra`, ba host), Q6 tiền tố `/docs/`. Chờ owner: D-01, E-02 Q2.
+
 ## 2026-10-19 (khuya) — agent
 
 - Owner: tag là deploy; agent tự chạy deploy UAT và tự mở + merge PR `targetRevision` ở `platform-infra` — cầu nối tạm,

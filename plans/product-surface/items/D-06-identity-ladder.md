@@ -1,6 +1,6 @@
 # D-06 — Định danh theo bậc: người chơi cần "là ai" tới mức nào, và ai quyết mức đó?
 
-- Status: **proposed** (2026-10-19)
+- Status: **decided** (2026-10-19, chat) — B: hồ sơ máy + ba bậc + ba nguồn; Q6 = A (câu chữ owner duyệt cùng văn bản pháp lý)
 - Kind: decision — đổi mô hình định danh (sửa ADR 0023, 0024), bàn online (0016), độ tin (0029) và Game Contract → ADR
 - Blocks: D-07, D-08, E-03 · Blocked by: D-03 (decided)
 - Research: [R-05](../research/R-05-identity-and-entry-prior-art.md)
@@ -130,3 +130,9 @@ Bậc yêu cầu là một luật duy nhất cho game hôm nay và game sau này
 | Q4 | Hồ sơ máy trên server không dùng bao lâu thì xoá? | **90 ngày** (bản trên thiết bị vẫn còn) |
 | Q5 | Bàn mới mặc định "Ai có link cũng vào" (`named`)? | **Có**; người tạo đổi sang "Chỉ tài khoản" được |
 | Q6 | Hồ sơ máy **lên server** (bậc `named` online) cần gì về tuổi/đồng ý? **A** một dòng trong màn tên: "Tôi đồng ý Điều khoản và từ 16 tuổi trở lên, hoặc bố mẹ đã cho phép" (như cổng tuổi khi đăng ký, ADR 0025); dưới 16 → "Nhờ bố mẹ" (hồ sơ trẻ em trong account) · **B** chỉ cho tên gợi ý sẵn (không tên tự do), không hỏi tuổi · **C** A + B | **A** — cùng cách với đăng ký hôm nay, một chạm; owner duyệt câu chữ cùng văn bản pháp lý (E-05; agent không tư vấn pháp lý) |
+
+## Decision
+
+**owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
+
+Q1 = **B** · Q2 = "Hồ sơ trên máy này" · Q3 = 5 hồ sơ mỗi thiết bị · Q4 = dọn bản trên server sau 90 ngày không dùng · Q5 = bàn mới mặc định "Ai có link cũng vào" (`named`) · Q6 = **A** (theo đề xuất; agent soạn câu, owner duyệt cùng Điều khoản ở E-05 — không phải tư vấn pháp lý).

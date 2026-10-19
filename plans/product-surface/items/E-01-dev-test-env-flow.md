@@ -1,6 +1,6 @@
 # E-01 — Chốt luồng phát triển · kiểm thử · môi trường thành spec
 
-- Status: **decided** (2026-10-19, chat) — trừ Q6 (dev local, proposed) và Q4 (để tới Cổng); xem *Decision*
+- Status: **decided** (2026-10-19, chat) — trừ Q4 (để tới Cổng); xem *Decision*
 - Kind: enhancement — luồng đã chạy tốt, chỉ chưa nằm trong spec ở một chỗ; thêm luật cho production và tag môi trường
 - Blocks: mọi item khác (nền) · Blocked by: —
 - Research: [R-04 mô hình giao hàng](../research/R-04-delivery-model.md)
@@ -122,7 +122,7 @@ mở và merge PR ở `platform-infra`. Tự động hoá bằng workflow là vi
 | ~~Q3~~ | Tag khi lên prod? | **chốt: `prod-…`** (đề xuất thêm `uat-…` cho UAT — Q5) |
 | Q4 | Gia đình ở UAT mãi, hay lên prod khi mở cửa? | quyết ở Cổng (E-05) |
 | ~~Q5~~ | Gắn tag `uat-YYYY-MM-DD.N` cho mỗi lần deploy UAT? | **chốt: có** |
-| Q6 | Thêm Mode C + dữ liệu mẫu cho dev? | **Có**, PR riêng sau P0-1 |
+| ~~Q6~~ | Thêm Mode C + dữ liệu mẫu cho dev? | **chốt: có** ("theo đề xuất", 2026-10-19) — PR riêng sau P0-1 |
 
 ## Decision
 

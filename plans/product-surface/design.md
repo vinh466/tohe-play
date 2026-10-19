@@ -7,8 +7,9 @@ Trang này **ghép** các item thành một bức tranh. Nó không quyết gì:
 
 Đã chốt: domain duy nhất `toheplay.io.vn` (D-02), user-first theo vòng đời một người dùng (D-03), luồng môi trường —
 `main` + build một lần + tag `uat-…`/`prod-…` là deploy, agent làm tay phía sau (cầu nối tạm), migration chỉ tiến (E-01).
-Đang đề xuất: bố cục host (D-01), và nền định danh + lối vào (D-06…D-08) — phần lớn nhất, đổi Game Contract và vài ADR;
-một câu cần owner thật sự nghĩ: tuổi/đồng ý khi hồ sơ máy lên server (D-06 Q6).
+Cũng đã chốt ("theo đề xuất", 2026-10-19): nền định danh + lối vào (D-06…D-08, D-05 Google) — phần lớn nhất, đổi Game
+Contract và vài ADR —, đo lường (D-04), trang công khai (E-02), người mới (E-03). Còn đề xuất: **bố cục host (D-01)** — owner
+đang review v2.
 
 ## 1. Bức tranh
 
@@ -26,19 +27,19 @@ flowchart LR
   dev([Người làm game · agent]) --> docs["docs.toheplay.io.vn"]
 ```
 
-Host và đường dẫn: D-01 *(proposed)*; domain: D-02 *(decided)*; lối vào: D-08 *(proposed)*.
+Host và đường dẫn: D-01 *(proposed)*; domain: D-02 *(decided)*; lối vào: D-08 *(decided)*.
 
 ## 2. Các mảnh, chuẩn đứng sau, và nơi ở
 
 | Mảnh | Làm gì | Chuẩn / tiền lệ | Ở đâu | Item |
 |---|---|---|---|---|
-| Trang công khai | giới thiệu, trang game, hướng dẫn cài, hỏi đáp, pháp lý | HTML tĩnh (crawler AI không chạy JS); Open Graph; schema.org | `apps/web` → image hub | E-02, D-01 *(proposed)* |
-| Hồ sơ máy + ba bậc | ai cũng chơi được ngay; tên khi người khác thấy; account khi cần đồng bộ/độ tin | Firebase/Supabase anonymous → link; Kahoot nickname; Lichess casual/rated | hub + API (`DeviceProfiles`) + Game Contract `identity` | D-06 *(proposed)* |
-| Liên kết | hồ sơ máy → account giữ id; gộp khi cần; mã chuyển máy | Firebase `linkWithCredential`, Supabase reassign | hub + API | D-07 *(proposed)* |
-| Lối vào | một mô hình ý định, một đường ống, link chia sẻ là đối tượng | Discord invites (hạn, giới hạn, thu hồi) | hub + API (`Links`) + Game Contract `entries`, `init.entry`, `share` | D-08 *(proposed)* |
-| Cài app | ba lối: Android prompt · hướng dẫn iOS 26 · mở bằng trình duyệt từ WebView | web.dev install criteria; WebKit | hub | E-03 *(proposed)* |
-| Đăng nhập nhanh | Google một chạm (đã xây) | ADR 0026 | API + hub | D-05 *(proposed)* |
-| Đo lường | Search Console, Bing, bộ đếm tổng hợp (cả đếm theo link) | không cookie, không bên thứ ba | metrics ADR 0036 | D-04 *(proposed)* |
+| Trang công khai | giới thiệu, trang game, hướng dẫn cài, hỏi đáp, pháp lý | HTML tĩnh (crawler AI không chạy JS); Open Graph; schema.org | `apps/web` → image hub | E-02 *(decided)*, D-01 *(proposed)* |
+| Hồ sơ máy + ba bậc | ai cũng chơi được ngay; tên khi người khác thấy; account khi cần đồng bộ/độ tin | Firebase/Supabase anonymous → link; Kahoot nickname; Lichess casual/rated | hub + API (`DeviceProfiles`) + Game Contract `identity` | D-06 *(decided)* |
+| Liên kết | hồ sơ máy → account giữ id; gộp khi cần; mã chuyển máy | Firebase `linkWithCredential`, Supabase reassign | hub + API | D-07 *(decided)* |
+| Lối vào | một mô hình ý định, một đường ống, link chia sẻ là đối tượng | Discord invites (hạn, giới hạn, thu hồi) | hub + API (`Links`) + Game Contract `entries`, `init.entry`, `share` | D-08 *(decided)* |
+| Cài app | ba lối: Android prompt · hướng dẫn iOS 26 · mở bằng trình duyệt từ WebView | web.dev install criteria; WebKit | hub | E-03 *(decided)* |
+| Đăng nhập nhanh | Google một chạm (đã xây) | ADR 0026 | API + hub | D-05 *(decided)* |
+| Đo lường | Search Console, Bing, bộ đếm tổng hợp (cả đếm theo link) | không cookie, không bên thứ ba | metrics ADR 0036 | D-04 *(decided)* |
 | Luồng môi trường | `main` + build một lần + tag `uat-*`/`prod-*` là deploy; agent làm tay phía sau | trunk-based; build once, promote | `docs/guides/environments.md` + ADR | E-01 *(decided)* |
 
 ## 3. Các luồng chính
@@ -55,8 +56,8 @@ Host và đường dẫn: D-01 *(proposed)*; domain: D-02 *(decided)*; lối và
 
 ## 4. Còn mở
 
-Một lượt "đồng ý theo đề xuất" ([PLAN → Waiting](PLAN.md#waiting-on-the-owner)) đóng gần hết; còn D-06 Q6 (tuổi/đồng ý)
-và E-02 Q2 (AI huấn luyện) cần owner thật sự chọn.
+D-01 Q1–Q6 (bố cục host, owner đang review) · E-02 Q2 (cho AI huấn luyện?). Câu chữ tuổi/đồng ý của D-06 Q6 duyệt cùng văn
+bản pháp lý (E-05).
 
 ## 5. Rủi ro chưa có câu trả lời
 

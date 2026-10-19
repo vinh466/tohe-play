@@ -1,6 +1,6 @@
 # E-03 — Người mới: chơi trong vài giây, rồi được dẫn cài app và giữ tiến độ đúng lúc
 
-- Status: **proposed v2** (2026-10-19) — đứng trên D-06 (hồ sơ máy, bậc), D-07 (liên kết), D-08 (lối vào)
+- Status: **decided** (2026-10-19, chat) — đứng trên D-06 (hồ sơ máy, bậc), D-07 (liên kết), D-08 (lối vào)
 - Kind: enhancement — màn đầu tiên của hub, cài PWA, xem trước link
 - Blocks: E-05 · Blocked by: D-01 (`/play`, `id` manifest), D-05 (Google), D-06, D-07, D-08 · D-03 decided
 
@@ -85,3 +85,9 @@ flowchart TD
 
 Phần lớn ở hub (đường ống, màn tên, tờ đăng nhập, component cài app, manifest) + e2e mới + một buổi thử thiết bị của owner.
 Phần API và Game Contract thuộc D-06…D-08.
+
+## Decision
+
+**owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
+
+Q1 = **có** (không màn đăng nhập trước khi chơi) · Q2 = nhắc cài sau ván đầu · Q3 = giữ màn hình dọc ở Phase 1.

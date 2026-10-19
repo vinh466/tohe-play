@@ -1,6 +1,6 @@
 # D-07 — Hồ sơ máy liên kết vào account thế nào cho mượt, trong mọi trường hợp?
 
-- Status: **proposed** (2026-10-19)
+- Status: **decided** (2026-10-19, chat) — B: ma trận S1–S13, mã chuyển máy = di chuyển
 - Kind: decision — sửa ADR 0023 (hồ sơ mặc định), luồng khách → hồ sơ trong `identity.md`
 - Blocks: E-03, D-08 · Blocked by: D-06
 - Research: [R-05](../research/R-05-identity-and-entry-prior-art.md)
@@ -129,3 +129,9 @@ sequenceDiagram
 | Q1 | Phương án B? | **B** |
 | Q2 | Có làm **mã chuyển máy** (S8) không, hay chỉ "tạo tài khoản để mang theo"? | **Có** — iPhone (≈ 40 % VN) tách storage khi cài app; trẻ em không cần account vẫn đổi máy được |
 | Q3 | Mã chuyển máy là **di chuyển** (máy cũ gỡ bản của nó) hay **sao chép** (hai máy cùng một hồ sơ, không đồng bộ)? | **Di chuyển** — không có hai bản lệch nhau cùng một id; chơi nhiều máy cùng lúc là giá trị của account |
+
+## Decision
+
+**owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
+
+Q1 = **B** · Q2 = **có** mã chuyển máy · Q3 = **di chuyển** (máy cũ gỡ bản của nó).

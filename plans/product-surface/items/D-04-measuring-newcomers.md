@@ -1,9 +1,9 @@
 # D-04 — Biết luồng người mới chạy tốt hay không bằng cách nào, khi Tò He hứa không theo dõi?
 
-- Status: **proposed** (2026-10-19)
+- Status: **decided** (2026-10-19, chat) — **B**: Search Console + Bing + bộ đếm tổng hợp, không theo dõi
 - Kind: decision — nếu thêm đo lường trên trang thì đụng lời hứa "no tracking" của vision → ADR
 - Blocks: — (E-03 xây được mà không cần; chỉ là không biết nó tốt tới đâu) · Blocked by: —
-- Decided: —
+- Decided: owner, 2026-10-19, chat — xem *Decision*
 
 ## Vì sao
 
@@ -35,3 +35,9 @@ trong R-02).
 
 - Q1: A, B hay C?
 - Q2: Owner xác minh `toheplay.io.vn` ở Google Search Console và Bing Webmaster Tools khi trang công khai lên (P1)?
+
+## Decision
+
+**owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
+
+Q1 = **B**. Q2: owner xác minh Search Console và Bing khi trang công khai lên (sau P1-2).

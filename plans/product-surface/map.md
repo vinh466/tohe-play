@@ -7,22 +7,22 @@ Mọi item mục tiêu cần, và cái nào chặn cái nào. Cạnh `A --> B` �
 flowchart TD
   subgraph P0 ["Phase 0 — nền"]
     E01["E-01 Luồng dev · test · môi trường<br/>(main + tag) ✔"]
-    E04a["E-04a Spec đúng (sự thật)"]
+    E04a["E-04a Spec đúng (sự thật) ✔"]
   end
   subgraph P1A ["Phase 1A — bề mặt"]
     D02["D-02 Domain ✔"]
     D03["D-03 User-first, vòng đời ✔"]
-    D01["D-01 Host + đường dẫn"]
-    D04["D-04 Đo luồng người mới"]
-    E02["E-02 Trang công khai · SEO · GEO"]
-    E04b["E-04b Viết lại vision"]
+    D01["D-01 Host + đường dẫn<br/>(owner review)"]
+    D04["D-04 Đo luồng người mới ✔"]
+    E02["E-02 Trang công khai · SEO · GEO ✔"]
+    E04b["E-04b Viết lại vision ✔"]
   end
   subgraph P1B ["Phase 1B — nền định danh và lối vào"]
-    D06["D-06 Định danh theo bậc<br/>(hồ sơ máy)"]
-    D07["D-07 Liên kết vào account"]
-    D08["D-08 Lối vào: link mời, link chia sẻ"]
-    D05["D-05 Google · ai tạo account"]
-    E03["E-03 Người mới · cài PWA"]
+    D06["D-06 Định danh theo bậc<br/>(hồ sơ máy) ✔"]
+    D07["D-07 Liên kết vào account ✔"]
+    D08["D-08 Lối vào: link mời, link chia sẻ ✔"]
+    D05["D-05 Google · ai tạo account ✔"]
+    E03["E-03 Người mới · cài PWA ✔"]
   end
   E05["E-05 Cổng trước khi mời người ngoài"]
 

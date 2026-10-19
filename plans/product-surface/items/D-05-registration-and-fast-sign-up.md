@@ -1,6 +1,6 @@
 # D-05 — Đường vào account nhanh nhất (OAuth), và ai được tạo account khi công khai
 
-- Status: **proposed v2** (2026-10-19) — basis đổi: owner muốn OAuth; hồ sơ máy (D-06) gỡ việc link bàn bắt account
+- Status: **decided** (2026-10-19, chat) — Google trong Phase 1; Zalo Phase 2; mở + proof-of-work + Google khi qua Cổng
 - Kind: decision — sửa E-09 Q1 của `public-launch` ("ra mắt bằng mã mời") nếu owner chọn khác; Zalo đụng ADR 0024
 - Blocks: E-03, E-05 · Blocked by: D-06
 - Research: [R-05](../research/R-05-identity-and-entry-prior-art.md#đăng-nhập-nhanh-ở-việt-nam)
@@ -52,3 +52,9 @@ sẽ phải thêm oauth để user vào nhanh chơi)".
 | Q1 | Bật Google trên prod trong Phase 1? | **Có** — owner tạo OAuth client, agent viết hướng dẫn từng bước |
 | Q2 | Zalo: đưa vào Phase 2 như một item riêng (account không email)? | **Có** |
 | Q3 | Chế độ đăng ký khi qua Cổng: mở + proof-of-work + Google? | **Có** |
+
+## Decision
+
+**owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
+
+Q1 = **có** (owner tạo OAuth client ở P1-3, agent viết hướng dẫn). Q2 = **có**: Zalo là một item của Phase 2 (account không email). Q3 = **có**.
