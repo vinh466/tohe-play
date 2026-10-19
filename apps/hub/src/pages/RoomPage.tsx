@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { useParams } from '@tanstack/react-router';
+import { Navigate, useParams } from '@tanstack/react-router';
 import type { Reaction, RoomSeat } from '@tohe/contract';
 import type { JsonValue } from '@tohe/game-sdk';
 import type { HostHandle } from '@tohe/game-sdk/host';
@@ -27,9 +27,9 @@ import { Screen } from '../ui/Screen.tsx';
 import { settingsBody } from './RoomsPage.tsx';
 
 export function RoomPage() {
-  const { roomId } = useParams({ from: '/room/$roomId' });
+  const { gameId, roomId } = useParams({ from: '/play/$gameId/rooms/$roomId' });
   return (
-    <RequireSession need="player" returnTo={`/room/${roomId}`}>
+    <RequireSession need="player" returnTo={`/play/${gameId}/rooms/${roomId}`}>
       {(session) =>
         session.status === 'account' ? (
           <Room
@@ -62,7 +62,7 @@ function Room({
   accountProfiles: ProfileView[];
   mayPlayWithOthers: boolean;
 }) {
-  const { roomId } = useParams({ from: '/room/$roomId' });
+  const { gameId, roomId } = useParams({ from: '/play/$gameId/rooms/$roomId' });
   const { t } = useTranslation();
   const leaveTo = useLeaveTo();
   const games = useQuery(gamesQuery(player.id));
@@ -178,9 +178,14 @@ function Room({
   const paused = useRef<HostHandle | null>(null);
   const leave = useMutation({
     mutationFn: () => rooms.leave(roomId),
-    onSettled: () => leaveTo({ to: '/rooms/$gameId', params: { gameId: room?.gameId ?? '' } }),
+    onSettled: () => leaveTo({ to: '/play/$gameId/rooms', params: { gameId: room?.gameId ?? '' } }),
   });
   const game = games.data?.find((g) => g.id === room?.gameId);
+
+  // The address names a game; the room knows its own. A hand-typed address with the wrong game moves to the right one.
+  if (room && room.gameId !== gameId) {
+    return <Navigate to="/play/$gameId/rooms/$roomId" params={{ gameId: room.gameId, roomId }} replace />;
+  }
 
   if (gone) {
     return (
@@ -189,11 +194,11 @@ function Room({
           {gone === 'closed' ? t('rooms.closed') : t('rooms.errors.notFound')}
         </p>
         <BackLink
-          to={room ? '/rooms/$gameId' : '/'}
-          params={room ? { gameId: room.gameId } : undefined}
+          to="/play/$gameId/rooms"
+          params={{ gameId }}
           className="text-center font-semibold text-accent"
         >
-          {room ? t('rooms.backToLobby') : t('backToGames')}
+          {t('rooms.backToLobby')}
         </BackLink>
       </Screen>
     );
@@ -330,7 +335,7 @@ function WaitingRoom({
     <Screen narrow>
       <header className="flex items-center justify-between gap-3">
         <BackLink
-          to="/rooms/$gameId"
+          to="/play/$gameId/rooms"
           params={{ gameId: room.gameId }}
           aria-label={t('rooms.backToLobby')}
           className="rounded-full bg-surface px-3 py-2 font-bold text-accent"

@@ -31,7 +31,7 @@ export function Shell() {
     return me.error instanceof ApiError && me.error.status === 401 ? (
       <Centered>
         <p className="text-ink">Hãy đăng nhập Tò He trước, rồi quay lại trang này.</p>
-        <a href="/welcome" className="font-semibold text-brand-ink underline underline-offset-4">
+        <a href="/account/sign-in" className="font-semibold text-brand-ink underline underline-offset-4">
           Đăng nhập
         </a>
       </Centered>
@@ -87,7 +87,7 @@ export function Shell() {
           <span className="ml-auto text-ink-soft text-sm">
             {me.data.displayName} · {roleName(me.data.role)}
           </span>
-          <a href="/" className="font-semibold text-brand-ink text-sm underline underline-offset-4">
+          <a href="/play" className="font-semibold text-brand-ink text-sm underline underline-offset-4">
             Về Tò He
           </a>
         </div>

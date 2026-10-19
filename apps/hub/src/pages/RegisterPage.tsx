@@ -52,7 +52,7 @@ function Register() {
   const { t, i18n } = useTranslation();
   const signedUp = useSignedUp();
   const config = useQuery(configQuery);
-  const { invite: linked } = useSearch({ from: '/register' });
+  const { invite: linked } = useSearch({ from: '/account/register' });
   // A code from an invite link survives a trip to a sign-in provider (ADR 0028).
   useEffect(() => {
     if (linked) invite.remember(linked);
@@ -140,7 +140,10 @@ function Register() {
         <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink">
           {t('register.closed')}
         </p>
-        <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
+        <BackLink
+          to="/account/sign-in"
+          className="text-center font-bold text-brand-ink underline underline-offset-4"
+        >
           {t('register.haveAccount')}
         </BackLink>
       </Screen>
@@ -156,7 +159,10 @@ function Register() {
           {t('register.passwordOff')}
         </p>
         <ProviderButtons alone />
-        <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
+        <BackLink
+          to="/account/sign-in"
+          className="text-center font-bold text-brand-ink underline underline-offset-4"
+        >
           {t('register.haveAccount')}
         </BackLink>
       </Screen>
@@ -170,7 +176,10 @@ function Register() {
         <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink">
           {t('register.emailOff')}
         </p>
-        <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
+        <BackLink
+          to="/account/sign-in"
+          className="text-center font-bold text-brand-ink underline underline-offset-4"
+        >
           {t('register.haveAccount')}
         </BackLink>
       </Screen>
@@ -283,7 +292,10 @@ function Register() {
         )}
       </section>
       {attemptId ? null : <ProviderButtons />}
-      <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
+      <BackLink
+        to="/account/sign-in"
+        className="text-center font-bold text-brand-ink underline underline-offset-4"
+      >
         {t('register.haveAccount')}
       </BackLink>
     </Screen>
@@ -292,7 +304,7 @@ function Register() {
 
 function ConfirmFromLink() {
   const { t } = useTranslation();
-  const { attempt, code } = useSearch({ from: '/register/confirm' });
+  const { attempt, code } = useSearch({ from: '/account/register/confirm' });
   const signedUp = useSignedUp();
   const confirm = useMutation({
     mutationFn: () => auth.confirmRegistration(attempt, code),
@@ -315,7 +327,7 @@ function ConfirmFromLink() {
           <p role="alert" className="text-danger">
             {t(errorKey(confirm.error))}
           </p>
-          <Link to="/register" className="font-bold text-brand-ink underline underline-offset-4">
+          <Link to="/account/register" className="font-bold text-brand-ink underline underline-offset-4">
             {t('register.again')}
           </Link>
         </section>

@@ -43,7 +43,10 @@ function Frame({ children }: { children: ReactNode }) {
         <h2 className="font-bold text-ink text-xl">{t('forgot.title')}</h2>
         {children}
       </section>
-      <BackLink to="/welcome" className="text-center font-bold text-brand-ink underline underline-offset-4">
+      <BackLink
+        to="/account/sign-in"
+        className="text-center font-bold text-brand-ink underline underline-offset-4"
+      >
         {t('forgot.back')}
       </BackLink>
     </Screen>
@@ -112,12 +115,12 @@ function Forgot() {
 
 function ResetFromLink() {
   const { t } = useTranslation();
-  const { attempt, code } = useSearch({ from: '/password/reset' });
+  const { attempt, code } = useSearch({ from: '/account/password/reset' });
   return (
     <Frame>
       <NewPassword attemptId={attempt} email={null} initialCode={code} />
       <Link
-        to="/password/forgot"
+        to="/account/password/forgot"
         className="text-center font-semibold text-accent underline underline-offset-4"
       >
         {t('forgot.again')}

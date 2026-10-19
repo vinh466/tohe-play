@@ -1,29 +1,29 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import { caddyMatchers, hubCaddySnippet, hubPathsCs, robotsTxt } from './generate.ts';
-import { hosts, hubLinks, hubNamespaces } from './map.ts';
-import { matchHubPath, navigationAllowlist, overlap } from './match.ts';
+import { hosts, hubLinks, hubNamespaces, hubRedirects } from './map.ts';
+import { matchHubPath, navigationAllowlist, overlap, redirectTarget } from './match.ts';
 
-/** The hub's pages as they are today (apps/hub/src/router.tsx); the hub's own test reads its router. */
-const todaysPages = [
-  '/',
-  '/welcome',
-  '/sign-in/continue',
-  '/register',
-  '/register/confirm',
-  '/password/forgot',
-  '/password/reset',
-  '/profiles',
+/** The hub's pages (apps/hub/src/router.tsx); the hub's own test reads its router. */
+const appPages = [
+  '/play',
+  '/play/merge-block',
+  '/play/tien-len/rooms',
+  '/play/tien-len/rooms/0b7c',
+  '/play/tien-len/rooms/0b7c/replay/3',
+  '/r/ABCD',
   '/account',
   '/account/email',
-  '/legal/terms',
-  '/legal/privacy',
-  '/data',
-  '/play/merge-block',
-  '/rooms/tien-len',
-  '/r/ABCD',
-  '/room/0b7c',
-  '/replay/0b7c/3',
+  '/account/sign-in',
+  '/account/sign-in/continue',
+  '/account/register',
+  '/account/register/confirm',
+  '/account/password/forgot',
+  '/account/password/reset',
+  '/account/profiles',
+  '/account/data',
+  '/terms',
+  '/privacy',
 ];
 
 describe('the map', () => {
@@ -52,11 +52,12 @@ describe('the map', () => {
     }
   });
 
-  it.each(todaysPages)('gives %s to an app page', (path) => {
+  it.each(appPages)('gives %s to an app page', (path) => {
     expect(matchHubPath(path)).toMatchObject({ component: 'app', served: 'page' });
   });
 
   it.each([
+    ['/', 'root'],
     ['/api/health', 'api'],
     ['/admin/', 'console'],
     ['/admin/setup', 'console'],
@@ -73,7 +74,13 @@ describe('the map', () => {
     '/nope',
     '/sitemap.xml',
     '/playground',
-    '/rooms2',
+    '/welcome',
+    '/rooms/tien-len',
+    '/room/0b7c',
+    '/replay/0b7c/3',
+    '/legal/terms',
+    '/terms/x',
+    '/privacy/x',
     '/administrator',
     '/apis',
     '/index.htm',
@@ -83,6 +90,19 @@ describe('the map', () => {
     expect(matchHubPath(path)).toBeUndefined();
   });
 
+  it('answers the root with a redirect to a page of the app, in no way an app page itself', () => {
+    const root = hubNamespaces.filter((namespace) => namespace.served === 'redirect');
+    expect(root.map((namespace) => namespace.path)).toEqual(['/']);
+    for (const namespace of root) {
+      expect(namespace.redirectTo, namespace.id).toBeDefined();
+      expect(matchHubPath(namespace.redirectTo ?? '')).toMatchObject({ component: 'app', served: 'page' });
+      expect(namespace.navigation, namespace.id).toBe('network');
+    }
+    for (const namespace of hubNamespaces) {
+      expect(namespace.redirectTo !== undefined, namespace.id).toBe(namespace.served === 'redirect');
+    }
+  });
+
   it('links the API only to pages of the app or the console', () => {
     for (const [name, link] of Object.entries(hubLinks)) {
       expect(matchHubPath(link.path)?.served, name).toBe('page');
@@ -90,22 +110,92 @@ describe('the map', () => {
   });
 });
 
+describe('the old paths', () => {
+  it('lead to a page of the app, and none lies in a namespace', () => {
+    const ids = hubRedirects.map((redirect) => redirect.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const redirect of hubRedirects) {
+      const sample = redirect.from.replace(/:\w+/g, 'x');
+      expect(matchHubPath(sample), `${redirect.id}: ${sample} is in a namespace`).toBeUndefined();
+      const target = redirectTarget(sample);
+      expect(matchHubPath(target ?? ''), `${redirect.id}: ${target}`).toMatchObject({
+        component: 'app',
+        served: 'page',
+      });
+    }
+  });
+
+  it.each([
+    ['/welcome', '/account/sign-in'],
+    ['/sign-in/continue', '/account/sign-in/continue'],
+    ['/register', '/account/register'],
+    ['/register/confirm', '/account/register/confirm'],
+    ['/password/forgot', '/account/password/forgot'],
+    ['/password/reset', '/account/password/reset'],
+    ['/profiles', '/account/profiles'],
+    ['/data', '/account/data'],
+    ['/legal/terms', '/terms'],
+    ['/legal/privacy', '/privacy'],
+    ['/rooms/tien-len', '/play/tien-len/rooms'],
+  ])('sends %s to %s', (from, to) => {
+    expect(redirectTarget(from)).toBe(to);
+  });
+
+  it.each([
+    '/room/0b7c',
+    '/replay/0b7c/3',
+    '/rooms',
+    '/rooms/tien-len/x',
+    '/registerx',
+    '/welcome/x',
+    '/account',
+    '/play',
+    '/',
+  ])('leaves %s alone: no redirect', (path) => {
+    expect(redirectTarget(path)).toBeUndefined();
+  });
+
+  it('covers every page the API used to link to', () => {
+    // hubLinks holds the new paths; these are the ones the API wrote before the move (emails already sent carry them).
+    const oldLinks = [
+      '/welcome',
+      '/sign-in/continue',
+      '/register/confirm',
+      '/password/reset',
+      '/profiles',
+      '/account/email',
+      '/account',
+    ];
+    for (const path of oldLinks) {
+      expect(redirectTarget(path) ?? matchHubPath(path)?.path, path).toBeDefined();
+    }
+  });
+});
+
 describe('the service worker', () => {
   const allowed = (url: string) => navigationAllowlist().some((pattern) => pattern.test(url));
 
-  it.each([...todaysPages, '/?invite=X', '/register?invite=X', '/profiles?auto=true'])(
+  it.each([...appPages, '/play?x=1', '/account/register?invite=X', '/account/profiles?auto=true'])(
     'answers %s offline',
     (url) => {
       expect(allowed(url)).toBe(true);
     },
   );
 
-  it.each(['/api/auth/me', '/admin/', '/admin', '/nope', '/robots.txt', '/playground', '/assets/x.js'])(
-    'leaves %s to the network',
-    (url) => {
-      expect(allowed(url)).toBe(false);
-    },
-  );
+  it.each([
+    '/',
+    '/?invite=X',
+    '/api/auth/me',
+    '/admin/',
+    '/admin',
+    '/nope',
+    '/robots.txt',
+    '/playground',
+    '/assets/x.js',
+    '/welcome',
+  ])('leaves %s to the network', (url) => {
+    expect(allowed(url)).toBe(false);
+  });
 });
 
 describe('what the map generates', () => {
@@ -119,8 +209,20 @@ describe('what the map generates', () => {
       'platformGenerated',
     ]);
     expect(hubCaddySnippet()).toContain('@apiProxy path /api /api/*\n');
-    expect(hubCaddySnippet()).toContain('@appPage path / /welcome /welcome/* ');
+    expect(hubCaddySnippet()).toContain('@appPage path /play /play/* /account /account/* ');
     expect(hubCaddySnippet()).toContain(' /workbox-* ');
+  });
+
+  it('writes the redirects as directives, the query kept', () => {
+    const snippet = hubCaddySnippet();
+    expect(snippet).toContain('@rootRedirect path /\nredir @rootRedirect /play?{query} 302\n');
+    expect(snippet).toContain('@legacyWelcome path_regexp legacyWelcome ^/welcome$\n');
+    expect(snippet).toContain('redir @legacyWelcome /account/sign-in?{query} 301\n');
+    expect(snippet).toContain('redir @legacyRegister /account/register{re.legacyRegister.1}?{query} 301\n');
+    expect(snippet).toContain('redir @legacyRooms /play/{re.legacyRooms.1}/rooms?{query} 301\n');
+    // One matcher and one redir for each, and no handler of the app's page answers a redirect.
+    expect(snippet.match(/^redir @/gm)).toHaveLength(hubRedirects.length + 1);
+    expect(caddyMatchers().has('platformRedirect')).toBe(false);
   });
 
   it('is served by Caddyfile.hub: a handler for every matcher, and no other', () => {
@@ -137,8 +239,8 @@ describe('what the map generates', () => {
 
   it('gives the API the paths it used to write by hand', () => {
     const cs = hubPathsCs();
-    expect(cs).toContain('public const string Welcome = "/welcome";');
-    expect(cs).toContain('public const string RegisterConfirm = "/register/confirm";');
+    expect(cs).toContain('public const string Welcome = "/account/sign-in";');
+    expect(cs).toContain('public const string RegisterConfirm = "/account/register/confirm";');
     expect(cs).toContain('public const string ConsoleSetup = "/admin/setup";');
   });
 });

@@ -13,6 +13,7 @@ import { codeSentTo } from './mailpit.ts';
 import { totp } from './totp.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
+const catalogUrl = new URL('/play', hubUrl).href;
 const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
 const grantCommand = process.env.ADMIN_GRANT_COMMAND?.split(' ').filter(Boolean);
 const logsCommand = process.env.ADMIN_LOGS_COMMAND?.split(' ').filter(Boolean);
@@ -89,9 +90,9 @@ const password = 'mat-khau-e2e-123';
 const email = `e2e${Date.now().toString(36)}@e2e.test`;
 
 try {
-  step(`open ${hubUrl} — a new device lands on the welcome screen`);
+  step(`open ${hubUrl} — the root leads to the catalog, and a new device on to the sign-in screen`);
   await page.goto(hubUrl);
-  await page.waitForURL(/\/welcome$/);
+  await page.waitForURL(/\/account\/sign-in$/);
   await shot('welcome');
 
   step(
@@ -108,7 +109,7 @@ try {
   await page.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
   await shot('register-code');
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
-  await page.waitForURL((url) => url.pathname === '/');
+  await page.waitForURL((url) => url.pathname === '/play');
 
   step('choose the dark theme in "Giao diện": it applies at once and survives a reload');
   await page.getByRole('button', { name: /^Giao diện/ }).tap();
@@ -133,9 +134,9 @@ try {
     '"Đổi người chơi" opens the picker, where a child profile with a PIN is added (the owner confirms with the password)',
   );
   await page.getByRole('link', { name: 'Đổi người chơi' }).tap();
-  await page.waitForURL((url) => url.pathname === '/profiles');
+  await page.waitForURL((url) => url.pathname === '/account/profiles');
   await page.getByRole('button', { name: /Thêm hồ sơ/ }).tap();
-  await page.waitForURL(/\/account/);
+  await page.waitForURL((url) => url.pathname === '/account');
   await page.getByLabel('Mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Xác nhận' }).tap();
   const form = page.getByRole('dialog', { name: 'Hồ sơ mới' });
@@ -152,12 +153,12 @@ try {
 
   step('pick the child and enter the PIN');
   await page.getByRole('link', { name: 'Quay lại' }).tap();
-  await page.waitForURL((url) => url.pathname === '/profiles');
+  await page.waitForURL((url) => url.pathname === '/account/profiles');
   await shot('profiles');
   await page.getByRole('button', { name: /Bé Na/ }).tap();
   const pinPad = page.getByRole('dialog', { name: /Nhập mã PIN/ });
   for (const digit of '1234') await pinPad.getByRole('button', { name: digit, exact: true }).tap();
-  await page.waitForURL((url) => url.pathname === '/');
+  await page.waitForURL((url) => url.pathname === '/play');
   const kidId = await page.evaluate(
     async () => (await (await fetch('/api/auth/me')).json()).activeProfileId as string,
   );
@@ -175,14 +176,18 @@ try {
   }
   await shot('catalog');
 
-  step("the games origin's own front page leads to the hub, and search engines stay out of it (ADR 0039)");
+  step(
+    "the games origin's own front page leads to the hub's catalog, and search engines stay out of it (ADR 0039)",
+  );
   const { gamesOrigin } = (await (await fetch(new URL('/api/config', hubUrl))).json()) as {
     gamesOrigin: string;
   };
   const front = await fetch(new URL('/', gamesOrigin), { redirect: 'manual' });
-  const leadsTo = new URL(front.headers.get('location') ?? '/', gamesOrigin).origin;
-  if (front.status !== 302 || leadsTo !== new URL(hubUrl).origin) {
-    throw new Error(`${gamesOrigin}/ answered ${front.status} towards ${leadsTo}, not a redirect to the hub`);
+  const leadsTo = new URL(front.headers.get('location') ?? '/', gamesOrigin).href;
+  if (front.status !== 302 || leadsTo !== catalogUrl) {
+    throw new Error(
+      `${gamesOrigin}/ answered ${front.status} towards ${leadsTo}, not a redirect to the hub's catalog`,
+    );
   }
   if (!front.headers.get('x-robots-tag')?.includes('noindex')) {
     throw new Error(`${gamesOrigin}/ does not keep search engines out (X-Robots-Tag)`);
@@ -318,7 +323,7 @@ try {
   await frame.getByRole('button', { name: 'Menu chính' }).tap();
   await frame.getByRole('button', { name: '▶ Chơi', exact: true }).waitFor();
   await frame.getByRole('button', { name: 'Về Tò He' }).tap();
-  await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`);
+  await page.waitForURL(catalogUrl);
   const leftTo = await historyIndex(page);
   if (leftTo !== catalogEntry) {
     throw new Error(
@@ -334,7 +339,7 @@ try {
   const reopened = await gameFrame(page);
   await reopened.locator('[data-tohe-play]').first().waitFor();
   await page.evaluate(() => history.back());
-  await page.waitForURL(hubUrl.endsWith('/') ? hubUrl : `${hubUrl}/`, { timeout: 5000 });
+  await page.waitForURL(catalogUrl, { timeout: 5000 });
   await page.waitForTimeout(400);
   const backTo = await historyIndex(page);
   if (backTo !== catalogEntry) {

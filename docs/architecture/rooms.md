@@ -71,7 +71,7 @@ stateDiagram-v2
 
 ### 1. The lobby
 
-The lobby is a hub page (`/rooms/<game>`). The game's catalog card opens the game on its main menu, whose **🌐 Chơi online** leads here, and the lobby's ← goes back to it ([Game shell](game-shell.md), ADR 0018):
+The lobby is a hub page (`/play/<game>/rooms`). The game's catalog card opens the game on its main menu, whose **🌐 Chơi online** leads here, and the lobby's ← goes back to it ([Game shell](game-shell.md), ADR 0018):
 
 ```text
 ┌──────────────────────────────┐

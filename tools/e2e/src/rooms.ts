@@ -44,7 +44,7 @@ async function phone(name: string, target: Browser): Promise<Page> {
 /** Signs up with a new email and the code it receives; the only profile plays at once. Returns the email. */
 async function register(page: Page, displayName: string): Promise<string> {
   const email = `e2e${Date.now().toString(36)}${Math.floor(Math.random() * 1000)}@e2e.test`;
-  await page.goto(`${hubUrl}/register`);
+  await page.goto(`${hubUrl}/account/register`);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Tên khi chơi').fill(displayName);
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
@@ -53,19 +53,19 @@ async function register(page: Page, displayName: string): Promise<string> {
   await page.getByRole('button', { name: 'Gửi mã xác nhận' }).tap();
   await page.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
-  await page.waitForURL((url) => url.pathname === '/' || url.pathname.startsWith('/r/'));
+  await page.waitForURL((url) => url.pathname === '/play' || url.pathname.startsWith('/r/'));
   return email;
 }
 
 /** A second phone of the same account: signs in and plays as `profile`. */
 async function signIn(page: Page, email: string, profile: string) {
-  await page.goto(`${hubUrl}/welcome`);
+  await page.goto(`${hubUrl}/account/sign-in`);
   await page.getByLabel('Email', { exact: true }).fill(email);
   await page.getByLabel('Mật khẩu').fill(password);
   await page.getByRole('button', { name: 'Đăng nhập' }).tap();
-  await page.waitForURL((url) => url.pathname === '/profiles');
+  await page.waitForURL((url) => url.pathname === '/account/profiles');
   await page.getByRole('button', { name: new RegExp(profile) }).tap();
-  await page.waitForURL((url) => url.pathname === '/');
+  await page.waitForURL((url) => url.pathname === '/play');
 }
 
 /** A child profile of the signed-in account, allowed to play with others (after stepping up with the password). */
@@ -194,7 +194,7 @@ try {
   const gameEntry = await historyIndex(host);
   let menu = await gameFrame(host);
   await menu.getByRole('button', { name: '🌐 Chơi online' }).tap();
-  await host.waitForURL(/\/rooms\/tien-len$/);
+  await host.waitForURL(/\/play\/tien-len\/rooms$/);
   await shot(host, 'lobby');
 
   step("the lobby's ← goes back to the game the way the host came, and Chơi online leads there again");
@@ -205,7 +205,7 @@ try {
     throw new Error(`the lobby's ← stacked the game again (entry ${backAt}, not ${gameEntry})`);
   menu = await gameFrame(host);
   await menu.getByRole('button', { name: '🌐 Chơi online' }).tap();
-  await host.waitForURL(/\/rooms\/tien-len$/);
+  await host.waitForURL(/\/play\/tien-len\/rooms$/);
 
   step('the host creates a room: easy bots, 15 s a turn, spectators welcome');
   await host
@@ -217,7 +217,7 @@ try {
   await form.getByRole('button', { name: '15 giây' }).tap();
   await form.getByRole('switch', { name: /Cho người khác vào xem/ }).tap();
   await form.getByRole('button', { name: 'Tạo phòng' }).last().tap();
-  await host.waitForURL(/\/room\//);
+  await host.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   const code = ((await host.locator('p.tracking-widest').textContent()) ?? '').replace(/\D/g, '');
   if (!/^\d{6}$/.test(code)) throw new Error(`no room code on the waiting room (${code})`);
   step(`room ${code}: the guest opens its link`);
@@ -225,7 +225,7 @@ try {
 
   await guest.goto(`${hubUrl}/r/${code}`);
   await guest.getByRole('button', { name: 'Vào ngồi' }).tap();
-  await guest.waitForURL(/\/room\//);
+  await guest.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   await host.getByText('Chú Khách').waitFor();
 
   step('the host invites the child from the waiting room');
@@ -253,7 +253,7 @@ try {
   await shot(kid, 'invitation');
   await kid.getByRole('link', { name: 'Vào phòng' }).tap();
   await kid.getByRole('button', { name: '👁 Xem' }).tap();
-  await kid.waitForURL(/\/room\//);
+  await kid.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   await kid.getByText('Bạn đang xem phòng này').waitFor();
   await shot(kid, 'watching');
 
@@ -270,7 +270,7 @@ try {
   step("the child stops watching from the game's menu, without being asked anything, and lands in the lobby");
   await kidGame.locator('[data-tohe-menu]').tap();
   await kidGame.getByRole('button', { name: 'Thôi xem' }).tap();
-  await kid.waitForURL(/\/rooms\/tien-len$/);
+  await kid.waitForURL(/\/play\/tien-len\/rooms$/);
 
   step('both play a whole hand with the hints, next to two bots');
   // Each phone plays on its own, as people do: one waiting for its buttons never holds up the other's turn.
@@ -290,7 +290,7 @@ try {
   await guestGame.locator('[data-tohe-menu]').tap();
   await guestGame.getByRole('button', { name: 'Rời bàn' }).tap();
   await guest.getByRole('dialog').getByRole('button', { name: 'Rời phòng' }).tap();
-  await guest.waitForURL(/\/rooms\/tien-len$/);
+  await guest.waitForURL(/\/play\/tien-len\/rooms$/);
 
   step('the hand is in the guest’s results, and its replay plays to the end');
   const replay = guest.getByRole('link', { name: 'Xem lại' }).first();

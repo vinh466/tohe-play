@@ -110,9 +110,9 @@ HTTPS, `docker compose logs`, one `SELECT`).
 | | `pnpm check:uat` (on the homelab) | `pnpm check:prod` (from anywhere) |
 | --- | --- | --- |
 | Expects | `--expect <ref>`, else the newest `uat-` tag; `apiVersion` is the first 12 characters of its commit | `--expect <ref>`, else the newest `prod-` tag; `apiVersion` is `sha-<full commit>`. With neither, it prints the version and warns |
-| Hub | `/api/health` is `Healthy`; `/api/config`; `/` answers; the console page at `/admin/` | `/api/health` is `Healthy`; `/api/config` (version, registration, proof of work, providers, email); `/` answers with CSP, HSTS and `nosniff`; `http://` redirects to `https://`; `www` redirects to the apex; the console page at `/admin/`, with `noindex, nofollow` |
-| Site and docs | The site's `/` and `/docs/` answer | The docs host: `/` and `/docs/` answer, `/play` redirects to the hub |
-| Games | `/catalog.json` lists games; `/` redirects to the hub with `noindex` | The same, and the first game's entry page answers with `form-action 'none'` in its CSP |
+| Hub | `/api/health` is `Healthy`; `/api/config`; `/play` answers; the console page at `/admin/` | `/api/health` is `Healthy`; `/api/config` (version, registration, proof of work, providers, email); `/play` answers with CSP, HSTS and `nosniff`; `http://` redirects to `https://`; `www` redirects to the apex; the console page at `/admin/`, with `noindex, nofollow` |
+| Site and docs | The site's `/` and `/docs/` answer | The docs host: `/` and `/docs/` answer, `/play` redirects to the hub's `/play` |
+| Games | `/catalog.json` lists games; `/` redirects to the hub's `/play` with `noindex` | The same, and the first game's entry page answers with `form-action 'none'` in its CSP |
 | Underneath | The API log since `--since` (default 15 minutes) has no `fail:`, `crit:`, `Unhandled` or `Exception` line; the newest migration in the database is the newest migration file of the commit. Skipped with `--no-docker`, or when Docker is missing | The mail DNS records: DKIM, the `send` subdomain's SPF and MX, DMARC, and the domain's MX |
 
 The addresses can be overridden (`--hub`, `--site`, `--games`, `--docs`, `--domain`; `--no-dns` skips the mail

@@ -1,4 +1,4 @@
-import { hubNamespaces, type Match, type Namespace } from './map.ts';
+import { hubNamespaces, hubRedirects, type Match, type Namespace, type Redirect } from './map.ts';
 
 /** Whether `namespace` covers `pathname` (a URL's path, without its query). */
 export function covers(namespace: Namespace, pathname: string): boolean {
@@ -44,4 +44,36 @@ export function navigationAllowlist(namespaces: readonly Namespace[] = hubNamesp
   return namespaces
     .filter((namespace) => namespace.navigation === 'app-shell')
     .map((namespace) => new RegExp(`^${escapeRegExp(namespace.path)}${followedBy[namespace.match]}`));
+}
+
+/**
+ * The regular expression (RE2 syntax, which Caddy's `path_regexp` and JavaScript share here) that matches the path of
+ * an old address: a `:name` segment is one path segment, a tree also takes what follows. Groups are numbered in order,
+ * the tree's rest last.
+ */
+export function redirectPattern(redirect: Redirect): string {
+  const path = redirect.from
+    .split('/')
+    .map((segment) => (segment.startsWith(':') ? '([^/]+)' : escapeRegExp(segment)))
+    .join('/');
+  return `^${path}${redirect.tree ? '(/.*)?' : ''}$`;
+}
+
+/** The new path of an old address, written with `group(n)` for what the pattern's n-th group captured. */
+export function redirectTemplate(redirect: Redirect, group: (n: number) => string): string {
+  let n = 0;
+  const to = redirect.to.replace(/:\w+/g, () => group(++n));
+  return redirect.tree ? `${to}${group(++n)}` : to;
+}
+
+/** Where an old path leads (301), or undefined: the hub answers as for any other path. The caller keeps the query. */
+export function redirectTarget(
+  pathname: string,
+  redirects: readonly Redirect[] = hubRedirects,
+): string | undefined {
+  for (const redirect of redirects) {
+    const found = new RegExp(redirectPattern(redirect)).exec(pathname);
+    if (found) return redirectTemplate(redirect, (n) => found[n] ?? '');
+  }
+  return undefined;
 }

@@ -100,7 +100,7 @@ public sealed class OpenIdConnectTests(ApiFactory factory) : IClassFixture<ApiFa
         var handled = await browser.GetAsync(new Uri(callback.PathAndQuery, UriKind.Relative), Ct);
         Assert.Equal(HttpStatusCode.Redirect, handled.StatusCode);
         var done = await browser.GetAsync(handled.Headers.Location, Ct);
-        Assert.Equal("/sign-in/continue", done.Headers.Location!.OriginalString);
+        Assert.Equal("/account/sign-in/continue", done.Headers.Location!.OriginalString);
 
         // The issuer vouched for the address: sign-up only needs a name and the terms.
         var pending = (await browser.GetFromJsonAsync<PendingSignInView>(new Uri("/api/auth/external/pending", UriKind.Relative), Ct))!;

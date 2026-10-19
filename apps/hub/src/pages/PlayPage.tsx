@@ -27,7 +27,9 @@ function Launcher({ player }: { player: Player }) {
   const shell = game ? hasShell(game) : false;
   // A shell game (ADR 0018) is entered from its card and left from its own main menu: back to the catalog.
   const back =
-    game?.rooms && !shell ? ({ to: '/rooms/$gameId', params: { gameId } } as const) : ({ to: '/' } as const);
+    game?.rooms && !shell
+      ? ({ to: '/play/$gameId/rooms', params: { gameId } } as const)
+      : ({ to: '/play' } as const);
 
   // Leaving through the hub's bar is confirmed: the bar sits right above the game, and touch adjustment on phones
   // snaps taps near the top edge of the game onto it. A child must not be thrown out of a round by a stray tap. A
@@ -77,7 +79,7 @@ export function Message({ text, back }: { text: string; back: string }) {
       <div className="flex flex-col items-center gap-4">
         <p className="text-ink text-lg">{text}</p>
         <BackLink
-          to="/"
+          to="/play"
           className="rounded-2xl bg-brand px-5 py-3 font-bold text-on-brand text-xl active:bg-brand-strong"
         >
           {back}

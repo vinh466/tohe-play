@@ -1,9 +1,9 @@
 /// <reference types="vitest/config" />
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
-import { navigationAllowlist } from '@tohe/routes';
+import { hubNamespaces, navigationAllowlist, redirectTarget } from '@tohe/routes';
 import react from '@vitejs/plugin-react';
-import { defineConfig, type Plugin } from 'vite';
+import { type Connect, defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 /**
@@ -26,8 +26,32 @@ function notFoundIsNotTheApp(): Plugin {
   };
 }
 
+/**
+ * What the hub's Caddy answers before the app: the root leads to the catalog (302) and the app's old paths to the new
+ * ones (301), both from the map in @tohe/routes (ADR 0042). `pnpm dev` and `vite preview` have no Caddy, so this does
+ * it, and http://localhost:4720 still opens the catalog.
+ */
+function redirectsLikeTheHub(): Plugin {
+  const middleware: Connect.NextHandleFunction = (request, response, next) => {
+    const url = new URL(request.url ?? '/', 'http://localhost');
+    const root = hubNamespaces.find((n) => n.served === 'redirect' && n.path === url.pathname);
+    const moved = redirectTarget(url.pathname);
+    const to = root?.redirectTo ?? moved;
+    if (to === undefined) return next();
+    response.statusCode = root ? 302 : 301;
+    response.setHeader('Location', `${to}${url.search}`);
+    response.end();
+  };
+  return {
+    name: 'tohe:redirects-like-the-hub',
+    configureServer: (server) => void server.middlewares.use(middleware),
+    configurePreviewServer: (server) => void server.middlewares.use(middleware),
+  };
+}
+
 export default defineConfig({
   plugins: [
+    redirectsLikeTheHub(),
     react(),
     tailwindcss(),
     VitePWA({
@@ -38,7 +62,11 @@ export default defineConfig({
         short_name: 'Tò He',
         description: 'Góc chơi nhỏ của cả nhà',
         lang: 'vi',
-        start_url: '/',
+        // The app's identity stays "/" whatever its start page; it starts at the catalog and is scoped to the whole
+        // origin, whose pages the service worker answers only inside the map's namespaces (ADR 0042).
+        id: '/',
+        start_url: '/play',
+        scope: '/',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#fff7ed',

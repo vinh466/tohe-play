@@ -86,8 +86,9 @@ export async function checkProd(options: ProdOptions, deps: ProdDeps, r: Runner)
     });
   }
 
-  await r.check('/ answers 200 with CSP, HSTS and nosniff', async () => {
-    const result = await http(`${hub}/`);
+  // /play, the app's catalog: the root only leads there until the public pages arrive (ADR 0042).
+  await r.check('/play answers 200 with CSP, HSTS and nosniff', async () => {
+    const result = await http(`${hub}/play`);
     assert(result.status === 200, `answered ${result.status}`);
     const problems = hubSecurityProblems(result.headers);
     assert(problems.length === 0, problems.join('; '));

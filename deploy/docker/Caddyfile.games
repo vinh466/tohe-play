@@ -1,5 +1,6 @@
 # Games origin: immutable /<id>/<version>/ builds + catalog.json, on a site of its own in production (ADR 0039).
-# Env: HUB_ORIGINS (space-separated origins allowed to embed games), PUBLIC_HUB_URL (where this origin's `/` leads).
+# Env: HUB_ORIGINS (space-separated origins allowed to embed games), PUBLIC_HUB_URL (the hub's origin; this origin's
+#      `/` leads to its /play).
 # games-csp.caddy is generated from @tohe/contract's gameContentSecurityPolicy() by `@tohe/games-host build`.
 {
 	admin off
@@ -16,8 +17,8 @@
 	# Game pages are meant only inside the hub's frame: search engines leave the whole origin out (ADR 0039).
 	header X-Robots-Tag "noindex, nofollow"
 
-	# Nothing to see at the origin's own front page, a name people may type: it leads to the hub (ADR 0039).
-	redir / {$PUBLIC_HUB_URL} 302
+	# Nothing to see at the origin's own front page, a name people may type: it leads to the hub's catalog (ADR 0039).
+	redir / {$PUBLIC_HUB_URL}/play 302
 
 	@catalog path /catalog.json
 	header @catalog {

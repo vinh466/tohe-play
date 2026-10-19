@@ -30,7 +30,9 @@
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 	}
 
-	# @apiProxy, @consolePage, @appPage, @appStaticImmutable, @appStaticRevalidate, @platformGenerated.
+	# @apiProxy, @consolePage, @appPage, @appStaticImmutable, @appStaticRevalidate, @platformGenerated, and the redirects
+	# as `redir` directives (the root leads to /play with a 302; the app's old paths answer 301 for the links in emails
+	# already sent), which Caddy runs before any `handle` below.
 	import /etc/caddy/hub-routes.caddy
 
 	# The admin console (ADR 0027): its own app at /admin/, built into this image. Never indexed, and stricter than the

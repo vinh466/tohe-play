@@ -11,16 +11,16 @@ namespace Tohe.Api.Infrastructure;
 public static class HubPaths
 {
     /// <summary>The sign-in screen; ?external= after a provider, ?deleting= after a deletion.</summary>
-    public const string Welcome = "/welcome";
+    public const string Welcome = "/account/sign-in";
 
     /// <summary>One more step after a provider, the first time.</summary>
-    public const string SignInContinue = "/sign-in/continue";
+    public const string SignInContinue = "/account/sign-in/continue";
 
     /// <summary>The link in the sign-up email: ?attempt=&amp;code=.</summary>
-    public const string RegisterConfirm = "/register/confirm";
+    public const string RegisterConfirm = "/account/register/confirm";
 
     /// <summary>The link in the password email: ?attempt=&amp;code=.</summary>
-    public const string PasswordReset = "/password/reset";
+    public const string PasswordReset = "/account/password/reset";
 
     /// <summary>The link that confirms a new address: ?attempt=&amp;code=.</summary>
     public const string AccountEmail = "/account/email";
@@ -29,7 +29,7 @@ public static class HubPaths
     public const string Account = "/account";
 
     /// <summary>The profile picker; ?auto=true goes straight on with one profile.</summary>
-    public const string Profiles = "/profiles";
+    public const string Profiles = "/account/profiles";
 
     /// <summary>Where a new deployment’s first owner claims the console.</summary>
     public const string ConsoleSetup = "/admin/setup";

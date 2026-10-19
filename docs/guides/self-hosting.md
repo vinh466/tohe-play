@@ -104,7 +104,7 @@ game page load nothing from elsewhere and submit no form. Apps that are not Tò 
 the games origin on a domain they share — if Tò He must live on one, give the games a domain of their own
 ([ADR 0039](../decisions/0039-games-on-a-domain-of-their-own.md)).
 
-The games origin's front page (`/`) leads to the hub, and it tells search engines to leave it out
+The games origin's front page (`/`) leads to the hub's catalog (`/play`), and it tells search engines to leave it out
 (`X-Robots-Tag: noindex, nofollow`): a game page is meant only inside the hub's frame.
 
 Choose it before people install the hub. Changed later, installed hubs keep serving the page their service worker
