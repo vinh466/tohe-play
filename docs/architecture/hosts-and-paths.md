@@ -135,4 +135,4 @@ stays in force for its part.
 | The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, and `/terms`, `/privacy` for now; manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the root answers `302` to `/play`; the old paths answer `301` | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | the landing page and the docs share `docs.toheplay.io.vn` | the public pages' pull request |
 | The console on `console.` | `/admin/` on the root | the console's pull request |
-| Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup |
+| Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |

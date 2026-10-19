@@ -12,8 +12,10 @@ export interface ProdOptions {
   hub: string;
   games: string;
   docs: string;
-  /** The domain whose mail records are checked. */
+  /** The domain people write to: its MX and its DMARC record are checked. */
   domain: string;
+  /** The domain mail is sent from (ADR 0042: `notify.` of the domain): its DKIM and return-path records are checked. */
+  sendingDomain: string;
   /** A ref whose commit production should run; else the newest `prod-` tag. */
   expect?: string;
   dns: boolean;
@@ -175,11 +177,11 @@ export async function checkProd(options: ProdOptions, deps: ProdDeps, r: Runner)
   });
 
   if (!options.dns) return;
-  r.section(`mail DNS ${options.domain}`);
+  r.section(`mail DNS ${options.domain}, sent from ${options.sendingDomain}`);
   const records: { name: string; type: 'TXT' | 'MX'; has?: RegExp }[] = [
-    { name: `resend._domainkey.${options.domain}`, type: 'TXT', has: /p=/ },
-    { name: `send.${options.domain}`, type: 'TXT', has: /v=spf1/i },
-    { name: `send.${options.domain}`, type: 'MX' },
+    { name: `resend._domainkey.${options.sendingDomain}`, type: 'TXT', has: /p=/ },
+    { name: `send.${options.sendingDomain}`, type: 'TXT', has: /v=spf1/i },
+    { name: `send.${options.sendingDomain}`, type: 'MX' },
     { name: `_dmarc.${options.domain}`, type: 'TXT', has: /v=DMARC1/i },
     { name: options.domain, type: 'MX' },
   ];
