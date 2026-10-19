@@ -19,6 +19,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `apps/admin` | The operator's console at `/admin/` on the hub's origin, with its own API at `/api/admin` (ADR 0027) |
 | `apps/site` | Landing (vi) + docs site (en) |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
+| `deploy/` | Helm chart (`deploy/helm/tohe`), Caddyfiles and Dockerfiles, UAT scripts (`deploy/uat`) |
 | `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report |
 
 ## Rules that are easy to break
@@ -32,8 +33,12 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - UI colours come from the design tokens (`bg-surface`, `text-ink`…), never raw palette classes like
   `bg-orange-500`; every screen must work in light and dark (docs/architecture/theming.md).
 - Develop only on the dev stack: ports 47xx, compose project `tohe`. Never touch other databases or containers.
-- UAT (`tohe-uat`, ports 48xx, 10.100.0.2) holds the family's data: deploy only with `deploy/uat/deploy.sh`,
-  never wipe its volume or run migrations against it by hand (docs/guides/uat.md).
+- UAT (`tohe-uat`, ports 48xx, 10.100.0.2) holds the family's data: deploy only with `deploy/uat/deploy.sh <tag>`
+  (a `uat-` tag on `main`), never wipe its volume or run migrations against it by hand (docs/guides/uat.md).
+- Production (toheplay.io.vn): read it from outside only; never write to its cluster. Pull requests are merged, and
+  `uat-`/`prod-` tags on `main` made, only on the owner's word ("merge", "deploy", "lên prod"). In `platform-infra` an
+  agent may open pull requests; the only one it merges is the one that changes `targetRevision` of `apps/tohe`. See
+  docs/guides/environments.md and ADR 0041.
 - Before merging a dependency upgrade, check `docs/roadmap/upgrade-watchlist.md`. Dependabot PRs listed there
   stay open on purpose as reminders — do not close them or add ignore rules for them.
 
@@ -46,7 +51,8 @@ pnpm verify                                    # Definition of Done, run before 
 pnpm --filter @tohe/e2e smoke                  # against a running stack
 ```
 
-Skills: `/new-game`, `/new-adr`, `/verify`, `/health-report` (in `.claude/skills/`).
+Skills: `/new-game`, `/new-adr`, `/verify`, `/health-report` (in `.claude/skills/`). Agents for the master/worker way
+of working: `scout`, `builder`, `chore`, `reviewer` (in `.claude/agents/`; docs/guides/working-with-agents.md).
 
 <!-- BEGIN:turborepo-agent-rules -->
 

@@ -2,12 +2,14 @@
 title: UAT environment
 description: The always-on environment on the homelab that the family uses — how to deploy, back up, roll back and inspect it.
 sidebar:
-  order: 4
+  order: 5
 ---
 
 UAT is the environment the family actually plays on. It runs on the homelab machine with Docker Compose and is
-reachable from the owner's devices over WireGuard/LAN at **10.100.0.2**. There is no production environment yet;
-see [ADR 0010](../decisions/0010-environments-dev-and-uat.md).
+reachable from the owner's devices over WireGuard/LAN at **10.100.0.2**. It runs the images of a `uat-` tag, and
+production runs only a commit that ran here first: see [Environments and releases](environments.md),
+[ADR 0041](../decisions/0041-promote-one-build-through-the-environments-by-tag.md) and
+[ADR 0010](../decisions/0010-environments-dev-and-uat.md).
 
 | What | URL |
 | --- | --- |
@@ -34,9 +36,11 @@ an account holds up to five. A family shares one account on its devices; another
 From any checkout of the repository on the homelab:
 
 ```sh
-deploy/uat/deploy.sh               # deploys origin/main
-deploy/uat/deploy.sh <commit>      # deploys a specific commit (roll back / forward)
+deploy/uat/deploy.sh uat-YYYY-MM-DD.N   # deploys the commit a uat- tag points at
 ```
+
+The script also accepts a commit or nothing (`origin/main`), but agents and releases always deploy a tag, rolling back
+included: a new `uat-` tag on the older commit ([ADR 0041](../decisions/0041-promote-one-build-through-the-environments-by-tag.md)).
 
 The script:
 
@@ -53,7 +57,9 @@ The script:
 
 What is running: `curl -s http://10.100.0.2:4820/api/config` → `apiVersion` is the deployed commit.
 
-Deploy only commits that are on `main` with green CI. Agents deploy after merging when asked to "ship to UAT".
+Deploy only commits that are on `main` with green CI. The agent tags the commit `uat-…` and deploys when the owner
+says "deploy" ([ADR 0041](../decisions/0041-promote-one-build-through-the-environments-by-tag.md)); the tag rules and
+the checks to run afterwards are in [Environments and releases](environments.md).
 
 The packages are public, so the homelab pulls without signing in. If a pull is refused, check the package's
 visibility on GitHub (**Packages → tohe-play/api → Package settings**), or sign in once with

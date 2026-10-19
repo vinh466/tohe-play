@@ -5,8 +5,8 @@ sidebar:
   order: 10
 ---
 
-- **Status:** Accepted — production decided by [ADR 0021](0021-release-production-through-the-tohe-chart.md); the roles of
-  all four environments by [ADR 0041](0041-promote-one-build-through-the-environments-by-tag.md)
+- **Status:** Accepted — production decided by [ADR 0021](0021-release-production-through-the-tohe-chart.md); UAT
+  deploys the commit of a `uat-` tag since [ADR 0041](0041-promote-one-build-through-the-environments-by-tag.md)
 - **Date:** 2026-10-13
 
 ## Context

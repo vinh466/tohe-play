@@ -5,6 +5,8 @@ sidebar:
   order: 1
 ---
 
+How a change reaches UAT and production is in [Environments and releases](environments.md).
+
 ## Prerequisites
 
 | Tool | Version | Notes |
@@ -84,6 +86,17 @@ TOHE_PUBLIC_HOST=192.168.1.23 docker compose up --build -d
 Then open `http://192.168.1.23:4720` on the phone (same Wi-Fi). Plain-HTTP LAN addresses are not a secure
 context: the service worker and "Add to Home Screen" only work on `localhost` or HTTPS, but the games play fine.
 
+To try the service worker and installing on an Android phone, connect it over USB and forward the hub and the games
+origin to it, then open `http://localhost:4720` on the phone — `localhost` is a secure context (either mode):
+
+```sh
+adb reverse tcp:4720 tcp:4720
+adb reverse tcp:4730 tcp:4730
+```
+
+An iPhone has no such shortcut: try it on production while only the owner uses it
+([Environments and releases](environments.md)).
+
 ## Everyday commands
 
 | Command | What it does |
@@ -93,7 +106,7 @@ context: the service worker and "Add to Home Screen" only work on `localhost` or
 | `pnpm test` | Unit tests (Vitest) and API tests (xUnit + PostgreSQL in Docker). |
 | `pnpm conformance` | Conformance kit for every game. |
 | `pnpm --filter @tohe/e2e smoke` | End-to-end smoke test against a running stack (`HUB_URL` to override). |
-| `pnpm --filter @tohe/e2e rooms` | Online rooms end to end: two phones open, join and play a Tiến Lên table (ADR 0016). |
+| `pnpm --filter @tohe/e2e rooms` | Online rooms end to end: three phones open, join and play a Tiến Lên table (ADR 0016). |
 | `pnpm --filter @tohe/hub generate:api` | Regenerate the hub's API types after an API change. |
 | `pnpm --filter @tohe/telemetry-report report` | Telemetry report of the dev stack (token `tohe-dev-only`); `-- --env uat` for UAT. |
 | `dotnet ef migrations add <Name> --project services/api/src/Tohe.Api --output-dir Infrastructure/Database/Migrations` | New migration. |
