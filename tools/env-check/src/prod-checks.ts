@@ -5,6 +5,7 @@ import { expectedCommit } from './expect.ts';
 import { hasFormActionNone, hubSecurityProblems, robotsHas } from './headers.ts';
 import { type Fetcher, getJson } from './http.ts';
 import type { Git } from './proc.ts';
+import { checkDocsHost, checkPublicPages } from './public-checks.ts';
 import { assert, clip, type Runner } from './runner.ts';
 import { prodVersion } from './versions.ts';
 
@@ -91,7 +92,8 @@ export async function checkProd(options: ProdOptions, deps: ProdDeps, r: Runner)
     });
   }
 
-  // /play, the app's catalog: the root only leads there until the public pages arrive (ADR 0042).
+  // The root is the public home page (ADR 0042); /play is the app's catalog.
+  await checkPublicPages(http, hub, r);
   await r.check('/play answers 200 with CSP, HSTS and nosniff', async () => {
     const result = await http(`${hub}/play`);
     assert(result.status === 200, `answered ${result.status}`);
@@ -182,19 +184,7 @@ export async function checkProd(options: ProdOptions, deps: ProdDeps, r: Runner)
   });
 
   r.section(`docs ${docs}`);
-  for (const path of ['/', '/docs/']) {
-    await r.check(`${path} answers 200`, async () => {
-      const result = await http(`${docs}${path}`);
-      assert(result.status === 200, `answered ${result.status}`);
-    });
-  }
-  await r.check('/play redirects to the hub', async () => {
-    const result = await http(`${docs}/play`);
-    assert(REDIRECT.includes(result.status), `answered ${result.status}`);
-    const location = result.headers.location ?? '';
-    assert(sameOrigin(location, hub), `redirects to '${location}'`);
-    return `${result.status} → ${location}`;
-  });
+  await checkDocsHost(http, docs, hub, r);
 
   if (!options.dns) return;
   r.section(`mail DNS ${options.domain}, sent from ${options.sendingDomain}`);

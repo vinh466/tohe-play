@@ -120,12 +120,74 @@ export function consoleCaddySnippet(namespaces: readonly Namespace[] = consoleNa
   return `${lines.join('\n')}\n`;
 }
 
-/** apps/hub/public/robots.txt: everything may be crawled but what the map keeps out. No sitemap until public pages. */
+/**
+ * The hub's own public URL, which the hub image's Caddy reads when the container starts (one image serves every
+ * environment, ADR 0021): robots.txt and the sitemap are Caddy templates that write it where an absolute URL belongs.
+ */
+export const HUB_URL_ENV = 'TOHE_HUB_URL';
+
+/**
+ * apps/hub/public/robots.txt: everything may be crawled but what the map keeps out, and where the sitemap is. A Caddy
+ * template (the hub's Caddy fills in the sitemap's absolute URL), served as it is by `pnpm dev`, where the line is
+ * ignored.
+ */
 export function robotsTxt(namespaces: readonly Namespace[] = hubNamespaces): string {
   const disallowed = namespaces
     .filter((namespace) => !namespace.crawl)
     .map((namespace) => `Disallow: ${namespace.match === 'tree' ? `${namespace.path}/` : namespace.path}`);
-  return `${[header('#'), '', 'User-agent: *', ...disallowed].join('\n')}\n`;
+  const sitemap = namespaces.find((namespace) => namespace.id === 'sitemap');
+  return `${[
+    header('#'),
+    '',
+    'User-agent: *',
+    'Allow: /',
+    ...disallowed,
+    ...(sitemap ? ['', `Sitemap: {{ env "${HUB_URL_ENV}" }}${sitemap.path}`] : []),
+  ].join('\n')}\n`;
+}
+
+/** The public pages the sitemap lists: the indexed namespaces, each one page. */
+export function sitemapPaths(namespaces: readonly Namespace[] = hubNamespaces): string[] {
+  const indexed = namespaces.filter((namespace) => namespace.indexed);
+  for (const namespace of indexed) {
+    // A tree or a prefix is many pages; the sitemap would need to know them (the public pages' build lists them).
+    if (namespace.match !== 'exact') {
+      throw new Error(
+        `${namespace.id}: an indexed ${namespace.match} namespace is not listed in the sitemap yet`,
+      );
+    }
+  }
+  return indexed.map((namespace) => namespace.path);
+}
+
+/**
+ * deploy/docker/hub-sitemap.caddy: the snippet `hubSitemap`, which Caddyfile.hub imports at its top level and uses to
+ * answer /sitemap.xml. The URLs are absolute, from TOHE_HUB_URL when the container starts; without it the sitemap is a
+ * 404 rather than a list of relative URLs, which crawlers reject.
+ */
+export function hubSitemapCaddySnippet(namespaces: readonly Namespace[] = hubNamespaces): string {
+  const urls = sitemapPaths(namespaces).map(
+    (path) => `\t\t  <url><loc>{{ env "${HUB_URL_ENV}" }}${path}</loc></url>`,
+  );
+  return `${[
+    header('#'),
+    '# The sitemap: the public pages the map marks as indexed, with absolute URLs from the hub’s own public URL.',
+    '(hubSitemap) {',
+    `\t@noHubUrl expression \`{env.${HUB_URL_ENV}} == ""\``,
+    '\terror @noHubUrl 404',
+    '\theader Content-Type "application/xml; charset=utf-8"',
+    '\t# The templates directive only touches the types it is told of; its default is HTML and plain text.',
+    '\ttemplates {',
+    '\t\tmime application/xml',
+    '\t}',
+    '\trespond <<XML',
+    '\t\t<?xml version="1.0" encoding="UTF-8"?>',
+    '\t\t<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...urls,
+    '\t\t</urlset>',
+    '\t\tXML 200',
+    '}',
+  ].join('\n')}\n`;
 }
 
 type Links = Record<string, { path: string; note: string }>;

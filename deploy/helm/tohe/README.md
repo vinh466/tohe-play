@@ -1,7 +1,7 @@
 # `tohe` Helm chart
 
 Runs Tò He on Kubernetes: the hub (PWA, with `/api` proxied on the same origin), the operators' console (served by the
-hub's pods on a host of its own), the API, the games origin and the landing/docs site — from scratch with its own PostgreSQL, or on infrastructure you already run
+hub's pods on a host of its own), the API, the games origin and the developer docs — from scratch with its own PostgreSQL, or on infrastructure you already run
 ([ADR 0021](../../../docs/decisions/0021-release-production-through-the-tohe-chart.md)). Step-by-step:
 [Self-hosting](../../../docs/guides/self-hosting.md). What each image reads: [Configuration](../../../docs/guides/configuration.md).
 
@@ -19,7 +19,7 @@ hub's pods on a host of its own), the API, the games origin and the landing/docs
 |---|---|
 | `publicUrls.hub` | The hub's public URL (`https://…`, no path). The API answers under `/api` on it |
 | `publicUrls.games` | The games origin — a different host from the hub's (ADR 0002), on a domain Tò He has to itself (ADR 0040) |
-| `publicUrls.site` | The landing page and docs, while `site.enabled` |
+| `publicUrls.docs` | The developer docs, at the root of their own host, while `docs.enabled`. The hub's public home page links to it |
 | `secrets.existingSecret` **or** `secrets.values.postgresPassword` | Where the secrets come from |
 
 The hosts must differ: the Ingress routes by host, and the games origin must never share the hub's. Give Tò He
@@ -61,6 +61,10 @@ to `defaults.annotations` (it lands on the Deployments themselves, where Reloade
   migrations assume one instance (ADR 0016). `api.replicaCount` other than 1 fails the render.
 - **Host filtering**: `AllowedHosts` is the hub's host, and the console's when set (`api.allowedHosts` to change
   it); the probes send the hub's as `Host`.
+- **The hub's public pages** ([ADR 0042](../../../docs/decisions/0042-hosts-by-trust-paths-by-component.md)): the hub
+  serves a home page at its root, and `/sitemap.xml` and `robots.txt` with absolute URLs. The chart gives its pods
+  `TOHE_HUB_URL` (from `publicUrls.hub`) and, while `docs.enabled`, `TOHE_DOCS_URL` (from `publicUrls.docs`), which the
+  page's links to the developer docs use.
 - **Unknown values fail** (`values.schema.json`), so a typo does not silently do nothing.
 - **Behind a proxy**, set `hub.proxy.trustedProxies` to the ingress pods' range and `hub.proxy.clientIpHeaders` to the
   header carrying the visitor's address (`CF-Connecting-IP` behind Cloudflare). Keep the range narrow — anyone
@@ -77,22 +81,22 @@ to `defaults.annotations` (it lands on the Deployments themselves, where Reloade
   host — production uses Cloudflare Access; the API does not check Access's token yet.
 
 - `api.reference.enabled` — the API reference on the hub's origin: Scalar at `/api/docs` and the OpenAPI documents
-  under `/api/openapi/`. Off, they answer 404; the docs site carries the same reference, generated at build time
+  under `/api/openapi/`. Off, they answer 404; the docs carry the same reference, generated at build time
   ([ADR 0042](../../../docs/decisions/0042-hosts-by-trust-paths-by-component.md)).
 - `hub.securityContact` — the address `/.well-known/security.txt` names for reporting vulnerabilities (RFC 9116).
   Empty, there is no `security.txt`.
 
-The hub, the games origin and the site send `Strict-Transport-Security` with `includeSubDomains`: once a browser has
+The hub, the games origin and the docs send `Strict-Transport-Security` with `includeSubDomains`: once a browser has
 seen it over HTTPS, every host under the hub's name must be HTTPS too — one more reason to give Tò He a domain of its
 own.
 
 ## Extension points
 
-On every component (`api`, `hub`, `games`, `site`, with fallbacks in `defaults`): `annotations` (on the Deployment),
+On every component (`api`, `hub`, `games`, `docs`, with fallbacks in `defaults`): `annotations` (on the Deployment),
 `podAnnotations`, `podLabels`, `nodeSelector`, `tolerations`, `affinity`, `priorityClassName`, `resources`,
 `podSecurityContext`, `securityContext`, `extraEnv`. The API also has `config` (non-secret environment),
 `extraEnvFrom`, `extraVolumes` and `extraVolumeMounts`. `ingress.enabled: false` leaves routing to you; the Services
-are `<release>-hub`, `<release>-games`, `<release>-site` on port 8080, and the console on `<release>-hub`'s port 8081.
+are `<release>-hub`, `<release>-games`, `<release>-docs` on port 8080, and the console on `<release>-hub`'s port 8081.
 `networkPolicy.enabled` lets only the hub reach the API and only the API reach the builtin PostgreSQL.
 
 **Metrics** (ADR 0036): the API serves `/metrics` for Prometheus on its port `metrics` (9464), which no ingress

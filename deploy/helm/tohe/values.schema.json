@@ -141,7 +141,7 @@
         "games": {
           "$ref": "#/definitions/origin"
         },
-        "site": {
+        "docs": {
           "$ref": "#/definitions/origin"
         },
         "console": {
@@ -285,7 +285,7 @@
     "games": {
       "$ref": "#/definitions/web"
     },
-    "site": {
+    "docs": {
       "$ref": "#/definitions/web"
     },
     "infra": {

@@ -1,6 +1,6 @@
 # Two sites, one per host (ADR 0042):
-# - :8080, the hub: the PWA plus a same-origin reverse proxy to the API, so the session cookie (M1) stays first-party.
-#   connect-src names the hub's own WebSocket (the rooms hub, ADR 0016) as well: CSP3's 'self' covers it, older Safari
+# - :8080, the hub: the public pages (apps/web, /srv/web) at the root, the PWA (/srv) and a same-origin reverse proxy
+#   to the API, so the session cookie (M1) stays first-party. connect-src names the hub's own WebSocket (the rooms hub, ADR 0016) as well: CSP3's 'self' covers it, older Safari
 #   does not.
 # - :8081, the console (ADR 0027): its app at the root and the API's console routes, on a host of its own with a
 #   session of its own. Nothing else of the hub is served there.
@@ -9,7 +9,12 @@
 # Env: API_UPSTREAM (host:port of the API), GAMES_ORIGIN (where game iframes come from),
 #      TOHE_TRUSTED_PROXIES (CIDRs of proxies in front of this server, e.g. a cluster's ingress; default: none),
 #      TOHE_CLIENT_IP_HEADERS (headers those proxies put the visitor's address in, e.g. CF-Connecting-IP),
-#      TOHE_SECURITY_CONTACT (the address /.well-known/security.txt names; unset: no security.txt).
+#      TOHE_SECURITY_CONTACT (the address /.well-known/security.txt names; unset: no security.txt),
+#      TOHE_HUB_URL (this host's own public URL, e.g. https://toheplay.io.vn: the public page's canonical links, the
+#      sitemap and robots.txt need absolute URLs; unset: /sitemap.xml answers 404),
+#      TOHE_DOCS_URL (the docs host's URL, for the public page's links to the developer docs).
+# Both URLs are read when the container starts, so one image serves every environment (ADR 0021): the build writes
+# [[[env "TOHE_HUB_URL"]]] and [[[env "TOHE_DOCS_URL"]]] into the public page (web.Dockerfile).
 {
 	admin off
 	servers {
@@ -20,6 +25,9 @@
 		client_ip_headers {$TOHE_CLIENT_IP_HEADERS:X-Forwarded-For}
 	}
 }
+
+# The snippet hubSitemap, generated from the map in @tohe/routes: it answers /sitemap.xml below.
+import /etc/caddy/hub-sitemap.caddy
 
 :8080 {
 	encode zstd gzip
@@ -33,9 +41,9 @@
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 	}
 
-	# @apiProxy, @appPage, @appStaticImmutable, @appStaticRevalidate, @platformGenerated, and the redirects as `redir`
-	# directives (the root leads to /play with a 302; the app's old paths answer 301 for the links in emails already
-	# sent), which Caddy runs before any `handle` below.
+	# @apiProxy, @publicStaticRevalidate, @publicStaticImmutable, @appPage, @appStaticImmutable, @appStaticRevalidate,
+	# @platformGenerated, and the redirects as `redir` directives (the app's old paths answer 301 for the links in
+	# emails already sent), which Caddy runs before any `handle` below.
 	import /etc/caddy/hub-routes.caddy
 
 	handle @apiProxy {
@@ -43,6 +51,27 @@
 			# The API rate-limits sign-in by client address: hand it the one worked out above, not a proxy's.
 			header_up X-Forwarded-For {client_ip}
 		}
+	}
+
+	# The public pages (apps/web): the home page at the root, from /srv/web so its index.html is not the app's. They are
+	# indexed, and their CSP is their own: no script and no style but files of the page's own (the build puts them
+	# under /_web/), no frame, no form, no connection. The build wrote the hub's and the docs' URLs as template
+	# actions, filled in from the environment here.
+	handle @publicStaticRevalidate {
+		root * /srv/web
+		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+		header Cache-Control "no-cache"
+		rewrite * /index.html
+		templates {
+			between [[[ ]]]
+		}
+		file_server
+	}
+	handle @publicStaticImmutable {
+		root * /srv/web
+		header X-Robots-Tag "noindex"
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
 	}
 
 	# The app's pages: whatever the path inside its namespaces, the app's index.html, which routes it. Not indexed.
@@ -68,14 +97,19 @@
 		file_server
 	}
 
-	# The platform's files: robots.txt, generated from the map at build time, and security.txt (RFC 9116), written here
-	# only when TOHE_SECURITY_CONTACT names an address. Its Expires is written on each request 360 days ahead: under
-	# a year, as the RFC recommends, and never stale while the setting is kept.
+	# The platform's files: robots.txt, generated from the map at build time (a template: its Sitemap line takes
+	# TOHE_HUB_URL), sitemap.xml, written here from the same map, and security.txt (RFC 9116), written here only when
+	# TOHE_SECURITY_CONTACT names an address. Its Expires is written on each request 360 days ahead: under a year, as
+	# the RFC recommends, and never stale while the setting is kept.
 	handle @platformGenerated {
 		header Cache-Control "no-cache"
 		handle /robots.txt {
 			root * /srv
+			templates
 			file_server
+		}
+		handle /sitemap.xml {
+			import hubSitemap
 		}
 		handle /.well-known/security.txt {
 			@noContact expression `{env.TOHE_SECURITY_CONTACT} == ""`

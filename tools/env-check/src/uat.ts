@@ -18,7 +18,7 @@ const { values } = parseArgs({
     since: { type: 'string', default: '15m' },
     hub: { type: 'string', default: 'http://10.100.0.2:4820' },
     console: { type: 'string', default: 'http://10.100.0.2:4821' },
-    site: { type: 'string', default: 'http://10.100.0.2:4810' },
+    docs: { type: 'string', default: 'http://10.100.0.2:4810' },
     games: { type: 'string', default: 'http://10.100.0.2:4830' },
     'no-docker': { type: 'boolean', default: false },
   },
@@ -30,7 +30,7 @@ try {
     {
       hub: values.hub,
       console: values.console,
-      site: values.site,
+      docs: values.docs,
       games: values.games,
       expect: values.expect,
       since: values.since,

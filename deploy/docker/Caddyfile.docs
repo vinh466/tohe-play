@@ -1,7 +1,7 @@
-# Site: landing page + developer docs (static Astro build).
-# Env: PUBLIC_HUB_URL (the hub's origin: "Vào chơi ngay" leads to its /play), TOHE_SITE_URL (this site's own URL, for
-#      canonical links, the sitemap and llms.txt). Both are read when the container starts, so one image serves every environment
-#      (ADR 0021): the build writes [[[env "TOHE_SITE_URL"]]] where the site's URL goes (web.Dockerfile).
+# Docs: the developer documentation (static Astro build), at the root of its host (ADR 0042).
+# Env: PUBLIC_HUB_URL (the hub's origin: /play on this host leads to the hub's /play), TOHE_DOCS_URL (this host's own
+#      URL, for canonical links, the sitemap and llms.txt). Both are read when the container starts, so one image serves
+#      every environment (ADR 0021): the build writes [[[env "TOHE_DOCS_URL"]]] where the docs' URL goes (web.Dockerfile).
 {
 	admin off
 }
@@ -20,9 +20,15 @@
 	@immutable path /_astro/*
 	header @immutable Cache-Control "public, max-age=31536000, immutable"
 
-	# The landing page's play button points here, so the hub's address is decided at run time, not at build time: the
-	# hub's catalog is its /play. Unset (a misconfigured container) it falls back to this site's home page rather than
-	# a broken redirect.
+	# The docs used to live under /docs/ (before ADR 0042 moved them to the root): links and bookmarks that still say
+	# /docs/<page> answer 301 to /<page>, the query kept.
+	@docsRoot path_regexp docsRoot ^/docs/?$
+	redir @docsRoot /?{query} 301
+	@docsPage path_regexp docsPage ^/docs/(.+)$
+	redir @docsPage /{re.docsPage.1}?{query} 301
+
+	# The hub's catalog is its /play, and the hub's address is decided at run time, not at build time. Unset (a
+	# misconfigured container) it falls back to this host's home page rather than a broken redirect.
 	@hubKnown expression `{env.PUBLIC_HUB_URL} != "" && path('/play', '/play/')`
 	redir @hubKnown {env.PUBLIC_HUB_URL}/play 302
 	@hubUnknown path /play /play/

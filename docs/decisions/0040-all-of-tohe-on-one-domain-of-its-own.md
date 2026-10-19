@@ -5,7 +5,8 @@ sidebar:
   order: 40
 ---
 
-- **Status:** Accepted — the paths on the root and three more hosts laid out by [ADR 0042](0042-hosts-by-trust-paths-by-component.md)
+- **Status:** Accepted — the paths on the root and three more hosts laid out by [ADR 0042](0042-hosts-by-trust-paths-by-component.md);
+  the Vietnamese landing page now sits at the root of the hub's host and `docs.` serves only the developer docs
 - **Date:** 2026-10-19
 - **Amends:** [ADR 0039](0039-games-on-a-domain-of-their-own.md) — the games origin is `games.toheplay.io.vn`, a
   subdomain of the hub's domain, rather than a domain apart from the hub's; the Game Contract's CSP gains

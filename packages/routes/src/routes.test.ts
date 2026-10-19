@@ -1,7 +1,25 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { caddyMatchers, consoleCaddySnippet, hubCaddySnippet, hubPathsCs, robotsTxt } from './generate.ts';
-import { consoleLinks, consoleNamespaces, hosts, hubLinks, hubNamespaces, hubRedirects } from './map.ts';
+import {
+  caddyMatcherName,
+  caddyMatchers,
+  consoleCaddySnippet,
+  hubCaddySnippet,
+  hubPathsCs,
+  hubRedirectDirectives,
+  hubSitemapCaddySnippet,
+  robotsTxt,
+  sitemapPaths,
+} from './generate.ts';
+import {
+  consoleLinks,
+  consoleNamespaces,
+  hosts,
+  hubLinks,
+  hubNamespaces,
+  hubRedirects,
+  type Namespace,
+} from './map.ts';
 import { matchConsolePath, matchHubPath, navigationAllowlist, overlap, redirectTarget } from './match.ts';
 
 /** The hub's pages (apps/hub/src/router.tsx); the hub's own test reads its router. */
@@ -57,12 +75,15 @@ describe('the map', () => {
   });
 
   it.each([
-    ['/', 'root'],
+    ['/', 'home'],
+    ['/_web/index.CkXW_mHm.css', 'public-assets'],
+    ['/_web/returning.Dj8LZPoH.js', 'public-assets'],
     ['/api/health', 'api'],
     ['/assets/index-1CKCw-Ph.js', 'assets'],
     ['/workbox-ee9d8b34.js', 'workbox'],
     ['/sw.js', 'service-worker'],
     ['/robots.txt', 'robots'],
+    ['/sitemap.xml', 'sitemap'],
     ['/.well-known/security.txt', 'well-known'],
   ])('gives %s to %s', (path, id) => {
     expect(matchHubPath(path)?.id).toBe(id);
@@ -70,7 +91,9 @@ describe('the map', () => {
 
   it.each([
     '/nope',
-    '/sitemap.xml',
+    '/_webx',
+    '/_astro/x.js',
+    '/sitemap.xml/x',
     '/playground',
     '/welcome',
     '/rooms/tien-len',
@@ -91,17 +114,45 @@ describe('the map', () => {
     expect(matchHubPath(path)).toBeUndefined();
   });
 
-  it('answers the root with a redirect to a page of the app, in no way an app page itself', () => {
-    const root = hubNamespaces.filter((namespace) => namespace.served === 'redirect');
-    expect(root.map((namespace) => namespace.path)).toEqual(['/']);
-    for (const namespace of root) {
-      expect(namespace.redirectTo, namespace.id).toBeDefined();
-      expect(matchHubPath(namespace.redirectTo ?? '')).toMatchObject({ component: 'app', served: 'page' });
-      expect(namespace.navigation, namespace.id).toBe('network');
-    }
+  it('gives the root to the public home page: static, indexed, and in no way an app page', () => {
+    expect(matchHubPath('/')).toMatchObject({
+      component: 'public',
+      served: 'static',
+      indexed: true,
+      navigation: 'network',
+    });
     for (const namespace of hubNamespaces) {
       expect(namespace.redirectTo !== undefined, namespace.id).toBe(namespace.served === 'redirect');
     }
+  });
+
+  it('indexes public pages only, and lists each of them in the sitemap', () => {
+    for (const namespace of hubNamespaces) {
+      expect(namespace.indexed, namespace.id).toBe(
+        namespace.component === 'public' && namespace.path === '/',
+      );
+    }
+    expect(sitemapPaths()).toEqual(['/']);
+    expect(hubNamespaces.find((n) => n.id === 'sitemap')).toMatchObject({
+      component: 'platform',
+      served: 'generated',
+    });
+  });
+
+  it('refuses an indexed tree in the sitemap until the public pages list their children', () => {
+    const games: Namespace = {
+      id: 'games',
+      path: '/games',
+      match: 'tree',
+      component: 'public',
+      served: 'static',
+      indexed: true,
+      crawl: true,
+      navigation: 'network',
+      cache: 'revalidate',
+      note: 'test',
+    };
+    expect(() => sitemapPaths([...hubNamespaces, games])).toThrow(/not listed in the sitemap/);
   });
 
   it('links the API only to pages of the app', () => {
@@ -266,6 +317,8 @@ describe('the service worker', () => {
   it.each([
     '/',
     '/?invite=X',
+    '/_web/x.js',
+    '/sitemap.xml',
     '/api/auth/me',
     '/admin/',
     '/admin',
@@ -283,26 +336,48 @@ describe('what the map generates', () => {
   it('names a Caddy matcher for each way of serving', () => {
     expect([...caddyMatchers().keys()]).toEqual([
       'apiProxy',
+      'publicStaticRevalidate',
+      'publicStaticImmutable',
       'appPage',
       'appStaticImmutable',
       'appStaticRevalidate',
       'platformGenerated',
     ]);
     expect(hubCaddySnippet()).toContain('@apiProxy path /api /api/*\n');
+    expect(hubCaddySnippet()).toContain('@publicStaticRevalidate path /\n');
+    expect(hubCaddySnippet()).toContain('@publicStaticImmutable path /_web /_web/*\n');
+    expect(hubCaddySnippet()).toContain(' /robots.txt /sitemap.xml /.well-known /.well-known/*\n');
     expect(hubCaddySnippet()).toContain('@appPage path /play /play/* /account /account/* ');
     expect(hubCaddySnippet()).toContain(' /workbox-* ');
   });
 
   it('writes the redirects as directives, the query kept', () => {
     const snippet = hubCaddySnippet();
-    expect(snippet).toContain('@rootRedirect path /\nredir @rootRedirect /play?{query} 302\n');
     expect(snippet).toContain('@legacyWelcome path_regexp legacyWelcome ^/welcome$\n');
     expect(snippet).toContain('redir @legacyWelcome /account/sign-in?{query} 301\n');
     expect(snippet).toContain('redir @legacyRegister /account/register{re.legacyRegister.1}?{query} 301\n');
     expect(snippet).toContain('redir @legacyRooms /play/{re.legacyRooms.1}/rooms?{query} 301\n');
     // One matcher and one redir for each, and no handler of the app's page answers a redirect.
-    expect(snippet.match(/^redir @/gm)).toHaveLength(hubRedirects.length + 1);
+    expect(snippet.match(/^redir @/gm)).toHaveLength(hubRedirects.length);
     expect(caddyMatchers().has('platformRedirect')).toBe(false);
+  });
+
+  it('can still answer a placeholder namespace with a temporary redirect', () => {
+    const placeholder: Namespace = {
+      id: 'soon',
+      path: '/soon',
+      match: 'exact',
+      component: 'platform',
+      served: 'redirect',
+      indexed: false,
+      crawl: true,
+      navigation: 'network',
+      redirectTo: '/play',
+      note: 'A page that is not there yet',
+    };
+    expect(hubRedirectDirectives([placeholder], []).join('\n')).toContain(
+      '@soonRedirect path /soon\nredir @soonRedirect /play?{query} 302',
+    );
   });
 
   it('writes the console’s matchers', () => {
@@ -334,6 +409,35 @@ describe('what the map generates', () => {
       expect(handled(hub).sort()).toEqual([...caddyMatchers().keys()].sort());
     });
 
+    it('imports the sitemap snippet at its top level, and answers /sitemap.xml with it', () => {
+      expect(caddyfile).toMatch(/^import \/etc\/caddy\/hub-sitemap\.caddy$/m);
+      expect(site(':8080')).toMatch(/handle \/sitemap\.xml \{\n\s*import hubSitemap\n/);
+    });
+
+    // The body of `handle @<matcher> { … }`: up to the closing brace at the block's own indentation.
+    const block = (hub: string, matcher: string) =>
+      hub.split(`handle @${matcher} {`)[1]?.split(/\n\t\}\n/)[0] ?? '';
+
+    it('lets search engines index the public home page and nothing else of the hub', () => {
+      const hub = site(':8080');
+      for (const name of caddyMatchers().keys()) {
+        if (name === 'apiProxy' || name === 'platformGenerated') continue;
+        const indexed = hubNamespaces.some((n) => caddyMatcherName(n) === name && n.indexed);
+        expect(block(hub, name), name).toContain('root *');
+        expect(block(hub, name).includes('X-Robots-Tag "noindex"'), name).toBe(!indexed);
+      }
+    });
+
+    it('gives the public home page a CSP of its own: no inline script, no inline style, no other origin', () => {
+      const home = block(site(':8080'), 'publicStaticRevalidate');
+      const csp = /Content-Security-Policy "([^"]*)"/.exec(home)?.[1] ?? '';
+      expect(csp).toContain("script-src 'self';");
+      expect(csp).toContain("style-src 'self';");
+      expect(csp).toContain("frame-ancestors 'none'");
+      expect(csp).not.toMatch(/unsafe-|\*|https?:|\{\$/);
+      expect(home).toContain('root * /srv/web');
+    });
+
     it('serves the console’s matchers on :8081: a handler for each, and no other', () => {
       const console = site(':8081');
       expect(console).toContain('import /etc/caddy/console-routes.caddy');
@@ -342,9 +446,18 @@ describe('what the map generates', () => {
     });
   });
 
-  it('keeps crawlers out of the API, and nothing else', () => {
-    expect(robotsTxt()).toMatch(/\nUser-agent: \*\nDisallow: \/api\/\n$/);
-    expect(robotsTxt()).not.toContain('Sitemap');
+  it('keeps crawlers out of the API, allows the rest, and names the sitemap', () => {
+    expect(robotsTxt()).toMatch(
+      /\nUser-agent: \*\nAllow: \/\nDisallow: \/api\/\n\nSitemap: \{\{ env "TOHE_HUB_URL" \}\}\/sitemap\.xml\n$/,
+    );
+  });
+
+  it('writes the sitemap from the indexed pages, with the hub’s URL read at run time', () => {
+    const snippet = hubSitemapCaddySnippet();
+    expect(snippet).toContain('(hubSitemap) {');
+    expect(snippet).toContain('@noHubUrl expression `{env.TOHE_HUB_URL} == ""`');
+    expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/</loc></url>');
+    expect(snippet.match(/<url>/g)).toHaveLength(1);
   });
 
   it('gives the API the paths it used to write by hand', () => {

@@ -1,13 +1,13 @@
 {{- if .Values.ingress.enabled }}
 {{- /*
-One Ingress, one host per origin: the hub (which also serves /api), the games origin, the site, and the console — the
+One Ingress, one host per origin: the hub (which also serves /api), the games origin, the docs, and the console — the
 hub's pods on their console port (ADR 0042).
 */ -}}
 {{- $routes := list
   (dict "host" (include "tohe.host" .Values.publicUrls.hub) "component" "hub" "port" "http")
   (dict "host" (include "tohe.host" .Values.publicUrls.games) "component" "games" "port" "http") -}}
-{{- if .Values.site.enabled }}
-{{- $routes = append $routes (dict "host" (include "tohe.host" .Values.publicUrls.site) "component" "site" "port" "http") }}
+{{- if .Values.docs.enabled }}
+{{- $routes = append $routes (dict "host" (include "tohe.host" .Values.publicUrls.docs) "component" "docs" "port" "http") }}
 {{- end }}
 {{- with .Values.publicUrls.console }}
 {{- $routes = append $routes (dict "host" (include "tohe.host" .) "component" "hub" "port" "console") }}

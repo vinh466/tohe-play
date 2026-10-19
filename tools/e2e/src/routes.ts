@@ -1,13 +1,23 @@
 #!/usr/bin/env node
-// The hub's image serves the map in @tohe/routes (ADR 0042): every app namespace gets the app's page, not indexed;
-// a path in no namespace gets a real 404; robots.txt is the one the map generates; HSTS covers subdomains. Its second
+// The hub's image serves the map in @tohe/routes (ADR 0042): the root is the public home page, indexed, with a CSP of
+// its own and assets under /_web/; every app namespace gets the app's page, not indexed; a path in no namespace gets a
+// real 404; robots.txt and sitemap.xml are the ones the map generates; HSTS covers subdomains. Its second
 // site serves the console's host: the console's page in the console's namespaces, never indexed, the API's console
 // routes behind the console's own session, and nothing else.
 // Runs against the hub's Caddy (docker compose up, CI's stack job), not `pnpm dev`, whose Vite answers every path
 // with the app. Usage: HUB_URL=http://localhost:4720 CONSOLE_URL=http://localhost:4721 pnpm --filter @tohe/e2e routes
-import { consoleNamespaces, hubNamespaces, hubRedirects, redirectTarget, robotsTxt } from '@tohe/routes';
+import {
+  consoleNamespaces,
+  hubNamespaces,
+  hubRedirects,
+  redirectTarget,
+  robotsTxt,
+  sitemapPaths,
+} from '@tohe/routes';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
+// The hub's own public URL as its container knows it (TOHE_HUB_URL: robots.txt and the sitemap write it).
+const publicHubUrl = (process.env.TOHE_HUB_URL ?? hubUrl).replace(/\/$/, '');
 const consoleUrl = process.env.CONSOLE_URL ?? hubUrl.replace(/:4720\/?$/, ':4721');
 const failures: string[] = [];
 const check = (ok: boolean, message: string) => {
@@ -35,14 +45,50 @@ for (const path of appPages) {
   );
 }
 
-// The root leads to the catalog until the public pages arrive (302, the query kept); the app's old paths answer 301 to
-// the new ones, the query kept, for the links in emails already sent.
+// The root is the public home page (apps/web): HTML that search engines may index, with a CSP that allows no inline
+// script or style, a link to the app and its assets under /_web/. The query changes nothing there (a returning device
+// is sent on by a script, in the browser: the smoke test); the app's old paths answer 301 to the new ones, the query
+// kept, for the links in emails already sent.
 {
-  const { response } = await get('/?invite=X');
+  const { response, body } = await get('/?stay');
+  const csp = response.headers.get('content-security-policy') ?? '';
   check(
-    response.status === 302 && response.headers.get('location') === '/play?invite=X',
-    `/: 302 to /play, the query kept (${response.status} ${response.headers.get('location')})`,
+    response.status === 200 &&
+      (response.headers.get('content-type') ?? '').startsWith('text/html') &&
+      !body.includes('<div id="root">') &&
+      body.includes('href="/play"') &&
+      body.includes('Chơi ngay'),
+    `/: the public home page, with "Chơi ngay" to /play (${response.status})`,
   );
+  check(
+    response.headers.get('x-robots-tag') === null && !/name="robots"/.test(body),
+    '/: indexed — no noindex in the header or the page',
+  );
+  check(
+    csp.includes("script-src 'self';") &&
+      csp.includes("style-src 'self';") &&
+      csp.includes("frame-ancestors 'none'") &&
+      !/unsafe-|\*/.test(csp),
+    `/: its own CSP, no inline script or style (${csp})`,
+  );
+  const canonical = /<link rel="canonical" href="([^"]*)"/.exec(body)?.[1] ?? '';
+  check(
+    canonical === `${publicHubUrl}/` && !body.includes('.invalid') && !body.includes('[[['),
+    `/: the canonical link is the hub's own URL, no placeholder left (${canonical})`,
+  );
+  const assets = [...body.matchAll(/(?:src|href)="(\/_web\/[^"]+)"/g)].map((match) => match[1] ?? '');
+  check(assets.length >= 3, `/: its scripts and styles are files under /_web/ (${assets.length})`);
+  for (const path of assets) {
+    const asset = await get(path);
+    check(
+      asset.response.status === 200 &&
+        (asset.response.headers.get('cache-control') ?? '').includes('immutable') &&
+        (asset.response.headers.get('x-robots-tag') ?? '').includes('noindex'),
+      `${path}: served, cached for good, not indexed (${asset.response.status})`,
+    );
+  }
+  const inline = /<script(?![^>]*\ssrc=)[^>]*>|<style[\s>]/.test(body);
+  check(!inline, '/: no inline script or style in the page');
 }
 for (const redirect of hubRedirects) {
   const from = redirect.from.replace(/:\w+/g, 'tien-len');
@@ -66,7 +112,9 @@ for (const path of [
   '/room/0b7c',
   '/replay/0b7c/3',
   '/nope',
-  '/sitemap.xml',
+  '/_web/nope.js',
+  '/web/index.html',
+  '/sitemap.xml/x',
   '/playground',
   // The console has a host of its own (ADR 0042).
   '/admin',
@@ -88,8 +136,18 @@ const robots = await get('/robots.txt');
 check(
   robots.response.status === 200 &&
     (robots.response.headers.get('content-type') ?? '').startsWith('text/plain') &&
-    robots.body === robotsTxt(),
-  `/robots.txt: text, as the map generates it (${robots.response.status})`,
+    robots.body === robotsTxt().replace('{{ env "TOHE_HUB_URL" }}', publicHubUrl),
+  `/robots.txt: text, as the map generates it, the sitemap's URL filled in (${robots.response.status})`,
+);
+
+const sitemap = await get('/sitemap.xml');
+check(
+  sitemap.response.status === 200 &&
+    (sitemap.response.headers.get('content-type') ?? '').includes('xml') &&
+    sitemap.body.includes('<urlset') &&
+    sitemap.body.includes(`<loc>${publicHubUrl}/</loc>`) &&
+    sitemapPaths().every((path) => sitemap.body.includes(`<loc>${publicHubUrl}${path}</loc>`)),
+  `/sitemap.xml: XML, the indexed pages with absolute URLs (${sitemap.response.status})`,
 );
 
 const contact = process.env.TOHE_SECURITY_CONTACT;

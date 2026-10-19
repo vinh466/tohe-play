@@ -1,11 +1,11 @@
 # The production shape on the platform-infra cluster (ADR 0021): the shared CloudNativePG server, every secret from an
 # Infisical-managed Secret, Traefik behind Cloudflare (TLS ends at Cloudflare), Reloader rolling on secret changes.
-# All of Tò He on toheplay.io.vn, a domain it has to itself (ADR 0040): the hub at its root, the games origin, the site
-# and the console one level down — Cloudflare's free certificate covers one level (ADR 0042).
+# All of Tò He on toheplay.io.vn, a domain it has to itself (ADR 0040): the hub at its root (public pages and the app), the
+# games origin, the docs and the console one level down — Cloudflare's free certificate covers one level (ADR 0042).
 publicUrls:
   hub: https://toheplay.io.vn
   games: https://games.toheplay.io.vn
-  site: https://docs.toheplay.io.vn
+  docs: https://docs.toheplay.io.vn
   # The operators' console, behind Cloudflare Access (ADR 0042).
   console: https://console.toheplay.io.vn
 global:

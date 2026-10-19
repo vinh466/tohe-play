@@ -32,14 +32,14 @@ export const hosts: readonly Host[] = [
     role: 'hub',
     label: '',
     state: 'serving',
-    purpose: 'Players: the app, the API',
+    purpose: 'Players: the public pages, the app, the API',
   },
   { role: 'games', label: 'games', state: 'serving', purpose: 'Game code, untrusted (ADR 0002, 0040)' },
   {
     role: 'docs',
     label: 'docs',
     state: 'serving',
-    purpose: 'Developer documentation (and the landing page for now)',
+    purpose: 'Developer documentation, at the root of the host',
   },
   {
     role: 'console',
@@ -68,7 +68,7 @@ export const hosts: readonly Host[] = [
 ];
 
 /** Who owns a namespace on the hub's host or the console's. */
-export type Component = 'app' | 'console' | 'api' | 'platform';
+export type Component = 'public' | 'app' | 'console' | 'api' | 'platform';
 
 /**
  * How a namespace is served:
@@ -76,7 +76,8 @@ export type Component = 'app' | 'console' | 'api' | 'platform';
  * - `static`: files from the image, as they are;
  * - `proxy`: passed to a service behind the hub (the API);
  * - `generated`: written by the platform — at build time (robots.txt) or by Caddy at run time (security.txt);
- * - `redirect`: answered with a temporary redirect to `redirectTo` (a placeholder until a page of its own arrives).
+ * - `redirect`: answered with a temporary redirect to `redirectTo` (a placeholder until a page of its own arrives; no
+ *   namespace is one today).
  */
 export type Served = 'page' | 'static' | 'proxy' | 'generated' | 'redirect';
 
@@ -143,8 +144,8 @@ const appFile = (
 });
 
 /**
- * The hub's host (ADR 0042): the app owns /play and /account (and the short link /r/). The console has a host of its
- * own (consoleNamespaces); the next step puts public pages at the root.
+ * The hub's host (ADR 0042): the public pages own the root (apps/web), the app owns /play and /account (and the short
+ * link /r/). The console has a host of its own (consoleNamespaces).
  */
 export const hubNamespaces: readonly Namespace[] = [
   // The API, on the players' origin (the backend-for-frontend pattern).
@@ -159,19 +160,31 @@ export const hubNamespaces: readonly Namespace[] = [
     navigation: 'network',
     note: 'The API, proxied on the same origin',
   },
-  // The root, until the public pages arrive: it leads to the catalog. Not an app page, so the service worker leaves it
-  // to the network and a later pull request replaces this entry with the public home page.
+  // The public pages (apps/web), built into the hub image and served from /srv/web. Not app pages, so the service
+  // worker leaves them to the network. Their CSP allows no inline script: scripts are files under /_web/.
   {
-    id: 'root',
+    id: 'home',
     path: '/',
     match: 'exact',
-    component: 'platform',
-    served: 'redirect',
+    component: 'public',
+    served: 'static',
+    indexed: true,
+    crawl: true,
+    navigation: 'network',
+    cache: 'revalidate',
+    note: 'The public home page (Vietnamese); a browser that has played here is sent on to /play',
+  },
+  {
+    id: 'public-assets',
+    path: '/_web',
+    match: 'tree',
+    component: 'public',
+    served: 'static',
     indexed: false,
     crawl: true,
     navigation: 'network',
-    redirectTo: '/play',
-    note: 'Leads to the catalog until the public pages arrive',
+    cache: 'immutable',
+    note: 'Scripts, styles and images the public pages’ build adds, with hashed names',
   },
 
   // The app's pages (apps/hub/src/router.tsx): only game ids under /play, everything of a person under /account.
@@ -220,6 +233,17 @@ export const hubNamespaces: readonly Namespace[] = [
     crawl: true,
     navigation: 'network',
     note: 'Generated from this map',
+  },
+  {
+    id: 'sitemap',
+    path: '/sitemap.xml',
+    match: 'exact',
+    component: 'platform',
+    served: 'generated',
+    indexed: false,
+    crawl: true,
+    navigation: 'network',
+    note: 'The indexed public pages, with absolute URLs from TOHE_HUB_URL, written by the hub’s Caddy',
   },
   {
     id: 'well-known',

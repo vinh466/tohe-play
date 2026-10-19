@@ -17,10 +17,10 @@ sessions unless it is written where the agent will read it. The owner also wants
 
 - `docs/` at the repository root is the **only** specification. Pages are Markdown with Starlight frontmatter and
   link to each other with relative `.md` paths (readable on GitHub and in editors).
-- `apps/site` (Astro + Starlight) renders `docs/` under `/docs/`, rewrites relative links to routes, validates
+- `apps/docs` (Astro + Starlight) renders `docs/` at the root of the docs host, rewrites relative links to routes, validates
   every link at build time, renders Mermaid diagrams, generates the API reference from the committed OpenAPI
   document, and publishes `llms.txt` for agents.
-- Docs are in **English**; the landing page and the games' UI are in Vietnamese.
+- Docs are in **English**; the public pages and the games' UI are in Vietnamese.
 - `AGENTS.md` (with `CLAUDE.md` importing it) is short and points to
   [Working with agents](../guides/working-with-agents.md). Repeatable workflows are agent skills in
   `.claude/skills/`.

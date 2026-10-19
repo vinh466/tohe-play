@@ -64,6 +64,10 @@ services:
     environment:
       API_UPSTREAM: api:8080
       GAMES_ORIGIN: http://${TOHE_PUBLIC_HOST:-localhost}:4730
+      # The public page's canonical links, /sitemap.xml and robots.txt name the hub's own URL; its links to the
+      # developer docs name the docs host's (ADR 0042).
+      TOHE_HUB_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4720
+      TOHE_DOCS_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4710
       # Set it to try /.well-known/security.txt; unset, that path answers 404.
       TOHE_SECURITY_CONTACT: ${TOHE_SECURITY_CONTACT:-}
     depends_on:
@@ -85,14 +89,15 @@ services:
     ports:
       - "4730:8080"
 
-  site:
+  # The developer docs, at the root of their own host (ADR 0042).
+  docs:
     build:
       context: .
       dockerfile: deploy/docker/web.Dockerfile
-      target: site
+      target: docs
     environment:
       PUBLIC_HUB_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4720
-      TOHE_SITE_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4710
+      TOHE_DOCS_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4710
     ports:
       - "4710:8080"
 

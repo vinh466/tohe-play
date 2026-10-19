@@ -28,7 +28,8 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 
 | Port | Service |
 | --- | --- |
-| 4710 | Site (landing + docs) |
+| 4710 | Docs, at the root of their own host (`pnpm dev` and compose) |
+| 4711 | The public pages' dev server (`pnpm dev` only). Under compose they are the root of the hub, 4720; under `pnpm dev` the root of 4720 is the app's dev server, which has no public page |
 | 4720 | Hub (open this) — proxies `/api` to the API |
 | 4721 | The console, on a host of its own with its own sign-in: its dev server under `pnpm dev`, the hub container's second site under `docker compose`. The API answers the console's routes at this address only (`App:ConsoleUrl`) ([Admin console](../architecture/admin.md)). Under `pnpm dev` it answers only at `http://localhost:4721`, not through `127.0.0.1` or a LAN IP: the API tells the console's host by the `Host` header |
 | 4730 | Games origin |
@@ -43,10 +44,10 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 
 ```sh
 docker compose up -d postgres mailpit   # the database, and Mailpit for the codes sign-up emails
-pnpm dev                                # API (dotnet watch) + games origin + hub + site
+pnpm dev                                # API (dotnet watch) + games origin + hub + public pages + docs
 ```
 
-Open <http://localhost:4720>. The API migrates the database on start and indexes the games within ~15 s.
+Open <http://localhost:4720/play> (under compose the root, <http://localhost:4720>, is the public home page; under `pnpm dev` it is on <http://localhost:4711>). The API migrates the database on start and indexes the games within ~15 s.
 A new device lands on the welcome screen: sign up with any email and a password of 8+ characters (the code arrives
 in Mailpit, <http://localhost:4760>), add a child profile under "Quản lý tài khoản", or use "Chơi thử" to play as a
 guest.
@@ -66,7 +67,7 @@ pnpm --filter @tohe/game-hello dev:standalone    # http://localhost:4731
 ## Mode B — production-like containers
 
 ```sh
-docker compose up --build -d    # postgres, mailpit, api, hub, games, site
+docker compose up --build -d    # postgres, mailpit, api, hub, games, docs
 ```
 
 Same URLs as above. Images are the ones production will use (Caddy + chiseled .NET). Stop with
@@ -106,7 +107,7 @@ pnpm stack:image uat-2026-10-20.1    # a uat-/prod- tag, a branch (origin/main),
 pnpm stack:image --down              # stop it and remove its database
 ```
 
-The script resolves the tag or commit, pulls `ghcr.io/vinh466/tohe-play/{api,hub,games,site}:sha-<commit>` and starts
+The script resolves the tag or commit, pulls `ghcr.io/vinh466/tohe-play/{api,hub,games,docs}:sha-<commit>` and starts
 them next to a fresh PostgreSQL and Mailpit, in their own compose project, `tohe-image`, on the same ports as the
 other modes (hub <http://localhost:4720>, mail <http://localhost:4760>). When the hub answers it prints the commit and
 the API's `apiVersion`. The tag only decides the images: `compose.yaml` and `compose.image.yaml` come from your

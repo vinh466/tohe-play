@@ -1,6 +1,6 @@
 // Docs link to each other with relative `.md` paths so they work on GitHub and in an editor.
 // This rewrites those links to site routes at build time: `../contracts/game-contract-v1.md#manifest`
-// becomes `/docs/contracts/game-contract-v1/#manifest`. Links that leave docs/ point to GitHub.
+// becomes `/contracts/game-contract-v1/#manifest`. Links that leave docs/ point to GitHub.
 import { dirname, relative, resolve } from 'node:path';
 
 interface Node {
@@ -22,7 +22,10 @@ export function remarkRepoLinks() {
       const fromRoot = relative(REPO_ROOT, resolve(fromDir, target)).replaceAll('\\', '/');
       const anchor = hash ? `#${hash}` : '';
       if (fromRoot.startsWith('docs/') && fromRoot.endsWith('.md')) {
-        const route = fromRoot.replace(/\.md$/, '').replace(/(^|\/)index$/, '');
+        const route = fromRoot
+          .replace(/^docs\//, '')
+          .replace(/\.md$/, '')
+          .replace(/(^|\/)index$/, '');
         node.url = `/${route}/${anchor}`.replace(/\/+/g, '/');
       } else if (!fromRoot.startsWith('..')) {
         node.url = `${GITHUB_BLOB}${fromRoot}${anchor}`;

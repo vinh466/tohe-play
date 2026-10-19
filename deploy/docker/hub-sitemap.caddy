@@ -1,0 +1,18 @@
+# Generated from @tohe/routes (packages/routes/src/map.ts) by `pnpm --filter @tohe/routes build`.
+# Do not edit: change the map and regenerate (ADR 0042, docs/architecture/hosts-and-paths.md).
+# The sitemap: the public pages the map marks as indexed, with absolute URLs from the hub’s own public URL.
+(hubSitemap) {
+	@noHubUrl expression `{env.TOHE_HUB_URL} == ""`
+	error @noHubUrl 404
+	header Content-Type "application/xml; charset=utf-8"
+	# The templates directive only touches the types it is told of; its default is HTML and plain text.
+	templates {
+		mime application/xml
+	}
+	respond <<XML
+		<?xml version="1.0" encoding="UTF-8"?>
+		<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/</loc></url>
+		</urlset>
+		XML 200
+}

@@ -2,7 +2,7 @@
 # Do not run by hand: deploy with deploy/uat/deploy.sh, which runs the images CI published for an exact commit
 # (ADR 0021), backs up the database first and supplies the secrets file. See docs/guides/uat.md.
 #
-# Hub  http://${TOHE_UAT_HOST}:4820   ·   Console :4821   ·   Site/docs http://${TOHE_UAT_HOST}:4810   ·   Games origin :4830
+# Hub (public pages + app) http://${TOHE_UAT_HOST}:4820   ·   Console :4821   ·   Docs http://${TOHE_UAT_HOST}:4810   ·   Games origin :4830
 # The API and PostgreSQL are not published; the hub proxies /api, the console its own routes (/api/admin).
 name: tohe-uat
 
@@ -57,6 +57,10 @@ services:
     environment:
       API_UPSTREAM: api:8080
       GAMES_ORIGIN: http://${TOHE_UAT_HOST:-10.100.0.2}:4830
+      # The public page's canonical links, /sitemap.xml and robots.txt name the hub's own URL; its links to the
+      # developer docs name the docs host's (ADR 0042).
+      TOHE_HUB_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
+      TOHE_DOCS_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4810
       # /.well-known/security.txt names this address; unset in uat.env, that path answers 404.
       TOHE_SECURITY_CONTACT: ${TOHE_UAT_SECURITY_CONTACT:-}
     depends_on:
@@ -76,12 +80,12 @@ services:
     ports:
       - "4830:8080"
 
-  site:
+  docs:
     <<: *restart
-    image: ghcr.io/vinh466/tohe-play/site:${TOHE_IMAGE_TAG:?set by deploy/uat/deploy.sh}
+    image: ghcr.io/vinh466/tohe-play/docs:${TOHE_IMAGE_TAG:?set by deploy/uat/deploy.sh}
     environment:
       PUBLIC_HUB_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
-      TOHE_SITE_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4810
+      TOHE_DOCS_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4810
     ports:
       - "4810:8080"
 

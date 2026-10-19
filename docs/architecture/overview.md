@@ -17,11 +17,11 @@ flowchart TB
   end
 
   subgraph server [Homelab · docker compose: dev 47xx, UAT 48xx]
-    hubsrv[Hub server<br/>Caddy: static + /api proxy]
+    hubsrv[Hub server<br/>Caddy: public pages + app + /api proxy]
     api[Platform API<br/>ASP.NET Core 10]
     db[(PostgreSQL 18)]
     gamessrv[Games origin<br/>Caddy: static builds]
-    site[Site<br/>Caddy: landing + docs]
+    docs[Docs<br/>Caddy: developer docs]
   end
 
   hubui -- "GET /api/*" --> hubsrv --> api --> db
@@ -37,7 +37,8 @@ flowchart TB
 | Hub | `apps/hub` | Profiles, catalog, launcher, host side of the contract, local-first storage and (M2) sync. |
 | Platform API | `services/api` | Identity (M1), registry, saves and scores (M2), parental settings. The only writer to the database. |
 | Games origin | `games/*` → `tools/games-host` | Immutable static builds under `/<id>/<version>/` plus `catalog.json`. |
-| Site | `apps/site` + `docs/` | Landing page (Vietnamese) and developer docs (English). |
+| Public pages | `apps/web` | The home page (Vietnamese), built into the hub image and served by its Caddy at the root of the hub's host ([Hosts and paths](hosts-and-paths.md)). |
+| Docs | `apps/docs` + `docs/` | The developer docs (English), at the root of their own host. |
 | Admin console | `apps/console` | The operator's pages on a host of its own with its own sign-in, served by the hub image's server on a second site ([Admin console](admin.md)). |
 
 ## Origins
@@ -46,15 +47,15 @@ Three browser origins, on purpose:
 
 | Origin | Local (dev) | UAT (homelab) | Why separate |
 | --- | --- | --- | --- |
-| Hub + API | `http://localhost:4720` (API also on `:4740` for debugging) | `http://10.100.0.2:4820` | The session cookie (M1) stays first-party; the API is same-origin, so no CORS. |
+| Hub + API | `http://localhost:4720` (API also on `:4740` for debugging) | `http://10.100.0.2:4820` | The public pages and the app share the origin, so the session cookie (M1) stays first-party; the API is same-origin, so no CORS. |
 | Games | `http://localhost:4730` | `http://10.100.0.2:4830` | Game code — possibly AI-written — can never read the hub's cookies or storage. |
-| Site | `http://localhost:4710` | `http://10.100.0.2:4810` | Static, independent of the app; stays up if the app is down. |
+| Docs | `http://localhost:4710` | `http://10.100.0.2:4810` | Static, independent of the app; stays up if the app is down. |
 
 Environments are described in [ADR 0010](../decisions/0010-environments-dev-and-uat.md). Production runs the same
 images on the `platform-infra` cluster through Tò He's Helm chart, configured when the containers start
 ([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md), [Configuration](../guides/configuration.md)).
 There all of Tò He is on `toheplay.io.vn`, a domain it has to itself: the hub at its root, the games origin at
-`games.toheplay.io.vn`, the site at `docs.toheplay.io.vn` — one level down, which Cloudflare's free certificate
+`games.toheplay.io.vn`, the docs at `docs.toheplay.io.vn` — one level down, which Cloudflare's free certificate
 covers ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)). The games are the same *site* as the hub there, as
 locally and on UAT, where only the port tells the origins apart: the hub's `__Host-` session cookie (on HTTPS), the
 API's same-origin checks and the games' CSP keep game code away from it, and no app that is not Tò He's shares the
@@ -91,7 +92,7 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | Admin | the platform at a glance, users, sign-in and registration, communities ([ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md), [0028](../decisions/0028-sign-in-and-registration-at-run-time.md)) | `/api/admin/*`, an OpenAPI document of its own; reads what the other modules expose — see [Admin console](admin.md) |
 | Rooms | done ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | `/api/rooms/*`, SignalR `/api/rooms/hub` — see [Online rooms](rooms.md) |
 
-Generated reference: [Platform API](/docs/reference/api/).
+Generated reference: [Platform API](/reference/api/).
 
 ## Key flows
 

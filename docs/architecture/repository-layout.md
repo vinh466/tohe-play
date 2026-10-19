@@ -13,14 +13,15 @@ tohe-play/
 ├── apps/
 │   ├── hub/                 React PWA: catalog, launcher, profiles, local-first storage
 │   ├── console/             The operator's console, on a host of its own (ADR 0027, 0042)
-│   └── site/                Astro + Starlight: landing page + renders docs/
+│   ├── web/                 Astro: the public pages (vi), built into the hub image and served at its root (ADR 0042)
+│   └── docs/                Astro + Starlight: renders docs/ at the root of the docs host
 ├── services/
 │   └── api/                 .NET 10 solution (Tohe.slnx): src/Tohe.Api, tests/Tohe.Api.Tests, openapi/
 ├── packages/
 │   ├── contract/            Game Contract v1: Zod schemas, JSON Schema output, game CSP
 │   ├── game-sdk/            Game side (dependency-free) + host side (/host) of the contract
 │   ├── game-kit/            Shared game building blocks: Phaser setup, sfx, haptics, juice, overlay (ADR 0012)
-│   └── design-tokens/       Light/dark colour tokens + the shared theme choice, for hub, site and kit (ADR 0013)
+│   └── design-tokens/       Light/dark colour tokens + the shared theme choice, for hub, public pages, docs and kit (ADR 0013)
 ├── games/
 │   └── <id>/                One folder per game; folder name = game id
 ├── tools/

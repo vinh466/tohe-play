@@ -57,8 +57,8 @@ spec:
 {{- end }}
 {{- with .Values.networkPolicy.ingressNamespaceLabels }}
 {{- $labels := . }}
-{{- range $component := list "hub" "games" "site" }}
-{{- if or (ne $component "site") $.Values.site.enabled }}
+{{- range $component := list "hub" "games" "docs" }}
+{{- if or (ne $component "docs") $.Values.docs.enabled }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: NetworkPolicy
