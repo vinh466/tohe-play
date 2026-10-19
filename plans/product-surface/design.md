@@ -19,15 +19,20 @@ flowchart LR
   subgraph root ["toheplay.io.vn (image hub)"]
     pub["Trang công khai tĩnh<br/>/ · /games · /guides · /faq"] -- "Chơi ngay" --> app
     links["/r/&lt;mã&gt; · /s/&lt;mã&gt;<br/>lối vào (D-08)"] --> app["App /play …<br/>PWA id “/”"]
-    app --> api["/api"]
-    admin["/admin/"] --> api
+    app --> api["/api → API (BFF)"]
+  end
+  subgraph ops ["admin.toheplay.io.vn (sau Cloudflare Access)"]
+    console["Console"] --> aapi["/api/admin → API (BFF)"]
   end
   person --> links
   app -- iframe + init.entry --> games["games.toheplay.io.vn"]
+  console -- iframe --> games
   dev([Người làm game · agent]) --> docs["docs.toheplay.io.vn"]
+  person -.-> status["status.toheplay.io.vn<br/>(dịch vụ ngoài)"]
 ```
 
-Host và đường dẫn: D-01 *(proposed)*; domain: D-02 *(decided)*; lối vào: D-08 *(decided)*.
+Chuẩn bố cục bốn tầng (domain · host = ranh giới niềm tin · namespace = thành phần · luật chung): D-01 v4 *(proposed)*;
+domain: D-02 *(decided)*; lối vào: D-08 *(decided)*. Thư: gửi từ `notify.`, nhận `hello@`/`security@` ở gốc.
 
 ## 2. Các mảnh, chuẩn đứng sau, và nơi ở
 
@@ -63,6 +68,8 @@ bản pháp lý (E-05).
 
 - Hành vi thật của WebView Zalo (mở trình duyệt, thẻ xem trước) và iOS 26 (mở như web app, chép cookie, không mở app từ
   link) — trả lời ở vòng thử thiết bị (E-03 §14).
+- `status.` chung DNS Cloudflare với Tò He (một domain, D-02): sự cố DNS làm mất cả trang trạng thái — kênh phụ là nhóm
+  Zalo/Facebook của owner (D-01 Q11).
 - Tuổi và sự đồng ý khi hồ sơ máy lên server (Nghị định 13/2023 Điều 20) — D-06 Q6, owner duyệt câu chữ cùng văn bản
   pháp lý (E-05).
 - Zalo có trả email không — quyết định Zalo (Phase 2) phụ thuộc vào nó (D-05 Q2).

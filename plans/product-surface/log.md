@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-20 (rạng sáng) — agent
+
+- Owner bật Email Routing → agent kiểm DNS: 3 MX, SPF gốc, DKIM `cf2024-1`, DMARC; `send.` nguyên vẹn. Chờ thư thử.
+- Owner: chọn tự do một chuẩn hiệu quả, không ngại sửa cũ hay thêm subdomain → R-06 (RFC 10017 BFF, HSTS, status, Kahoot…)
+  + **D-01 v4**: chuẩn bốn tầng, chấm L1/L2/L3 theo N1–N10 → L1; thêm `admin.` (+ Cloudflare Access), `notify.`, `status.`,
+  HSTS `includeSubDomains`, tên UAT `*.uat.`; P1-1 tách a/b/c. Chờ owner: Q1, Q7–Q12.
+
 ## 2026-10-19 (nửa đêm) — agent
 
 - Owner trả lời D-01: Q2 `/play` + route tiếng Anh, Q3 route công khai tiếng Anh, Q4 Email Routing, Q5 tắt Scalar có cờ,

@@ -12,7 +12,7 @@ flowchart TD
   subgraph P1A ["Phase 1A — bề mặt"]
     D02["D-02 Domain ✔"]
     D03["D-03 User-first, vòng đời ✔"]
-    D01["D-01 Host + đường dẫn<br/>(owner review)"]
+    D01["D-01 Chuẩn bố cục<br/>(owner review v4)"]
     D04["D-04 Đo luồng người mới ✔"]
     E02["E-02 Trang công khai · SEO · GEO ✔"]
     E04b["E-04b Viết lại vision ✔"]
@@ -57,7 +57,7 @@ flowchart TD
 | E-04 | Spec nói đúng: (a) sự thật, (b) vision user-first | Agent đọc spec trước khi xây | E-02, E-03 |
 | D-02 ✔ | Domain lâu dài → `toheplay.io.vn` duy nhất | Origin của hub đắt khi đổi | D-01, E-05 |
 | D-03 ✔ | Đối tượng → không chia; vòng đời một user | Lời, màn đầu tiên, trục của plan | E-02, E-04b, D-06 |
-| D-01 | Mỗi thành phần ở host/đường dẫn nào | Landing đang ở `docs.`, gốc là SPA trống với máy | E-02, E-03 |
+| D-01 | Chuẩn bố cục: domain · host theo vai · namespace theo thành phần · luật chung | Landing ở `docs.`, gốc trống với máy, admin chung origin người chơi | E-02, E-03 |
 | D-04 | Đo luồng người mới mà không theo dõi | Biết sửa chỗ nào | (E-03, mềm) |
 | E-02 | Trang công khai, SEO, GEO | Hướng 4 của brief | E-05 |
 | D-06 | Hồ sơ máy, ba bậc yêu cầu, ba nguồn yêu cầu | Case 1/case 2 của owner, offline, rủ nhau | D-07, D-08, D-05 |
