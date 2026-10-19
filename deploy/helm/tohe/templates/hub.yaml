@@ -1,4 +1,7 @@
-{{- /* The hub: the PWA, and /api proxied to the API on the same origin (deploy/docker/Caddyfile.hub). */ -}}
+{{- /*
+The hub: the PWA, and /api proxied to the API on the same origin (deploy/docker/Caddyfile.hub). Its Caddy serves the
+console too, on a second site, port 8081, for the console's host (ADR 0027, 0042).
+*/ -}}
 {{- $env := list
   (dict "name" "API_UPSTREAM" "value" (printf "%s:8080" (include "tohe.componentName" (dict "root" . "component" "api"))))
   (dict "name" "GAMES_ORIGIN" "value" (include "tohe.origin" .Values.publicUrls.games)) -}}
@@ -11,4 +14,8 @@
 {{- with .Values.hub.securityContact }}
 {{- $env = append $env (dict "name" "TOHE_SECURITY_CONTACT" "value" .) }}
 {{- end }}
-{{ include "tohe.caddyWorkload" (dict "root" . "component" "hub" "values" .Values.hub "env" $env "probePath" "/") }}
+{{- $ports := list }}
+{{- if .Values.publicUrls.console }}
+{{- $ports = list (dict "name" "console" "port" 8081) }}
+{{- end }}
+{{ include "tohe.caddyWorkload" (dict "root" . "component" "hub" "values" .Values.hub "env" $env "probePath" "/" "ports" $ports) }}

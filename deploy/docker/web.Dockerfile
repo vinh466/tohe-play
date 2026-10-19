@@ -11,8 +11,8 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --prefer-offline
 
 FROM workspace AS build-hub
-# The admin console (ADR 0027) ships in the hub's image, served at /admin/.
-RUN pnpm turbo run build --filter=@tohe/hub --filter=@tohe/admin
+# The console (ADR 0027) ships in the hub's image, served by its Caddy on a second site, the console's host (ADR 0042).
+RUN pnpm turbo run build --filter=@tohe/hub --filter=@tohe/console
 
 FROM workspace AS build-site
 # One image for every environment (ADR 0021). The site's own URL (canonical links, sitemap, llms.txt) is built as a
@@ -31,11 +31,14 @@ RUN pnpm turbo run build --filter=@tohe/games-host
 
 FROM caddy:2-alpine AS hub
 COPY deploy/docker/Caddyfile.hub /etc/caddy/Caddyfile
-# The hub's namespaces, generated from @tohe/routes and committed (ADR 0042); Caddyfile.hub imports it.
+# The namespaces of the hub's host and the console's, generated from @tohe/routes and committed (ADR 0042);
+# Caddyfile.hub imports them.
 COPY deploy/docker/hub-routes.caddy /etc/caddy/hub-routes.caddy
+COPY deploy/docker/console-routes.caddy /etc/caddy/console-routes.caddy
 COPY --from=build-hub /repo/apps/hub/dist /srv
-COPY --from=build-hub /repo/apps/admin/dist /srv/admin
-EXPOSE 8080
+COPY --from=build-hub /repo/apps/console/dist /srv/console
+# 8080 the hub, 8081 the console.
+EXPOSE 8080 8081
 
 FROM caddy:2-alpine AS site
 COPY deploy/docker/Caddyfile.site /etc/caddy/Caddyfile

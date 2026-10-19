@@ -18,6 +18,10 @@ publicUrls:
   games: ""
   # The landing page and the docs. Required while site.enabled.
   site: ""
+  # The operators' console (ADR 0027, 0042): a host of its own with a session of its own, served by the hub's pods on
+  # their port 8081 — e.g. https://console.tohe.example beside https://tohe.example. Put an access proxy in front of it
+  # (Cloudflare Access). Empty: no console — no ingress rule, and the API answers its routes with 404.
+  console: ""
 
 global:
   image:

@@ -5,6 +5,7 @@ import { Git, type Run } from './proc.ts';
 import { checkProd } from './prod-checks.ts';
 import { checkRelease } from './release-checks.ts';
 import { Runner } from './runner.ts';
+import { checkConsolePage } from './uat-checks.ts';
 
 const COMMIT = 'd68554779ed2322ec4f06b3267dc2ac6e7062100';
 
@@ -43,7 +44,11 @@ const secureHeaders = {
   'x-content-type-options': 'nosniff',
 };
 
-function prodSite(gameCsp: string): Fetcher {
+const consolePage = html('<title>Tò He · Quản trị</title><script src="/assets/a.js">', {
+  'x-robots-tag': 'noindex, nofollow',
+});
+
+function prodSite(gameCsp: string, overrides: Record<string, HttpResult> = {}): Fetcher {
   const pages: Record<string, HttpResult> = {
     'https://toheplay.io.vn/api/health': html('Healthy'),
     'https://toheplay.io.vn/api/config': json({
@@ -56,9 +61,11 @@ function prodSite(gameCsp: string): Fetcher {
     'https://toheplay.io.vn/play': html('<html>', secureHeaders),
     'http://toheplay.io.vn/': redirect(301, 'https://toheplay.io.vn/'),
     'https://www.toheplay.io.vn/x': redirect(301, 'https://toheplay.io.vn/x'),
-    'https://toheplay.io.vn/admin/': html('<title>Quản trị</title><script src="/admin/assets/a.js">', {
-      'x-robots-tag': 'noindex, nofollow',
-    }),
+    // Cloudflare Access asks first (ADR 0042).
+    'https://console.toheplay.io.vn/': redirect(
+      302,
+      'https://tohe.cloudflareaccess.com/cdn-cgi/access/login/console.toheplay.io.vn?redirect_url=%2F',
+    ),
     'https://games.toheplay.io.vn/': redirect(302, 'https://toheplay.io.vn', { 'x-robots-tag': 'noindex' }),
     'https://games.toheplay.io.vn/catalog.json': json({ games: [{ id: 'hello' }] }),
     'https://toheplay.io.vn/api/games': json([
@@ -68,12 +75,14 @@ function prodSite(gameCsp: string): Fetcher {
     'https://docs.toheplay.io.vn/': html('landing'),
     'https://docs.toheplay.io.vn/docs/': html('docs'),
     'https://docs.toheplay.io.vn/play': redirect(302, 'https://toheplay.io.vn'),
+    ...overrides,
   };
   return async (url) => pages[url] ?? { status: 404, headers: {}, body: '' };
 }
 
 const prodOptions = {
   hub: 'https://toheplay.io.vn',
+  console: 'https://console.toheplay.io.vn',
   games: 'https://games.toheplay.io.vn',
   docs: 'https://docs.toheplay.io.vn',
   domain: 'toheplay.io.vn',
@@ -93,6 +102,36 @@ describe('checkProd', () => {
     );
     expect(runner.failed).toBe(0);
     expect(runner.passed).toBeGreaterThan(10);
+  });
+
+  it('passes when the console answers itself, never indexed', async () => {
+    const { runner } = capture();
+    const http = prodSite("form-action 'none'", { 'https://console.toheplay.io.vn/': consolePage });
+    await checkProd(prodOptions, { http, dns: noDns, git: prodGit }, runner);
+    expect(runner.failed).toBe(0);
+  });
+
+  it.each([
+    ['the hub still serves /admin/', { 'https://toheplay.io.vn/admin/': consolePage }, '/admin/ is a 404'],
+    [
+      'the console redirects elsewhere than Cloudflare Access',
+      { 'https://console.toheplay.io.vn/': redirect(302, 'https://evil.example/') },
+      'behind Cloudflare Access',
+    ],
+    [
+      'the console is indexed',
+      { 'https://console.toheplay.io.vn/': html('<title>Tò He · Quản trị</title>') },
+      'behind Cloudflare Access',
+    ],
+  ])('fails when %s', async (_, overrides, check) => {
+    const { runner, lines } = capture();
+    await checkProd(
+      prodOptions,
+      { http: prodSite("form-action 'none'", overrides), dns: noDns, git: prodGit },
+      runner,
+    );
+    expect(runner.failed).toBe(1);
+    expect(lines.find((line) => line.includes('✘'))).toContain(check);
   });
 
   it("fails when a game's CSP lacks form-action 'none'", async () => {
@@ -120,6 +159,37 @@ describe('checkProd', () => {
     );
     expect(runner.failed).toBe(0);
     expect(runner.warnings).toBe(1);
+  });
+});
+
+describe('checkConsolePage', () => {
+  const uatConsole =
+    (pages: Record<string, HttpResult>): Fetcher =>
+    async (url) =>
+      pages[url] ?? { status: 404, headers: {}, body: '' };
+  const healthy = {
+    'http://10.100.0.2:4821/': consolePage,
+    'http://10.100.0.2:4821/api/admin/me': { status: 401, headers: {}, body: '' },
+  };
+
+  it('passes against the console on its own host', async () => {
+    const { runner } = capture();
+    await checkConsolePage(uatConsole(healthy), 'http://10.100.0.2:4821', runner);
+    expect([runner.passed, runner.failed]).toEqual([3, 0]);
+  });
+
+  it("fails when the console's routes answer without its session, or the hub's pages are there", async () => {
+    const { runner } = capture();
+    await checkConsolePage(
+      uatConsole({
+        ...healthy,
+        'http://10.100.0.2:4821/api/admin/me': json({ role: 'owner' }),
+        'http://10.100.0.2:4821/play': html('<div id="root">'),
+      }),
+      'http://10.100.0.2:4821',
+      runner,
+    );
+    expect(runner.failed).toBe(2);
   });
 });
 

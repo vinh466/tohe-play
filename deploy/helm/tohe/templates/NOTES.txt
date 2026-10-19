@@ -5,6 +5,9 @@ Tò He {{ include "tohe.tag" (dict "root" . "image" .Values.api.image) }} — re
 {{- if .Values.site.enabled }}
   Site and docs:   {{ .Values.publicUrls.site }}
 {{- end }}
+{{- if .Values.publicUrls.console }}
+  Console:         {{ .Values.publicUrls.console }} (put an access proxy in front of it)
+{{- end }}
 
 The API migrates its database when it starts; the first start can take a minute:
 
@@ -18,5 +21,5 @@ PostgreSQL runs inside this release (infra.postgres.mode=builtin) and nothing ba
 {{- end }}
 {{- if not .Values.ingress.enabled }}
 
-ingress.enabled=false: route the three hosts yourself — the hub to service {{ include "tohe.componentName" (dict "root" . "component" "hub") }}:8080, and so on.
+ingress.enabled=false: route the hosts yourself — the hub to service {{ include "tohe.componentName" (dict "root" . "component" "hub") }}:8080{{ if .Values.publicUrls.console }}, the console to the same service's port 8081{{ end }}, and so on.
 {{- end }}

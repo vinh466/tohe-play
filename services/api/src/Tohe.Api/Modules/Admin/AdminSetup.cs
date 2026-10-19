@@ -1,3 +1,4 @@
+using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
 using System.Text;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -25,7 +26,12 @@ public sealed class AdminOptions
 /// <summary>Whether the deployment waits for its first owner, and whether only some addresses may become it.</summary>
 public sealed record SetupView(bool Open, bool OnlySomeEmails);
 
-public sealed record ClaimSetupRequest(string Token);
+/// <param name="Token">The setup token from the API's log, or <c>Admin:SetupToken</c>.</param>
+/// <param name="Email">The account that becomes the owner: its email and its password.</param>
+public sealed record ClaimSetupRequest(
+    string Token,
+    [Required(AllowEmptyStrings = true)] string Email,
+    [Required(AllowEmptyStrings = true), StringLength(128)] string Password);
 
 /// <summary>
 /// Setup mode (ADR 0027): open while the deployment has never had an owner. The token is the configured one or, by
@@ -82,7 +88,9 @@ internal sealed partial class SetupAnnouncer(
                 return;
             }
 
-            var where = app.Value.PublicUrl is { } hub ? new Uri(hub, HubPaths.ConsoleSetup).ToString() : $"{HubPaths.ConsoleSetup} on the hub";
+            var where = app.Value.ConsoleUrl is { } console
+                ? new Uri(console, ConsolePaths.Setup).ToString()
+                : $"{ConsolePaths.Setup} on the console (App:ConsoleUrl is not set)";
             if (token.FromConfiguration)
             {
                 LogOpenConfigured(where);
@@ -111,30 +119,34 @@ internal sealed partial class SetupAnnouncer(
     private partial void LogUnknown(Exception error);
 }
 
-/// <summary>The first owner claims a new deployment (ADR 0027, D-08).</summary>
+/// <summary>
+/// The first owner claims a new deployment (ADR 0027, D-08), on the console's page <c>/setup</c> (ADR 0042): the setup
+/// token with the account's email and password — two-factor authentication is not asked yet. No console session
+/// starts: the owner adds an authenticator in the hub first, then signs in to the console.
+/// </summary>
 internal static partial class SetupEndpoints
 {
     public static void Map(RouteGroupBuilder admin)
     {
         admin.MapGet("/setup", GetAsync)
-            .RequirePermission(AdminPermissions.SignedIn)
+            .AllowAnonymous()
             .WithName("GetAdminSetup")
             .WithSummary("Whether the deployment still waits for its first owner.");
 
         admin.MapPost("/setup/claim", ClaimAsync)
-            .RequirePermission(AdminPermissions.SignedIn)
+            .AllowAnonymous()
             .RequireRateLimiting(IdentityModule.GateRateLimit)
             .WithName("ClaimAdminSetup")
-            .WithSummary("With the setup token, the signed-in account becomes the platform's first owner; setup ends for good.");
+            .WithSummary("With the setup token, the account of this email and password becomes the platform's first owner; setup ends for good.");
     }
 
     private static async Task<Ok<SetupView>> GetAsync(SetupState state, IOptions<AdminOptions> options, CancellationToken ct) =>
         TypedResults.Ok(new SetupView(await state.IsOpenAsync(ct), options.Value.BootstrapEmails.Length > 0));
 
-    private static async Task<Results<Ok<AdminMeView>, UnauthorizedHttpResult, ProblemHttpResult>> ClaimAsync(
+    private static async Task<Results<NoContent, ProblemHttpResult>> ClaimAsync(
         ClaimSetupRequest request,
         HttpContext http,
-        UserManager<Account> users,
+        PasswordSignIn passwords,
         SetupState state,
         SetupToken token,
         PlatformRoles roles,
@@ -145,17 +157,7 @@ internal static partial class SetupEndpoints
         ILoggerFactory logs,
         CancellationToken ct)
     {
-        if (await users.GetUserAsync(http.User) is not { } account)
-        {
-            return TypedResults.Unauthorized();
-        }
-
-        // The owner is reached by email: an account from before email sign-in adds one first.
-        if (account.Email is not { } email || !account.EmailConfirmed)
-        {
-            return Problems.Of(StatusCodes.Status403Forbidden, "email_required", "The account needs a confirmed email first");
-        }
-
+        // The token first, so a wrong one says nothing about the account; then the password, under its lockout.
         if (!await state.IsOpenAsync(ct))
         {
             return SetupClosed();
@@ -164,6 +166,24 @@ internal static partial class SetupEndpoints
         if (!token.Matches(request.Token))
         {
             return Problems.Of(StatusCodes.Status403Forbidden, "setup_token_invalid", "Wrong setup token");
+        }
+
+        var (check, account) = await passwords.CheckAsync(request.Email, request.Password, ct, honourSwitch: false);
+        if (check != PasswordCheck.Ok)
+        {
+            return PasswordSignIn.Problem(check);
+        }
+
+        // Not for an account its owner asked to delete (ADR 0034).
+        if (account!.DeleteAfter is not null)
+        {
+            return Problems.Of(StatusCodes.Status403Forbidden, "account_deleting", "This account is waiting to be deleted; sign in to Tò He to keep it");
+        }
+
+        // The owner is reached by email: an account from before email sign-in adds one first.
+        if (account.Email is not { } email || !account.EmailConfirmed)
+        {
+            return Problems.Of(StatusCodes.Status403Forbidden, "email_required", "The account needs a confirmed email first");
         }
 
         var allowed = options.Value.BootstrapEmails;
@@ -186,7 +206,7 @@ internal static partial class SetupEndpoints
         }
 
         LogClaimed(logs.CreateLogger(typeof(SetupEndpoints)), email);
-        return TypedResults.Ok(AdminEndpoints.MeView(account, PlatformRole.Owner, http.User, clock.GetUtcNow()));
+        return TypedResults.NoContent();
     }
 
     private static ProblemHttpResult SetupClosed() =>

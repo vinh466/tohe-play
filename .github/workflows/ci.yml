@@ -152,6 +152,9 @@ jobs:
     env:
       # The hub then serves /.well-known/security.txt, and the routes check reads it (ADR 0042).
       TOHE_SECURITY_CONTACT: security@example.test
+      # The hub image's second site, the console's own host, published by compose.yaml (ADR 0042).
+      HUB_URL: http://localhost:4720
+      CONSOLE_URL: http://localhost:4721
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -171,7 +174,7 @@ jobs:
             sleep 2
           done
           exit 1
-      - name: The hub serves the map of its paths (ADR 0042)
+      - name: The hub and the console serve the map of their paths (ADR 0042)
         run: pnpm --filter @tohe/e2e routes
       - run: pnpm --filter @tohe/e2e exec playwright install --with-deps chromium
       - run: pnpm --filter @tohe/e2e smoke

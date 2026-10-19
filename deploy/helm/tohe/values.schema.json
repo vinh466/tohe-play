@@ -143,6 +143,9 @@
         },
         "site": {
           "$ref": "#/definitions/origin"
+        },
+        "console": {
+          "$ref": "#/definitions/origin"
         }
       }
     },

@@ -2,7 +2,7 @@
 //
 //   pnpm check:prod                       # expects the commit of the newest prod- tag
 //   pnpm check:prod --expect <ref>        # expects the commit of a tag, branch or sha
-//   pnpm check:prod --hub https://… --games https://… --docs https://… --domain example.org --no-dns
+//   pnpm check:prod --hub https://… --console https://… --games https://… --docs https://… --domain example.org --no-dns
 import { parseArgs } from 'node:util';
 import { scriptArgs } from './args.ts';
 import { dohLookup } from './dns.ts';
@@ -16,6 +16,7 @@ const { values } = parseArgs({
   options: {
     expect: { type: 'string' },
     hub: { type: 'string', default: 'https://toheplay.io.vn' },
+    console: { type: 'string', default: 'https://console.toheplay.io.vn' },
     games: { type: 'string', default: 'https://games.toheplay.io.vn' },
     docs: { type: 'string', default: 'https://docs.toheplay.io.vn' },
     domain: { type: 'string', default: 'toheplay.io.vn' },
@@ -28,6 +29,7 @@ try {
   await checkProd(
     {
       hub: values.hub,
+      console: values.console,
       games: values.games,
       docs: values.docs,
       domain: values.domain,

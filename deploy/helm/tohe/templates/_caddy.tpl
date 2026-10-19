@@ -1,6 +1,7 @@
 {{/*
 A Caddy workload — the hub, the games origin or the site: a Deployment and its Service.
 dict "root" $ "component" "hub" "values" .Values.hub "env" (list (dict "name" … "value" …)) "probePath" "/"
+and, for a second site of the same Caddy, "ports" (list (dict "name" "console" "port" 8081)).
 */}}
 {{- define "tohe.caddyWorkload" -}}
 {{- $root := .root -}}
@@ -53,6 +54,10 @@ spec:
           ports:
             - name: http
               containerPort: 8080
+            {{- range .ports }}
+            - name: {{ .name }}
+              containerPort: {{ .port }}
+            {{- end }}
           env:
             {{- toYaml .env | nindent 12 }}
             {{- with .values.extraEnv }}
@@ -108,4 +113,9 @@ spec:
     - name: http
       port: 8080
       targetPort: http
+    {{- range .ports }}
+    - name: {{ .name }}
+      port: {{ .port }}
+      targetPort: {{ .name }}
+    {{- end }}
 {{- end -}}

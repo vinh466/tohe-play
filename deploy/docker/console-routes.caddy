@@ -1,0 +1,8 @@
+# Generated from @tohe/routes (packages/routes/src/map.ts) by `pnpm --filter @tohe/routes build`.
+# Do not edit: change the map and regenerate (ADR 0042, docs/architecture/hosts-and-paths.md).
+# The namespaces of the console’s host as named matchers; Caddyfile.hub serves each in the console’s site and answers
+# 404 to the rest.
+@apiProxy path /api/admin /api/admin/*
+@consolePage path / /games /health /system /users /users/* /review /review/* /communities /settings /audit /security /setup
+@consoleStaticImmutable path /assets /assets/*
+@consoleStaticRevalidate path /index.html /theme-init.js /favicon.svg

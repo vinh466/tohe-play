@@ -10,14 +10,17 @@ import { startTheme } from './theme.ts';
 
 startTheme();
 
-// A page refused for what the gate checks — the console's twelve hours are over, a role was taken away — sends the
-// console back through its gate, which asks again.
-const gate = new Set(['admin_required', 'two_factor_setup_required', 'two_factor_required']);
+// A page refused because the console's session ended — its twelve hours are over, the role was taken away, the
+// account signed out everywhere — asks again who is signed in, and the sign-in takes the page's place.
 const queryClient: QueryClient = new QueryClient({
-  defaultOptions: { queries: { retry: 1 } },
+  defaultOptions: {
+    queries: {
+      retry: (failures, error) => failures < 1 && !(error instanceof ApiError && error.status === 401),
+    },
+  },
   queryCache: new QueryCache({
-    onError: (error) => {
-      if (error instanceof ApiError && gate.has(error.code ?? '')) {
+    onError: (error, query) => {
+      if (error instanceof ApiError && error.status === 401 && query.queryKey[1] !== meKey[1]) {
         void queryClient.invalidateQueries({ queryKey: meKey });
       }
     },

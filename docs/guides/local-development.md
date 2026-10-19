@@ -29,8 +29,8 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 | Port | Service |
 | --- | --- |
 | 4710 | Site (landing + docs) |
-| 4720 | Hub (open this) — proxies `/api` to the API, and `/admin` to the admin console |
-| 4721 | The admin console's dev server; open it through the hub, at `http://localhost:4720/admin/` ([Admin console](../architecture/admin.md)) |
+| 4720 | Hub (open this) — proxies `/api` to the API |
+| 4721 | The console, on a host of its own with its own sign-in: its dev server under `pnpm dev`, the hub container's second site under `docker compose`. The API answers the console's routes at this address only (`App:ConsoleUrl`) ([Admin console](../architecture/admin.md)) |
 | 4730 | Games origin |
 | 4731 | A single game's standalone dev server (`dev:standalone`) |
 | 4740 | Platform API (direct, for debugging; Scalar at `/api/docs`, on in both modes, off on UAT and production) |
@@ -138,8 +138,9 @@ is kept, what is missing is added.
 Each profile gets three finished runs of every solo game that takes scores, so the account's board shows the family
 (the game's "Bảng xếp hạng", tab "Nhà mình"). The public boards take only runs the server verified, which a seed cannot make, so they stay
 empty. No platform roles are seeded, and no rooms (they live in memory, [ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)):
-claim ownership with the setup token, or `docker compose exec api dotnet Tohe.Api.dll admin grant gia-dinh@tohe.localhost --role owner`
-([Admin console](../architecture/admin.md)).
+claim ownership with the setup token at <http://localhost:4721/setup>, or `docker compose exec api dotnet Tohe.Api.dll admin grant gia-dinh@tohe.localhost --role owner`;
+then add an authenticator in the hub (Quản lý tài khoản → Bảo mật tài khoản) and sign in to the console at
+<http://localhost:4721> ([Admin console](../architecture/admin.md)).
 
 | Mode | How |
 | --- | --- |

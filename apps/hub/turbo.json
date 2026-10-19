@@ -3,7 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "test": {
-      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/admin/src/**/*.tsx"]
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/apps/console/src/**/*.ts*"]
     }
   }
 }

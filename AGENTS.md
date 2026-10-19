@@ -11,13 +11,13 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `docs/` | Spec: overview, architecture, contracts, guides, conventions, ADRs, roadmap |
 | `plans/` | Plan spaces: large changes thought through with the owner before the spec — intent, not spec ([plans/README.md](plans/README.md)) |
 | `packages/contract` | Game Contract v1 (Zod) — source of truth for game.json, catalog, protocol, CSP |
-| `packages/routes` | The map of hosts and of the hub's path namespaces (ADR 0042) — generates the hub's Caddy routes, its service worker's app pages, `robots.txt` and the API's `HubPaths` |
+| `packages/routes` | The map of hosts and of the hub's and the console's path namespaces (ADR 0042) — generates both hosts' Caddy routes, the hub's service worker's app pages, `robots.txt` and the API's `HubPaths` and `ConsolePaths` |
 | `packages/game-sdk` | Game side (no runtime deps) and host side (`/host`) of the contract |
 | `packages/game-kit` | Game shell (menu stage, play stage, quick panel, HUD), Phaser setup, sounds, haptics, juice — use it for every new game (ADR 0012, 0020) |
 | `packages/design-tokens` | Light and dark colour tokens shared by the hub, the site and the kit (ADR 0013) |
 | `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
-| `apps/admin` | The operator's console at `/admin/` on the hub's origin, with its own API at `/api/admin` (ADR 0027) |
+| `apps/console` | The operator's console on a host of its own (`console.`, :4721 locally) with its own sign-in and session, and its own API at `/api/admin` (ADR 0027, 0042) |
 | `apps/site` | Landing (vi) + docs site (en) |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
 | `deploy/` | Helm chart (`deploy/helm/tohe`), Caddyfiles and Dockerfiles, UAT scripts (`deploy/uat`) |
@@ -29,9 +29,9 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - Changing `packages/contract` changes the Game Contract: ADR + docs + conformance in the same PR.
 - Games never call the API, never use their own storage, never make network requests outside their folder.
 - Never edit generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/*/src/api/schema.gen.ts`,
-  and from `@tohe/routes`: `deploy/docker/hub-routes.caddy`, `apps/hub/public/robots.txt`,
-  `services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs`); regenerate them.
-- A new page or path on the hub's host is a namespace in `packages/routes` first (ADR 0042).
+  and from `@tohe/routes`: `deploy/docker/hub-routes.caddy`, `deploy/docker/console-routes.caddy`,
+  `apps/hub/public/robots.txt`, `services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs`); regenerate them.
+- A new page or path on the hub's host — or the console's — is a namespace in `packages/routes` first (ADR 0042).
 - Never weaken a check (tests, conformance, CSP, pnpm's minimum release age) to make it pass.
 - UI colours come from the design tokens (`bg-surface`, `text-ink`…), never raw palette classes like
   `bg-orange-500`; every screen must work in light and dark (docs/architecture/theming.md).

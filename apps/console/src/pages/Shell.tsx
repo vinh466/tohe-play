@@ -1,8 +1,10 @@
-import { useQuery } from '@tanstack/react-query';
-import { Link, Outlet } from '@tanstack/react-router';
-import { ApiError, admin } from '../api/client.ts';
+import { useMutation, useQuery } from '@tanstack/react-query';
+import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import { admin } from '../api/client.ts';
 import { roleName } from '../format.ts';
-import { Centered, meKey, NoRole, TwoFactorCheck, TwoFactorSetup } from '../security/Gate.tsx';
+import { hubLink, useHubUrl } from '../hub.ts';
+import { Centered, meKey, SignIn, useSessionEnded } from '../security/Gate.tsx';
+import { Button } from '../ui/forms.tsx';
 
 const pages = [
   { to: '/', label: 'Tổng quan' },
@@ -11,13 +13,22 @@ const pages = [
   { to: '/system', label: 'Hệ thống' },
 ] as const;
 
+/** /setup comes before anyone can sign in (ADR 0027); every other page sits behind the console's session. */
+export function Root() {
+  const pathname = useRouterState({ select: (state) => state.location.pathname });
+  return pathname === '/setup' ? <Outlet /> : <Shell />;
+}
+
 /**
- * Every page sits behind the account (ADR 0027): signed in, with a role, two-factor authentication on, and a code
- * given on this device. The console walks people through each; the API checks all of them on every request — this only
- * explains its answers.
+ * Every page sits behind the console's own session (ADR 0027, 0042): signed in here with the password and a code from
+ * the authenticator, by an account that holds a role. Without one — or once it ended — the sign-in takes the page's
+ * place. The API checks it all on every request; this only explains its answers.
  */
-export function Shell() {
+function Shell() {
   const me = useQuery({ queryKey: meKey, queryFn: admin.me, retry: false });
+  const hubUrl = useHubUrl();
+  // The console's session only; the hub's stays.
+  const signOut = useMutation({ mutationFn: admin.endSession, onSuccess: useSessionEnded() });
 
   if (me.isPending) {
     return (
@@ -27,15 +38,10 @@ export function Shell() {
     );
   }
 
+  if (me.data === null) return <SignIn />;
+
   if (me.isError) {
-    return me.error instanceof ApiError && me.error.status === 401 ? (
-      <Centered>
-        <p className="text-ink">Hãy đăng nhập Tò He trước, rồi quay lại trang này.</p>
-        <a href="/account/sign-in" className="font-semibold text-brand-ink underline underline-offset-4">
-          Đăng nhập
-        </a>
-      </Centered>
-    ) : (
+    return (
       <Centered>
         <p role="alert" className="text-danger">
           Không tải được trang quản trị.
@@ -50,10 +56,6 @@ export function Shell() {
       </Centered>
     );
   }
-
-  if (me.data.role === null) return <NoRole me={me.data} />;
-  if (!me.data.twoFactorEnabled) return <TwoFactorSetup me={me.data} />;
-  if (!me.data.openUntil) return <TwoFactorCheck />;
 
   const mayAudit = me.data.permissions.includes('admin.audit.read');
   const mayUsers = me.data.permissions.includes('admin.users.read');
@@ -87,9 +89,22 @@ export function Shell() {
           <span className="ml-auto text-ink-soft text-sm">
             {me.data.displayName} · {roleName(me.data.role)}
           </span>
-          <a href="/play" className="font-semibold text-brand-ink text-sm underline underline-offset-4">
-            Về Tò He
-          </a>
+          {hubUrl ? (
+            <a
+              href={hubLink(hubUrl, '/play')}
+              className="font-semibold text-brand-ink text-sm underline underline-offset-4"
+            >
+              Về Tò He
+            </a>
+          ) : null}
+          <Button
+            variant="secondary"
+            className="px-3 py-1 text-sm"
+            busy={signOut.isPending}
+            onClick={() => signOut.mutate()}
+          >
+            Đăng xuất
+          </Button>
         </div>
       </header>
       <main className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-6">

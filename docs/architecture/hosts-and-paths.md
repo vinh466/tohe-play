@@ -92,6 +92,19 @@ The app lived at thirteen prefixes on the root before the move. The paths that e
 `/room/<roomId>` and `/replay/<roomId>/<hand>` were only reached from inside the app and need a game id an old link
 does not carry: they answer `404`.
 
+## Namespaces on the console's host
+
+| Namespace | Component | Served | Indexed |
+| --- | --- | --- | --- |
+| `/`, `/games`, `/health`, `/system`, `/users/…`, `/review/…`, `/communities`, `/settings`, `/audit`, `/security`, `/setup` | the console (`apps/console`) | the console's page | no |
+| `/assets/…`, `/index.html`, `/theme-init.js`, `/favicon.svg` | the console | static | no |
+| `/api/admin/…` | the API's console routes — and no other route of the API | proxied | — |
+| anything else — the hub's pages, `/admin`, `/robots.txt` | — | a real `404` | — |
+
+`consoleNamespaces` in `@tohe/routes` generates the second site's matchers (`console-routes.caddy`); the console's own
+test checks its router against them. The API answers its console routes on this host alone, and nothing else there
+(`App:ConsoleUrl`).
+
 ## Common rules
 
 - **Sessions**: each front door serves `/api` on its own origin (the backend-for-frontend pattern of RFC 10017).
@@ -134,5 +147,5 @@ stays in force for its part.
 | The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; until the public pages arrive the root is the app's catalog and says `noindex`; `security.txt` once `hub.securityContact` is set in `platform-infra` | the map's pull request |
 | The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, and `/terms`, `/privacy` for now; manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the root answers `302` to `/play`; the old paths answer `301` | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | the landing page and the docs share `docs.toheplay.io.vn` | the public pages' pull request |
-| The console on `console.` | `/admin/` on the root | the console's pull request |
+| The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup; the API does not check Access's token yet | the console's pull request |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup |

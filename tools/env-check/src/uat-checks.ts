@@ -10,6 +10,8 @@ import { newestMigration, uatVersion } from './versions.ts';
 
 export interface UatOptions {
   hub: string;
+  /** The console's own host (ADR 0042). */
+  console: string;
   site: string;
   games: string;
   /** A ref whose commit UAT should run; else the newest `uat-` tag. */
@@ -31,6 +33,29 @@ const PROJECT = 'tohe-uat';
 const MIGRATIONS_DIR = 'services/api/src/Tohe.Api/Infrastructure/Database/Migrations';
 export const BAD_LOG_LINE = /fail:|crit:|Unhandled|Exception/;
 
+/**
+ * The console's own host (ADR 0042), as UAT and production serve it past any access proxy: its page at the root, never
+ * indexed; its routes ask for the console's own session; the hub's pages are not there.
+ */
+export async function checkConsolePage(http: Fetcher, consoleUrl: string, r: Runner): Promise<void> {
+  await r.check('/ is the console, noindex', async () => {
+    const result = await http(`${consoleUrl}/`);
+    assert(result.status === 200, `answered ${result.status}`);
+    assert(/<title>[^<]*Quản trị[^<]*<\/title>/.test(result.body), "the title does not contain 'Quản trị'");
+    assert(result.body.includes('/assets/'), 'the page does not reference /assets/');
+    const robots = result.headers['x-robots-tag'];
+    assert(robotsHas(robots, 'noindex'), `X-Robots-Tag is '${robots ?? ''}'`);
+  });
+  await r.check('/api/admin/me asks for the console session (401)', async () => {
+    const result = await http(`${consoleUrl}/api/admin/me`);
+    assert(result.status === 401, `answered ${result.status}`);
+  });
+  await r.check("the hub's pages are not here (/play is a 404)", async () => {
+    const result = await http(`${consoleUrl}/play`);
+    assert(result.status === 404, `answered ${result.status}`);
+  });
+}
+
 /** The lines of a log that mean trouble. */
 export function badLogLines(log: string): string[] {
   return log.split('\n').filter((line) => BAD_LOG_LINE.test(line));
@@ -39,6 +64,7 @@ export function badLogLines(log: string): string[] {
 export async function checkUat(options: UatOptions, deps: UatDeps, r: Runner): Promise<void> {
   const { http, git, run } = deps;
   const hub = trimSlash(options.hub);
+  const consoleUrl = trimSlash(options.console);
   const site = trimSlash(options.site);
   const games = trimSlash(options.games);
 
@@ -87,12 +113,14 @@ export async function checkUat(options: UatOptions, deps: UatDeps, r: Runner): P
     const result = await http(`${hub}/play`);
     assert(result.status === 200, `answered ${result.status}`);
   });
-  await r.check('/admin/ is the console', async () => {
+  // The console has a host of its own (ADR 0042): nothing of it on the hub's.
+  await r.check('hub /admin/ is a 404', async () => {
     const result = await http(`${hub}/admin/`);
-    assert(result.status === 200, `answered ${result.status}`);
-    assert(/<title>[^<]*Quản trị[^<]*<\/title>/.test(result.body), "the title does not contain 'Quản trị'");
-    assert(result.body.includes('/admin/assets/'), 'the page does not reference /admin/assets/');
+    assert(result.status === 404, `answered ${result.status}`);
   });
+
+  r.section(`console ${consoleUrl}`);
+  await checkConsolePage(http, consoleUrl, r);
 
   r.section(`site ${site}`);
   for (const path of ['/', '/docs/']) {

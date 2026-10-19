@@ -44,4 +44,34 @@ expect_failure "connectionStringKey names a key of secrets.existingSecret" \
 # A typo is an unknown key, which the schema rejects (the message names it in Helm 3 and 4).
 expect_failure "replicas" --set api.replicas=2
 expect_failure "builtin" --set infra.postgres.mode=sqlite
+expect_failure "match pattern" --set publicUrls.console=https://console.example.test/admin
+expect_failure "must use a different host each" --set publicUrls.console=http://tohe.example.test
+
+# The console (ADR 0042): with publicUrls.console, the API learns it, the hub's pods open their console port, an
+# ingress rule leads its host there and the games origin lets it frame a game; without it, none of that.
+expect_render() {
+  local what=$1 file=$2 pattern=$3
+  if ! grep -qE -- "$pattern" "$file"; then
+    echo "FAIL $what: no match for $pattern"
+    exit 1
+  fi
+  echo "ok  $what"
+}
+expect_no_render() {
+  local what=$1 file=$2 pattern=$3
+  if grep -qE -- "$pattern" "$file"; then
+    echo "FAIL $what: unexpected $pattern"
+    exit 1
+  fi
+  echo "ok  $what"
+}
+production="$out/platform-infra.yaml"
+expect_render "the console's URL reaches the API" "$production" 'value: "https://console.toheplay.io.vn"'
+expect_render "the API accepts the console's host" "$production" 'value: "toheplay.io.vn;console.toheplay.io.vn"'
+expect_render "the console's host has an ingress rule" "$production" '^    - host: console.toheplay.io.vn$'
+expect_render "the hub's Service has the console port" "$production" '^    - name: console$'
+expect_render "the console may frame games" "$production" 'value: https://toheplay.io.vn https://console.toheplay.io.vn$'
+helm template tohe "$chart" -f "$chart/ci/standalone.yaml" --set publicUrls.console= >"$out/no-console.yaml"
+expect_no_render "no console: no App__ConsoleUrl" "$out/no-console.yaml" 'App__ConsoleUrl'
+expect_no_render "no console: no console port" "$out/no-console.yaml" '8081'
 echo "chart checks passed"

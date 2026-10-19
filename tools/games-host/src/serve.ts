@@ -10,7 +10,10 @@ import { gameContentSecurityPolicy } from '@tohe/contract';
 const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), '../../..');
 const root = resolve(process.env.TOHE_GAMES_OUT ?? join(repoRoot, '.out/games'));
 const port = Number(process.env.TOHE_GAMES_PORT ?? 4730);
-const hubOrigins = (process.env.TOHE_HUB_ORIGINS ?? 'http://localhost:4720').split(',').map((o) => o.trim());
+// The hub, and the console, which frames a game to watch a ranked run (ADR 0032, 0042).
+const hubOrigins = (process.env.TOHE_HUB_ORIGINS ?? 'http://localhost:4720,http://localhost:4721')
+  .split(',')
+  .map((o) => o.trim());
 const csp = gameContentSecurityPolicy(hubOrigins);
 
 const server = await serveStatic({

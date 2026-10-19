@@ -2,7 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { admin } from '../api/client.ts';
 import { ago, count, dateTime, since } from '../format.ts';
-import { meKey } from '../security/Gate.tsx';
+import { useSignedIn } from '../security/Gate.tsx';
 import { Badge, Card, Failed, Loading, PageTitle, Stat } from '../ui/ui.tsx';
 
 /** The platform at a glance, refreshed every half minute. */
@@ -12,7 +12,7 @@ export function OverviewPage() {
     queryFn: admin.overview,
     refetchInterval: 30_000,
   });
-  const me = useQuery({ queryKey: meKey, queryFn: admin.me });
+  const me = useSignedIn();
   if (overview.isPending) return <Loading />;
   if (overview.isError) return <Failed retry={() => void overview.refetch()} />;
 

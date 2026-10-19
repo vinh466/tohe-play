@@ -14,10 +14,11 @@ production runs only a commit that ran here first: see [Environments and release
 | What | URL |
 | --- | --- |
 | Hub | <http://10.100.0.2:4820> |
+| Console | <http://10.100.0.2:4821> — its own sign-in ([Admin console](../architecture/admin.md)) |
 | Landing + docs | <http://10.100.0.2:4810> |
 | Games origin | `http://10.100.0.2:4830` (embedded by the hub) |
 
-The API and PostgreSQL are not published; the hub proxies `/api`. Development uses the separate `tohe` compose
+The API and PostgreSQL are not published; the hub proxies `/api`, the console only its own routes (`/api/admin`). Development uses the separate `tohe` compose
 project on ports 47xx ([Local development](local-development.md)); the two never share containers, volumes or ports.
 
 ## First use
@@ -112,9 +113,11 @@ token is `TOHE_UAT_TELEMETRY_TOKEN` in `~/.config/tohe-uat/uat.env`, added by th
 pnpm --filter @tohe/telemetry-report report -- --env uat --days 7
 ```
 
-The admin console, `http://10.100.0.2:4820/admin/`, shows the same and more ([Admin console](../architecture/admin.md)).
-Until someone owns the deployment, the API logs a setup token when it starts; the first owner gives it at
-`/admin/setup`, signed in with a confirmed email:
+The console, `http://10.100.0.2:4821`, shows the same and more ([Admin console](../architecture/admin.md)). It has a
+sign-in of its own: the email, the password and a code from an authenticator app, which an account with a role adds in
+the hub first (Quản lý tài khoản → Bảo mật tài khoản → Xác thực hai lớp). Being signed in to the hub does not sign in to
+the console. Until someone owns the deployment, the API logs a setup token when it starts; the first owner gives it at
+`http://10.100.0.2:4821/setup`, with the email and password of an account with a confirmed email:
 
 ```sh
 docker compose -p tohe-uat logs api | grep "No platform owner"
@@ -127,7 +130,8 @@ docker compose -p tohe-uat exec api dotnet Tohe.Api.dll admin grant <email or ol
 docker compose -p tohe-uat exec api dotnet Tohe.Api.dll admin list
 ```
 
-The first visit sets up two-factor authentication: an authenticator app on the phone, and recovery codes to keep.
+Then the authenticator, in the hub: an app on the phone, and recovery codes to keep. Without it the console's sign-in
+refuses the account.
 
 ## Limits (accepted for now)
 

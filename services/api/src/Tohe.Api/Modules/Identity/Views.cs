@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Platform;
 
 namespace Tohe.Api.Modules.Identity;
 
@@ -12,8 +14,10 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="TermsVersion">The terms its owner accepted, at 16 or older; the hub asks again for newer ones.</param>
 /// <param name="Logins">The providers it signs in with besides its email (ADR 0026): <c>google</c>, <c>github</c>, <c>oidc</c>.</param>
 /// <param name="Role">Its platform role (ADR 0027) — <c>owner</c>, <c>admin</c>, <c>moderator</c> or <c>viewer</c> — which opens
-/// the admin console; none for players.</param>
+/// the console; none for players.</param>
 /// <param name="Community">The community it came with by an invite code (ADR 0028): its board is one of the public ones.</param>
+/// <param name="ConsoleUrl">Where the console is (<c>App:ConsoleUrl</c>, ADR 0042), for an account with a role; none
+/// otherwise, or while the deployment has no console.</param>
 public sealed record AccountView(
     Guid Id,
     string? Email,
@@ -25,7 +29,8 @@ public sealed record AccountView(
     string? TermsVersion,
     IReadOnlyList<string> Logins,
     string? Role,
-    string? Community);
+    string? Community,
+    string? ConsoleUrl);
 
 /// <param name="PublicId">12 digits, the profile's public identifier (ADR 0023).</param>
 /// <param name="Kind"><c>adult</c> or <c>child</c>.</param>
@@ -66,7 +71,7 @@ public sealed record MeView(
     DateTimeOffset? ParentUnlockedUntil,
     DateTimeOffset? SecureUntil);
 
-internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, TimeProvider clock)
+internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, IOptions<AppOptions> app, TimeProvider clock)
 {
     public async Task<MeView?> LoadAsync(Guid accountId, DeviceSession session, CancellationToken cancellationToken)
     {
@@ -105,7 +110,8 @@ internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, TimeProvi
                 account.TermsVersion,
                 logins,
                 role is { } held ? PlatformRoles.NameOf(held) : null,
-                community),
+                community,
+                role is null ? null : app.Value.ConsoleUrl?.GetLeftPart(UriPartial.Authority)),
             views,
             active,
             session.ParentUntil > now ? session.ParentUntil : null,

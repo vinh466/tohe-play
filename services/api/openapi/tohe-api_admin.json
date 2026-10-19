@@ -2,16 +2,125 @@
   "openapi": "3.1.1",
   "info": {
     "title": "Tò He Admin API",
-    "description": "The admin console's API (ADR 0027). Every endpoint needs a platform role.",
+    "description": "The console's API (ADR 0027, 0042), on the console's host with its own session. Every endpoint past the sign-in needs a platform role.",
     "version": "1.0.0"
   },
   "paths": {
+    "/api/admin/config": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "What the console needs before anyone signs in: the hub's address.",
+        "operationId": "GetConsoleConfig",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ConsoleConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/session": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Sign in to the console: email, password and a code; sets the console's own session cookie for twelve hours.",
+        "operationId": "SignInToConsole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ConsoleSignInRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMeView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "End the console's session on this browser; the hub's session stays.",
+        "operationId": "SignOutOfConsole",
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
+    "/api/admin/setup": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Whether the deployment still waits for its first owner.",
+        "operationId": "GetAdminSetup",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/setup/claim": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "With the setup token, the account of this email and password becomes the platform's first owner; setup ends for good.",
+        "operationId": "ClaimAdminSetup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimSetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
+    },
     "/api/admin/me": {
       "get": {
         "tags": [
           "Admin"
         ],
-        "summary": "The account using the console: its role, if any, and what the role may do.",
+        "summary": "The account signed in to the console: its role, what the role may do, and its session; 204 when nobody is.",
         "operationId": "GetAdminMe",
         "responses": {
           "200": {
@@ -23,6 +132,9 @@
                 }
               }
             }
+          },
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -165,39 +277,18 @@
         }
       }
     },
-    "/api/admin/setup": {
-      "get": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "Whether the deployment still waits for its first owner.",
-        "operationId": "GetAdminSetup",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/SetupView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/setup/claim": {
+    "/api/admin/session/step-up": {
       "post": {
         "tags": [
           "Admin"
         ],
-        "summary": "With the setup token, the signed-in account becomes the platform's first owner; setup ends for good.",
-        "operationId": "ClaimAdminSetup",
+        "summary": "The password, or a code from the authenticator, opens step-up level 2 in this console session for 10 minutes.",
+        "operationId": "StepUpInConsole",
         "requestBody": {
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ClaimSetupRequest"
+                "$ref": "#/components/schemas/ConsoleStepUpRequest"
               }
             }
           },
@@ -213,6 +304,16 @@
                 }
               }
             }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
           }
         }
       }
@@ -222,7 +323,7 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Whether two-factor authentication is on, until when the console is open here, recovery codes left.",
+        "summary": "Whether two-factor authentication is on, until when this console session lasts, recovery codes left.",
         "operationId": "GetAdminTwoFactor",
         "responses": {
           "200": {
@@ -241,121 +342,11 @@
         "tags": [
           "Admin"
         ],
-        "summary": "Turn two-factor authentication off: the console closes on every device (needs step-up level 2).",
+        "summary": "Turn two-factor authentication off: every session of the account ends, this one too (needs step-up level 2).",
         "operationId": "DisableAdminTwoFactor",
         "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TwoFactorView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/two-factor/setup": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "A new authenticator key, while two-factor authentication is off (needs step-up level 2).",
-        "operationId": "SetUpAdminAuthenticator",
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/AuthenticatorSetupView"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/two-factor/enable": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "A code from the new key turns two-factor authentication on and opens the console; recovery codes once.",
-        "operationId": "EnableAdminTwoFactor",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TwoFactorCodeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/RecoveryCodesView"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    "/api/admin/two-factor/verify": {
-      "post": {
-        "tags": [
-          "Admin"
-        ],
-        "summary": "A code, or a recovery code, opens the console on this device for twelve hours.",
-        "operationId": "VerifyAdminTwoFactor",
-        "requestBody": {
-          "content": {
-            "application/json": {
-              "schema": {
-                "$ref": "#/components/schemas/TwoFactorCodeRequest"
-              }
-            }
-          },
-          "required": true
-        },
-        "responses": {
-          "200": {
-            "description": "OK",
-            "content": {
-              "application/json": {
-                "schema": {
-                  "$ref": "#/components/schemas/TwoFactorView"
-                }
-              }
-            }
-          },
-          "400": {
-            "description": "Bad Request",
-            "content": {
-              "application/problem+json": {
-                "schema": {
-                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
-                }
-              }
-            }
+          "204": {
+            "description": "No Content"
           }
         }
       }
@@ -1658,10 +1649,8 @@
           "email",
           "role",
           "permissions",
-          "twoFactorEnabled",
           "openUntil",
-          "secureUntil",
-          "hasPassword"
+          "secureUntil"
         ],
         "type": "object",
         "properties": {
@@ -1679,10 +1668,7 @@
             ]
           },
           "role": {
-            "type": [
-              "null",
-              "string"
-            ]
+            "type": "string"
           },
           "permissions": {
             "type": "array",
@@ -1690,14 +1676,8 @@
               "type": "string"
             }
           },
-          "twoFactorEnabled": {
-            "type": "boolean"
-          },
           "openUntil": {
-            "type": [
-              "null",
-              "string"
-            ],
+            "type": "string",
             "format": "date-time"
           },
           "secureUntil": {
@@ -1706,9 +1686,6 @@
               "string"
             ],
             "format": "date-time"
-          },
-          "hasPassword": {
-            "type": "boolean"
           }
         }
       },
@@ -1795,6 +1772,7 @@
       "AdminSettings": {
         "required": [
           "publicUrl",
+          "consoleUrl",
           "gamesOrigin",
           "emailMode",
           "emailFrom",
@@ -1805,6 +1783,12 @@
         "type": "object",
         "properties": {
           "publicUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "consoleUrl": {
             "type": [
               "null",
               "string"
@@ -1939,28 +1923,21 @@
           }
         }
       },
-      "AuthenticatorSetupView": {
-        "required": [
-          "sharedKey",
-          "uri"
-        ],
-        "type": "object",
-        "properties": {
-          "sharedKey": {
-            "type": "string"
-          },
-          "uri": {
-            "type": "string"
-          }
-        }
-      },
       "ClaimSetupRequest": {
         "required": [
-          "token"
+          "token",
+          "email",
+          "password"
         ],
         "type": "object",
         "properties": {
           "token": {
+            "type": "string"
+          },
+          "email": {
+            "type": "string"
+          },
+          "password": {
             "type": "string"
           }
         }
@@ -1995,6 +1972,64 @@
             "items": {
               "$ref": "#/components/schemas/InviteCodeView"
             }
+          }
+        }
+      },
+      "ConsoleConfig": {
+        "required": [
+          "hubUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "hubUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConsoleSignInRequest": {
+        "required": [
+          "email",
+          "password"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": "string"
+          },
+          "password": {
+            "type": "string"
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recoveryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ConsoleStepUpRequest": {
+        "type": "object",
+        "properties": {
+          "password": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3167,23 +3202,6 @@
           "events": {
             "type": "integer",
             "format": "int32"
-          }
-        }
-      },
-      "TwoFactorCodeRequest": {
-        "type": "object",
-        "properties": {
-          "code": {
-            "type": [
-              "null",
-              "string"
-            ]
-          },
-          "recoveryCode": {
-            "type": [
-              "null",
-              "string"
-            ]
           }
         }
       },

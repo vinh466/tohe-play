@@ -1,7 +1,7 @@
-// The map of Tò He's hosts and of the namespaces on the hub's host (ADR 0042, docs/architecture/hosts-and-paths.md).
-// It is the one place a path prefix is given to a component: the hub's Caddy routes, the service worker's list of app
-// pages, robots.txt and the API's links to the hub are generated from it (scripts/generate.ts). A new namespace is one
-// entry here, reviewed; a new host needs an ADR.
+// The map of Tò He's hosts and of the namespaces on the hub's host and the console's (ADR 0042,
+// docs/architecture/hosts-and-paths.md). It is the one place a path prefix is given to a component: the Caddy routes of
+// both hosts, the service worker's list of app pages, robots.txt and the API's links to the hub and the console are
+// generated from it (scripts/generate.ts). A new namespace is one entry here, reviewed; a new host needs an ADR.
 
 /** A host's role. Hosts come from configuration (`publicUrls`), never from code: this names roles, not addresses. */
 export type HostRole =
@@ -32,7 +32,7 @@ export const hosts: readonly Host[] = [
     role: 'hub',
     label: '',
     state: 'serving',
-    purpose: 'Players: the app, the API (and the console until it moves)',
+    purpose: 'Players: the app, the API',
   },
   { role: 'games', label: 'games', state: 'serving', purpose: 'Game code, untrusted (ADR 0002, 0040)' },
   {
@@ -44,8 +44,8 @@ export const hosts: readonly Host[] = [
   {
     role: 'console',
     label: 'console',
-    state: 'decided',
-    purpose: 'Operators: the console, behind Cloudflare Access',
+    state: 'serving',
+    purpose: 'Operators: the console and the API’s console routes, behind Cloudflare Access',
   },
   {
     role: 'status',
@@ -67,7 +67,7 @@ export const hosts: readonly Host[] = [
   { role: 'uat', label: 'uat', state: 'reserved', purpose: 'UAT’s names, once it has HTTPS' },
 ];
 
-/** Who owns a namespace on the hub's host. */
+/** Who owns a namespace on the hub's host or the console's. */
 export type Component = 'app' | 'console' | 'api' | 'platform';
 
 /**
@@ -143,8 +143,8 @@ const appFile = (
 });
 
 /**
- * The hub's host (ADR 0042): the app owns /play and /account (and the short link /r/), the console is still at /admin/.
- * The next steps move the console to a host of its own and put public pages at the root.
+ * The hub's host (ADR 0042): the app owns /play and /account (and the short link /r/). The console has a host of its
+ * own (consoleNamespaces); the next step puts public pages at the root.
  */
 export const hubNamespaces: readonly Namespace[] = [
   // The API, on the players' origin (the backend-for-frontend pattern).
@@ -159,19 +159,6 @@ export const hubNamespaces: readonly Namespace[] = [
     navigation: 'network',
     note: 'The API, proxied on the same origin',
   },
-  // The console (ADR 0027): its own app, built into the hub's image, until it moves to console.
-  {
-    id: 'console',
-    path: '/admin',
-    match: 'tree',
-    component: 'console',
-    served: 'page',
-    indexed: false,
-    crawl: false,
-    navigation: 'network',
-    note: 'The operator console, its own app with its own CSP and no service worker',
-  },
-
   // The root, until the public pages arrive: it leads to the catalog. Not an app page, so the service worker leaves it
   // to the network and a later pull request replaces this entry with the public home page.
   {
@@ -247,6 +234,90 @@ export const hubNamespaces: readonly Namespace[] = [
   },
 ];
 
+const consolePage = (id: string, path: string, note: string, match: Match = 'exact'): Namespace => ({
+  id,
+  path,
+  match,
+  component: 'console',
+  served: 'page',
+  indexed: false,
+  crawl: true,
+  navigation: 'network',
+  note,
+});
+
+const consoleFile = (
+  id: string,
+  path: string,
+  match: Match,
+  cache: 'immutable' | 'revalidate',
+  note: string,
+): Namespace => ({
+  id,
+  path,
+  match,
+  component: 'console',
+  served: 'static',
+  indexed: false,
+  crawl: true,
+  navigation: 'network',
+  cache,
+  note,
+});
+
+/**
+ * The console's host (ADR 0027, 0042): a second site of the hub image's Caddy, on a port of its own. Its app at the
+ * root, the API's console routes and nothing else — no service worker, no robots.txt, never indexed; any other path is
+ * a 404. The API's player routes are not served here: the console's session authenticates nothing outside them.
+ */
+export const consoleNamespaces: readonly Namespace[] = [
+  {
+    id: 'console-api',
+    path: '/api/admin',
+    match: 'tree',
+    component: 'api',
+    served: 'proxy',
+    indexed: false,
+    crawl: true,
+    navigation: 'network',
+    note: 'The API’s console routes: signing in to the console, its session and its pages’ data',
+  },
+
+  // The console's pages (apps/console/src/router.tsx); signing in is shown in place of any of them.
+  consolePage('overview', '/', 'Tổng quan, the platform at a glance'),
+  consolePage('games', '/games', 'Every game in the registry'),
+  consolePage('health', '/health', 'Device telemetry'),
+  consolePage('system', '/system', 'The running deployment'),
+  consolePage('users', '/users', 'Accounts found (/users), one account (/users/<id>)', 'tree'),
+  consolePage('review', '/review', 'Held and decided results (/review), one result (/review/<id>)', 'tree'),
+  consolePage('communities', '/communities', 'Communities and their invite codes'),
+  consolePage('settings', '/settings', 'Sign-in methods and the registration mode'),
+  consolePage('audit', '/audit', 'The audit log'),
+  consolePage('security', '/security', 'The operator’s own two-factor authentication'),
+  consolePage('setup', '/setup', 'Where a new deployment’s first owner claims it'),
+
+  // The console's files (apps/console/public and what the build adds).
+  consoleFile('console-assets', '/assets', 'tree', 'immutable', 'Scripts and styles with hashed names'),
+  consoleFile('console-index', '/index.html', 'exact', 'revalidate', 'The console page itself'),
+  consoleFile(
+    'console-theme-init',
+    '/theme-init.js',
+    'exact',
+    'revalidate',
+    'Light or dark before the first paint',
+  ),
+  consoleFile('console-favicon', '/favicon.svg', 'exact', 'revalidate', 'The icon in browser tabs'),
+];
+
+/**
+ * The console's pages and routes the API names — in its log when a deployment has no owner yet, and where it serves
+ * the console's routes. The C# class ConsolePaths is generated from these.
+ */
+export const consoleLinks = {
+  Setup: { path: '/setup', note: 'Where a new deployment’s first owner claims it' },
+  Api: { path: '/api/admin', note: 'The API’s console routes, served only on the console’s host' },
+} as const satisfies Record<string, { path: string; note: string }>;
+
 /**
  * The hub's pages the API links and redirects to — in emails and after a sign-in with a provider. Queries are added
  * by the API. The C# class HubPaths is generated from these.
@@ -271,7 +342,6 @@ export const hubLinks = {
     path: '/account/profiles',
     note: 'The profile picker; ?auto=true goes straight on with one profile',
   },
-  ConsoleSetup: { path: '/admin/setup', note: 'Where a new deployment’s first owner claims the console' },
 } as const satisfies Record<string, { path: string; note: string }>;
 
 /**

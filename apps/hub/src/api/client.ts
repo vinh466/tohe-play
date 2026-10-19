@@ -190,6 +190,13 @@ export const account = {
    * days unless someone signs in to it.
    */
   deleteAccount: () => call(api.DELETE('/api/account')),
+  /**
+   * The authenticator the console's sign-in asks for (ADR 0027, 0042), for an account with a platform role: whether it
+   * is on, a new key (step-up level 2), and its first code turns it on and gives the recovery codes once.
+   */
+  twoFactor: () => call(api.GET('/api/account/two-factor')),
+  setUpAuthenticator: () => call(api.POST('/api/account/two-factor/setup')),
+  enableTwoFactor: (code: string) => call(api.POST('/api/account/two-factor/enable', { body: { code } })),
 };
 
 /** Saves and scores of the active profile (M2); the hub calls these from storage/sync.ts, never from games. */

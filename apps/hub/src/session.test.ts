@@ -19,6 +19,7 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
     logins: [],
     role: null,
     community: null,
+    consoleUrl: null,
   },
   profiles: [
     {

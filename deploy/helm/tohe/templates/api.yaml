@@ -2,6 +2,11 @@
 {{- $name := include "tohe.componentName" (dict "root" . "component" "api") }}
 {{- $common := include "tohe.merged" (dict "root" . "values" .Values.api) | fromYaml }}
 {{- $hubHost := include "tohe.host" .Values.publicUrls.hub }}
+{{- /* The hub's Caddy passes the visitor's Host on: the console's requests come with the console's host (ADR 0042). */}}
+{{- $allowedHosts := $hubHost }}
+{{- with .Values.publicUrls.console }}
+{{- $allowedHosts = printf "%s;%s" $hubHost (include "tohe.host" .) }}
+{{- end }}
 {{- $pg := .Values.infra.postgres }}
 apiVersion: apps/v1
 kind: Deployment
@@ -66,10 +71,15 @@ spec:
               value: Production
             - name: App__PublicUrl
               value: {{ .Values.publicUrls.hub | quote }}
+            {{- with .Values.publicUrls.console }}
+            # The console's own host: the API answers its routes (/api/admin) there alone (ADR 0042).
+            - name: App__ConsoleUrl
+              value: {{ . | quote }}
+            {{- end }}
             - name: App__Version
               value: {{ include "tohe.tag" (dict "root" . "image" .Values.api.image) | quote }}
             - name: AllowedHosts
-              value: {{ .Values.api.allowedHosts | default $hubHost | quote }}
+              value: {{ .Values.api.allowedHosts | default $allowedHosts | quote }}
             - name: Games__PublicOrigin
               value: {{ include "tohe.origin" .Values.publicUrls.games | quote }}
             # Fetched inside the cluster, not through the public origin.

@@ -80,6 +80,7 @@ for _ in $(seq 1 60); do
   if curl -fsS "$HUB/api/health" >/dev/null 2>&1; then
     log "healthy — version $(curl -fsS "$HUB/api/config" | sed -E 's/.*"apiVersion":"([^"]*)".*/\1/')"
     log "hub  $HUB"
+    log "console http://${TOHE_UAT_HOST}:4821"
     log "docs http://${TOHE_UAT_HOST}:4810/docs/"
     exit 0
   fi

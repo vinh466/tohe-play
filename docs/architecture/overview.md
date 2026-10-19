@@ -38,7 +38,7 @@ flowchart TB
 | Platform API | `services/api` | Identity (M1), registry, saves and scores (M2), parental settings. The only writer to the database. |
 | Games origin | `games/*` → `tools/games-host` | Immutable static builds under `/<id>/<version>/` plus `catalog.json`. |
 | Site | `apps/site` + `docs/` | Landing page (Vietnamese) and developer docs (English). |
-| Admin console | `apps/admin` | The operator's pages at `/admin/`, served by the hub's server on the hub's origin ([Admin console](admin.md)). |
+| Admin console | `apps/console` | The operator's pages on a host of its own with its own sign-in, served by the hub image's server on a second site ([Admin console](admin.md)). |
 
 ## Origins
 

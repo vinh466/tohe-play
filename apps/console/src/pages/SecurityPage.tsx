@@ -2,16 +2,20 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { admin } from '../api/client.ts';
 import { count, dateTime } from '../format.ts';
-import { meKey } from '../security/Gate.tsx';
+import { useSessionEnded, useSignedIn } from '../security/Gate.tsx';
 import { RecoveryCodes } from '../security/RecoveryCodes.tsx';
 import { StepUp } from '../security/StepUp.tsx';
 import { Button, problem } from '../ui/forms.tsx';
 import { Card, Fact, Failed, Loading, PageTitle } from '../ui/ui.tsx';
 
-/** This account's two-factor authentication: new recovery codes, or turning it off — both behind step-up level 2. */
+/**
+ * This account's two-factor authentication: new recovery codes, or turning it off — both behind step-up level 2.
+ * Turned off, every session of the account ends, this one too, and the console's sign-in waits for a new
+ * authenticator added in the hub.
+ */
 export function SecurityPage() {
   const queryClient = useQueryClient();
-  const me = useQuery({ queryKey: meKey, queryFn: admin.me });
+  const me = useSignedIn();
   const twoFactor = useQuery({ queryKey: ['admin', 'two-factor'], queryFn: admin.twoFactor });
   const [codes, setCodes] = useState<string[] | null>(null);
   const [sure, setSure] = useState(false);
@@ -20,7 +24,8 @@ export function SecurityPage() {
     mutationFn: admin.newRecoveryCodes,
     onSuccess: (result) => setCodes(result.codes),
   });
-  const disable = useMutation({ mutationFn: admin.disableTwoFactor, onSuccess: refresh });
+  const sessionEnded = useSessionEnded();
+  const disable = useMutation({ mutationFn: admin.disableTwoFactor, onSuccess: sessionEnded });
 
   if (me.isPending || twoFactor.isPending) return <Loading />;
   if (me.isError || twoFactor.isError) return <Failed retry={refresh} />;
@@ -31,7 +36,7 @@ export function SecurityPage() {
       <Card title="Xác thực hai lớp">
         <div>
           <Fact label="Trạng thái">{twoFactor.data.enabled ? 'Đang bật' : 'Đang tắt'}</Fact>
-          <Fact label="Mở trên thiết bị này đến">
+          <Fact label="Phiên đăng nhập này đến">
             {twoFactor.data.openUntil ? dateTime(twoFactor.data.openUntil) : '—'}
           </Fact>
           <Fact label="Mã dự phòng còn lại">{count(twoFactor.data.recoveryCodesLeft)}</Fact>
@@ -49,7 +54,7 @@ export function SecurityPage() {
             <p className="text-ink-soft text-sm">
               Để tạo mã dự phòng mới hoặc tắt xác thực hai lớp, xác nhận lại là bạn.
             </p>
-            <StepUp hasPassword={me.data.hasPassword} email={me.data.email} onDone={refresh} />
+            <StepUp onDone={refresh} />
           </>
         ) : (
           <div className="flex flex-col gap-3">

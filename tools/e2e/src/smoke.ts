@@ -3,9 +3,10 @@
 // Opens the hub on a phone-sized viewport, launches the sample game, plays one round and checks that the
 // hub stored the score and the save locally. Every screen — hub, landing page, docs — is checked in the light and
 // the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke (SITE_URL defaults to :4710)
-// With ADMIN_LOGS_COMMAND (CI: the API container's log) a new deployment's admin console is claimed with the setup token
-// the API logged; else, with ADMIN_GRANT_COMMAND (the API container's `admin grant`), a role is granted (ADR 0027).
-// Either way the console's two-factor authentication is set up and its pages walked.
+// With ADMIN_LOGS_COMMAND (CI: the API container's log) a new deployment is claimed on the console's /setup with the
+// setup token the API logged; else, with ADMIN_GRANT_COMMAND (the API container's `admin grant`), a role is granted
+// (ADR 0027). Either way the authenticator is added in the hub, and the console — on its own host, CONSOLE_URL (default
+// the hub's port + 1: 4721) — signed in to with its code and its pages walked (ADR 0042).
 import { execFileSync } from 'node:child_process';
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
@@ -15,6 +16,7 @@ import { totp } from './totp.ts';
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const catalogUrl = new URL('/play', hubUrl).href;
 const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
+const consoleUrl = (process.env.CONSOLE_URL ?? hubUrl.replace(/:4720\/?$/, ':4721')).replace(/\/$/, '');
 const grantCommand = process.env.ADMIN_GRANT_COMMAND?.split(' ').filter(Boolean);
 const logsCommand = process.env.ADMIN_LOGS_COMMAND?.split(' ').filter(Boolean);
 const step = (message: string) => console.log(`• ${message}`);
@@ -367,47 +369,67 @@ try {
   await expectTheme('dark');
 
   step(
-    'the admin console (/admin/): without a role, a new deployment offers its claim, an owned one says how a role comes',
+    `the console (${consoleUrl}, a host of its own): its own sign-in; a new deployment offers the claim of its first owner`,
   );
-  await page.goto(`${hubUrl}/admin/`);
-  const claim = page.getByText('chưa có chủ');
-  await claim.or(page.getByText('chưa có vai trò quản trị')).waitFor();
-  await expectTheme('dark');
-  await shot('admin-gate');
+  await page.goto(`${consoleUrl}/`);
+  const claimLink = page.getByRole('link', { name: 'Nhận quyền chủ' });
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).waitFor();
+  // Whether setup is open comes with a request of its own.
+  await page.waitForLoadState('networkidle');
+  await shot('console-sign-in');
 
   let admin = false;
-  if (logsCommand && (await claim.isVisible())) {
+  if (logsCommand && (await claimLink.isVisible())) {
     const [command = '', ...args] = logsCommand;
-    step(`a new deployment: the setup token in the API's log makes this account its first owner`);
+    step(
+      `a new deployment: the setup token in the API's log, with this account's email and password, makes it the owner`,
+    );
     // The last one: each start of the API makes up a new token.
     const logs = execFileSync(command, args, { encoding: 'utf8' });
     const token = [...logs.matchAll(/setup token ([0-9A-Z]{4}-[0-9A-Z]{4})/g)].at(-1)?.[1];
     if (!token) throw new Error("no setup token in the API's log");
+    await claimLink.click();
+    await page.waitForURL((url) => url.pathname === '/setup');
     await page.getByLabel('Mã cài đặt').fill(token);
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Mật khẩu').fill(password);
     await page.getByRole('button', { name: 'Nhận quyền chủ' }).click();
+    await page.getByText('đã là chủ của Tò He').waitFor();
+    await shot('console-setup');
     admin = true;
   } else if (grantCommand) {
     const [command = '', ...args] = grantCommand;
     step(`granted a role in the API's container`);
     execFileSync(command, [...args, email, '--role', 'viewer'], { stdio: 'inherit' });
-    await page.reload();
     admin = true;
   }
 
   if (admin) {
-    step('the console asks for two-factor authentication first: step-up, then a new key');
-    await page.getByLabel('Mật khẩu của bạn').fill(password);
-    await page.getByRole('button', { name: 'Xác nhận', exact: true }).click();
-    await page.getByRole('button', { name: 'Tạo khoá cho ứng dụng xác thực' }).click();
-    const key = await page.getByLabel('Khoá xác thực', { exact: true }).inputValue();
-    await shot('admin-two-factor');
+    step(
+      'the authenticator is added in the hub, on the account page: step-up, then a new key and its first code',
+    );
+    await page.goto(`${hubUrl}/account`);
+    await page.getByLabel('Mật khẩu').fill(password);
+    await page.getByRole('button', { name: 'Xác nhận' }).tap();
+    await page.getByRole('button', { name: 'Thêm ứng dụng xác thực' }).tap();
+    const enrol = page.getByRole('dialog', { name: 'Thêm ứng dụng xác thực' });
+    await enrol.getByRole('button', { name: 'Tạo khoá cho ứng dụng xác thực' }).tap();
+    const key = await enrol.getByLabel('Khoá xác thực', { exact: true }).inputValue();
+    await shot('account-two-factor');
+    await enrol.getByLabel('Mã 6 số ứng dụng đang hiện').fill(totp(key));
+    await enrol.getByRole('button', { name: 'Bật xác thực hai lớp' }).tap();
+    await enrol.getByRole('list', { name: 'Mã dự phòng' }).waitFor();
+    await shot('account-recovery-codes');
+    await enrol.getByRole('button', { name: 'Tôi đã cất các mã này' }).tap();
+    await page.getByText('(Đang bật)').waitFor();
 
-    step('a code from the key turns it on; the recovery codes show once, then the console opens');
-    await page.getByLabel('Mã 6 số ứng dụng đang hiện').fill(totp(key));
-    await page.getByRole('button', { name: 'Bật xác thực hai lớp' }).click();
-    await page.getByRole('list', { name: 'Mã dự phòng' }).waitFor();
-    await shot('admin-recovery-codes');
-    await page.getByRole('button', { name: 'Tôi đã cất các mã này' }).click();
+    step('the console signs in with the email, the password and a code — the next one: a code works once');
+    await page.getByRole('link', { name: 'Mở bảng quản trị Tò He' }).tap();
+    await page.waitForURL((url) => url.origin === new URL(consoleUrl).origin);
+    await page.getByLabel('Email').fill(email);
+    await page.getByLabel('Mật khẩu').fill(password);
+    await page.getByLabel('Mã 6 số từ ứng dụng xác thực').fill(totp(key, Date.now() + 30_000));
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).click();
     await page.getByRole('heading', { name: 'Tổng quan' }).waitFor();
     await shot('admin-overview');
     for (const [link, heading] of [
@@ -427,8 +449,13 @@ try {
       await page.getByText('Bật xác thực hai lớp').first().waitFor();
       await shot('admin-audit');
     }
+
+    step("signing out of the console ends its session only: the hub's stays");
+    await page.getByRole('button', { name: 'Đăng xuất' }).click();
+    await page.getByRole('button', { name: 'Đăng nhập', exact: true }).waitFor();
   }
-  await page.goto(hubUrl);
+  await page.goto(`${hubUrl}/account`);
+  await page.getByRole('heading', { name: 'Quản lý tài khoản' }).waitFor();
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);
   await context.tracing.stop();

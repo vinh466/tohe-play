@@ -72,6 +72,8 @@ internal static class IdentityModule
 
         var authentication = services.AddAuthentication(IdentityConstants.ApplicationScheme);
         authentication.AddIdentityCookies();
+        // The console's session, a cookie of its own that only the console's routes read (ADR 0042).
+        ConsoleSession.Add(authentication, services);
         // Google, GitHub and an OpenID Connect issuer, each only when the deployment gave it secrets (ADR 0026).
         services.AddSingleton(ExternalProviders.Add(authentication, builder.Configuration));
         services.AddAuthorization();
@@ -92,7 +94,7 @@ internal static class IdentityModule
             })
             .AddEntityFrameworkStores<ToheDbContext>()
             .AddSignInManager()
-            // Authenticator apps (TOTP) for the admin console's two-factor authentication (ADR 0027).
+            // Authenticator apps (TOTP) for the console's two-factor authentication (ADR 0027).
             .AddTokenProvider<AuthenticatorTokenProvider<Account>>(TokenOptions.DefaultAuthenticatorProvider);
 
         services.ConfigureApplicationCookie(options =>
@@ -178,6 +180,7 @@ internal static class IdentityModule
         });
 
         services.AddScoped<SessionWriter>();
+        services.AddScoped<PasswordSignIn>();
         // The puzzle before a code by email, when the console turns it on (ADR 0037); spent answers live in it.
         services.AddSingleton<ProofOfWork>();
         // Deleting profiles and accounts, with every module's data (ADR 0034); an account, by an admin (ADR 0038).
