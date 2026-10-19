@@ -41,6 +41,8 @@ services:
       Email__Smtp__Security: None
       # Development token for the telemetry report (local containers only, like the database password).
       Telemetry__OperatorToken: tohe-dev-only
+      # Scalar at http://localhost:4720/api/docs; off by default outside Development (ADR 0042).
+      Api__Reference__Enabled: "true"
     depends_on:
       postgres:
         condition: service_healthy
@@ -57,6 +59,8 @@ services:
     environment:
       API_UPSTREAM: api:8080
       GAMES_ORIGIN: http://${TOHE_PUBLIC_HOST:-localhost}:4730
+      # Set it to try /.well-known/security.txt; unset, that path answers 404.
+      TOHE_SECURITY_CONTACT: ${TOHE_SECURITY_CONTACT:-}
     depends_on:
       - api
     ports:

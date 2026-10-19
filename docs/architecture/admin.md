@@ -26,9 +26,12 @@ flowchart LR
   is built into the hub's image under `/srv/admin` and served at `/admin/` by the hub's Caddy: the hub's origin, so
   the hub's session cookie. Its CSP allows only its own origin — no WebSocket, no inline styles — and frames the
   games origin only to watch a ranked run in the game itself ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md)); it is sent with
-  `X-Robots-Tag: noindex`. It has no service worker, and the hub's leaves `/admin/` alone.
+  `X-Robots-Tag: noindex`; `robots.txt` keeps crawlers out of it. It has no service worker, and the hub's leaves
+  `/admin/` alone. `/admin/` is the console's namespace in the map of the hub's paths until the console moves to a
+  host of its own ([Hosts and paths](hosts-and-paths.md)).
 - **`/api/admin/*`** — the Admin module (`services/api/src/Tohe.Api/Modules/Admin`), described by its own OpenAPI
-  document, `/api/openapi/admin.json`. The build writes it to `services/api/openapi/tohe-api_admin.json`, and
+  document, `/api/openapi/admin.json` where the API reference is switched on
+  ([Configuration](../guides/configuration.md#api)). The build writes it to `services/api/openapi/tohe-api_admin.json`, and
   `pnpm --filter @tohe/admin generate:api` (which regenerates the hub's types too) turns it into
   `apps/admin/src/api/schema.gen.ts`. Its tables live in the `admin` schema.
 - **Locally** `pnpm dev` starts the console's dev server on 4721; open it through the hub, at

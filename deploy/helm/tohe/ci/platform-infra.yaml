@@ -16,6 +16,8 @@ hub:
   proxy:
     trustedProxies: [10.42.0.0/16]
     clientIpHeaders: [CF-Connecting-IP]
+  # People write to security@ at the root (ADR 0042).
+  securityContact: security@toheplay.io.vn
 infra:
   postgres:
     mode: external

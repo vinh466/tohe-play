@@ -20,6 +20,7 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Database:MigrateOnStartup` | Apply pending migrations when the API starts | `false` (compose and UAT: `true`) |
 | `App:PublicUrl` | The hub's public URL, e.g. `https://tohe.example.org` — no path. With `https`, every request counts as HTTPS and the session cookie is `Secure`, named `__Host-tohe.session`. Emails link to the hub's pages under it | unset: requests stay as they arrive, emails carry codes without links |
 | `App:Version` | The commit the deployment built, shown by `GET /api/config` | the assembly's version, or `dev` |
+| `Api:Reference:Enabled` | Serve the API reference: Scalar at `/api/docs` and the OpenAPI documents under `/api/openapi/`. Off, they answer 404; the docs site carries the same reference, generated at build time ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)) | `true` in Development, `false` elsewhere (compose: `true`) |
 | `Games:PublicOrigin` | Origin browsers load game iframes from | — required |
 | `Games:CatalogUrl` | Where the API fetches `catalog.json` (often an internal address) | — required |
 | `Registry:SyncInterval` | How often the catalog is fetched | `00:05:00` |
@@ -58,9 +59,15 @@ UAT and local development go without them (a developer may register an app for `
 | `GAMES_ORIGIN` | Origin of the game iframes, written into the CSP — the same as the API's `Games:PublicOrigin` | — required |
 | `TOHE_TRUSTED_PROXIES` | Space-separated CIDRs of proxies in front of the hub that may say who the visitor is — e.g. a cluster's ingress pods | `127.0.0.1/32`: nobody, the hub is the edge |
 | `TOHE_CLIENT_IP_HEADERS` | Headers those proxies carry the visitor's address in, e.g. `CF-Connecting-IP` behind Cloudflare | `X-Forwarded-For` |
+| `TOHE_SECURITY_CONTACT` | The address `/.well-known/security.txt` (RFC 9116) names for reporting vulnerabilities, e.g. `security@toheplay.io.vn`. The file's `Expires` is written on each request, 360 days ahead | unset: no `security.txt` (404) |
 
 Keep `TOHE_TRUSTED_PROXIES` narrow: anyone inside a trusted range can claim any address, and the API rate-limits
 sign-in by address.
+
+Which path the hub serves, and how, comes from the map in `@tohe/routes`
+([Hosts and paths](../architecture/hosts-and-paths.md)): the app's pages get its `index.html` with
+`X-Robots-Tag: noindex`, its files are served as they are, `/api/` is proxied, `/admin/` is the console, `/robots.txt`
+keeps crawlers out of the API and the console, and any other path answers a real `404` with a small page of its own.
 
 ## Games
 
@@ -83,11 +90,13 @@ hub's frame ([ADR 0039](../decisions/0039-games-on-a-domain-of-their-own.md)).
 
 The chart sets all of the above from its values ([Self-hosting](self-hosting.md)): `publicUrls.*` give
 `App:PublicUrl`, `Games:PublicOrigin`, `GAMES_ORIGIN`, `HUB_ORIGINS`, `PUBLIC_HUB_URL` and `TOHE_SITE_URL`;
-`hub.proxy.*` give `TOHE_TRUSTED_PROXIES` and `TOHE_CLIENT_IP_HEADERS`; `infra.postgres.*` and the Secret give
-`ConnectionStrings:Database`; `api.config` adds any other API key.
+`hub.proxy.*` give `TOHE_TRUSTED_PROXIES` and `TOHE_CLIENT_IP_HEADERS`; `hub.securityContact` gives
+`TOHE_SECURITY_CONTACT`; `api.reference.enabled` gives `Api:Reference:Enabled` (default `false`); `infra.postgres.*`
+and the Secret give `ConnectionStrings:Database`; `api.config` adds any other API key.
 
 ## Every web origin
 
-The hub, the games origin and the site send `Strict-Transport-Security: max-age=31536000` (no
-`includeSubDomains`). Browsers ignore it over plain HTTP, so it only takes effect where the origin is served over
-HTTPS.
+The hub, the games origin and the site send `Strict-Transport-Security: max-age=31536000; includeSubDomains`, and
+Tò He is not on the preload list: every host of its domain is Tò He's and served over HTTPS
+([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)). Browsers ignore it over plain HTTP, so it only
+takes effect where the origin is served over HTTPS.

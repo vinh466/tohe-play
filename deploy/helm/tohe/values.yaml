@@ -52,6 +52,10 @@ api:
   migrateOnStartup: true
   # ASP.NET Core host filtering. Empty: the hub's host from publicUrls.hub. The probes send it as their Host.
   allowedHosts: ""
+  reference:
+    # The API reference — Scalar at /api/docs and the OpenAPI documents under /api/openapi/ — on the hub's origin.
+    # Off: they answer 404. The docs site carries the same reference, generated at build time (ADR 0042).
+    enabled: false
   # Extra non-secret configuration as environment variables, e.g. { Rooms__GraceSeconds: "45" }.
   config: {}
   # Extra environment: secrets go here as secretKeyRef, or whole Secrets in extraEnvFrom.
@@ -90,6 +94,9 @@ hub:
     trustedProxies: []
     # Headers those proxies carry the visitor's address in. Behind Cloudflare: [CF-Connecting-IP].
     clientIpHeaders: []
+  # The address /.well-known/security.txt names for reporting vulnerabilities (RFC 9116), e.g. security@tohe.example.
+  # Empty: no security.txt (404).
+  securityContact: ""
   extraEnv: []
   resources:
     requests:

@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.OAuth;
 using Microsoft.AspNetCore.Authentication.OpenIdConnect;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.IdentityModel.Protocols.OpenIdConnect;
+using Tohe.Api.Infrastructure;
 
 namespace Tohe.Api.Modules.Identity;
 
@@ -174,7 +175,7 @@ internal static class ExternalProviders
     /// <summary>Cancelled at the provider, or refused there: back to the hub's sign-in screen, which says so.</summary>
     private static Task BackToHub(HandleRequestContext<RemoteAuthenticationOptions> context)
     {
-        context.Response.Redirect("/welcome?external=failed");
+        context.Response.Redirect($"{HubPaths.Welcome}?external=failed");
         context.HandleResponse();
         return Task.CompletedTask;
     }

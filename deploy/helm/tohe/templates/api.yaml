@@ -77,6 +77,8 @@ spec:
               value: {{ printf "http://%s:8080/catalog.json" (include "tohe.componentName" (dict "root" . "component" "games")) | quote }}
             - name: Database__MigrateOnStartup
               value: {{ .Values.api.migrateOnStartup | quote }}
+            - name: Api__Reference__Enabled
+              value: {{ .Values.api.reference.enabled | quote }}
             {{- if $pg.external.connectionStringKey }}
             - name: ConnectionStrings__Database
               valueFrom:

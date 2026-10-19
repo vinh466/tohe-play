@@ -190,8 +190,8 @@ internal static class AuthEndpoints
             termsVersion: request.TermsVersion,
             inviteCode: Invites.Normalize(request.InviteCode));
         outbox.Add(existing?.Email is { } signsIn
-            ? IdentityEmails.AlreadyRegistered(signsIn, attempts.Link("/welcome"))
-            : IdentityEmails.SignUpCode(email, code!, attempts.Link($"/register/confirm?attempt={attempt.Id}&code={code}")));
+            ? IdentityEmails.AlreadyRegistered(signsIn, attempts.Link(HubPaths.Welcome))
+            : IdentityEmails.SignUpCode(email, code!, attempts.Link($"{HubPaths.RegisterConfirm}?attempt={attempt.Id}&code={code}")));
         await db.SaveChangesAsync(ct);
         return TypedResults.Accepted((string?)null, new AttemptView(attempt.Id));
     }
@@ -377,7 +377,7 @@ internal static class AuthEndpoints
         if (code is not null)
         {
             outbox.Add(IdentityEmails.ResetCode(
-                to, code, attempts.Link($"/password/reset?attempt={attempt.Id}&code={code}")));
+                to, code, attempts.Link($"{HubPaths.PasswordReset}?attempt={attempt.Id}&code={code}")));
         }
 
         await db.SaveChangesAsync(ct);

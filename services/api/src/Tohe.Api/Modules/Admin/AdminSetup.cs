@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Platform;
@@ -81,7 +82,7 @@ internal sealed partial class SetupAnnouncer(
                 return;
             }
 
-            var where = app.Value.PublicUrl is { } hub ? new Uri(hub, "/admin/setup").ToString() : "/admin/setup on the hub";
+            var where = app.Value.PublicUrl is { } hub ? new Uri(hub, HubPaths.ConsoleSetup).ToString() : $"{HubPaths.ConsoleSetup} on the hub";
             if (token.FromConfiguration)
             {
                 LogOpenConfigured(where);
