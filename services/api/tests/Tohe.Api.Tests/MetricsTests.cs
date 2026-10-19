@@ -10,6 +10,7 @@ using Tohe.Api.Modules.Admin;
 namespace Tohe.Api.Tests;
 
 /// <summary>/metrics on a port of its own (ADR 0036): Tò He's numbers with ASP.NET Core's, and nothing on the API's port.</summary>
+[Collection(nameof(MetricsTests))]
 public sealed class MetricsTests(ApiFactory factory) : IClassFixture<ApiFactory>
 {
     private static CancellationToken Ct => TestContext.Current.CancellationToken;
@@ -70,3 +71,10 @@ public sealed class MetricsTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
     private static Uri Url(string path) => new(path, UriKind.Relative);
 }
+
+/// <summary>
+/// The exporter counts what every host in the test process measures, so a sign-in in a test running alongside would
+/// change the exact numbers above: these tests run alone, after the parallel ones.
+/// </summary>
+[CollectionDefinition(nameof(MetricsTests), DisableParallelization = true)]
+public sealed class MetricsTestsRunAlone;
