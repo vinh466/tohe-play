@@ -5,8 +5,8 @@
   thử · môi trường đã viết thành spec.
 - Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-20); thứ tự xây theo pull
   request ở **[delivery.md](delivery.md)**; N1 đang làm (2026-10-20). Còn mở: E-02 Q2 (không chặn), E-05 (Cổng).
-- Started: 2026-10-19 · Branch: `plan/product-surface` (xếp trên `plan/public-launch`) · PR:
-  [tohe-play#70](https://github.com/vinh466/tohe-play/pull/70) (draft)
+- Started: 2026-10-19 · Branch: `plan/product-surface` · PR:
+  [tohe-play#72](https://github.com/vinh466/tohe-play/pull/72) (draft, về `main`; #70 cũ đã merge vào `plan/public-launch`)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
   **Delivery: [delivery.md](delivery.md)** · Log: [log.md](log.md)
 - Research: [R-01 việc dang dở](research/R-01-backlog-review.md) · [R-02 host, SEO, GEO](research/R-02-hosts-seo-geo.md) ·
