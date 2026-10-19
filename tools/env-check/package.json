@@ -1,0 +1,18 @@
+{
+  "name": "@tohe/env-check",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Read-only checks of UAT and production, and of a commit before it is tagged (ADR 0041): pnpm check:uat, check:prod, release:check.",
+  "type": "module",
+  "scripts": {
+    "uat": "node src/uat.ts",
+    "prod": "node src/prod.ts",
+    "release": "node src/release.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^5.0.0"
+  }
+}

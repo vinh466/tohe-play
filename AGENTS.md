@@ -52,6 +52,7 @@ pnpm install && dotnet tool restore
 docker compose up -d postgres mailpit && pnpm dev   # hub http://localhost:4720, mail :4760
 pnpm verify                                    # Definition of Done, run before every PR
 pnpm --filter @tohe/e2e smoke                  # against a running stack
+pnpm release:check <ref> --for uat|prod        # before tagging; pnpm check:uat / check:prod after a deploy (read-only)
 ```
 
 Skills: `/new-game`, `/new-adr`, `/verify`, `/health-report` (in `.claude/skills/`). Agents for the master/worker way

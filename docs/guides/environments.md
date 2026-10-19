@@ -71,14 +71,16 @@ Annotated tags on commits of `main`: `uat-YYYY-MM-DD.N` and `prod-YYYY-MM-DD.N`,
 on the owner's word. The newest tag of a prefix (latest date, then highest `N`: `git tag -l 'uat-*' --sort=-v:refname`)
 is what that environment runs. Rolling back is a new tag on an older commit ([below](#rolling-back)).
 
-Rules before tagging:
+Rules before tagging. `pnpm release:check <ref> --for uat|prod` checks all of them for a commit, read-only, and prints
+the next free tag name for today. Run `git fetch origin --tags` first: it reads `origin/main` and the tags as they are
+and does not fetch.
 
-| Rule | Check |
+| Rule | What `release:check` looks at |
 | --- | --- |
 | The commit is on `main` | `git merge-base --is-ancestor <commit> origin/main` |
-| CI is green for it | `gh run list --commit <sha>` |
-| Its images exist | `docker manifest inspect ghcr.io/vinh466/tohe-play/api:sha-<commit>` |
-| A `prod-` tag goes only on a commit that has a `uat-` tag | `git tag --points-at <commit> --list 'uat-*'` |
+| CI is green for it | The `CI` workflow's run for the push of that commit to `main`, from the GitHub API, concluded `success` |
+| Its images and chart exist | The four images `ghcr.io/vinh466/tohe-play/<api, hub, games or site>:sha-<commit>` and the chart version `<Chart.yaml version at that commit>-g<7-char sha>` are on GHCR |
+| A `prod-` tag goes only on a commit that has a `uat-` tag (`--for prod`) | `git tag --points-at <commit> --list 'uat-*'` |
 
 ```sh
 git tag -a uat-2026-10-21.1 <commit> -m "UAT 2026-10-21.1"
@@ -101,22 +103,21 @@ in `platform-infra` is that chart version.
 
 ## Checks after a deploy
 
-By hand, until a script exists.
+Two read-only scripts, in the package `tools/env-check`. Each prints one line per check (`✔` or `✘` with a short
+detail) and a summary, and exits 1 if any check failed. They write nothing: they only read (GET and HEAD, DNS over
+HTTPS, `docker compose logs`, one `SELECT`).
 
-UAT:
+| | `pnpm check:uat` (on the homelab) | `pnpm check:prod` (from anywhere) |
+| --- | --- | --- |
+| Expects | `--expect <ref>`, else the newest `uat-` tag; `apiVersion` is the first 12 characters of its commit | `--expect <ref>`, else the newest `prod-` tag; `apiVersion` is `sha-<full commit>`. With neither, it prints the version and warns |
+| Hub | `/api/health` is `Healthy`; `/api/config`; `/` answers; the console page at `/admin/` | `/api/health` is `Healthy`; `/api/config` (version, registration, proof of work, providers, email); `/` answers with CSP, HSTS and `nosniff`; `http://` redirects to `https://`; `www` redirects to the apex; the console page at `/admin/`, with `noindex, nofollow` |
+| Site and docs | The site's `/` and `/docs/` answer | The docs host: `/` and `/docs/` answer, `/play` redirects to the hub |
+| Games | `/catalog.json` lists games; `/` redirects to the hub with `noindex` | The same, and the first game's entry page answers with `form-action 'none'` in its CSP |
+| Underneath | The API log since `--since` (default 15 minutes) has no `fail:`, `crit:`, `Unhandled` or `Exception` line; the newest migration in the database is the newest migration file of the commit. Skipped with `--no-docker`, or when Docker is missing | The mail DNS records: DKIM, the `send` subdomain's SPF and MX, DMARC, and the domain's MX |
 
-- `curl -s http://10.100.0.2:4820/api/config`: `apiVersion` is the first 12 characters of the tag's commit
-  (`git rev-parse --short=12 <tag>^{commit}`).
-- `curl -s http://10.100.0.2:4820/api/health` answers healthy.
-- `docker compose -p tohe-uat logs api` shows no errors, and the migrations were applied at start.
-- The games origin (`http://10.100.0.2:4830/`) redirects to the hub.
-
-Production:
-
-- `curl -s https://toheplay.io.vn/api/config`: `apiVersion` is `sha-<full commit>` of the tag.
-- `curl -s https://toheplay.io.vn/api/health` answers healthy.
-- The games origin and the docs answer.
-- The CSP and HSTS headers are present.
+The addresses can be overridden (`--hub`, `--site`, `--games`, `--docs`, `--domain`; `--no-dns` skips the mail
+records). After a deploy the agent runs `pnpm check:uat --expect <tag>` or `pnpm check:prod --expect <tag>` with the
+tag it just made. `--since` for UAT is how far back to read the log, for example the time of the deploy.
 
 If a check fails, say so and stop. Rolling back is the owner's call ([below](#rolling-back)).
 
@@ -129,7 +130,7 @@ If a check fails, say so and stop. Rolling back is the owner's call ([below](#ro
 | Games | The conformance kit: the Game Contract, the CSP, both themes | `pnpm conformance`, in `pnpm verify` and CI |
 | The stack | The e2e smoke test, `routes` (the hub serves the map of its paths, [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)), and `rooms`: three phones play a Tiến Lên table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | CI against the compose stack; locally `pnpm --filter @tohe/e2e smoke` and `rooms` against a running stack |
 | The chart | Lint, every profile rendered, every guard, an install and an upgrade on kind, `helm test` | CI, job `chart`; locally `deploy/helm/tohe/ci/check.sh` for the first part |
-| After a deploy | The [checks](#checks-after-a-deploy) above | By hand, on UAT and production |
+| After a deploy | The [checks](#checks-after-a-deploy) above | `pnpm check:uat` and `pnpm check:prod`, run by the agent after a deploy |
 | Real devices | Phones: touch, sound, install, the installed PWA | The owner; [below](#local-development) for how to get a build on a phone |
 
 [Definition of Done](../conventions/definition-of-done.md) says what a pull request needs before it is finished.

@@ -55,7 +55,9 @@ The script:
 5. starts the `tohe-uat` compose project (database migrations run when the API starts), waits for `/api/health` and
    prints the deployed commit.
 
-What is running: `curl -s http://10.100.0.2:4820/api/config` → `apiVersion` is the deployed commit.
+What is running: `curl -s http://10.100.0.2:4820/api/config` → `apiVersion` is the first 12 characters of the deployed
+commit. `pnpm check:uat` does that and the rest of the [checks after a deploy](environments.md#checks-after-a-deploy)
+(it reads only), and `pnpm check:uat --expect <tag>` compares the version with a tag.
 
 Deploy only commits that are on `main` with green CI. The agent tags the commit `uat-…` and deploys when the owner
 says "deploy" ([ADR 0041](../decisions/0041-promote-one-build-through-the-environments-by-tag.md)); the tag rules and
