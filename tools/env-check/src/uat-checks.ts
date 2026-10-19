@@ -46,9 +46,14 @@ export async function checkConsolePage(http: Fetcher, consoleUrl: string, r: Run
     const robots = result.headers['x-robots-tag'];
     assert(robotsHas(robots, 'noindex'), `X-Robots-Tag is '${robots ?? ''}'`);
   });
-  await r.check('/api/admin/me asks for the console session (401)', async () => {
-    const result = await http(`${consoleUrl}/api/admin/me`);
+  await r.check('/api/admin/overview asks for the console session (401)', async () => {
+    const result = await http(`${consoleUrl}/api/admin/overview`);
     assert(result.status === 401, `answered ${result.status}`);
+  });
+  // Nobody signed in is a normal state of a browser, not an error: 204, as the hub's /api/auth/me.
+  await r.check('/api/admin/me says nobody is signed in (204)', async () => {
+    const result = await http(`${consoleUrl}/api/admin/me`);
+    assert(result.status === 204, `answered ${result.status}`);
   });
   await r.check("the hub's pages are not here (/play is a 404)", async () => {
     const result = await http(`${consoleUrl}/play`);

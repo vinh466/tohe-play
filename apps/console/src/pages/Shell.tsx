@@ -1,5 +1,5 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Link, Outlet, useRouterState } from '@tanstack/react-router';
+import { Link, Outlet } from '@tanstack/react-router';
 import { admin } from '../api/client.ts';
 import { roleName } from '../format.ts';
 import { hubLink, useHubUrl } from '../hub.ts';
@@ -13,18 +13,13 @@ const pages = [
   { to: '/system', label: 'Hệ thống' },
 ] as const;
 
-/** /setup comes before anyone can sign in (ADR 0027); every other page sits behind the console's session. */
-export function Root() {
-  const pathname = useRouterState({ select: (state) => state.location.pathname });
-  return pathname === '/setup' ? <Outlet /> : <Shell />;
-}
-
 /**
- * Every page sits behind the console's own session (ADR 0027, 0042): signed in here with the password and a code from
- * the authenticator, by an account that holds a role. Without one — or once it ended — the sign-in takes the page's
- * place. The API checks it all on every request; this only explains its answers.
+ * Every page but /setup sits behind the console's own session (ADR 0027, 0042): signed in here with the password and a
+ * code from the authenticator, by an account that holds a role. Without one — or once it ended — the sign-in takes the
+ * page's place. The router's layout of those pages (router.tsx), so a page renders only inside it. The API checks it
+ * all on every request; this only explains its answers.
  */
-function Shell() {
+export function Shell() {
   const me = useQuery({ queryKey: meKey, queryFn: admin.me, retry: false });
   const hubUrl = useHubUrl();
   // The console's session only; the hub's stays.

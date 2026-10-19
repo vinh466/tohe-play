@@ -42,6 +42,6 @@ spec:
           curl -fsS http://{{ $games }}:8080/catalog.json | grep -q '"games"'
           {{- with .Values.publicUrls.console }}
           curl -fsSI http://{{ $hub }}:8081/ | grep -qi '^x-robots-tag: noindex'
-          test "$(curl -s -o /dev/null -w '%{http_code}' -H "Host: {{ include "tohe.host" . }}" http://{{ $hub }}:8081/api/admin/me)" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H "Host: {{ include "tohe.host" . }}" http://{{ $hub }}:8081/api/admin/overview)" = 401
           {{- end }}
           echo smoke test passed

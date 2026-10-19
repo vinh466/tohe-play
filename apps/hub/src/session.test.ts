@@ -92,6 +92,8 @@ describe('errorKey', () => {
     expect(errorKey(new ApiError(429, null))).toBe('errors.tooManyRequests');
     expect(errorKey(new TypeError('Failed to fetch'))).toBe('errors.offline');
     expect(errorKey(new ApiError(500, null))).toBe('errors.generic');
+    // An account without a password adds no authenticator: the console's sign-in asks for one.
+    expect(errorKey(new ApiError(409, 'password_required'))).toBe('errors.passwordRequired');
   });
 
   it('reads validation codes case-insensitively', () => {

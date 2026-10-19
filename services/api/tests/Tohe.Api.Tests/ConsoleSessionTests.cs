@@ -97,6 +97,41 @@ public sealed class ConsoleSessionTests(ApiFactory factory) : IClassFixture<ApiF
     }
 
     [Fact]
+    public async Task A_players_password_is_never_checked_and_its_lockout_stays_untouched()
+    {
+        var player = Accounts.NewEmail();
+        var playerId = (await Accounts.SignUpAsync(factory, factory.CreateClient(), "Người chơi", player)).Account.Id;
+        var roleOnly = Accounts.NewEmail();
+        var roleOnlyId = (await Accounts.SignUpAsync(factory, factory.CreateClient(), "Có vai trò", roleOnly)).Account.Id;
+        Assert.Equal(0, (await Admins.CommandAsync(factory, "admin", "grant", roleOnly, "--role", "owner")).Exit);
+        // A count a right password would reset and a wrong one raise, were either checked.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Users.Where(a => a.Id == playerId || a.Id == roleOnlyId)
+                .ExecuteUpdateAsync(s => s.SetProperty(a => a.AccessFailedCount, 3), Ct);
+        }
+
+        foreach (var email in (string[])[player, roleOnly])
+        {
+            foreach (var password in (string[])[Accounts.Password, "sai-mat-khau"])
+            {
+                var refused = await Admins.ConsoleClient(factory).PostAsJsonAsync(
+                    Url("/api/admin/session"), new { email, password, code = "123456" }, Ct);
+                Assert.Equal((HttpStatusCode.Unauthorized, "invalid_credentials"), (refused.StatusCode, await CodeOfAsync(refused)));
+            }
+        }
+
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var counts = await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Users.AsNoTracking()
+                .Where(a => a.Id == playerId || a.Id == roleOnlyId)
+                .Select(a => a.AccessFailedCount)
+                .ToListAsync(Ct);
+            Assert.Equal([3, 3], counts);
+        }
+    }
+
+    [Fact]
     public async Task Suspended_and_deleting_accounts_do_not_get_in()
     {
         var owner = await Admins.NewAsync(factory, "owner");
@@ -147,6 +182,12 @@ public sealed class ConsoleSessionTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.Equal(HttpStatusCode.NotFound, (await SendAsync(player, HttpMethod.Get, "/api/admin/me", consoleCookie)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await SendAsync(bare, HttpMethod.Get, "/api/auth/me", playerCookie)).StatusCode);
         Assert.Equal(HttpStatusCode.NotFound, (await bare.GetAsync(Url("/api/health"), Ct)).StatusCode);
+
+        // A forwarded host is not the console's host: the API reads the Host header alone.
+        var forwarded = new HttpRequestMessage(HttpMethod.Get, Url("/api/admin/overview"));
+        forwarded.Headers.Add("X-Forwarded-Host", Admins.ConsoleUrl.Authority);
+        forwarded.Headers.Add("Cookie", consoleCookie);
+        Assert.Equal(HttpStatusCode.NotFound, (await player.SendAsync(forwarded, Ct)).StatusCode);
     }
 
     [Fact]

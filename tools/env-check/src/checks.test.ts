@@ -195,13 +195,14 @@ describe('checkConsolePage', () => {
       pages[url] ?? { status: 404, headers: {}, body: '' };
   const healthy = {
     'http://10.100.0.2:4821/': consolePage,
-    'http://10.100.0.2:4821/api/admin/me': { status: 401, headers: {}, body: '' },
+    'http://10.100.0.2:4821/api/admin/overview': { status: 401, headers: {}, body: '' },
+    'http://10.100.0.2:4821/api/admin/me': { status: 204, headers: {}, body: '' },
   };
 
   it('passes against the console on its own host', async () => {
     const { runner } = capture();
     await checkConsolePage(uatConsole(healthy), 'http://10.100.0.2:4821', runner);
-    expect([runner.passed, runner.failed]).toEqual([3, 0]);
+    expect([runner.passed, runner.failed]).toEqual([4, 0]);
   });
 
   it("fails when the console's routes answer without its session, or the hub's pages are there", async () => {
@@ -209,13 +210,14 @@ describe('checkConsolePage', () => {
     await checkConsolePage(
       uatConsole({
         ...healthy,
+        'http://10.100.0.2:4821/api/admin/overview': json({ accounts: 1 }),
         'http://10.100.0.2:4821/api/admin/me': json({ role: 'owner' }),
         'http://10.100.0.2:4821/play': html('<div id="root">'),
       }),
       'http://10.100.0.2:4821',
       runner,
     );
-    expect(runner.failed).toBe(2);
+    expect(runner.failed).toBe(3);
   });
 });
 

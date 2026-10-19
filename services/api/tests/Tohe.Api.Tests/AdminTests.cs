@@ -115,6 +115,8 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal("step_up_required", await CodeOfAsync(await player.PostAsync(Url("/api/account/two-factor/setup"), null, Ct)));
 
         var key = await EnrolAsync(player);
+        // Told to the account's address, as every change to how it signs in (ADR 0024, 0026).
+        Assert.Contains("Đã bật xác thực hai lớp", await factory.MailSentToAsync(email), StringComparison.Ordinal);
         Assert.Equal("two_factor_enabled", await CodeOfAsync(await player.PostAsync(Url("/api/account/two-factor/setup"), null, Ct)));
         var desk = await Admins.SignInAsync(factory, email, key);
         var laptop = await Admins.SignInAsync(factory, email, key, step: 2);
@@ -124,6 +126,7 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Equal("step_up_required", await CodeOfAsync(await desk.DeleteAsync(Url("/api/admin/two-factor"), Ct)));
         await Admins.StepUpAsync(desk);
         Assert.Equal(HttpStatusCode.NoContent, (await desk.DeleteAsync(Url("/api/admin/two-factor"), Ct)).StatusCode);
+        Assert.Contains("Đã tắt xác thực hai lớp", await factory.MailSentToAsync(email), StringComparison.Ordinal);
         Assert.Equal(HttpStatusCode.Unauthorized, (await desk.GetAsync(Url("/api/admin/overview"), Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.Unauthorized, (await laptop.GetAsync(Url("/api/admin/overview"), Ct)).StatusCode);
         var signIn = await Admins.ConsoleClient(factory).PostAsJsonAsync(Url("/api/admin/session"), Admins.SignIn(email, key, step: -1), Ct);
@@ -277,6 +280,39 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.DoesNotContain("/api/account/two-factor", admin, StringComparison.Ordinal);
         Assert.DoesNotContain("/api/admin", hub, StringComparison.Ordinal);
         Assert.Contains("/api/account/two-factor/setup", hub, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task Only_an_account_with_a_role_a_password_and_step_up_adds_an_authenticator()
+    {
+        var email = Accounts.NewEmail();
+        var player = factory.CreateClient();
+        var me = await Accounts.SignUpAsync(factory, player, "Bố", email);
+        var enable = new { code = "123456" };
+
+        // A player, even within step-up level 2: no authenticator.
+        await Accounts.StepUpAsync(player);
+        Assert.Equal("admin_required", await CodeOfAsync(await player.PostAsync(Url("/api/account/two-factor/setup"), null, Ct)));
+        Assert.Equal("admin_required", await CodeOfAsync(await player.PostAsJsonAsync(Url("/api/account/two-factor/enable"), enable, Ct)));
+
+        // A role, on a device without step-up level 2.
+        Assert.Equal(0, (await CommandAsync("admin", "grant", email, "--role", "moderator")).Exit);
+        var other = factory.CreateClient();
+        Assert.Equal(HttpStatusCode.OK, (await other.PostAsJsonAsync(Url("/api/auth/login"), new { email, password = Accounts.Password }, Ct)).StatusCode);
+        Assert.Equal("step_up_required", await CodeOfAsync(await other.PostAsync(Url("/api/account/two-factor/setup"), null, Ct)));
+        Assert.Equal("step_up_required", await CodeOfAsync(await other.PostAsJsonAsync(Url("/api/account/two-factor/enable"), enable, Ct)));
+
+        // An account that signs in only with a provider: the console's sign-in asks for a password, so one comes first.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Users.Where(a => a.Id == me.Account.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(a => a.PasswordHash, (string?)null), Ct);
+        }
+
+        var setup = await player.PostAsync(Url("/api/account/two-factor/setup"), null, Ct);
+        Assert.Equal((HttpStatusCode.Conflict, "password_required"), (setup.StatusCode, await CodeOfAsync(setup)));
+        Assert.Equal("password_required", await CodeOfAsync(await player.PostAsJsonAsync(Url("/api/account/two-factor/enable"), enable, Ct)));
+        Assert.False((await player.GetFromJsonAsync<AccountTwoFactorView>(Url("/api/account/two-factor"), Ct))!.Enabled);
     }
 
     // ------------------------------------------------------------------ helpers

@@ -9,7 +9,7 @@ export const HEALTH_DAYS = [1, 7, 30] as const;
 
 /** Device telemetry (ADR 0015) over the last days: what the operator's report says, as pages. */
 export function HealthPage() {
-  const { days } = useSearch({ from: '/health' });
+  const { days } = useSearch({ from: '/_session/health' });
   const report = useQuery({ queryKey: ['admin', 'health', days], queryFn: () => admin.health(days) });
 
   return (

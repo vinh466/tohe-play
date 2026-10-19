@@ -6,7 +6,9 @@ sidebar:
 ---
 
 - **Status:** Accepted — one more switch, the proof-of-work before a code by email, since
-  [ADR 0037](0037-proof-of-work-before-a-code-by-email.md)
+  [ADR 0037](0037-proof-of-work-before-a-code-by-email.md); the switch of the password does not cover the console's own
+  sign-in, which signs in with the password whatever the switch says, since
+  [ADR 0042](0042-hosts-by-trust-paths-by-component.md)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0026](0026-sign-in-methods-and-account-linking.md) — a provider with secrets can still be off;
   [ADR 0024](0024-email-identifies-an-account.md) — signing up may need an invite code, or be closed

@@ -43,8 +43,11 @@ page.on('pageerror', (error) => {
   mark(`uncaught: ${error.message}`);
 });
 page.on('console', (message) => {
-  if (message.type() === 'error') errors.push(message.text());
-  mark(`console.${message.type()}: ${message.text()}`);
+  // "Failed to load resource" names only the status: its location is the request's URL.
+  const where = message.location().url;
+  const text = where ? `${message.text()} (${where})` : message.text();
+  if (message.type() === 'error') errors.push(text);
+  mark(`console.${message.type()}: ${text}`);
 });
 page.on('framenavigated', (frame) =>
   mark(`${frame === page.mainFrame() ? 'hub' : 'iframe'} -> ${frame.url()}`),
