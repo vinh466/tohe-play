@@ -11,6 +11,13 @@ import { startTelemetry } from './telemetry/telemetry.ts';
 import { startTheme } from './theme/theme.ts';
 
 startTheme();
+// The public home page sends a device that has used the app on to it (apps/web returning.js, ADR 0042): every start
+// says so, for guests and accounts alike.
+try {
+  localStorage.setItem('tohe:returning', '1');
+} catch {
+  // Storage blocked: the home page shows itself, and its button leads here.
+}
 // The browser's install prompt fires once, early: keep it until the player asks (or a game has finished).
 installStore.capture();
 

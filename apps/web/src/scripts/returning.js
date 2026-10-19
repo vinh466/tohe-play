@@ -3,13 +3,13 @@
 // classic script in <head>, like theme-init.js: the page's CSP forbids inline scripts, so it is a file under /_web/.
 //
 // "Has played here" is what the app itself keeps in this origin's localStorage:
-//   tohe:guest             a guest on this device ("Chơi thử"); the app removes it when the person signs in
-//   tohe:telemetry:device  the id the app's telemetry gives this device on its first visit, for guests and accounts
+//   tohe:returning         set by the app on every start, for guests and accounts alike
+//   tohe:guest             a guest on this device; with the next key, it covers devices from before tohe:returning
+//   tohe:telemetry:device  the id the app's telemetry gives this device on its first visit
 // The session cookie is HttpOnly and cannot be read here. /?stay never redirects, so the page can still be looked at.
-// A localStorage key that the app sets on every visit would replace this list; returning.test.ts reads the app's code
-// to keep the names true.
+// returning.test.ts reads the app's code to keep the names true.
 (() => {
-  const DEVICE_KEYS = ['tohe:guest', 'tohe:telemetry:device'];
+  const DEVICE_KEYS = ['tohe:returning', 'tohe:guest', 'tohe:telemetry:device'];
   try {
     if (new URLSearchParams(location.search).has('stay')) return;
     if (DEVICE_KEYS.some((key) => localStorage.getItem(key) !== null)) location.replace('/play');

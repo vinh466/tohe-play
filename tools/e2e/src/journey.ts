@@ -162,10 +162,11 @@ const storedNo = (page: Page) => page.evaluate(() => localStorage.getItem('tohe:
 
 try {
   step(
-    'a new visitor opens the hub: the root leads to the catalog and plays as a guest, with no sign-in screen',
+    'a new visitor opens the hub: the public page\'s "Chơi ngay" leads to the catalog, played as a guest, no sign-in',
   );
   const android = await visitor('android', userAgents.androidChrome, browser, [fakeInstallPrompt]);
   await android.goto(hubUrl);
+  await android.getByRole('link', { name: 'Chơi ngay' }).tap();
   await android.waitForURL(catalogUrl);
   await android.getByRole('link', { name: 'Đăng nhập' }).waitFor(); // the slim strip for guests
   await android

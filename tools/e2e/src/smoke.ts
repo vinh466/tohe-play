@@ -97,12 +97,14 @@ const email = `e2e${Date.now().toString(36)}@e2e.test`;
 
 try {
   step(
-    `open ${hubUrl} — a new device sees the public page, whose "Chơi ngay" leads on to the sign-in screen`,
+    `open ${hubUrl} — a new device sees the public page; "Chơi ngay" plays as a guest, and signing in is a choice`,
   );
   await page.goto(hubUrl);
   await page.getByRole('link', { name: 'Chơi ngay' }).waitFor();
   await shot('landing');
   await page.getByRole('link', { name: 'Chơi ngay' }).tap();
+  await page.waitForURL((url) => url.pathname === '/play');
+  await page.getByRole('link', { name: 'Đăng nhập' }).tap(); // the slim strip for guests
   await page.waitForURL(/\/account\/sign-in$/);
   await shot('welcome');
 

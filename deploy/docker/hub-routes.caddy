@@ -6,7 +6,7 @@
 @publicStaticImmutable path /_web /_web/*
 @appPage path /play /play/* /account /account/* /r /r/* /terms /privacy
 @appStaticImmutable path /assets /assets/*
-@appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /registerSW.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png
+@appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /registerSW.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png /screenshots /screenshots/*
 @platformGenerated path /robots.txt /sitemap.xml /.well-known /.well-known/*
 # The app’s old paths, kept for the links in emails already sent: 301 to the new path, the query kept.
 @legacyWelcome path_regexp legacyWelcome ^/welcome$
