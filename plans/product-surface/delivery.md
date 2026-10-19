@@ -111,7 +111,7 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 | B4 | DNS `console` (proxied) + Cloudflare Access: một application cho `console.toheplay.io.vn`, chính sách cho phép email của owner |
 | B5 | Thêm `notify.toheplay.io.vn` ở Resend (Cloudflare tự thêm DNS), đổi người gửi trong Infisical `/tohe` và `uat.env`; chọn dịch vụ trang trạng thái, CNAME `status` DNS-only |
 | S1 | Duyệt giọng văn trang công khai; sau khi lên: xác minh Search Console + Bing (TXT) |
-| S3 | Tạo OAuth client Google, secret vào Infisical `/tohe` |
+| S3 | Theo [hướng dẫn](../../docs/guides/sign-in-with-google.md) (#78): chọn chế độ Đăng ký, tạo OAuth client Google, secret `google-client-secret` vào Infisical `/tohe`, merge PR values |
 | I2 | Duyệt câu tuổi/đồng ý cùng Điều khoản + Quyền riêng tư |
 | K1 | Duyệt từng câu của vision |
 | K2 | Thử trên thiết bị thật |
@@ -124,5 +124,6 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 | CI | `ci/run-what-changed` | [#73](https://github.com/vinh466/tohe-play/pull/73) **merged** (2026-10-19); PR chỉ docs giờ ~50 giây (#74), PR code ~8,6 phút — ngoài 18 PR, owner yêu cầu: CI chạy theo phạm vi thay đổi (notes / docs / all), job song song, cache Turborepo; `main` vẫn chạy đủ, không đọc cache |
 | N2 | `feat/n2-env-check` | [#76](https://github.com/vinh466/tohe-play/pull/76) mở (2026-10-19), chờ owner review — builder (Sonnet · high); lần chạy thật đầu tiên bắt được sự cố: DNS `games.toheplay.io.vn` mất (NXDOMAIN), game prod không tải; owner thêm lại, `check:prod` 17 đạt / 0 lỗi (19:00) |
 | N3 | `feat/n3-stack-image-seed` | [#75](https://github.com/vinh466/tohe-play/pull/75) mở (2026-10-19), chờ owner review — builder (Sonnet · high); master thêm khoá thứ hai `Dev:SeedAllowed` (không seed được UAT kể cả khi ép môi trường Development); `pnpm verify` xanh, 261 API test |
-| B1 | `feat/b1-layout-standard` | [#77](https://github.com/vinh466/tohe-play/pull/77) mở (2026-10-19), chờ owner review — master: ADR 0042 + `docs/architecture/hosts-and-paths.md`; builder (Opus · high): `@tohe/routes`, sinh cấu hình, 404, robots, security.txt, HSTS, cờ Scalar; reviewer (Opus · high): 0 blocker, 4 major, 7 minor, đã sửa; `pnpm verify` xanh. Tạm: gốc `noindex` tới B3; `sitemap.xml` dời sang B3 |
+| B1 | `feat/b1-layout-standard` | [#77](https://github.com/vinh466/tohe-play/pull/77) mở (2026-10-19), chờ owner review — master: ADR 0042 + `docs/architecture/hosts-and-paths.md`; builder (Opus · high): `@tohe/routes`, sinh cấu hình, 404, robots, security.txt, HSTS, cờ Scalar; reviewer (Opus · high): 0 blocker, 4 major, 7 minor, đã sửa; `pnpm verify` xanh; **CI xanh** (stack đọc `security.txt` thật). Tạm: gốc `noindex` tới B3; `sitemap.xml` dời sang B3 |
+| S3 | `docs/s3-sign-in-with-google` | [#78](https://github.com/vinh466/tohe-play/pull/78) mở (2026-10-19), chờ owner review — master viết `docs/guides/sign-in-with-google.md` (không tốn worker). Phát hiện: nhà cung cấp có khoá là **bật mặc định**, nên owner chọn chế độ Đăng ký trước PR values |
 | K1 | `docs/k1-vision` | [#74](https://github.com/vinh466/tohe-play/pull/74) draft (2026-10-19), chờ owner duyệt từng câu — master viết |

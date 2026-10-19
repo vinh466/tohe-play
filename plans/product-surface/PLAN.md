@@ -17,17 +17,18 @@
 ## Next — one item
 
 **Owner review đợt đầu** ([delivery.md → Trạng thái](delivery.md#trạng-thái)): N2 [#76](https://github.com/vinh466/tohe-play/pull/76),
-N3 [#75](https://github.com/vinh466/tohe-play/pull/75), B1 [#77](https://github.com/vinh466/tohe-play/pull/77), K1
-[#74](https://github.com/vinh466/tohe-play/pull/74). B1 merge xong thì agent mở B2 và B4 (hai worker).
+N3 [#75](https://github.com/vinh466/tohe-play/pull/75), B1 [#77](https://github.com/vinh466/tohe-play/pull/77), S3
+[#78](https://github.com/vinh466/tohe-play/pull/78), K1 [#74](https://github.com/vinh466/tohe-play/pull/74). B1 merge xong thì agent mở B2 và B4 (hai worker).
 
 ## Waiting on the owner
 
-1. Review và merge #75, #76, #77; duyệt từng câu #74.
-2. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-19).
-3. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).
-4. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (không chặn gì; cần trước S1).
-5. Cloudflare: AI Crawl Control — Search cho phép; xác nhận Bot Fight Mode / Under Attack / WAF challenge tắt.
-6. Việc tay theo PR (DNS `console` + Cloudflare Access, Resend `notify.`, dịch vụ `status.`, Google client, duyệt văn bản):
+1. Review và merge #75, #76, #77, #78; duyệt từng câu #74.
+2. **Trước khi bật Google** (S3, #78): chọn chế độ Đăng ký ở console — Google có khoá là bật ngay khi API lên, prod đang `Mở`.
+3. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-19).
+4. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).
+5. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (không chặn gì; cần trước S1).
+6. Cloudflare: AI Crawl Control — Search cho phép; xác nhận Bot Fight Mode / Under Attack / WAF challenge tắt.
+7. Việc tay theo PR (DNS `console` + Cloudflare Access, Resend `notify.`, dịch vụ `status.`, Google client, duyệt văn bản):
    [delivery.md → Việc chỉ owner làm được](delivery.md#việc-chỉ-owner-làm-được).
 
 ## Board

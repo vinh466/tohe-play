@@ -8,7 +8,8 @@ Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang 
   "làm việc tiếp" → K1 #74 (draft), N3 #75, N2 #76, B1 #77 — worker không commit, master review rồi commit; reviewer cho B1.
 - N2 chạy thật lần đầu bắt sự cố prod ~18:30: DNS `games` mất (NXDOMAIN) → owner thêm lại; 19:00 `check:prod` 17 đạt / 0 lỗi
   (cảnh báo duy nhất: chưa có tag `prod-`). `_dmarc` đã đúng chỗ.
-- Chờ owner: review #74–#77; `hub.securityContact` ở platform-infra khi B1 lên prod. Sau B1: B2 + B4.
+- B1 CI xanh. S3 = #78 (hướng dẫn Google, master viết): Google có khoá là bật ngay → chọn chế độ Đăng ký trước.
+- Chờ owner: review #74–#78; `hub.securityContact` ở platform-infra khi B1 lên prod. Sau B1: B2 + B4; B5 sau B1.
 
 ## 2026-10-19 (N1) — agent
 
