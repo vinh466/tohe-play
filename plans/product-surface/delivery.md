@@ -119,4 +119,4 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 
 | PR | Nhánh | Trạng thái |
 |---|---|---|
-| N1 | `docs/n1-environments` | [#71](https://github.com/vinh466/tohe-play/pull/71) mở (2026-10-20), chờ owner review — master: ADR 0041; builder (Sonnet · high): docs + `.claude/agents`; reviewer (Opus · high): 0 blocker, 5 major, 9 minor, đã sửa; `pnpm verify` xanh |
+| N1 | `docs/n1-environments` | [#71](https://github.com/vinh466/tohe-play/pull/71) mở (2026-10-20), chờ owner review — master: ADR 0041; builder (Sonnet · high): docs + `.claude/agents`; reviewer (Opus · high): 0 blocker, 5 major, 9 minor, đã sửa; `pnpm verify` xanh; **CI xanh** (verify, chart, stack) |
