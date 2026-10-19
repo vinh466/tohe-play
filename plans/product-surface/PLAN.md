@@ -4,10 +4,10 @@
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
 - Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-19); thứ tự xây theo pull
-  request ở **[delivery.md](delivery.md)**; N1 và CI đã merge, N2 N3 K1 B1 chờ owner review (2026-10-19). Còn mở: E-02 Q2
-  (không chặn), E-05 (Cổng).
-- Started: 2026-10-19 · Branch: `plan/product-surface` · PR:
-  [tohe-play#72](https://github.com/vinh466/tohe-play/pull/72) (draft, về `main`; #70 cũ đã merge vào `plan/public-launch`)
+  request ở **[delivery.md](delivery.md)**; N1–N3, B1, B2, B4, B5, S3, K1 đã merge (2026-10-19), UAT chạy `uat-` của
+  chúng; B3 và S2 đang làm. Còn mở: E-02 Q2 (cần trước S1), E-05 (Cổng).
+- Started: 2026-10-19 · Trên `main` từ [#72](https://github.com/vinh466/tohe-play/pull/72) (2026-10-19); mỗi lần cập nhật
+  là một pull request nhỏ
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
   **Delivery: [delivery.md](delivery.md)** · Log: [log.md](log.md)
 - Research: [R-01 việc dang dở](research/R-01-backlog-review.md) · [R-02 host, SEO, GEO](research/R-02-hosts-seo-geo.md) ·
@@ -16,21 +16,20 @@
 
 ## Next — one item
 
-**B2 + B4** (hai worker) khi owner nói "làm" — B1, N2, S3 đã merge (2026-10-19). Còn chờ owner: merge N3
-[#75](https://github.com/vinh466/tohe-play/pull/75), đọc K1 [#74](https://github.com/vinh466/tohe-play/pull/74),
-"deploy" rồi "lên prod" cho B1 ([delivery.md → Trạng thái](delivery.md#trạng-thái)).
+**B3 + S2** (hai worker, 2026-10-19 23:05): B3 = trang công khai `apps/web` ở gốc, `apps/site` → `apps/docs` ở gốc `docs.`,
+key chart `site` → `docs`; S2 = những chạm đầu của người mới (vào là chơi, cài app, manifest, `og:`, Góp ý). Sau đó I1.
 
 ## Waiting on the owner
 
-1. Merge #75 (CI xanh); duyệt từng câu #74. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` — agent
-   không tự merge được (chế độ auto chặn).
-2. **Trước khi bật Google** (S3, #78): chọn chế độ Đăng ký ở console — Google có khoá là bật ngay khi API lên, prod đang `Mở`.
-3. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-19).
-4. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).
-5. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (không chặn gì; cần trước S1).
-6. Cloudflare: AI Crawl Control — Search cho phép; xác nhận Bot Fight Mode / Under Attack / WAF challenge tắt.
-7. Việc tay theo PR (DNS `console` + Cloudflare Access, Resend `notify.`, dịch vụ `status.`, Google client, duyệt văn bản):
-   [delivery.md → Việc chỉ owner làm được](delivery.md#việc-chỉ-owner-làm-được).
+1. **Trước "lên prod"** cho B1–B5: DNS `console` (proxied) + Cloudflare Access cho `console.toheplay.io.vn`; agent mở PR
+   values `platform-infra` (`publicUrls.console`, `hub.securityContact`) để owner merge — thiếu thì console prod trả 404.
+2. **Chế độ Đăng ký** (đề xuất: Theo lời mời) — trước khi bật Google (S3); prod đang `Mở`.
+3. **Console prod**: bật Chống bot đăng ký (đề xuất).
+4. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* (đề xuất: không) — cần trước S1.
+5. Cloudflare: AI Crawl Control — Search cho phép; Bot Fight Mode / Under Attack / WAF challenge tắt; chọn dịch vụ `status.`.
+6. Việc tay: thư thử tới `hello@`, `security@`; Google client ([guide](../../docs/guides/sign-in-with-google.md)); Resend
+   `notify.` ([guide](../../docs/guides/mail-and-status.md)).
+7. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng" — PR draft là chưa sẵn sàng.
 
 ## Board
 

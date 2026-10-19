@@ -106,6 +106,7 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 |---|---|
 | Mỗi PR | Review và merge |
 | Mỗi lần lên UAT / prod | Nói "deploy" / "lên prod" — agent gắn tag và làm phần còn lại (E-01) |
+| B4 lên prod | DNS `console` (proxied) + Cloudflare Access; merge PR values `publicUrls.console` (agent mở) — trước hoặc cùng tag `prod-` |
 | B1 lên prod | Merge PR `platform-infra` đặt `hub.securityContact: security@toheplay.io.vn` (agent mở lúc "lên prod"); chưa đặt thì `security.txt` trả 404 |
 | B3, B4 lên prod | Merge PR `platform-infra` đổi values (key `docs`, `console`, host `console.`) cùng bản chart — không chỉ là `targetRevision` nên chờ owner |
 | B4 | DNS `console` (proxied) + Cloudflare Access: một application cho `console.toheplay.io.vn`, chính sách cho phép email của owner |
@@ -123,7 +124,12 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 | N1 | `docs/n1-environments` | [#71](https://github.com/vinh466/tohe-play/pull/71) **merged** (2026-10-19, `9759e98`) — master: ADR 0041; builder (Sonnet · high): docs + `.claude/agents`; reviewer (Opus · high): 0 blocker, 5 major, 9 minor, đã sửa; `pnpm verify` xanh; **CI xanh** (verify, chart, stack) |
 | CI | `ci/run-what-changed` | [#73](https://github.com/vinh466/tohe-play/pull/73) **merged** (2026-10-19); PR chỉ docs giờ ~50 giây (#74), PR code ~8,6 phút — ngoài 18 PR, owner yêu cầu: CI chạy theo phạm vi thay đổi (notes / docs / all), job song song, cache Turborepo; `main` vẫn chạy đủ, không đọc cache |
 | N2 | `feat/n2-env-check` | [#76](https://github.com/vinh466/tohe-play/pull/76) **merged** (2026-10-19, `42422c8`) — builder (Sonnet · high); lần chạy thật đầu tiên bắt được sự cố: DNS `games.toheplay.io.vn` mất (NXDOMAIN), game prod không tải; owner thêm lại, `check:prod` 17 đạt / 0 lỗi (19:00) |
-| N3 | `feat/n3-stack-image-seed` | [#75](https://github.com/vinh466/tohe-play/pull/75) mở (2026-10-19), chờ owner merge — master merge `main` vào (giữ cả hai bên ở `package.json`, `compose.yaml`), `pnpm verify` xanh — builder (Sonnet · high); master thêm khoá thứ hai `Dev:SeedAllowed` (không seed được UAT kể cả khi ép môi trường Development); `pnpm verify` xanh, 261 API test |
+| N3 | `feat/n3-stack-image-seed` | [#75](https://github.com/vinh466/tohe-play/pull/75) **merged** (2026-10-19, `d23baab`) — builder (Sonnet · high); master thêm khoá `Dev:SeedAllowed`, merge `main` vào, sửa flake `MetricsTests` (chạy riêng) |
 | B1 | `feat/b1-layout-standard` | [#77](https://github.com/vinh466/tohe-play/pull/77) **merged** (2026-10-19, `1ebb671`) — master: ADR 0042 + `docs/architecture/hosts-and-paths.md`; builder (Opus · high): `@tohe/routes`, sinh cấu hình, 404, robots, security.txt, HSTS, cờ Scalar; reviewer (Opus · high): 0 blocker, 4 major, 7 minor, đã sửa; `pnpm verify` xanh; **CI xanh** (stack đọc `security.txt` thật). Tạm: gốc `noindex` tới B3; `sitemap.xml` dời sang B3 |
 | S3 | `docs/s3-sign-in-with-google` | [#78](https://github.com/vinh466/tohe-play/pull/78) **merged** (2026-10-19, `74330fe`) — master viết `docs/guides/sign-in-with-google.md` (không tốn worker). Phát hiện: nhà cung cấp có khoá là **bật mặc định**, nên owner chọn chế độ Đăng ký trước PR values |
-| K1 | `docs/k1-vision` | [#74](https://github.com/vinh466/tohe-play/pull/74) draft (2026-10-19), chờ owner duyệt từng câu — master viết |
+| K1 | `docs/k1-vision` | [#74](https://github.com/vinh466/tohe-play/pull/74) **merged** (2026-10-19, `a5d9b34`) — master viết |
+| B2 | `feat/b2-app-routes` | [#80](https://github.com/vinh466/tohe-play/pull/80) **merged** (2026-10-19, `8e056e1`) — builder (Sonnet · high): app dưới `/play`, `/account`, `/` 302 → `/play`, 301 cho đường dẫn cũ, manifest `id "/"`; master sửa e2e tìm iframe game |
+| B5 | `docs/b5-mail-and-status` | [#79](https://github.com/vinh466/tohe-play/pull/79) **merged** (2026-10-19, `9027c5c`) — master viết `mail-and-status.md` + `check:prod --sending-domain` |
+| B4 | `feat/b4-console-host` | [#81](https://github.com/vinh466/tohe-play/pull/81) **merged** (2026-10-19, `da7094f`, lúc CI còn đỏ) + [#82](https://github.com/vinh466/tohe-play/pull/82) **merged** (`b787005`) — builder (Opus · high): console ở host riêng (`:8081`), đăng nhập riêng + TOTP, cookie `SameSite=Strict` 12 giờ, `apps/console`; reviewer (Opus · high): mô hình bảo mật vững, 2 blocker (CI) + 6 minor, builder thứ hai sửa hết |
+| B3 | — | đang làm (2026-10-19 23:05) — builder (Sonnet · high) |
+| S2 | — | đang làm (2026-10-19 23:05) — builder (Sonnet · high), song song B3 (không đụng map/Caddy) |
