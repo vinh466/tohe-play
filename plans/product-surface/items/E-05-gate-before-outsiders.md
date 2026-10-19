@@ -26,5 +26,5 @@ Owner đang tự dùng prod ("tôi sẽ test 1 mình chứ chưa mời ai 1 th�
 | 10 | Telemetry prod đọc được (`/health-report` với operator token) | owner (token) + agent |
 | 11 | Gia đình ở UAT hay lên prod (E-01 Q4); mở lại D-15 (UAT có HTTPS) | owner |
 | 12 | Cộng đồng đầu tiên + mã mời | owner |
-| 13 | Console ở `admin.` sau Cloudflare Access, phiên riêng (D-01 Q9) | agent + owner |
+| 13 | Console ở `console.` sau Cloudflare Access, phiên riêng (D-01 Q9, PR B4) | agent + owner |
 | 14 | Trang trạng thái `status.` có người theo dõi (D-01 Q11) | owner + agent |

@@ -3,73 +3,51 @@
 - Goal: một người chưa biết Tò He tìm thấy nó, chơi ngay không cần tài khoản, được rủ vào đúng bàn hay đúng game bằng một
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
-- Phase: **Resolve → Converge** ([process](../README.md#phases)) — mọi item đã decided trừ **D-01** (v4: chuẩn bố cục chọn
-  lại từ đầu; Q2–Q6 chốt) và E-02 Q2. Brief: owner "thấy cũng ổn r", "ổn nha, theo đề xuất" (2026-10-19).
+- Phase: **Converge** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-20); thứ tự xây theo pull
+  request ở **[delivery.md](delivery.md)**; sang *Graduate* khi PR đầu tiên (N1) mở. Còn mở: E-02 Q2 (không chặn), E-05 (Cổng).
 - Started: 2026-10-19 · Branch: `plan/product-surface` (xếp trên `plan/public-launch`) · PR:
   [tohe-play#70](https://github.com/vinh466/tohe-play/pull/70) (draft)
-- Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) · Log: [log.md](log.md)
+- Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
+  **Delivery: [delivery.md](delivery.md)** · Log: [log.md](log.md)
 - Research: [R-01 việc dang dở](research/R-01-backlog-review.md) · [R-02 host, SEO, GEO](research/R-02-hosts-seo-geo.md) ·
   [R-03 người mới, PWA](research/R-03-pwa-install-newcomer.md) · [R-04 main + tag](research/R-04-delivery-model.md) ·
   [R-05 định danh, lối vào](research/R-05-identity-and-entry-prior-art.md) · [R-06 chuẩn bố cục](research/R-06-layout-standard.md)
 
 ## Next — one item
 
-**Owner đọc [D-01 v4](items/D-01-host-and-path-layout.md)** — chuẩn bố cục bốn tầng (domain · host = ranh giới niềm tin ·
-namespace = thành phần · luật chung), ba bố cục chấm theo nhu cầu, bản đồ host mới (`admin.`, `status.`, `notify.`) — rồi
-chốt Q1, Q7–Q12. P0-1 không phụ thuộc D-01: agent bắt đầu P0-1 khi owner nói "làm".
+**N1 — spec môi trường** ([delivery.md](delivery.md)): `docs/guides/environments.md` + ADR *Environments, tags and
+promotion* + dòng prod trong `AGENTS.md` + sửa sự thật ở `uat.md`/`index.md`/roadmap. Agent bắt đầu khi owner nói "làm".
 
 ## Waiting on the owner
 
-1. [D-01 v4](items/D-01-host-and-path-layout.md) Q1 (L1) · Q7 namespace app · Q8 `apps/docs` · Q9 `admin.` + Cloudflare
-   Access · Q10 `notify.` · Q11 `status.` · Q12 HSTS `includeSubDomains`.
-2. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (`search`/`ai-input` đã bật).
-3. **Cloudflare** — ~~DMARC~~ ✔ · ~~Email Routing~~ ✔ (agent kiểm DNS 2026-10-19: 3 MX, SPF, DKIM) — owner gửi một thư
-   thử tới `hello@` và `security@` từ hộp thư khác để chắc thư về. AI Crawl Control: Search cho phép. Xác nhận Bot Fight
-   Mode / Under Attack / WAF challenge tắt. Sau P1-2: TXT Search Console + Bing.
-4. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt, kiểm 2026-10-19 tối).
-5. **Google**: tạo OAuth client khi tới P1-3 (agent viết hướng dẫn từng bước).
-6. Duyệt câu tuổi/đồng ý (D-06 Q6 = A) cùng văn bản pháp lý — tới P1-6 / E-05.
+1. Nói **"làm"** để bắt đầu N1 (rồi N2, N3, B1, K1 song song).
+2. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-20).
+3. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).
+4. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (không chặn gì; cần trước S1).
+5. Cloudflare: AI Crawl Control — Search cho phép; xác nhận Bot Fight Mode / Under Attack / WAF challenge tắt.
+6. Việc tay theo PR (DNS `console` + Cloudflare Access, Resend `notify.`, dịch vụ `status.`, Google client, duyệt văn bản):
+   [delivery.md → Việc chỉ owner làm được](delivery.md#việc-chỉ-owner-làm-được).
 
 ## Board
 
-| ID | Item | Phase | Kind | Status | Blocked by |
+| ID | Item | Phase | Kind | Status | PR |
 |---|---|---|---|---|---|
-| E-01 | [Luồng dev · test · môi trường (main + tag)](items/E-01-dev-test-env-flow.md) | 0 | enhancement | **decided** (Q4 tới Cổng) | — |
-| E-04 | [Spec nói đúng Tò He hôm nay](items/E-04-spec-truth.md) | 0 (a) · 1A (b) | enhancement | **decided** | — |
-| D-02 | [Domain lâu dài](items/D-02-long-term-domain.md) | 1A | decision | **decided** — `toheplay.io.vn` duy nhất | — |
-| D-03 | [Nói với ai](items/D-03-audience-and-message.md) | 1A | decision | **decided** — user-first, vòng đời một user | — |
-| D-01 | [Chuẩn bố cục: host, đường dẫn](items/D-01-host-and-path-layout.md) | 1A | decision | proposed v4 — Q2–Q6 chốt; Q1, Q7–Q12 chờ | — |
-| D-04 | [Đo luồng người mới](items/D-04-measuring-newcomers.md) | 1A | decision | **decided** — B | — |
-| E-02 | [Trang công khai · SEO · GEO](items/E-02-public-pages-seo-geo.md) | 1A | enhancement | **decided** (Q2 mở) | D-01 |
-| D-06 | [Định danh theo bậc (hồ sơ máy)](items/D-06-identity-ladder.md) | 1B | decision | **decided** — B, Q6 = A | — |
-| D-07 | [Liên kết hồ sơ máy vào account](items/D-07-linking-device-profiles.md) | 1B | decision | **decided** — B | — |
-| D-08 | [Lối vào: link mời, link chia sẻ](items/D-08-entry-links.md) | 1B | decision | **decided** — B | — |
-| D-05 | [Google một chạm · ai tạo account](items/D-05-registration-and-fast-sign-up.md) | 1B | decision | **decided** | — |
-| E-03 | [Người mới · cài PWA · xem trước link](items/E-03-newcomer-journey-and-pwa.md) | 1B | enhancement | **decided** | D-01 |
-| E-05 | [Cổng trước khi mời người ngoài](items/E-05-gate-before-outsiders.md) | Cổng | enhancement | open | — |
+| E-01 | [Luồng dev · test · môi trường (main + tag)](items/E-01-dev-test-env-flow.md) | 0 | enhancement | **decided** (Q4 tới Cổng) | N1, N2, N3 |
+| E-04 | [Spec nói đúng Tò He hôm nay](items/E-04-spec-truth.md) | 0 · 1 | enhancement | **decided** | N1, K1 |
+| D-02 | [Domain lâu dài](items/D-02-long-term-domain.md) | 1 | decision | **decided** — `toheplay.io.vn` duy nhất | — |
+| D-03 | [Nói với ai](items/D-03-audience-and-message.md) | 1 | decision | **decided** — user-first, vòng đời một user | — |
+| D-01 | [Chuẩn bố cục: host, đường dẫn](items/D-01-host-and-path-layout.md) | 1 | decision | **decided** — L1, `console.`, key chart `docs` | B1–B5 |
+| D-04 | [Đo luồng người mới](items/D-04-measuring-newcomers.md) | 1 | decision | **decided** — B | S4 |
+| E-02 | [Trang công khai · SEO · GEO](items/E-02-public-pages-seo-geo.md) | 1 | enhancement | **decided** (Q2 mở) | S1 |
+| D-05 | [Google một chạm · ai tạo account](items/D-05-registration-and-fast-sign-up.md) | 1 | decision | **decided** | S3 |
+| E-03 | [Người mới · cài PWA · xem trước link](items/E-03-newcomer-journey-and-pwa.md) | 1 | enhancement | **decided** | S2, K2 |
+| D-06 | [Định danh theo bậc (hồ sơ máy)](items/D-06-identity-ladder.md) | 1 | decision | **decided** — B, Q6 = A | I1, I2, I4 |
+| D-07 | [Liên kết hồ sơ máy vào account](items/D-07-linking-device-profiles.md) | 1 | decision | **decided** — B | I1, I2 |
+| D-08 | [Lối vào: link mời, link chia sẻ](items/D-08-entry-links.md) | 1 | decision | **decided** — B | I3, I4 |
+| E-05 | [Cổng trước khi mời người ngoài](items/E-05-gate-before-outsiders.md) | Cổng | enhancement | open | sau K2 |
 
-## Graduation list (nháp — chốt ở Converge)
+## Graduation list
 
-Mỗi PR một mục đích, mang ADR + docs của nó, `pnpm verify` trước khi mở; owner review và merge từng PR.
-
-| PR | Nội dung | ADR | Items |
-|---|---|---|---|
-| P0-1 | `docs/guides/environments.md`, ADR môi trường + tag + promote (sửa 0010, 0021 §5), `AGENTS.md` dòng prod, sửa `uat.md`/`index.md`/roadmap | mới | E-01, E-04a |
-| P0-2 | `tools/env-check`: `check:uat`, `check:prod`, `release:check <tag>` | — | E-01 §2, §6 |
-| P0-3 | Mode C `pnpm stack:image` + dữ liệu mẫu cho dev | — | E-01 §4 |
-| P1-1a | Gốc theo chuẩn: `@tohe/routes` + codegen (Caddy, SW, robots, `HubPaths`, test va chạm); `apps/web` vào image hub; `/play/…`, `/account/…`, `/r/`, `/s/`; 404 thật; robots/sitemap/`security.txt`; manifest `id`; cờ Scalar; HSTS `includeSubDomains`; `docs.` lên gốc + `apps/docs` | mới (sửa 0040, 0021) | D-01 |
-| P1-1b | `admin.toheplay.io.vn`: site thứ hai trong Caddy của hub, đăng nhập riêng, cookie `__Host-tohe.admin`, `publicUrls.admin`; owner: DNS + Cloudflare Access; PR `platform-infra` | mới (sửa 0027) | D-01 Q9 |
-| P1-1c | `notify.` gửi thư (owner xác minh ở Resend) · `status.` ở dịch vụ ngoài (owner chọn) — agent viết docs, cấu hình | — | D-01 Q10, Q11 |
-| P1-2 | Nội dung công khai user-first, ảnh OG, JSON-LD, kiểm SEO trong build; `/new-game` + DoD | — | E-02 |
-| P1-3 | Google trên prod: hướng dẫn tạo client, kiểm luồng (owner cấu hình) | — | D-05 |
-| P1-4 | Hub, phần không cần server mới: vào là chơi, lời chào, cài app, manifest, `og:`, Góp ý | — | E-03 |
-| P1-5 | Hồ sơ máy ở hub (thay khách) + màn tên + liên kết vào account giữ id (S1–S4, S13) | mới (sửa 0023, 0024) | D-06, D-07 |
-| P1-6 | Hồ sơ máy trên server (+ câu tuổi/đồng ý), bàn mở cho `named`, độ tin, dọn dẹp, mã chuyển máy | mới (sửa 0016, 0025, 0029) | D-06 §4, D-07 S8 |
-| P1-7 | Đường ống lối vào ở hub + module `Links` + `/s/` + thẻ xem trước + "Nhập mã" | mới | D-08 |
-| P1-8 | Game Contract: `identity`, `entries`, `init.entry`, `identity.require`, `share`; SDK + kit + conformance; Ghép Khối "Thách bạn" | mới (Game Contract) | D-06 §5, D-08 §6 |
-| P1-9 | Viết lại `vision.md` | — | E-04b |
-| P1-10 | Vòng thử thiết bị của owner trên prod + sửa lỗi | — | E-03 §14 |
-| sau | Workflow tự động khi push tag (owner nối khi luồng ổn định) | — | E-01 §2 |
-
-Thứ tự: P0-1 → P0-2 ∥ P0-3 · P1-1a → P1-1b ∥ P1-1c ∥ P1-2 ∥ P1-4 · P1-3 lúc nào cũng được · P1-5 → P1-6 → P1-7 → P1-8 · P1-9 sau P0-1 ·
-P1-10 cuối. Mỗi lần lên: owner nói "deploy" → tag `uat-…`; "lên prod" → tag `prod-…` (E-01).
+**[delivery.md](delivery.md)** — 18 PR trong năm lane: **N** nền (N1–N3) · **B** bố cục (B1–B5) · **S** bề mặt (S1–S4) ·
+**I** định danh và lối vào (I1–I4) · **K** kết (K1–K2); năm ADR mới (môi trường + tag · chuẩn bố cục · hồ sơ máy · lối
+vào · Game Contract), mỗi cái trong PR của nó.

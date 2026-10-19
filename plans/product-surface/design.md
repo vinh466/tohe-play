@@ -8,8 +8,8 @@ Trang này **ghép** các item thành một bức tranh. Nó không quyết gì:
 Đã chốt: domain duy nhất `toheplay.io.vn` (D-02), user-first theo vòng đời một người dùng (D-03), luồng môi trường —
 `main` + build một lần + tag `uat-…`/`prod-…` là deploy, agent làm tay phía sau (cầu nối tạm), migration chỉ tiến (E-01).
 Cũng đã chốt ("theo đề xuất", 2026-10-19): nền định danh + lối vào (D-06…D-08, D-05 Google) — phần lớn nhất, đổi Game
-Contract và vài ADR —, đo lường (D-04), trang công khai (E-02), người mới (E-03). Còn đề xuất: **bố cục host (D-01)** — owner
-đang review v2.
+Contract và vài ADR —, đo lường (D-04), trang công khai (E-02), người mới (E-03). Chốt 2026-10-20: **chuẩn bố cục (D-01)** —
+L1, console ở `console.toheplay.io.vn`, key chart `docs`. Thứ tự xây: [delivery.md](delivery.md). Còn mở: E-02 Q2.
 
 ## 1. Bức tranh
 
@@ -21,7 +21,7 @@ flowchart LR
     links["/r/&lt;mã&gt; · /s/&lt;mã&gt;<br/>lối vào (D-08)"] --> app["App /play …<br/>PWA id “/”"]
     app --> api["/api → API (BFF)"]
   end
-  subgraph ops ["admin.toheplay.io.vn (sau Cloudflare Access)"]
+  subgraph ops ["console.toheplay.io.vn (sau Cloudflare Access)"]
     console["Console"] --> aapi["/api/admin → API (BFF)"]
   end
   person --> links
@@ -31,14 +31,14 @@ flowchart LR
   person -.-> status["status.toheplay.io.vn<br/>(dịch vụ ngoài)"]
 ```
 
-Chuẩn bố cục bốn tầng (domain · host = ranh giới niềm tin · namespace = thành phần · luật chung): D-01 v4 *(proposed)*;
+Chuẩn bố cục bốn tầng (domain · host = ranh giới niềm tin · namespace = thành phần · luật chung): D-01 *(decided — L1, `console.`)*;
 domain: D-02 *(decided)*; lối vào: D-08 *(decided)*. Thư: gửi từ `notify.`, nhận `hello@`/`security@` ở gốc.
 
 ## 2. Các mảnh, chuẩn đứng sau, và nơi ở
 
 | Mảnh | Làm gì | Chuẩn / tiền lệ | Ở đâu | Item |
 |---|---|---|---|---|
-| Trang công khai | giới thiệu, trang game, hướng dẫn cài, hỏi đáp, pháp lý | HTML tĩnh (crawler AI không chạy JS); Open Graph; schema.org | `apps/web` → image hub | E-02 *(decided)*, D-01 *(proposed)* |
+| Trang công khai | giới thiệu, trang game, hướng dẫn cài, hỏi đáp, pháp lý | HTML tĩnh (crawler AI không chạy JS); Open Graph; schema.org | `apps/web` → image hub | E-02, D-01 *(decided)* |
 | Hồ sơ máy + ba bậc | ai cũng chơi được ngay; tên khi người khác thấy; account khi cần đồng bộ/độ tin | Firebase/Supabase anonymous → link; Kahoot nickname; Lichess casual/rated | hub + API (`DeviceProfiles`) + Game Contract `identity` | D-06 *(decided)* |
 | Liên kết | hồ sơ máy → account giữ id; gộp khi cần; mã chuyển máy | Firebase `linkWithCredential`, Supabase reassign | hub + API | D-07 *(decided)* |
 | Lối vào | một mô hình ý định, một đường ống, link chia sẻ là đối tượng | Discord invites (hạn, giới hạn, thu hồi) | hub + API (`Links`) + Game Contract `entries`, `init.entry`, `share` | D-08 *(decided)* |

@@ -1,10 +1,11 @@
 # D-01 — Chuẩn bố cục Tò He: host, đường dẫn, và luật thêm thành phần
 
-- Status: **proposed v4** (2026-10-19) — chọn lại từ đầu theo yêu cầu owner; Q2–Q6 đã chốt vẫn giữ (đều khớp chuẩn)
-- Kind: decision — origin mới (`admin.`), đường dẫn công khai, phiên theo origin → ADR (sửa ADR 0040, 0021, 0027)
+- Status: **decided** (2026-10-20, chat) — chuẩn bốn tầng, bố cục L1; console ở `console.toheplay.io.vn`; key chart
+  `site` → `docs`
+- Kind: decision — origin mới (`console.`), đường dẫn công khai, phiên theo origin → ADR (sửa ADR 0040, 0021, 0027)
 - Blocks: E-02, E-03 · Blocked by: — (D-02 decided: `toheplay.io.vn` là domain duy nhất)
 - Research: [R-06 chuẩn bố cục](../research/R-06-layout-standard.md), [R-02 host, SEO, GEO](../research/R-02-hosts-seo-geo.md)
-- Decided: Q2–Q6 — owner, 2026-10-19, chat — xem *Decision*
+- Decided: owner, 2026-10-19 (Q2–Q6) và 2026-10-20 (Q1, Q7–Q12), chat — xem *Decision*
 
 ## Vì sao
 
@@ -34,7 +35,7 @@ thêm bước chuyển hướng; đường dẫn thì không.
 | N3 PWA, hồ sơ máy, phiên | ✔ một origin | ✔ (ở `play.`) | ✗ API khác origin → CORS, cookie qua site |
 | N4 SEO/GEO | ✔ | ✔ | ✔ |
 | N5 cô lập game | ✔ `games.` | ✔ | ✔ |
-| N6 bảo vệ admin | ✔ `admin.` + Cloudflare Access | ✔ | ✔ |
+| N6 bảo vệ admin | ✔ `console.` + Cloudflare Access | ✔ | ✔ |
 | N7 tài liệu | ✔ `docs.` | ✔ | ✔ |
 | N8 thư | ✔ `notify.` + MX gốc | ✔ | ✔ |
 | N9 môi trường giống nhau | ✔ | ✔ | ~ nhiều host hơn ở mỗi môi trường |
@@ -53,7 +54,7 @@ flowchart TB
     app["App (PWA)<br/>/play · /account · /r · /s"]
     papi["/api → API (BFF)"]
   end
-  subgraph ops ["Vận hành — admin.toheplay.io.vn<br/>sau Cloudflare Access"]
+  subgraph ops ["Vận hành — console.toheplay.io.vn<br/>sau Cloudflare Access"]
     console["Console"]
     aapi["/api/admin → API (BFF)"]
   end
@@ -70,7 +71,7 @@ flowchart TB
 | Host | Vai | Ai dùng | Phiên | Index | Phục vụ | So với hôm nay |
 |---|---|---|---|---|---|---|
 | `toheplay.io.vn` | cửa trước của người chơi: trang công khai + app + API | mọi người | `__Host-tohe.session` (`SameSite=Lax`) | chỉ trang công khai | image hub (Caddy) → API | sửa đường dẫn (§4) |
-| `admin.toheplay.io.vn` | vận hành: console + API admin | owner, admin | `__Host-tohe.admin` **riêng** (`SameSite=Strict`) + Cloudflare Access trước cửa | không | Caddy của image hub (site thứ hai) → API | **mới** — rời `/admin/` |
+| `console.toheplay.io.vn` | vận hành: console + API admin | owner, admin | `__Host-tohe.console` **riêng** (`SameSite=Strict`) + Cloudflare Access trước cửa | không | Caddy của image hub (site thứ hai) → API | **mới** — rời `/admin/` |
 | `games.toheplay.io.vn` | build game | iframe của app và console | không cookie | không | image games | giữ |
 | `docs.toheplay.io.vn` | tài liệu kỹ thuật, API reference, `llms.txt` | người làm game, agent | không | có | image docs | lên gốc host (Q6) |
 | `status.toheplay.io.vn` | trạng thái, sự cố | mọi người | không | có | **dịch vụ ngoài** (CNAME DNS-only) | **mới** |
@@ -98,22 +99,22 @@ dùng tải lên — không cookie; nếu rủi ro cao thì domain riêng) · `u
 | để dành: `/blog/`, `/en/`, `/help/` (web) · `/studio/` (nếu cùng niềm tin) | — | — | — |
 | mọi thứ khác | — | **404 thật** | — |
 
-**`admin.`**: `/` console (SPA) · `/api/admin/…` và các endpoint đăng nhập → API (chỉ chuyển đúng những tiền tố đó) · `/assets/`.
+**`console.`**: `/` console (SPA) · `/api/admin/…` và các endpoint đăng nhập → API (chỉ chuyển đúng những tiền tố đó) · `/assets/`.
 **`games.`**: `/<gameId>/<version>/…`, `/catalog.json`; `/` → 302 về gốc (giữ). **`docs.`**: mọi trang ở gốc host,
 `/reference/api/`, `/reference/admin-api/`, `/llms.txt`; `/docs/*` cũ → 301.
 
 **Một bản đồ, sinh ra mọi cấu hình** — `@tohe/routes` khai báo host + namespace và sinh: route của Caddy (cả hai site),
-danh sách app shell của service worker, `robots.txt`/`X-Robots-Tag`, proxy của Vite khi dev, `HubPaths`/`AdminPaths` cho API
+danh sách app shell của service worker, `robots.txt`/`X-Robots-Tag`, proxy của Vite khi dev, `HubPaths`/`ConsolePaths` cho API
 (link email, redirect OAuth — hôm nay viết tay ở ~10 chỗ); CI báo lệch như với OpenAPI; một test chặn namespace chồng nhau
 và route của app nằm ngoài namespace của nó.
 
 ## 5. Luật chung (tầng 4)
 
 1. **Phiên (BFF, RFC 10017)**: mỗi cửa vào có `/api` cùng origin; cookie `__Host-…`, `HttpOnly`, `Secure`, `Path=/`,
-   **không bao giờ đặt `Domain`**; `SameSite=Lax` cho người chơi (link email, OAuth), `Strict` cho admin.
+   **không bao giờ đặt `Domain`**; `SameSite=Lax` cho người chơi (link email, OAuth), `Strict` cho console.
 2. **Một API, nhiều cửa vào**: không CORS; `SameOriginGuard` theo từng origin; API biết các origin của nó từ cấu hình
-   (`publicUrls.hub`, `publicUrls.admin`). Tách `api.` chỉ khi có khách hàng bên thứ ba.
-3. **Không script bên thứ ba** trên gốc và `admin.`; CSP riêng cho từng host và từng namespace.
+   (`publicUrls.hub`, `publicUrls.console`). Tách `api.` chỉ khi có khách hàng bên thứ ba.
+3. **Không script bên thứ ba** trên gốc và `console.`; CSP riêng cho từng host và từng namespace.
 4. **HSTS** `max-age=31536000; includeSubDomains` (cả domain là của Tò He, mọi host đều HTTPS); không preload.
 5. **Index**: chỉ trang công khai ở gốc và `docs.`; còn lại `noindex`; `robots.txt` sinh từ bản đồ.
 6. **PWA**: một app ở origin gốc — `id "/"`, `start_url "/play"`, `scope "/"`; `/.well-known/assetlinks.json` khi có app
@@ -135,7 +136,7 @@ flowchart TD
   q1 -- không --> q2{"Phải sống khi Tò He sập?"}
   q2 -- có --> ext["Host + hạ tầng ngoài<br/>(như status.)"]
   q2 -- không --> q3{"Nhóm người dùng khác,<br/>hoặc quyền/phiên khác người chơi?"}
-  q3 -- có --> sub2["Host riêng có BFF<br/>(như admin.)"]
+  q3 -- có --> sub2["Host riêng có BFF<br/>(như console.)"]
   q3 -- không --> path["Namespace trên gốc<br/>(một dòng trong @tohe/routes)"]
   path --> serve{"Phục vụ bằng gì?"}
   serve --> s1["file tĩnh / SPA trong image hub"]
@@ -153,28 +154,28 @@ flowchart TD
 
 ## 7. Đi từ hôm nay tới chuẩn
 
+Theo PR ở [delivery.md](../delivery.md):
+
 | Việc | Ai | PR |
 |---|---|---|
-| Bản đồ `@tohe/routes` + codegen; `apps/web`; gốc `/play`, `/account`, `/r`, `/s`; 404 thật; robots/sitemap/`security.txt`; manifest `id`; cờ Scalar | agent | P1-1a |
-| `docs.` lên gốc; `apps/site` → `apps/docs` (Q8) | agent | P1-1a |
-| `admin.`: site thứ hai trong Caddy của hub, đăng nhập riêng trên admin (email + mật khẩu + TOTP sẵn có), cookie `__Host-tohe.admin`, `publicUrls.admin` trong chart, ingress | agent | P1-1b |
-| DNS `admin.` + Cloudflare Access (cho phép email của owner) + host ở `platform-infra` | owner (DNS, Access) + agent (PR `platform-infra`, owner merge) | P1-1b |
-| `notify.`: thêm domain ở Resend (DNS tự thêm), đổi người gửi ở Infisical `/tohe` + `uat.env` | owner + agent (docs, chart) | P1-1c |
-| `status.`: chọn dịch vụ ngoài (UptimeRobot / Better Stack / Instatus…), CNAME DNS-only; agent liệt kê thứ cần theo dõi | owner + agent | P1-1c |
-| HSTS `includeSubDomains` (header của Caddy) | agent | P1-1a |
+| Chuẩn thành spec + ADR; `@tohe/routes` + codegen + test va chạm; 404 thật; robots/sitemap/`security.txt`; HSTS `includeSubDomains`; cờ Scalar | agent | B1 |
+| Gốc: `/play`, `/play/<g>/rooms/…`, `/account/…`; manifest `id`, `start_url` | agent | B2 |
+| `apps/web` trong image hub; `apps/site` → `apps/docs` ở gốc `docs.`; key chart `site` → `docs` | agent; owner merge PR `platform-infra` (values) | B3 |
+| `console.toheplay.io.vn`: site thứ hai, đăng nhập riêng, `__Host-tohe.console`; `apps/admin` → `apps/console`; key chart `console` | agent; owner: DNS `console` + Cloudflare Access + merge PR `platform-infra` | B4 |
+| `notify.` gửi thư; `status.` ở dịch vụ ngoài | owner (Resend, Infisical, nhà cung cấp status) + agent (docs) | B5 |
 
 ## Câu hỏi cho owner
 
 | Q | Câu hỏi | Đề xuất / trạng thái |
 |---|---|---|
-| Q1 | Chuẩn bốn tầng, bố cục **L1**? | **L1** |
+| ~~Q1~~ | Chuẩn bốn tầng, bố cục L1 | **chốt** |
 | ~~Q2–Q6~~ | `/play`, route tiếng Anh, Email Routing, cờ Scalar, tài liệu lên gốc `docs.` | **chốt** — giữ nguyên trong chuẩn |
-| Q7 | Namespace của app trên gốc: `/play/…` (chỉ id game) + `/account/…` + `/r/`, `/s/` | **có** |
-| Q8 | `apps/site` → `apps/docs`, giữ key chart `site` | **có** |
-| Q9 | Console ra `admin.toheplay.io.vn`, phiên riêng, Cloudflare Access trước cửa | **có** — ranh giới bảo mật lớn nhất còn thiếu |
-| Q10 | Gửi thư từ `notify.toheplay.io.vn` | **có** — làm khi lượng thư còn bằng không |
-| Q11 | Trang trạng thái `status.toheplay.io.vn` ở dịch vụ ngoài | **có** — chấp nhận chung DNS Cloudflare (một domain, D-02) |
-| Q12 | HSTS `includeSubDomains`, không preload | **có** |
+| ~~Q7~~ | Namespace của app: `/play/…` (chỉ id game) + `/account/…` + `/r/`, `/s/` | **chốt** |
+| ~~Q8~~ | `apps/site` → `apps/docs` | **chốt, và đổi luôn key chart** `site` → `docs` (`publicUrls.docs`) — owner: "cho đồng bộ"; cần một PR `platform-infra` đổi values cùng bản chart (owner merge, vì không chỉ là `targetRevision`) |
+| ~~Q9~~ | Console ra host riêng, phiên riêng, Cloudflare Access trước cửa | **chốt — host `console.toheplay.io.vn`** (owner chọn tên); đồng bộ theo: `apps/admin` → `apps/console`, key chart `console`, cookie `__Host-tohe.console`; vai trò người dùng vẫn là admin/moderator/owner, API vẫn `/api/admin/…` (giải thích ở *Decision*) |
+| ~~Q10~~ | Gửi thư từ `notify.toheplay.io.vn` | **chốt** |
+| ~~Q11~~ | Trang trạng thái `status.toheplay.io.vn` ở dịch vụ ngoài | **chốt** |
+| ~~Q12~~ | HSTS `includeSubDomains`, không preload | **chốt** |
 
 ## Decision
 
@@ -184,6 +185,10 @@ luôn giúp tôi · Q3 các route dùng english luôn giúp tôi, ổn chứ · 
 nha (default tắt ở prod) · Q6 dời đi cho chung khung". Sau đó: "Q4 toi setup r nha" (Email Routing — agent kiểm DNS
 2026-10-19: 3 MX `route1–3.mx.cloudflare.net`, SPF gốc, DKIM `cf2024-1`, DMARC; `send.` của Resend nguyên vẹn).
 
+**owner** (2026-10-20, chat): "ok r đó, chốt nha, chỉ chỉ vài cái là Q8 dổi luôn key của chart cho đồng bộ, Q9 dùng console. lun" → Q1, Q7–Q12 chốt; Q8 kèm đổi key chart; Q9 host `console.`.
+
+**agent** — cách hiểu "đồng bộ" cho Q9 (owner phản đối thì sửa): tên **sản phẩm/hạ tầng** theo host — `apps/console`, key chart `console`, `publicUrls.console`, cookie `__Host-tohe.console`, `ConsolePaths`; còn **vai trò người** (owner/admin/moderator, ADR 0027) và **API quản trị** `/api/admin/…` (tài liệu OpenAPI riêng, đã sinh) giữ tên — chúng nói về quyền, không về nơi chạy.
+
 ## Discussion
 
 **agent** (2026-10-19, v1–v3): gốc là cửa trước; một bản đồ namespace; luật path hay subdomain.
@@ -192,5 +197,5 @@ nha (default tắt ở prod) · Q6 dời đi cho chung khung". Sau đó: "Q4 toi
 
 **agent** (2026-10-19, v4): chấm lại ba bố cục theo N1–N10 (R-06). L1 vẫn thắng ở phía người chơi (một origin cho giới
 thiệu, app, phiên, hồ sơ máy, link ngắn — đúng mẫu BFF của RFC 10017). Tự do thêm subdomain được dùng đúng chỗ chuẩn
-khuyên: `admin.` (ranh giới đặc quyền), `status.` (sống khi sập), `notify.` (uy tín thư) — chứ không chia nhỏ phía người
+khuyên: `console.` (ranh giới đặc quyền), `status.` (sống khi sập), `notify.` (uy tín thư) — chứ không chia nhỏ phía người
 chơi.

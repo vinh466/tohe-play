@@ -1,7 +1,7 @@
 # Brief — Bề mặt sản phẩm: từ người lạ tới người chơi
 
-Status: **draft** — owner xác nhận thì plan rời *Frame*. Trích dẫn là lời owner trong chat ngày 2026-10-19 (giữ nguyên văn,
-chỉ cắt bớt).
+Status: **confirmed** — owner, chat: "tôi thấy cũng ổn r á" (2026-10-19), "ok r đó, chốt nha" (2026-10-20). Trích dẫn là
+lời owner trong chat ngày 2026-10-19 (giữ nguyên văn, chỉ cắt bớt).
 
 ## Vì sao
 

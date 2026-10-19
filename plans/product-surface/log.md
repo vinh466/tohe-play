@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-20 — agent
+
+- Owner: "ok r đó, chốt nha … Q8 dổi luôn key của chart cho đồng bộ, Q9 dùng console. lun" → **D-01 decided**: L1, console
+  ở `console.toheplay.io.vn` (`apps/console`, key chart `console`, cookie `__Host-tohe.console`; vai trò và `/api/admin/…`
+  giữ tên), key chart `site` → `docs`. Brief confirmed.
+- **Converge**: [delivery.md](delivery.md) — 18 PR (N1–N3, B1–B5, S1–S4, I1–I4, K1–K2), năm ADR mới. Chờ owner: "làm" cho N1.
+
 ## 2026-10-20 (rạng sáng) — agent
 
 - Owner bật Email Routing → agent kiểm DNS: 3 MX, SPF gốc, DKIM `cf2024-1`, DMARC; `send.` nguyên vẹn. Chờ thư thử.

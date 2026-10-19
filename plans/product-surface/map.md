@@ -12,7 +12,7 @@ flowchart TD
   subgraph P1A ["Phase 1A — bề mặt"]
     D02["D-02 Domain ✔"]
     D03["D-03 User-first, vòng đời ✔"]
-    D01["D-01 Chuẩn bố cục<br/>(owner review v4)"]
+    D01["D-01 Chuẩn bố cục ✔"]
     D04["D-04 Đo luồng người mới ✔"]
     E02["E-02 Trang công khai · SEO · GEO ✔"]
     E04b["E-04b Viết lại vision ✔"]
@@ -70,7 +70,6 @@ flowchart TD
 ## Considered and left off
 
 - **Tách API ra `api.`**: cùng origin đơn giản và an toàn hơn; không có API cho bên thứ ba (D-01).
-- **Console admin ra `admin.`**: tốt cho cô lập phiên, không gấp; đổi lúc nào cũng rẻ (R-01 E6).
 - **Gửi thư từ subdomain**: không gấp (D-02).
 - **UAT có HTTPS (D-15)**: prod là chỗ thử HTTPS trong lúc chỉ owner dùng; mở lại ở Cổng.
 - **Nhánh theo môi trường, preview cho từng PR, staging thứ ba**: không (E-01, R-04).
