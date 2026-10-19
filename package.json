@@ -14,7 +14,7 @@
     "conformance": "turbo run conformance",
     "lint": "biome check .",
     "format": "biome check --write .",
-    "verify": "biome check . && turbo run typecheck test build && turbo run conformance --concurrency=1"
+    "verify": "sh scripts/verify.sh"
   },
   "devDependencies": {
     "@biomejs/biome": "^2.5.15",
