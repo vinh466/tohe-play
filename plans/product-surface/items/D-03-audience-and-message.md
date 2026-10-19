@@ -1,41 +1,30 @@
 # D-03 — Tò He công khai nói với ai, và nói gì đầu tiên?
 
-- Status: **open** — câu hỏi kinh doanh, chỉ owner trả lời; agent đưa phương án, không tự chọn
+- Status: **decided** (2026-10-19, chat) — không chia đối tượng: ai cũng là **một người dùng**; sản phẩm xoay quanh **vòng
+  đời của một người dùng**
 - Kind: decision
-- Blocks: E-02 (lời trên trang công khai, từ khoá), E-03 (lời chào, nút chính) · Blocked by: —
-- Decided: —
+- Blocks: E-02 (lời trên trang công khai), E-03 (lời chào), E-04b (vision), D-06…D-08 (vòng đời) · Blocked by: —
+- Decided: owner, 2026-10-19, chat — xem *Decision*
 
 ## Vì sao
 
-Lời trên landing, từ khoá SEO, câu hỏi AI sẽ trả lời ("game nào cho bé không quảng cáo?", "chơi tiến lên online với bạn
-ở đâu?") và màn đầu tiên của người mới đều phụ thuộc vào câu này. Agent không được tự đặt đối tượng (luật của tổ chức:
-không bịa yêu cầu kinh doanh).
+Lời trên landing, từ khoá, câu AI sẽ trả lời và màn đầu tiên của người mới phụ thuộc câu này. Agent không tự đặt đối tượng.
 
-## Sự thật
+## Phương án (lúc hỏi)
 
-- `docs/vision.md` hôm nay: cho **một gia đình** và bạn bè; public community "not a goal" (đã lỗi thời — E-04).
-- Brief `public-launch` (owner, 2026-10-17): "prod sắp tới sẽ là public cho vài cộng đồng nhỏ của tôi"; "xoay ý chí sản
-  phẩm sang user first".
-- Sản phẩm hôm nay có hai thế mạnh khác nhau: **hồ sơ cho bé** (không mật khẩu, mẫu trẻ em, bảng công khai tắt sẵn,
-  "Tôi đã hỏi ý bé") và **bàn chơi online** (Tiến Lên, link `/r/<code>`, QR, bot ngồi thay).
-- Lời hiện tại: landing "Góc chơi nhỏ của cả nhà… dự án gia đình"; hub "Bố mẹ đăng nhập một lần, các bé chỉ cần chọn hình
-  của mình."
+A gia đình có con nhỏ · B người lớn chơi casual cùng bạn bè · C cả hai, hai lối vào.
 
-## Phương án
+## Decision
 
-| | Định vị | Trang đầu nói | Từ khoá gợi ý (giả định, kiểm bằng Search Console) |
-|---|---|---|---|
-| **A** | Gia đình có con nhỏ | an toàn, không quảng cáo, mỗi bé một hồ sơ | "game cho bé không quảng cáo", "trò chơi cho trẻ em trên điện thoại" |
-| **B** | Người lớn chơi casual cùng bạn bè | mở là chơi, rủ bạn vào bàn bằng một link | "tiến lên miền nam online", "game ghép số" |
-| **C** | Cả hai — "góc chơi nhỏ, không quảng cáo" làm ô dù, hai lối vào trên landing ("Cho cả nhà" · "Chơi với bạn bè") | điểm chung trước, hai lối sau | cả hai nhóm |
+**owner** (2026-10-19, chat): "về cộng đồng, ý tôi là tôi sẽ giới thiệu sản phẩm đến các kênh của tôi th, về sản phẩm tất
+cả trước tiên đều là user, chúng ta tập trung vòng đời 1 user th nhé".
 
-## Đề xuất của agent
-
-**C**, nếu "vài cộng đồng nhỏ" của owner gồm cả gia đình có con và nhóm bạn chơi bài — vì sản phẩm đã có sẵn cả hai và
-mỗi trang game nói được với đúng nhóm của nó. Nếu cộng đồng đầu tiên chỉ là một nhóm, chọn A hoặc B cho nó trước, C sau.
-
-## Câu hỏi cho owner
-
-- Q1: "Vài cộng đồng nhỏ" đầu tiên là ai (gia đình bạn bè có con nhỏ, nhóm chơi bài, đồng nghiệp…)?
-- Q2: A, B hay C?
-- Q3: Giữ câu "dự án gia đình" / tinh thần phi lợi nhuận trên trang công khai không?
+Hệ quả:
+- **Không có phương án A/B/C** — không phân khúc. Thông điệp đầu tiên nói với một người bất kỳ: mở là chơi, không quảng
+  cáo, rủ người khác vào chơi bằng một link. Hồ sơ cho bé và bàn chơi online là **tính năng** trong vòng đời, không phải
+  đối tượng riêng.
+- "Cộng đồng" = các kênh của owner (nơi owner giới thiệu link) — không phải một cấu trúc trong sản phẩm. Mã mời cộng đồng
+  (ADR 0028) vẫn là công cụ của chế độ đăng ký (D-05), không phải định vị.
+- Vòng đời một người dùng thành trục của plan: [design.md §Vòng đời](../design.md#6-vòng-đời-một-người-dùng),
+  [D-06](D-06-identity-ladder.md), [D-07](D-07-linking-device-profiles.md), [D-08](D-08-entry-links.md).
+- E-02, E-03 bỏ "hai lối theo D-03"; E-04b viết vision theo hướng user-first.

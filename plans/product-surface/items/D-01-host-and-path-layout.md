@@ -2,7 +2,7 @@
 
 - Status: **proposed** (2026-10-19)
 - Kind: decision — đổi origin/đường dẫn công khai → ADR (sửa ADR 0040 về đường dẫn, ADR 0021 về vai trò của site)
-- Blocks: E-02, E-03 · Blocked by: D-02 (chỉ ở chỗ: tên domain là gì — bố cục thì giống nhau)
+- Blocks: E-02, E-03 · Blocked by: — (D-02 decided: `toheplay.io.vn` là domain duy nhất, chia subdomain theo vai)
 - Decided: —
 
 ## Vì sao

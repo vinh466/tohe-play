@@ -2,7 +2,7 @@
 
 - Status: **proposed** (2026-10-19)
 - Kind: enhancement — thay landing hiện tại
-- Blocks: — · Blocked by: D-01 (ở đâu), D-03 (nói gì)
+- Blocks: — · Blocked by: D-01 (ở đâu) · D-03 decided: user-first, không chia đối tượng
 - Decided: —
 
 ## Vì sao
@@ -20,11 +20,11 @@ thiệu hướng dẫn user dùng đc ToHe".
 
 ## Đề xuất
 
-### Trang (nội dung theo D-03; tiếng Việt)
+### Trang (tiếng Việt; user-first theo D-03)
 
 | Trang | Để làm gì |
 |---|---|
-| `/` | Trong 5 giây biết Tò He là gì; ảnh/clip ngắn của game; nút chính **"Chơi ngay — không cần tài khoản"** → `/play`; nút phụ theo D-05 ("Tạo tài khoản" / "Có mã mời?"); ba điểm khác biệt; hai lối theo D-03 |
+| `/` | Trong 5 giây biết Tò He là gì; ảnh/clip ngắn của game; nút chính **"Chơi ngay — không cần tài khoản"** → `/play`; nút phụ "Đăng nhập"; ba điểm khác biệt (mở là chơi · không quảng cáo · rủ bạn bằng một link); nói với **một người bất kỳ** (D-03) |
 | `/tro-choi/` + `/tro-choi/<slug>` | Mỗi game một trang: ảnh, chơi thế nào (lấy từ `SPEC.md`), hợp với ai/độ tuổi, chơi một mình hay cùng bạn, nút "Chơi ngay" → `/play/<id>` |
 | `/huong-dan/cai-dat` | Cài app: Android, iPhone (iOS 26: ⋯ → Chia sẻ → Thêm vào MH chính), mở link từ Zalo/Messenger bằng trình duyệt — có hình |
 | `/huong-dan/ca-nha` · `/huong-dan/choi-cung-ban` | Hồ sơ cho bé, mã quản lý; rủ bạn vào bàn bằng link/QR |

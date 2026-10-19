@@ -1,48 +1,54 @@
-# D-05 — Khi công khai: ai được tạo tài khoản, và đường vào nhanh nhất là gì?
+# D-05 — Đường vào account nhanh nhất (OAuth), và ai được tạo account khi công khai
 
-- Status: **proposed** (2026-10-19) — sửa lại E-09 Q1 của `public-launch` ("ra mắt bằng mã mời") nếu owner chọn khác
-- Kind: decision
-- Blocks: E-03 (luồng link bàn, nút đăng ký), E-05 · Blocked by: D-03
-- Decided: —
+- Status: **proposed v2** (2026-10-19) — basis đổi: owner muốn OAuth; hồ sơ máy (D-06) gỡ việc link bàn bắt account
+- Kind: decision — sửa E-09 Q1 của `public-launch` ("ra mắt bằng mã mời") nếu owner chọn khác; Zalo đụng ADR 0024
+- Blocks: E-03, E-05 · Blocked by: D-06
+- Research: [R-05](../research/R-05-identity-and-entry-prior-art.md#đăng-nhập-nhanh-ở-việt-nam)
 
 ## Vì sao
 
-Phase 1 muốn người lạ tìm thấy Tò He (SEO/GEO) và được bạn rủ vào bàn. Hai điều đó va với chế độ "chỉ theo lời mời" đã
-chốt ở `public-launch` E-09 Q1, và với luồng đăng ký hiện tại (email → chờ mã → mới ngồi được vào bàn).
+Owner (2026-10-19): "luồng mời là 1 luồng đánh giá, cần phân tích tốt để cho người chơi tiếp cận nhanh (tôi nghĩ phần auth
+sẽ phải thêm oauth để user vào nhanh chơi)".
 
 ## Sự thật
 
-- Prod: `registration: open`, `proofOfWork: false` (`/api/config`, 2026-10-19). Console có ba chế độ: mở / theo lời mời
-  (mã cộng đồng) / đóng (ADR 0028), và proof-of-work trước khi gửi mã (ADR 0037).
-- Link bàn `/r/<code>` khi chưa có account → `/register` (`apps/hub/src/pages/JoinPage.tsx`). Ở chế độ "theo lời mời",
-  link bàn **không mang mã cộng đồng** → người được rủ không vào được.
-- Khách (không account) chơi được mọi game một mình; không vào được bàn online.
-- Google/GitHub đã xây (#50, ADR 0026), tắt ở prod vì owner chọn "email + mật khẩu trước, providers sau" (2026-10-18).
-  Bật Google = owner tạo OAuth client + secret ở Infisical `/tohe` (`delivery.md` của `public-launch`).
-- Resend Free: 100 thư/ngày cho cả account.
+- Google + GitHub + OIDC chung đã xây (#50, ADR 0026), tắt ở prod ("email + mật khẩu trước, providers sau", 2026-10-18).
+  Bật Google = owner tạo OAuth client (*Web application*, redirect `https://toheplay.io.vn/api/auth/external/google/callback`)
+  + secret ở Infisical `/tohe` (`delivery.md` của `public-launch`).
+- Prod: `registration: open`, `proofOfWork: false`. Console có mở / theo lời mời / đóng (ADR 0028) và proof-of-work (ADR 0037).
+- Với D-06, người được rủ vào bàn **không cần account** (hồ sơ máy `named`) → chế độ đăng ký chỉ còn quyết **ai được tạo
+  account**, không còn chặn vòng rủ nhau. Phương án "bảo lãnh qua link bàn" của v1 không cần nữa.
+- Account chỉ cần ở các tính năng bậc `account`: đồng bộ nhiều máy, ID 12 số, run xếp hạng, bảng công khai (D-06 §3).
 
 ## Phương án
 
-| | Ai được tạo account | Được | Mất |
+**Nhà cung cấp OAuth**
+
+| | Nhà cung cấp | Được | Giá / rủi ro |
 |---|---|---|---|
-| **A** | Theo lời mời (mã cộng đồng) — như E-09 Q1 | ít lạm dụng nhất | người đến từ tìm kiếm chỉ chơi được như khách; **link bàn gãy** với người mới |
-| **B** | Mở + proof-of-work + giới hạn sẵn có | SEO/GEO chuyển thành người dùng thật | lạm dụng dễ hơn; tốn quota thư |
-| **C** ⭐ | Theo lời mời, **và** link bàn / link mời của một người đã có account cũng mở cửa đăng ký (người rủ "bảo lãnh"; giới hạn theo người rủ) | giữ được vòng lan truyền, vẫn kiểm soát | thêm một luật ở API + một ADR nhỏ (sửa 0028) |
+| **G** ⭐ | **Google** | đã xây; đa số Android có sẵn; một chạm | owner tạo client + secret; agent kiểm trên prod |
+| Z | Zalo | phổ biến nhất ở VN | **giả định: không trả email** → account không email, va ADR 0024 + luồng liên kết ADR 0026; đăng ký app ở developers.zalo.me chưa kiểm |
+| F | Facebook | phổ biến | app Meta, URL quyền riêng tư + xoá dữ liệu; email có thể thiếu |
+| A | Apple | — | web không bắt buộc; iPhone dùng Google/email được |
 
-Đường vào nhanh, độc lập với chế độ trên:
+**Ai được tạo account**
 
-| | Cách | Giá |
+| | Chế độ | Khi nào hợp |
 |---|---|---|
-| **G** ⭐ | Bật **Google** trên prod (đã xây) — một chạm, không chờ mã | owner tạo OAuth client; agent chỉ kiểm |
-| **L** | Đăng ký xong ngồi vào bàn ngay, xác minh email sau | đổi ADR 0024 (xác minh trước) — để Phase 2 nếu cần |
-| **K** | Khách ngồi bàn không cần account | danh tính ẩn danh ở server, đổi rooms/identity — Phase 2 |
+| I | Theo lời mời (mã cộng đồng) | giai đoạn owner tự thử, hoặc khi bị lạm dụng |
+| **O** ⭐ | Mở + proof-of-work + giới hạn sẵn có + Google | từ lúc qua Cổng (E-05): người tới từ kênh của owner, tìm kiếm, hay được rủ đều tự lên account được |
 
 ## Đề xuất của agent
 
-**C + G** cho lúc mời cộng đồng đầu tiên; **B** khi owner muốn người lạ từ tìm kiếm tự tạo account. Ngay hôm nay (chưa
-mời ai): bật proof-of-work trên prod (R-01 A2).
+- **Google trong Phase 1** (đảo "providers sau" theo ý owner). Zalo là một quyết định riêng ở Phase 2: phải thiết kế
+  "account không email" trước.
+- **Ngay hôm nay**: bật proof-of-work (R-01 A2). Giữ `open` hay chuyển `invite` trong lúc owner tự thử — tuỳ owner (prod
+  chưa công khai link ở đâu); **mở + Google** khi qua Cổng.
 
 ## Câu hỏi cho owner
 
-- Q1: A, B hay C khi mời cộng đồng đầu tiên?
-- Q2: Bật Google trên prod trong Phase 1 (đảo lại quyết định "providers sau")?
+| Q | Câu hỏi | Đề xuất |
+|---|---|---|
+| Q1 | Bật Google trên prod trong Phase 1? | **Có** — owner tạo OAuth client, agent viết hướng dẫn từng bước |
+| Q2 | Zalo: đưa vào Phase 2 như một item riêng (account không email)? | **Có** |
+| Q3 | Chế độ đăng ký khi qua Cổng: mở + proof-of-work + Google? | **Có** |

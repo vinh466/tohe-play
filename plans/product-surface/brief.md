@@ -27,6 +27,13 @@ Bảy hướng owner đặt:
    ios,..., tiếp cận PWA dể, ... luồng khi PWA)".
 6. **Phase sau** — "Phase sau sẽ đi sâu về hub và luồng game sau, khi đây là phân phía sau sau phần bề phóng".
 7. **Mục tiêu Phase 1** — "phase 1 chúng ta muốn cải thiện bề mặt sản phẩm hoàn chỉnh, phù hợp".
+8. **Vòng đời một người dùng, định danh theo game, lời mời** (2026-10-19, lượt hai) — "tất cả trước tiên đều là user,
+   chúng ta tập trung vòng đời 1 user th nhé"; "case 1 game có thể cần user phải auth bằng account r, case 2 game cần user
+   đặt username và có profile tạm th cũng được … user có thể login và liên kết nếu cần"; "link có thể giúp user và đúng
+   lobby cần đó … link share sẽ giúp user tiếp cận game"; "hub phải đảm bảo luồng auth user hay profile sẳn sàng trước, các
+   game cũng phải quan tâm luồng user khi vào game và đến nơi game muốn"; "brainstome ra 1 giải pháp hoàn chỉnh làm nền tảng
+   … có tính kế thừa mở rộng hơn, ổn định level hệ thống và rõ ràng … cần spec rõ (mermain nữa nha)"; "phần auth sẽ phải
+   thêm oauth để user vào nhanh chơi".
 
 ## Ràng buộc đang có hiệu lực
 
@@ -37,6 +44,9 @@ Bảy hướng owner đặt:
 - **Lời hứa của vision**: không quảng cáo, không theo dõi, không mua trong app — đổi thì cần ADR (D-04).
 - **Quy tắc repo**: spec trước, ADR cho quyết định đắt; đổi Game Contract = ADR + docs + conformance; không làm yếu check.
 - Agent không bịa yêu cầu kinh doanh: đối tượng, chế độ đăng ký, domain lâu dài là quyết định của owner (D-02, D-03, D-05).
+- **Đã chốt** (2026-10-19): `toheplay.io.vn` là domain duy nhất, chia subdomain theo vai (D-02); không chia đối tượng —
+  mọi người là một user, theo vòng đời (D-03); `main` là nhánh chính, prod chỉ chạy commit đã lên UAT, tag `prod-…`,
+  migration tạo ra là chốt (E-01).
 
 ## Xong khi
 
@@ -49,7 +59,10 @@ Bảy hướng owner đặt:
    đúng lúc — owner đã thử trên thiết bị thật.
 5. Trang công khai là HTML tĩnh đọc được không cần JS, có trang cho từng game, qua kiểm SEO trong build, đã khai báo với
    Google Search Console và Bing.
-6. Danh sách Cổng (E-05) rõ ràng — mời người ngoài là quyết định riêng của owner.
+6. Mỗi game khai báo bậc định danh nó cần; người được rủ vào bàn hay mở link chia sẻ **chơi được không cần account**; hồ
+   sơ trên máy liên kết vào account (Google một chạm) **giữ nguyên tiến độ**; mọi lối vào đi qua một đường ống ở hub và game
+   tới đúng chỗ — có spec và sơ đồ mermaid.
+7. Danh sách Cổng (E-05) rõ ràng — mời người ngoài là quyết định riêng của owner.
 
 ## Không thuộc plan này
 

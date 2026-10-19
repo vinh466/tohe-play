@@ -1,44 +1,33 @@
 # D-02 — Domain lâu dài của Tò He là gì, và đổi lúc nào?
 
-- Status: **proposed** (2026-10-19) — cần owner xác nhận ý định
-- Kind: decision — đổi origin của hub → ADR (sửa ADR 0040) nếu đổi
-- Blocks: D-01 (tên trong cấu hình; bố cục không đổi), E-05 · Blocked by: —
-- Decided: —
+- Status: **decided** (2026-10-19, chat) — **A**: `toheplay.io.vn` là domain duy nhất, lâu dài
+- Kind: decision
+- Blocks: D-01 (tên trong cấu hình), E-05 · Blocked by: —
+- Decided: owner, 2026-10-19, chat — xem *Decision*
 
 ## Vì sao
 
-Owner (2026-10-19): "chúng ta plan có domain riêng sau này nên có thể là 1 đúng hay tốt". Agent hiểu: có thể sẽ có một
-domain thương hiệu khác sau này, nên bố cục bây giờ phải chuyển được. **Đây là cách hiểu của agent, cần owner xác nhận** —
-nếu ý owner là `toheplay.io.vn` chính là domain riêng đó thì item này đóng với phương án A.
+Agent hiểu câu "chúng ta plan có domain riêng sau này" là có thể sẽ có một domain thương hiệu khác, nên hỏi lại trước khi
+chốt bố cục. Đổi origin của hub sau khi đã có người dùng làm mất app đã cài, phiên, tiến độ của khách, link và QR cũ
+([R-02](../research/R-02-hosts-seo-geo.md)).
 
-## Sự thật
-
-- Mọi host đi từ `publicUrls.hub|games|site` của chart; không có tên domain nào trong code, trừ file mẫu và docs (ADR 0039 rà).
-- Đổi origin của hub sau khi đã có người dùng làm mất: app đã cài (phải cài lại), phiên đăng nhập, **tiến độ của khách
-  (IndexedDB)**, link bàn/mời/email cũ và QR (chỉ cứu bằng redirect vĩnh viễn từ domain cũ) ([R-02](../research/R-02-hosts-seo-geo.md)).
-- Hôm nay chỉ owner dùng prod → đổi bây giờ chỉ tốn cấu hình: zone Cloudflare, xác minh domain ở Resend (DKIM, `send.`),
-  host ở `platform-infra`, `publicUrls`, ADR.
-- DNS (dns.google, 2026-10-19): `tohe.vn` và `tohe.app` đã có người dùng; `toheplay.vn`, `toheplay.com`, `toheplay.app`,
-  `tohe.games`, `tohe.fun` trả NXDOMAIN — **nhiều khả năng** còn trống, phải kiểm ở nhà đăng ký.
-
-## Phương án
+## Phương án (lúc đề xuất)
 
 | | Cách | Giá |
 |---|---|---|
-| **A** | `toheplay.io.vn` là domain lâu dài | 0. Nếu mai này đổi thì đi đường C. |
-| **B** | Mua domain thương hiệu và chuyển **trước khi mời người ngoài** (trước Cổng E-05) | một domain/năm + một buổi cấu hình; `toheplay.io.vn` giữ làm redirect 301. Gần như không ai bị ảnh hưởng. |
-| **C** | Chuyển **sau** khi đã có người dùng | redirect 301 cứu được SEO và link; app đã cài, phiên, tiến độ khách thì không; uy tín gửi thư làm lại; OAuth redirect URI làm lại. |
+| **A** | `toheplay.io.vn` là domain lâu dài | 0 |
+| B | Mua domain thương hiệu, chuyển trước khi mời người ngoài | một domain/năm + một buổi cấu hình |
+| C | Chuyển sau khi đã có người dùng | mất app đã cài, phiên, tiến độ khách; làm lại uy tín gửi thư |
 
-Đi kèm phương án nào cũng được: **gửi thư từ subdomain** (`notify.<domain>` — Resend khuyên). Làm cùng lúc với lần xác
-minh domain kế tiếp (B), không làm riêng.
+## Decision
 
-## Đề xuất của agent
+**owner** (2026-10-19, chat): "toheplay.io.vn sẽ là domain duy nhất, sản phẩm ta sẽ build up trên đây, ý của tôi là đinh
+hướng sản phẩm sẽ nằm duy nhất 1 domain (và chia nhìu subdomain), ổn chứ".
 
-**Quyết trước Cổng (E-05), không cần quyết ngay.** Nếu owner định có domain thương hiệu trong vài tháng tới → **B**,
-chuyển trước khi mời người ngoài. Nếu chưa có ý định cụ thể → **A**, và cứ xây theo D-01 (bố cục không phụ thuộc tên).
-Tránh C.
-
-## Câu hỏi cho owner
-
-- Q1: "domain riêng sau này" là một domain khác `toheplay.io.vn`, hay chính nó?
-- Q2: Nếu là domain khác — khoảng khi nào, và trước hay sau khi mời cộng đồng đầu tiên?
+**agent**: ổn. Hệ quả:
+- Không cần đường chuyển domain; bố cục D-01 dùng thẳng `toheplay.io.vn`.
+- "Chia nhiều subdomain" đúng cho các **vai khác nhau** (game không tin được, tài liệu kỹ thuật, sau này `admin.`,
+  `status.`…). Phần người chơi thấy — trang công khai và app — vẫn nên ở **cùng một host** (gốc): PWA, cookie phiên và
+  tiến độ của khách gắn với một origin, và Google/AI coi một sản phẩm là một chỗ (D-01).
+- Gửi thư từ subdomain (`notify.toheplay.io.vn`, Resend khuyên): không gấp; làm khi lượng thư tăng hoặc khi cần thư
+  marketing tách khỏi thư giao dịch.

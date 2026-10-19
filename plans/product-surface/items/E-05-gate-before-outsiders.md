@@ -2,7 +2,7 @@
 
 - Status: **open** — danh sách, chi tiết hoá khi P1 gần xong
 - Kind: enhancement — tiếp nhận E-10 ("Checklist ra mắt") của `plans/public-launch`
-- Blocks: việc mời cộng đồng đầu tiên · Blocked by: D-02, D-05 (và P1 nên xong trước, không bắt buộc)
+- Blocks: việc mời người ngoài đầu tiên · Blocked by: D-05 (và P1 nên xong trước, không bắt buộc)
 - Decided: —
 
 ## Vì sao
@@ -22,7 +22,7 @@ Owner đang tự dùng prod ("tôi sẽ test 1 mình chứ chưa mời ai 1 th�
 | 6 | Alertmanager của prod có người nhận (E-08 Q2 của `public-launch`) | owner, `platform-infra` |
 | 7 | Thời hạn xoá theo văn bản (E-07 Q7) | owner |
 | 8 | Chế độ đăng ký + đường vào nhanh (D-05); proof-of-work bật | owner |
-| 9 | Domain lâu dài đã chốt (D-02) | owner |
+| 9 | ~~Domain lâu dài đã chốt (D-02)~~ — xong: `toheplay.io.vn` duy nhất (2026-10-19) | owner |
 | 10 | Telemetry prod đọc được (`/health-report` với operator token) | owner (token) + agent |
 | 11 | Gia đình ở UAT hay lên prod (E-01 Q4); mở lại D-15 (UAT có HTTPS) | owner |
 | 12 | Cộng đồng đầu tiên + mã mời | owner |

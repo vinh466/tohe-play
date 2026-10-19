@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (tối) — agent
+
+- Owner chốt: migration tạo ra là chốt; prod chỉ chạy commit đã lên UAT, tag `prod-…`, `main` là nhánh chính (E-01 một
+  phần); `toheplay.io.vn` duy nhất (D-02 decided); không chia đối tượng — vòng đời một user (D-03 decided); muốn OAuth.
+- R-04: `main` + build một lần + tag `uat-*`/`prod-*` làm môi trường, dev local Mode C + dữ liệu mẫu → E-01 Q2, Q5, Q6.
+- Owner nêu case 1/case 2 định danh và lời mời → R-05 + **D-06** (hồ sơ máy, ba bậc), **D-07** (liên kết, ma trận S1–S12),
+  **D-08** (lối vào, đường ống, contract); D-05 v2 (Google); E-03 v2; design §6 vòng đời; 17 sơ đồ mermaid parse sạch.
+
 ## 2026-10-19 — agent
 
 - Owner đặt hướng sau ngày lên prod: rà việc dang dở, chốt luồng dev/test/môi trường trước, subdomain, SEO/GEO, người mới
