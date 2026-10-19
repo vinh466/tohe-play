@@ -1,6 +1,6 @@
 # Delivery — Bề mặt sản phẩm: thứ tự xây, theo pull request
 
-Danh sách graduate của plan (phase Converge, 2026-10-20). Mỗi PR **một mục đích**, mang ADR + docs của nó (spec trước, trong
+Danh sách graduate của plan (phase Converge, 2026-10-19). Mỗi PR **một mục đích**, mang ADR + docs của nó (spec trước, trong
 cùng PR), chạy `pnpm verify` trước khi mở; owner review và merge từng PR. Số ADR được cấp khi PR mở (tiếp sau 0040). Lên
 UAT/prod theo E-01: owner nói "deploy" → tag `uat-…`; "lên prod" → tag `prod-…`.
 
@@ -52,12 +52,12 @@ flowchart LR
 - **B2 → B3 → S1** cùng đụng router/Caddy của hub — tuần tự.
 - Mỗi PR một nhánh + worktree; plan này là bảng điều phối.
 
-## Điều phối agent: một master, nhiều worker (chốt — owner, 2026-10-20: "ok triển đi")
+## Điều phối agent: một master, nhiều worker (chốt — owner, 2026-10-19: "ok triển đi")
 
-Owner (2026-10-20): "lập ra 1 rule và làm theo dạng như là sẽ quyết định làm việc gì với model gì bằng cách spawn ra agent
+Owner (2026-10-19): "lập ra 1 rule và làm theo dạng như là sẽ quyết định làm việc gì với model gì bằng cách spawn ra agent
 phù hợp làm riêng xong sau đó phối hợp trên 1 luồng master".
 
-**Trần chi phí** (owner, 2026-10-20: "tối đa chỉ được dùng Opus 5.5 và effort tối đa là xhigh th nha (tối đa là master, k
+**Trần chi phí** (owner, 2026-10-19: "tối đa chỉ được dùng Opus 5.5 và effort tối đa là xhigh th nha (tối đa là master, k
 đc hơn, tôi k có nhìu chi phí)"): **không model nào trên Opus 5.5, không effort nào trên xhigh**; chỉ master được xhigh;
 không Fable, không `max`, không `/fast` (giá gấp đôi).
 
@@ -119,4 +119,5 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 
 | PR | Nhánh | Trạng thái |
 |---|---|---|
-| N1 | `docs/n1-environments` | [#71](https://github.com/vinh466/tohe-play/pull/71) mở (2026-10-20), chờ owner review — master: ADR 0041; builder (Sonnet · high): docs + `.claude/agents`; reviewer (Opus · high): 0 blocker, 5 major, 9 minor, đã sửa; `pnpm verify` xanh; **CI xanh** (verify, chart, stack) |
+| N1 | `docs/n1-environments` | [#71](https://github.com/vinh466/tohe-play/pull/71) **merged** (2026-10-19, `9759e98`) — master: ADR 0041; builder (Sonnet · high): docs + `.claude/agents`; reviewer (Opus · high): 0 blocker, 5 major, 9 minor, đã sửa; `pnpm verify` xanh; **CI xanh** (verify, chart, stack) |
+| CI | `ci/run-what-changed` | [#73](https://github.com/vinh466/tohe-play/pull/73) mở (2026-10-19) — ngoài 18 PR, owner yêu cầu: CI chạy theo phạm vi thay đổi (notes / docs / all), job song song, cache Turborepo; `main` vẫn chạy đủ, không đọc cache |

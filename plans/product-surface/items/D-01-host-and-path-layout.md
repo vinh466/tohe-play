@@ -1,11 +1,11 @@
 # D-01 — Chuẩn bố cục Tò He: host, đường dẫn, và luật thêm thành phần
 
-- Status: **decided** (2026-10-20, chat) — chuẩn bốn tầng, bố cục L1; console ở `console.toheplay.io.vn`; key chart
+- Status: **decided** (2026-10-19, chat) — chuẩn bốn tầng, bố cục L1; console ở `console.toheplay.io.vn`; key chart
   `site` → `docs`
 - Kind: decision — origin mới (`console.`), đường dẫn công khai, phiên theo origin → ADR (sửa ADR 0040, 0021, 0027)
 - Blocks: E-02, E-03 · Blocked by: — (D-02 decided: `toheplay.io.vn` là domain duy nhất)
 - Research: [R-06 chuẩn bố cục](../research/R-06-layout-standard.md), [R-02 host, SEO, GEO](../research/R-02-hosts-seo-geo.md)
-- Decided: owner, 2026-10-19 (Q2–Q6) và 2026-10-20 (Q1, Q7–Q12), chat — xem *Decision*
+- Decided: owner, 2026-10-19 (Q1–Q12), chat — xem *Decision*
 
 ## Vì sao
 
@@ -185,7 +185,7 @@ luôn giúp tôi · Q3 các route dùng english luôn giúp tôi, ổn chứ · 
 nha (default tắt ở prod) · Q6 dời đi cho chung khung". Sau đó: "Q4 toi setup r nha" (Email Routing — agent kiểm DNS
 2026-10-19: 3 MX `route1–3.mx.cloudflare.net`, SPF gốc, DKIM `cf2024-1`, DMARC; `send.` của Resend nguyên vẹn).
 
-**owner** (2026-10-20, chat): "ok r đó, chốt nha, chỉ chỉ vài cái là Q8 dổi luôn key của chart cho đồng bộ, Q9 dùng console. lun" → Q1, Q7–Q12 chốt; Q8 kèm đổi key chart; Q9 host `console.`.
+**owner** (2026-10-19, chat): "ok r đó, chốt nha, chỉ chỉ vài cái là Q8 dổi luôn key của chart cho đồng bộ, Q9 dùng console. lun" → Q1, Q7–Q12 chốt; Q8 kèm đổi key chart; Q9 host `console.`.
 
 **agent** — cách hiểu "đồng bộ" cho Q9 (owner phản đối thì sửa): tên **sản phẩm/hạ tầng** theo host — `apps/console`, key chart `console`, `publicUrls.console`, cookie `__Host-tohe.console`, `ConsolePaths`; còn **vai trò người** (owner/admin/moderator, ADR 0027) và **API quản trị** `/api/admin/…` (tài liệu OpenAPI riêng, đã sinh) giữ tên — chúng nói về quyền, không về nơi chạy.
 

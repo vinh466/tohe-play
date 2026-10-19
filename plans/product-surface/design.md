@@ -8,7 +8,7 @@ Trang này **ghép** các item thành một bức tranh. Nó không quyết gì:
 Đã chốt: domain duy nhất `toheplay.io.vn` (D-02), user-first theo vòng đời một người dùng (D-03), luồng môi trường —
 `main` + build một lần + tag `uat-…`/`prod-…` là deploy, agent làm tay phía sau (cầu nối tạm), migration chỉ tiến (E-01).
 Cũng đã chốt ("theo đề xuất", 2026-10-19): nền định danh + lối vào (D-06…D-08, D-05 Google) — phần lớn nhất, đổi Game
-Contract và vài ADR —, đo lường (D-04), trang công khai (E-02), người mới (E-03). Chốt 2026-10-20: **chuẩn bố cục (D-01)** —
+Contract và vài ADR —, đo lường (D-04), trang công khai (E-02), người mới (E-03). Chốt 2026-10-19: **chuẩn bố cục (D-01)** —
 L1, console ở `console.toheplay.io.vn`, key chart `docs`. Thứ tự xây: [delivery.md](delivery.md). Còn mở: E-02 Q2.
 
 ## 1. Bức tranh

@@ -3,8 +3,8 @@
 - Goal: một người chưa biết Tò He tìm thấy nó, chơi ngay không cần tài khoản, được rủ vào đúng bàn hay đúng game bằng một
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
-- Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-20); thứ tự xây theo pull
-  request ở **[delivery.md](delivery.md)**; N1 đang làm (2026-10-20). Còn mở: E-02 Q2 (không chặn), E-05 (Cổng).
+- Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-19); thứ tự xây theo pull
+  request ở **[delivery.md](delivery.md)**; N1 đang làm (2026-10-19). Còn mở: E-02 Q2 (không chặn), E-05 (Cổng).
 - Started: 2026-10-19 · Branch: `plan/product-surface` · PR:
   [tohe-play#72](https://github.com/vinh466/tohe-play/pull/72) (draft, về `main`; #70 cũ đã merge vào `plan/public-launch`)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
@@ -21,7 +21,7 @@ promotion* + dòng prod trong `AGENTS.md` + định nghĩa agent `.claude/agents
 ## Waiting on the owner
 
 1. Review PR của N1 khi agent báo.
-2. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-20).
+2. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-19).
 3. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).
 4. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (không chặn gì; cần trước S1).
 5. Cloudflare: AI Crawl Control — Search cho phép; xác nhận Bot Fight Mode / Under Attack / WAF challenge tắt.
