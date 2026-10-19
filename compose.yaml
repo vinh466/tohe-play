@@ -1,6 +1,7 @@
-# Tò He — local stack. Two ways to use it (see docs/guides/local-development.md):
+# Tò He — local stack. Three ways to use it (see docs/guides/local-development.md):
 #   docker compose up -d postgres     -> database only, then `pnpm dev` for hot reload
 #   docker compose up --build -d      -> everything in containers, production-like images
+#   pnpm stack:image <tag|commit>     -> the images CI published for a commit (compose.image.yaml)
 # Set TOHE_PUBLIC_HOST to this machine's LAN IP to try it from a phone on the same network.
 name: tohe
 
@@ -41,6 +42,8 @@ services:
       Email__Smtp__Security: None
       # Development token for the telemetry report (local containers only, like the database password).
       Telemetry__OperatorToken: tohe-dev-only
+      # `pnpm seed` may fill this database with demo accounts; UAT and production never set this.
+      Dev__SeedAllowed: "true"
     depends_on:
       postgres:
         condition: service_healthy
