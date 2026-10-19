@@ -20,6 +20,7 @@ promotion* + dòng prod trong `AGENTS.md` + định nghĩa agent `.claude/agents
 
 ## Waiting on the owner
 
+0. **Sự cố prod (2026-10-19 ~18:30)**: bản ghi DNS `games.toheplay.io.vn` không còn trong zone Cloudflare (NXDOMAIN từ chính nameserver Cloudflare) → game trên prod không tải. Thêm lại `games` (proxied, giống `docs`); agent kiểm lại bằng `pnpm check:prod` (#76).
 1. Review PR của N1 khi agent báo.
 2. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-19).
 3. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).
