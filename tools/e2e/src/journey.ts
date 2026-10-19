@@ -192,7 +192,9 @@ try {
   await android.screenshot({ path: 'test-results/journey-menu.png' });
   await menu.getByRole('button', { name: '✕' }).tap();
 
-  step('he plays the sample game without signing in; after the round, the catalog offers "Cài Tò He"');
+  step(
+    'the visitor plays the sample game without signing in; after the round, the catalog offers "Cài Tò He"',
+  );
   await playOneRound(android);
   await installCard(android).waitFor({ timeout: 5000 });
   await check(android, 'install-card');
