@@ -10,6 +10,7 @@
   },
   "devDependencies": {
     "@tohe/game-merge-block": "workspace:*",
-    "@tohe/game-tien-len": "workspace:*"
+    "@tohe/game-tien-len": "workspace:*",
+    "@tohe/routes": "workspace:*"
   }
 }

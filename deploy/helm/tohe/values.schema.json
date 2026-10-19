@@ -83,6 +83,11 @@
             }
           }
         },
+        "securityContact": {
+          "type": "string",
+          "pattern": "^([^@\\s]+@[^@\\s]+)?$",
+          "description": "Hub only: the address security.txt names, or empty."
+        },
         "extraEnv": {
           "$ref": "#/definitions/envList"
         },
@@ -211,6 +216,15 @@
         },
         "allowedHosts": {
           "type": "string"
+        },
+        "reference": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": {
+              "type": "boolean"
+            }
+          }
         },
         "config": {
           "type": "object",

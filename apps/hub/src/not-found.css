@@ -1,0 +1,42 @@
+/* The 404 page (404.html): no app, no Tailwind — the design tokens only, in light and dark (ADR 0013). */
+@import "@tohe/design-tokens/tokens.css";
+
+body {
+  margin: 0;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  background: var(--tohe-page);
+  color: var(--tohe-ink);
+  font-family: system-ui, sans-serif;
+  text-align: center;
+}
+
+main {
+  padding: 1.5rem;
+}
+
+h1 {
+  font-size: 1.5rem;
+  color: var(--tohe-brand-ink);
+}
+
+p {
+  color: var(--tohe-ink-soft);
+}
+
+a {
+  display: inline-block;
+  margin-top: 0.5rem;
+  padding: 0.75rem 1.25rem;
+  border-radius: 999px;
+  background: var(--tohe-brand-strong);
+  color: var(--tohe-on-brand);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+a:focus-visible {
+  outline: 3px solid var(--tohe-focus);
+  outline-offset: 3px;
+}

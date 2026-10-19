@@ -13,8 +13,9 @@
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
-		# Browsers ignore this over plain HTTP (UAT, local); behind HTTPS it pins this one host, not its siblings.
-		Strict-Transport-Security "max-age=31536000"
+		# Browsers ignore this over plain HTTP (UAT, local). includeSubDomains: every host of the domain is Tò He's and
+		# served over HTTPS (ADR 0040, 0042); no preload list.
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	}
 	@immutable path /_astro/*
 	header @immutable Cache-Control "public, max-age=31536000, immutable"

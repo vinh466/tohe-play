@@ -31,6 +31,8 @@ RUN pnpm turbo run build --filter=@tohe/games-host
 
 FROM caddy:2-alpine AS hub
 COPY deploy/docker/Caddyfile.hub /etc/caddy/Caddyfile
+# The hub's namespaces, generated from @tohe/routes and committed (ADR 0042); Caddyfile.hub imports it.
+COPY deploy/docker/hub-routes.caddy /etc/caddy/hub-routes.caddy
 COPY --from=build-hub /repo/apps/hub/dist /srv
 COPY --from=build-hub /repo/apps/admin/dist /srv/admin
 EXPOSE 8080

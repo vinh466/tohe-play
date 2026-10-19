@@ -8,4 +8,7 @@
 {{- with .Values.hub.proxy.clientIpHeaders }}
 {{- $env = append $env (dict "name" "TOHE_CLIENT_IP_HEADERS" "value" (join " " .)) }}
 {{- end }}
+{{- with .Values.hub.securityContact }}
+{{- $env = append $env (dict "name" "TOHE_SECURITY_CONTACT" "value" .) }}
+{{- end }}
 {{ include "tohe.caddyWorkload" (dict "root" . "component" "hub" "values" .Values.hub "env" $env "probePath" "/") }}

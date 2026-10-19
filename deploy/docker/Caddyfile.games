@@ -10,8 +10,9 @@
 	root * /srv
 
 	header X-Content-Type-Options nosniff
-	# Browsers ignore this over plain HTTP (UAT, local); behind HTTPS it pins this one host, not its siblings.
-	header Strict-Transport-Security "max-age=31536000"
+	# Browsers ignore this over plain HTTP (UAT, local). includeSubDomains: every host of the domain is Tò He's and
+	# served over HTTPS (ADR 0040, 0042); no preload list.
+	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	# Game pages are meant only inside the hub's frame: search engines leave the whole origin out (ADR 0039).
 	header X-Robots-Tag "noindex, nofollow"
 

@@ -1,0 +1,19 @@
+{
+  "name": "@tohe/routes",
+  "version": "0.1.0",
+  "description": "The map of Tò He's hosts and of the namespaces on the hub's host (ADR 0042), and the routing generated from it.",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "build": "node scripts/generate.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "vitest": "^5.0.0"
+  }
+}

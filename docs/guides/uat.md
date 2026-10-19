@@ -82,6 +82,9 @@ TOHE_UAT_SMTP_PASSWORD=re_…
 
 The next deploy picks them up. Resend's free plan allows 100 emails a day for the whole account.
 
+`TOHE_UAT_SECURITY_CONTACT=security@toheplay.io.vn` in the same file makes the hub serve `/.well-known/security.txt`
+([Configuration](configuration.md#hub)); without it that path answers 404.
+
 ## Backups
 
 `deploy/uat/backup.sh` dumps the database to `~/backups/tohe-uat/` and keeps the newest 20 dumps. Every deploy

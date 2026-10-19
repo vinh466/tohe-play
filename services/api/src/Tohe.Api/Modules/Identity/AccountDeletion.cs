@@ -63,7 +63,7 @@ internal sealed partial class AccountDeletion(
             await users.UpdateSecurityStampAsync(account);
             if (outbox.Enabled && account.Email is { } email)
             {
-                outbox.Add(IdentityEmails.DeletionScheduled(email, deleteAfter, Link("/welcome")));
+                outbox.Add(IdentityEmails.DeletionScheduled(email, deleteAfter, Link(HubPaths.Welcome)));
                 await db.SaveChangesAsync(ct);
             }
 

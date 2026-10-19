@@ -112,7 +112,7 @@ internal static class ExternalEndpoints
         // Switched off in the admin console (ADR 0028).
         if (!await settings.IsOnAsync(provider, ct))
         {
-            return Results.Redirect(intent == "link" ? AccountPage("link_error", "method_disabled") : "/welcome?external=disabled");
+            return Results.Redirect(intent == "link" ? AccountPage("link_error", "method_disabled") : $"{HubPaths.Welcome}?external=disabled");
         }
 
         var properties = new AuthenticationProperties { RedirectUri = $"{Paths}/{provider}/done" };
@@ -122,7 +122,7 @@ internal static class ExternalEndpoints
             // Linking from Quản lý tài khoản: step-up level 2 now, and the account to link comes back with the answer.
             if (SessionClaims.AccountId(http.User) is not { } accountId)
             {
-                return Results.Redirect("/welcome");
+                return Results.Redirect(HubPaths.Welcome);
             }
 
             // Only the hub's own page starts a link. A navigation from another site carries the session cookie too
@@ -163,14 +163,14 @@ internal static class ExternalEndpoints
         await http.SignOutAsync(IdentityConstants.ExternalScheme);
         if (!answer.Succeeded || answer.Properties is null || answer.Principal is null)
         {
-            return Results.Redirect("/welcome?external=failed");
+            return Results.Redirect($"{HubPaths.Welcome}?external=failed");
         }
 
         // Switched off while the person was at the provider.
         if (!await settings.IsOnAsync(provider, ct))
         {
             return Results.Redirect(answer.Properties.GetString("link") is null
-                ? "/welcome?external=disabled"
+                ? $"{HubPaths.Welcome}?external=disabled"
                 : AccountPage("link_error", "method_disabled"));
         }
 
@@ -180,7 +180,7 @@ internal static class ExternalEndpoints
             ?? answer.Principal.FindFirstValue(ClaimTypes.NameIdentifier);
         if (known is null || properties.GetString("provider") != provider || string.IsNullOrEmpty(key))
         {
-            return Results.Redirect("/welcome?external=failed");
+            return Results.Redirect($"{HubPaths.Welcome}?external=failed");
         }
 
         var owner = await users.FindByLoginAsync(provider, key);
@@ -210,7 +210,7 @@ internal static class ExternalEndpoints
         if (owner is { SuspendedAt: not null })
         {
             metrics.SignIn(provider, "refused");
-            return Results.Redirect("/welcome?external=suspended");
+            return Results.Redirect($"{HubPaths.Welcome}?external=suspended");
         }
 
         if (owner is not null)
@@ -218,7 +218,7 @@ internal static class ExternalEndpoints
             var playing = await AuthEndpoints.OnlyProfileAsync(db, owner.Id, ct);
             await session.SignInAsync(owner, new DeviceSession(playing), ct);
             metrics.SignIn(provider, "ok");
-            return Results.Redirect("/profiles?auto=true");
+            return Results.Redirect($"{HubPaths.Profiles}?auto=true");
         }
 
         // New with this provider: the rest waits in an attempt bound to this browser.
@@ -229,7 +229,7 @@ internal static class ExternalEndpoints
         db.AuthAttempts.Add(attempt);
         await db.SaveChangesAsync(ct);
         Bind(http, protection, attempt);
-        return Results.Redirect("/sign-in/continue");
+        return Results.Redirect(HubPaths.SignInContinue);
     }
 
     private static async Task<Results<Ok<PendingSignInView>, NotFound>> GetPendingAsync(
@@ -752,5 +752,5 @@ internal static class ExternalEndpoints
     private static ProblemHttpResult WrongStep() =>
         Problems.Of(StatusCodes.Status409Conflict, "wrong_step", "The sign-in waits for another step");
 
-    private static string AccountPage(string key, string value) => $"/account?{key}={Uri.EscapeDataString(value)}";
+    private static string AccountPage(string key, string value) => $"{HubPaths.Account}?{key}={Uri.EscapeDataString(value)}";
 }

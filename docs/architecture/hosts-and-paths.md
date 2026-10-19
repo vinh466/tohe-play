@@ -107,7 +107,7 @@ stays in force for its part.
 
 | Part | Today | In place when |
 | --- | --- | --- |
-| The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | this page's first step | the map's pull request |
+| The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces | the map's pull request |
 | The app under `/play` and `/account`, the manifest's `id` | the app owns thirteen prefixes at the root; its catalog is `/` | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | the landing page and the docs share `docs.toheplay.io.vn` | the public pages' pull request |
 | The console on `console.` | `/admin/` on the root | the console's pull request |

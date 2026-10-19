@@ -20,7 +20,7 @@ The Platform API (`services/api`) serves the hub. **Games never call it** — th
 | Auth | Cookie session `tohe.session` on the hub origin (`__Host-tohe.session` when the hub is served over HTTPS — [ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md)); account and profile management behind the parent gate. See [Identity](../architecture/identity.md) and [ADR 0011](../decisions/0011-password-sign-in-first.md). |
 | Health | `GET /api/health` → `Healthy` when the database is reachable. |
 | Telemetry | `POST /api/telemetry` is anonymous (the hub's batches, ADR 0015); `GET /api/telemetry/report` needs the operator token in `X-Tohe-Operator`. See [Device telemetry](../architecture/telemetry.md). |
-| Interactive docs | `GET /api/docs` (Scalar) on a running API. |
+| Interactive docs | `GET /api/docs` (Scalar) on a running API where `Api:Reference:Enabled` is on: `pnpm dev` and compose, not UAT or production ([Configuration](../guides/configuration.md#api)). |
 
 ## Changing the API
 

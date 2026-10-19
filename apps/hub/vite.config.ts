@@ -1,5 +1,7 @@
 /// <reference types="vitest/config" />
+import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
+import { navigationAllowlist } from '@tohe/routes';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -29,8 +31,11 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
-        // /api is the API's; /admin/ is the admin console, its own app without a service worker (ADR 0027).
-        navigateFallbackDenylist: [/^\/api\//, /^\/admin(\/|$)/],
+        // Only the app's own pages, from the map in @tohe/routes (ADR 0042): /api, the console at /admin/ (its own app
+        // without a service worker, ADR 0027), the platform's files and unknown paths go to the network.
+        navigateFallbackAllowlist: navigationAllowlist(),
+        // The 404 page is the hub's Caddy's answer to a path in no namespace, never the app's.
+        globIgnores: ['**/node_modules/**/*', '404.html'],
         runtimeCaching: [
           {
             // Catalog and config stay usable offline; fresh data wins when the API answers.
@@ -42,6 +47,15 @@ export default defineConfig({
       },
     }),
   ],
+  build: {
+    rolldownOptions: {
+      // The app, and the page the hub's Caddy answers 404 with (deploy/docker/Caddyfile.hub).
+      input: {
+        main: fileURLToPath(new URL('./index.html', import.meta.url)),
+        notFound: fileURLToPath(new URL('./404.html', import.meta.url)),
+      },
+    },
+  },
   server: {
     port: 4720,
     strictPort: true,

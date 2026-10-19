@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Email;
 
@@ -98,7 +99,7 @@ internal static class AccountEmailEndpoints
         var (attempt, code) = await attempts.StartAsync(AttemptPurpose.ChangeEmail, email, decoy: taken, ct, accountId: account.Id);
         outbox.Add(code is null
             ? IdentityEmails.EmailTaken(email)
-            : IdentityEmails.EmailCode(email, code, attempts.Link($"/account/email?attempt={attempt.Id}&code={code}")));
+            : IdentityEmails.EmailCode(email, code, attempts.Link($"{HubPaths.AccountEmail}?attempt={attempt.Id}&code={code}")));
         await db.SaveChangesAsync(ct);
         return TypedResults.Accepted((string?)null, new AttemptView(attempt.Id));
     }

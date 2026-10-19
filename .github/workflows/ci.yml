@@ -82,8 +82,10 @@ jobs:
         run: pnpm verify ${{ github.event_name == 'push' && '--cache=local:w' || '' }}
       - name: Generated files are up to date
         if: env.ALL == 'true'
+        # The API's types, and what the map in @tohe/routes generates (ADR 0042), regenerated outside Turborepo's cache.
         run: |
           pnpm --filter @tohe/hub generate:api
+          pnpm --filter @tohe/routes build
           git status --porcelain
           test -z "$(git status --porcelain)" || { echo "::error::Generated files are stale. Run pnpm build and pnpm --filter @tohe/hub generate:api, then commit."; git diff --stat; exit 1; }
       - name: Upload conformance screenshots
@@ -166,6 +168,8 @@ jobs:
             sleep 2
           done
           exit 1
+      - name: The hub serves the map of its paths (ADR 0042)
+        run: pnpm --filter @tohe/e2e routes
       - run: pnpm --filter @tohe/e2e exec playwright install --with-deps chromium
       - run: pnpm --filter @tohe/e2e smoke
         env:

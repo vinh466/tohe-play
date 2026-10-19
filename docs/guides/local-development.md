@@ -33,7 +33,7 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 | 4721 | The admin console's dev server; open it through the hub, at `http://localhost:4720/admin/` ([Admin console](../architecture/admin.md)) |
 | 4730 | Games origin |
 | 4731 | A single game's standalone dev server (`dev:standalone`) |
-| 4740 | Platform API (direct, for debugging; Scalar at `/api/docs`) |
+| 4740 | Platform API (direct, for debugging; Scalar at `/api/docs`, on in both modes, off on UAT and production) |
 | 4741 | The API's Prometheus metrics, `http://localhost:4741/metrics` ([Metrics](../architecture/metrics.md)) — 9464 in the image |
 | 4750 | PostgreSQL (bound to 127.0.0.1) — user `tohe`, password `tohe-dev-only`, database `tohe` |
 | 4760 | Mailpit — every email the API sends locally, in a web UI ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) |
@@ -106,6 +106,8 @@ An iPhone has no such shortcut: try it on production while only the owner uses i
 | `pnpm test` | Unit tests (Vitest) and API tests (xUnit + PostgreSQL in Docker). |
 | `pnpm conformance` | Conformance kit for every game. |
 | `pnpm --filter @tohe/e2e smoke` | End-to-end smoke test against a running stack (`HUB_URL` to override). |
+| `pnpm --filter @tohe/e2e routes` | Mode B only: the hub's image serves the map of its paths — the app's pages, real 404s, `robots.txt` ([Hosts and paths](../architecture/hosts-and-paths.md)). |
+| `pnpm --filter @tohe/routes build` | Regenerate what the map of the hub's paths generates, after changing `packages/routes/src/map.ts`. |
 | `pnpm --filter @tohe/e2e rooms` | Online rooms end to end: three phones open, join and play a Tiến Lên table (ADR 0016). |
 | `pnpm --filter @tohe/hub generate:api` | Regenerate the hub's API types after an API change. |
 | `pnpm --filter @tohe/telemetry-report report` | Telemetry report of the dev stack (token `tohe-dev-only`); `-- --env uat` for UAT. |

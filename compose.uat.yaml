@@ -55,6 +55,8 @@ services:
     environment:
       API_UPSTREAM: api:8080
       GAMES_ORIGIN: http://${TOHE_UAT_HOST:-10.100.0.2}:4830
+      # /.well-known/security.txt names this address; unset in uat.env, that path answers 404.
+      TOHE_SECURITY_CONTACT: ${TOHE_UAT_SECURITY_CONTACT:-}
     depends_on:
       - api
     ports:
