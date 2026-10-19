@@ -6,7 +6,7 @@ sidebar:
 ---
 
 - **Status:** Accepted
-- **Date:** 2026-10-20
+- **Date:** 2026-10-19
 - **Amends:** [ADR 0010](0010-environments-dev-and-uat.md) — UAT deploys the commit of a `uat-` tag rather than
   `origin/main`, and is where the images bound for production run first;
   [ADR 0021](0021-release-production-through-the-tohe-chart.md) §5 — the promotion pull request against `platform-infra`
@@ -24,7 +24,7 @@ the CI workflow and the agents' notes. Three things were never written down:
 - **How migrations change** once two environments hold data: UAT holds the family's, and production runs the same
   migrations.
 
-The owner decided (2026-10-19 and 2026-10-20): `main` is the only long-lived branch; production runs only a commit that
+The owner decided (2026-10-19): `main` is the only long-lived branch; production runs only a commit that
 ran on UAT; a release to production is a `prod-` tag; the environments are told apart by tags; behind a tag the agent
 does the mechanical steps by hand — deploying UAT, opening and merging the pull request against `platform-infra` — until
 a workflow takes them over; a migration is final once made; while production is the owner's test bed, the product's
