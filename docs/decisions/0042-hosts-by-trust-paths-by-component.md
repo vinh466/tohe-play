@@ -104,8 +104,8 @@ hub's image, or by a service of its own behind the same prefix, which changes no
 ## Consequences
 
 - The work arrives in steps, each a pull request: the map and its generated configuration with real `404`s, `robots.txt`,
-  `sitemap.xml`, `security.txt`, HSTS for subdomains and a switch for the API reference; the app's routes under `/play`
-  and `/account`; the public pages as `apps/web` built into the hub's image, and the docs at the root of their host (the
+  `security.txt`, HSTS for subdomains and a switch for the API reference; the app's routes under `/play` and
+  `/account`; the public pages as `apps/web` built into the hub's image with their `sitemap.xml`, and the docs at the root of their host (the
   site app renamed `apps/docs`, the chart's `site` values renamed `docs`); the console's host; mail from `notify.` and the
   status page. Until each lands, the current layout stays in force for its part.
 - Links already sent stay valid: `/r/<code>` keeps its form; links in mail that are still valid redirect to their new
