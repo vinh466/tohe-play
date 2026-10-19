@@ -30,7 +30,7 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Identity:AuthRequestsPerMinute` | Requests per client address and minute in each of three buckets: signing in or asking for a code, typing a code back, a PIN or the parent gate (ADR 0024) | `10` |
 | `Identity:SessionCheckInterval` | How often a session is checked against its account's security stamp: after a password reset or an email change, other sessions end within this long | `00:05:00` |
 | `Email:Mode` | `Smtp` to send email, `Disabled` to send none — features that need email are then unavailable ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | `Disabled` (compose: Mailpit) |
-| `Email:From` | The sender, e.g. `Tò He <no-reply@example.org>` — an address the relay may send as | — required with `Smtp` |
+| `Email:From` | The sender, e.g. `Tò He <no-reply@example.org>` — an address the relay may send as; Tò He sends from `notify.` of its domain ([Mail and the status page](mail-and-status.md)) | — required with `Smtp` |
 | `Email:Smtp:Host`, `Email:Smtp:Port`, `Email:Smtp:Security` | The relay; `Security` is `StartTls` (587), `SslOnConnect` (465) or `None` (a relay on the same network, like Mailpit) | —, `587`, `StartTls` |
 | `Email:Smtp:Username`, `Email:Smtp:Password` | The relay's credentials (Resend: `resend` and an API key) | empty: no authentication |
 | `Auth:Providers:Google:ClientId`, `Auth:Providers:Google:ClientSecret` | Google sign-in ([ADR 0026](../decisions/0026-sign-in-methods-and-account-linking.md)): an OAuth client of type *Web application* with the redirect URI `<App:PublicUrl>/api/auth/external/google/callback`; step by step in [Sign in with Google](sign-in-with-google.md) | unset: no Google |
