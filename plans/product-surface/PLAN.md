@@ -5,7 +5,8 @@
   kiểm thử · môi trường đã viết thành spec.
 - Phase: **Frame** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)); map và các đề
   xuất đã có sẵn để owner đọc cùng brief.
-- Started: 2026-10-19 · Branch: `plan/product-surface` (xếp trên `plan/public-launch`) · PR: draft
+- Started: 2026-10-19 · Branch: `plan/product-surface` (xếp trên `plan/public-launch`) · PR:
+  [tohe-play#70](https://github.com/vinh466/tohe-play/pull/70) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
 - Research: [R-01 rà việc dang dở](research/R-01-backlog-review.md) · [R-02 host, SEO, GEO](research/R-02-hosts-seo-geo.md) ·
   [R-03 người mới, PWA](research/R-03-pwa-install-newcomer.md)
