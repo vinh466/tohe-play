@@ -6,8 +6,8 @@ sidebar:
 ---
 
 - **Status:** Accepted — the console frames the games origin, only to watch a ranked run, since
-  [ADR 0032](0032-watch-a-ranked-run-in-the-game-itself.md); the audit log keeps a year since [ADR 0034](0034-delete-accounts-and-profiles-for-good.md); the console moves
-  to a host of its own, `console.toheplay.io.vn`, since [ADR 0042](0042-hosts-by-trust-paths-by-component.md)
+  [ADR 0032](0032-watch-a-ranked-run-in-the-game-itself.md); the audit log keeps a year since [ADR 0034](0034-delete-accounts-and-profiles-for-good.md); the console is to
+  move to a host of its own, `console.toheplay.io.vn`, by [ADR 0042](0042-hosts-by-trust-paths-by-component.md)
 - **Date:** 2026-10-18
 
 ## Context

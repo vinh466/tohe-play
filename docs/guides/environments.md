@@ -127,7 +127,7 @@ If a check fails, say so and stop. Rolling back is the owner's call ([below](#ro
 | Unit | Vitest: the game logic, the SDK, the hub | `pnpm test`, in `pnpm verify` and CI ([what runs when](#continuous-integration)) |
 | API | xUnit against PostgreSQL through Testcontainers, never a shared database | `pnpm test`, in `pnpm verify` and CI (needs Docker) |
 | Games | The conformance kit: the Game Contract, the CSP, both themes | `pnpm conformance`, in `pnpm verify` and CI |
-| The stack | The e2e smoke test, and `rooms`: three phones play a Tiến Lên table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | CI against the compose stack; locally `pnpm --filter @tohe/e2e smoke` and `rooms` against a running stack |
+| The stack | The e2e smoke test, `routes` (the hub serves the map of its paths, [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)), and `rooms`: three phones play a Tiến Lên table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | CI against the compose stack; locally `pnpm --filter @tohe/e2e smoke` and `rooms` against a running stack |
 | The chart | Lint, every profile rendered, every guard, an install and an upgrade on kind, `helm test` | CI, job `chart`; locally `deploy/helm/tohe/ci/check.sh` for the first part |
 | After a deploy | The [checks](#checks-after-a-deploy) above | By hand, on UAT and production |
 | Real devices | Phones: touch, sound, install, the installed PWA | The owner; [below](#local-development) for how to get a build on a phone |

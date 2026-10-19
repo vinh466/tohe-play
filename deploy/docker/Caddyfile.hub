@@ -96,7 +96,7 @@
 			header Content-Type "text/plain; charset=utf-8"
 			templates
 			respond <<TXT
-				Contact: mailto:{env.TOHE_SECURITY_CONTACT}
+				Contact: mailto:{{ env "TOHE_SECURITY_CONTACT" }}
 				Expires: {{ dateInZone "2006-01-02T15:04:05Z" (now | dateModify "+8640h") "UTC" }}
 				Preferred-Languages: vi, en
 

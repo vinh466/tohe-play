@@ -3,7 +3,8 @@ title: Hosts and paths
 description: Where every part of Tò He lives on toheplay.io.vn — a host per trust boundary, a path prefix per component, one map that generates the routing — and how to add a part.
 ---
 
-Decision: [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md) (amends [ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)).
+Decision: [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md) (amends [ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md), [0027](../decisions/0027-platform-admin-and-the-first-owner.md)
+and [0021](../decisions/0021-release-production-through-the-tohe-chart.md)).
 
 ## The standard
 
@@ -64,7 +65,8 @@ Kept for later, without DNS: `api.`, `account.`, `studio.`, `media.`, `uat.` ([A
 | `/.well-known/…`, `/robots.txt`, `/sitemap.xml` | the platform | generated | — |
 | anything else | — | a real `404` | — |
 
-The map in `@tohe/routes` is the source; this table summarises it. From the map the build generates the hub's Caddy
+This table is the standard; the map in `@tohe/routes` holds the namespaces served today and moves to it step by step
+(see *Where things stand*). From the map the build generates the hub's Caddy
 routes, the service worker's list of app pages, `robots.txt` and the API's links to the hub, and a test fails when two
 namespaces overlap or a component serves a path outside its own.
 
@@ -107,7 +109,7 @@ stays in force for its part.
 
 | Part | Today | In place when |
 | --- | --- | --- |
-| The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces | the map's pull request |
+| The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; until the public pages arrive the root is the app's catalog and says `noindex`; `security.txt` once `hub.securityContact` is set in `platform-infra` | the map's pull request |
 | The app under `/play` and `/account`, the manifest's `id` | the app owns thirteen prefixes at the root; its catalog is `/` | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | the landing page and the docs share `docs.toheplay.io.vn` | the public pages' pull request |
 | The console on `console.` | `/admin/` on the root | the console's pull request |

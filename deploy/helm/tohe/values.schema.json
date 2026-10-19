@@ -85,7 +85,7 @@
         },
         "securityContact": {
           "type": "string",
-          "pattern": "^([^@\\s]+@[^@\\s]+)?$",
+          "pattern": "^([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+)?$",
           "description": "Hub only: the address security.txt names, or empty."
         },
         "extraEnv": {

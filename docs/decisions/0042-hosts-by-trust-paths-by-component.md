@@ -9,8 +9,8 @@ sidebar:
 - **Date:** 2026-10-19
 - **Amends:** [ADR 0040](0040-all-of-tohe-on-one-domain-of-its-own.md) — the paths on the hub's host and three new
   hosts; [ADR 0027](0027-platform-admin-and-the-first-owner.md) — the console leaves `/admin/` for a host of its own;
-  [ADR 0021](0021-release-production-through-the-tohe-chart.md) — the site image serves only the developer docs, at the
-  root of its host
+  [ADR 0021](0021-release-production-through-the-tohe-chart.md) — the site image is to serve only the developer docs, at
+  the root of its host, and the web origins' HSTS covers subdomains
 
 ## Context
 
@@ -25,8 +25,9 @@ ADR 0040 put all of Tò He on `toheplay.io.vn`: the hub at the root with `/api` 
   language.
 - **The operator's console shares the players' origin.** A flaw in any page of the hub could act with an operator's
   session.
-- **Paths are written by hand in five places**: the hub's router, about ten links and redirects in the API's identity
-  module, the hub's Caddyfile, the service worker's configuration and the end-to-end tests. The hub owns thirteen prefixes
+- **Paths are written by hand in six places**: the hub's router, about ten links and redirects in the API's identity
+  module, the console's links back to the hub, the hub's Caddyfile, the service worker's configuration and the
+  end-to-end tests. The hub owns thirteen prefixes
   at the root, so each new page is one more place two components can collide.
 - **The app's identity is its start URL**: the manifest has no `id`, so moving `start_url` would make installed apps a
   different app.
@@ -112,7 +113,9 @@ hub's image, or by a service of its own behind the same prefix, which changes no
   paths for a while.
 - The console gets a sign-in of its own; an operator signed in as a player is not signed in to the console. Cloudflare
   Access asks first.
-- `platform-infra` changes twice — the docs values and the console's host — in pull requests the owner merges.
+- `platform-infra` changes three times — the security contact (`hub.securityContact`), the docs values and the
+  console's host — in pull requests the owner merges.
+- Until the public pages arrive, the root is the app's catalog and, like every page of the app, says `noindex`.
 - The status page shares the domain's DNS with Tò He, so a DNS failure takes both down; the owner's community channels are
   the fallback.
 - Public pages share the app's origin: they carry no third-party code, and the service worker leaves them alone.

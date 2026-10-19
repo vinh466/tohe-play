@@ -6,8 +6,8 @@ sidebar:
 ---
 
 - **Status:** Accepted — promotion follows a `prod-` tag, and the agent merges its pull request, since
-  [ADR 0041](0041-promote-one-build-through-the-environments-by-tag.md); the site image serves only the developer docs
-  since [ADR 0042](0042-hosts-by-trust-paths-by-component.md)
+  [ADR 0041](0041-promote-one-build-through-the-environments-by-tag.md); HSTS covers subdomains, and the site image is to serve
+  only the developer docs, by [ADR 0042](0042-hosts-by-trust-paths-by-component.md)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0010](0010-environments-dev-and-uat.md) — production is no longer deferred
 

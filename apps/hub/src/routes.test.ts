@@ -1,6 +1,6 @@
 // Every page of the hub's router and every file it ships must sit in a namespace of the map in @tohe/routes
 // (ADR 0042): the hub's Caddy answers 404 to anything else, and the service worker leaves it to the network.
-import { readdirSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
 import { matchHubPath } from '@tohe/routes';
 import { expect, it } from 'vitest';
 import router from './router.tsx?raw';
@@ -14,6 +14,22 @@ it('routes only paths inside an app page namespace of @tohe/routes', () => {
     return namespace?.component !== 'app' || namespace.served !== 'page';
   });
   expect(outside, 'add a namespace to packages/routes/src/map.ts').toEqual([]);
+});
+
+it('lets the console link back only to the app’s pages', () => {
+  // The console (apps/admin) is served by the hub's Caddy and links to the hub by root-relative paths.
+  const consoleSrc = new URL('../../admin/src/', import.meta.url);
+  const links = readdirSync(consoleSrc, { recursive: true, encoding: 'utf8' })
+    .filter((file) => file.endsWith('.tsx'))
+    .flatMap((file) => [...readFileSync(new URL(file, consoleSrc), 'utf8').matchAll(/\bhref="(\/[^"]*)"/g)])
+    .map((match) => (match[1] as string).replace(/[?#].*/, ''))
+    .filter((path) => matchHubPath(path)?.component !== 'console');
+  expect(links.length).toBeGreaterThan(0);
+  const outside = links.filter((path) => {
+    const namespace = matchHubPath(path);
+    return namespace?.component !== 'app' || namespace.served !== 'page';
+  });
+  expect(outside, 'link the console to a page of packages/routes/src/map.ts').toEqual([]);
 });
 
 it('ships only files of a namespace of @tohe/routes', () => {

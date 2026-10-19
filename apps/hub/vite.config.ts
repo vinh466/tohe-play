@@ -3,8 +3,28 @@ import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
 import { navigationAllowlist } from '@tohe/routes';
 import react from '@vitejs/plugin-react';
-import { defineConfig } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
+
+/**
+ * The 404 page is not the app: vite-plugin-pwa links the manifest and registers the service worker in every page it
+ * builds, so a mistyped path would install the app. This strips both from 404.html, after the PWA plugin ran.
+ */
+function notFoundIsNotTheApp(): Plugin {
+  return {
+    name: 'tohe:not-found-is-not-the-app',
+    enforce: 'post',
+    transformIndexHtml: {
+      order: 'post',
+      handler: (html, ctx) =>
+        ctx.filename.endsWith('404.html')
+          ? html
+              .replace(/\s*<link rel="manifest"[^>]*>/g, '')
+              .replace(/\s*<script id="vite-plugin-pwa:register-sw"[^>]*><\/script>/g, '')
+          : html,
+    },
+  };
+}
 
 export default defineConfig({
   plugins: [
@@ -46,6 +66,7 @@ export default defineConfig({
         ],
       },
     }),
+    notFoundIsNotTheApp(),
   ],
   build: {
     rolldownOptions: {

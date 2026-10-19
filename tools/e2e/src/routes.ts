@@ -65,6 +65,17 @@ check(
     : security.response.status === 404,
   `/.well-known/security.txt: ${contact ? `names ${contact}` : '404 without TOHE_SECURITY_CONTACT'} (${security.response.status})`,
 );
+if (contact) {
+  // RFC 9116: plain text, an Expires in RFC 3339 that lies ahead, and less than a year ahead.
+  const expires = /^Expires: (\d{4}-\d\d-\d\dT\d\d:\d\d:\d\dZ)$/m.exec(security.body)?.[1];
+  const ahead = expires ? Date.parse(expires) - Date.now() : Number.NaN;
+  check(
+    (security.response.headers.get('content-type') ?? '').startsWith('text/plain') &&
+      ahead > 0 &&
+      ahead <= 365 * 24 * 60 * 60 * 1000,
+    `/.well-known/security.txt: plain text, Expires ${expires ?? 'missing'} within a year`,
+  );
+}
 
 const health = await get('/api/health');
 check(health.response.status === 200, `/api/health: proxied to the API (${health.response.status})`);

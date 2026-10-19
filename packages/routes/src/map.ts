@@ -54,7 +54,7 @@ export const hosts: readonly Host[] = [
     purpose: 'The status page, outside Tò He’s infrastructure',
   },
   { role: 'notify', label: 'notify', state: 'decided', purpose: 'Sends transactional mail; no web' },
-  { role: 'www', label: 'www', state: 'decided', purpose: 'A redirect to the root' },
+  { role: 'www', label: 'www', state: 'serving', purpose: 'A redirect to the root' },
   { role: 'api', label: 'api', state: 'reserved', purpose: 'Only for a public API with keys' },
   {
     role: 'account',

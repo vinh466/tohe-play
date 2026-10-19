@@ -30,10 +30,14 @@ a {
   margin-top: 0.5rem;
   padding: 0.75rem 1.25rem;
   border-radius: 999px;
-  background: var(--tohe-brand-strong);
+  background: var(--tohe-brand);
   color: var(--tohe-on-brand);
   font-weight: 700;
   text-decoration: none;
+}
+
+a:active {
+  background: var(--tohe-brand-strong);
 }
 
 a:focus-visible {
