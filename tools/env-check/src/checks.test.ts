@@ -77,6 +77,7 @@ const prodOptions = {
   games: 'https://games.toheplay.io.vn',
   docs: 'https://docs.toheplay.io.vn',
   domain: 'toheplay.io.vn',
+  sendingDomain: 'toheplay.io.vn',
   expect: 'prod-2026-10-19.1',
   dns: false,
 };
@@ -120,6 +121,31 @@ describe('checkProd', () => {
     );
     expect(runner.failed).toBe(0);
     expect(runner.warnings).toBe(1);
+  });
+
+  it('reads DKIM and the return path at the sending domain, DMARC and MX at the domain', async () => {
+    const records: Record<string, string[]> = {
+      'TXT resend._domainkey.notify.toheplay.io.vn': ['p=MIGf'],
+      'TXT send.notify.toheplay.io.vn': ['v=spf1 include:amazonses.com ~all'],
+      'MX send.notify.toheplay.io.vn': ['10 feedback-smtp.example.'],
+      'TXT _dmarc.toheplay.io.vn': ['v=DMARC1; p=none;'],
+      'MX toheplay.io.vn': ['8 route3.mx.cloudflare.net.'],
+    };
+    const dns = async (name: string, type: 'TXT' | 'MX') => records[`${type} ${name}`] ?? [];
+    const options = { ...prodOptions, dns: true, sendingDomain: 'notify.toheplay.io.vn' };
+
+    const moved = capture();
+    await checkProd(options, { http: prodSite("form-action 'none'"), dns, git: prodGit }, moved.runner);
+    expect(moved.runner.failed).toBe(0);
+
+    // Still checking the root for the provider's records: they are not there.
+    const root = capture();
+    await checkProd(
+      { ...options, sendingDomain: 'toheplay.io.vn' },
+      { http: prodSite("form-action 'none'"), dns, git: prodGit },
+      root.runner,
+    );
+    expect(root.runner.failed).toBe(3);
   });
 });
 

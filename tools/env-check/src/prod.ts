@@ -3,6 +3,7 @@
 //   pnpm check:prod                       # expects the commit of the newest prod- tag
 //   pnpm check:prod --expect <ref>        # expects the commit of a tag, branch or sha
 //   pnpm check:prod --hub https://… --games https://… --docs https://… --domain example.org --no-dns
+//   pnpm check:prod --sending-domain notify.toheplay.io.vn   # where mail is sent from (docs/guides/mail-and-status.md)
 import { parseArgs } from 'node:util';
 import { scriptArgs } from './args.ts';
 import { dohLookup } from './dns.ts';
@@ -19,6 +20,8 @@ const { values } = parseArgs({
     games: { type: 'string', default: 'https://games.toheplay.io.vn' },
     docs: { type: 'string', default: 'https://docs.toheplay.io.vn' },
     domain: { type: 'string', default: 'toheplay.io.vn' },
+    // Production sends from the root until the owner moves mail to notify.toheplay.io.vn; then this default follows.
+    'sending-domain': { type: 'string', default: 'toheplay.io.vn' },
     'no-dns': { type: 'boolean', default: false },
   },
 });
@@ -31,6 +34,7 @@ try {
       games: values.games,
       docs: values.docs,
       domain: values.domain,
+      sendingDomain: values['sending-domain'],
       expect: values.expect,
       dns: !values['no-dns'],
     },
