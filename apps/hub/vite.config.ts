@@ -116,6 +116,9 @@ export default defineConfig({
         // Only the app's own pages, from the map in @tohe/routes (ADR 0042): /api, the platform's files and unknown paths
         // go to the network.
         navigateFallbackAllowlist: navigationAllowlist(),
+        // The root is the public home page (apps/web), not the app: never answer "/" with the precached index.html,
+        // which Workbox would do by default for a URL ending in "/" (ADR 0042).
+        directoryIndex: null,
         // The 404 page is the hub's Caddy's answer to a path in no namespace, never the app's.
         globIgnores: ['**/node_modules/**/*', '404.html'],
         runtimeCaching: [
