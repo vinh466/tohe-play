@@ -1,0 +1,24 @@
+# Tò He — Mode C: the images CI published for a commit, run locally. An override of compose.yaml, used by
+# `pnpm stack:image <tag|commit>` (scripts/stack-image.sh); do not use it by hand. The same images run on UAT and on
+# production (ADR 0041); this runs them here, on the development ports (47xx), to reproduce a problem seen there.
+#   docker compose -p tohe-image -f compose.yaml -f compose.image.yaml ...
+# postgres and mailpit are as in compose.yaml. Nothing is built.
+services:
+  api:
+    image: ghcr.io/vinh466/tohe-play/api:${TOHE_IMAGE_TAG:?set by scripts/stack-image.sh}
+    build: !reset null
+    environment:
+      # What /api/config reports as the version, as UAT does (compose.uat.yaml).
+      App__Version: ${TOHE_VERSION:-unknown}
+
+  hub:
+    image: ghcr.io/vinh466/tohe-play/hub:${TOHE_IMAGE_TAG:?set by scripts/stack-image.sh}
+    build: !reset null
+
+  games:
+    image: ghcr.io/vinh466/tohe-play/games:${TOHE_IMAGE_TAG:?set by scripts/stack-image.sh}
+    build: !reset null
+
+  site:
+    image: ghcr.io/vinh466/tohe-play/site:${TOHE_IMAGE_TAG:?set by scripts/stack-image.sh}
+    build: !reset null

@@ -3,6 +3,7 @@ using Scalar.AspNetCore;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Infrastructure.Security;
 using Tohe.Api.Modules.Admin;
+using Tohe.Api.Modules.Dev;
 using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
@@ -48,6 +49,12 @@ var app = builder.Build();
 if (AdminCommand.Matches(args))
 {
     return await AdminCommand.RunAsync(app.Services, args, Console.Out, Console.Error);
+}
+
+// `dotnet Tohe.Api.dll dev seed`: demo data for a development database; refuses outside the Development environment.
+if (DevCommand.Matches(args))
+{
+    return await DevCommand.RunAsync(app.Services, args, Console.Out, Console.Error);
 }
 
 app.UseForwardedHeaders();

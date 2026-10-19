@@ -1,6 +1,6 @@
 ---
 title: Local development
-description: Prerequisites, the two ways to run the stack, ports, commands and troubleshooting.
+description: Prerequisites, the three ways to run the stack, demo data, ports, commands and troubleshooting.
 sidebar:
   order: 1
 ---
@@ -70,7 +70,7 @@ docker compose up --build -d    # postgres, mailpit, api, hub, games, site
 ```
 
 Same URLs as above. Images are the ones production will use (Caddy + chiseled .NET). Stop with
-`docker compose down` (add `-v` to wipe the database). Do not run modes A and B at the same time — they share ports.
+`docker compose down` (add `-v` to wipe the database). Do not run modes A, B and C at the same time — they share ports.
 
 This is the development stack. The family's always-on environment is separate: see
 [UAT environment](uat.md).
@@ -97,6 +97,65 @@ adb reverse tcp:4730 tcp:4730
 An iPhone has no such shortcut: try it on production while only the owner uses it
 ([Environments and releases](environments.md)).
 
+## Mode C — the images of a tag
+
+To reproduce a problem seen on UAT or production, run the exact images CI published for a commit, on this machine:
+
+```sh
+pnpm stack:image uat-2026-10-20.1    # a uat-/prod- tag, a branch (origin/main), or any commit
+pnpm stack:image --down              # stop it and remove its database
+```
+
+The script resolves the tag or commit, pulls `ghcr.io/vinh466/tohe-play/{api,hub,games,site}:sha-<commit>` and starts
+them next to a fresh PostgreSQL and Mailpit, in their own compose project, `tohe-image`, on the same ports as the
+other modes (hub <http://localhost:4720>, mail <http://localhost:4760>). When the hub answers it prints the commit and
+the API's `apiVersion`. The tag only decides the images: `compose.yaml` and `compose.image.yaml` come from your
+working tree.
+
+- **It never builds.** CI publishes images for a commit on `main` once its checks pass; for a commit from before that,
+  or one CI has not finished, there are none, and the script says so and stops.
+- **It shares the ports of Mode A and B**, so it refuses to start while the development stack (project `tohe`) is up:
+  stop it first with `docker compose -p tohe down`, or stop `pnpm dev`.
+- **Its data is throwaway.** `--down` removes the database, and starting it again replaces a Mode C stack that is
+  already running, database included, so a newer schema never meets an older API.
+- **It never touches UAT** (`tohe-uat`): the script refuses that project name. Fill it with demo data the same way as the
+  other modes ([below](#demo-data)), if that commit has the seed command.
+
+It needs Docker Compose 2.24 or later (the override uses `!reset`).
+
+## Demo data
+
+`pnpm seed` fills a development database with demo accounts, profiles and scores, so trying things by hand and taking
+screenshots is quick. It runs `dotnet Tohe.Api.dll dev seed`, made the way the API makes accounts (the same services, so
+public IDs, profile limits, the terms version and a confirmed email all hold), and is safe to run again: what exists
+is kept, what is missing is added.
+
+| Email | Password | Profiles |
+| --- | --- | --- |
+| `gia-dinh@tohe.localhost` | `tohe-dev-only` | Bố Minh (adult) and Bé Na (child, 6–8: off public boards, asked to tables only within the account); manage PIN `123456` |
+| `ban@tohe.localhost` | `tohe-dev-only` | Cô Lan (adult), a friend with an account of her own; manage PIN `123456` |
+
+Each profile gets three finished runs of every solo game that takes scores, so the account's board shows the family
+(the game's "Bảng xếp hạng", tab "Nhà mình"). The public boards take only runs the server verified, which a seed cannot make, so they stay
+empty. No platform roles are seeded, and no rooms (they live in memory, [ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)):
+claim ownership with the setup token, or `docker compose exec api dotnet Tohe.Api.dll admin grant gia-dinh@tohe.localhost --role owner`
+([Admin console](../architecture/admin.md)).
+
+| Mode | How |
+| --- | --- |
+| A | `docker compose up -d postgres mailpit`, then `pnpm seed`. It uses `dotnet run`, which migrates the database if the API has never run; or by hand: `ASPNETCORE_ENVIRONMENT=Development dotnet run --project services/api/src/Tohe.Api -- dev seed`. |
+| B | `pnpm seed` runs it inside the `api` container of project `tohe`. |
+| C | `pnpm seed` runs it inside the `api` container of project `tohe-image`, if that commit has the command; an older image would try to start a second web server and fail on the port. |
+
+The games arrive in the registry within about a minute of the API starting; seeded before that, there are accounts but
+no scores, and the command says so. Run it again then.
+
+**Never on UAT or production.** The command has two locks, each enough on its own: the host environment must be
+`Development`, and the setting `Dev:SeedAllowed` must be true — only `appsettings.Development.json` and `compose.yaml`
+set it, never UAT's configuration or the chart. `pnpm seed` asks for `Development` only for its own single command, in
+the `tohe` and `tohe-image` projects, never in `tohe-uat`; a UAT container asked the same way still refuses. The
+passwords are public, so a database that holds real people must never have these accounts.
+
 ## Everyday commands
 
 | Command | What it does |
@@ -105,6 +164,8 @@ An iPhone has no such shortcut: try it on production while only the owner uses i
 | `pnpm lint` / `pnpm format` | Biome check / fix. |
 | `pnpm test` | Unit tests (Vitest) and API tests (xUnit + PostgreSQL in Docker). |
 | `pnpm conformance` | Conformance kit for every game. |
+| `pnpm stack:image <tag\|commit>` | Mode C: run the images CI published for a commit; `--down` stops it ([above](#mode-c--the-images-of-a-tag)). |
+| `pnpm seed` | Demo accounts, profiles and scores in the local database ([above](#demo-data)). |
 | `pnpm --filter @tohe/e2e smoke` | End-to-end smoke test against a running stack (`HUB_URL` to override). |
 | `pnpm --filter @tohe/e2e routes` | Mode B only: the hub's image serves the map of its paths — the app's pages, real 404s, `robots.txt` ([Hosts and paths](../architecture/hosts-and-paths.md)). |
 | `pnpm --filter @tohe/routes build` | Regenerate what the map of the hub's paths generates, after changing `packages/routes/src/map.ts`. |
@@ -121,4 +182,4 @@ An iPhone has no such shortcut: try it on production while only the owner uses i
 | `dotnet watch` warns about the inotify limit | Already handled: the dev script uses the polling watcher. To raise the limit: `sudo sysctl fs.inotify.max_user_watches=524288`. |
 | Conformance/e2e: `Executable doesn't exist` | The tools fall back to system Chrome; install Chrome, or `pnpm exec playwright install chromium` where supported. |
 | Catalog is empty | The API polls the games origin every 15 s (dev) / 20 s (docker). Check the games origin serves `/catalog.json`. |
-| Port already in use | Another mode is running: `docker compose down`, or stop `pnpm dev`. |
+| Port already in use | Another mode is running: `docker compose down`, `pnpm stack:image --down`, or stop `pnpm dev`. |

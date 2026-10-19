@@ -161,6 +161,12 @@ Detail is in [Local development](local-development.md). In short:
 - **Mode A**, `pnpm dev`: hot reload for the API, the games origin, the hub and the site; PostgreSQL and Mailpit from
   compose.
 - **Mode B**, `docker compose up --build -d`: the production-like containers. Do not run both at once; they share ports.
+- **Mode C**, `pnpm stack:image <tag|commit>`: the exact images CI published for a commit, in the `tohe-image` project on
+  the same ports, to reproduce a problem seen on UAT or production; `--down` removes it and its throwaway database. It
+  never builds, and refuses while the development stack runs.
+- **Demo data**, `pnpm seed`: a family account (an adult and a child profile), a friend's account and a few scores in the
+  local database, in any of the modes. It refuses outside the Development environment, so UAT and production can never be
+  seeded.
 - **Phones on the LAN**: `TOHE_PUBLIC_HOST=<lan address>` with Mode B. Plain HTTP, so no service worker and no install.
 - **An Android phone over USB**: forward the hub and the games origin, `adb reverse tcp:4720 tcp:4720` and
   `adb reverse tcp:4730 tcp:4730`, then open `http://localhost:4720`. `localhost` is a secure context, so the service
