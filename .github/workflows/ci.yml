@@ -17,11 +17,38 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   ASTRO_TELEMETRY_DISABLED: 1
 
+# A pull request runs what it touches (docs/guides/environments.md#continuous-integration): nothing for notes only, the
+# site and its link check for docs, every job otherwise. A push to main runs every job, every task without reading a
+# cache, before anything is published. The jobs run side by side; none waits for another but publish.
 jobs:
+  changes:
+    name: What the change touches
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      scope: ${{ steps.scope.outputs.scope }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - id: scope
+        env:
+          EVENT: ${{ github.event_name }}
+          BASE: ${{ github.event.pull_request.base.sha }}
+          HEAD: ${{ github.event.pull_request.head.sha }}
+        run: |
+          scope="$(scripts/ci-scope.sh)"
+          echo "$scope" >> "$GITHUB_OUTPUT"
+          echo "$scope"
+
   verify:
     name: Verify (lint, typecheck, test, build, conformance)
+    needs: changes
+    if: needs.changes.outputs.scope != 'notes'
     runs-on: ubuntu-latest
     timeout-minutes: 30
+    env:
+      ALL: ${{ needs.changes.outputs.scope == 'all' }}
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
@@ -30,20 +57,37 @@ jobs:
           node-version-file: .nvmrc
           cache: pnpm
       - uses: actions/setup-dotnet@v6
+        if: env.ALL == 'true'
         with:
           global-json-file: global.json
       - run: pnpm install --frozen-lockfile
       - run: dotnet tool restore
+        if: env.ALL == 'true'
+      # Turborepo's cache from earlier runs: a task whose inputs did not change replays its result. A pull request reads
+      # the newest one its base branch saved; main never reads it (--cache=local:w below), it only saves a fresh one.
+      - name: Turborepo cache
+        uses: actions/cache@v6
+        with:
+          path: .turbo/cache
+          key: turbo-${{ runner.os }}-${{ github.sha }}
+          restore-keys: turbo-${{ runner.os }}-
       - name: Install Chromium for the conformance kit
+        if: env.ALL == 'true'
         run: pnpm --filter @tohe/conformance exec playwright install --with-deps chromium
-      - run: pnpm verify
+      - name: Docs only — Biome, and the site with its link check
+        if: env.ALL != 'true'
+        run: pnpm exec biome check . && pnpm exec turbo run build --filter=@tohe/site
+      - name: pnpm verify
+        if: env.ALL == 'true'
+        run: pnpm verify ${{ github.event_name == 'push' && '--cache=local:w' || '' }}
       - name: Generated files are up to date
+        if: env.ALL == 'true'
         run: |
           pnpm --filter @tohe/hub generate:api
           git status --porcelain
           test -z "$(git status --porcelain)" || { echo "::error::Generated files are stale. Run pnpm build and pnpm --filter @tohe/hub generate:api, then commit."; git diff --stat; exit 1; }
       - name: Upload conformance screenshots
-        if: always()
+        if: always() && env.ALL == 'true'
         uses: actions/upload-artifact@v7
         with:
           name: conformance
@@ -52,7 +96,8 @@ jobs:
 
   chart:
     name: Helm chart (lint, guards, install on kind)
-    needs: verify
+    needs: changes
+    if: needs.changes.outputs.scope == 'all'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -98,7 +143,8 @@ jobs:
 
   stack:
     name: Docker stack + e2e smoke and rooms
-    needs: verify
+    needs: changes
+    if: needs.changes.outputs.scope == 'all'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     steps:
@@ -115,7 +161,7 @@ jobs:
         run: docker compose up -d --wait postgres && docker compose up -d
       - name: Wait for the API
         run: |
-          for i in $(seq 1 60); do
+          for _ in $(seq 1 60); do
             curl -fsS http://localhost:4720/api/health && exit 0
             sleep 2
           done

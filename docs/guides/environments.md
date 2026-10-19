@@ -124,7 +124,7 @@ If a check fails, say so and stop. Rolling back is the owner's call ([below](#ro
 
 | Layer | What | Runs |
 | --- | --- | --- |
-| Unit | Vitest: the game logic, the SDK, the hub | `pnpm test`, in `pnpm verify` and CI |
+| Unit | Vitest: the game logic, the SDK, the hub | `pnpm test`, in `pnpm verify` and CI ([what runs when](#continuous-integration)) |
 | API | xUnit against PostgreSQL through Testcontainers, never a shared database | `pnpm test`, in `pnpm verify` and CI (needs Docker) |
 | Games | The conformance kit: the Game Contract, the CSP, both themes | `pnpm conformance`, in `pnpm verify` and CI |
 | The stack | The e2e smoke test, and `rooms`: three phones play a Tiến Lên table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | CI against the compose stack; locally `pnpm --filter @tohe/e2e smoke` and `rooms` against a running stack |
@@ -133,6 +133,25 @@ If a check fails, say so and stop. Rolling back is the owner's call ([below](#ro
 | Real devices | Phones: touch, sound, install, the installed PWA | The owner; [below](#local-development) for how to get a build on a phone |
 
 [Definition of Done](../conventions/definition-of-done.md) says what a pull request needs before it is finished.
+
+## Continuous integration
+
+`.github/workflows/ci.yml` runs on every pull request and every push to `main`. A first job, *What the change touches*
+(`scripts/ci-scope.sh`), sorts a pull request by the files it changed since it left its base:
+
+| Scope | The pull request changes only | What runs |
+| --- | --- | --- |
+| `notes` | plan notes (`plans/`), agent and skill definitions (`.claude/`), `AGENTS.md`, `CLAUDE.md`, `README.md` | nothing: none of it is built or shipped |
+| `docs` | the above and the spec under `docs/` | Biome, and the site's build, which checks every internal link |
+| `all` | anything else | every job: verify, chart, stack |
+
+- A push to `main` is always `all`, and its `pnpm verify` runs every task without reading a cache
+  (`--cache=local:w`): what gets published has passed every check from scratch.
+- On a pull request, `pnpm verify` reads the Turborepo cache the base branch saved: a task whose inputs did not change
+  replays its result. A task's inputs are declared in `turbo.json`; a file a task reads from outside its package (as the
+  site reads `docs/`) must be listed there, or a change to it will not rebuild the task. Turborepo's `--affected` is not
+  used for the same reason: it looks only at which package folders changed.
+- Verify, chart and stack run side by side; publish waits for all three, on `main` only.
 
 ## Local development
 
