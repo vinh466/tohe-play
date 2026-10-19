@@ -66,6 +66,18 @@ to `defaults.annotations` (it lands on the Deployments themselves, where Reloade
   header carrying the visitor's address (`CF-Connecting-IP` behind Cloudflare). Keep the range narrow — anyone
   inside it can claim any address, and the API rate-limits sign-in by address.
 
+## Off by default
+
+- `api.reference.enabled` — the API reference on the hub's origin: Scalar at `/api/docs` and the OpenAPI documents
+  under `/api/openapi/`. Off, they answer 404; the docs site carries the same reference, generated at build time
+  ([ADR 0042](../../../docs/decisions/0042-hosts-by-trust-paths-by-component.md)).
+- `hub.securityContact` — the address `/.well-known/security.txt` names for reporting vulnerabilities (RFC 9116).
+  Empty, there is no `security.txt`.
+
+The hub, the games origin and the site send `Strict-Transport-Security` with `includeSubDomains`: once a browser has
+seen it over HTTPS, every host under the hub's name must be HTTPS too — one more reason to give Tò He a domain of its
+own.
+
 ## Extension points
 
 On every component (`api`, `hub`, `games`, `site`, with fallbacks in `defaults`): `annotations` (on the Deployment),

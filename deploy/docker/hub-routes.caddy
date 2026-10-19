@@ -1,0 +1,9 @@
+# Generated from @tohe/routes (packages/routes/src/map.ts) by `pnpm --filter @tohe/routes build`.
+# Do not edit: change the map and regenerate (ADR 0042, docs/architecture/hosts-and-paths.md).
+# The namespaces of the hub’s host as named matchers; Caddyfile.hub serves each and answers 404 to the rest.
+@apiProxy path /api /api/*
+@consolePage path /admin /admin/*
+@appPage path / /welcome /welcome/* /sign-in /sign-in/* /register /register/* /password /password/* /profiles /profiles/* /account /account/* /legal /legal/* /data /data/* /play /play/* /rooms /rooms/* /r /r/* /room /room/* /replay /replay/*
+@appStaticImmutable path /assets /assets/*
+@appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /registerSW.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png
+@platformGenerated path /robots.txt /.well-known /.well-known/*

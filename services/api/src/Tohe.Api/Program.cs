@@ -70,10 +70,15 @@ app.UseAuthorization();
 
 await app.MigrateDatabaseIfConfiguredAsync();
 
-app.MapOpenApi("/api/openapi/{documentName}.json");
-app.MapScalarApiReference("/api/docs", options => options
-    .WithTitle("Tò He Platform API")
-    .WithOpenApiRoutePattern("/api/openapi/{documentName}.json"));
+// The API reference — Scalar at /api/docs and the OpenAPI documents under /api/openapi/ — only where it is switched
+// on: by default in Development, nowhere else (ADR 0042). The build writes the documents to openapi/ without them.
+if (app.Configuration.GetValue("Api:Reference:Enabled", app.Environment.IsDevelopment()))
+{
+    app.MapOpenApi("/api/openapi/{documentName}.json");
+    app.MapScalarApiReference("/api/docs", options => options
+        .WithTitle("Tò He Platform API")
+        .WithOpenApiRoutePattern("/api/openapi/{documentName}.json"));
+}
 
 var api = app.MapGroup("/api");
 api.MapHealthChecks("/health");

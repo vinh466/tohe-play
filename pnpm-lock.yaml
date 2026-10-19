@@ -118,6 +118,9 @@ importers:
       '@tailwindcss/vite':
         specifier: ^4.3.0
         version: 4.3.3(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
+      '@tohe/routes':
+        specifier: workspace:*
+        version: link:../../packages/routes
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2
@@ -345,6 +348,15 @@ importers:
         specifier: ^5.0.0
         version: 5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
 
+  packages/routes:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.19.2
+        version: 24.19.2
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
+
   services/api:
     devDependencies:
       '@tohe/game-merge-block':
@@ -353,6 +365,9 @@ importers:
       '@tohe/game-tien-len':
         specifier: workspace:*
         version: link:../../games/tien-len
+      '@tohe/routes':
+        specifier: workspace:*
+        version: link:../../packages/routes
 
   tools/codegen:
     devDependencies:
@@ -387,12 +402,24 @@ importers:
       '@axe-core/playwright':
         specifier: ^4.13.0
         version: 4.13.0(playwright-core@1.64.0)
+      '@tohe/routes':
+        specifier: workspace:*
+        version: link:../../packages/routes
       '@types/node':
         specifier: ^24.0.0
         version: 24.19.2
       playwright:
         specifier: ^1.64.0
         version: 1.64.0
+
+  tools/env-check:
+    devDependencies:
+      '@types/node':
+        specifier: ^24.0.0
+        version: 24.19.2
+      vitest:
+        specifier: ^5.0.0
+        version: 5.0.3(@types/node@24.19.2)(vite@8.3.4(@types/node@24.19.2)(jiti@2.7.0)(terser@5.51.2)(yaml@2.9.1))
 
   tools/games-host:
     dependencies:

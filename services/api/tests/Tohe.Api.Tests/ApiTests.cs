@@ -40,12 +40,19 @@ public sealed class ApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
         Assert.Contains("App:PublicUrl", error.ToString(), StringComparison.Ordinal);
     }
 
-    [Fact]
-    public async Task OpenApi_document_is_served()
+    [Theory]
+    [InlineData("/api/docs")]
+    [InlineData("/api/openapi/v1.json")]
+    [InlineData("/api/openapi/admin.json")]
+    public async Task The_api_reference_is_off_unless_switched_on(string path)
     {
-        var response = await factory.CreateClient().GetAsync(new Uri("/api/openapi/v1.json", UriKind.Relative), Ct);
+        // The factory runs as "Testing": off by default, as everywhere but Development (ADR 0042).
+        var off = await factory.CreateClient().GetAsync(new Uri(path, UriKind.Relative), Ct);
+        Assert.Equal(HttpStatusCode.NotFound, off.StatusCode);
 
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var switchedOn = factory.WithWebHostBuilder(builder => builder.UseSetting("Api:Reference:Enabled", "true"));
+        var on = await switchedOn.CreateClient().GetAsync(new Uri(path, UriKind.Relative), Ct);
+        Assert.Equal(HttpStatusCode.OK, on.StatusCode);
     }
 
     [Fact]

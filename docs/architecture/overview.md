@@ -58,7 +58,8 @@ There all of Tò He is on `toheplay.io.vn`, a domain it has to itself: the hub a
 covers ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)). The games are the same *site* as the hub there, as
 locally and on UAT, where only the port tells the origins apart: the hub's `__Host-` session cookie (on HTTPS), the
 API's same-origin checks and the games' CSP keep game code away from it, and no app that is not Tò He's shares the
-domain.
+domain. Which host and which path each part lives on, and how that grows, is [Hosts and paths](hosts-and-paths.md)
+([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)).
 
 ## Dependency rules
 
@@ -67,6 +68,9 @@ domain.
 - The API knows games only through `catalog.json`; it never loads game code.
 - `@tohe/contract` is the single source of truth for the contract. The C# catalog types and the Caddy CSP are
   derived from it and must be kept in step (tests and the build check this).
+- `@tohe/routes` is the single source of truth for the paths on the hub's host. The hub's Caddy routes, the service
+  worker's list of app pages, `robots.txt` and the API's `HubPaths` are generated from it
+  ([Hosts and paths](hosts-and-paths.md)).
 
 ## Modules inside the API
 

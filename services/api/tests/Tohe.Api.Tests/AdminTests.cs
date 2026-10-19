@@ -256,7 +256,9 @@ public sealed class AdminTests(ApiFactory factory) : IClassFixture<ApiFactory>
     [Fact]
     public async Task The_admin_api_has_an_openapi_document_of_its_own()
     {
-        var client = factory.CreateClient();
+        // The documents are served only with the API reference switched on (ADR 0042).
+        using var reference = factory.WithWebHostBuilder(builder => builder.UseSetting("Api:Reference:Enabled", "true"));
+        var client = reference.CreateClient();
         var admin = await client.GetStringAsync(Url("/api/openapi/admin.json"), Ct);
         var hub = await client.GetStringAsync(Url("/api/openapi/v1.json"), Ct);
         Assert.Contains("/api/admin/overview", admin, StringComparison.Ordinal);

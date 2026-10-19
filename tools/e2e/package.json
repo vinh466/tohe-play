@@ -2,15 +2,17 @@
   "name": "@tohe/e2e",
   "version": "0.1.0",
   "private": true,
-  "description": "End-to-end smoke test against a running stack (pnpm dev or docker compose).",
+  "description": "End-to-end smoke test against a running stack (pnpm dev or docker compose), and a check of the hub image's routes.",
   "type": "module",
   "scripts": {
     "smoke": "mkdir -p test-results && node src/smoke.ts",
     "rooms": "mkdir -p test-results && node src/rooms.ts",
+    "routes": "node src/routes.ts",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
+    "@tohe/routes": "workspace:*",
     "@types/node": "^24.0.0",
     "playwright": "^1.64.0"
   }

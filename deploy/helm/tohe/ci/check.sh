@@ -32,6 +32,7 @@ expect_failure() {
 expect_failure "publicUrls.hub is required" --set publicUrls.hub=
 # The schema catches a path before the templates do; Helm 3 and 4 word it differently, both say "match pattern".
 expect_failure "match pattern" --set publicUrls.games=https://g.example.test/path
+expect_failure "match pattern" --set hub.securityContact=security
 expect_failure "publicUrls.site is required" --set publicUrls.site=
 expect_failure "must use a different host each" --set publicUrls.games=https://tohe.example.test
 expect_failure "api.replicaCount must be 1" --set api.replicaCount=2

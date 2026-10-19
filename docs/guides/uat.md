@@ -55,7 +55,9 @@ The script:
 5. starts the `tohe-uat` compose project (database migrations run when the API starts), waits for `/api/health` and
    prints the deployed commit.
 
-What is running: `curl -s http://10.100.0.2:4820/api/config` → `apiVersion` is the deployed commit.
+What is running: `curl -s http://10.100.0.2:4820/api/config` → `apiVersion` is the first 12 characters of the deployed
+commit. `pnpm check:uat` does that and the rest of the [checks after a deploy](environments.md#checks-after-a-deploy)
+(it reads only), and `pnpm check:uat --expect <tag>` compares the version with a tag.
 
 Deploy only commits that are on `main` with green CI. The agent tags the commit `uat-…` and deploys when the owner
 says "deploy" ([ADR 0041](../decisions/0041-promote-one-build-through-the-environments-by-tag.md)); the tag rules and
@@ -81,6 +83,9 @@ TOHE_UAT_SMTP_PASSWORD=re_…
 ```
 
 The next deploy picks them up. Resend's free plan allows 100 emails a day for the whole account.
+
+`TOHE_UAT_SECURITY_CONTACT=security@toheplay.io.vn` in the same file makes the hub serve `/.well-known/security.txt`
+([Configuration](configuration.md#hub)); without it that path answers 404.
 
 ## Backups
 
