@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (khuya) — agent
+
+- Owner "deploy và làm" → `uat-2026-10-19.1` (d23baab) lên UAT, `check:uat` 11/11. B2 #80, B5 #79 merged. B4 #81 merged lúc CI
+  còn đỏ (draft); #82 sửa: `helm test`, 401 do `Root` của console chọn theo `location`, cùng 6 điểm của reviewer — CI xanh,
+  merged (b787005). Owner merge #72 (plan lên `main`) và #74 (vision).
+- Owner "deploy đi, và làm công việc tiếp" (23:02) → B3 + S2 (hai builder); deploy một tag `uat-` mới khi CI của b787005 xanh.
+
 ## 2026-10-19 (tối, merge) — agent
 
 - Owner "merge PR giúp tôi" → chế độ auto chặn `gh pr merge` của agent; owner tự merge #77, #78, #76. Agent thử trước
