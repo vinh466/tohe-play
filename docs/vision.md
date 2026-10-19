@@ -5,44 +5,54 @@ description: Who Tò He is for, what it must be good at, and what it deliberatel
 
 ## Why
 
-Casual mini-game portals are full of ads and interruptions. Tò He is a calm alternative for one household: a
-handful of small games, no ads, no tracking, playable in a phone browser in seconds — and a learning project
-for building a durable technical foundation.
+Casual mini-game portals are full of ads and interruptions. Tò He is a calm alternative: a handful of small games, no
+ads, no tracking, playable in a phone browser in seconds — and a learning project for building a durable technical
+foundation. It began as one family's corner and is now open to anyone the owner shares it with.
 
 The name comes from *tò he*, the Vietnamese children's toy figurines made of coloured rice dough: small, bright
 and shaped quickly. Each game here is one such figurine, shaped quickly from the same dough.
 
 ## Who it is for
 
+Everyone is first of all **a player** — one person, followed through one life with Tò He:
+
+```mermaid
+flowchart LR
+  arrive([Opens a link<br/>or finds a page]) --> play[Plays at once,<br/>no account]
+  play --> keep[Keeps the progress<br/>in an account]
+  keep --> invite[Brings someone in<br/>with a link]
+  invite --> arrive
+```
+
 | Who | Needs |
 | --- | --- |
-| The owner (developer) | A foundation that stays stable for years; games that can be added fast, often with AI help; a codebase that is pleasant to review. |
-| Family members, including young children | Open and play in seconds; big touch targets; little text; pick a profile by avatar; no ads, chat or links out. |
-| Friends | Same as family, invited by the owner. |
-| A future developer or AI agent | Docs that explain intent, contracts that are checked by machines, one obvious way to do things. |
-
-A public community is explicitly **not** a goal for now; if the platform proves itself over years, that can
-be reconsidered with a new ADR.
+| A player | Open and play in seconds, without signing up; a name only when others will see it; an account only when it is worth it — to keep progress, play on another phone, appear on a board; a link that brings a friend to the same table or the same game. |
+| A family | Profiles for each person on one account; children pick a picture, have no password, and play behind the settings their parent chose. |
+| The owner, who runs it | A foundation that stays stable for years; a console to run the platform; games that can be added fast, often with AI help; a codebase that is pleasant to review. |
+| A developer or an AI agent | Docs that explain intent, contracts that are checked by machines, one obvious way to do things. |
 
 ## What it must be good at
 
-1. **Instant play on a phone** — first game visible within a few seconds; installable as a PWA; playable offline
-   after the first visit.
-2. **Many small games, one place** — a shared catalog, profiles, saves and scores across all games.
-3. **Fast, reliable game creation** — a new game from a one-paragraph idea to "playable on a phone" in an
+1. **Instant play on a phone** — the first game visible within a few seconds, without an account; installable as a
+   PWA; playable offline after the first visit.
+2. **Reaching someone with a link** — a link from a chat app leads straight to the right table or game, on Android,
+   iPhone and inside the chat app's browser.
+3. **Many small games, one place** — a shared catalog, profiles, saves and scores across all games, and public boards
+   that only hold results the platform trusts ([ADR 0029](decisions/0029-integrity-engine-and-boards-by-trust.md)).
+4. **Fast, reliable game creation** — a new game from a one-paragraph idea to "playable on a phone" in an
    afternoon, with most of the work done by an AI agent following these docs and passing the automated checks.
-4. **Technology freedom per game** — Canvas, DOM, Phaser, PixiJS, Godot web exports… as long as the game honours
+5. **Technology freedom per game** — Canvas, DOM, Phaser, PixiJS, Godot web exports… as long as the game honours
    the [Game Contract](contracts/game-contract-v1.md).
 
 ## Non-goals
 
 - Ads, in-app purchases, monetisation of any kind.
-- Anti-cheat beyond what deterministic replays give for free.
-- Chat, social feeds, user-generated content, public leaderboards. Online rooms offer preset reactions only.
+- Tracking people: no third-party analytics or scripts; the platform counts totals, never a person.
+- Free-text chat, social feeds, content people upload. Online rooms offer preset reactions only.
 - Real-time action multiplayer. Turn-based games at one table across phones are a goal: [online
   rooms](architecture/rooms.md), [ADR 0016](decisions/0016-online-rooms-for-turn-based-games.md).
-- Native apps or app-store distribution.
-- Scale beyond a few dozen players.
+- Native apps. The installed PWA is the app; a store listing that wraps it may be considered later, with an ADR.
+- Scale beyond what one API instance serves ([ADR 0016](decisions/0016-online-rooms-for-turn-based-games.md)).
 
 ## Go / no-go
 
