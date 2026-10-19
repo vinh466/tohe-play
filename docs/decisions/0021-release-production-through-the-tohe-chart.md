@@ -5,7 +5,8 @@ sidebar:
   order: 21
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — promotion follows a `prod-` tag, and the agent merges its pull request, since
+  [ADR 0041](0041-promote-one-build-through-the-environments-by-tag.md)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0010](0010-environments-dev-and-uat.md) — production is no longer deferred
 
