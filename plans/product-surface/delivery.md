@@ -52,6 +52,46 @@ flowchart LR
 - **B2 → B3 → S1** cùng đụng router/Caddy của hub — tuần tự.
 - Mỗi PR một nhánh + worktree; plan này là bảng điều phối.
 
+## Điều phối agent: một master, nhiều worker (đề xuất — chờ owner chốt)
+
+Owner (2026-10-20): "lập ra 1 rule và làm theo dạng như là sẽ quyết định làm việc gì với model gì bằng cách spawn ra agent
+phù hợp làm riêng xong sau đó phối hợp trên 1 luồng master".
+
+**Master** = phiên chính (Opus 5.5 · xhigh). Chỉ master: nói chuyện và chốt với owner; viết *gói việc*; viết và giữ
+`plans/`, memory, bảng *Trạng thái*; review diff; chạy lại `pnpm verify`; mở PR; gắn tag, deploy theo lời khoá (E-01).
+Worker không quyết thiết kế, không push, không mở PR, không merge, không deploy, không đụng UAT/prod.
+
+| Worker | Model · effort | Làm gì | Quyền | Cách ly |
+|---|---|---|---|---|
+| `scout` | Haiku 5.5 · low | tìm trong code, log, docs, web; trả về sự thật + đường dẫn | chỉ đọc | — |
+| `builder` | Opus 5.5 · high | làm **một PR** theo gói việc: code + test + docs, `pnpm verify`, commit trên nhánh của nó | sửa trong worktree của nó | worktree riêng |
+| `chore` | Sonnet 5.5 · medium | việc cơ học: đổi tên, sinh lại file, sửa CI, nâng phụ thuộc | sửa trong worktree của nó | worktree riêng |
+| `reviewer` | Fable 5.1 · high | đọc ADR/spec/diff đối chiếu item của plan, tìm lỗ hổng; không sửa | chỉ đọc | — |
+
+**Luật chọn**
+
+| Việc | Ai |
+|---|---|
+| Quyết định, hỏi owner, viết ADR lần đầu, nội dung cần giọng của owner | master tự làm |
+| Một PR trong `delivery.md` đã có gói việc | một `builder` cho cả PR (không chia một PR cho nhiều agent) |
+| Việc cơ học không cần phán đoán | `chore` |
+| Tìm kiếm rộng, đọc log, research | `scout` |
+| PR có ADR (N1, B1, I1, I3, I4) trước khi mở | `reviewer` một lượt; master quyết sửa gì |
+| Việc nhỏ (< ~15 phút, vài file) | master tự làm — mở agent tốn hơn làm |
+
+**Gói việc** (master viết, mỗi worker một gói): mục tiêu một câu · item/ADR liên quan (đường dẫn) · phạm vi trong/ngoài ·
+file dự kiến · tiêu chí xong (test, `pnpm verify`, docs) · ràng buộc (`AGENTS.md`, không UAT/prod, không push) · nhánh +
+worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán output), lệch khỏi gói, câu hỏi mở.
+
+**Giữ ổn định**
+
+- Tối đa **3 worker chạy cùng lúc**; không bao giờ hai worker đụng cùng khu vực (migration EF, file sinh, router/Caddy của hub)
+  — theo *Chạy song song thế nào* ở trên.
+- Master **không tin báo cáo suông**: đọc diff, chạy lại `pnpm verify`, chỉ báo owner điều đã kiểm.
+- Worker trượt kiểm: master gửi lại một lần kèm lỗi; trượt lần hai thì master tự làm tiếp.
+- Worker gặp câu hỏi thiết kế: dừng và trả về; master hỏi owner — không đoán.
+- Chỉ master ghi `plans/` và memory (một người ghi, không xung đột).
+
 ## Việc chỉ owner làm được
 
 | Khi | Việc |
