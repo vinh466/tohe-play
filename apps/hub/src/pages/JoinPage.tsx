@@ -19,7 +19,7 @@ import { Screen } from '../ui/Screen.tsx';
 export function JoinPage() {
   const { code } = useParams({ from: '/r/$code' });
   return (
-    <RequireSession need="player" returnTo={`/r/${normalizeCode(code)}`}>
+    <RequireSession need="player" guest={false} returnTo={`/r/${normalizeCode(code)}`}>
       {(session) =>
         session.status === 'account' ? (
           <Preview player={session.player} />

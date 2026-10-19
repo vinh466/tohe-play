@@ -99,3 +99,36 @@ Generated reference: [Platform API](/reference/api/).
 - [Launching a game](game-launch-flow.md) — handshake, save, score, pause, exit.
 - Catalog: `pnpm build` assembles games → games origin serves `catalog.json` → the API polls it
   (`Registry:SyncInterval`) and upserts the registry → the hub lists `GET /api/games`.
+- [A newcomer's first touches](#a-newcomers-first-touches) — open and play, install, link previews, feedback.
+
+## A newcomer's first touches
+
+Opening the hub is playing ([vision](../vision.md)); nothing stands between a link and the first game.
+
+- **No sign-in before playing.** A device with no session and no guest flag becomes a guest by itself
+  (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`); `/account/sign-in` opens only when chosen — from
+  the catalog's slim "Đăng nhập" strip, the profile button, or for what needs an account. A room link (`/r/<code>`), a
+  room, the rooms lobby and a replay keep asking a signed-out device to sign in (`guest={false}`). Signing out is a
+  choice and leads to the sign-in screen. When a profile is chosen later, the hub offers the guest's progress once
+  ([Identity](identity.md#guest-mode)).
+- **Installing: one component, three ways** (`apps/hub/src/install/`). `chooseInstall` is a pure decision from the
+  environment, what the browser handed over, whether a game finished, whether the visit had its offer and when the
+  player last said no:
+
+  | Where | What | When |
+  | --- | --- | --- |
+  | Android, Chrome, Edge (`beforeinstallprompt`, kept from the start of the page) | The card "Cài Tò He" on the catalog; its button calls `prompt()` | After the first finished game, once per visit |
+  | Safari on iPhone and iPad (User-Agent) | A sheet with the steps of iOS 26: ⋯ → Chia sẻ → Thêm vào Màn hình chính → "Mở dưới dạng ứng dụng web" | After the first finished game, once per visit |
+  | The in-app browser of Zalo, Messenger, Facebook (User-Agent) | A strip "Mở bằng trình duyệt" with "Chép link" and a hint | On arrival, on every screen until dismissed |
+
+  A finished game is a final `score` (or a ranked finish) from the Game Contract's host side — no contract change.
+  Never when running as the installed app (`display-mode: standalone`, `navigator.standalone`). "Để sau" and closing
+  are silent for 14 days (`localStorage` `tohe:install-dismissed`). The catalog's "⋯" menu has "Cài app", which opens the
+  same prompt or sheet at any time (and says how by hand where none fits), and "Góp ý / báo lỗi", a `mailto:` to
+  `hello@toheplay.io.vn` with the app's version and the browser in the body.
+- **The manifest** (`apps/hub/vite.config.ts`): user-first description, `start_url` `/play`, a shortcut to Ghép Khối,
+  screenshots made by `pnpm --filter @tohe/hub generate:screenshots`. `index.html` carries static `og:` and `twitter:`
+  tags (title, description) for link previews; the preview image and `og:url` must be absolute and wait for the hub's
+  public URL at run time.
+- **Tested** by the hub's unit tests (`install.test.ts`, `session.test.ts`) and the stack's journey,
+  `pnpm --filter @tohe/e2e journey`.

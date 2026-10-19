@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { account, auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { useSetMe } from '../session/useSession.ts';
+import { db } from '../storage/db.ts';
 import { Button } from '../ui/Button.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { TERMS_VERSION } from './documents.ts';
@@ -55,7 +56,15 @@ export function TermsPrompt({ me }: { me: MeView }) {
   const setMe = useSetMe();
   const [agreed, setAgreed] = useState(false);
   const accept = useMutation({ mutationFn: () => account.acceptTerms(TERMS_VERSION), onSuccess: setMe });
-  const signOut = useMutation({ mutationFn: () => auth.logout(), onSettled: () => setMe(null) });
+  // Signing out is a choice: it leads to the sign-in screen, not on into a guest's progress. A full load, so the
+  // screen that asked for a player does not take the signed-out device for a visitor and play it as a guest.
+  const signOut = useMutation({
+    mutationFn: () => auth.logout(),
+    onSettled: async () => {
+      await db.cache.delete('me');
+      window.location.assign('/account/sign-in');
+    },
+  });
   return (
     <Screen narrow>
       <section className="mt-8 flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">

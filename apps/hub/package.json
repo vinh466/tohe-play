@@ -10,7 +10,8 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "generate:api": "pnpm --filter @tohe/codegen api-types",
-    "generate:icons": "node scripts/render-icons.ts"
+    "generate:icons": "node scripts/render-icons.ts",
+    "generate:screenshots": "node scripts/render-screenshots.ts"
   },
   "dependencies": {
     "@microsoft/signalr": "^10.0.11",

@@ -47,10 +47,11 @@ docker compose up -d postgres mailpit   # the database, and Mailpit for the code
 pnpm dev                                # API (dotnet watch) + games origin + hub + public pages + docs
 ```
 
-Open <http://localhost:4720/play> (under compose the root, <http://localhost:4720>, is the public home page; under `pnpm dev` it is on <http://localhost:4711>). The API migrates the database on start and indexes the games within ~15 s.
-A new device lands on the welcome screen: sign up with any email and a password of 8+ characters (the code arrives
-in Mailpit, <http://localhost:4760>), add a child profile under "Quản lý tài khoản", or use "Chơi thử" to play as a
-guest.
+Open <http://localhost:4720/play> (under compose the root, <http://localhost:4720>, is the public home page; under
+`pnpm dev` it is on <http://localhost:4711>). The API migrates the database on start and indexes the games within ~15 s.
+A new device plays as a guest at once, with no sign-in screen. To sign up, use the "Đăng nhập" strip on the catalog
+and "Tạo tài khoản": any email and a password of 8+ characters (the code arrives in Mailpit,
+<http://localhost:4760>); add a child profile under "Quản lý tài khoản".
 
 `pnpm dev` builds the games once at start. After changing a game, rebuild it and the games origin picks it up:
 

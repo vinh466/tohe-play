@@ -1,8 +1,8 @@
 import 'fake-indexeddb/auto';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { ApiError, type MeView } from './api/client.ts';
 import { errorKey } from './api/errors.ts';
-import { parentUnlocked, resolveSession } from './session/session.ts';
+import { guestMode, parentUnlocked, playerGate, resolveSession } from './session/session.ts';
 import { openDb } from './storage/db.ts';
 import { hasProgress, loadSave, moveProgress, recordScore, storeSave } from './storage/repository.ts';
 
@@ -118,5 +118,53 @@ describe('moving guest progress', () => {
     expect(await loadSave(db, 'kid', 'hello')).toEqual({ best: 5 });
     expect(await loadSave(db, 'kid', 'merge')).toEqual({ level: 9 });
     expect(await db.scores.where('[profileId+gameId]').equals(['kid', 'hello']).count()).toBe(1);
+  });
+});
+
+describe('playerGate: opening the hub is playing (E-03)', () => {
+  const signedOut = resolveSession(null, false, guestProfile);
+  const guest = resolveSession(null, true, guestProfile);
+
+  it('a device with no session and no guest flag enters guest mode by itself, with no sign-in screen', () => {
+    expect(playerGate(signedOut, { guest: true })).toBe('enter-as-guest');
+  });
+
+  it('a guest and a chosen profile play at once', () => {
+    expect(playerGate(guest, { guest: true })).toBe('play');
+    expect(playerGate(resolveSession(me({ activeProfileId: 'p-kid' }), false, null), { guest: true })).toBe(
+      'play',
+    );
+  });
+
+  it('an account with no chosen profile goes to the picker', () => {
+    expect(playerGate(resolveSession(me(), false, null), { guest: true })).toBe('choose-profile');
+  });
+
+  it('what needs an account (a room link) still asks a signed-out device to sign in', () => {
+    expect(playerGate(signedOut, { guest: false })).toBe('sign-in');
+    // A guest reaches the page, which sends them to sign up (JoinPage) or shows the bots (RoomsPage).
+    expect(playerGate(guest, { guest: false })).toBe('play');
+  });
+});
+
+describe('guestMode', () => {
+  const store = new Map<string, string>();
+  vi.stubGlobal('localStorage', {
+    getItem: (key: string) => store.get(key) ?? null,
+    setItem: (key: string, value: string) => void store.set(key, value),
+    removeItem: (key: string) => void store.delete(key),
+  });
+
+  it('tells the screens when a visitor becomes a guest, and when someone signs in', () => {
+    let heard = 0;
+    const stop = guestMode.subscribe(() => heard++);
+    expect(guestMode.enabled()).toBe(false);
+    guestMode.enable();
+    expect(guestMode.enabled()).toBe(true);
+    guestMode.disable();
+    expect(guestMode.enabled()).toBe(false);
+    stop();
+    guestMode.enable();
+    expect(heard).toBe(2);
   });
 });

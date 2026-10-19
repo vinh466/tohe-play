@@ -23,6 +23,7 @@ describe('the returning-player script', () => {
   });
 
   it('sends a guest, and a device the app has counted, to the app', () => {
+    expect(run('', { 'tohe:returning': '1' })).toEqual(['/play']);
     expect(run('', { 'tohe:guest': '1' })).toEqual(['/play']);
     expect(run('', { 'tohe:telemetry:device': '{"id":"a","since":1}' })).toEqual(['/play']);
     expect(run('?utm_source=x', { 'tohe:guest': '1' })).toEqual(['/play']);
@@ -38,6 +39,7 @@ describe('the returning-player script', () => {
 
   it('reads the keys the app writes: the app’s code still names them', () => {
     const read = (path: string) => readFileSync(new URL(`../../../hub/src/${path}`, import.meta.url), 'utf8');
+    expect(read('main.tsx')).toContain("'tohe:returning'");
     expect(read('session/session.ts')).toContain("'tohe:guest'");
     expect(read('telemetry/collector.ts')).toContain("'tohe:telemetry:device'");
   });

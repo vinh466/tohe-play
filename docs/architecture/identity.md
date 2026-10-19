@@ -586,8 +586,12 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 
 ## Guest mode
 
-"Chơi thử" lets anyone play without an account, with one local guest profile per device (saves stay on the
-device). The first time a real profile is chosen on that device, the hub offers to move the guest's progress to it.
+Opening the hub is playing: a device with no session and no guest flag becomes a guest by itself, with no sign-in
+screen first (the slim "Đăng nhập" strip on the catalog opens it when the player chooses). "Chơi luôn" on the sign-in
+screen is the same guest. A guest has one local profile per device (saves stay on the device). The first time a real
+profile is chosen on that device, the hub offers to move the guest's progress to it. What needs an account — a room
+link, a room, the rooms lobby, a replay — still asks a signed-out device to sign in or up; signing out leads to the
+sign-in screen. See [A newcomer's first touches](overview.md#a-newcomers-first-touches).
 
 ## API
 

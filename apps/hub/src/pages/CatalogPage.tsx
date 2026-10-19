@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { gamesQuery } from '../api/queries.ts';
+import { InstallNudge } from '../install/InstallNudge.tsx';
 import { hasShell } from '../launcher/manifest.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -10,6 +11,7 @@ import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
 import { LeaderboardButton } from '../ui/Leaderboard.tsx';
+import { MenuButton } from '../ui/MenuButton.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
 
@@ -28,10 +30,11 @@ function Catalog({ player }: { player: Player }) {
       <header className="flex items-center justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-black text-3xl text-brand-ink">{t('appName')}</h1>
-          <p className="truncate text-ink-soft">{t('tagline')}</p>
+          <p className="text-ink-soft leading-snug">{t('tagline')}</p>
         </div>
         <div className="flex shrink-0 items-center gap-2">
           <ThemeButton />
+          <MenuButton />
           <Link
             to={isGuest ? '/account/sign-in' : '/account/profiles'}
             aria-label={t('switchProfile')}
@@ -45,14 +48,17 @@ function Catalog({ player }: { player: Player }) {
         </div>
       </header>
 
+      {/* Opening Tò He is playing: a guest sees only this slim strip, and signs in when it is worth it. */}
       {isGuest ? (
-        <p className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
+        <p className="flex items-center justify-between gap-3 rounded-2xl bg-notice px-4 py-2 text-notice-ink text-sm">
           {t('guest.banner')}
-          <Link to="/account/register" className="font-bold underline underline-offset-4">
-            {t('guest.signUp')}
+          <Link to="/account/sign-in" className="font-bold underline underline-offset-4">
+            {t('guest.signIn')}
           </Link>
         </p>
       ) : null}
+
+      <InstallNudge />
 
       {syncsWithServer(player) ? <RoomInvites player={player} /> : null}
 

@@ -29,7 +29,7 @@ import { settingsBody } from './RoomsPage.tsx';
 export function RoomPage() {
   const { gameId, roomId } = useParams({ from: '/play/$gameId/rooms/$roomId' });
   return (
-    <RequireSession need="player" returnTo={`/play/${gameId}/rooms/${roomId}`}>
+    <RequireSession need="player" guest={false} returnTo={`/play/${gameId}/rooms/${roomId}`}>
       {(session) =>
         session.status === 'account' ? (
           <Room

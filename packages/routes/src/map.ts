@@ -221,6 +221,13 @@ export const hubNamespaces: readonly Namespace[] = [
   appFile('apple-touch-icon', '/apple-touch-icon.png', 'exact', 'revalidate', 'The home-screen icon on iOS'),
   appFile('icon-192', '/icon-192.png', 'exact', 'revalidate', 'The app icon'),
   appFile('icon-512', '/icon-512.png', 'exact', 'revalidate', 'The app icon, large and maskable'),
+  appFile(
+    'screenshots',
+    '/screenshots',
+    'tree',
+    'revalidate',
+    'What the install dialog shows (the manifest’s screenshots)',
+  ),
 
   // The platform's files.
   {
