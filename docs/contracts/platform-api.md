@@ -17,7 +17,7 @@ The Platform API (`services/api`) serves the hub. **Games never call it** — th
 | Errors | RFC 9457 problem details (`application/problem+json`) with a machine-readable `code`; validation errors carry codes per field. |
 | Description | OpenAPI 3.1, generated at build time to [`services/api/openapi/tohe-api.json`](../../services/api/openapi/tohe-api.json) and committed. |
 | Clients | The hub's types are generated from that file (`pnpm --filter @tohe/hub generate:api`). Never hand-write request/response types. |
-| Auth | Cookie session `tohe.session` on the hub origin; household management behind the parent gate. See [Identity](../architecture/identity.md) and [ADR 0011](../decisions/0011-password-sign-in-first.md). |
+| Auth | Cookie session `tohe.session` on the hub origin (`__Host-tohe.session` when the hub is served over HTTPS — [ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md)); account and profile management behind the parent gate. See [Identity](../architecture/identity.md) and [ADR 0011](../decisions/0011-password-sign-in-first.md). |
 | Health | `GET /api/health` → `Healthy` when the database is reachable. |
 | Telemetry | `POST /api/telemetry` is anonymous (the hub's batches, ADR 0015); `GET /api/telemetry/report` needs the operator token in `X-Tohe-Operator`. See [Device telemetry](../architecture/telemetry.md). |
 | Interactive docs | `GET /api/docs` (Scalar) on a running API. |

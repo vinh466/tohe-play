@@ -1,0 +1,19 @@
+# CI's kind cluster, on top of ci/standalone.yaml: the images the job just built and loaded with
+# `kind load docker-image`, never pulled.
+global:
+  image:
+    registry: ""
+    tag: ci
+    pullPolicy: Never
+api:
+  image:
+    repository: tohe-api
+hub:
+  image:
+    repository: tohe-hub
+games:
+  image:
+    repository: tohe-games
+site:
+  image:
+    repository: tohe-site

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GameManifest, GameMessage, HostMessage } from './index.ts';
+import { GameManifest, GameMessage, gameContentSecurityPolicy, HostMessage } from './index.ts';
 
 describe('GameManifest', () => {
   it('applies defaults to a minimal manifest', () => {
@@ -221,5 +221,82 @@ describe('rooms (ADR 0016)', () => {
     });
     expect(GameMessage.safeParse({ tohe: 1, type: 'room.react', reaction: 'clap' }).success).toBe(true);
     expect(GameMessage.safeParse({ tohe: 1, type: 'room.react', reaction: 'free text' }).success).toBe(false);
+  });
+});
+
+describe('ranked runs (ADR 0030)', () => {
+  const base = { id: 'merge-block', name: 'Ghép Khối', version: '1.6.0', protocol: 1 };
+
+  it('accepts the ranked capability and block with scores, defaulting the module, the board and the limits', () => {
+    const manifest = GameManifest.parse({ ...base, capabilities: ['save', 'scores', 'ranked'], ranked: {} });
+    expect(manifest.ranked).toEqual({
+      verify: 'verify.js',
+      board: 'default',
+      minMsPerMove: 100,
+      maxMoves: 20_000,
+    });
+  });
+
+  it.each([
+    ['the capability without the block', { capabilities: ['scores', 'ranked'] }],
+    ['the block without the capability', { capabilities: ['scores'], ranked: {} }],
+    ['a ranked game that keeps no scores', { capabilities: ['ranked'], ranked: {} }],
+    [
+      'a verify module outside the build',
+      { capabilities: ['scores', 'ranked'], ranked: { verify: '../x.js' } },
+    ],
+    ['too many moves', { capabilities: ['scores', 'ranked'], ranked: { maxMoves: 100_001 } }],
+  ])('rejects %s', (_label, extra) => {
+    expect(GameManifest.safeParse({ ...base, ...extra }).success).toBe(false);
+  });
+
+  it('asks for a run, hands in its moves, and carries the run back in the result', () => {
+    expect(GameMessage.parse({ tohe: 1, type: 'ranked.start', id: 'r1' })).toMatchObject({
+      type: 'ranked.start',
+    });
+    const finish = { tohe: 1, type: 'ranked.finish', id: 'r2', run: 'run-1', moves: [0, 3, 4], score: 128 };
+    expect(GameMessage.parse(finish)).toMatchObject({ moves: [0, 3, 4], score: 128 });
+    expect(GameMessage.safeParse({ ...finish, score: Number.NaN }).success).toBe(false);
+    expect(GameMessage.safeParse({ ...finish, moves: Array(100_001).fill(0) }).success).toBe(false);
+    const result = { tohe: 1, type: 'result', replyTo: 'r1', ok: true, value: { run: 'run-1', seed: 7 } };
+    expect(HostMessage.parse(result)).toMatchObject({ value: { run: 'run-1', seed: 7 } });
+  });
+
+  it('opens a game to watch a ranked run: its seed and moves, within the limit (ADR 0032)', () => {
+    const init = {
+      tohe: 1,
+      type: 'init',
+      profile: { id: 'p1', name: 'Na' },
+      locale: 'vi',
+      settings: { muted: true, theme: 'light' },
+      save: null,
+      seed: 1,
+      rankedReplay: { seed: 913, moves: [0, 4, 2] },
+    };
+    const parsed = HostMessage.parse(init);
+    expect(parsed.type === 'init' && parsed.rankedReplay).toEqual({ seed: 913, moves: [0, 4, 2] });
+    expect(
+      HostMessage.safeParse({ ...init, rankedReplay: { seed: 913, moves: Array(100_001).fill(0) } }).success,
+    ).toBe(false);
+    expect(HostMessage.safeParse({ ...init, rankedReplay: { seed: 1.5, moves: [] } }).success).toBe(false);
+    expect(HostMessage.safeParse({ ...init, rankedReplay: { seed: 1, moves: [], run: 'x' } }).success).toBe(
+      false,
+    );
+  });
+});
+
+describe('game CSP', () => {
+  const directives = (csp: string) =>
+    new Map(csp.split('; ').map((d) => [d.split(' ')[0], d.slice(d.indexOf(' ') + 1)]));
+
+  it('lets only the hubs embed a game, and a game page submit no form, even to a hub on the same site (ADR 0040)', () => {
+    const csp = directives(gameContentSecurityPolicy(['https://toheplay.io.vn']));
+    expect(csp.get('frame-ancestors')).toBe('https://toheplay.io.vn');
+    expect(csp.get('form-action')).toBe("'none'");
+    expect(csp.get('connect-src')).toBe("'self'");
+  });
+
+  it('lets nobody embed a game when no hub is given', () => {
+    expect(directives(gameContentSecurityPolicy([])).get('frame-ancestors')).toBe("'none'");
   });
 });

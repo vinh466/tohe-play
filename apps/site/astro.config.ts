@@ -54,6 +54,12 @@ export default defineConfig({
             schema: '../../services/api/openapi/tohe-api.json',
             sidebar: { label: 'Platform API (generated)' },
           },
+          {
+            // The admin console's API, a document of its own (ADR 0027).
+            base: 'docs/reference/admin-api',
+            schema: '../../services/api/openapi/tohe-api_admin.json',
+            sidebar: { label: 'Admin API (generated)' },
+          },
         ]),
         starlightLlmsTxt({ projectName: 'Tò He' }),
       ],

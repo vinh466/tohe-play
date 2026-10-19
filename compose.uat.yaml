@@ -1,6 +1,6 @@
 # Tò He — UAT on the homelab (this machine), reachable by the family's devices over WireGuard/LAN.
-# Do not run by hand: deploy with deploy/uat/deploy.sh, which builds an exact git ref, backs up the database
-# first and supplies the secrets file. See docs/guides/uat.md.
+# Do not run by hand: deploy with deploy/uat/deploy.sh, which runs the images CI published for an exact commit
+# (ADR 0021), backs up the database first and supplies the secrets file. See docs/guides/uat.md.
 #
 # Hub  http://${TOHE_UAT_HOST}:4820   ·   Site/docs http://${TOHE_UAT_HOST}:4810   ·   Games origin :4830
 # The API and PostgreSQL are not published; the hub proxies /api.
@@ -27,28 +27,31 @@ services:
 
   api:
     <<: *restart
-    build:
-      context: .
-      dockerfile: deploy/docker/api.Dockerfile
+    image: ghcr.io/vinh466/tohe-play/api:${TOHE_IMAGE_TAG:?set by deploy/uat/deploy.sh}
     environment:
       ASPNETCORE_ENVIRONMENT: Production
       App__Version: ${TOHE_VERSION:-unknown}
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=tohe;Username=tohe;Password=${TOHE_UAT_DB_PASSWORD};GSS Encryption Mode=Disable
       Database__MigrateOnStartup: "true"
+      App__PublicUrl: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
       Games__PublicOrigin: http://${TOHE_UAT_HOST:-10.100.0.2}:4830
       Games__CatalogUrl: http://games:8080/catalog.json
       Registry__SyncInterval: "00:01:00"
       Telemetry__OperatorToken: ${TOHE_UAT_TELEMETRY_TOKEN:?set by deploy/uat/deploy.sh}
+      # Off until the relay's settings are in uat.env (docs/guides/uat.md, ADR 0022).
+      Email__Mode: ${TOHE_UAT_EMAIL_MODE:-Disabled}
+      Email__From: ${TOHE_UAT_EMAIL_FROM:-}
+      Email__Smtp__Host: ${TOHE_UAT_SMTP_HOST:-}
+      Email__Smtp__Port: ${TOHE_UAT_SMTP_PORT:-587}
+      Email__Smtp__Username: ${TOHE_UAT_SMTP_USERNAME:-}
+      Email__Smtp__Password: ${TOHE_UAT_SMTP_PASSWORD:-}
     depends_on:
       postgres:
         condition: service_healthy
 
   hub:
     <<: *restart
-    build:
-      context: .
-      dockerfile: deploy/docker/web.Dockerfile
-      target: hub
+    image: ghcr.io/vinh466/tohe-play/hub:${TOHE_IMAGE_TAG:?set by deploy/uat/deploy.sh}
     environment:
       API_UPSTREAM: api:8080
       GAMES_ORIGIN: http://${TOHE_UAT_HOST:-10.100.0.2}:4830
@@ -59,24 +62,19 @@ services:
 
   games:
     <<: *restart
-    build:
-      context: .
-      dockerfile: deploy/docker/web.Dockerfile
-      target: games
+    image: ghcr.io/vinh466/tohe-play/games:${TOHE_IMAGE_TAG:?set by deploy/uat/deploy.sh}
     environment:
       HUB_ORIGINS: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
+      PUBLIC_HUB_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
     ports:
       - "4830:8080"
 
   site:
     <<: *restart
-    build:
-      context: .
-      dockerfile: deploy/docker/web.Dockerfile
-      target: site
-      args:
-        PUBLIC_HUB_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
-        TOHE_SITE_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4810
+    image: ghcr.io/vinh466/tohe-play/site:${TOHE_IMAGE_TAG:?set by deploy/uat/deploy.sh}
+    environment:
+      PUBLIC_HUB_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
+      TOHE_SITE_URL: http://${TOHE_UAT_HOST:-10.100.0.2}:4810
     ports:
       - "4810:8080"
 

@@ -1,9 +1,18 @@
 # Hub: the PWA plus a same-origin reverse proxy to the API, so the session cookie (M1) stays first-party.
 # connect-src names the hub's own WebSocket (the rooms hub, ADR 0016) as well: CSP3's 'self' covers it, older Safari
 # does not.
-# Env: API_UPSTREAM (host:port of the API), GAMES_ORIGIN (where game iframes come from).
+# Env: API_UPSTREAM (host:port of the API), GAMES_ORIGIN (where game iframes come from),
+#      TOHE_TRUSTED_PROXIES (CIDRs of proxies in front of this server, e.g. a cluster's ingress; default: none),
+#      TOHE_CLIENT_IP_HEADERS (headers those proxies put the visitor's address in, e.g. CF-Connecting-IP).
 {
 	admin off
+	servers {
+		# Only these peers may tell Caddy who the visitor is. The default trusts loopback alone, i.e. nobody: on UAT
+		# and in compose this server is the edge. Trusting a wide range lets anyone in it spoof the address the API
+		# rate-limits by (ADR 0021).
+		trusted_proxies static {$TOHE_TRUSTED_PROXIES:127.0.0.1/32}
+		client_ip_headers {$TOHE_CLIENT_IP_HEADERS:X-Forwarded-For}
+	}
 }
 
 :8080 {
@@ -12,11 +21,35 @@
 	header {
 		X-Content-Type-Options nosniff
 		Referrer-Policy strict-origin-when-cross-origin
+		# Browsers ignore this over plain HTTP (UAT, local), so it only takes effect behind HTTPS. No
+		# includeSubDomains: sibling hosts are not ours to pin.
+		Strict-Transport-Security "max-age=31536000"
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 	}
 
+	# The admin console (ADR 0027): its own app at /admin/, built into this image. Never indexed, and stricter than the
+	# hub: no WebSocket, no inline styles, no images from the games origin; it frames that origin only to watch a ranked
+	# run in the game itself (ADR 0032). Its header replaces the hub's CSP set above.
+	redir /admin /admin/ 308
+	handle /admin/* {
+		header {
+			Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src {$GAMES_ORIGIN}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+			X-Robots-Tag "noindex, nofollow"
+		}
+		root * /srv
+		@adminImmutable path /admin/assets/*
+		header @adminImmutable Cache-Control "public, max-age=31536000, immutable"
+		@adminMutable not path /admin/assets/*
+		header @adminMutable Cache-Control "no-cache"
+		try_files {path} /admin/index.html
+		file_server
+	}
+
 	handle /api/* {
-		reverse_proxy {$API_UPSTREAM}
+		reverse_proxy {$API_UPSTREAM} {
+			# The API rate-limits sign-in by client address: hand it the one worked out above, not a proxy's.
+			header_up X-Forwarded-For {client_ip}
+		}
 	}
 
 	handle {

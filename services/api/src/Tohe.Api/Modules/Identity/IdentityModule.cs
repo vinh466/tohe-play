@@ -1,10 +1,13 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authentication.Cookies;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.HttpOverrides;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Platform;
 
 namespace Tohe.Api.Modules.Identity;
 
@@ -12,14 +15,54 @@ public sealed class IdentityOptions
 {
     public const string Section = "Identity";
 
-    /// <summary>Sign-in, registration, PIN and parent-gate requests allowed per client IP per minute.</summary>
+    /// <summary>
+    /// Requests per client IP per minute in each of three buckets: signing in or asking for a code, typing a code back,
+    /// and typing a PIN or the parent gate's password. Each guards a different secret, so one does not use up another.
+    /// </summary>
     public int AuthRequestsPerMinute { get; set; } = 10;
+
+    /// <summary>Profile IDs one account may look up in an hour (ADR 0033): found or not, every lookup counts.</summary>
+    public int ProfileLookupsPerHour { get; set; } = 20;
+
+    /// <summary>Times its owner may rename a profile in 24 hours (E-07 Q5, ADR 0035).</summary>
+    public int ProfileRenamesPerDay { get; set; } = 5;
+
+    /// <summary>
+    /// How hard the proof-of-work is (ADR 0037): the number to find is below this, so a device hashes half of it on
+    /// average — about half a second on a phone.
+    /// </summary>
+    public int ProofOfWorkMaxNumber { get; set; } = 50_000;
+
+    /// <summary>How long a challenge may wait for its answer.</summary>
+    public TimeSpan ProofOfWorkLifetime { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// How often a session is checked against its account's security stamp, which a new password or email changes:
+    /// "every other session ends" takes at most this long (ADR 0024).
+    /// </summary>
+    public TimeSpan SessionCheckInterval { get; set; } = TimeSpan.FromMinutes(5);
+
+    /// <summary>
+    /// How long an account waits between its owner asking to delete it and an admin being able to delete it (ADR 0034,
+    /// 0038, E-07): signing in meanwhile keeps it.
+    /// </summary>
+    public TimeSpan DeletionWait { get; set; } = TimeSpan.FromDays(7);
 }
 
-/// <summary>Accounts, households, profiles and the device session (ADR 0004, ADR 0011).</summary>
+/// <summary>
+/// Accounts, the profiles they own, signing in by email or with a provider, step-up, and the device session
+/// (ADR 0011, 0023, 0024, 0025, 0026).
+/// </summary>
 internal static class IdentityModule
 {
-    public const string AuthRateLimit = "auth";
+    /// <summary>Signing in, signing up, and asking for a code.</summary>
+    public const string SignInRateLimit = "auth";
+
+    /// <summary>Typing back a code from an email.</summary>
+    public const string CodeRateLimit = "auth-code";
+
+    /// <summary>A profile's PIN and the parent gate's password.</summary>
+    public const string GateRateLimit = "auth-gate";
 
     public static WebApplicationBuilder AddIdentityModule(this WebApplicationBuilder builder)
     {
@@ -27,7 +70,10 @@ internal static class IdentityModule
         services.AddOptions<IdentityOptions>().BindConfiguration(IdentityOptions.Section);
         services.TryAddSingleton(TimeProvider.System);
 
-        services.AddAuthentication(IdentityConstants.ApplicationScheme).AddIdentityCookies();
+        var authentication = services.AddAuthentication(IdentityConstants.ApplicationScheme);
+        authentication.AddIdentityCookies();
+        // Google, GitHub and an OpenID Connect issuer, each only when the deployment gave it secrets (ADR 0026).
+        services.AddSingleton(ExternalProviders.Add(authentication, builder.Configuration));
         services.AddAuthorization();
         services.AddIdentityCore<Account>(options =>
             {
@@ -45,14 +91,17 @@ internal static class IdentityModule
                 options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(5);
             })
             .AddEntityFrameworkStores<ToheDbContext>()
-            .AddSignInManager();
+            .AddSignInManager()
+            // Authenticator apps (TOTP) for the admin console's two-factor authentication (ADR 0027).
+            .AddTokenProvider<AuthenticatorTokenProvider<Account>>(TokenOptions.DefaultAuthenticatorProvider);
 
         services.ConfigureApplicationCookie(options =>
         {
             options.Cookie.Name = "tohe.session";
             options.Cookie.HttpOnly = true;
             options.Cookie.SameSite = SameSiteMode.Lax;
-            // Secure whenever served over HTTPS; UAT is plain HTTP inside the VPN (ADR 0010).
+            // Secure whenever the request is HTTPS — which App:PublicUrl decides behind a proxy (UsePublicUrl).
+            // UAT is plain HTTP inside the VPN (ADR 0010).
             options.Cookie.SecurePolicy = CookieSecurePolicy.SameAsRequest;
             options.ExpireTimeSpan = TimeSpan.FromDays(90);
             options.SlidingExpiration = true;
@@ -69,15 +118,33 @@ internal static class IdentityModule
             };
         });
 
-        // Identity periodically rebuilds the principal from the database; keep the session claims across that.
-        services.Configure<SecurityStampValidatorOptions>(options =>
-            options.OnRefreshingPrincipal = context =>
+        // On an HTTPS deployment the cookie is always Secure and locked to the hub's host: the __Host- prefix forbids
+        // a Domain attribute, so another subdomain of the same site can neither set nor shadow it (ADR 0021) — the
+        // games origin among them, a subdomain of the hub's domain in production (ADR 0040).
+        services.AddOptions<CookieAuthenticationOptions>(IdentityConstants.ApplicationScheme)
+            .Configure<IOptions<AppOptions>>((options, app) =>
             {
-                var sessionClaims = context.CurrentPrincipal?.Claims
-                    .Where(c => c.Type is SessionClaims.Profile or SessionClaims.ParentUntil)
-                    .ToList() ?? [];
-                context.NewPrincipal?.Identities.First().AddClaims(sessionClaims);
-                return Task.CompletedTask;
+                if (app.Value.PublicUrl?.Scheme == Uri.UriSchemeHttps)
+                {
+                    options.Cookie.Name = "__Host-tohe.session";
+                    options.Cookie.SecurePolicy = CookieSecurePolicy.Always;
+                }
+            });
+
+        // Identity periodically checks the session against the account's security stamp and rebuilds the principal
+        // from the database; keep the session claims across that.
+        services.AddOptions<SecurityStampValidatorOptions>()
+            .Configure<IOptions<IdentityOptions>>((options, identity) =>
+            {
+                options.ValidationInterval = identity.Value.SessionCheckInterval;
+                options.OnRefreshingPrincipal = context =>
+                {
+                    var sessionClaims = context.CurrentPrincipal?.Claims
+                        .Where(c => SessionClaims.All.Contains(c.Type))
+                        .ToList() ?? [];
+                    context.NewPrincipal?.Identities.First().AddClaims(sessionClaims);
+                    return Task.CompletedTask;
+                };
             });
 
         var dataProtection = services.AddDataProtection().SetApplicationName("tohe");
@@ -89,14 +156,17 @@ internal static class IdentityModule
         services.AddRateLimiter(options =>
         {
             options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
-            options.AddPolicy(AuthRateLimit, context =>
+            foreach (var policy in (string[])[SignInRateLimit, CodeRateLimit, GateRateLimit])
             {
-                var limit = context.RequestServices.GetRequiredService<Microsoft.Extensions.Options.IOptions<IdentityOptions>>()
-                    .Value.AuthRequestsPerMinute;
-                return RateLimitPartition.GetFixedWindowLimiter(
-                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                    _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) });
-            });
+                options.AddPolicy(policy, context =>
+                {
+                    var limit = context.RequestServices.GetRequiredService<IOptions<IdentityOptions>>()
+                        .Value.AuthRequestsPerMinute;
+                    return RateLimitPartition.GetFixedWindowLimiter(
+                        context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                        _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) });
+                });
+            }
         });
 
         // The API is only reachable through the hub's reverse proxy (Caddy / Vite), which sets X-Forwarded-For.
@@ -108,17 +178,38 @@ internal static class IdentityModule
         });
 
         services.AddScoped<SessionWriter>();
+        // The puzzle before a code by email, when the console turns it on (ADR 0037); spent answers live in it.
+        services.AddSingleton<ProofOfWork>();
+        // Deleting profiles and accounts, with every module's data (ADR 0034); an account, by an admin (ADR 0038).
+        services.AddScoped<AccountDeletion>();
+
+        // Profiles found by their public ID, for invitations to tables (ADR 0033).
+        services.AddScoped<IProfileDirectory, ProfileDirectory>();
+        services.AddSingleton<ProfileLookups>();
+        services.AddExceptionHandler<SessionRefusedHandler>();
+        services.AddScoped<Attempts>();
         services.AddScoped<MeQueries>();
+        // Platform roles and the counts the admin console reads (ADR 0027).
+        services.AddScoped<PlatformRoles>();
+        services.AddScoped<IdentityFacts>();
+        services.AddScoped<AccountsAdmin>();
+        services.AddScoped<Invites>();
+        // Who may appear on public boards (ADR 0029), for the Integrity module.
+        services.AddScoped<IBoardAudience, BoardAudience>();
+        services.AddScoped<CommunitiesAdmin>();
         services.AddScoped<IActiveProfile, ActiveProfileReader>();
-        services.AddScoped<IHouseholdProfiles, HouseholdProfilesReader>();
+        services.AddScoped<IAccountProfiles, AccountProfilesReader>();
         return builder;
     }
 
     public static IEndpointRouteBuilder MapIdentityEndpoints(this IEndpointRouteBuilder api)
     {
         AuthEndpoints.Map(api);
+        AccountEmailEndpoints.Map(api);
+        AccountSecurityEndpoints.Map(api);
+        ExternalEndpoints.Map(api);
         SessionEndpoints.Map(api);
-        HouseholdEndpoints.Map(api);
+        ProfileEndpoints.Map(api);
         return api;
     }
 }

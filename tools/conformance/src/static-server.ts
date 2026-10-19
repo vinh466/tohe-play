@@ -32,6 +32,8 @@ export interface StaticServerOptions {
   host?: string;
   /** Extra headers per request path (e.g. CSP, CORS, cache). */
   headers?: (path: string) => Record<string, string>;
+  /** Paths answered with a 302 to the given URL instead of a file, e.g. the games origin's `/` to the hub. */
+  redirects?: Record<string, string>;
   /** Called for every request, before the file is served. */
   onRequest?: (request: IncomingMessage) => void;
 }
@@ -47,6 +49,11 @@ export function serveStatic(options: StaticServerOptions): Promise<StaticServer>
   const handler = (request: IncomingMessage, response: ServerResponse) => {
     options.onRequest?.(request);
     const path = decodeURIComponent(new URL(request.url ?? '/', 'http://x').pathname);
+    const target = options.redirects?.[path];
+    if (target) {
+      response.writeHead(302, { location: target, ...options.headers?.(path) });
+      return response.end();
+    }
     let file = normalize(join(root, path));
     if (file !== root && !file.startsWith(root + sep)) return send(response, 403, 'forbidden');
     try {

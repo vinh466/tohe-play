@@ -3,11 +3,19 @@
 // Opens the hub on a phone-sized viewport, launches the sample game, plays one round and checks that the
 // hub stored the score and the save locally. Every screen — hub, landing page, docs — is checked in the light and
 // the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke (SITE_URL defaults to :4710)
+// With ADMIN_LOGS_COMMAND (CI: the API container's log) a new deployment's admin console is claimed with the setup token
+// the API logged; else, with ADMIN_GRANT_COMMAND (the API container's `admin grant`), a role is granted (ADR 0027).
+// Either way the console's two-factor authentication is set up and its pages walked.
+import { execFileSync } from 'node:child_process';
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
+import { codeSentTo } from './mailpit.ts';
+import { totp } from './totp.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
+const grantCommand = process.env.ADMIN_GRANT_COMMAND?.split(' ').filter(Boolean);
+const logsCommand = process.env.ADMIN_LOGS_COMMAND?.split(' ').filter(Boolean);
 const step = (message: string) => console.log(`• ${message}`);
 
 const browser = await chromium.launch().catch(() => chromium.launch({ channel: 'chrome' }));
@@ -78,7 +86,7 @@ const shot = async (name: string) => {
 const expectTheme = (theme: 'light' | 'dark') =>
   page.waitForFunction((t) => document.documentElement.dataset.theme === t, theme, { timeout: 5000 });
 const password = 'mat-khau-e2e-123';
-const username = `e2e${Date.now().toString(36)}`;
+const email = `e2e${Date.now().toString(36)}@e2e.test`;
 
 try {
   step(`open ${hubUrl} — a new device lands on the welcome screen`);
@@ -86,15 +94,21 @@ try {
   await page.waitForURL(/\/welcome$/);
   await shot('welcome');
 
-  step(`register a family account (${username})`);
-  await page.getByRole('link', { name: 'Tạo tài khoản gia đình' }).tap();
-  await page.getByLabel('Tên của bạn').fill('Bố E2E');
-  await page.getByLabel('Tên đăng nhập').fill(username);
+  step(
+    `sign up with ${email}: the code from the email creates the account, whose only profile plays at once`,
+  );
+  await page.getByRole('link', { name: 'Tạo tài khoản' }).tap();
+  await page.getByLabel('Email', { exact: true }).fill(email);
+  await page.getByLabel('Tên khi chơi').fill('Bố E2E');
   await page.getByLabel('Mật khẩu', { exact: true }).fill(password);
   await page.getByLabel('Nhập lại mật khẩu').fill(password);
+  await page.getByRole('checkbox', { name: /16 tuổi/ }).check();
   await shot('register');
+  await page.getByRole('button', { name: 'Gửi mã xác nhận' }).tap();
+  await page.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
+  await shot('register-code');
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
-  await page.waitForURL(/\/profiles$/);
+  await page.waitForURL((url) => url.pathname === '/');
 
   step('choose the dark theme in "Giao diện": it applies at once and survives a reload');
   await page.getByRole('button', { name: /^Giao diện/ }).tap();
@@ -115,12 +129,16 @@ try {
   await expectTheme('light');
   await themes.getByRole('button', { name: '✕' }).tap();
 
-  step('add a child profile with a PIN (behind the parent gate)');
+  step(
+    '"Đổi người chơi" opens the picker, where a child profile with a PIN is added (the owner confirms with the password)',
+  );
+  await page.getByRole('link', { name: 'Đổi người chơi' }).tap();
+  await page.waitForURL((url) => url.pathname === '/profiles');
   await page.getByRole('button', { name: /Thêm hồ sơ/ }).tap();
-  await page.waitForURL(/\/family/);
+  await page.waitForURL(/\/account/);
   await page.getByLabel('Mật khẩu').fill(password);
-  await page.getByRole('button', { name: 'Mở khoá' }).tap();
-  const form = page.getByRole('dialog', { name: 'Hồ sơ mới cho bé' });
+  await page.getByRole('button', { name: 'Xác nhận' }).tap();
+  const form = page.getByRole('dialog', { name: 'Hồ sơ mới' });
   await form.getByLabel('Tên').fill('Bé Na');
   await form.getByRole('button', { name: '🐼' }).tap();
   await form.getByRole('button', { name: '3-5 tuổi' }).tap();
@@ -128,11 +146,13 @@ try {
   await shot('new-child');
   await form.getByRole('button', { name: 'Lưu' }).tap();
   await page.getByRole('button', { name: /Bé Na/ }).waitFor();
-  await shot('family');
+  const publicIds = await page.getByText(/ID hồ sơ \d{4} \d{4} \d{4}/).count();
+  if (publicIds !== 2) throw new Error(`expected a public ID on both profiles, saw ${publicIds}`);
+  await shot('account');
 
   step('pick the child and enter the PIN');
   await page.getByRole('link', { name: 'Quay lại' }).tap();
-  await page.waitForURL(/\/profiles$/);
+  await page.waitForURL((url) => url.pathname === '/profiles');
   await shot('profiles');
   await page.getByRole('button', { name: /Bé Na/ }).tap();
   const pinPad = page.getByRole('dialog', { name: /Nhập mã PIN/ });
@@ -154,6 +174,19 @@ try {
     await page.reload();
   }
   await shot('catalog');
+
+  step("the games origin's own front page leads to the hub, and search engines stay out of it (ADR 0039)");
+  const { gamesOrigin } = (await (await fetch(new URL('/api/config', hubUrl))).json()) as {
+    gamesOrigin: string;
+  };
+  const front = await fetch(new URL('/', gamesOrigin), { redirect: 'manual' });
+  const leadsTo = new URL(front.headers.get('location') ?? '/', gamesOrigin).origin;
+  if (front.status !== 302 || leadsTo !== new URL(hubUrl).origin) {
+    throw new Error(`${gamesOrigin}/ answered ${front.status} towards ${leadsTo}, not a redirect to the hub`);
+  }
+  if (!front.headers.get('x-robots-tag')?.includes('noindex')) {
+    throw new Error(`${gamesOrigin}/ does not keep search engines out (X-Robots-Tag)`);
+  }
 
   step(
     "launch it: the loading screen gives way to the game's own title screen, full screen, with no hub bar (ADR 0020)",
@@ -224,10 +257,11 @@ try {
   const onServer = async () =>
     page.evaluate(async () => {
       const saves = (await (await fetch('/api/progress/saves')).json()) as { gameId: string }[];
-      const board = (await (await fetch('/api/progress/leaderboard/hello')).json()) as {
-        profileId: string;
-      }[];
-      return { saves: saves.map((s) => s.gameId), board: board.map((e) => e.profileId) };
+      // The account's board of the week (ADR 0029): the run counts once the integrity engine took it in.
+      const board = (await (await fetch('/api/boards/hello?period=week')).json()) as {
+        rows: { profileId: string }[];
+      };
+      return { saves: saves.map((s) => s.gameId), board: board.rows.map((e) => e.profileId) };
     });
   for (let attempt = 0; ; attempt++) {
     const server = await onServer();
@@ -309,7 +343,7 @@ try {
     );
   }
 
-  step('the household leaderboard lists the child');
+  step("the account's leaderboard lists the child");
   await page.getByRole('button', { name: 'Bảng xếp hạng Chạm Chấm' }).tap();
   const leaderboard = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await leaderboard.getByText('Bé Na (bạn)').waitFor();
@@ -326,6 +360,70 @@ try {
   await shot('docs');
   await page.goto(hubUrl);
   await expectTheme('dark');
+
+  step(
+    'the admin console (/admin/): without a role, a new deployment offers its claim, an owned one says how a role comes',
+  );
+  await page.goto(`${hubUrl}/admin/`);
+  const claim = page.getByText('chưa có chủ');
+  await claim.or(page.getByText('chưa có vai trò quản trị')).waitFor();
+  await expectTheme('dark');
+  await shot('admin-gate');
+
+  let admin = false;
+  if (logsCommand && (await claim.isVisible())) {
+    const [command = '', ...args] = logsCommand;
+    step(`a new deployment: the setup token in the API's log makes this account its first owner`);
+    // The last one: each start of the API makes up a new token.
+    const logs = execFileSync(command, args, { encoding: 'utf8' });
+    const token = [...logs.matchAll(/setup token ([0-9A-Z]{4}-[0-9A-Z]{4})/g)].at(-1)?.[1];
+    if (!token) throw new Error("no setup token in the API's log");
+    await page.getByLabel('Mã cài đặt').fill(token);
+    await page.getByRole('button', { name: 'Nhận quyền chủ' }).click();
+    admin = true;
+  } else if (grantCommand) {
+    const [command = '', ...args] = grantCommand;
+    step(`granted a role in the API's container`);
+    execFileSync(command, [...args, email, '--role', 'viewer'], { stdio: 'inherit' });
+    await page.reload();
+    admin = true;
+  }
+
+  if (admin) {
+    step('the console asks for two-factor authentication first: step-up, then a new key');
+    await page.getByLabel('Mật khẩu của bạn').fill(password);
+    await page.getByRole('button', { name: 'Xác nhận', exact: true }).click();
+    await page.getByRole('button', { name: 'Tạo khoá cho ứng dụng xác thực' }).click();
+    const key = await page.getByLabel('Khoá xác thực', { exact: true }).inputValue();
+    await shot('admin-two-factor');
+
+    step('a code from the key turns it on; the recovery codes show once, then the console opens');
+    await page.getByLabel('Mã 6 số ứng dụng đang hiện').fill(totp(key));
+    await page.getByRole('button', { name: 'Bật xác thực hai lớp' }).click();
+    await page.getByRole('list', { name: 'Mã dự phòng' }).waitFor();
+    await shot('admin-recovery-codes');
+    await page.getByRole('button', { name: 'Tôi đã cất các mã này' }).click();
+    await page.getByRole('heading', { name: 'Tổng quan' }).waitFor();
+    await shot('admin-overview');
+    for (const [link, heading] of [
+      ['Game', 'Game'],
+      ['Sức khoẻ thiết bị', 'Sức khoẻ thiết bị'],
+      ['Hệ thống', 'Hệ thống'],
+      ['Bảo mật', 'Bảo mật'],
+    ] as const) {
+      await page.getByRole('link', { name: link, exact: true }).click();
+      await page.getByRole('heading', { name: heading, exact: true }).waitFor();
+      await shot(`admin-${link}`);
+    }
+    // The owner reads the audit log: the claim and the console's opening are in it.
+    const auditLink = page.getByRole('link', { name: 'Nhật ký', exact: true });
+    if (await auditLink.isVisible()) {
+      await auditLink.click();
+      await page.getByText('Bật xác thực hai lớp').first().waitFor();
+      await shot('admin-audit');
+    }
+  }
+  await page.goto(hubUrl);
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);
   await context.tracing.stop();

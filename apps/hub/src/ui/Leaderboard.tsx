@@ -1,17 +1,23 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type GameSummary, progress } from '../api/client.ts';
+import { boards, type GameSummary } from '../api/client.ts';
+import { meQuery } from '../api/queries.ts';
 import type { Player } from '../session/session.ts';
 import { syncer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
 import { withOfflineCache } from '../storage/repository.ts';
 import { Avatar } from './AvatarGrid.tsx';
 import { Modal } from './Modal.tsx';
+import { PublicBoard } from './PublicBoard.tsx';
+import { Segmented } from './Segmented.tsx';
 
 const MEDALS = ['🥇', '🥈', '🥉'];
 
-/** 🏆 in the corner of a game card: the household's best scores for that game (M2). */
+type Period = 'week' | 'all';
+type Scope = 'account' | 'community' | 'server';
+
+/** 🏆 in the corner of a game card: the best scores of the account's profiles for that game (M2). */
 export function LeaderboardButton({ game, player }: { game: GameSummary; player: Player }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -30,7 +36,7 @@ export function LeaderboardButton({ game, player }: { game: GameSummary; player:
   );
 }
 
-/** The household's board for a game in a sheet: from its catalog card, or over the game when it asks (ADR 0018). */
+/** The account's board for a game in a sheet: from its catalog card, or over the game when it asks (ADR 0018). */
 export function LeaderboardSheet({
   game,
   player,
@@ -50,14 +56,51 @@ export function LeaderboardSheet({
   );
 }
 
+/**
+ * The account's board, its community's and the server's (ADR 0029) — this week, from Monday 00:00 in Việt Nam, or all
+ * time.
+ */
 function Ranking({ gameId, player }: { gameId: string; player: Player }) {
+  const { t } = useTranslation();
+  const me = useQuery(meQuery);
+  const community = me.data?.account.community ?? null;
+  const [scope, setScope] = useState<Scope>('account');
+  const [period, setPeriod] = useState<Period>('week');
+  const scopes: { value: Scope; label: string }[] = [
+    { value: 'account', label: t('boards.account') },
+    ...(community ? [{ value: 'community' as const, label: t('boards.community') }] : []),
+    { value: 'server', label: t('boards.server') },
+  ];
+  return (
+    <div className="flex flex-col gap-3">
+      <Segmented<Scope> legend={t('boards.scope')} options={scopes} value={scope} onChange={setScope} />
+      <Segmented<Period>
+        legend={t('leaderboard.period')}
+        options={[
+          { value: 'week', label: t('leaderboard.week') },
+          { value: 'all', label: t('leaderboard.allTime') },
+        ]}
+        value={period}
+        onChange={setPeriod}
+      />
+      {scope === 'community' && community ? <p className="text-ink-soft text-sm">{community}</p> : null}
+      {scope === 'account' ? (
+        <Rows gameId={gameId} player={player} period={period} />
+      ) : (
+        <PublicBoard gameId={gameId} scope={scope} period={period} playerId={player.id} />
+      )}
+    </div>
+  );
+}
+
+function Rows({ gameId, player, period }: { gameId: string; player: Player; period: Period }) {
   const { t, i18n } = useTranslation();
   const board = useQuery({
-    queryKey: ['leaderboard', gameId],
+    queryKey: ['leaderboard', gameId, period],
     queryFn: async () => {
       // Push this device's newest scores first, so a round just played is on the board.
       await syncer.syncNow(player.id).catch(() => {});
-      return withOfflineCache(db, `leaderboard:${gameId}`, () => progress.leaderboard(gameId));
+      return withOfflineCache(db, `leaderboard:${gameId}:${period}`, () => boards.account(gameId, period));
     },
     staleTime: 0,
   });
@@ -65,11 +108,15 @@ function Ranking({ gameId, player }: { gameId: string; player: Player }) {
 
   if (board.isPending) return <p className="text-ink-soft">{t('loading')}</p>;
   if (board.isError) return <p className="text-danger">{t('leaderboard.failed')}</p>;
-  if (board.data.length === 0) return <p className="text-ink-soft">{t('leaderboard.empty')}</p>;
+  if (board.data.rows.length === 0) {
+    return (
+      <p className="text-ink-soft">{t(period === 'week' ? 'leaderboard.emptyWeek' : 'leaderboard.empty')}</p>
+    );
+  }
 
   return (
     <ol className="flex flex-col gap-2">
-      {board.data.map((entry, index) => {
+      {board.data.rows.map((entry, index) => {
         const mine = entry.profileId === player.id;
         return (
           <li
@@ -85,6 +132,11 @@ function Ranking({ gameId, player }: { gameId: string; player: Player }) {
               </span>
               {entry.inProgress ? (
                 <span className="text-ink-soft text-sm">{t('leaderboard.inProgress')}</span>
+              ) : null}
+              {entry.underReview ? (
+                <span className="w-fit rounded-full bg-notice px-2 py-0.5 font-semibold text-notice-ink text-xs">
+                  {t('leaderboard.underReview')}
+                </span>
               ) : null}
             </span>
             <span className="font-black text-ink text-xl tabular-nums">{format.format(entry.value)}</span>

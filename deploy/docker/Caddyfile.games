@@ -1,5 +1,5 @@
-# Games origin: immutable /<id>/<version>/ builds + catalog.json.
-# Env: HUB_ORIGINS (space-separated origins allowed to embed games).
+# Games origin: immutable /<id>/<version>/ builds + catalog.json, on a site of its own in production (ADR 0039).
+# Env: HUB_ORIGINS (space-separated origins allowed to embed games), PUBLIC_HUB_URL (where this origin's `/` leads).
 # games-csp.caddy is generated from @tohe/contract's gameContentSecurityPolicy() by `@tohe/games-host build`.
 {
 	admin off
@@ -10,6 +10,13 @@
 	root * /srv
 
 	header X-Content-Type-Options nosniff
+	# Browsers ignore this over plain HTTP (UAT, local); behind HTTPS it pins this one host, not its siblings.
+	header Strict-Transport-Security "max-age=31536000"
+	# Game pages are meant only inside the hub's frame: search engines leave the whole origin out (ADR 0039).
+	header X-Robots-Tag "noindex, nofollow"
+
+	# Nothing to see at the origin's own front page, a name people may type: it leads to the hub (ADR 0039).
+	redir / {$PUBLIC_HUB_URL} 302
 
 	@catalog path /catalog.json
 	header @catalog {
@@ -17,7 +24,8 @@
 		Access-Control-Allow-Origin "*"
 	}
 
-	@build not path /catalog.json
+	# Not the front page: a redirect cached for a year would outlive a change of the hub's URL.
+	@build not path /catalog.json /
 	header @build Cache-Control "public, max-age=31536000, immutable"
 	import /etc/caddy/games-csp.caddy
 

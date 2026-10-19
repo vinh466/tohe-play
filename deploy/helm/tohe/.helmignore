@@ -1,0 +1,5 @@
+# Not part of the published chart: CI profiles and checks.
+ci/
+.DS_Store
+*.swp
+*.orig

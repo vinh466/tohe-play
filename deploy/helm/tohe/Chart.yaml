@@ -1,0 +1,18 @@
+apiVersion: v2
+name: tohe
+description: >-
+  Tò He — a self-hosted platform for small casual games: the hub (PWA + /api proxy), the API, the games origin and
+  the landing/docs site. Runs from scratch with its own PostgreSQL, or on infrastructure you already run.
+type: application
+# The chart's own version. Published charts are <version>-g<short sha> (ADR 0021); image tags are a separate axis.
+version: 0.1.0
+# Published charts set this to the commit's image tag (sha-<commit>), so a chart version runs its own images by
+# default. A chart installed from a checkout has no images of its own: set global.image.tag.
+appVersion: dev
+kubeVersion: ">=1.29.0-0"
+home: https://github.com/vinh466/tohe-play
+sources:
+  - https://github.com/vinh466/tohe-play
+keywords:
+  - games
+  - pwa

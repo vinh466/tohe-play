@@ -5,7 +5,9 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Http.Connections;
 using Microsoft.AspNetCore.SignalR.Client;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Registry;
 using Tohe.Api.Modules.Rooms;
@@ -56,13 +58,13 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Matches("^[0-9]{6}$", room.Code);
         Assert.Equal((0, "waiting"), (room.MySeat, room.Status));
 
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, householdOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, accountOnly = true });
         var chu = await PersonAsync("Chú");
         var chuSees = await ListAsync(chu);
         Assert.Contains(chuSees, r => r.Id == room.Id);
         Assert.DoesNotContain(chuSees, r => r.Id == family.Id);
 
-        // A child a parent has not allowed sees only the family's tables (children play on a parent's device session).
+        // A child the owner has not allowed sees only the account's own tables (children play on a parent's session).
         var be = await ChildAsync(chu, "Bé");
         Assert.DoesNotContain(await ListAsync(be), r => r.Id == room.Id);
         var na = await ChildAsync(bo, "Na");
@@ -82,13 +84,13 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal((room.Id, (int?)null), (preview!.Id, preview.MySeat));
         Assert.Equal(1, (await JoinAsync(chu, room.Id)).MySeat);
 
-        // A child of another household needs a parent's switch.
+        // A child of another account needs its owner's switch.
         var be = await ChildAsync(chu, "Bé");
         var refused = await be.Client.PostAsync(Url($"/api/rooms/{room.Id}/join"), null, Ct);
         Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (refused.StatusCode, await CodeAsync(refused)));
         await PlayAsAsync(chu, chu.Me.Profiles[0].Id);
         await UnlockAsync(chu);
-        var allowed = await chu.Client.PatchAsJsonAsync(Url($"/api/household/profiles/{be.ProfileId}"), new { playWithOthers = true }, Ct);
+        var allowed = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{be.ProfileId}"), new { playWithOthers = true }, Ct);
         Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
         await PlayAsAsync(chu, be.ProfileId);
         Assert.Equal(2, (await JoinAsync(chu, room.Id)).MySeat);
@@ -176,7 +178,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var stats = await bo.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct);
         Assert.Equal(1, stats!.AllTime.Hands);
         Assert.Equal(stats.AllTime, stats.Week);
-        var row = Assert.Single(stats.Household);
+        var row = Assert.Single(stats.Account);
         Assert.Equal((bo.ProfileId, "Bố", 1), (row.ProfileId, row.Name, row.Hands));
 
         var history = await bo.Client.GetFromJsonAsync<List<HandSummary>>(Url("/api/rooms/history?game=tien-len"), Ct);
@@ -204,7 +206,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         // Nobody else sees the hand again: its seed reveals every card.
         var chu = await PersonAsync("Chú");
         Assert.Equal(HttpStatusCode.NotFound, (await chu.Client.GetAsync(Url($"/api/rooms/{room.Id}/hands/1"), Ct)).StatusCode);
-        Assert.Empty((await chu.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct))!.Household);
+        Assert.Empty((await chu.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct))!.Account);
     }
 
     [Fact]
@@ -235,7 +237,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     public async Task An_invitation_opens_a_locked_door_for_the_family_but_never_the_parent_switch()
     {
         var bo = await PersonAsync("Bố");
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, householdOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, accountOnly = true });
         var others = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
         foreach (var id in new[] { family.Id, others.Id })
         {
@@ -245,8 +247,9 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var na = await ChildAsync(bo, "Na");
         await PlayAsAsync(bo, bo.ProfileId);
         var chu = await PersonAsync("Chú");
+        // Another account's profile may be asked (ADR 0033), but not to a table kept to the account.
         var stranger = await bo.Client.PostAsJsonAsync(Url($"/api/rooms/{family.Id}/invite"), new { profileId = chu.ProfileId }, Ct);
-        Assert.Equal((HttpStatusCode.Forbidden, "not_in_household"), (stranger.StatusCode, await CodeAsync(stranger)));
+        Assert.Equal((HttpStatusCode.Forbidden, "room_account_only"), (stranger.StatusCode, await CodeAsync(stranger)));
         foreach (var id in new[] { family.Id, others.Id })
         {
             var invited = await bo.Client.PostAsJsonAsync(Url($"/api/rooms/{id}/invite"), new { profileId = na.ProfileId }, Ct);
@@ -258,10 +261,125 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal(2, invites!.Count);
         Assert.All(invites, invite => Assert.Equal("Bố", invite.FromName));
         Assert.Equal(1, (await JoinAsync(bo, family.Id)).MySeat);
-        // The other table has people from other households: a child without the parent switch stays out.
+        // The other table has people from other accounts: a child without the owner's switch stays out.
         var blocked = await bo.Client.PostAsync(Url($"/api/rooms/{others.Id}/join"), null, Ct);
         Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (blocked.StatusCode, await CodeAsync(blocked)));
         Assert.Single((await bo.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct))!);
+    }
+
+    [Fact]
+    public async Task A_profile_found_by_its_id_is_asked_to_the_table_as_its_owner_lets_and_a_child_is_never_found_from_outside()
+    {
+        var bo = await PersonAsync("Bố");
+        var open = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        Assert.Equal(HttpStatusCode.OK, (await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{open.Id}"), new { locked = true }, Ct)).StatusCode);
+        var chu = await PersonAsync("Chú");
+        var chuTable = await CreateAsync(chu, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        var chuId = chu.Me.Profiles[0].PublicId;
+        Assert.Equal("anyone", chu.Me.Profiles[0].Invites);
+
+        // The ID, spaces and all, finds the card to confirm; the invitation reaches them and opens the locked door.
+        var card = await FindAsync(bo, ProfileIds.Format(chuId));
+        Assert.Equal((chu.ProfileId, "Chú", chuId), (card.Id, card.Name, card.PublicId));
+        Assert.Equal(HttpStatusCode.NoContent, (await InviteAsync(bo, open.Id, card.Id)).StatusCode);
+        var waiting = Assert.Single((await chu.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct))!);
+        Assert.Equal(("Bố", open.Id), (waiting.FromName, waiting.RoomId));
+        Assert.NotNull((await JoinAsync(chu, open.Id)).MySeat);
+
+        // A mistyped ID is refused before any lookup; a table kept to the account stays the account's.
+        var typo = chuId[..11] + (char)('0' + ((chuId[11] - '0' + 1) % 10));
+        var mistyped = await bo.Client.GetAsync(Url($"/api/profiles/by-id/{typo}"), Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, mistyped.StatusCode);
+        Assert.Contains("profile_id_invalid", await mistyped.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+        var outsider = await InviteAsync(bo, family.Id, chu.ProfileId);
+        Assert.Equal((HttpStatusCode.Forbidden, "room_account_only"), (outsider.StatusCode, await CodeAsync(outsider)));
+
+        // A child is not found from outside its account — by its ID, nor asked straight by its id — but is within it.
+        var bin = await ChildAsync(chu, "Bin");
+        var binId = bin.Me.Profiles.Single(p => p.Id == bin.ProfileId).PublicId;
+        Assert.Equal("account", bin.Me.Profiles.Single(p => p.Id == bin.ProfileId).Invites);
+        var hidden = await bo.Client.GetAsync(Url($"/api/profiles/by-id/{binId}"), Ct);
+        Assert.Equal((HttpStatusCode.NotFound, "profile_not_found"), (hidden.StatusCode, await CodeAsync(hidden)));
+        var straight = await InviteAsync(bo, open.Id, bin.ProfileId);
+        Assert.Equal((HttpStatusCode.NotFound, "profile_not_found"), (straight.StatusCode, await CodeAsync(straight)));
+        // Playing as another profile closes the parent gate: open it again to manage the profiles.
+        await PlayAsAsync(chu, chu.ProfileId);
+        await UnlockAsync(chu);
+        Assert.Equal(bin.ProfileId, (await FindAsync(chu, binId)).Id);
+        Assert.Equal(HttpStatusCode.NoContent, (await InviteAsync(chu, chuTable.Id, bin.ProfileId)).StatusCode);
+        var wider = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{bin.ProfileId}"), new { invites = "anyone" }, Ct);
+        Assert.Contains("child_invites_account_only", await wider.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+
+        // Its owner chooses who may ask: only the account, or people it sat at a hand with.
+        var co = await PersonAsync("Cô");
+        var coTable = await CreateAsync(co, new { gameId = "tien-len", seats = 3 });
+        foreach (var scope in (string[])["account", "played-with"])
+        {
+            var set = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{chu.ProfileId}"), new { invites = scope }, Ct);
+            Assert.Equal(scope, (await set.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles.Single(p => p.Id == chu.ProfileId).Invites);
+            var closed = await InviteAsync(co, coTable.Id, chu.ProfileId);
+            Assert.Equal((HttpStatusCode.Forbidden, "invites_closed"), (closed.StatusCode, await CodeAsync(closed)));
+        }
+
+        await SatTogetherAsync(coTable.Id, co, chu);
+        Assert.Equal(HttpStatusCode.NoContent, (await InviteAsync(co, coTable.Id, chu.ProfileId)).StatusCode);
+        var odd = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{chu.ProfileId}"), new { invites = "everyone" }, Ct);
+        Assert.Contains("invites_invalid", await odd.Content.ReadAsStringAsync(Ct), StringComparison.Ordinal);
+
+        // A suspended account's profiles are found no more, nor asked.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Users
+                .Where(account => account.Id == co.Me.Account.Id)
+                .ExecuteUpdateAsync(s => s.SetProperty(account => account.SuspendedAt, DateTimeOffset.UtcNow), Ct);
+        }
+
+        var gone = await bo.Client.GetAsync(Url($"/api/profiles/by-id/{co.Me.Profiles[0].PublicId}"), Ct);
+        Assert.Equal((HttpStatusCode.NotFound, "profile_not_found"), (gone.StatusCode, await CodeAsync(gone)));
+        Assert.Equal("profile_not_found", await CodeAsync(await InviteAsync(bo, open.Id, co.ProfileId)));
+    }
+
+    [Fact]
+    public async Task Twenty_ids_looked_up_and_twenty_invitations_sent_an_hour_and_ten_waiting_for_a_profile_at_most()
+    {
+        // Twenty lookups an hour, found or not: IDs cannot be walked through.
+        var di = await PersonAsync("Dì");
+        for (var i = 0; i < 20; i++)
+        {
+            Assert.Equal(HttpStatusCode.NotFound, (await di.Client.GetAsync(Url($"/api/profiles/by-id/{ProfileIds.New()}"), Ct)).StatusCode);
+        }
+
+        var over = await di.Client.GetAsync(Url($"/api/profiles/by-id/{ProfileIds.New()}"), Ct);
+        Assert.Equal((HttpStatusCode.TooManyRequests, "lookup_limit"), (over.StatusCode, await CodeAsync(over)));
+
+        // Twenty invitations to other accounts an hour: asking the same person again counts too.
+        var table = await CreateAsync(di, new { gameId = "tien-len", seats = 3 });
+        var ba = await PersonAsync("Bà");
+        for (var i = 0; i < 20; i++)
+        {
+            Assert.Equal(HttpStatusCode.NoContent, (await InviteAsync(di, table.Id, ba.ProfileId)).StatusCode);
+        }
+
+        var spam = await InviteAsync(di, table.Id, ba.ProfileId);
+        Assert.Equal((HttpStatusCode.TooManyRequests, "invite_limit"), (spam.StatusCode, await CodeAsync(spam)));
+
+        // Ten invitations from other accounts wait for one profile at most: five hosts with two tables each.
+        var ong = await PersonAsync("Ông");
+        for (var i = 0; i < 5; i++)
+        {
+            var host = await PersonAsync($"Khách {i}");
+            for (var j = 0; j < 2; j++)
+            {
+                var room = await CreateAsync(host, new { gameId = "tien-len", seats = 3 });
+                Assert.Equal(HttpStatusCode.NoContent, (await InviteAsync(host, room.Id, ong.ProfileId)).StatusCode);
+            }
+        }
+
+        var last = await PersonAsync("Khách cuối");
+        var full = await InviteAsync(last, (await CreateAsync(last, new { gameId = "tien-len", seats = 3 })).Id, ong.ProfileId);
+        Assert.Equal((HttpStatusCode.TooManyRequests, "invitee_limit"), (full.StatusCode, await CodeAsync(full)));
+        Assert.Equal(10, (await ong.Client.GetFromJsonAsync<List<RoomInvite>>(Url("/api/rooms/invites"), Ct))!.Count);
     }
 
     [Fact]
@@ -430,6 +548,29 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
+    [Fact]
+    public async Task The_admin_console_counts_who_is_at_a_table()
+    {
+        var bo = await PersonAsync("Bố");
+        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 2 });
+        var registry = factory.Services.GetRequiredService<RoomRegistry>();
+
+        await using (await TableAsync(bo, room.Id, autoplay: false))
+        {
+            Assert.Equal(1, registry.Find(room.Id)!.Online);
+            Assert.True(registry.Live().OpenByGame["tien-len"] >= 1);
+        }
+
+        // The phone hung up: the room hears of it, and counts nobody.
+        var deadline = DateTime.UtcNow.AddSeconds(10);
+        while (registry.Find(room.Id)!.Online > 0 && DateTime.UtcNow < deadline)
+        {
+            await Task.Delay(50, Ct);
+        }
+
+        Assert.Equal(0, registry.Find(room.Id)!.Online);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     private sealed record Person(HttpClient Client, CookieJar Jar, MeView Me, Guid ProfileId);
@@ -515,23 +656,18 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     {
         var jar = new CookieJar(factory.Server.CreateHandler());
         var client = new HttpClient(jar) { BaseAddress = factory.Server.BaseAddress };
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName, username = $"u{Guid.NewGuid():N}"[..16], password = Password },
-            Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        var me = (await response.Content.ReadFromJsonAsync<MeView>(Ct))!;
+        var me = await Accounts.SignUpAsync(factory, client, displayName);
         var person = new Person(client, jar, me, me.Profiles[0].Id);
         await PlayAsAsync(person, person.ProfileId);
         return person;
     }
 
-    /// <summary>A child of the person's household, played on the same device (same session).</summary>
+    /// <summary>A child profile of the person's account, played on the same device (same session).</summary>
     private static async Task<Person> ChildAsync(Person parent, string name)
     {
         await UnlockAsync(parent);
         var response = await parent.Client.PostAsJsonAsync(
-            Url("/api/household/profiles"),
+            Url("/api/profiles"),
             new { name, avatar = ProfileOptions.Avatars[1], ageBand = "9-12" },
             Ct);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
@@ -549,8 +685,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
 
     private static async Task UnlockAsync(Person person)
     {
-        var response = await person.Client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        await Accounts.StepUpAsync(person.Client);
     }
 
     private static async Task<RoomView> CreateAsync(Person person, object request)
@@ -565,6 +700,40 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var response = await person.Client.PostAsync(Url($"/api/rooms/{roomId}/join"), null, Ct);
         Assert.True(response.IsSuccessStatusCode, await response.Content.ReadAsStringAsync(Ct));
         return (await response.Content.ReadFromJsonAsync<RoomView>(Ct))!;
+    }
+
+    /// <summary>The card of the profile with this ID, as the person's account may find it.</summary>
+    private static async Task<ProfileCardView> FindAsync(Person person, string publicId)
+    {
+        var response = await person.Client.GetAsync(Url($"/api/profiles/by-id/{Uri.EscapeDataString(publicId)}"), Ct);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<ProfileCardView>(Ct))!;
+    }
+
+    private static Task<HttpResponseMessage> InviteAsync(Person person, Guid roomId, Guid profileId) =>
+        person.Client.PostAsJsonAsync(Url($"/api/rooms/{roomId}/invite"), new { profileId }, Ct);
+
+    /// <summary>The two people's profiles sat at one finished hand of the room, as the rooms record it.</summary>
+    private async Task SatTogetherAsync(Guid roomId, params Person[] people)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        foreach (var (person, seat) in people.Select((person, seat) => (person, seat)))
+        {
+            db.RoomResults.Add(new RoomResult
+            {
+                RoomId = roomId,
+                GameId = "tien-len",
+                Hand = 1,
+                Seat = seat,
+                ProfileId = person.ProfileId,
+                AccountId = person.Me.Account.Id,
+                Place = seat,
+                At = DateTimeOffset.UtcNow,
+            });
+        }
+
+        await db.SaveChangesAsync(Ct);
     }
 
     private static async Task<List<RoomSummary>> ListAsync(Person person) =>

@@ -1,7 +1,9 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
+using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Registry;
 
@@ -13,14 +15,15 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;
 
     [Fact]
-    public async Task Register_creates_a_household_with_the_adults_profile_and_signs_in()
+    public async Task Register_creates_an_account_with_its_first_profile_and_signs_in()
     {
-        var (client, me) = await RegisterAsync("Bố Vinh");
+        var (client, me) = await RegisterAsync("Bố Vinh 🦊");
 
-        Assert.Equal("Nhà Bố Vinh", me.Household.Name);
         var profile = Assert.Single(me.Profiles);
-        Assert.Equal(("adult", true, "Bố Vinh"), (profile.Kind, profile.IsMine, profile.Name));
-        Assert.Null(me.ActiveProfileId);
+        Assert.Equal(("adult", "Bố Vinh 🦊"), (profile.Kind, profile.Name));
+        Assert.True(ProfileIds.TryNormalize(profile.PublicId, out _), profile.PublicId);
+        Assert.True(me.Account.Telemetry);
+        Assert.Equal(profile.Id, me.ActiveProfileId); // nobody else to choose: it plays at once
         Assert.Null(me.ParentUnlockedUntil);
 
         var again = await client.GetFromJsonAsync<MeView>(Url("/api/auth/me"), Ct);
@@ -33,12 +36,13 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         var (_, me) = await RegisterAsync("Mẹ");
         var client = factory.CreateClient();
 
-        var wrong = await client.PostAsJsonAsync(Url("/api/auth/login"), new { username = me.Account.Username, password = "sai-mat-khau" }, Ct);
+        var wrong = await client.PostAsJsonAsync(Url("/api/auth/login"), new { email = me.Account.Email, password = "sai-mat-khau" }, Ct);
         Assert.Equal(HttpStatusCode.Unauthorized, wrong.StatusCode);
         Assert.Equal("invalid_credentials", await CodeAsync(wrong));
 
-        var right = await client.PostAsJsonAsync(Url("/api/auth/login"), new { username = me.Account.Username.ToUpperInvariant(), password = Password }, Ct);
+        var right = await client.PostAsJsonAsync(Url("/api/auth/login"), new { email = me.Account.Email!.ToUpperInvariant(), password = Password }, Ct);
         Assert.Equal(HttpStatusCode.OK, right.StatusCode);
+        Assert.Equal(me.Profiles[0].Id, (await right.Content.ReadFromJsonAsync<MeView>(Ct))!.ActiveProfileId);
         Assert.Equal(HttpStatusCode.OK, (await client.GetAsync(Url("/api/auth/me"), Ct)).StatusCode);
 
         await client.PostAsync(Url("/api/auth/logout"), null, Ct);
@@ -46,48 +50,67 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     }
 
     [Fact]
-    public async Task A_taken_username_is_reported_on_the_username_field()
+    public async Task Signing_in_plays_the_only_profile_at_once_but_asks_when_there_is_a_choice()
     {
-        var (_, me) = await RegisterAsync("Bố");
+        var (owner, me) = await RegisterAsync("Bố");
+        await UnlockAsync(owner);
+        var credentials = new { email = me.Account.Email, password = Password };
+        async Task<Guid?> SignInAsync() =>
+            (await (await factory.CreateClient().PostAsJsonAsync(Url("/api/auth/login"), credentials, Ct))
+                .Content.ReadFromJsonAsync<MeView>(Ct))!.ActiveProfileId;
+
+        // Its PIN has to be typed by someone.
+        var locked = await owner.PatchAsJsonAsync(Url($"/api/profiles/{me.Profiles[0].Id}"), new { pin = "1234" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, locked.StatusCode);
+        Assert.Null(await SignInAsync());
+
+        // Two profiles: someone has to choose.
+        await owner.PatchAsJsonAsync(Url($"/api/profiles/{me.Profiles[0].Id}"), new { removePin = true }, Ct);
+        await AddChildAsync(owner, "Na");
+        Assert.Null(await SignInAsync());
+    }
+
+    [Theory]
+    [InlineData("khong-phai-email", "mat-khau-cua-bo", "Bố", "email", "email_invalid")]
+    [InlineData("Bố <bo@tohe.test>", "mat-khau-cua-bo", "Bố", "email", "email_invalid")]
+    [InlineData("bo@localhost", "mat-khau-cua-bo", "Bố", "email", "email_invalid")]
+    [InlineData("{0}", "ngan", "Bố", "password", "password_too_short")]
+    [InlineData("{0}", "mat-khau-cua-bo", "   ", "displayName", "name_required")]
+    [InlineData("{0}", "mat-khau-cua-bo", "Bố", "acceptTerms", "terms_required")] // 16 or older, and the terms
+    public async Task Invalid_input_is_rejected_before_anything_is_sent(
+        string email, string password, string displayName, string field, string error)
+    {
+        var address = string.Format(System.Globalization.CultureInfo.InvariantCulture, email, Accounts.NewEmail());
 
         var response = await factory.CreateClient().PostAsJsonAsync(
             Url("/api/auth/register"),
-            new { displayName = "Ai đó", username = me.Account.Username, password = Password },
+            new { email = address, password, displayName },
             Ct);
 
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        Assert.Contains("username_taken", (await ErrorsAsync(response))["username"]);
+        Assert.Contains(error, (await ErrorsAsync(response))[field]);
+        using var scope = factory.Services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        Assert.False(await db.EmailOutbox.AnyAsync(e => e.To == address, Ct));
     }
 
     [Fact]
-    public async Task Invalid_input_is_rejected_before_anything_is_created()
-    {
-        var response = await factory.CreateClient().PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName = "", username = "a b", password = "short" },
-            Ct);
-
-        Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
-        var errors = await ErrorsAsync(response);
-        Assert.True(errors.ContainsKey("password") || errors.ContainsKey("Password"), string.Join(",", errors.Keys));
-    }
-
-    [Fact]
-    public async Task Managing_the_household_needs_the_parent_gate()
+    public async Task Managing_profiles_needs_the_parent_gate()
     {
         var (client, _) = await RegisterAsync("Bố");
 
-        var locked = await client.PostAsJsonAsync(Url("/api/household/profiles"), NewChild("Na"), Ct);
+        var locked = await client.PostAsJsonAsync(Url("/api/profiles"), NewChild("Na"), Ct);
         Assert.Equal(HttpStatusCode.Forbidden, locked.StatusCode);
         Assert.Equal("parent_gate_required", await CodeAsync(locked));
 
-        var wrong = await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = "khong-dung" }, Ct);
+        var noPin = await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { pin = "123456" }, Ct);
+        Assert.Equal("manage_pin_not_set", await CodeAsync(noPin));
+        var wrong = await client.PostAsJsonAsync(Url("/api/session/step-up"), new { password = "khong-dung" }, Ct);
         Assert.Equal("password_invalid", await CodeAsync(wrong));
 
         var unlocked = await UnlockAsync(client);
         Assert.NotNull(unlocked.ParentUnlockedUntil);
 
-        var created = await client.PostAsJsonAsync(Url("/api/household/profiles"), NewChild("Na", pin: "1234"), Ct);
+        var created = await client.PostAsJsonAsync(Url("/api/profiles"), NewChild("Na", pin: "1234"), Ct);
         Assert.Equal(HttpStatusCode.OK, created.StatusCode);
         var child = Assert.Single((await created.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles, p => p.Kind == "child");
         Assert.Equal(("Na", "3-5", true), (child.Name, child.AgeBand, child.HasPin));
@@ -110,56 +133,115 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Equal(child.Id, me.ActiveProfileId);
         Assert.Null(me.ParentUnlockedUntil);
 
-        var afterwards = await client.PostAsJsonAsync(Url("/api/household/profiles"), NewChild("Mít"), Ct);
+        var afterwards = await client.PostAsJsonAsync(Url("/api/profiles"), NewChild("Mít"), Ct);
         Assert.Equal(HttpStatusCode.Forbidden, afterwards.StatusCode);
     }
 
     [Fact]
-    public async Task An_invite_lets_another_adult_join_the_household()
+    public async Task An_account_sees_and_manages_only_its_own_profiles()
     {
-        var (parentA, _) = await RegisterAsync("Bố");
-        await UnlockAsync(parentA);
-        await AddChildAsync(parentA, "Na");
-        var invited = await (await parentA.PostAsync(Url("/api/household/invite"), null, Ct)).Content.ReadFromJsonAsync<MeView>(Ct);
-        var code = invited!.Household.Invite!.Code;
+        var (bo, meBo) = await RegisterAsync("Bố");
+        await UnlockAsync(bo);
+        var na = await AddChildAsync(bo, "Na");
+        var (me, meMe) = await RegisterAsync("Mẹ");
+        await UnlockAsync(me);
 
-        var typed = $"{code[..4].ToLowerInvariant()}-{code[4..]}";
-        var (parentB, meB) = await RegisterAsync("Mẹ", inviteCode: typed);
-
-        Assert.Equal(invited.Household.Id, meB.Household.Id);
-        Assert.Equal(2, meB.Household.Members.Count);
-        Assert.Contains(meB.Profiles, p => p.Name == "Na");
-
-        // B cannot edit A's adult profile.
-        await UnlockAsync(parentB);
-        var profileOfA = meB.Profiles.Single(p => p is { Kind: "adult", IsMine: false });
-        var edit = await parentB.PatchAsJsonAsync(Url($"/api/household/profiles/{profileOfA.Id}"), new { name = "Hack" }, Ct);
-        Assert.Equal("not_your_profile", await CodeAsync(edit));
+        Assert.DoesNotContain(meMe.Profiles, p => p.Id == na.Id || p.Id == meBo.Profiles[0].Id);
+        var edit = await me.PatchAsJsonAsync(Url($"/api/profiles/{na.Id}"), new { name = "Hack" }, Ct);
+        Assert.Equal(HttpStatusCode.NotFound, edit.StatusCode);
+        var delete = await me.DeleteAsync(Url($"/api/profiles/{meBo.Profiles[0].Id}"), Ct);
+        Assert.Equal(HttpStatusCode.NotFound, delete.StatusCode);
+        var play = await me.PutAsJsonAsync(Url("/api/session/profile"), new { profileId = na.Id }, Ct);
+        Assert.Equal(HttpStatusCode.NotFound, play.StatusCode);
     }
 
     [Fact]
-    public async Task A_wrong_invite_code_is_rejected()
+    public async Task An_account_owns_at_most_five_profiles_and_adults_can_be_added_too()
     {
-        var response = await factory.CreateClient().PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName = "Ai", username = NewUsername(), password = Password, inviteCode = "NOPE2345" },
-            Ct);
+        var (client, _) = await RegisterAsync("Bố");
+        await UnlockAsync(client);
+        var adult = await client.PostAsJsonAsync(Url("/api/profiles"), new { name = "Mẹ", avatar = ProfileOptions.Avatars[2] }, Ct);
+        var mum = Assert.Single((await adult.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles, p => p.Name == "Mẹ");
+        Assert.Equal(("adult", (string?)null, true), (mum.Kind, mum.AgeBand, mum.PlayWithOthers));
+        await AddChildAsync(client, "Na");
+        await AddChildAsync(client, "Bin");
 
-        Assert.Contains("invite_invalid", (await ErrorsAsync(response))["inviteCode"]);
+        var fifth = await client.PostAsJsonAsync(Url("/api/profiles"), NewChild("Mít"), Ct);
+        var me = (await fifth.Content.ReadFromJsonAsync<MeView>(Ct))!;
+        Assert.Equal(5, me.Profiles.Count);
+        Assert.Equal(5, me.Profiles.Select(p => p.PublicId).Distinct().Count());
+
+        var sixth = await client.PostAsJsonAsync(Url("/api/profiles"), NewChild("Bơ"), Ct);
+        Assert.Contains("too_many_profiles", (await ErrorsAsync(sixth))[""]);
+
+        // The hub learns the limit instead of knowing it.
+        var options = await client.GetFromJsonAsync<ProfileOptionsView>(Url("/api/profiles/options"), Ct);
+        Assert.Equal(5, options!.MaxProfiles);
     }
 
     [Fact]
-    public async Task Adult_profiles_cannot_be_deleted_but_child_profiles_can()
+    public async Task Requests_at_the_same_time_cannot_pass_the_limits_together()
+    {
+        var (client, _) = await RegisterAsync("Bố");
+        await UnlockAsync(client);
+
+        var creates = await Task.WhenAll(Enumerable.Range(0, 8)
+            .Select(i => client.PostAsJsonAsync(Url("/api/profiles"), NewChild($"Bé {i}"), Ct)));
+        Assert.Equal(4, creates.Count(response => response.StatusCode == HttpStatusCode.OK));
+        var me = (await client.GetFromJsonAsync<MeView>(Url("/api/auth/me"), Ct))!;
+        Assert.Equal(5, me.Profiles.Count);
+
+        // Every profile at once, and the first one twice: one stays, and nothing fails on the way.
+        var deletes = await Task.WhenAll(me.Profiles.Append(me.Profiles[0])
+            .Select(profile => client.DeleteAsync(Url($"/api/profiles/{profile.Id}"), Ct)));
+        Assert.All(deletes, response => Assert.True((int)response.StatusCode < 500, response.StatusCode.ToString()));
+        Assert.Equal(4, deletes.Count(response => response.StatusCode == HttpStatusCode.OK));
+        Assert.Single((await client.GetFromJsonAsync<MeView>(Url("/api/auth/me"), Ct))!.Profiles);
+    }
+
+    [Fact]
+    public async Task Any_profile_can_be_removed_but_the_last_one()
     {
         var (client, me) = await RegisterAsync("Bố");
         await UnlockAsync(client);
         var child = await AddChildAsync(client, "Na");
 
-        var adult = await client.DeleteAsync(Url($"/api/household/profiles/{me.Profiles[0].Id}"), Ct);
-        Assert.Equal("adult_profile", await CodeAsync(adult));
+        var first = await client.DeleteAsync(Url($"/api/profiles/{me.Profiles[0].Id}"), Ct);
+        var left = Assert.Single((await first.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles);
+        Assert.Equal(child.Id, left.Id);
 
-        var removed = await client.DeleteAsync(Url($"/api/household/profiles/{child.Id}"), Ct);
-        Assert.DoesNotContain((await removed.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles, p => p.Id == child.Id);
+        var last = await client.DeleteAsync(Url($"/api/profiles/{child.Id}"), Ct);
+        Assert.Equal((HttpStatusCode.Conflict, "last_profile"), (last.StatusCode, await CodeAsync(last)));
+    }
+
+    [Theory]
+    [InlineData("Admin", "name_reserved")]
+    [InlineData("tò  HE", "name_reserved")]
+    [InlineData("Na\u202Eevil", "name_invalid_character")]
+    [InlineData("   ", "name_required")]
+    [InlineData("1234567890123456789012345", "name_too_long")]
+    public async Task Profile_names_are_free_but_not_reserved_invisible_or_endless(string name, string error)
+    {
+        var (client, _) = await RegisterAsync("Bố");
+        await UnlockAsync(client);
+
+        var response = await client.PostAsJsonAsync(
+            Url("/api/profiles"),
+            new { name = System.Text.RegularExpressions.Regex.Unescape(name), avatar = ProfileOptions.Avatars[1], ageBand = "6-8" },
+            Ct);
+
+        Assert.Contains(error, (await ErrorsAsync(response))["name"]);
+    }
+
+    [Fact]
+    public async Task A_name_keeps_its_vietnamese_marks_and_emoji_and_loses_extra_spaces()
+    {
+        var (client, _) = await RegisterAsync("Bố");
+        await UnlockAsync(client);
+
+        var child = await AddChildAsync(client, "  Bé   Na 👧🏻  ", expectedName: "Bé Na 👧🏻");
+
+        Assert.Equal("Bé Na 👧🏻", child.Name);
     }
 
     [Fact]
@@ -192,7 +274,7 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     {
         var request = new HttpRequestMessage(HttpMethod.Post, Url("/api/auth/login"))
         {
-            Content = JsonContent.Create(new { username = "x", password = "y" }),
+            Content = JsonContent.Create(new { email = "x@tohe.test", password = "y" }),
         };
         request.Headers.Add("Sec-Fetch-Site", "same-site");
 
@@ -206,41 +288,48 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
     public async Task Session_cookie_is_http_only_and_lax()
     {
         var client = factory.CreateClient(new() { HandleCookies = false });
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName = "Bố", username = NewUsername(), password = Password },
-            Ct);
+        var response = await Accounts.SignUpResponseAsync(factory, client, "Bố");
 
         var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith("tohe.session=", StringComparison.Ordinal));
         Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
         Assert.Contains("samesite=lax", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("secure", cookie, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public async Task On_an_https_deployment_the_session_cookie_is_secure_and_host_locked()
+    {
+        // Behind the TLS-terminating edge the request reaches the API as plain HTTP (TestServer's default too):
+        // App:PublicUrl is what makes it HTTPS.
+        await using var https = factory.WithWebHostBuilder(builder => builder.UseSetting("App:PublicUrl", "https://tohe.example.test"));
+        var client = https.CreateClient(new() { HandleCookies = false });
+        var response = await Accounts.SignUpResponseAsync(factory, client, "Bố");
+
+        var cookie = Assert.Single(response.Headers.GetValues("Set-Cookie"), c => c.StartsWith("__Host-tohe.session=", StringComparison.Ordinal));
+        Assert.Contains("secure", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("path=/", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("domain=", cookie, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("httponly", cookie, StringComparison.OrdinalIgnoreCase);
     }
 
     // ------------------------------------------------------------------ helpers
 
-    private async Task<(HttpClient Client, MeView Me)> RegisterAsync(string displayName, string? inviteCode = null)
+    private async Task<(HttpClient Client, MeView Me)> RegisterAsync(string displayName)
     {
         var client = factory.CreateClient();
-        var response = await client.PostAsJsonAsync(
-            Url("/api/auth/register"),
-            new { displayName, username = NewUsername(), password = Password, inviteCode },
-            Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (client, (await response.Content.ReadFromJsonAsync<MeView>(Ct))!);
+        return (client, await Accounts.SignUpAsync(factory, client, displayName));
     }
 
     private static async Task<MeView> UnlockAsync(HttpClient client)
     {
-        var response = await client.PostAsJsonAsync(Url("/api/session/parent-gate"), new { password = Password }, Ct);
-        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await response.Content.ReadFromJsonAsync<MeView>(Ct))!;
+        return await Accounts.StepUpAsync(client);
     }
 
-    private static async Task<ProfileView> AddChildAsync(HttpClient client, string name, string? pin = null)
+    private static async Task<ProfileView> AddChildAsync(HttpClient client, string name, string? pin = null, string? expectedName = null)
     {
-        var response = await client.PostAsJsonAsync(Url("/api/household/profiles"), NewChild(name, pin), Ct);
+        var response = await client.PostAsJsonAsync(Url("/api/profiles"), NewChild(name, pin), Ct);
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
-        return (await response.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles.Single(p => p.Name == name);
+        return (await response.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles.Single(p => p.Name == (expectedName ?? name));
     }
 
     private static async Task<List<string>> GamesAsync(HttpClient client) =>
@@ -248,8 +337,6 @@ public sealed class IdentityTests(ApiFactory factory) : IClassFixture<ApiFactory
 
     private static object NewChild(string name, string? pin = null) =>
         new { name, avatar = ProfileOptions.Avatars[1], ageBand = "3-5", pin };
-
-    private static string NewUsername() => $"u{Guid.NewGuid():N}"[..16];
 
     private static Uri Url(string path) => new(path, UriKind.Relative);
 

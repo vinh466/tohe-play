@@ -2,9 +2,10 @@ namespace Tohe.Api.Infrastructure.Security;
 
 /// <summary>
 /// Rejects state-changing <c>/api</c> requests a browser marks as coming from another origin. Session cookies are
-/// <c>SameSite=Lax</c>, but the games origin is the same <em>site</em> as the hub (only the port or subdomain
-/// differs), so a game page could otherwise send a cookie-carrying POST. Requests without the header (curl, tests)
-/// are allowed; they cannot carry a browser's cookie by accident.
+/// <c>SameSite=Lax</c>, but the games origin is the same <em>site</em> as the hub: in development and on UAT only
+/// the port differs, and in production it is a subdomain of the hub's domain (ADR 0040). A game page could
+/// otherwise send a cookie-carrying POST. Requests without the header (curl, tests) are allowed; they cannot carry
+/// a browser's cookie by accident.
 /// </summary>
 internal static class SameOriginGuard
 {

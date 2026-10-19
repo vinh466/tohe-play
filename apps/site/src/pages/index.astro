@@ -4,7 +4,8 @@
 import '@tohe/design-tokens/tokens.css';
 import themeInit from '@tohe/design-tokens/theme-init.js?raw';
 
-const hubUrl = import.meta.env.PUBLIC_HUB_URL ?? 'http://localhost:4720';
+// The hub's address is decided where the site runs, not where it was built (ADR 0021): /play redirects there.
+const hubUrl = '/play';
 
 const features = [
   {

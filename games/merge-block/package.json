@@ -1,11 +1,11 @@
 {
   "name": "@tohe/game-merge-block",
-  "version": "1.8.1",
+  "version": "1.10.0",
   "private": true,
   "type": "module",
   "scripts": {
     "dev:standalone": "vite",
-    "build": "vite build",
+    "build": "vite build && vite build --config vite.verify.config.ts",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "conformance": "tohe-conformance dist"

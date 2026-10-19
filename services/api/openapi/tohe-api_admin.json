@@ -1,0 +1,3287 @@
+{
+  "openapi": "3.1.1",
+  "info": {
+    "title": "Tò He Admin API",
+    "description": "The admin console's API (ADR 0027). Every endpoint needs a platform role.",
+    "version": "1.0.0"
+  },
+  "paths": {
+    "/api/admin/me": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "The account using the console: its role, if any, and what the role may do.",
+        "operationId": "GetAdminMe",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/overview": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Accounts, players, rooms, errors, the catalog and the outbox at a glance.",
+        "operationId": "GetAdminOverview",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminOverview"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/games": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Every game in the registry, listed or not, with its players in the last week and open rooms.",
+        "operationId": "GetAdminGames",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AdminGame"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/health": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Device telemetry over the last days (1 to 30): errors, frames, metrics per game version.",
+        "operationId": "GetAdminHealth",
+        "parameters": [
+          {
+            "name": "days",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 7
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TelemetryReport"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/system": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "The running build, its database migrations, background workers and settings without secrets.",
+        "operationId": "GetAdminSystem",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminSystem"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/audit": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "The audit log, newest first, a page at a time.",
+        "operationId": "GetAdminAudit",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int32",
+              "default": 50
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuditPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/setup": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Whether the deployment still waits for its first owner.",
+        "operationId": "GetAdminSetup",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SetupView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/setup/claim": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "With the setup token, the signed-in account becomes the platform's first owner; setup ends for good.",
+        "operationId": "ClaimAdminSetup",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ClaimSetupRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminMeView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Whether two-factor authentication is on, until when the console is open here, recovery codes left.",
+        "operationId": "GetAdminTwoFactor",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Turn two-factor authentication off: the console closes on every device (needs step-up level 2).",
+        "operationId": "DisableAdminTwoFactor",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/setup": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A new authenticator key, while two-factor authentication is off (needs step-up level 2).",
+        "operationId": "SetUpAdminAuthenticator",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AuthenticatorSetupView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/enable": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A code from the new key turns two-factor authentication on and opens the console; recovery codes once.",
+        "operationId": "EnableAdminTwoFactor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/verify": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A code, or a recovery code, opens the console on this device for twelve hours.",
+        "operationId": "VerifyAdminTwoFactor",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TwoFactorCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TwoFactorView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/two-factor/recovery-codes": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "New recovery codes in place of the old ones (needs step-up level 2).",
+        "operationId": "NewAdminRecoveryCodes",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RecoveryCodesView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Accounts by email, username, name or profile ID (four digits or more); the newest first, fifty at most.",
+        "operationId": "SearchAdminUsers",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "deleting",
+            "in": "query",
+            "schema": {
+              "type": "boolean",
+              "default": false
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/AccountSummary"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "One account: sign-in methods, role, two-factor authentication, suspension, profiles and their names.",
+        "operationId": "GetAdminUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/suspend": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Suspend an account: no way in, and its sessions end.",
+        "operationId": "SuspendAdminUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SuspendRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Lift a suspension.",
+        "operationId": "LiftAdminUserSuspension",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/delete": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Delete for good an account whose owner asked and whose seven days are over (ADR 0038).",
+        "operationId": "DeleteAdminUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/sign-out": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "End every session of an account.",
+        "operationId": "SignOutAdminUser",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/users/{id}/role": {
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Give an account a platform role, or take it away (owners only).",
+        "operationId": "SetAdminUserRole",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/SetRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/profiles/{id}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Rename a profile, under the same name rules; its history keeps the old name.",
+        "operationId": "RenameAdminProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/profiles/{id}/hidden": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Hide a profile from public boards; its owner's switch does not bring it back.",
+        "operationId": "HideAdminProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/HideProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Let a hidden profile back on public boards, as its owner's switch says.",
+        "operationId": "ShowAdminProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AccountDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/settings": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "The sign-in methods, which are on and who signs in only by each; the registration mode.",
+        "operationId": "GetAdminSignInSettings",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInSettingsView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Switch sign-in methods and the registration mode; one method stays on, and you keep a way in.",
+        "operationId": "UpdateAdminSignInSettings",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateSignInSettingsRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/SignInSettingsView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/communities": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Communities, how many accounts came with each, and their invite codes.",
+        "operationId": "GetAdminCommunities",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A new community.",
+        "operationId": "CreateAdminCommunity",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCommunityRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityView"
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/communities/{id}/codes": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A new invite code for the community: given or made up, with an end and a limit of uses if wanted.",
+        "operationId": "CreateAdminInviteCode",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateInviteCodeRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/invite-codes/{code}": {
+      "delete": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Revoke an invite code: no sign-up uses it again.",
+        "operationId": "RevokeAdminInviteCode",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/CommunityView"
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/review": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Held results, waiting for a person: oldest first, fifty at a time.",
+        "operationId": "GetAdminReview",
+        "parameters": [
+          {
+            "name": "after",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/review/decided": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Results people decided about or the engine rejected: the latest decision first, fifty at a time.",
+        "operationId": "GetAdminReviewDecided",
+        "parameters": [
+          {
+            "name": "before",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewPage"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "One result: where it stands, what its profile did before on the board, its evidence, every decision.",
+        "operationId": "GetAdminReviewResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}/run": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A ranked run's seed and moves to watch in the game itself, and the build that played it while the games origin serves it.",
+        "operationId": "GetAdminReviewRun",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RunReplay"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}/approve": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Approve a held result: verified when the server refereed or replayed it, checked otherwise.",
+        "operationId": "ApproveAdminReviewResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}/reject": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reject a result, at any level: it counts on no board.",
+        "operationId": "RejectAdminReviewResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/review/{id}/reopen": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Reopen a decided result — rejected, checked or verified: held again, for another look.",
+        "operationId": "ReopenAdminReviewResult",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewDecisionRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ReviewDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "AccountDetail": {
+        "required": [
+          "id",
+          "email",
+          "username",
+          "displayName",
+          "createdAt",
+          "termsVersion",
+          "termsAcceptedAt",
+          "role",
+          "hasPassword",
+          "twoFactorEnabled",
+          "logins",
+          "suspendedAt",
+          "suspendedReason",
+          "community",
+          "profiles",
+          "deleteAfter"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "termsAcceptedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "hasPassword": {
+            "type": "boolean"
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "logins": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "suspendedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "suspendedReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "community": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ProfileDetail"
+            }
+          },
+          "deleteAfter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "AccountSummary": {
+        "required": [
+          "id",
+          "email",
+          "username",
+          "displayName",
+          "createdAt",
+          "role",
+          "suspended",
+          "profiles",
+          "deleteAfter"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "username": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "suspended": {
+            "type": "boolean"
+          },
+          "profiles": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deleteAfter": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ActivePlayers": {
+        "required": [
+          "lastDay",
+          "lastWeek"
+        ],
+        "type": "object",
+        "properties": {
+          "lastDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastWeek": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminCatalog": {
+        "required": [
+          "listed",
+          "unlisted",
+          "lastSyncAt",
+          "lastError"
+        ],
+        "type": "object",
+        "properties": {
+          "listed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "unlisted": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastSyncAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminDatabase": {
+        "required": [
+          "applied",
+          "pending",
+          "latest"
+        ],
+        "type": "object",
+        "properties": {
+          "applied": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "pending": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "latest": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AdminGame": {
+        "required": [
+          "id",
+          "name",
+          "version",
+          "listed",
+          "minAge",
+          "capabilities",
+          "tags",
+          "online",
+          "sizeKb",
+          "firstSeenAt",
+          "updatedAt",
+          "playersLastWeek",
+          "openRooms"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "listed": {
+            "type": "boolean"
+          },
+          "minAge": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "online": {
+            "type": "boolean"
+          },
+          "sizeKb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstSeenAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "playersLastWeek": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "openRooms": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminMeView": {
+        "required": [
+          "accountId",
+          "displayName",
+          "email",
+          "role",
+          "permissions",
+          "twoFactorEnabled",
+          "openUntil",
+          "secureUntil",
+          "hasPassword"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "openUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "secureUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "hasPassword": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AdminOverview": {
+        "required": [
+          "at",
+          "version",
+          "accounts",
+          "profiles",
+          "players",
+          "rooms",
+          "errorsLastDay",
+          "catalog",
+          "email",
+          "heldResults",
+          "deletionsDue"
+        ],
+        "type": "object",
+        "properties": {
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "version": {
+            "type": "string"
+          },
+          "accounts": {
+            "$ref": "#/components/schemas/Growth"
+          },
+          "profiles": {
+            "$ref": "#/components/schemas/Growth"
+          },
+          "players": {
+            "$ref": "#/components/schemas/ActivePlayers"
+          },
+          "rooms": {
+            "$ref": "#/components/schemas/AdminRooms"
+          },
+          "errorsLastDay": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "catalog": {
+            "$ref": "#/components/schemas/AdminCatalog"
+          },
+          "email": {
+            "$ref": "#/components/schemas/OutboxState"
+          },
+          "heldResults": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "deletionsDue": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminRooms": {
+        "required": [
+          "open",
+          "playing",
+          "online"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "playing": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "online": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminSettings": {
+        "required": [
+          "publicUrl",
+          "gamesOrigin",
+          "emailMode",
+          "emailFrom",
+          "providers",
+          "telemetry",
+          "operatorReport"
+        ],
+        "type": "object",
+        "properties": {
+          "publicUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gamesOrigin": {
+            "type": "string"
+          },
+          "emailMode": {
+            "type": "string"
+          },
+          "emailFrom": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "providers": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "telemetry": {
+            "type": "boolean"
+          },
+          "operatorReport": {
+            "type": "boolean"
+          }
+        }
+      },
+      "AdminSystem": {
+        "required": [
+          "version",
+          "environment",
+          "startedAt",
+          "database",
+          "workers",
+          "settings"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string"
+          },
+          "environment": {
+            "type": "string"
+          },
+          "startedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "database": {
+            "$ref": "#/components/schemas/AdminDatabase"
+          },
+          "workers": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/WorkerStatus"
+            }
+          },
+          "settings": {
+            "$ref": "#/components/schemas/AdminSettings"
+          }
+        }
+      },
+      "AuditEntryView": {
+        "required": [
+          "id",
+          "at",
+          "actor",
+          "action",
+          "target",
+          "details",
+          "address"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "actor": {
+            "type": "string"
+          },
+          "action": {
+            "type": "string"
+          },
+          "target": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "details": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "address": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "AuditPage": {
+        "required": [
+          "entries",
+          "before"
+        ],
+        "type": "object",
+        "properties": {
+          "entries": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AuditEntryView"
+            }
+          },
+          "before": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "AuthenticatorSetupView": {
+        "required": [
+          "sharedKey",
+          "uri"
+        ],
+        "type": "object",
+        "properties": {
+          "sharedKey": {
+            "type": "string"
+          },
+          "uri": {
+            "type": "string"
+          }
+        }
+      },
+      "ClaimSetupRequest": {
+        "required": [
+          "token"
+        ],
+        "type": "object",
+        "properties": {
+          "token": {
+            "type": "string"
+          }
+        }
+      },
+      "CommunityView": {
+        "required": [
+          "id",
+          "name",
+          "createdAt",
+          "members",
+          "codes"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "members": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "codes": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/InviteCodeView"
+            }
+          }
+        }
+      },
+      "CountSummary": {
+        "required": [
+          "name",
+          "total",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "total": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "CreateCommunityRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "CreateInviteCodeRequest": {
+        "required": [
+          "code",
+          "expiresAt",
+          "maxUses"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "maxUses": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "DailyPoint": {
+        "required": [
+          "day",
+          "gameId",
+          "errors",
+          "plays"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "gameId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "plays": {
+            "type": "integer",
+            "format": "int64"
+          }
+        }
+      },
+      "DecisionView": {
+        "required": [
+          "from",
+          "to",
+          "reason",
+          "details",
+          "ruleVersion",
+          "actor",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "to": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "details": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          },
+          "ruleVersion": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "actor": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeviceShare": {
+        "required": [
+          "os",
+          "osVersion",
+          "browser",
+          "deviceClass",
+          "devices",
+          "sessions"
+        ],
+        "type": "object",
+        "properties": {
+          "os": {
+            "type": "string"
+          },
+          "osVersion": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "deviceClass": {
+            "type": "string"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "ErrorGroup": {
+        "required": [
+          "source",
+          "fingerprint",
+          "message",
+          "stack",
+          "occurrences",
+          "sessions",
+          "devices",
+          "firstSeen",
+          "lastSeen",
+          "new"
+        ],
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "fingerprint": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          },
+          "stack": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "occurrences": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "firstSeen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSeen": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "new": {
+            "type": "boolean"
+          }
+        }
+      },
+      "FrameGroup": {
+        "required": [
+          "os",
+          "browser",
+          "deviceClass",
+          "renderer",
+          "sessions",
+          "frames",
+          "slowShare",
+          "p95",
+          "slowestMs",
+          "stepP95Ms"
+        ],
+        "type": "object",
+        "properties": {
+          "os": {
+            "type": "string"
+          },
+          "browser": {
+            "type": "string"
+          },
+          "deviceClass": {
+            "type": "string"
+          },
+          "renderer": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "frames": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "slowShare": {
+            "type": "number",
+            "format": "double"
+          },
+          "p95": {
+            "type": "string"
+          },
+          "slowestMs": {
+            "type": "number",
+            "format": "double"
+          },
+          "stepP95Ms": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "GameHealth": {
+        "required": [
+          "gameId",
+          "gameVersion",
+          "sessions",
+          "devices",
+          "sessionsWithErrors",
+          "errors",
+          "frames",
+          "metrics",
+          "counts"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gameVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessionsWithErrors": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ErrorGroup"
+            }
+          },
+          "frames": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FrameGroup"
+            }
+          },
+          "metrics": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/MetricSummary"
+            }
+          },
+          "counts": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/CountSummary"
+            }
+          }
+        }
+      },
+      "Growth": {
+        "required": [
+          "total",
+          "lastDay",
+          "lastWeek"
+        ],
+        "type": "object",
+        "properties": {
+          "total": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "lastWeek": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "HideProfileRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "HttpValidationProblemDetails": {
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "title": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "status": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "detail": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "instance": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "errors": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
+          }
+        }
+      },
+      "InviteCodeView": {
+        "required": [
+          "code",
+          "createdAt",
+          "expiresAt",
+          "maxUses",
+          "uses",
+          "revokedAt",
+          "usable"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "maxUses": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "uses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "usable": {
+            "type": "boolean"
+          }
+        }
+      },
+      "JsonElement": { },
+      "MetricSummary": {
+        "required": [
+          "name",
+          "samples",
+          "p50",
+          "p95",
+          "max"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "samples": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "p50": {
+            "type": "number",
+            "format": "double"
+          },
+          "p95": {
+            "type": "number",
+            "format": "double"
+          },
+          "max": {
+            "type": "number",
+            "format": "double"
+          }
+        }
+      },
+      "NameChange": {
+        "required": [
+          "name",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "OutboxState": {
+        "required": [
+          "enabled",
+          "waiting",
+          "sentLastDay",
+          "failedLastDay",
+          "oldestWaitingSince"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "waiting": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sentLastDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "failedLastDay": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "oldestWaitingSince": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "ProfileCard": {
+        "required": [
+          "id",
+          "name",
+          "avatar",
+          "publicId",
+          "accountId",
+          "account"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "account": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ProfileDetail": {
+        "required": [
+          "id",
+          "publicId",
+          "name",
+          "avatar",
+          "kind",
+          "ageBand",
+          "createdAt",
+          "names",
+          "onPublicBoards",
+          "hiddenFromBoards"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "publicId": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "ageBand": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NameChange"
+            }
+          },
+          "onPublicBoards": {
+            "type": "boolean"
+          },
+          "hiddenFromBoards": {
+            "type": "boolean"
+          }
+        }
+      },
+      "RankedEvidence": {
+        "required": [
+          "moves",
+          "seconds",
+          "minMsPerMove",
+          "claimed",
+          "replayed"
+        ],
+        "type": "object",
+        "properties": {
+          "moves": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "seconds": {
+            "type": "number",
+            "format": "double"
+          },
+          "minMsPerMove": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "claimed": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "replayed": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "RecentResult": {
+        "required": [
+          "id",
+          "value",
+          "level",
+          "at"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "level": {
+            "type": "string"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "RecoveryCodesView": {
+        "required": [
+          "codes"
+        ],
+        "type": "object",
+        "properties": {
+          "codes": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RegistryBuild": {
+        "required": [
+          "name",
+          "version",
+          "entryUrl",
+          "orientation",
+          "capabilities"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "entryUrl": {
+            "type": "string"
+          },
+          "orientation": {
+            "type": "string"
+          },
+          "capabilities": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "RenameProfileRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReviewDecisionRequest": {
+        "required": [
+          "note"
+        ],
+        "type": "object",
+        "properties": {
+          "note": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "ReviewDetail": {
+        "required": [
+          "result",
+          "player",
+          "history",
+          "ranked",
+          "decisions"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReviewSummary"
+          },
+          "player": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileCard"
+              }
+            ]
+          },
+          "history": {
+            "$ref": "#/components/schemas/ReviewHistory"
+          },
+          "ranked": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RankedEvidence"
+              }
+            ]
+          },
+          "decisions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DecisionView"
+            }
+          }
+        }
+      },
+      "ReviewEntry": {
+        "required": [
+          "result",
+          "player"
+        ],
+        "type": "object",
+        "properties": {
+          "result": {
+            "$ref": "#/components/schemas/ReviewSummary"
+          },
+          "player": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/ProfileCard"
+              }
+            ]
+          }
+        }
+      },
+      "ReviewHistory": {
+        "required": [
+          "best",
+          "runs",
+          "recent"
+        ],
+        "type": "object",
+        "properties": {
+          "best": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "runs": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "recent": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/RecentResult"
+            }
+          }
+        }
+      },
+      "ReviewPage": {
+        "required": [
+          "held",
+          "results",
+          "next"
+        ],
+        "type": "object",
+        "properties": {
+          "held": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "results": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewEntry"
+            }
+          },
+          "next": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "ReviewSummary": {
+        "required": [
+          "id",
+          "kind",
+          "profileId",
+          "gameId",
+          "board",
+          "value",
+          "at",
+          "level",
+          "reason",
+          "since",
+          "by",
+          "evidence"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "at": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "level": {
+            "type": "string"
+          },
+          "reason": {
+            "type": "string"
+          },
+          "since": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "by": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "evidence": {
+            "type": "string"
+          }
+        }
+      },
+      "RunReplay": {
+        "required": [
+          "gameId",
+          "version",
+          "seed",
+          "moves",
+          "build"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "seed": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "moves": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "build": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/RegistryBuild"
+              }
+            ]
+          }
+        }
+      },
+      "SetRoleRequest": {
+        "required": [
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "SetupView": {
+        "required": [
+          "open",
+          "onlySomeEmails"
+        ],
+        "type": "object",
+        "properties": {
+          "open": {
+            "type": "boolean"
+          },
+          "onlySomeEmails": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SignInMethodView": {
+        "required": [
+          "id",
+          "name",
+          "configured",
+          "on",
+          "onlyWayIn"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "configured": {
+            "type": "boolean"
+          },
+          "on": {
+            "type": "boolean"
+          },
+          "onlyWayIn": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "SignInSettingsView": {
+        "required": [
+          "methods",
+          "registration",
+          "email",
+          "proofOfWork"
+        ],
+        "type": "object",
+        "properties": {
+          "methods": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/SignInMethodView"
+            }
+          },
+          "registration": {
+            "type": "string"
+          },
+          "email": {
+            "type": "boolean"
+          },
+          "proofOfWork": {
+            "type": "boolean"
+          }
+        }
+      },
+      "SuspendRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TelemetryReport": {
+        "required": [
+          "from",
+          "to",
+          "totals",
+          "devices",
+          "games",
+          "daily"
+        ],
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "to": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "totals": {
+            "$ref": "#/components/schemas/TelemetryTotals"
+          },
+          "devices": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DeviceShare"
+            }
+          },
+          "games": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/GameHealth"
+            }
+          },
+          "daily": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DailyPoint"
+            }
+          }
+        }
+      },
+      "TelemetryTotals": {
+        "required": [
+          "devices",
+          "sessions",
+          "events"
+        ],
+        "type": "object",
+        "properties": {
+          "devices": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "sessions": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "events": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "TwoFactorCodeRequest": {
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "recoveryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "TwoFactorView": {
+        "required": [
+          "enabled",
+          "openUntil",
+          "recoveryCodesLeft"
+        ],
+        "type": "object",
+        "properties": {
+          "enabled": {
+            "type": "boolean"
+          },
+          "openUntil": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "recoveryCodesLeft": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "UpdateSignInSettingsRequest": {
+        "required": [
+          "methods",
+          "registration"
+        ],
+        "type": "object",
+        "properties": {
+          "methods": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "boolean"
+            }
+          },
+          "registration": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "proofOfWork": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          }
+        }
+      },
+      "WorkerStatus": {
+        "required": [
+          "name",
+          "lastRunAt",
+          "lastSuccessAt",
+          "lastError",
+          "failuresInARow"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "lastRunAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastSuccessAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "lastError": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "failuresInARow": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      }
+    }
+  },
+  "tags": [
+    {
+      "name": "Admin"
+    }
+  ]
+}

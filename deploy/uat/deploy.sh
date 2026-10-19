@@ -4,8 +4,9 @@
 #   deploy/uat/deploy.sh                # deploy origin/main
 #   deploy/uat/deploy.sh <commit|ref>   # deploy something else (e.g. to roll back)
 #
-# Builds from a clean export of the ref (never from a working copy), backs up the database first,
-# waits until the hub answers, and prints what is running. See docs/guides/uat.md.
+# Runs the images CI published for the ref's commit (ADR 0021) with the compose file of that commit (a clean export,
+# never a working copy), backs up the database first, waits until the hub answers, and prints what is running. See
+# docs/guides/uat.md.
 set -euo pipefail
 
 REF="${1:-origin/main}"
@@ -42,22 +43,36 @@ source "$ENV_FILE"
 set +a
 
 git -C "$REPO" fetch --quiet origin
-SHA="$(git -C "$REPO" rev-parse --short=12 "$REF^{commit}")"
+COMMIT="$(git -C "$REPO" rev-parse "$REF^{commit}")"
+SHA="${COMMIT::12}"
 log "deploying $REF ($SHA)"
-
-if docker compose -p tohe-uat ps --status running --services 2>/dev/null | grep -qx postgres; then
-  "$HERE/backup.sh"
-fi
 
 rm -rf "$SRC"
 mkdir -p "$SRC"
-git -C "$REPO" archive "$SHA" | (umask 022 && tar -x -C "$SRC")
+git -C "$REPO" archive "$COMMIT" | (umask 022 && tar -x -C "$SRC")
 
 cd "$SRC"
 export TOHE_VERSION="$SHA"
-# --pull: base images (dotnet runtime, node, caddy) use moving tags; take their latest security patches every time.
-docker compose -f compose.uat.yaml --env-file "$ENV_FILE" build --pull
-docker compose -f compose.uat.yaml --env-file "$ENV_FILE" up -d --remove-orphans
+export TOHE_IMAGE_TAG="sha-$COMMIT"
+compose=(docker compose -f compose.uat.yaml --env-file "$ENV_FILE")
+if grep -q 'TOHE_IMAGE_TAG' compose.uat.yaml; then
+  # What the family tries is what production runs: the images CI built, tested and published for this commit.
+  log "pulling the images of $SHA from ghcr.io"
+  if ! "${compose[@]}" pull --quiet api hub games site; then
+    log "no images for $SHA on ghcr.io: CI publishes them once the checks on main pass — try again then"
+    exit 1
+  fi
+else
+  # A commit from before CI published images (a rollback): build it here, as deploys used to. --pull: base images
+  # use moving tags; take their latest security patches.
+  "${compose[@]}" build --pull
+fi
+
+# Nothing has changed yet; back up right before the containers are replaced.
+if docker compose -p tohe-uat ps --status running --services 2>/dev/null | grep -qx postgres; then
+  "$HERE/backup.sh"
+fi
+"${compose[@]}" up -d --remove-orphans
 
 HUB="http://${TOHE_UAT_HOST}:4820"
 log "waiting for $HUB/api/health"

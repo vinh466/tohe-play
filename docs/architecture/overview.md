@@ -38,6 +38,7 @@ flowchart TB
 | Platform API | `services/api` | Identity (M1), registry, saves and scores (M2), parental settings. The only writer to the database. |
 | Games origin | `games/*` → `tools/games-host` | Immutable static builds under `/<id>/<version>/` plus `catalog.json`. |
 | Site | `apps/site` + `docs/` | Landing page (Vietnamese) and developer docs (English). |
+| Admin console | `apps/admin` | The operator's pages at `/admin/`, served by the hub's server on the hub's origin ([Admin console](admin.md)). |
 
 ## Origins
 
@@ -49,9 +50,15 @@ Three browser origins, on purpose:
 | Games | `http://localhost:4730` | `http://10.100.0.2:4830` | Game code — possibly AI-written — can never read the hub's cookies or storage. |
 | Site | `http://localhost:4710` | `http://10.100.0.2:4810` | Static, independent of the app; stays up if the app is down. |
 
-Environments are described in [ADR 0010](../decisions/0010-environments-dev-and-uat.md). For a future public
-production, hostnames must be flat (one level under `vinetic.io.vn`) because Cloudflare's free certificates only
-cover one subdomain level — see [ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md).
+Environments are described in [ADR 0010](../decisions/0010-environments-dev-and-uat.md). Production runs the same
+images on the `platform-infra` cluster through Tò He's Helm chart, configured when the containers start
+([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md), [Configuration](../guides/configuration.md)).
+There all of Tò He is on `toheplay.io.vn`, a domain it has to itself: the hub at its root, the games origin at
+`games.toheplay.io.vn`, the site at `docs.toheplay.io.vn` — one level down, which Cloudflare's free certificate
+covers ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)). The games are the same *site* as the hub there, as
+locally and on UAT, where only the port tells the origins apart: the hub's `__Host-` session cookie (on HTTPS), the
+API's same-origin checks and the games' CSP keep game code away from it, and no app that is not Tò He's shares the
+domain.
 
 ## Dependency rules
 
@@ -71,10 +78,13 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | --- | --- | --- |
 | Platform | done | `GET /api/config` |
 | Registry | done | `GET /api/games`, `GET /api/games/{id}` |
-| Identity & Households | done | `/api/auth/*`, `/api/session/*`, `/api/household/*` — see [Identity](identity.md) |
-| Saves & Scores | M2 | per-profile saves, score boards |
+| Identity & Profiles | done | `/api/auth/*`, `/api/session/*`, `/api/account/*`, `/api/profiles/*` — accounts own their profiles and sign in by email or a provider, switched and opened at run time ([ADR 0023](../decisions/0023-accounts-own-their-profiles.md), [0024](../decisions/0024-email-identifies-an-account.md), [0026](../decisions/0026-sign-in-methods-and-account-linking.md), [0028](../decisions/0028-sign-in-and-registration-at-run-time.md)); see [Identity](identity.md) |
+| Saves & Scores | M2 | per-profile saves and runs; their boards come from Integrity |
+| Integrity | the engine and the account's boards ([ADR 0029](../decisions/0029-integrity-engine-and-boards-by-trust.md)) | `/api/boards/*`; Progress and Rooms hand it their results — see [Integrity and boards](integrity.md) |
 | Parental | later | play-time limits, per-profile game visibility |
+| Email | done ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | none — other modules add messages to its outbox |
 | Telemetry | done ([ADR 0015](../decisions/0015-device-telemetry.md)) | `/api/telemetry`, `/api/telemetry/report` — see [Device telemetry](telemetry.md) |
+| Admin | the platform at a glance, users, sign-in and registration, communities ([ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md), [0028](../decisions/0028-sign-in-and-registration-at-run-time.md)) | `/api/admin/*`, an OpenAPI document of its own; reads what the other modules expose — see [Admin console](admin.md) |
 | Rooms | done ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | `/api/rooms/*`, SignalR `/api/rooms/hub` — see [Online rooms](rooms.md) |
 
 Generated reference: [Platform API](/docs/reference/api/).

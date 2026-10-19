@@ -300,6 +300,75 @@ describe('game shell (ADR 0018)', () => {
   });
 });
 
+describe('ranked runs (ADR 0030)', () => {
+  const rankedManifest: GameManifest = {
+    ...manifest,
+    capabilities: ['save', 'scores', 'ranked'],
+    ranked: { verify: 'verify.js', board: 'default', minMsPerMove: 100, maxMoves: 3 },
+  };
+  const init = () => ({
+    profile: { id: 'p1', name: 'Na' },
+    locale: 'vi',
+    settings: { muted: false, theme: 'light' as const },
+    save: null,
+    seed: 42,
+  });
+
+  it('gives the game the run the hub opened, and hands its moves back', async () => {
+    const [gameSide, hostSide] = memoryTransportPair();
+    const onRankedFinish = vi.fn();
+    createHost({
+      transport: hostSide,
+      manifest: rankedManifest,
+      init,
+      onRankedStart: () => ({ run: 'run-1', seed: 913 }),
+      onRankedFinish,
+    });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    expect(await session.ranked.start()).toEqual({ run: 'run-1', seed: 913 });
+    await session.ranked.finish('run-1', [0, 4, 2], 64);
+    expect(onRankedFinish).toHaveBeenCalledWith({ run: 'run-1', moves: [0, 4, 2], score: 64 });
+    await expect(session.ranked.finish('run-1', [0, 1, 2, 3], 64)).rejects.toThrow('at most 3 moves');
+  });
+
+  it('plays unranked when the hub cannot open a run, or the game did not declare it', async () => {
+    const [refusedGame, refusedHost] = memoryTransportPair();
+    createHost({
+      transport: refusedHost,
+      manifest: rankedManifest,
+      init,
+      onRankedStart: () => {
+        throw new Error('offline');
+      },
+    });
+    expect(await (await connect({ gameId: 'hello', transport: refusedGame })).ranked.start()).toBeNull();
+
+    const [olderGame, olderHost] = memoryTransportPair();
+    createHost({ transport: olderHost, manifest: rankedManifest, init });
+    expect(await (await connect({ gameId: 'hello', transport: olderGame })).ranked.start()).toBeNull();
+
+    const { gameSide } = setup({ onRankedStart: () => ({ run: 'run-1', seed: 1 }) });
+    expect(await (await connect({ gameId: 'hello', transport: gameSide })).ranked.start()).toBeNull();
+  });
+
+  it('gives a game a ranked run to watch, and none otherwise (ADR 0032)', async () => {
+    const [gameSide, hostSide] = memoryTransportPair();
+    const host = createHost({
+      transport: hostSide,
+      manifest: rankedManifest,
+      init: () => ({ ...init(), rankedReplay: { seed: 913, moves: [0, 4, 2] } }),
+    });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    await host.ready;
+    expect(session.rankedReplay).toEqual({ seed: 913, moves: [0, 4, 2] });
+    expect(session.replay).toBeNull();
+
+    const [plainGame, plainHost] = memoryTransportPair();
+    createHost({ transport: plainHost, manifest: rankedManifest, init });
+    expect((await connect({ gameId: 'hello', transport: plainGame })).rankedReplay).toBeNull();
+  });
+});
+
 describe('createRng', () => {
   it('is deterministic per seed', () => {
     const a = createRng(123);

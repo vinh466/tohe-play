@@ -53,7 +53,8 @@
           "save",
           "scores",
           "rooms",
-          "shell"
+          "shell",
+          "ranked"
         ]
       }
     },
@@ -362,6 +363,40 @@
       "required": [
         "seats"
       ],
+      "additionalProperties": false
+    },
+    "ranked": {
+      "description": "Ranked runs (ADR 0030); required with the \"ranked\" capability",
+      "type": "object",
+      "properties": {
+        "verify": {
+          "default": "verify.js",
+          "description": "ES module in the build that exports `verify`; the API replays ranked runs with it",
+          "type": "string",
+          "pattern": "^[\\w-]+(?:\\/[\\w-]+)*\\.m?js$"
+        },
+        "board": {
+          "default": "default",
+          "description": "The board ranked runs count on",
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "minMsPerMove": {
+          "default": 100,
+          "description": "A person needs at least this long per move; a faster run is held for a person to look at",
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 60000
+        },
+        "maxMoves": {
+          "default": 20000,
+          "description": "Most moves a ranked run can have",
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100000
+        }
+      },
       "additionalProperties": false
     }
   },

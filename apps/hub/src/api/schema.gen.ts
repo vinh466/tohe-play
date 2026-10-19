@@ -21,6 +21,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/logins/{provider}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a provider from the account (needs step-up level 2); never the last way in. */
+        delete: operations["UnlinkSignInMethod"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/profiles/by-id/{publicId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A profile's card by its public ID, as this account may find it: never a child of another account. */
+        get: operations["FindProfileById"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/profiles/options": {
         parameters: {
             query?: never;
@@ -28,8 +62,25 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Allowed avatars and age bands. */
+        /** Allowed avatars and age bands, and how many profiles an account may own. */
         get: operations["GetProfileOptions"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/challenge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A proof-of-work to solve before signing up or asking for a password reset, when /api/config says proofOfWork. */
+        get: operations["GetChallenge"];
         put?: never;
         post?: never;
         delete?: never;
@@ -47,8 +98,25 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Create an adult account: a new household, or join one with an invite code. */
+        /** Start signing up: a code goes to the email. 202 whether or not the address has an account. */
         post: operations["Register"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/register/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code from the email creates the account and its first profile, which plays at once. */
+        post: operations["ConfirmRegistration"];
         delete?: never;
         options?: never;
         head?: never;
@@ -64,8 +132,42 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Sign in; sets the session cookie. */
+        /** Sign in; sets the session cookie. An only profile without a PIN plays at once. */
         post: operations["Login"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/forgot": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code to set a new password goes to the email, if it has an account. 202 either way. */
+        post: operations["ForgotPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code sets a new password; every other session ends. */
+        post: operations["ResetPassword"];
         delete?: never;
         options?: never;
         head?: never;
@@ -96,10 +198,216 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The device session (account, household, profiles, active profile, parent gate); 204 when signed out. */
+        /** The device session (account, profiles, active profile, parent gate); 204 when signed out. */
         get: operations["GetMe"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code goes to the new email. Needs step-up level 2, or the password with the request. */
+        post: operations["ChangeEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code makes the new email the one that signs in; every other session ends. */
+        post: operations["ConfirmEmailChange"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/manage-pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or change the manage PIN (needs step-up level 2); opens profile management. */
+        put: operations["SetManagePin"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or change the password (needs step-up level 2); every other session ends. */
+        put: operations["SetPassword"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/terms": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Accept the terms and privacy notice in the version the hub shows. */
+        post: operations["AcceptTerms"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete the account (needs step-up level 2): it stops now, and goes for good after seven days unless someone signs in to it. */
+        delete: operations["DeleteAccount"];
+        options?: never;
+        head?: never;
+        /** Turn the account's telemetry on or off. */
+        patch: operations["UpdateAccount"];
+        trace?: never;
+    };
+    "/api/auth/external/pending": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The step a sign-in back from a provider waits for, on this browser; 404 when none. */
+        get: operations["GetPendingSignIn"];
+        put?: never;
+        post?: never;
+        /** Forget the sign-in waiting on this browser. */
+        delete: operations["CancelPendingSignIn"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/email": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The provider vouched for no address: a code goes to this one. */
+        post: operations["PendingSignInEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/email/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code proves the address: an account with it is linked at once; otherwise sign-up follows. */
+        post: operations["ConfirmPendingSignInEmail"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/link-code": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code to the account's address, to prove it before the provider is linked. */
+        post: operations["PendingSignInLinkCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code, or the account's password, links the provider to the account and signs in. */
+        post: operations["LinkPendingSignIn"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/auth/external/pending/signup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A name and the terms finish signing up with the provider; the first profile plays at once. */
+        post: operations["CompletePendingSignUp"];
         delete?: never;
         options?: never;
         head?: never;
@@ -133,16 +441,16 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Re-enter the password to manage the household for a few minutes. */
+        /** The manage PIN opens profile management on this device for 10 minutes (step-up level 1). */
         post: operations["UnlockParentGate"];
-        /** Lock household management again. */
+        /** Lock profile management again. */
         delete: operations["LockParentGate"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/household": {
+    "/api/session/step-up": {
         parameters: {
             query?: never;
             header?: never;
@@ -151,33 +459,15 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        post?: never;
+        /** The password opens account security, and profile management, for 10 minutes (level 2). */
+        post: operations["StepUp"];
         delete?: never;
-        options?: never;
-        head?: never;
-        /** Rename the household, or turn its telemetry on or off. */
-        patch: operations["UpdateHousehold"];
-        trace?: never;
-    };
-    "/api/household/invite": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** New invite code for another adult (replaces the previous one). */
-        post: operations["CreateInvite"];
-        /** Revoke the invite code. */
-        delete: operations["RevokeInvite"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/household/profiles": {
+    "/api/session/step-up/code": {
         parameters: {
             query?: never;
             header?: never;
@@ -186,7 +476,41 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Add a child profile. */
+        /** A code to the account's email, for stepping up without the password. */
+        post: operations["StepUpCode"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/session/step-up/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The code opens account security, and profile management, for 10 minutes (level 2). */
+        post: operations["ConfirmStepUp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Add a profile to the account (at most five). */
         post: operations["CreateProfile"];
         delete?: never;
         options?: never;
@@ -194,7 +518,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/household/profiles/{id}": {
+    "/api/profiles/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -204,11 +528,11 @@ export interface paths {
         get?: never;
         put?: never;
         post?: never;
-        /** Remove a child profile. */
+        /** Delete one of the account's profiles — never the last one — and everything of it, for good. */
         delete: operations["DeleteProfile"];
         options?: never;
         head?: never;
-        /** Edit a profile. Adults can only edit their own adult profile. */
+        /** Edit one of the account's profiles. */
         patch: operations["UpdateProfile"];
         trace?: never;
     };
@@ -297,17 +621,68 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/progress/leaderboard/{gameId}": {
+    "/api/boards/{gameId}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        /** Best score of each household member on a game's board. */
-        get: operations["GetLeaderboard"];
+        /** The account's board of a game: each profile's best this week or of all time. */
+        get: operations["GetAccountBoard"];
         put?: never;
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/boards/{gameId}/public": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A community's or the server's board of a game: the first 50 and the viewer's place, by trust. */
+        get: operations["GetPublicBoard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Open a ranked run of a game (ADR 0030): its id and the seed to play it from; it closes the last one. */
+        post: operations["StartRankedRun"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/runs/{id}/finish": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Hand a ranked run's moves and score in; the server replays them with the game's verify module. */
+        post: operations["FinishRankedRun"];
         delete?: never;
         options?: never;
         head?: never;
@@ -390,7 +765,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The active profile's online results in a game, and its household's board over the last 7 days. */
+        /** The active profile's online results in a game, and its account's board of the week. */
         get: operations["GetRoomStats"];
         put?: never;
         post?: never;
@@ -512,7 +887,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Ask a member of one's household to the table: it shows in their hub for 10 minutes. */
+        /** Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): it shows in their hub for 10 minutes. */
         post: operations["InviteToRoom"];
         delete?: never;
         options?: never;
@@ -527,7 +902,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Tables household members asked the active profile to, for the next 10 minutes. */
+        /** Tables someone asked the active profile to — by its ID, or from its own account — for the next 10 minutes. */
         get: operations["ListRoomInvites"];
         put?: never;
         post?: never;
@@ -592,16 +967,72 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        AccountBoardView: {
+            gameId: string;
+            board: string;
+            period: string;
+            /** Format: date-time */
+            since: null | string;
+            rows: components["schemas"]["BoardRow"][];
+        };
+        AccountDeletionView: {
+            /** Format: date-time */
+            deleteAfter: string;
+        };
         AccountView: {
             /** Format: uuid */
             id: string;
-            username: string;
+            email: null | string;
+            username: null | string;
             displayName: string;
+            telemetry: boolean;
+            hasPassword: boolean;
+            hasManagePin: boolean;
+            termsVersion: null | string;
+            logins: string[];
+            role: null | string;
+            community: null | string;
+        };
+        AttemptView: {
+            /** Format: uuid */
+            attemptId: string;
+        };
+        BoardRow: {
+            /** Format: uuid */
+            profileId: string;
+            name: string;
+            avatar: string;
+            /** Format: double */
+            value: number;
+            /** Format: date-time */
+            at: string;
+            inProgress: boolean;
+            underReview: boolean;
+        };
+        ChangeEmailRequest: {
+            email: string;
+            password?: null | string;
         };
         ClientConfig: {
             gamesOrigin: string;
             apiVersion: string;
             telemetry: boolean;
+            email: boolean;
+            providers: components["schemas"]["ExternalProvider"][];
+            passwordSignIn: boolean;
+            registration: string;
+            proofOfWork: boolean;
+        };
+        CompleteSignUpRequest: {
+            displayName: string;
+            acceptTerms: boolean;
+            termsVersion: null | string;
+            inviteCode?: null | string;
+        };
+        ConfirmCodeRequest: {
+            /** Format: uuid */
+            attemptId: string;
+            code: string;
         };
         CountSummary: {
             name: string;
@@ -613,7 +1044,7 @@ export interface components {
         CreateProfileRequest: {
             name: string;
             avatar: string;
-            ageBand: string;
+            ageBand?: null | string;
             pin?: null | string;
         };
         CreateRoomRequest: {
@@ -626,7 +1057,7 @@ export interface components {
             /** @default true */
             isPublic: boolean;
             /** @default false */
-            householdOnly: boolean;
+            accountOnly: boolean;
             /** @default true */
             botsFill: boolean;
             botLevel?: null | string;
@@ -676,6 +1107,23 @@ export interface components {
             /** Format: date-time */
             lastSeen: string;
             new: boolean;
+        };
+        ExternalOutcome: {
+            me: null | components["schemas"]["MeView"];
+            pending: null | components["schemas"]["PendingSignInView"];
+        };
+        ExternalProvider: {
+            id: string;
+            name: string;
+        };
+        FinishRankedRunRequest: {
+            moves: components["schemas"]["JsonElement"];
+            /** Format: double */
+            score: number;
+        };
+        ForgotPasswordRequest: {
+            email: string;
+            proof?: null | components["schemas"]["ProofOfWorkSolution"];
         };
         FrameGroup: {
             os: string;
@@ -767,14 +1215,6 @@ export interface components {
             /** Format: int32 */
             players: number;
         };
-        HouseholdView: {
-            /** Format: uuid */
-            id: string;
-            name: string;
-            members: components["schemas"]["MemberView"][];
-            invite: null | components["schemas"]["InviteView"];
-            telemetry: boolean;
-        };
         HttpValidationProblemDetails: {
             type?: null | string;
             title?: null | string;
@@ -790,11 +1230,6 @@ export interface components {
             /** Format: uuid */
             profileId: string;
         };
-        InviteView: {
-            code: string;
-            /** Format: date-time */
-            expiresAt: string;
-        };
         JsonElement: unknown;
         LeaderRow: {
             /** Format: uuid */
@@ -808,35 +1243,26 @@ export interface components {
             /** Format: int32 */
             points: number;
         };
-        LeaderboardEntry: {
-            /** Format: uuid */
-            profileId: string;
-            name: string;
-            avatar: string;
-            /** Format: double */
-            value: number;
-            /** Format: date-time */
-            achievedAt: string;
-            inProgress: boolean;
+        LinkProofRequest: {
+            code?: null | string;
+            password?: null | string;
         };
         LoginRequest: {
-            username: string;
+            email: string;
             password: string;
+        };
+        ManagePinRequest: {
+            pin: string;
         };
         MeView: {
             account: components["schemas"]["AccountView"];
-            household: components["schemas"]["HouseholdView"];
             profiles: components["schemas"]["ProfileView"][];
             /** Format: uuid */
             activeProfileId: null | string;
             /** Format: date-time */
             parentUnlockedUntil: null | string;
-        };
-        MemberView: {
-            /** Format: uuid */
-            accountId: string;
-            displayName: string;
-            username: string;
+            /** Format: date-time */
+            secureUntil: null | string;
         };
         MetricSummary: {
             name: string;
@@ -850,7 +1276,22 @@ export interface components {
             max: number;
         };
         ParentGateRequest: {
+            pin: string;
+        };
+        PasswordRequest: {
             password: string;
+        };
+        PendingCodeRequest: {
+            code: string;
+        };
+        PendingEmailRequest: {
+            email: string;
+        };
+        PendingSignInView: {
+            provider: string;
+            step: string;
+            email: null | string;
+            hasPassword: boolean;
         };
         PlayerStats: {
             /** Format: int32 */
@@ -868,23 +1309,85 @@ export interface components {
             detail?: null | string;
             instance?: null | string;
         };
+        ProfileCardView: {
+            /** Format: uuid */
+            id: string;
+            publicId: string;
+            name: string;
+            avatar: string;
+        };
         ProfileOptionsView: {
             avatars: string[];
             ageBands: string[];
+            /** Format: int32 */
+            maxProfiles: number;
         };
         ProfileView: {
             /** Format: uuid */
             id: string;
+            publicId: string;
             name: string;
             avatar: string;
             kind: string;
             ageBand: null | string;
             hasPin: boolean;
-            isMine: boolean;
             playWithOthers: boolean;
+            onPublicBoards: boolean;
+            hiddenFromBoards: boolean;
+            invites: string;
+        };
+        ProofOfWorkChallenge: {
+            algorithm: string;
+            challenge: string;
+            salt: string;
+            /** Format: int32 */
+            maxNumber: number;
+            token: string;
+        };
+        ProofOfWorkSolution: {
+            token: string;
+            /** Format: int32 */
+            number: number;
+        };
+        PublicBoardView: {
+            gameId: string;
+            board: string;
+            scope: string;
+            period: string;
+            /** Format: date-time */
+            since: null | string;
+            hands: boolean;
+            reproducible: boolean;
+            listed: boolean;
+            /** Format: int32 */
+            players: number;
+            top: components["schemas"]["PublicRow"][];
+            me: null | components["schemas"]["PublicRow"];
+            around: components["schemas"]["PublicRow"][];
+        };
+        PublicRow: {
+            /** Format: int32 */
+            rank: number;
+            /** Format: uuid */
+            profileId: string;
+            name: string;
+            avatar: string;
+            publicId: string;
+            /** Format: double */
+            value: number;
+            /** Format: int32 */
+            hands: null | number;
+            /** Format: int32 */
+            firsts: null | number;
+            verified: boolean;
         };
         PutSaveRequest: {
             data: components["schemas"]["JsonElement"];
+        };
+        RankedRunView: {
+            run: string;
+            /** Format: int32 */
+            seed: number;
         };
         RecordScoresRequest: {
             scores: components["schemas"]["ScoreInput"][];
@@ -892,13 +1395,6 @@ export interface components {
         RecordScoresResult: {
             /** Format: int32 */
             recorded: number;
-        };
-        RegisterRequest: {
-            displayName: string;
-            username: string;
-            password: string;
-            householdName?: null | string;
-            inviteCode?: null | string;
         };
         ReplayAction: {
             /** Format: int32 */
@@ -911,6 +1407,13 @@ export interface components {
             name: null | string;
             avatar: null | string;
             bot: null | string;
+            deleted: boolean;
+        };
+        ResetPasswordRequest: {
+            /** Format: uuid */
+            attemptId: string;
+            code: string;
+            password: string;
         };
         RoomInvite: {
             /** Format: uuid */
@@ -925,7 +1428,7 @@ export interface components {
         RoomStatsView: {
             allTime: components["schemas"]["PlayerStats"];
             week: components["schemas"]["PlayerStats"];
-            household: components["schemas"]["LeaderRow"][];
+            account: components["schemas"]["LeaderRow"][];
         };
         RoomSummary: {
             /** Format: uuid */
@@ -954,7 +1457,7 @@ export interface components {
             /** Format: uuid */
             hostProfileId: string;
             isPublic: boolean;
-            householdOnly: boolean;
+            accountOnly: boolean;
             locked: boolean;
             /** Format: int32 */
             seats: number;
@@ -1010,6 +1513,21 @@ export interface components {
         };
         SetSeatRequest: {
             bot: null | string;
+        };
+        SignUpRequest: {
+            email: string;
+            password: string;
+            displayName: string;
+            acceptTerms: boolean;
+            termsVersion: null | string;
+            inviteCode?: null | string;
+            proof?: null | components["schemas"]["ProofOfWorkSolution"];
+        };
+        StartRankedRunRequest: {
+            gameId: string;
+        };
+        StepUpRequest: {
+            password: string;
         };
         TelemetryBatch: {
             /** Format: uuid */
@@ -1079,8 +1597,10 @@ export interface components {
             /** Format: int32 */
             events: number;
         };
-        UpdateHouseholdRequest: {
-            name?: null | string;
+        TermsRequest: {
+            version: string;
+        };
+        UpdateAccountRequest: {
             telemetry?: null | boolean;
         };
         UpdateProfileRequest: {
@@ -1090,12 +1610,15 @@ export interface components {
             pin?: null | string;
             removePin?: null | boolean;
             playWithOthers?: null | boolean;
+            onPublicBoards?: null | boolean;
+            askedChild?: null | boolean;
+            invites?: null | string;
         };
         UpdateRoomRequest: {
             /** Format: int32 */
             seats?: null | number;
             isPublic?: null | boolean;
-            householdOnly?: null | boolean;
+            accountOnly?: null | boolean;
             locked?: null | boolean;
             botsFill?: null | boolean;
             botLevel?: null | string;
@@ -1134,6 +1657,66 @@ export interface operations {
             };
         };
     };
+    UnlinkSignInMethod: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                provider: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    FindProfileById: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                publicId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileCardView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
     GetProfileOptions: {
         parameters: {
             query?: never;
@@ -1154,6 +1737,26 @@ export interface operations {
             };
         };
     };
+    GetChallenge: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProofOfWorkChallenge"];
+                };
+            };
+        };
+    };
     Register: {
         parameters: {
             query?: never;
@@ -1163,7 +1766,40 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["RegisterRequest"];
+                "application/json": components["schemas"]["SignUpRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmRegistration: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCodeRequest"];
             };
         };
         responses: {
@@ -1174,15 +1810,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeView"];
-                };
-            };
-            /** @description Bad Request */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
         };
@@ -1207,6 +1834,72 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeView"];
+                };
+            };
+        };
+    };
+    ForgotPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ForgotPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    ResetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ResetPasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
         };
@@ -1253,6 +1946,408 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    ChangeEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ChangeEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AttemptView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmEmailChange: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+        };
+    };
+    SetManagePin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ManagePinRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    SetPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    AcceptTerms: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TermsRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    DeleteAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountDeletionView"];
+                };
+            };
+        };
+    };
+    UpdateAccount: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateAccountRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPendingSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PendingSignInView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CancelPendingSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    PendingSignInEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PendingEmailRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmPendingSignInEmail: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PendingCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalOutcome"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    PendingSignInLinkCode: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    LinkPendingSignIn: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["LinkProofRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalOutcome"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    CompletePendingSignUp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CompleteSignUpRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ExternalOutcome"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
             };
         };
     };
@@ -1351,7 +2446,7 @@ export interface operations {
             };
         };
     };
-    UpdateHousehold: {
+    StepUp: {
         parameters: {
             query?: never;
             header?: never;
@@ -1360,7 +2455,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["UpdateHouseholdRequest"];
+                "application/json": components["schemas"]["StepUpRequest"];
             };
         };
         responses: {
@@ -1373,18 +2468,9 @@ export interface operations {
                     "application/json": components["schemas"]["MeView"];
                 };
             };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
-                };
-            };
         };
     };
-    CreateInvite: {
+    StepUpCode: {
         parameters: {
             query?: never;
             header?: never;
@@ -1393,34 +2479,29 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description OK */
-            200: {
+            /** @description Accepted */
+            202: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["MeView"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                    "application/json": components["schemas"]["AttemptView"];
                 };
             };
         };
     };
-    RevokeInvite: {
+    ConfirmStepUp: {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmCodeRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -1429,15 +2510,6 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeView"];
-                };
-            };
-            /** @description Forbidden */
-            403: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
@@ -1737,10 +2809,11 @@ export interface operations {
             };
         };
     };
-    GetLeaderboard: {
+    GetAccountBoard: {
         parameters: {
             query?: {
                 board?: string;
+                period?: string;
             };
             header?: never;
             path: {
@@ -1756,7 +2829,142 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["LeaderboardEntry"][];
+                    "application/json": components["schemas"]["AccountBoardView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetPublicBoard: {
+        parameters: {
+            query?: {
+                scope?: string;
+                board?: string;
+                period?: string;
+            };
+            header?: never;
+            path: {
+                gameId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PublicBoardView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    StartRankedRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["StartRankedRunRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RankedRunView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    FinishRankedRun: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["FinishRankedRunRequest"];
+            };
+        };
+        responses: {
+            /** @description Accepted */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
             /** @description Forbidden */

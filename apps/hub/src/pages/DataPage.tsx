@@ -10,7 +10,7 @@ import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 /**
  * "Dữ liệu kỹ thuật": what telemetry sends and never sends, this device's switch, and the last batch exactly as it
- * was sent (ADR 0015). Open to everyone, guests included; the household's switch is in Manage family.
+ * was sent (ADR 0015). Open to everyone, guests included; the account's switch is in Manage account.
  */
 export function DataPage() {
   const { t } = useTranslation();

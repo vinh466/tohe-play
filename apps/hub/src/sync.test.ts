@@ -1,7 +1,7 @@
 import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { openDb, type ToheDb } from './storage/db.ts';
-import { loadSave, recordScore, storeSave } from './storage/repository.ts';
+import { loadSave, recordRanked, recordScore, storeSave } from './storage/repository.ts';
 import { createSyncer, type ProgressApi, syncProfile } from './storage/sync.ts';
 
 /** An in-memory API with the server's rules: the last write wins; a score's clientId is stored once. */
@@ -9,8 +9,18 @@ function fakeServer() {
   let clock = Date.parse('2026-10-14T08:00:00Z');
   const saves = new Map<string, { data: unknown; updatedAt: string }>();
   const scores = new Map<string, { value: number; final: boolean }>();
-  const api: ProgressApi & { calls: number; onPut?: () => Promise<void> } = {
+  /** Ranked runs taken, by run; `refuse` holds runs the server will never take, `down` makes it unreachable. */
+  const ranked = new Map<string, { moves: unknown[]; score: number }>();
+  const refuse = new Set<string>();
+  const api: ProgressApi & { calls: number; down?: boolean; onPut?: () => Promise<void> } = {
     calls: 0,
+    async finishRun(run, moves, score) {
+      api.calls++;
+      if (api.down) throw new Error('offline');
+      if (refuse.has(run)) return 'refused';
+      ranked.set(run, { moves, score });
+      return 'taken';
+    },
     async listSaves() {
       api.calls++;
       return [...saves].map(([gameId, save]) => ({ gameId, ...save }));
@@ -35,7 +45,7 @@ function fakeServer() {
       return { recorded: list.length };
     },
   };
-  return { api, saves, scores };
+  return { api, saves, scores, ranked, refuse };
 }
 
 let databases = 0;
@@ -43,6 +53,38 @@ const device = (): ToheDb => openDb(`sync-test-${++databases}`);
 const KID = 'kid-1';
 
 describe('sync', () => {
+  it('hands ranked runs in once, drops one the server will never take, and keeps one it could not reach', async () => {
+    const db = device();
+    const server = fakeServer();
+    server.refuse.add('closed-run');
+    await recordRanked(db, {
+      profileId: KID,
+      gameId: 'merge-block',
+      run: 'run-1',
+      moves: [0, 3, 4],
+      score: 64,
+    });
+    await recordRanked(db, {
+      profileId: KID,
+      gameId: 'merge-block',
+      run: 'closed-run',
+      moves: [1],
+      score: 2,
+    });
+
+    await syncProfile(db, server.api, KID);
+    await syncProfile(db, server.api, KID);
+    expect([...server.ranked]).toEqual([['run-1', { moves: [0, 3, 4], score: 64 }]]);
+    expect(await db.ranked.where('synced').equals(0).count()).toBe(0);
+
+    server.api.down = true;
+    await recordRanked(db, { profileId: KID, gameId: 'merge-block', run: 'run-2', moves: [2], score: 4 });
+    await expect(syncProfile(db, server.api, KID)).rejects.toThrow('offline');
+    server.api.down = false;
+    await syncProfile(db, server.api, KID);
+    expect(server.ranked.get('run-2')).toEqual({ moves: [2], score: 4 });
+  });
+
   it('pushes pending saves and scores once, then marks them synced', async () => {
     const db = device();
     const server = fakeServer();
