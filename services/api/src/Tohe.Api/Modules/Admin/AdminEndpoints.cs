@@ -1,5 +1,5 @@
 using System.Diagnostics;
-using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
@@ -17,22 +17,18 @@ using Tohe.Api.Modules.Telemetry;
 
 namespace Tohe.Api.Modules.Admin;
 
-/// <summary>The account using the console, its role and what the role may do.</summary>
-/// <param name="Role"><c>owner</c>, <c>admin</c>, <c>moderator</c> or <c>viewer</c>; none for a player, who may do nothing here.</param>
-/// <param name="TwoFactorEnabled">Two-factor authentication is on: the console opens with a code on each device.</param>
-/// <param name="OpenUntil">The console is open on this device until then — two-factor authentication passed.</param>
-/// <param name="SecureUntil">Step-up level 2 is open on this device until then (ADR 0025).</param>
-/// <param name="HasPassword">Step-up level 2 may use the password; otherwise a code by email.</param>
+/// <summary>The account signed in to the console, its role and what the role may do.</summary>
+/// <param name="Role"><c>owner</c>, <c>admin</c>, <c>moderator</c> or <c>viewer</c>.</param>
+/// <param name="OpenUntil">The console session ends then: twelve hours after signing in.</param>
+/// <param name="SecureUntil">Step-up level 2 is open in this console session until then (ADR 0025).</param>
 public sealed record AdminMeView(
     Guid AccountId,
     string DisplayName,
     string? Email,
-    string? Role,
+    string Role,
     IReadOnlyList<string> Permissions,
-    bool TwoFactorEnabled,
-    DateTimeOffset? OpenUntil,
-    DateTimeOffset? SecureUntil,
-    bool HasPassword);
+    DateTimeOffset OpenUntil,
+    DateTimeOffset? SecureUntil);
 
 /// <summary>One entry of the audit log.</summary>
 /// <param name="Details">More about it, as JSON.</param>
@@ -104,11 +100,13 @@ public sealed record AdminDatabase(int Applied, IReadOnlyList<string> Pending, s
 
 /// <summary>How the deployment is configured — never its secrets.</summary>
 /// <param name="PublicUrl">The hub's public URL (<c>App:PublicUrl</c>).</param>
+/// <param name="ConsoleUrl">The console's public URL (<c>App:ConsoleUrl</c>).</param>
 /// <param name="EmailMode"><c>Smtp</c> or <c>Disabled</c>.</param>
 /// <param name="Providers">The sign-in providers it offers (ADR 0026).</param>
 /// <param name="OperatorReport">An operator token is set, so <c>GET /api/telemetry/report</c> answers.</param>
 public sealed record AdminSettings(
     string? PublicUrl,
+    string? ConsoleUrl,
     string GamesOrigin,
     string EmailMode,
     string? EmailFrom,
@@ -124,18 +122,31 @@ internal static class AdminEndpoints
 {
     private static readonly DateTimeOffset StartedAt = ProcessStart();
 
+    /// <summary>The console's session, and nothing else, authenticates the console's routes (ADR 0042).</summary>
+    private static readonly AuthorizationPolicy ConsolePolicy =
+        new AuthorizationPolicyBuilder(ConsoleSession.Scheme).RequireAuthenticatedUser().Build();
+
     public static void Map(IEndpointRouteBuilder api)
     {
-        var admin = api.MapGroup("/admin")
+        // ConsolePaths.Api: /api/admin.
+        var console = api.MapGroup("/admin")
             .WithGroupName(AdminModule.Document)
             .WithTags("Admin")
-            .RequireAuthorization()
-            .AddEndpointFilter<AdminAccess>();
+            .RequireAuthorization(ConsolePolicy);
 
-        admin.MapGet("/me", MeAsync)
-            .RequirePermission(AdminPermissions.SignedIn)
+        // Before a console session: what the console needs first, who is signed in, signing in and out, and a new
+        // deployment's setup.
+        ConsoleSessionEndpoints.MapOpen(console);
+        SetupEndpoints.Map(console);
+
+        // "Nobody signed in" is a normal state of the console, not an error: 204 rather than 401, as the hub's
+        // /api/auth/me, so browsers do not log a failed request on every visit.
+        console.MapGet("/me", MeAsync)
+            .AllowAnonymous()
             .WithName("GetAdminMe")
-            .WithSummary("The account using the console: its role, if any, and what the role may do.");
+            .WithSummary("The account signed in to the console: its role, what the role may do, and its session; 204 when nobody is.");
+
+        var admin = console.MapGroup("").AddEndpointFilter<AdminAccess>();
 
         admin.MapGet("/overview", OverviewAsync)
             .RequirePermission(AdminPermissions.Read)
@@ -162,35 +173,33 @@ internal static class AdminEndpoints
             .WithName("GetAdminAudit")
             .WithSummary("The audit log, newest first, a page at a time.");
 
-        SetupEndpoints.Map(admin);
-        TwoFactorEndpoints.Map(admin);
+        ConsoleSessionEndpoints.Map(admin);
+        TwoFactorEndpoints.MapConsole(admin);
         UsersEndpoints.Map(admin);
         SettingsEndpoints.Map(admin);
         ReviewEndpoints.Map(admin);
     }
 
-    /// <summary>The account, its role and what the role may do, and the console's state on this device.</summary>
-    public static AdminMeView MeView(Account account, PlatformRole? role, ClaimsPrincipal user, DateTimeOffset now) => new(
+    /// <summary>The account, its role and what the role may do, and the console session.</summary>
+    public static AdminMeView MeView(Account account, PlatformRole role, DateTimeOffset until, DateTimeOffset? secureUntil) => new(
         account.Id,
         account.DisplayName,
         account.Email,
-        role is { } held ? PlatformRoles.NameOf(held) : null,
+        PlatformRoles.NameOf(role),
         AdminPermissions.Of(role),
-        account.TwoFactorEnabled,
-        SessionClaims.IsAdminOpen(user, now) ? SessionClaims.AdminOpenUntil(user) : null,
-        SessionClaims.IsSecure(user, now) ? SessionClaims.SecureUnlockedUntil(user) : null,
-        account.PasswordHash is not null);
+        until,
+        secureUntil);
 
-    private static async Task<Results<Ok<AdminMeView>, UnauthorizedHttpResult>> MeAsync(
-        HttpContext http, UserManager<Account> users, TimeProvider clock)
+    private static async Task<Results<Ok<AdminMeView>, NoContent>> MeAsync(HttpContext http, TimeProvider clock)
     {
-        var caller = AdminCaller.Of(http);
-        if (await users.FindByIdAsync(caller.AccountId.ToString()) is not { } account)
+        if (await AdminAccess.CallerAsync(http) is not var (account, role) || ConsoleSession.Until(http.User) is not { } until)
         {
-            return TypedResults.Unauthorized();
+            return TypedResults.NoContent();
         }
 
-        return TypedResults.Ok(MeView(account, caller.Role, http.User, clock.GetUtcNow()));
+        var now = clock.GetUtcNow();
+        var secure = SessionClaims.IsSecure(http.User, now) ? SessionClaims.SecureUnlockedUntil(http.User) : null;
+        return TypedResults.Ok(MeView(account, role, until, secure));
     }
 
     private static async Task<Ok<AuditPage>> AuditAsync(ToheDbContext db, CancellationToken ct, long? before = null, int limit = 50)
@@ -284,6 +293,7 @@ internal static class AdminEndpoints
             work.All,
             new AdminSettings(
                 app.Value.PublicUrl?.GetLeftPart(UriPartial.Authority),
+                app.Value.ConsoleUrl?.GetLeftPart(UriPartial.Authority),
                 games.Value.PublicOrigin.GetLeftPart(UriPartial.Authority),
                 email.Value.Mode.ToString(),
                 sends ? email.Value.From : null,

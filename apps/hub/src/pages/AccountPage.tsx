@@ -6,6 +6,7 @@ import { ApiError, account, external, type MeView, type ProfileView, session } f
 import { errorKey } from '../api/errors.ts';
 import { configQuery, profileOptionsQuery } from '../api/queries.ts';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
+import { AuthenticatorSetup } from '../session/Authenticator.tsx';
 import { EmailChange } from '../session/EmailChange.tsx';
 import { formatProfileId } from '../session/profileIds.ts';
 import { cleanName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
@@ -98,9 +99,12 @@ function ManageAccount({ me }: { me: MeView }) {
           <TechnicalData me={me} />
           <DeleteAccount me={me} />
           <footer className="mt-auto flex flex-col items-center gap-2">
-            {me.account.role ? (
-              // The console is its own app on this origin (ADR 0027): a full navigation, not a hub route.
-              <a href="/admin/" className="font-semibold text-accent underline underline-offset-4">
+            {me.account.consoleUrl ? (
+              // The console has a host of its own and a sign-in of its own (ADR 0042): a full navigation there.
+              <a
+                href={me.account.consoleUrl}
+                className="font-semibold text-accent underline underline-offset-4"
+              >
                 {t('account.admin')}
               </a>
             ) : null}
@@ -615,6 +619,7 @@ function Security({ me }: { me: MeView }) {
       >
         {(done) => <ManagePinForm onDone={done} />}
       </SecureModal>
+      {me.account.role ? <TwoFactor me={me} /> : null}
       {providers.map((provider) => {
         const isLinked = me.account.logins.includes(provider.id);
         return (
@@ -654,6 +659,45 @@ function Security({ me }: { me: MeView }) {
         );
       })}
     </Card>
+  );
+}
+
+/**
+ * The authenticator the console's sign-in asks for, for an account with a platform role (ADR 0027, 0042): added here,
+ * within step-up level 2; new recovery codes and turning it off are in the console.
+ */
+function TwoFactor({ me }: { me: MeView }) {
+  const { t } = useTranslation();
+  const queryClient = useQueryClient();
+  const status = useQuery({ queryKey: ['account', 'two-factor'], queryFn: account.twoFactor });
+  const [open, setOpen] = useState(false);
+  const close = () => {
+    setOpen(false);
+    void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
+  };
+  if (!status.data) return null;
+  return (
+    <div className="flex flex-col gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className="font-semibold text-ink">
+          {t('twoFactor.title')}
+          <span className="ml-2 text-ink-soft text-sm">
+            ({status.data.enabled ? t('twoFactor.on') : t('twoFactor.off')})
+          </span>
+        </span>
+        {status.data.enabled ? null : (
+          <Button variant="secondary" onClick={() => setOpen(true)}>
+            {t('twoFactor.add')}
+          </Button>
+        )}
+      </div>
+      <p className="text-ink-soft text-sm">
+        {status.data.enabled ? t('twoFactor.manage') : t('twoFactor.hint')}
+      </p>
+      <SecureModal me={me} open={open} title={t('twoFactor.add')} onClose={close}>
+        {() => <AuthenticatorSetup onDone={close} />}
+      </SecureModal>
+    </div>
   );
 }
 

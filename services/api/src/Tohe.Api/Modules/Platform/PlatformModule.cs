@@ -34,12 +34,24 @@ public sealed class AppOptions
     /// </summary>
     public Uri? PublicUrl { get; set; }
 
-    internal bool HasValidPublicUrl() =>
-        PublicUrl is null
-        || (PublicUrl.IsAbsoluteUri
-            && (PublicUrl.Scheme == Uri.UriSchemeHttps || PublicUrl.Scheme == Uri.UriSchemeHttp)
-            && PublicUrl.AbsolutePath == "/"
-            && PublicUrl.Query.Length == 0);
+    /// <summary>
+    /// The console's public URL, e.g. <c>https://console.tohe.example.org</c> — a host of its own (ADR 0042), whose
+    /// Caddy site proxies the API's console routes. Unset, those routes answer 404.
+    /// </summary>
+    public Uri? ConsoleUrl { get; set; }
+
+    internal bool HasValidPublicUrl() => IsOrigin(PublicUrl);
+
+    internal bool HasValidConsoleUrl() =>
+        IsOrigin(ConsoleUrl)
+        && (ConsoleUrl is null || !IsOrigin(PublicUrl) || PublicUrl is null || ConsoleUrl.Authority != PublicUrl.Authority);
+
+    private static bool IsOrigin(Uri? url) =>
+        url is null
+        || (url.IsAbsoluteUri
+            && (url.Scheme == Uri.UriSchemeHttps || url.Scheme == Uri.UriSchemeHttp)
+            && url.AbsolutePath == "/"
+            && url.Query.Length == 0);
 }
 
 /// <summary>Runtime configuration the hub needs before it can launch games.</summary>
@@ -75,7 +87,10 @@ internal static class PlatformModule
             .ValidateDataAnnotations();
         var app = builder.Services.AddOptions<AppOptions>()
             .BindConfiguration(AppOptions.Section)
-            .Validate(o => o.HasValidPublicUrl(), "App:PublicUrl must be an absolute http(s) URL with no path, e.g. https://tohe.example.org");
+            .Validate(o => o.HasValidPublicUrl(), "App:PublicUrl must be an absolute http(s) URL with no path, e.g. https://tohe.example.org")
+            .Validate(
+                o => o.HasValidConsoleUrl(),
+                "App:ConsoleUrl must be an absolute http(s) URL with no path on a host (or port) of its own, e.g. https://console.tohe.example.org");
         if (!BuildTime.IsGeneratingOpenApi)
         {
             options.ValidateOnStart();
@@ -121,19 +136,26 @@ internal static class PlatformModule
     }
 
     /// <summary>
-    /// Makes every request carry the scheme of <see cref="AppOptions.PublicUrl"/>. Behind a TLS-terminating edge
-    /// (Cloudflare, then an ingress, then the hub's Caddy) the API sees HTTP whatever the visitor used, and the
-    /// edge's <c>X-Forwarded-Proto</c> does not survive every hop. The configured URL decides instead, so cookies,
-    /// links and redirects use the scheme people actually see. Unset, requests stay as they arrive.
+    /// Makes every request carry the scheme of <see cref="AppOptions.PublicUrl"/> — or, for the console's routes, of
+    /// <see cref="AppOptions.ConsoleUrl"/>. Behind a TLS-terminating edge (Cloudflare, then an ingress, then the hub
+    /// image's Caddy) the API sees HTTP whatever the visitor used, and the edge's <c>X-Forwarded-Proto</c> does not
+    /// survive every hop. The configured URL decides instead, so cookies, links and redirects use the scheme people
+    /// actually see. Unset, requests stay as they arrive.
     /// </summary>
     public static IApplicationBuilder UsePublicUrl(this IApplicationBuilder app)
     {
-        var publicUrl = app.ApplicationServices.GetRequiredService<IOptions<AppOptions>>().Value.PublicUrl;
-        return publicUrl is null
+        var options = app.ApplicationServices.GetRequiredService<IOptions<AppOptions>>().Value;
+        var (publicUrl, consoleUrl) = (options.PublicUrl, options.ConsoleUrl);
+        return publicUrl is null && consoleUrl is null
             ? app
             : app.Use((context, next) =>
             {
-                context.Request.Scheme = publicUrl.Scheme;
+                var url = ConsoleRoutes.Covers(context.Request.Path) ? consoleUrl : publicUrl;
+                if (url is not null)
+                {
+                    context.Request.Scheme = url.Scheme;
+                }
+
                 return next(context);
             });
     }

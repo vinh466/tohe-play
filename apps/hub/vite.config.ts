@@ -79,8 +79,8 @@ export default defineConfig({
       },
       workbox: {
         navigateFallback: '/index.html',
-        // Only the app's own pages, from the map in @tohe/routes (ADR 0042): /api, the console at /admin/ (its own app
-        // without a service worker, ADR 0027), the platform's files and unknown paths go to the network.
+        // Only the app's own pages, from the map in @tohe/routes (ADR 0042): /api, the platform's files and unknown paths
+        // go to the network.
         navigateFallbackAllowlist: navigationAllowlist(),
         // The 404 page is the hub's Caddy's answer to a path in no namespace, never the app's.
         globIgnores: ['**/node_modules/**/*', '404.html'],
@@ -109,10 +109,9 @@ export default defineConfig({
     port: 4720,
     strictPort: true,
     proxy: {
-      // ws: the rooms hub's WebSocket (ADR 0016) goes through the same /api proxy.
+      // ws: the rooms hub's WebSocket (ADR 0016) goes through the same /api proxy. The console has a host of its own
+      // (ADR 0042): its dev server is http://localhost:4721.
       '/api': { target: 'http://localhost:4740', ws: true },
-      // The admin console's dev server (apps/admin), at /admin/ as in production; ws for its hot reload.
-      '/admin': { target: 'http://localhost:4721', ws: true },
     },
   },
   preview: { port: 4720, strictPort: true, proxy: { '/api': { target: 'http://localhost:4740', ws: true } } },

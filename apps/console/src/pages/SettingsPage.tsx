@@ -2,7 +2,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { admin, type SignInMethod, type SignInSettings } from '../api/client.ts';
 import { count } from '../format.ts';
-import { meKey } from '../security/Gate.tsx';
+import { meKey, useSignedIn } from '../security/Gate.tsx';
 import { StepUp } from '../security/StepUp.tsx';
 import { Button, problem } from '../ui/forms.tsx';
 import { Badge, Card, Failed, Loading, PageTitle } from '../ui/ui.tsx';
@@ -29,7 +29,7 @@ const modes = [
  */
 export function SettingsPage() {
   const queryClient = useQueryClient();
-  const me = useQuery({ queryKey: meKey, queryFn: admin.me });
+  const me = useSignedIn();
   const settings = useQuery({ queryKey: settingsKey, queryFn: admin.signInSettings });
 
   if (me.isPending || settings.isPending) return <Loading />;
@@ -44,11 +44,7 @@ export function SettingsPage() {
       {mayChange && !secure ? (
         <Card title="Thay đổi">
           <p className="text-ink-soft text-sm">Để bật, tắt hay đổi chế độ đăng ký, xác nhận lại là bạn.</p>
-          <StepUp
-            hasPassword={me.data.hasPassword}
-            email={me.data.email}
-            onDone={() => void queryClient.invalidateQueries({ queryKey: meKey })}
-          />
+          <StepUp onDone={() => void queryClient.invalidateQueries({ queryKey: meKey })} />
         </Card>
       ) : null}
       <div className="grid gap-4 lg:grid-cols-2">

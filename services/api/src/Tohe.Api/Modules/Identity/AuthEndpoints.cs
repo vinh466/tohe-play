@@ -51,11 +51,6 @@ public sealed record ResetPasswordRequest(
 /// <summary>Signing up, in and out by email (ADR 0011, 0024). Flows: docs/architecture/identity.md.</summary>
 internal static class AuthEndpoints
 {
-    /// <summary>Checked against the password typed for an address with no account, so a miss takes as long as a wrong
-    /// password and says nothing about who has an account.</summary>
-    private static readonly string NoAccountHash =
-        new PasswordHasher<Account>().HashPassword(new Account { DisplayName = "" }, "no account has this password");
-
     public static void Map(IEndpointRouteBuilder api)
     {
         var auth = api.MapGroup("/auth").WithTags("Identity");
@@ -285,47 +280,25 @@ internal static class AuthEndpoints
 
     private static async Task<Results<Ok<MeView>, ProblemHttpResult>> LoginAsync(
         LoginRequest request,
-        UserManager<Account> users,
-        SignInManager<Account> signIn,
-        ISignInSettings settings,
+        PasswordSignIn passwords,
         ToheDbContext db,
         SessionWriter session,
         MeQueries me,
         ToheMetrics metrics,
         CancellationToken ct)
     {
-        if (!await settings.IsOnAsync(SignInMethods.Password, ct))
+        var (check, account) = await passwords.CheckAsync(request.Email, request.Password, ct);
+        if (check != PasswordCheck.Ok)
         {
-            return Problems.MethodDisabled();
+            if (check != PasswordCheck.MethodDisabled)
+            {
+                metrics.SignIn(SignInMethods.Password, check == PasswordCheck.LockedOut ? "locked" : "refused");
+            }
+
+            return PasswordSignIn.Problem(check);
         }
 
-        // An email signs in. A username still does for an account from before email sign-in, until it adds an email.
-        var login = request.Email.Trim();
-        var account = login.Contains('@')
-            ? await users.FindByEmailAsync(login)
-            : await users.FindByNameAsync(login.ToLowerInvariant()) is { Email: null } legacy ? legacy : null;
-        if (account?.PasswordHash is null)
-        {
-            users.PasswordHasher.VerifyHashedPassword(new Account { DisplayName = "" }, NoAccountHash, request.Password);
-            metrics.SignIn(SignInMethods.Password, "refused");
-            return Problems.InvalidCredentials();
-        }
-
-        var result = await signIn.CheckPasswordSignInAsync(account, request.Password, lockoutOnFailure: true);
-        if (result.IsLockedOut)
-        {
-            metrics.SignIn(SignInMethods.Password, "locked");
-            return Problems.LockedOut();
-        }
-
-        // Told only after the password was right: nobody learns which accounts are suspended (ADR 0027).
-        if (!result.Succeeded || account.SuspendedAt is not null)
-        {
-            metrics.SignIn(SignInMethods.Password, "refused");
-            return result.Succeeded ? Problems.AccountSuspended() : Problems.InvalidCredentials();
-        }
-
-        var playing = await OnlyProfileAsync(db, account.Id, ct);
+        var playing = await OnlyProfileAsync(db, account!.Id, ct);
         var state = new DeviceSession(playing);
         await session.SignInAsync(account, state, ct);
         metrics.SignIn(SignInMethods.Password, "ok");
@@ -480,4 +453,82 @@ internal static class AuthEndpoints
 
         return null;
     }
+}
+
+/// <summary>What checking an email and a password found (<see cref="PasswordSignIn"/>).</summary>
+internal enum PasswordCheck
+{
+    /// <summary>The password is right and the account may sign in.</summary>
+    Ok,
+
+    /// <summary>The console switched signing in with a password off (ADR 0028).</summary>
+    MethodDisabled,
+
+    /// <summary>No such account, no password on it, or a wrong password: the same answer for each.</summary>
+    Refused,
+
+    /// <summary>Too many wrong tries in a row (Identity's lockout).</summary>
+    LockedOut,
+
+    /// <summary>The password is right, and the account is suspended (ADR 0027).</summary>
+    Suspended,
+}
+
+/// <summary>
+/// The checks of a sign-in with an email and a password, shared by the players' sign-in and the console's (ADR 0011,
+/// 0024, 0027, 0028, 0042): the switch, the account by its email — or by its username, for an account from before email
+/// sign-in — the password against Identity's lockout, and suspension, told only once the password was right.
+/// </summary>
+internal sealed class PasswordSignIn(UserManager<Account> users, SignInManager<Account> signIn, ISignInSettings settings)
+{
+    /// <summary>Checked against the password typed for an address with no account, so a miss takes as long as a wrong
+    /// password and says nothing about who has an account.</summary>
+    private static readonly string NoAccountHash =
+        new PasswordHasher<Account>().HashPassword(new Account { DisplayName = "" }, "no account has this password");
+
+    /// <summary>The account is returned whenever one was found, whatever the result.</summary>
+    /// <param name="honourSwitch">The players' sign-in honours the console's switch for the password; the console's own
+    /// sign-in does not.</param>
+    public async Task<(PasswordCheck Result, Account? Account)> CheckAsync(
+        string login, string password, CancellationToken ct, bool honourSwitch = true)
+    {
+        if (honourSwitch && !await settings.IsOnAsync(SignInMethods.Password, ct))
+        {
+            return (PasswordCheck.MethodDisabled, null);
+        }
+
+        // An email signs in. A username still does for an account from before email sign-in, until it adds an email.
+        login = login.Trim();
+        var account = login.Contains('@')
+            ? await users.FindByEmailAsync(login)
+            : await users.FindByNameAsync(login.ToLowerInvariant()) is { Email: null } legacy ? legacy : null;
+        if (account?.PasswordHash is null)
+        {
+            users.PasswordHasher.VerifyHashedPassword(new Account { DisplayName = "" }, NoAccountHash, password);
+            return (PasswordCheck.Refused, account);
+        }
+
+        var result = await signIn.CheckPasswordSignInAsync(account, password, lockoutOnFailure: true);
+        if (result.IsLockedOut)
+        {
+            return (PasswordCheck.LockedOut, account);
+        }
+
+        if (!result.Succeeded)
+        {
+            return (PasswordCheck.Refused, account);
+        }
+
+        // Told only after the password was right: nobody learns which accounts are suspended (ADR 0027).
+        return (account.SuspendedAt is null ? PasswordCheck.Ok : PasswordCheck.Suspended, account);
+    }
+
+    /// <summary>The answer to a check that did not pass.</summary>
+    public static ProblemHttpResult Problem(PasswordCheck check) => check switch
+    {
+        PasswordCheck.MethodDisabled => Problems.MethodDisabled(),
+        PasswordCheck.LockedOut => Problems.LockedOut(),
+        PasswordCheck.Suspended => Problems.AccountSuspended(),
+        _ => Problems.InvalidCredentials(),
+    };
 }

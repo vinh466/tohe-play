@@ -189,8 +189,7 @@ public sealed class AdminUsersTests(ApiFactory factory) : IClassFixture<ApiFacto
         Assert.Equal("admin_self", await CodeOfAsync(await owner.Client.PutAsJsonAsync(Url($"/api/admin/users/{owner.AccountId}/role"), new { role = "admin" }, Ct)));
 
         // Every change needs step-up level 2 on the device, which a fresh session lacks.
-        var laptop = await Admins.SignInAsync(factory, owner.Email);
-        await laptop.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { code = Totp.Code(owner.Key, DateTimeOffset.UtcNow.AddSeconds(30)) }, Ct);
+        var laptop = await Admins.SignInAsync(factory, owner.Email, owner.Key, step: 2);
         Assert.Equal("step_up_required", await CodeOfAsync(await laptop.PostAsync(Url($"/api/admin/users/{player.Account.Id}/sign-out"), null, Ct)));
     }
 

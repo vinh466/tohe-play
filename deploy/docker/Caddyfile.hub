@@ -1,8 +1,11 @@
-# Hub: the PWA plus a same-origin reverse proxy to the API, so the session cookie (M1) stays first-party.
-# connect-src names the hub's own WebSocket (the rooms hub, ADR 0016) as well: CSP3's 'self' covers it, older Safari
-# does not.
-# Which path goes where comes from the map in @tohe/routes (ADR 0042): hub-routes.caddy, generated from it, names the
-# namespaces; this file says how each is served. A path in no namespace answers 404.
+# Two sites, one per host (ADR 0042):
+# - :8080, the hub: the PWA plus a same-origin reverse proxy to the API, so the session cookie (M1) stays first-party.
+#   connect-src names the hub's own WebSocket (the rooms hub, ADR 0016) as well: CSP3's 'self' covers it, older Safari
+#   does not.
+# - :8081, the console (ADR 0027): its app at the root and the API's console routes, on a host of its own with a
+#   session of its own. Nothing else of the hub is served there.
+# Which path goes where comes from the map in @tohe/routes: hub-routes.caddy and console-routes.caddy, generated from
+# it, name each site's namespaces; this file says how each is served. A path in no namespace answers 404.
 # Env: API_UPSTREAM (host:port of the API), GAMES_ORIGIN (where game iframes come from),
 #      TOHE_TRUSTED_PROXIES (CIDRs of proxies in front of this server, e.g. a cluster's ingress; default: none),
 #      TOHE_CLIENT_IP_HEADERS (headers those proxies put the visitor's address in, e.g. CF-Connecting-IP),
@@ -30,28 +33,10 @@
 		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 	}
 
-	# @apiProxy, @consolePage, @appPage, @appStaticImmutable, @appStaticRevalidate, @platformGenerated, and the redirects
-	# as `redir` directives (the root leads to /play with a 302; the app's old paths answer 301 for the links in emails
-	# already sent), which Caddy runs before any `handle` below.
+	# @apiProxy, @appPage, @appStaticImmutable, @appStaticRevalidate, @platformGenerated, and the redirects as `redir`
+	# directives (the root leads to /play with a 302; the app's old paths answer 301 for the links in emails already
+	# sent), which Caddy runs before any `handle` below.
 	import /etc/caddy/hub-routes.caddy
-
-	# The admin console (ADR 0027): its own app at /admin/, built into this image. Never indexed, and stricter than the
-	# hub: no WebSocket, no inline styles, no images from the games origin; it frames that origin only to watch a ranked
-	# run in the game itself (ADR 0032). Its header replaces the hub's CSP set above.
-	redir /admin /admin/ 308
-	handle @consolePage {
-		header {
-			Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src {$GAMES_ORIGIN}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
-			X-Robots-Tag "noindex, nofollow"
-		}
-		root * /srv
-		@adminImmutable path /admin/assets/*
-		header @adminImmutable Cache-Control "public, max-age=31536000, immutable"
-		@adminMutable not path /admin/assets/*
-		header @adminMutable Cache-Control "no-cache"
-		try_files {path} /admin/index.html
-		file_server
-	}
 
 	handle @apiProxy {
 		reverse_proxy {$API_UPSTREAM} {
@@ -122,5 +107,63 @@
 		header Cache-Control "no-cache"
 		rewrite * /404.html
 		file_server
+	}
+}
+
+# The console (ADR 0027, 0042), on its own host: console.<domain> in production, port 4721 locally and 4821 on UAT.
+# Its own app from /srv/console, and only the API's console routes; the API answers those on this host alone and
+# authenticates them with the console's own session cookie. Never indexed, no service worker, no robots.txt. Its CSP
+# is stricter than the hub's: no WebSocket, no inline styles, no images from the games origin; it frames that origin
+# only to watch a ranked run in the game itself (ADR 0032).
+:8081 {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; frame-src {$GAMES_ORIGIN}; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		X-Robots-Tag "noindex, nofollow"
+	}
+
+	# @apiProxy (the API's console routes), @consolePage, @consoleStaticImmutable, @consoleStaticRevalidate.
+	import /etc/caddy/console-routes.caddy
+
+	handle @apiProxy {
+		reverse_proxy {$API_UPSTREAM} {
+			# The API rate-limits sign-in by client address: hand it the one worked out above, not a proxy's.
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	# The console's pages: whatever the path inside its namespaces, its index.html, which routes it.
+	handle @consolePage {
+		root * /srv/console
+		header Cache-Control "no-cache"
+		rewrite * /index.html
+		file_server
+	}
+
+	handle @consoleStaticImmutable {
+		root * /srv/console
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+	handle @consoleStaticRevalidate {
+		root * /srv/console
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	# Anything else — the hub's pages, the API's other routes, /admin — is in no namespace of this host.
+	handle {
+		error 404
+	}
+
+	handle_errors 404 {
+		header X-Robots-Tag "noindex, nofollow"
+		header Cache-Control "no-cache"
+		header Content-Type "text/plain; charset=utf-8"
+		respond "Không có trang này." 404
 	}
 }

@@ -112,8 +112,7 @@ public sealed class AdminReviewTests(ApiFactory factory) : IClassFixture<ApiFact
 
         // A viewer reads the console, not the review; every decision needs step-up level 2 on the device.
         Assert.Equal("admin_required", await CodeOfAsync(await viewer.Client.GetAsync(Url("/api/admin/review"), Ct)));
-        var laptop = await Admins.SignInAsync(factory, owner.Email);
-        await laptop.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { code = Totp.Code(owner.Key, DateTimeOffset.UtcNow.AddSeconds(30)) }, Ct);
+        var laptop = await Admins.SignInAsync(factory, owner.Email, owner.Key, step: 2);
         var notStepped = await laptop.PostAsJsonAsync(Url($"/api/admin/review/{fast}/approve"), new { note = (string?)null }, Ct);
         Assert.Equal("step_up_required", await CodeOfAsync(notStepped));
 

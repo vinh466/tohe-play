@@ -1,5 +1,6 @@
 using System.Text.Json.Serialization;
 using Scalar.AspNetCore;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Infrastructure.Security;
 using Tohe.Api.Modules.Admin;
@@ -61,6 +62,8 @@ app.UseForwardedHeaders();
 app.UsePublicUrl();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
+// The console's routes on the console's host alone, and nothing else there (ADR 0042).
+app.UseConsoleRoutes();
 app.UseSameOriginGuard();
 app.UseRoomsOriginGuard();
 app.UseTelemetryBodyLimit();

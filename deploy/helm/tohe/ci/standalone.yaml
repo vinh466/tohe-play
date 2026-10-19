@@ -3,6 +3,7 @@ publicUrls:
   hub: http://tohe.example.test
   games: http://tohe-games.example.test
   site: http://tohe-site.example.test
+  console: http://tohe-console.example.test
 global:
   image:
     tag: sha-0000000000000000000000000000000000000000

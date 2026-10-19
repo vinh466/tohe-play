@@ -15,7 +15,8 @@ UAT to production: [Environments and releases](environments.md).
 
 - Kubernetes 1.29 or later, `helm`, and an ingress controller (or your own routing — `ingress.enabled: false`).
 - A domain Tò He has to itself, and three hostnames on it pointing at the ingress: the hub, the games origin and the
-  site. The games origin must be a different host from the hub's
+  site — four with the operators' console (`publicUrls.console`, e.g. `console.tohe.example`, best behind an access
+  proxy such as Cloudflare Access; [Admin console](../architecture/admin.md)). The games origin must be a different host from the hub's
   ([ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md); why the domain:
   [below](#the-games-origin)). HTTPS is strongly advised: the session cookie is only `Secure` on an `https` hub URL.
 - Nothing to build. CI publishes every commit on `main` that passed its checks: the four images,
@@ -46,6 +47,7 @@ helm install tohe oci://ghcr.io/vinh466/charts/tohe --version 0.1.0-g1a2b3c4 \
   --set publicUrls.hub=https://tohe.example \
   --set publicUrls.games=https://games.tohe.example \
   --set publicUrls.site=https://docs.tohe.example \
+  --set publicUrls.console=https://console.tohe.example \
   --set secrets.values.postgresPassword="$(openssl rand -hex 24)" \
   --wait --timeout 10m
 helm --namespace tohe test tohe

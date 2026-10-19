@@ -8,12 +8,17 @@ import { type ReviewList, ReviewPage } from './pages/ReviewPage.tsx';
 import { ReviewResultPage } from './pages/ReviewResultPage.tsx';
 import { SecurityPage } from './pages/SecurityPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
-import { Shell } from './pages/Shell.tsx';
+import { Root } from './pages/Shell.tsx';
 import { SystemPage } from './pages/SystemPage.tsx';
 import { UserPage } from './pages/UserPage.tsx';
 import { UsersPage } from './pages/UsersPage.tsx';
+import { SetupPage } from './security/Gate.tsx';
 
-const rootRoute = createRootRoute({ component: Shell });
+// Every page but /setup sits behind the console's session: its shell shows the sign-in in its place without one.
+const rootRoute = createRootRoute({ component: Root });
+
+// A new deployment's first owner (ADR 0027), before anyone can sign in.
+const setupRoute = createRoute({ getParentRoute: () => rootRoute, path: '/setup', component: SetupPage });
 
 const overviewRoute = createRoute({ getParentRoute: () => rootRoute, path: '/', component: OverviewPage });
 const gamesRoute = createRoute({ getParentRoute: () => rootRoute, path: '/games', component: GamesPage });
@@ -26,7 +31,11 @@ const healthRoute = createRoute({
   },
   component: HealthPage,
 });
-const systemRoute = createRoute({ getParentRoute: () => rootRoute, path: '/system', component: SystemPage });
+const systemRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/system',
+  component: SystemPage,
+});
 const auditRoute = createRoute({ getParentRoute: () => rootRoute, path: '/audit', component: AuditPage });
 const securityRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -43,7 +52,11 @@ const usersRoute = createRoute({
   }),
   component: UsersPage,
 });
-const userRoute = createRoute({ getParentRoute: () => rootRoute, path: '/users/$id', component: UserPage });
+const userRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/users/$id',
+  component: UserPage,
+});
 const reviewRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/review',
@@ -68,9 +81,13 @@ const communitiesRoute = createRoute({
   component: CommunitiesPage,
 });
 
-/** The console lives under /admin/ on the hub's origin (ADR 0027). */
+/**
+ * The console lives at the root of a host of its own (ADR 0042); every path here is a namespace of the console's host
+ * in @tohe/routes, and the console's Caddy site answers 404 to any other (console.test.ts checks it).
+ */
 export const router = createRouter({
   routeTree: rootRoute.addChildren([
+    setupRoute,
     overviewRoute,
     gamesRoute,
     healthRoute,
@@ -84,7 +101,6 @@ export const router = createRouter({
     auditRoute,
     securityRoute,
   ]),
-  basepath: '/admin',
 });
 
 declare module '@tanstack/react-router' {

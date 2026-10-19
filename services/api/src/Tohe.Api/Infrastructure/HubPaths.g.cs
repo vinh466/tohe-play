@@ -30,7 +30,16 @@ public static class HubPaths
 
     /// <summary>The profile picker; ?auto=true goes straight on with one profile.</summary>
     public const string Profiles = "/account/profiles";
+}
 
-    /// <summary>Where a new deployment’s first owner claims the console.</summary>
-    public const string ConsoleSetup = "/admin/setup";
+/// <summary>
+/// The console’s paths on its own host (ADR 0042): the page the API names in its log, and its routes.
+/// </summary>
+public static class ConsolePaths
+{
+    /// <summary>Where a new deployment’s first owner claims it.</summary>
+    public const string Setup = "/setup";
+
+    /// <summary>The API’s console routes, served only on the console’s host.</summary>
+    public const string Api = "/api/admin";
 }

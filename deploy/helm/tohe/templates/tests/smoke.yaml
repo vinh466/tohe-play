@@ -1,4 +1,7 @@
-{{- /* `helm test`: the hub serves the app, proxies a healthy API, and the games origin serves its catalog. */ -}}
+{{- /*
+`helm test`: the hub serves the app, proxies a healthy API, and the games origin serves its catalog; the console's site
+serves its page, never indexed, and refuses the console's routes without its session (ADR 0042).
+*/ -}}
 {{- $hub := include "tohe.componentName" (dict "root" . "component" "hub") }}
 {{- $games := include "tohe.componentName" (dict "root" . "component" "games") }}
 apiVersion: v1
@@ -37,4 +40,8 @@ spec:
           echo
           curl -fsS http://{{ $hub }}:8080/play | grep -q '<div id="root">'
           curl -fsS http://{{ $games }}:8080/catalog.json | grep -q '"games"'
+          {{- with .Values.publicUrls.console }}
+          curl -fsSI http://{{ $hub }}:8081/ | grep -qi '^x-robots-tag: noindex'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H "Host: {{ include "tohe.host" . }}" http://{{ $hub }}:8081/api/admin/me)" = 401
+          {{- end }}
           echo smoke test passed

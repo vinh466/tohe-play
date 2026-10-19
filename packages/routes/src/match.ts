@@ -1,4 +1,11 @@
-import { hubNamespaces, hubRedirects, type Match, type Namespace, type Redirect } from './map.ts';
+import {
+  consoleNamespaces,
+  hubNamespaces,
+  hubRedirects,
+  type Match,
+  type Namespace,
+  type Redirect,
+} from './map.ts';
 
 /** Whether `namespace` covers `pathname` (a URL's path, without its query). */
 export function covers(namespace: Namespace, pathname: string): boolean {
@@ -18,6 +25,11 @@ export function matchHubPath(
   namespaces: readonly Namespace[] = hubNamespaces,
 ): Namespace | undefined {
   return namespaces.find((namespace) => covers(namespace, pathname));
+}
+
+/** The namespace of the console's host that owns `pathname`, or undefined: the console's site answers 404. */
+export function matchConsolePath(pathname: string): Namespace | undefined {
+  return matchHubPath(pathname, consoleNamespaces);
 }
 
 /** Whether some path belongs to both namespaces. */

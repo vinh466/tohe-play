@@ -963,6 +963,57 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/account/two-factor": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Whether the account has an authenticator for the console (accounts with a platform role). */
+        get: operations["GetAccountTwoFactor"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/two-factor/setup": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A new authenticator key for the console, while two-factor authentication is off (a platform role, step-up level 2). */
+        post: operations["SetUpAuthenticator"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/account/two-factor/enable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A code from the new key turns two-factor authentication on; recovery codes once (a platform role, step-up level 2). */
+        post: operations["EnableTwoFactor"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -979,6 +1030,9 @@ export interface components {
             /** Format: date-time */
             deleteAfter: string;
         };
+        AccountTwoFactorView: {
+            enabled: boolean;
+        };
         AccountView: {
             /** Format: uuid */
             id: string;
@@ -992,10 +1046,15 @@ export interface components {
             logins: string[];
             role: null | string;
             community: null | string;
+            consoleUrl: null | string;
         };
         AttemptView: {
             /** Format: uuid */
             attemptId: string;
+        };
+        AuthenticatorSetupView: {
+            sharedKey: string;
+            uri: string;
         };
         BoardRow: {
             /** Format: uuid */
@@ -1396,6 +1455,9 @@ export interface components {
             /** Format: int32 */
             recorded: number;
         };
+        RecoveryCodesView: {
+            codes: string[];
+        };
         ReplayAction: {
             /** Format: int32 */
             seat: number;
@@ -1599,6 +1661,9 @@ export interface components {
         };
         TermsRequest: {
             version: string;
+        };
+        TwoFactorCodeRequest: {
+            code?: null | string;
         };
         UpdateAccountRequest: {
             telemetry?: null | boolean;
@@ -3637,6 +3702,79 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+        };
+    };
+    GetAccountTwoFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AccountTwoFactorView"];
+                };
+            };
+        };
+    };
+    SetUpAuthenticator: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AuthenticatorSetupView"];
+                };
+            };
+        };
+    };
+    EnableTwoFactor: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TwoFactorCodeRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RecoveryCodesView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
             };
         };
     };

@@ -10,6 +10,8 @@ import { prodVersion } from './versions.ts';
 
 export interface ProdOptions {
   hub: string;
+  /** The console's own host, behind Cloudflare Access (ADR 0042). */
+  console: string;
   games: string;
   docs: string;
   /** The domain people write to: its MX and its DMARC record are checked. */
@@ -47,6 +49,7 @@ const REDIRECT = [301, 302, 307, 308];
 export async function checkProd(options: ProdOptions, deps: ProdDeps, r: Runner): Promise<void> {
   const { http, git } = deps;
   const hub = trimSlash(options.hub);
+  const consoleUrl = trimSlash(options.console);
   const games = trimSlash(options.games);
   const docs = trimSlash(options.docs);
 
@@ -116,16 +119,33 @@ export async function checkProd(options: ProdOptions, deps: ProdDeps, r: Runner)
     });
   }
 
-  await r.check('/admin/ is the console, noindex', async () => {
+  // The console has a host of its own (ADR 0042): nothing of it on the hub's.
+  await r.check('/admin/ is a 404', async () => {
     const result = await http(`${hub}/admin/`);
+    assert(result.status === 404, `answered ${result.status}`);
+  });
+
+  r.section(`console ${consoleUrl}`);
+  // Cloudflare Access asks first; past it — or without it — the console's own page, never indexed.
+  await r.check('/ is behind Cloudflare Access, or the console with noindex', async () => {
+    const result = await http(`${consoleUrl}/`);
+    if (REDIRECT.includes(result.status)) {
+      const location = result.headers.location ?? '';
+      let host = '';
+      try {
+        host = new URL(location, consoleUrl).hostname;
+      } catch {}
+      assert(host.endsWith('.cloudflareaccess.com'), `redirects to '${location}', not to Cloudflare Access`);
+      return `${result.status} → Cloudflare Access (${host})`;
+    }
     assert(result.status === 200, `answered ${result.status}`);
     assert(/<title>[^<]*Quản trị[^<]*<\/title>/.test(result.body), "the title does not contain 'Quản trị'");
-    assert(result.body.includes('/admin/assets/'), 'the page does not reference /admin/assets/');
     const robots = result.headers['x-robots-tag'];
     assert(
       robotsHas(robots, 'noindex') && robotsHas(robots, 'nofollow'),
       `X-Robots-Tag is '${robots ?? ''}'`,
     );
+    return 'the console, noindex (no access proxy in front)';
   });
 
   r.section(`games ${games}`);

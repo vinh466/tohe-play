@@ -70,6 +70,7 @@ export function SystemPage() {
       <Card title="Cấu hình" aside={<span className="text-ink-soft text-sm">Không gồm bí mật</span>}>
         <div>
           <Fact label="Địa chỉ của hub (App:PublicUrl)">{settings.publicUrl ?? 'Chưa đặt'}</Fact>
+          <Fact label="Địa chỉ bảng quản trị (App:ConsoleUrl)">{settings.consoleUrl ?? 'Chưa đặt'}</Fact>
           <Fact label="Origin của game">{settings.gamesOrigin}</Fact>
           <Fact label="Email">
             {settings.emailMode === 'Disabled'

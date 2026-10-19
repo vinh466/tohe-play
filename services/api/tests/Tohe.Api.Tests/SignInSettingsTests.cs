@@ -68,6 +68,9 @@ public sealed class SignInSettingsTests(ApiFactory factory) : IClassFixture<ApiF
             Url("/api/auth/password/reset"), new { attemptId = Guid.NewGuid(), code = "123456", password = "mat-khau-moi-cua-bo" }, Ct);
         Assert.Equal("method_disabled", await CodeOfAsync(reset));
 
+        // The console's own sign-in does not follow the switch: it is where the switch goes back on.
+        var console = Admins.ConsoleClient(_app);
+        Assert.Equal(HttpStatusCode.OK, (await console.PostAsJsonAsync(Url("/api/admin/session"), Admins.SignIn(owner.Email, owner.Key, step: -1), Ct)).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await SaveAsync(owner, new { methods = new { password = true } })).StatusCode);
         Assert.Equal(HttpStatusCode.OK, (await _app.CreateClient().PostAsJsonAsync(Url("/api/auth/login"), new { email = player, password = Accounts.Password }, Ct)).StatusCode);
     }
@@ -176,8 +179,7 @@ public sealed class SignInSettingsTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.Contains(view.Methods, method => method.Id == "google" && !method.Configured && !method.On);
 
         var admin = await Admins.NewAsync(factory, "admin", _app);
-        var laptop = await Admins.SignInAsync(_app, admin.Email);
-        await laptop.PostAsJsonAsync(Url("/api/admin/two-factor/verify"), new { code = Totp.Code(admin.Key, DateTimeOffset.UtcNow.AddSeconds(30)) }, Ct);
+        var laptop = await Admins.SignInAsync(_app, admin.Email, admin.Key, step: 2);
         Assert.Equal("step_up_required", await CodeOfAsync(await laptop.PutAsJsonAsync(Url("/api/admin/settings"), new { registration = "closed" }, Ct)));
     }
 
@@ -188,15 +190,15 @@ public sealed class SignInSettingsTests(ApiFactory factory) : IClassFixture<ApiF
 
     private HttpClient NoRedirects() => _app.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
-    /// <summary>Links Fake to the admin's account through the account page's flow (step-up is open).</summary>
+    /// <summary>Links Fake to the admin's account through the hub's account page (step-up is open there).</summary>
     private async Task LinkAsync(Admins.Admin admin, string subject)
     {
         using var request = new HttpRequestMessage(HttpMethod.Get, Url("/api/auth/external/fake?intent=link"));
-        var start = await admin.Client.SendAsync(request, Ct);
+        var start = await admin.Player.SendAsync(request, Ct);
         Assert.Equal(HttpStatusCode.Redirect, start.StatusCode);
         var state = Microsoft.AspNetCore.WebUtilities.QueryHelpers.ParseQuery(start.Headers.Location!.Query)["state"].ToString();
-        var callback = await admin.Client.GetAsync(Url($"/api/auth/external/fake/callback?state={state}&sub={subject}&email=&verified=false"), Ct);
-        var done = await admin.Client.GetAsync(callback.Headers.Location, Ct);
+        var callback = await admin.Player.GetAsync(Url($"/api/auth/external/fake/callback?state={state}&sub={subject}&email=&verified=false"), Ct);
+        var done = await admin.Player.GetAsync(callback.Headers.Location, Ct);
         Assert.Equal("/account?linked=fake", done.Headers.Location!.OriginalString);
     }
 

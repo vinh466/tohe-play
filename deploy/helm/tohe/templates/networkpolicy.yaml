@@ -80,6 +80,10 @@ spec:
         - podSelector: {}
       ports:
         - port: http
+        {{- if and (eq $component "hub") $.Values.publicUrls.console }}
+        # The console's site (ADR 0042).
+        - port: console
+        {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

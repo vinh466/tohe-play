@@ -19,7 +19,7 @@ import {
   publicId,
   reasonName,
 } from '../format.ts';
-import { meKey } from '../security/Gate.tsx';
+import { meKey, useSignedIn } from '../security/Gate.tsx';
 import { StepUp } from '../security/StepUp.tsx';
 import { Button, Field, problem } from '../ui/forms.tsx';
 import { Badge, Card, cell, Fact, Failed, Loading, PageTitle, row, Stat, Table } from '../ui/ui.tsx';
@@ -37,7 +37,7 @@ export function ReviewResultPage() {
   const resultId = Number(id);
   const valid = Number.isSafeInteger(resultId) && resultId > 0;
   const queryClient = useQueryClient();
-  const me = useQuery({ queryKey: meKey, queryFn: admin.me });
+  const me = useSignedIn();
   const games = useQuery({ queryKey: ['admin', 'games'], queryFn: admin.games });
   const detail = useQuery({
     queryKey: ['admin', 'review', 'result', resultId],
@@ -236,11 +236,7 @@ function Decide({
     return (
       <Card title="Quyết định">
         <p className="text-ink-soft text-sm">Để quyết, xác nhận lại là bạn.</p>
-        <StepUp
-          hasPassword={me.hasPassword}
-          email={me.email}
-          onDone={() => void queryClient.invalidateQueries({ queryKey: meKey })}
-        />
+        <StepUp onDone={() => void queryClient.invalidateQueries({ queryKey: meKey })} />
       </Card>
     );
   }

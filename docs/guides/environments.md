@@ -15,7 +15,7 @@ does the steps.
 | | Development | CI | UAT | Production |
 | --- | --- | --- | --- | --- |
 | For | Building and trying | The automatic gate | The family's daily use, and where the images bound for production run first | The public |
-| Where | The developer's machine: `pnpm dev` or compose project `tohe`, ports 47xx | GitHub Actions: the pull request, then `main` | The homelab, `10.100.0.2`: hub `http://10.100.0.2:4820`, site `:4810`, games `:4830`, compose project `tohe-uat` | Hub `https://toheplay.io.vn` (API at `/api`, console at `/admin/`), games `https://games.toheplay.io.vn`, docs and site `https://docs.toheplay.io.vn` ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)) |
+| Where | The developer's machine: `pnpm dev` or compose project `tohe`, ports 47xx | GitHub Actions: the pull request, then `main` | The homelab, `10.100.0.2`: hub `http://10.100.0.2:4820`, console `:4821`, site `:4810`, games `:4830`, compose project `tohe-uat` | Hub `https://toheplay.io.vn` (API at `/api`), console `https://console.toheplay.io.vn` behind Cloudflare Access, games `https://games.toheplay.io.vn`, docs and site `https://docs.toheplay.io.vn` ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md), [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)) |
 | Runs | The working tree | The checks, then the images and the chart | The images of the newest `uat-` tag | The images of the newest `prod-` tag |
 | Data | Throwaway | Throwaway | Real, the family's | Real once people other than the owner use it |
 | Config lives in | `compose.yaml` | `.github/workflows/ci.yml` | `compose.uat.yaml` and `~/.config/tohe-uat/uat.env` on the homelab | The `apps/tohe` component of the `platform-infra` repository (Argo CD), secrets in Infisical `/tohe` |
@@ -110,13 +110,14 @@ HTTPS, `docker compose logs`, one `SELECT`).
 | | `pnpm check:uat` (on the homelab) | `pnpm check:prod` (from anywhere) |
 | --- | --- | --- |
 | Expects | `--expect <ref>`, else the newest `uat-` tag; `apiVersion` is the first 12 characters of its commit | `--expect <ref>`, else the newest `prod-` tag; `apiVersion` is `sha-<full commit>`. With neither, it prints the version and warns |
-| Hub | `/api/health` is `Healthy`; `/api/config`; `/play` answers; the console page at `/admin/` | `/api/health` is `Healthy`; `/api/config` (version, registration, proof of work, providers, email); `/play` answers with CSP, HSTS and `nosniff`; `http://` redirects to `https://`; `www` redirects to the apex; the console page at `/admin/`, with `noindex, nofollow` |
+| Hub | `/api/health` is `Healthy`; `/api/config`; `/play` answers; `/admin/` is a `404` | `/api/health` is `Healthy`; `/api/config` (version, registration, proof of work, providers, email); `/play` answers with CSP, HSTS and `nosniff`; `http://` redirects to `https://`; `www` redirects to the apex; `/admin/` is a `404` |
+| Console | `:4821`: `/` is the console's page with `noindex`; `/api/admin/overview` is a `401` without its session; `/play` is a `404` | `https://console.toheplay.io.vn/` redirects to Cloudflare Access (`*.cloudflareaccess.com`) — or, without it, is the console's page with `noindex, nofollow` |
 | Site and docs | The site's `/` and `/docs/` answer | The docs host: `/` and `/docs/` answer, `/play` redirects to the hub's `/play` |
 | Games | `/catalog.json` lists games; `/` redirects to the hub's `/play` with `noindex` | The same, and the first game's entry page answers with `form-action 'none'` in its CSP |
 | Underneath | The API log since `--since` (default 15 minutes) has no `fail:`, `crit:`, `Unhandled` or `Exception` line; the newest migration in the database is the newest migration file of the commit. Skipped with `--no-docker`, or when Docker is missing | The mail DNS records: DKIM, the `send` subdomain's SPF and MX, DMARC, and the domain's MX |
 
-The addresses can be overridden (`--hub`, `--site`, `--games`, `--docs`, `--domain`; `--no-dns` skips the mail
-records). After a deploy the agent runs `pnpm check:uat --expect <tag>` or `pnpm check:prod --expect <tag>` with the
+The addresses can be overridden (`--hub`, `--console`, `--site`, `--games`, `--docs`, `--domain`; `--no-dns` skips the
+mail records). After a deploy the agent runs `pnpm check:uat --expect <tag>` or `pnpm check:prod --expect <tag>` with the
 tag it just made. `--since` for UAT is how far back to read the log, for example the time of the deploy.
 
 If a check fails, say so and stop. Rolling back is the owner's call ([below](#rolling-back)).

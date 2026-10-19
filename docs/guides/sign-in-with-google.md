@@ -55,7 +55,7 @@ whenever `tohe-secrets` changes; on its own, the new key changes nothing until t
 
 A provider that has its keys is **on** unless the console switched it off. So Google is live for everyone as soon as the
 API rolls out with step 4, and the console cannot switch it off before then. Decide first who may make an account the
-first time they sign in with Google: **`/admin/` → Đăng nhập & đăng ký → Đăng ký**:
+first time they sign in with Google: **the console → Đăng nhập & đăng ký → Đăng ký**:
 
 - `Mở`: anyone.
 - `Theo lời mời`: with an invite code.
@@ -134,4 +134,4 @@ dotnet user-secrets --project services/api/src/Tohe.Api set "Auth:Providers:Goog
 dotnet user-secrets --project services/api/src/Tohe.Api set "Auth:Providers:Google:ClientSecret" "<the secret>"
 ```
 
-Restart `pnpm dev`, then switch Google on in the console at `http://localhost:4720/admin/`.
+Restart `pnpm dev`, then switch Google on in the console at `http://localhost:4721`.

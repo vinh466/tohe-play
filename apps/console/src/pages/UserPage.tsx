@@ -3,7 +3,7 @@ import { useNavigate, useParams } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { type AccountDetail, type AdminMe, admin, type ProfileDetail } from '../api/client.ts';
 import { dateTime, publicId, roleName } from '../format.ts';
-import { meKey } from '../security/Gate.tsx';
+import { meKey, useSignedIn } from '../security/Gate.tsx';
 import { StepUp } from '../security/StepUp.tsx';
 import { Button, Field, problem } from '../ui/forms.tsx';
 import { Badge, Card, Fact, Failed, Loading, PageTitle } from '../ui/ui.tsx';
@@ -17,7 +17,7 @@ const roles = ['owner', 'admin', 'moderator', 'viewer'] as const;
 export function UserPage() {
   const { id } = useParams({ from: '/users/$id' });
   const queryClient = useQueryClient();
-  const me = useQuery({ queryKey: meKey, queryFn: admin.me });
+  const me = useSignedIn();
   const account = useQuery({ queryKey: ['admin', 'user', id], queryFn: () => admin.user(id) });
 
   if (me.isPending || account.isPending) return <Loading />;
@@ -78,11 +78,7 @@ export function UserPage() {
             <p className="text-ink-soft text-sm">
               Để thay đổi tài khoản này hoặc hồ sơ của nó, xác nhận lại là bạn.
             </p>
-            <StepUp
-              hasPassword={me.data.hasPassword}
-              email={me.data.email}
-              onDone={() => void queryClient.invalidateQueries({ queryKey: meKey })}
-            />
+            <StepUp onDone={() => void queryClient.invalidateQueries({ queryKey: meKey })} />
           </Card>
         ) : may('admin.users.write') || may('admin.roles.write') ? (
           <Actions me={me.data} user={user} onChange={show} />

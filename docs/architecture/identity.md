@@ -443,7 +443,8 @@ page. Signing in, the password just typed counts as level 2 for adding a first e
 | What | How |
 | --- | --- |
 | Cookie | `tohe.session` — `__Host-tohe.session` behind an HTTPS hub (ADR 0021) — 90 days, sliding, HttpOnly, `SameSite=Lax` |
-| In the cookie | the active profile, and until when step-up level 1 and level 2 are open — and the admin console, after its two-factor check ([Admin console](admin.md#two-factor-authentication)) |
+| In the cookie | the active profile, and until when step-up level 1 and level 2 are open |
+| The console's | a session of its own, on the console's host: `tohe.console` — `__Host-tohe.console` behind an HTTPS console — 12 hours from its own sign-in, never sliding, `SameSite=Strict`; it authenticates the console's routes alone, and this one never does there ([Admin console](admin.md#the-consoles-session)) |
 | Checked against the account's security stamp | every 5 minutes (`Identity:SessionCheckInterval`) |
 | The stamp changes when | the password is reset or changed · the sign-in email changes · a provider is unlinked · an admin suspends the account or signs it out everywhere ([Admin console](admin.md#users)) · the owner asks to delete the account ([below](#deleting)) |
 | Never written for | a suspended account: whatever would re-issue its session — choosing who plays, a step-up — answers `403 account_suspended` and ends the session at once, so it cannot renew itself before the check. An account waiting to be deleted likewise, with `401 session_ended`: only signing in again starts a session, and keeps the account |

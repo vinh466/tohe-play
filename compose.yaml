@@ -31,6 +31,8 @@ services:
       ConnectionStrings__Database: Host=postgres;Port=5432;Database=tohe;Username=tohe;Password=tohe-dev-only;GSS Encryption Mode=Disable
       Database__MigrateOnStartup: "true"
       App__PublicUrl: http://${TOHE_PUBLIC_HOST:-localhost}:4720
+      # The console's own host: the hub image's second site, published on 4721 (ADR 0042).
+      App__ConsoleUrl: http://${TOHE_PUBLIC_HOST:-localhost}:4721
       Games__PublicOrigin: http://${TOHE_PUBLIC_HOST:-localhost}:4730
       Games__CatalogUrl: http://games:8080/catalog.json
       Registry__SyncInterval: "00:00:20"
@@ -68,6 +70,8 @@ services:
       - api
     ports:
       - "4720:8080"
+      # The console (ADR 0042): the same image's second site, at the root of its own host.
+      - "4721:8081"
 
   games:
     build:
@@ -75,7 +79,8 @@ services:
       dockerfile: deploy/docker/web.Dockerfile
       target: games
     environment:
-      HUB_ORIGINS: http://${TOHE_PUBLIC_HOST:-localhost}:4720
+      # The hub, and the console, which frames a game to watch a ranked run (ADR 0032).
+      HUB_ORIGINS: http://${TOHE_PUBLIC_HOST:-localhost}:4720 http://${TOHE_PUBLIC_HOST:-localhost}:4721
       PUBLIC_HUB_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4720
     ports:
       - "4730:8080"

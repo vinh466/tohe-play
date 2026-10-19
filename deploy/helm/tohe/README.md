@@ -1,7 +1,7 @@
 # `tohe` Helm chart
 
-Runs Tò He on Kubernetes: the hub (PWA, with `/api` proxied on the same origin), the API, the games origin and the
-landing/docs site — from scratch with its own PostgreSQL, or on infrastructure you already run
+Runs Tò He on Kubernetes: the hub (PWA, with `/api` proxied on the same origin), the operators' console (served by the
+hub's pods on a host of its own), the API, the games origin and the landing/docs site — from scratch with its own PostgreSQL, or on infrastructure you already run
 ([ADR 0021](../../../docs/decisions/0021-release-production-through-the-tohe-chart.md)). Step-by-step:
 [Self-hosting](../../../docs/guides/self-hosting.md). What each image reads: [Configuration](../../../docs/guides/configuration.md).
 
@@ -22,7 +22,7 @@ landing/docs site — from scratch with its own PostgreSQL, or on infrastructure
 | `publicUrls.site` | The landing page and docs, while `site.enabled` |
 | `secrets.existingSecret` **or** `secrets.values.postgresPassword` | Where the secrets come from |
 
-The three hosts must differ: the Ingress routes by host, and the games origin must never share the hub's. Give Tò He
+The hosts must differ: the Ingress routes by host, and the games origin must never share the hub's. Give Tò He
 a domain of its own — production runs `toheplay.io.vn`, `games.toheplay.io.vn` and `docs.toheplay.io.vn`. Game code
 is the same *site* as every host of its registrable domain, so it can set cookies they all receive: the hub protects
 itself (a `__Host-` session cookie, same-origin checks on the API, `form-action 'none'` in the games' CSP); apps that
@@ -59,14 +59,22 @@ to `defaults.annotations` (it lands on the Deployments themselves, where Reloade
 
 - **One API instance**, `Recreate` updates: rooms live in the API's memory, and its background jobs and start-up
   migrations assume one instance (ADR 0016). `api.replicaCount` other than 1 fails the render.
-- **Host filtering**: `AllowedHosts` is the hub's host (`api.allowedHosts` to change it); the probes send it as
-  `Host`.
+- **Host filtering**: `AllowedHosts` is the hub's host, and the console's when set (`api.allowedHosts` to change
+  it); the probes send the hub's as `Host`.
 - **Unknown values fail** (`values.schema.json`), so a typo does not silently do nothing.
 - **Behind a proxy**, set `hub.proxy.trustedProxies` to the ingress pods' range and `hub.proxy.clientIpHeaders` to the
   header carrying the visitor's address (`CF-Connecting-IP` behind Cloudflare). Keep the range narrow — anyone
   inside it can claim any address, and the API rate-limits sign-in by address.
 
 ## Off by default
+
+- `publicUrls.console` — the operators' console ([ADR 0042](../../../docs/decisions/0042-hosts-by-trust-paths-by-component.md)),
+  e.g. `https://console.tohe.example` beside `https://tohe.example`: a host of its own with a sign-in and a session of
+  its own. Set, the hub's pods open their port 8081 (named `console`, on the hub's Service too), the Ingress leads the
+  console's host there, the API gets `App__ConsoleUrl` and accepts the host in `AllowedHosts`, the games origin lets the
+  console frame a game (to watch a ranked run), and `helm test` checks the console's page and that its routes ask for
+  its session. Empty, none of that: the API answers the console's routes with 404. Put an access proxy in front of the
+  host — production uses Cloudflare Access; the API does not check Access's token yet.
 
 - `api.reference.enabled` — the API reference on the hub's origin: Scalar at `/api/docs` and the OpenAPI documents
   under `/api/openapi/`. Off, they answer 404; the docs site carries the same reference, generated at build time
@@ -84,8 +92,8 @@ On every component (`api`, `hub`, `games`, `site`, with fallbacks in `defaults`)
 `podAnnotations`, `podLabels`, `nodeSelector`, `tolerations`, `affinity`, `priorityClassName`, `resources`,
 `podSecurityContext`, `securityContext`, `extraEnv`. The API also has `config` (non-secret environment),
 `extraEnvFrom`, `extraVolumes` and `extraVolumeMounts`. `ingress.enabled: false` leaves routing to you; the Services
-are `<release>-hub`, `<release>-games`, `<release>-site` on port 8080. `networkPolicy.enabled` lets only the hub reach
-the API and only the API reach the builtin PostgreSQL.
+are `<release>-hub`, `<release>-games`, `<release>-site` on port 8080, and the console on `<release>-hub`'s port 8081.
+`networkPolicy.enabled` lets only the hub reach the API and only the API reach the builtin PostgreSQL.
 
 **Metrics** (ADR 0036): the API serves `/metrics` for Prometheus on its port `metrics` (9464), which no ingress
 routes. With the Prometheus Operator's CRDs (kube-prometheus-stack), `metrics.serviceMonitor.enabled` scrapes it

@@ -41,6 +41,22 @@ public sealed class ApiTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Theory]
+    [InlineData("https://console.example.test/admin")]
+    [InlineData("console.example.test")]
+    // The console is a host of its own (ADR 0042), never the hub's.
+    [InlineData("https://tohe.example.test")]
+    public void A_console_url_that_is_not_an_origin_of_its_own_stops_the_api_from_starting(string consoleUrl)
+    {
+        using var misconfigured = factory.WithWebHostBuilder(builder => builder
+            .UseSetting("App:PublicUrl", "https://tohe.example.test")
+            .UseSetting("App:ConsoleUrl", consoleUrl));
+
+        var error = Assert.ThrowsAny<Exception>(() => misconfigured.CreateClient());
+
+        Assert.Contains("App:ConsoleUrl", error.ToString(), StringComparison.Ordinal);
+    }
+
+    [Theory]
     [InlineData("/api/docs")]
     [InlineData("/api/openapi/v1.json")]
     [InlineData("/api/openapi/admin.json")]

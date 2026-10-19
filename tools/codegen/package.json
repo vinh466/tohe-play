@@ -5,7 +5,7 @@
   "description": "Code generators that need the classic TypeScript compiler API, isolated from the repo's TypeScript 7 (see ADR 0008).",
   "type": "module",
   "scripts": {
-    "api-types": "openapi-typescript ../../services/api/openapi/tohe-api.json -o ../../apps/hub/src/api/schema.gen.ts && openapi-typescript ../../services/api/openapi/tohe-api_admin.json -o ../../apps/admin/src/api/schema.gen.ts"
+    "api-types": "openapi-typescript ../../services/api/openapi/tohe-api.json -o ../../apps/hub/src/api/schema.gen.ts && openapi-typescript ../../services/api/openapi/tohe-api_admin.json -o ../../apps/console/src/api/schema.gen.ts"
   },
   "devDependencies": {
     "openapi-typescript": "^7.13.0",

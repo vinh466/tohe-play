@@ -1,6 +1,7 @@
 import sharedScript from '@tohe/design-tokens/theme-init.js?raw';
+import { matchConsolePath } from '@tohe/routes';
 import { describe, expect, it } from 'vitest';
-import adminScript from '../public/theme-init.js?raw';
+import consoleScript from '../public/theme-init.js?raw';
 import {
   ago,
   count,
@@ -21,7 +22,31 @@ import { manifestOf, replayInit } from './watch.ts';
 // The console's CSP forbids inline scripts, as the hub's, so it serves the shared pre-paint script as a copy.
 // When the original changes: cp ../../packages/design-tokens/theme-init.js public/
 it('serves an exact copy of the shared theme-init.js', () => {
-  expect(adminScript).toBe(sharedScript);
+  expect(consoleScript).toBe(sharedScript);
+});
+
+// The console has a host of its own (ADR 0042): its Caddy site serves only the namespaces @tohe/routes gives it.
+const router = import.meta.glob<string>('./router.tsx', { query: '?raw', import: 'default', eager: true })[
+  './router.tsx'
+] as string;
+
+it('routes only paths inside a page namespace of the console’s host in @tohe/routes', () => {
+  const paths = [...router.matchAll(/\bpath: '([^']+)'/g)].map((match) => match[1] as string);
+  expect(paths.length).toBeGreaterThan(10);
+  const outside = paths.filter((path) => {
+    // $id: any one segment.
+    const namespace = matchConsolePath(path.replace(/\$\w+/g, 'x'));
+    return namespace?.component !== 'console' || namespace.served !== 'page';
+  });
+  expect(outside, 'add a namespace to consoleNamespaces in packages/routes/src/map.ts').toEqual([]);
+});
+
+it('ships only files of a namespace of the console’s host', () => {
+  const files = Object.keys(import.meta.glob('../public/*', { query: '?url', eager: true })).map((file) =>
+    file.replace('../public', ''),
+  );
+  expect(files).toContain('/theme-init.js');
+  expect(files.filter((file) => matchConsolePath(file)?.served !== 'static')).toEqual([]);
 });
 
 // Colours only from the design tokens (ADR 0013): styles.css removes Tailwind's palette, so a raw class would

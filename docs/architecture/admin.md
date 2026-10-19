@@ -1,41 +1,100 @@
 ---
 title: Admin console
-description: The operator's console at /admin/ on the hub's origin — who may open it, the first owner, two-factor authentication, the audit log, users, sign-in and registration, and what each page reads.
+description: The operator's console on a host of its own with its own sign-in — who may open it, its session, the first owner, two-factor authentication, the audit log, users, sign-in and registration, and what each page reads.
 sidebar:
   order: 5
 ---
 
 Decisions: [ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md),
-[ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md). This page describes what exists: the console's
-app and API, roles and permissions, the first owner's setup, two-factor authentication, the audit log, the read-only
-pages, the users, and sign-in and registration with communities.
+[ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md),
+[ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md). This page describes what exists: the console's
+app and API on a host of its own, its sign-in and session, roles and permissions, the first owner's setup, two-factor
+authentication, the audit log, the read-only pages, the users, and sign-in and registration with communities.
 
 ## Where it lives
 
+The console has a host of its own ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)):
+`console.toheplay.io.vn` in production, behind Cloudflare Access; `http://localhost:4721` in development and
+`http://10.100.0.2:4821` on UAT ([Hosts and paths](hosts-and-paths.md)). A flaw in a page of the hub cannot act with an
+operator's session: the console has a sign-in and a session of its own, and an operator signed in as a player is not
+signed in to the console.
+
 ```mermaid
 flowchart LR
-  browser["Browser at /admin/"] -- "page and assets" --> hubsrv["Hub's Caddy<br/>/admin/* from the apps/admin build<br/>own CSP, noindex"]
-  browser -- "fetch /api/admin/*" --> hubsrv
-  hubsrv --> api["API: Admin module"]
+  browser["Browser at the console's host"] -- "page and assets" --> site["The hub image's Caddy, second site (8081)<br/>the apps/console build at /<br/>own CSP, noindex"]
+  browser -- "fetch /api/admin/*<br/>the console's cookie" --> site
+  site -- "/api/admin/* only" --> api["API: Admin module<br/>the console's session alone"]
   api -- "the role, on every request" --> claims[("identity.account_claims")]
   api -- "settings, audit log" --> admin[("admin.settings<br/>admin.audit_log")]
   api -- "what each module tells" --> modules["Identity, Progress, Rooms,<br/>Registry, Email, Telemetry"]
 ```
 
-- **`apps/admin`** — React with TanStack Router and Query and the design tokens; desktop first, usable on a phone. It
-  is built into the hub's image under `/srv/admin` and served at `/admin/` by the hub's Caddy: the hub's origin, so
-  the hub's session cookie. Its CSP allows only its own origin — no WebSocket, no inline styles — and frames the
-  games origin only to watch a ranked run in the game itself ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md)); it is sent with
-  `X-Robots-Tag: noindex`; `robots.txt` keeps crawlers out of it. It has no service worker, and the hub's leaves
-  `/admin/` alone. `/admin/` is the console's namespace in the map of the hub's paths until the console moves to a
-  host of its own ([Hosts and paths](hosts-and-paths.md)).
+- **`apps/console`** — React with TanStack Router and Query and the design tokens; desktop first, usable on a phone. It
+  is built into the hub's image under `/srv/console` and served at the root of the console's host by a second site of
+  the hub's Caddy, on port 8081 (`deploy/docker/Caddyfile.hub`). That site serves the console's namespaces of the map in
+  `@tohe/routes` (`consoleNamespaces`, generated into `console-routes.caddy`), proxies the API's console routes
+  `/api/admin/…` and nothing else of the API, and answers any other path — the hub's pages, `/admin` — with a `404`.
+  Its CSP allows only its own origin — no WebSocket, no inline styles — and frames the games origin only to watch a
+  ranked run in the game itself ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md)), which is why
+  the games origin lets the console's origin embed it; every answer carries `X-Robots-Tag: noindex, nofollow` and HSTS
+  like the hub's. It has no service worker and no `robots.txt`. The hub's host no longer serves `/admin`: a `404`.
+- **Its links back to the hub** are absolute, to the hub's public URL the API tells it (`GET /api/admin/config`,
+  `App:PublicUrl`): a root-relative link on the console's host would be a `404` of its own host. A test of the hub
+  (`apps/hub/src/routes.test.ts`) fails when one appears.
 - **`/api/admin/*`** — the Admin module (`services/api/src/Tohe.Api/Modules/Admin`), described by its own OpenAPI
   document, `/api/openapi/admin.json` where the API reference is switched on
   ([Configuration](../guides/configuration.md#api)). The build writes it to `services/api/openapi/tohe-api_admin.json`, and
-  `pnpm --filter @tohe/admin generate:api` (which regenerates the hub's types too) turns it into
-  `apps/admin/src/api/schema.gen.ts`. Its tables live in the `admin` schema.
-- **Locally** `pnpm dev` starts the console's dev server on 4721; open it through the hub, at
-  <http://localhost:4720/admin/>, as in production.
+  `pnpm --filter @tohe/hub generate:api` (which writes both apps' types) turns it into
+  `apps/console/src/api/schema.gen.ts`. Its tables live in the `admin` schema.
+- **Locally** `pnpm dev` starts the console's dev server on <http://localhost:4721>, at the root, proxying the API's
+  console routes to the API; `docker compose up` publishes the hub container's port 8081 there.
+- **Cloudflare Access** asks first in production (the owner sets it up). The API does not check Access's token yet: the
+  console's own sign-in is what lets someone in.
+
+## The console's session
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor Op as Operator
+  participant H as Hub (its host)
+  participant C as Console (its host)
+  participant A as API
+  Op->>H: /account — step-up level 2, then "Thêm ứng dụng xác thực"
+  H->>A: POST /api/account/two-factor/setup · /enable (the players' session)
+  A-->>H: on, recovery codes once
+  Op->>C: email, password, a code from the app
+  C->>A: POST /api/admin/session
+  A->>A: the password (lockout, suspension) · a platform role · two-factor on · the code
+  A-->>C: the console's cookie, 12 hours
+  C->>A: GET /api/admin/… with that cookie alone
+```
+
+- **Its own sign-in.** `POST /api/admin/session` takes the email, the password and a code from the authenticator — or
+  a recovery code, once. Only an account with a platform role and two-factor authentication on gets a console session;
+  a wrong password, a wrong or used code, no code, no role, no authenticator, no such account: all answer `401
+  invalid_credentials`, so the console tells nobody which accounts hold a role. It shares the players' checks
+  (`PasswordSignIn`): Identity's lockout (wrong codes count with wrong passwords, 10 in a row, 5 minutes), the `auth`
+  rate-limit bucket, and suspension, told (`account_suspended`) only to whoever brought the right password and code. An
+  account its owner asked to delete is refused (`account_deleting`): signing in to the hub keeps it, the console does
+  not. The switch of the players' password sign-in (ADR 0028) does not apply here: the console signs in with the
+  password, and the switch goes back on in the console.
+- **Its own cookie.** `__Host-tohe.console` when the console's URL is HTTPS, `tohe.console` otherwise — `HttpOnly`,
+  `Secure` over HTTPS, **`SameSite=Strict`**, `Path=/`, no `Domain`. It lasts **12 hours from the sign-in**, never
+  longer: no sliding, and re-issuing it after step-up keeps its end (the `tohe:console_until` claim). A new security
+  stamp — a new password, a suspension, "sign out everywhere", two-factor authentication turned off — ends it at the
+  next request; so does taking the role away. `DELETE /api/admin/session` ends the console's session only; signing out
+  of the hub leaves it.
+- **Apart, both ways, by scheme.** On localhost and on UAT the hub and the console share a host name and differ by port,
+  and browsers send both cookies to both. So the API keeps them apart by authentication scheme, not by origin: the
+  console's routes authenticate with the console's scheme (`ConsoleSession.Scheme`) alone — a player's cookie there is
+  a `401` — and every other route with the players' (the default scheme), so the console's cookie authenticates nothing
+  outside them. The routes themselves answer on the console's host alone (`App:ConsoleUrl`, `ConsoleRoutes`): a console
+  route on the hub's host, or any other route on the console's host, is a `404`, whatever proxy is in front. And the
+  API's same-origin check accepts the console's `Origin` only for the console's routes, and only it for them.
+- **Step-up level 2** happens inside the console session: `POST /api/admin/session/step-up` with the password, or a
+  code from the authenticator, opens what changes something for 10 minutes — its `tohe:secure_until` claim lives in
+  the console's cookie. The hub's step-up opens nothing in the console.
 
 ## Who gets in
 
@@ -44,7 +103,7 @@ An account holds at most one platform role — `owner`, `admin`, `moderator` or 
 
 | Permission | What it opens | Held by |
 | --- | --- | --- |
-| `signed-in` | `GET /api/admin/me` — who is asking, their role if any — and setup | any signed-in account |
+| `signed-in` | Step-up level 2 in the console session | any console session |
 | `admin.read` | The read-only pages, and the account's own two-factor authentication | every role |
 | `admin.audit.read` | The audit log | owner, admin |
 | `admin.users.read` | Find accounts and see one: sign-in methods, role, suspension, profiles and their names | owner, admin, moderator |
@@ -58,38 +117,33 @@ A permission to change something new arrives with the page that changes it, give
 
 ```mermaid
 flowchart TD
-  request["A request to /api/admin/…"] --> signed{"Signed in?"}
-  signed -- no --> unauthorized["401"]
-  signed -- yes --> declared{"Does the endpoint declare a permission?"}
+  request["A request to /api/admin/… on the console's host"] --> session{"The console's session?<br/>(its cookie alone)"}
+  session -- no --> unauthorized["401"]
+  session -- yes --> holds{"A role and two-factor on,<br/>read from the database now?"}
+  holds -- no --> ended["the session ends: 401"]
+  holds -- yes --> declared{"Does the endpoint declare a permission?"}
   declared -- no --> refused["403 admin_required"]
-  declared -- yes --> role["The account's role, read from the database now"]
-  role --> grants{"Does the role grant it?<br/>signed-in: any account"}
+  declared -- yes --> grants{"Does the role grant it?<br/>signed-in: any console session"}
   grants -- no --> refused
-  grants -- yes --> open{"signed-in, or the two-factor setup itself?"}
-  open -- yes --> stepup
-  open -- no --> enabled{"Two-factor authentication on?"}
-  enabled -- no --> setup["403 two_factor_setup_required"]
-  enabled -- yes --> passed{"Passed on this device,<br/>in the last 12 hours?"}
-  passed -- no --> code["403 two_factor_required"]
-  passed -- yes --> stepup{"Does the endpoint ask for step-up level 2,<br/>and is it closed?"}
+  grants -- yes --> stepup{"Does the endpoint ask for step-up level 2,<br/>and is it closed in this session?"}
   stepup -- yes --> step["403 step_up_required"]
   stepup -- no --> answer["The answer"]
 ```
 
 The role and whether two-factor authentication is on are read again on every request, so taking a role away — or
-turning two-factor authentication off — works on the next request, in every session. An endpoint added without
-`.RequirePermission(…)` answers 403 to everyone; `AdminTests` checks that each admin endpoint declares one.
+turning two-factor authentication off — ends the console's session on the next request, everywhere. An endpoint added
+without `.RequirePermission(…)` answers 403 to everyone; `AdminTests` checks that each admin endpoint declares one, but
+the few a console needs before its session: its configuration, who is signed in, signing in and out, and setup.
 
-The console asks `GET /api/admin/me` first and walks people to what is missing: the hub's sign-in when signed out;
-how a role comes without one — or the claim of a new deployment's first owner; the two-factor setup; a code on this
-device. A page that comes back refused for one of these sends the console back to its gate. The hub's
-`GET /api/auth/me` carries the account's `role` too, and Quản lý tài khoản links to the console when there is one.
+The console asks `GET /api/admin/me` first — `204` when nobody is signed in, as the hub's `/api/auth/me` — and shows its
+sign-in in place of any page until someone is. The hub's `GET /api/auth/me` carries the account's `role`, and for an
+account with one the console's address (`consoleUrl`): Quản lý tài khoản links there, and adds the authenticator.
 
 ## The first owner
 
 While no account has ever been owner, the deployment is in setup mode. When the API starts in setup mode it logs one
-warning: `No platform owner yet: open <hub>/admin/setup and give the setup token XXXX-XXXX` — a token it makes up at
-start — or, with `Admin:SetupToken` set, names that setting instead of printing it.
+warning: `No platform owner yet: open <console>/setup and give the setup token XXXX-XXXX` — a token it makes up at
+start — or, with `Admin:SetupToken` set, names that setting instead of printing it. Without `App:ConsoleUrl` it says so.
 
 ```mermaid
 sequenceDiagram
@@ -97,56 +151,60 @@ sequenceDiagram
   participant Op as Operator
   participant A as API
   actor U as Owner-to-be
-  participant C as Console
+  participant C as Console (its host)
+  participant H as Hub
   A->>A: on start, no owner ever → setup mode
-  A->>Op: log once, "No platform owner yet … token 4KQ7-M2XB"
-  U->>C: /admin/, signed in with a confirmed email
+  A->>Op: log once, "No platform owner yet … <console>/setup … token 4KQ7-M2XB"
+  U->>H: signs up, a confirmed email
+  U->>C: /setup
   C->>A: GET /api/admin/setup → {open: true}
-  U->>C: the token
-  C->>A: POST /api/admin/setup/claim {token}
-  A->>A: setup open? token right (any case, dashes optional)?<br/>address among Admin:BootstrapEmails, when set?
+  U->>C: the token, the account's email and password
+  C->>A: POST /api/admin/setup/claim {token, email, password}
+  A->>A: setup open? token right (any case, dashes optional)?<br/>password right (lockout)? address among Admin:BootstrapEmails, when set?
   A->>A: one transaction: setup ended for good, the owner role, the audit entry
-  A-->>C: 200, role owner
-  C->>U: two-factor authentication next, before any page
+  A-->>C: 204 — no console session yet
+  C->>U: add an authenticator in the hub (/account), then sign in here
 ```
 
-- The account needs a confirmed email; an account from before email sign-in adds one first (`email_required`).
-- Tries count in the `auth-gate` bucket, 10 a minute per address; a wrong token is `setup_token_invalid`, an address
-  outside `Admin:BootstrapEmails` is `setup_email_not_allowed`.
+- Two-factor authentication is not asked yet: the claim makes the account owner and starts no session. The page then
+  sends the owner to the hub's account page to add an authenticator, and back to sign in.
+- The account needs a confirmed email; an account from before email sign-in adds one first (`email_required`). A wrong
+  password is `invalid_credentials`, under Identity's lockout; a suspended account is `account_suspended`, one waiting
+  to be deleted `account_deleting`.
+- Tries count in the `auth-gate` bucket, 10 a minute per address; a wrong token is `setup_token_invalid` — checked
+  before the password, so it says nothing about the account — an address outside `Admin:BootstrapEmails` is
+  `setup_email_not_allowed`.
 - Setup ends once, in the database (`admin.settings`, `setup.completed_at`): when two claims race, one wins and the
   other is `setup_closed`. An owner granted by the command ends it too, and so does the migration for a deployment
   that already has one. Losing every owner later never opens it again: the command is the way back.
 
 ## Two-factor authentication
 
-The console needs an authenticator app (TOTP: six digits, every 30 seconds) — on the account once, then a code on each
-device.
+The console signs in with an authenticator app (TOTP: six digits, every 30 seconds). It is added in the hub — nobody
+signs in to the console without one, so the console cannot add it — and managed in the console.
 
 ```mermaid
 flowchart TD
-  role["An account with a role"] --> on{"Two-factor authentication on?"}
+  role["An account with a role, in the hub"] --> on{"Two-factor authentication on?"}
   on -- no --> l2{"Step-up level 2 open?"}
   l2 -- no --> stepup["The password, or a code by email"] --> l2
-  l2 -- yes --> key["POST …/two-factor/setup<br/>a new key: QR code and text"]
-  key --> first["POST …/two-factor/enable with its first code"]
-  first --> codes["On, ten recovery codes shown once,<br/>the console open here for 12 hours"]
-  on -- yes --> device{"Passed on this device, in the last 12 hours?"}
-  device -- no --> verify["POST …/two-factor/verify<br/>a code, or a recovery code once"]
-  verify --> openhere["Open on this device for 12 hours"]
-  device -- yes --> pages["The pages"]
-  codes --> pages
-  openhere --> pages
+  l2 -- yes --> key["POST /api/account/two-factor/setup<br/>a new key: QR code and text"]
+  key --> first["POST /api/account/two-factor/enable with its first code"]
+  first --> codes["On, ten recovery codes shown once"]
+  on -- yes --> signin["The console's sign-in:<br/>the email, the password, a code — or a recovery code once"]
+  codes --> signin
+  signin --> open["A console session, 12 hours"]
 ```
 
-- **Per device, for a working day.** A code opens the console on the device for 12 hours: the session's
-  `tohe:admin_until` claim. Like both step-up levels, choosing who plays or locking the page closes it.
-- **Turning it on** leaves other sessions alone — the account only got safer. **Turning it off** (step-up level 2)
-  gives the account a new security stamp and a new key: other sessions end within the session check, and the console
-  closes on every device at once, since each request checks that two-factor authentication is on.
-- **New recovery codes** need step-up level 2 and replace the old ones.
-- **Wrong codes** count towards Identity's lockout, like wrong passwords (10 in a row, 5 minutes), and the `auth-code`
-  bucket limits them per address. A code that worked cannot work again for three minutes (`code_used`): one seen over
-  a shoulder opens nothing elsewhere.
+- **In the hub**, Quản lý tài khoản → Bảo mật tài khoản → Xác thực hai lớp, for an account with a platform role only
+  (`admin_required` otherwise): players do not sign in with one. Turning it on leaves other sessions alone — the
+  account only got safer.
+- **In the console**, Bảo mật: new recovery codes, or turning it off — both behind step-up level 2 in the console
+  session. Turning it off gives the account a new security stamp and a new key: every session ends, the console's
+  included, and the console's sign-in refuses the account until an authenticator is added again in the hub.
+- **Wrong codes** count towards Identity's lockout, like wrong passwords (10 in a row, 5 minutes), and the `auth`
+  bucket limits sign-ins per address. A code that worked cannot work again for three minutes: one seen over a shoulder
+  opens nothing elsewhere.
 
 ## The audit log
 
@@ -175,7 +233,7 @@ entries.
 | `invite.create`, `invite.revoke` | An invite code made — its community, end and limit of uses in the details — or revoked |
 | `two-factor.enable`, `two-factor.disable` | Two-factor authentication turned on or off |
 | `two-factor.recovery-codes` | New recovery codes |
-| `console.open` | The console opened on a device, with how: `authenticator` or `recovery-code` |
+| `console.open` | A sign-in to the console, with how: `authenticator` or `recovery-code` |
 
 ## Users
 
@@ -239,7 +297,7 @@ flowchart TD
   mine -- yes --> saved["Saved, with an audit entry, in one transaction<br/>the cache forgotten: it holds at once"]
 ```
 
-- **Đăng nhập & đăng ký**, `/admin/settings`: each method — on, off, or not configured — with how many accounts sign
+- **Đăng nhập & đăng ký**, `/settings`: each method — on, off, or not configured — with how many accounts sign
   in by it alone. Switching one off that some rely on asks once more: they cannot sign in until it is on again or they
   get another way linked. Off means no signing in and no signing up with it — and for email and password no forgotten
   password either ([Sign-in methods](identity.md#sign-in-methods)).
@@ -249,9 +307,9 @@ flowchart TD
 - **Chống bot đăng ký**: the [proof-of-work](identity.md#proof-of-work) before signing up and a password reset
   ([ADR 0037](../decisions/0037-proof-of-work-before-a-code-by-email.md)), off by default; `proofOfWork` in the same
   `PUT /api/admin/settings`, under the same step-up, in the same audit entry.
-- **Cộng đồng**, `/admin/communities`: a community is a name, unique. Its invite codes are given (`BAN-CO-6A`) or made
+- **Cộng đồng**, `/communities`: a community is a name, unique. Its invite codes are given (`BAN-CO-6A`) or made
   up (`K7Q2-M9XD`, Crockford's base 32: no I, L, O or U to misread); they may end on a day and may be used a set number
-  of times, and once revoked are never used again. A usable code shows its link, `/account/register?invite=CODE`, to share.
+  of times, and once revoked are never used again. A usable code shows its link — on the hub's host, `<hub>/account/register?invite=CODE` — to share.
   How many accounts came with a community is counted from the accounts.
 
 ## Granting a role
@@ -273,16 +331,16 @@ It exits with 0 when done, 1 when no account signs in with the address, 2 for a 
 
 | Page | Shows | Asks |
 | --- | --- | --- |
-| Tổng quan, `/admin/` | Accounts and profiles: total, last day, last week · players — profiles that saved a game or recorded a score — in the last day and week · open rooms, rooms in a hand, profiles connected · results waiting for a person · accounts due for deletion · device errors in the last day · the catalog and its last sync · the email outbox | `IdentityFacts`, `ProgressFacts`, `RoomRegistry.Live()`, `IntegrityReview`, `TelemetryFacts`, `RegistryFacts` and the catalog worker, `EmailFacts` |
-| Game, `/admin/games` | Every game in the registry, listed or not, with its players in the last week and its open rooms | `RegistryFacts`, `ProgressFacts`, `RoomRegistry` |
-| Sức khoẻ thiết bị, `/admin/health?days=1\|7\|30` | The device telemetry report ([Device telemetry](telemetry.md)): devices, errors, frames and metrics per game version, plays and errors per day | `TelemetryReports` |
-| Hệ thống, `/admin/system` | The build, environment and start time · migrations applied and pending · what each background worker last did · settings, never secrets | `BackgroundWork`, EF Core, options |
-| Người dùng, `/admin/users`, `/admin/users/{id}` | Accounts found — or those waiting to be deleted, the soonest due first — then one account and its profiles, with what may be done to them | `AccountsAdmin` |
-| Xem xét kết quả, `/admin/review?list=held\|decided`, `/admin/review/{id}` | The held results, oldest first, or the decided ones, latest first; then one result — its evidence, a ranked run played back in the game itself, its profile's history on the board, every change of level — and the decision | `IntegrityReview`, `AccountsAdmin`, `RegistryFacts` |
-| Cộng đồng, `/admin/communities` | Communities with how many accounts came with each, their invite codes and links; new ones, revoking | `CommunitiesAdmin` |
-| Đăng nhập & đăng ký, `/admin/settings` | Each sign-in method and who relies on it alone; the registration mode; switching both | `RuntimeSettings`, `IdentityFacts` |
-| Nhật ký, `/admin/audit` | The audit log, newest first, a page at a time | `admin.audit_log` |
-| Bảo mật, `/admin/security` | The account's two-factor authentication: until when the console is open here, recovery codes left; new recovery codes, or turning it off | Identity's two-factor stores |
+| Tổng quan, `/` | Accounts and profiles: total, last day, last week · players — profiles that saved a game or recorded a score — in the last day and week · open rooms, rooms in a hand, profiles connected · results waiting for a person · accounts due for deletion · device errors in the last day · the catalog and its last sync · the email outbox | `IdentityFacts`, `ProgressFacts`, `RoomRegistry.Live()`, `IntegrityReview`, `TelemetryFacts`, `RegistryFacts` and the catalog worker, `EmailFacts` |
+| Game, `/games` | Every game in the registry, listed or not, with its players in the last week and its open rooms | `RegistryFacts`, `ProgressFacts`, `RoomRegistry` |
+| Sức khoẻ thiết bị, `/health?days=1\|7\|30` | The device telemetry report ([Device telemetry](telemetry.md)): devices, errors, frames and metrics per game version, plays and errors per day | `TelemetryReports` |
+| Hệ thống, `/system` | The build, environment and start time · migrations applied and pending · what each background worker last did · settings — the hub's and the console's addresses among them — never secrets | `BackgroundWork`, EF Core, options |
+| Người dùng, `/users`, `/users/{id}` | Accounts found — or those waiting to be deleted, the soonest due first — then one account and its profiles, with what may be done to them | `AccountsAdmin` |
+| Xem xét kết quả, `/review?list=held\|decided`, `/review/{id}` | The held results, oldest first, or the decided ones, latest first; then one result — its evidence, a ranked run played back in the game itself, its profile's history on the board, every change of level — and the decision | `IntegrityReview`, `AccountsAdmin`, `RegistryFacts` |
+| Cộng đồng, `/communities` | Communities with how many accounts came with each, their invite codes and links; new ones, revoking | `CommunitiesAdmin` |
+| Đăng nhập & đăng ký, `/settings` | Each sign-in method and who relies on it alone; the registration mode; switching both | `RuntimeSettings`, `IdentityFacts` |
+| Nhật ký, `/audit` | The audit log, newest first, a page at a time | `admin.audit_log` |
+| Bảo mật, `/security` | The account's two-factor authentication: until when this console session lasts, recovery codes left; new recovery codes, or turning it off | Identity's two-factor stores |
 
 Modules keep their tables ([ADR 0003](../decisions/0003-backend-dotnet-modular-monolith-postgres.md)): each exposes a
 small `…Facts` service, and the Admin module only puts their answers together. Infrastructure — CPU, memory, disks —
@@ -308,12 +366,13 @@ three failures in a row without anyone opening the page.
 
 | Endpoint | Permission | Answers |
 | --- | --- | --- |
-| `GET /api/admin/me` | `signed-in` | The account, its role (or none), its permissions, and the console's state here: two-factor on, open until, step-up until |
-| `GET /api/admin/setup` · `POST /api/admin/setup/claim` | `signed-in` | Whether setup is open · the token makes this account the first owner |
-| `GET /api/admin/two-factor` | `admin.read`, before two-factor | On or off, open here until, recovery codes left |
-| `POST /api/admin/two-factor/setup` · `/enable` | `admin.read`, before two-factor, step-up | A new key · its first code turns it on and opens the console; recovery codes once |
-| `POST /api/admin/two-factor/verify` | `admin.read`, before two-factor | A code or a recovery code opens the console here for 12 hours |
-| `POST /api/admin/two-factor/recovery-codes` · `DELETE /api/admin/two-factor` | `admin.read`, step-up | New recovery codes · turn it off |
+| `GET /api/admin/config` | — | What the console needs first: the hub's address |
+| `GET /api/admin/me` | — | The account signed in to the console, its role, its permissions, until when the session lasts and step-up is open; `204` when nobody is |
+| `POST /api/admin/session` · `DELETE /api/admin/session` | — | The console's sign-in: email, password and a code or a recovery code — its cookie for 12 hours · sign out of the console only |
+| `POST /api/admin/session/step-up` | `signed-in` | The password, or a code from the authenticator: step-up level 2 in this console session for 10 minutes |
+| `GET /api/admin/setup` · `POST /api/admin/setup/claim` | — | Whether setup is open · the token, with an account's email and password, makes it the first owner |
+| `GET /api/admin/two-factor` | `admin.read` | On, until when this console session lasts, recovery codes left |
+| `POST /api/admin/two-factor/recovery-codes` · `DELETE /api/admin/two-factor` | `admin.read`, step-up | New recovery codes · turn it off: every session ends, this one too |
 | `GET /api/admin/overview` | `admin.read` | The platform at a glance |
 | `GET /api/admin/games` | `admin.read` | Every game in the registry |
 | `GET /api/admin/health?days=7` | `admin.read` | The device telemetry report over 1 to 30 days |
@@ -337,8 +396,15 @@ three failures in a row without anyone opening the page.
 | `POST /api/admin/communities/{id}/codes` | `admin.settings.write`, step-up | A new invite code — given or made up, an end and a limit of uses if wanted |
 | `DELETE /api/admin/invite-codes/{code}` | `admin.settings.write`, step-up | Revoke an invite code |
 
-Refusals: 401 signed out; 403 `admin_required`, `two_factor_setup_required`, `two_factor_required`,
-`step_up_required`, `email_required`, `setup_token_invalid`, `setup_email_not_allowed`, `admin_self`, `admin_rank`;
+Every one of them answers on the console's host alone; anywhere else, `404`.
+
+In the hub, behind the players' session: `GET /api/account/two-factor` (on or not), `POST /api/account/two-factor/setup`
+(a new key) and `/enable` (its first code turns it on; the recovery codes once) — for an account with a platform role,
+the last two within step-up level 2.
+
+Refusals: 401 without a console session, or `invalid_credentials` from the sign-in; 403 `admin_required`,
+`step_up_required`, `password_invalid`, `account_suspended`, `account_deleting`, `email_required`, `setup_token_invalid`,
+`setup_email_not_allowed`, `admin_self`, `admin_rank`; 429 `locked_out`;
 409 `setup_closed`, `two_factor_enabled`, `authenticator_not_set_up`, `last_owner`, `settings_last_method`,
 `settings_lockout_self`, `community_exists`, `invite_code_exists`, `review_not_allowed`; 400 with field codes `code_invalid`, `code_used`,
 `locked_out`, `reason_required`, `reason_too_long`, `role_invalid`, `registration_invalid`, `method_unknown`,

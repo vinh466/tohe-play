@@ -2,7 +2,8 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type FormEvent, useState } from 'react';
 import { admin, type Community, type InviteCode } from '../api/client.ts';
 import { count, dateTime } from '../format.ts';
-import { meKey } from '../security/Gate.tsx';
+import { hubLink, useHubUrl } from '../hub.ts';
+import { meKey, useSignedIn } from '../security/Gate.tsx';
 import { StepUp } from '../security/StepUp.tsx';
 import { Button, Field, problem } from '../ui/forms.tsx';
 import { Badge, Card, Failed, Loading, PageTitle } from '../ui/ui.tsx';
@@ -18,7 +19,7 @@ const nameProblems = { name_too_long: 'Tên dài quá 64 ký tự.' };
  */
 export function CommunitiesPage() {
   const queryClient = useQueryClient();
-  const me = useQuery({ queryKey: meKey, queryFn: admin.me });
+  const me = useSignedIn();
   const communities = useQuery({ queryKey: communitiesKey, queryFn: admin.communities });
 
   if (me.isPending || communities.isPending) return <Loading />;
@@ -35,11 +36,7 @@ export function CommunitiesPage() {
           <p className="text-ink-soft text-sm">
             Để tạo cộng đồng, tạo hay thu hồi mã mời, xác nhận lại là bạn.
           </p>
-          <StepUp
-            hasPassword={me.data.hasPassword}
-            email={me.data.email}
-            onDone={() => void queryClient.invalidateQueries({ queryKey: meKey })}
-          />
+          <StepUp onDone={() => void queryClient.invalidateQueries({ queryKey: meKey })} />
         </Card>
       ) : null}
       {canChange ? <NewCommunity onChange={show} /> : null}
@@ -154,10 +151,15 @@ function CodeStatus({ code }: { code: InviteCode }) {
   return <Badge tone="notice">Hết hạn</Badge>;
 }
 
-/** The link to share: the hub's sign-up with the code filled in. Copied where the browser allows it (HTTPS). */
+/**
+ * The link to share: the hub's sign-up with the code filled in — on the hub's host, not the console's (ADR 0042). Copied
+ * where the browser allows it (HTTPS). Without the hub's address, the code alone.
+ */
 function InviteLink({ code, revoke, busy }: { code: string; revoke: (() => void) | null; busy: boolean }) {
   const [copied, setCopied] = useState(false);
-  const link = `${window.location.origin}/account/register?invite=${encodeURIComponent(code)}`;
+  const hubUrl = useHubUrl();
+  const register = `/account/register?invite=${encodeURIComponent(code)}`;
+  const link = hubUrl ? hubLink(hubUrl, register) : code;
   const copy = async () => {
     await navigator.clipboard.writeText(link);
     setCopied(true);

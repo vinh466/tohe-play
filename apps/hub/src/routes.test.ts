@@ -2,7 +2,7 @@
 // (ADR 0042): the hub's Caddy answers 404 to anything else, and the service worker leaves it to the network.
 import { readdirSync, readFileSync } from 'node:fs';
 import { matchHubPath } from '@tohe/routes';
-import { expect, it } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import router from './router.tsx?raw';
 
 it('routes only paths inside an app page namespace of @tohe/routes', () => {
@@ -16,20 +16,35 @@ it('routes only paths inside an app page namespace of @tohe/routes', () => {
   expect(outside, 'add a namespace to packages/routes/src/map.ts').toEqual([]);
 });
 
-it('lets the console link back only to the app’s pages', () => {
-  // The console (apps/admin) is served by the hub's Caddy and links to the hub by root-relative paths.
-  const consoleSrc = new URL('../../admin/src/', import.meta.url);
-  const links = readdirSync(consoleSrc, { recursive: true, encoding: 'utf8' })
-    .filter((file) => file.endsWith('.tsx'))
-    .flatMap((file) => [...readFileSync(new URL(file, consoleSrc), 'utf8').matchAll(/\bhref="(\/[^"]*)"/g)])
-    .map((match) => (match[1] as string).replace(/[?#].*/, ''))
-    .filter((path) => matchHubPath(path)?.component !== 'console');
-  expect(links.length).toBeGreaterThan(0);
-  const outside = links.filter((path) => {
-    const namespace = matchHubPath(path);
-    return namespace?.component !== 'app' || namespace.served !== 'page';
+describe('the console’s links back to the hub', () => {
+  // The console (apps/console) has a host of its own (ADR 0042): a root-relative link there is a 404 of its own host,
+  // so it links to the hub absolutely — hubLink(hubUrl, path), to the hub's public URL the API tells it.
+  const consoleSrc = new URL('../../console/src/', import.meta.url);
+  const sources = readdirSync(consoleSrc, { recursive: true, encoding: 'utf8' })
+    .filter((file) => file.endsWith('.tsx') || file.endsWith('.ts'))
+    .map((file) => [file, readFileSync(new URL(file, consoleSrc), 'utf8')] as const);
+
+  it('are never root-relative', () => {
+    expect(sources.length).toBeGreaterThan(10);
+    const relative = sources.flatMap(([file, source]) =>
+      [...source.matchAll(/\bhref=(?:"|\{\s*['"`])(\/[^"'`]*)/g)].map((match) => `${file}: ${match[1]}`),
+    );
+    expect(relative, 'link to the hub with hubLink(hubUrl, path) (apps/console/src/hub.ts)').toEqual([]);
   });
-  expect(outside, 'link the console to a page of packages/routes/src/map.ts').toEqual([]);
+
+  it('lead to the app’s pages', () => {
+    const paths = sources.flatMap(([, source]) =>
+      [...source.matchAll(/\b(?:hubLink\(hubUrl, |path=)['"](\/[^'"?#]*)/g)].map(
+        (match) => match[1] as string,
+      ),
+    );
+    expect(paths.length).toBeGreaterThan(2);
+    const outside = paths.filter((path) => {
+      const namespace = matchHubPath(path);
+      return namespace?.component !== 'app' || namespace.served !== 'page';
+    });
+    expect(outside, 'link the console to a page of packages/routes/src/map.ts').toEqual([]);
+  });
 });
 
 it('ships only files of a namespace of @tohe/routes', () => {

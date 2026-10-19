@@ -1,9 +1,11 @@
-// Typed client of the admin API (ADR 0027). Types come from its own OpenAPI document: pnpm --filter @tohe/admin generate:api
+// Typed client of the console's API (ADR 0027, 0042). Types come from its own OpenAPI document:
+// pnpm --filter @tohe/hub generate:api (which writes both apps' types).
 import createClient from 'openapi-fetch';
 import type { components, paths } from './schema.gen.ts';
 
 type Schemas = components['schemas'];
 export type AdminMe = Schemas['AdminMeView'];
+export type ConsoleConfig = Schemas['ConsoleConfig'];
 export type AdminOverview = Schemas['AdminOverview'];
 export type AdminGame = Schemas['AdminGame'];
 export type AdminSystem = Schemas['AdminSystem'];
@@ -27,12 +29,12 @@ export type RunReplay = Schemas['RunReplay'];
 /** What a person decides about a result (ADR 0029). */
 export type ReviewDecision = 'approve' | 'reject' | 'reopen';
 
-/** Same origin: the console is served at /admin/ by the hub's server, which proxies /api. */
+/** Same origin: the console's host serves its page and proxies the API's console routes, /api/admin. */
 const api = createClient<paths>({ baseUrl: '' });
 
 /**
- * A response the API refused: 401 signed out, 403 `admin_required` without a role that may, `two_factor_required`
- * and `step_up_required` until a check passes. `fields` holds validation codes per field, e.g. `code_invalid`.
+ * A response the API refused: 401 without a console session (or one that ended), 403 `admin_required` for a role that
+ * may not, `step_up_required` until step-up passes. `fields` holds validation codes per field, e.g. `code_invalid`.
  */
 export class ApiError extends Error {
   constructor(
@@ -71,7 +73,25 @@ async function refusal(response: Response, problem: unknown = undefined): Promis
 }
 
 export const admin = {
-  me: () => call(api.GET('/api/admin/me')),
+  config: () => call(api.GET('/api/admin/config')),
+  /** The console's own sign-in: email, password, and a code from the authenticator or a recovery code. */
+  signIn: (body: { email: string; password: string; code?: string; recoveryCode?: string }) =>
+    call(
+      api.POST('/api/admin/session', {
+        body: { ...body, code: body.code ?? null, recoveryCode: body.recoveryCode ?? null },
+      }),
+    ),
+  /** Ends the console's session only; the hub's stays. */
+  endSession: () => call(api.DELETE('/api/admin/session')),
+  /** Step-up level 2 in the console session: the password, or a code from the authenticator. */
+  stepUp: (proof: { password?: string; code?: string }) =>
+    call(
+      api.POST('/api/admin/session/step-up', {
+        body: { password: proof.password ?? null, code: proof.code ?? null },
+      }),
+    ),
+  /** Who is signed in to the console; null when nobody is (204). */
+  me: async (): Promise<AdminMe | null> => (await call(api.GET('/api/admin/me'))) ?? null,
   overview: () => call(api.GET('/api/admin/overview')),
   games: () => call(api.GET('/api/admin/games')),
   health: (days: number) => call(api.GET('/api/admin/health', { params: { query: { days } } })),
@@ -79,16 +99,10 @@ export const admin = {
   audit: (before?: number) =>
     call(api.GET('/api/admin/audit', { params: { query: before === undefined ? {} : { before } } })),
   setup: () => call(api.GET('/api/admin/setup')),
-  claimSetup: (token: string) => call(api.POST('/api/admin/setup/claim', { body: { token } })),
+  /** The setup token with the email and password of the account that becomes the owner; no session starts. */
+  claimSetup: (body: { token: string; email: string; password: string }) =>
+    call(api.POST('/api/admin/setup/claim', { body })),
   twoFactor: () => call(api.GET('/api/admin/two-factor')),
-  setUpAuthenticator: () => call(api.POST('/api/admin/two-factor/setup')),
-  enableTwoFactor: (code: string) => call(api.POST('/api/admin/two-factor/enable', { body: { code } })),
-  verifyTwoFactor: (proof: { code?: string; recoveryCode?: string }) =>
-    call(
-      api.POST('/api/admin/two-factor/verify', {
-        body: { code: proof.code ?? null, recoveryCode: proof.recoveryCode ?? null },
-      }),
-    ),
   newRecoveryCodes: () => call(api.POST('/api/admin/two-factor/recovery-codes')),
   disableTwoFactor: () => call(api.DELETE('/api/admin/two-factor')),
   /** Found by `q`, or — with `deleting` — those whose owner asked to delete them, the soonest due first. */
@@ -160,24 +174,3 @@ export const admin = {
   revokeInviteCode: (code: string) =>
     call(api.DELETE('/api/admin/invite-codes/{code}', { params: { path: { code } } })),
 };
-
-/**
- * Step-up level 2 (ADR 0025) is the hub's, not the admin API's: the same endpoints, called by hand. What they answer
- * does not matter here; the console asks /api/admin/me again afterwards.
- */
-export const stepUp = {
-  password: (password: string) => send('/api/session/step-up', { password }),
-  sendCode: async (): Promise<string> =>
-    ((await send('/api/session/step-up/code')) as { attemptId: string }).attemptId,
-  confirm: (attemptId: string, code: string) => send('/api/session/step-up/confirm', { attemptId, code }),
-};
-
-async function send(path: string, body?: unknown): Promise<unknown> {
-  const response = await fetch(path, {
-    method: 'POST',
-    headers: body === undefined ? {} : { 'Content-Type': 'application/json' },
-    body: body === undefined ? undefined : JSON.stringify(body),
-  });
-  if (!response.ok) throw await refusal(response);
-  return response.status === 204 ? null : response.json();
-}

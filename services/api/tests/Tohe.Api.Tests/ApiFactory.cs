@@ -68,6 +68,8 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("ConnectionStrings:Database", _postgres.GetConnectionString());
         builder.UseSetting("Database:MigrateOnStartup", "true");
         builder.UseSetting("Games:PublicOrigin", "https://games.example.test");
+        // The console's routes answer on its host alone (ADR 0042): Admins.ConsoleClient sends its requests there.
+        builder.UseSetting("App:ConsoleUrl", Admins.ConsoleUrl.ToString());
         builder.UseSetting("Games:CatalogUrl", "http://games-internal/catalog.json");
         builder.UseSetting("Registry:SyncEnabled", "false");
         // Tests sign in many times from one client address; the real limit is covered by its own configuration.
