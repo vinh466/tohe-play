@@ -16,6 +16,7 @@ it goes straight to a doc change or an ADR.
 | Plan | Goal | Phase | Entry point |
 |---|---|---|---|
 | public-launch | Tò He ready to open to the public: user-first accounts and profiles, email and OAuth sign-in, a platform admin, an integrity engine for trustworthy leaderboards, and its own Helm chart for production | Close (the rest moved to product-surface) | [PLAN.md](public-launch/PLAN.md) |
+| product-surface | Phase 1 after production: the development, test and environment flow written as spec; every component's place on the domain; public pages people and AI can find; a newcomer plays in seconds and is led to install the app and sign up | Frame | [PLAN.md](product-surface/PLAN.md) |
 
 ## What a plan space is — and is not
 
