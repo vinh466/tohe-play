@@ -190,7 +190,7 @@ level 2 and in the audit log:
   holds cannot renew itself: whatever would re-issue it answers `account_suspended` and ends it. A sign-in with the
   right password is told
   `account_suspended`; a wrong one hears `invalid_credentials` as always, so nobody learns which accounts are
-  suspended. With a provider, the hub shows the same at `/welcome?external=suspended`. **Lift** undoes it.
+  suspended. With a provider, the hub shows the same at `/account/sign-in?external=suspended`. **Lift** undoes it.
 - **Sign out everywhere**: a new security stamp alone.
 - **Delete for good** an account whose owner asked and whose seven days are over
   ([ADR 0038](../decisions/0038-an-account-waits-for-an-admin-after-its-seven-days.md)), after one more confirmation: every profile and their data go
@@ -251,7 +251,7 @@ flowchart TD
   `PUT /api/admin/settings`, under the same step-up, in the same audit entry.
 - **Cộng đồng**, `/admin/communities`: a community is a name, unique. Its invite codes are given (`BAN-CO-6A`) or made
   up (`K7Q2-M9XD`, Crockford's base 32: no I, L, O or U to misread); they may end on a day and may be used a set number
-  of times, and once revoked are never used again. A usable code shows its link, `/register?invite=CODE`, to share.
+  of times, and once revoked are never used again. A usable code shows its link, `/account/register?invite=CODE`, to share.
   How many accounts came with a community is counted from the accounts.
 
 ## Granting a role

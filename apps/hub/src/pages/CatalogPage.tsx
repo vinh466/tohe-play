@@ -33,7 +33,7 @@ function Catalog({ player }: { player: Player }) {
         <div className="flex shrink-0 items-center gap-2">
           <ThemeButton />
           <Link
-            to={isGuest ? '/welcome' : '/profiles'}
+            to={isGuest ? '/account/sign-in' : '/account/profiles'}
             aria-label={t('switchProfile')}
             className="flex items-center gap-2 rounded-full bg-surface py-1.5 pr-4 pl-1.5 shadow-sm active:scale-95"
           >
@@ -48,7 +48,7 @@ function Catalog({ player }: { player: Player }) {
       {isGuest ? (
         <p className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
           {t('guest.banner')}
-          <Link to="/register" className="font-bold underline underline-offset-4">
+          <Link to="/account/register" className="font-bold underline underline-offset-4">
             {t('guest.signUp')}
           </Link>
         </p>
@@ -75,7 +75,7 @@ function Catalog({ player }: { player: Player }) {
               style={{ animationDelay: `${index * 40}ms` }}
             >
               <Link
-                to={game.rooms && !hasShell(game) ? '/rooms/$gameId' : '/play/$gameId'}
+                to={game.rooms && !hasShell(game) ? '/play/$gameId/rooms' : '/play/$gameId'}
                 params={{ gameId: game.id }}
                 className="flex h-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 text-center shadow-sm transition active:scale-95"
               >

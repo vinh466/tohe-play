@@ -317,7 +317,7 @@ public sealed class EmailSignInTests(ApiFactory factory) : IClassFixture<ApiFact
 
         var code = await factory.CodeSentToAsync(email);
         Assert.Contains(
-            $"https://tohe.example.test/register/confirm?attempt={attempt}&code={code}",
+            $"https://tohe.example.test/account/register/confirm?attempt={attempt}&code={code}",
             await factory.MailSentToAsync(email),
             StringComparison.Ordinal);
     }

@@ -3,7 +3,29 @@
 # The namespaces of the hub’s host as named matchers; Caddyfile.hub serves each and answers 404 to the rest.
 @apiProxy path /api /api/*
 @consolePage path /admin /admin/*
-@appPage path / /welcome /welcome/* /sign-in /sign-in/* /register /register/* /password /password/* /profiles /profiles/* /account /account/* /legal /legal/* /data /data/* /play /play/* /rooms /rooms/* /r /r/* /room /room/* /replay /replay/*
+@appPage path /play /play/* /account /account/* /r /r/* /terms /privacy
 @appStaticImmutable path /assets /assets/*
 @appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /registerSW.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png
 @platformGenerated path /robots.txt /.well-known /.well-known/*
+# /: Leads to the catalog until the public pages arrive.
+@rootRedirect path /
+redir @rootRedirect /play?{query} 302
+# The app’s old paths, kept for the links in emails already sent: 301 to the new path, the query kept.
+@legacyWelcome path_regexp legacyWelcome ^/welcome$
+redir @legacyWelcome /account/sign-in?{query} 301
+@legacySignIn path_regexp legacySignIn ^/sign-in(/.*)?$
+redir @legacySignIn /account/sign-in{re.legacySignIn.1}?{query} 301
+@legacyRegister path_regexp legacyRegister ^/register(/.*)?$
+redir @legacyRegister /account/register{re.legacyRegister.1}?{query} 301
+@legacyPassword path_regexp legacyPassword ^/password(/.*)?$
+redir @legacyPassword /account/password{re.legacyPassword.1}?{query} 301
+@legacyProfiles path_regexp legacyProfiles ^/profiles$
+redir @legacyProfiles /account/profiles?{query} 301
+@legacyData path_regexp legacyData ^/data$
+redir @legacyData /account/data?{query} 301
+@legacyTerms path_regexp legacyTerms ^/legal/terms$
+redir @legacyTerms /terms?{query} 301
+@legacyPrivacy path_regexp legacyPrivacy ^/legal/privacy$
+redir @legacyPrivacy /privacy?{query} 301
+@legacyRooms path_regexp legacyRooms ^/rooms/([^/]+)$
+redir @legacyRooms /play/{re.legacyRooms.1}/rooms?{query} 301

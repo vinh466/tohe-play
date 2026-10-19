@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 export function DataLink() {
   const { t } = useTranslation();
   return (
-    <Link to="/data" className="self-center text-ink-soft text-sm underline underline-offset-4">
+    <Link to="/account/data" className="self-center text-ink-soft text-sm underline underline-offset-4">
       {t('data.link')}
     </Link>
   );

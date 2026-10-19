@@ -34,11 +34,11 @@ export function ConsentCheckbox({
         />
         <span>
           {t('consent.agree')}{' '}
-          <a href="/legal/terms" target="_blank" rel="noopener" className={link}>
+          <a href="/terms" target="_blank" rel="noopener" className={link}>
             {t('legal.terms')}
           </a>{' '}
           {t('consent.and')}{' '}
-          <a href="/legal/privacy" target="_blank" rel="noopener" className={link}>
+          <a href="/privacy" target="_blank" rel="noopener" className={link}>
             {t('legal.privacy')}
           </a>
           .

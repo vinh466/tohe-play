@@ -24,7 +24,7 @@ export function JoinPage() {
         session.status === 'account' ? (
           <Preview player={session.player} />
         ) : (
-          <Navigate to="/register" replace />
+          <Navigate to="/account/register" replace />
         )
       }
     </RequireSession>
@@ -40,22 +40,34 @@ function Preview({ player }: { player: Player }) {
   const room = useQuery({ queryKey: ['room-code', code], queryFn: () => rooms.byCode(code), retry: false });
   const join = useMutation({
     mutationFn: (id: string) => rooms.join(id),
-    onSuccess: (view) => void navigate({ to: '/room/$roomId', params: { roomId: view.id }, replace: true }),
+    onSuccess: (view) =>
+      void navigate({
+        to: '/play/$gameId/rooms/$roomId',
+        params: { gameId: view.gameId, roomId: view.id },
+        replace: true,
+      }),
   });
   const watch = useMutation({
     mutationFn: (id: string) => rooms.watch(id),
-    onSuccess: (view) => void navigate({ to: '/room/$roomId', params: { roomId: view.id }, replace: true }),
+    onSuccess: (view) =>
+      void navigate({
+        to: '/play/$gameId/rooms/$roomId',
+        params: { gameId: view.gameId, roomId: view.id },
+        replace: true,
+      }),
   });
   const view = room.data;
   const game = games.data?.find((g) => g.id === view?.gameId);
   const host = view?.seatList.find((seat) => seat.profileId === view.hostProfileId);
 
   if (view && (view.mySeat !== null || view.watchers.includes(player.id)))
-    return <Navigate to="/room/$roomId" params={{ roomId: view.id }} replace />;
+    return (
+      <Navigate to="/play/$gameId/rooms/$roomId" params={{ gameId: view.gameId, roomId: view.id }} replace />
+    );
 
   return (
     <Screen narrow>
-      <BackLink to="/" className="font-semibold text-accent">
+      <BackLink to="/play" className="font-semibold text-accent">
         ← {t('backToGames')}
       </BackLink>
       <h1 className="text-center font-black text-3xl text-brand-ink">
@@ -104,7 +116,7 @@ function Preview({ player }: { player: Player }) {
       ) : null}
       {view ? (
         <BackLink
-          to="/rooms/$gameId"
+          to="/play/$gameId/rooms"
           params={{ gameId: view.gameId }}
           className="text-center font-semibold text-accent"
         >

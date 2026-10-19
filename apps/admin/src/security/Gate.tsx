@@ -37,7 +37,7 @@ export function NoRole({ me }: { me: AdminMe }) {
           dotnet Tohe.Api.dll admin grant &lt;email&gt; --role owner
         </code>
       </p>
-      <a href="/" className="font-semibold text-brand-ink underline underline-offset-4">
+      <a href="/play" className="font-semibold text-brand-ink underline underline-offset-4">
         Về Tò He
       </a>
     </Centered>

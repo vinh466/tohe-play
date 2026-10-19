@@ -1,5 +1,6 @@
 // What scripts/generate.ts writes, as pure functions of the map so the tests can read them too.
-import { hubLinks, hubNamespaces, type Namespace } from './map.ts';
+import { hubLinks, hubNamespaces, hubRedirects, type Namespace, type Redirect } from './map.ts';
+import { redirectPattern, redirectTemplate } from './match.ts';
 
 const header = (comment: string) =>
   [
@@ -33,6 +34,8 @@ export function caddyMatcherName(namespace: Namespace): string {
 export function caddyMatchers(namespaces: readonly Namespace[] = hubNamespaces): Map<string, string[]> {
   const matchers = new Map<string, string[]>();
   for (const namespace of namespaces) {
+    // A redirect is answered by a directive of its own (hubRedirectDirectives), not by a handler in Caddyfile.hub.
+    if (namespace.served === 'redirect') continue;
     if (namespace.component === 'app' && namespace.served === 'page' && namespace.indexed) {
       // Caddyfile.hub marks every app page noindex; an indexed page needs a matcher of its own there first.
       throw new Error(`${namespace.id}: an indexed app page is not supported by Caddyfile.hub yet`);
@@ -43,8 +46,45 @@ export function caddyMatchers(namespaces: readonly Namespace[] = hubNamespaces):
   return matchers;
 }
 
+/**
+ * The redirects as Caddy `redir` directives, which run before any `handle` block of the site: the placeholder
+ * namespaces (302) and the old paths of the app (301). The query is kept; Caddy drops the `?` when there is none.
+ */
+export function hubRedirectDirectives(
+  namespaces: readonly Namespace[] = hubNamespaces,
+  redirects: readonly Redirect[] = hubRedirects,
+): string[] {
+  const lines: string[] = [];
+  for (const namespace of namespaces) {
+    if (namespace.served !== 'redirect' || namespace.redirectTo === undefined) continue;
+    const name = `${namespace.id}Redirect`;
+    lines.push(
+      `# ${namespace.path}: ${namespace.note}.`,
+      `@${name} path ${namespace.path}`,
+      `redir @${name} ${namespace.redirectTo}?{query} 302`,
+    );
+  }
+  if (redirects.length > 0) {
+    lines.push(
+      '# The app’s old paths, kept for the links in emails already sent: 301 to the new path, the query kept.',
+    );
+  }
+  for (const redirect of redirects) {
+    const name = `legacy${capitalise(redirect.id)}`;
+    const to = redirectTemplate(redirect, (n) => `{re.${name}.${n}}`);
+    lines.push(
+      `@${name} path_regexp ${name} ${redirectPattern(redirect)}`,
+      `redir @${name} ${to}?{query} 301`,
+    );
+  }
+  return lines;
+}
+
 /** deploy/docker/hub-routes.caddy, imported by Caddyfile.hub inside its site block. */
-export function hubCaddySnippet(namespaces: readonly Namespace[] = hubNamespaces): string {
+export function hubCaddySnippet(
+  namespaces: readonly Namespace[] = hubNamespaces,
+  redirects: readonly Redirect[] = hubRedirects,
+): string {
   const lines = [
     header('#'),
     '# The namespaces of the hub’s host as named matchers; Caddyfile.hub serves each and answers 404 to the rest.',
@@ -52,6 +92,7 @@ export function hubCaddySnippet(namespaces: readonly Namespace[] = hubNamespaces
   for (const [name, paths] of caddyMatchers(namespaces)) {
     lines.push(`@${name} path ${paths.join(' ')}`);
   }
+  lines.push(...hubRedirectDirectives(namespaces, redirects));
   return `${lines.join('\n')}\n`;
 }
 

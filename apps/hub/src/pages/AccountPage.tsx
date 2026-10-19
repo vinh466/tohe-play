@@ -73,14 +73,14 @@ function ManageAccount({ me }: { me: MeView }) {
 
   const lock = useMeMutation(
     () => session.lockParentGate(),
-    () => leaveTo({ to: '/profiles' }),
+    () => leaveTo({ to: '/account/profiles' }),
   );
 
   return (
     <Screen>
       <header className="flex items-center gap-3">
         <BackLink
-          to="/profiles"
+          to="/account/profiles"
           aria-label={t('back')}
           className="grid size-11 place-items-center rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
         >
@@ -702,7 +702,7 @@ function TechnicalData({ me }: { me: MeView }) {
           {t(errorKey(update.error))}
         </p>
       ) : null}
-      <Link to="/data" className="font-semibold text-accent underline underline-offset-4">
+      <Link to="/account/data" className="font-semibold text-accent underline underline-offset-4">
         {t('data.more')}
       </Link>
     </Card>
@@ -738,7 +738,7 @@ function ConfirmDeletion() {
     onSuccess: async ({ deleteAfter }) => {
       // This device is signed out too: what the hub knew of the session goes with it.
       await setMe(null);
-      await navigate({ to: '/welcome', search: { deleting: deleteAfter }, replace: true });
+      await navigate({ to: '/account/sign-in', search: { deleting: deleteAfter }, replace: true });
     },
   });
   return (

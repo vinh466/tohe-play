@@ -173,7 +173,7 @@ flowchart TD
   usable in every mode, so a typo never silently leaves someone outside the community they were invited to.
 - The code is counted by one `UPDATE … SET uses = uses + 1 WHERE … uses < max_uses` in the transaction that makes the
   account: two people using its last use at the same moment get one account and one `invite_invalid`.
-- Codes travel as links, `/register?invite=CODE`. The hub fills the field from it and keeps the code on that tab
+- Codes travel as links, `/account/register?invite=CODE`. The hub fills the field from it and keeps the code on that tab
   (`sessionStorage`, `tohe.invite`) through a trip to a provider, for the provider's sign-up step; it forgets the code
   once an account is made.
 
@@ -214,12 +214,12 @@ sequenceDiagram
 
 | For | Sent to | Link in the email |
 | --- | --- | --- |
-| Signing up | the address signing up | `/register/confirm?attempt=…&code=…` |
-| A forgotten password | the account's address | `/password/reset?attempt=…&code=…` |
+| Signing up | the address signing up | `/account/register/confirm?attempt=…&code=…` |
+| A forgotten password | the account's address | `/account/password/reset?attempt=…&code=…` |
 | A new sign-in email | the new address | `/account/email?attempt=…&code=…` |
 | Step-up level 2 without the password | the account's address | — (typed where it was asked for; lives 10 minutes) |
-| An address for a provider that vouched for none | the address typed | — (typed on `/sign-in/continue`) |
-| Linking a provider to the account that has the address | the account's address | — (typed on `/sign-in/continue`) |
+| An address for a provider that vouched for none | the address typed | — (typed on `/account/sign-in/continue`) |
+| Linking a provider to the account that has the address | the account's address | — (typed on `/account/sign-in/continue`) |
 
 Every code: six random digits, stored hashed, used once, bound to its attempt, alive 15 minutes, five tries — counted in
 the database, so tries made at the same moment all count. One address gets one code a minute and five an hour,
@@ -260,14 +260,14 @@ screens.
 ```mermaid
 flowchart TD
   go["Tiếp tục với Google, GitHub or the issuer"] --> on{"The provider on?<br/>(the admin console)"}
-  on -- no --> disabled["/welcome?external=disabled"]
+  on -- no --> disabled["/account/sign-in?external=disabled"]
   on -- yes --> out["GET /api/auth/external/{provider}<br/>to the provider with state, nonce and PKCE"]
   out --> provider{"The provider"}
-  provider -- "cancelled or refused" --> failed["/welcome?external=failed"]
+  provider -- "cancelled or refused" --> failed["/account/sign-in?external=failed"]
   provider -- "signed in" --> back["Back on …/callback with a code, as a GET<br/>code + verifier → its subject, and an address if it verified one"]
   back --> known{"(provider, subject)<br/>linked to an account?"}
   known -- yes --> signin["Signed in, as with a password<br/>one profile without a PIN plays at once"]
-  known -- no --> wait["An attempt bound to this browser<br/>→ /sign-in/continue"]
+  known -- no --> wait["An attempt bound to this browser<br/>→ /account/sign-in/continue"]
   wait --> verified{"Did the provider verify an address?"}
   verified -- no --> ask["The person types one<br/>and a code proves it"]
   verified -- yes --> has2{"Does an account have it?"}
@@ -291,7 +291,7 @@ flowchart TD
 - OpenID Connect answers in the query, as a GET: the same-origin guard, which refuses cross-site POSTs to `/api`,
   stays whole.
 - The provider is asked about again when it comes back and at every step after: switched off meanwhile, nothing is
-  linked and nothing is made (`method_disabled`; `/welcome?external=disabled` for the navigation back).
+  linked and nothing is made (`method_disabled`; `/account/sign-in?external=disabled` for the navigation back).
 
 ## Proof before a link
 
@@ -312,7 +312,7 @@ sequenceDiagram
   P-->>A: ID token and userinfo: subject, address, verified
   A->>A: …/google/done: no account has (google, subject), one has the verified address
   A->>A: attempt {provider, subject, the address, proven by Google}
-  A-->>H: the sealed tohe.external cookie, and /sign-in/continue
+  A-->>H: the sealed tohe.external cookie, and /account/sign-in/continue
   H->>A: GET /api/auth/external/pending
   A-->>H: {step: link, email: b***@example.com, hasPassword}
   alt a code to the address (the default)
@@ -477,7 +477,7 @@ sequenceDiagram
 
 Signing up plays the new profile at once, and so does signing in to an account with one profile and no PIN — nobody
 else to choose, and one sign-in request fewer. The hub then sends the device through the picker with
-`/profiles?auto=true`, which goes straight on (offering the guest's progress first, if this device has some), and
+`/account/profiles?auto=true`, which goes straight on (offering the guest's progress first, if this device has some), and
 which also chooses a lone PIN-less profile by itself when a page needs a player and none is chosen. Opened by hand
 ("Đổi người chơi"), the picker always shows, so a one-profile account can still add a profile or manage the account.
 
@@ -503,7 +503,7 @@ sequenceDiagram
   API->>API: DeleteAfter = now + 7 days · new security stamp · profiles leave tables
   API->>M: "Tài khoản Tò He sắp bị xoá" — the day, and how to keep it
   API-->>H: 200 {deleteAfter} and this device signed out
-  H->>U: /welcome?deleting=… — "sign in before then to keep it"
+  H->>U: /account/sign-in?deleting=… — "sign in before then to keep it"
   alt someone signs in before an admin deletes it (password, reset, provider)
     API->>API: DeleteAfter cleared, then the session starts
     API->>M: "Tài khoản Tò He sẽ không bị xoá"
@@ -634,8 +634,8 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `name_too_long`, `name_reserved`, `name_inappropriate`, `rename_limit`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
 `last_method`, `account_suspended`, `session_ended`, `method_disabled`, `proof_of_work_required`, `registration_closed`, `invite_required`,
 `invite_invalid`, `asked_child_required`.
-Navigations answer with a redirect instead: `/welcome?external=failed` (the provider refused, or was cancelled),
-`/welcome?external=suspended`, `/welcome?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`
+Navigations answer with a redirect instead: `/account/sign-in?external=failed` (the provider refused, or was cancelled),
+`/account/sign-in?external=suspended`, `/account/sign-in?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`
 `step_up_required`, `provider_account_in_use`, `cross_origin` or `method_disabled`.
 
 ## From households

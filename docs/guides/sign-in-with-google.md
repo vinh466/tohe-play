@@ -25,7 +25,7 @@ In the [Google Cloud console](https://console.cloud.google.com/), in a project o
 1. **Google Auth Platform → Branding**:
    - App name `Tò He`, and a support email the owner reads.
    - Home page `https://toheplay.io.vn/`.
-   - Privacy policy `https://toheplay.io.vn/legal/privacy`; terms `https://toheplay.io.vn/legal/terms`. Change both
+   - Privacy policy `https://toheplay.io.vn/privacy`; terms `https://toheplay.io.vn/terms`. Change both
      here if those pages move.
    - Authorized domain `toheplay.io.vn`.
    - A developer contact address.

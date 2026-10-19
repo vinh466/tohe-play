@@ -37,7 +37,7 @@ public sealed class ExternalSignInTests(ApiFactory factory) : IClassFixture<ApiF
         var email = Accounts.NewEmail();
         var subject = Subject();
 
-        Assert.Equal("/sign-in/continue", await ComeBackAsync(browser, subject, email, verified: true));
+        Assert.Equal("/account/sign-in/continue", await ComeBackAsync(browser, subject, email, verified: true));
         var pending = (await browser.GetFromJsonAsync<PendingSignInView>(Url("/api/auth/external/pending"), Ct))!;
         Assert.Equal(("Fake", "signup", email), (pending.Provider, pending.Step, pending.Email));
 
@@ -50,7 +50,7 @@ public sealed class ExternalSignInTests(ApiFactory factory) : IClassFixture<ApiF
 
         // Next time the provider is enough.
         var later = Browser();
-        Assert.Equal("/profiles?auto=true", await ComeBackAsync(later, subject, email, verified: true));
+        Assert.Equal("/account/profiles?auto=true", await ComeBackAsync(later, subject, email, verified: true));
         Assert.Equal(done.Account.Id, (await later.GetFromJsonAsync<MeView>(Url("/api/auth/me"), Ct))!.Account.Id);
     }
 
@@ -62,7 +62,7 @@ public sealed class ExternalSignInTests(ApiFactory factory) : IClassFixture<ApiF
         await AgeAttemptsAsync(email);
         var browser = Browser();
 
-        Assert.Equal("/sign-in/continue", await ComeBackAsync(browser, Subject(), email, verified: true));
+        Assert.Equal("/account/sign-in/continue", await ComeBackAsync(browser, Subject(), email, verified: true));
         var pending = (await browser.GetFromJsonAsync<PendingSignInView>(Url("/api/auth/external/pending"), Ct))!;
         Assert.Equal(("link", IdentityEmails.Mask(email), true), (pending.Step, pending.Email, pending.HasPassword));
 
@@ -86,7 +86,7 @@ public sealed class ExternalSignInTests(ApiFactory factory) : IClassFixture<ApiF
         await AgeAttemptsAsync(email);
         var browser = Browser();
 
-        Assert.Equal("/sign-in/continue", await ComeBackAsync(browser, Subject(), email: null, verified: false));
+        Assert.Equal("/account/sign-in/continue", await ComeBackAsync(browser, Subject(), email: null, verified: false));
         Assert.Equal("email", (await browser.GetFromJsonAsync<PendingSignInView>(Url("/api/auth/external/pending"), Ct))!.Step);
         Assert.Equal(HttpStatusCode.Accepted, (await browser.PostAsJsonAsync(Url("/api/auth/external/pending/email"), new { email }, Ct)).StatusCode);
 
@@ -105,7 +105,7 @@ public sealed class ExternalSignInTests(ApiFactory factory) : IClassFixture<ApiF
         var browser = Browser();
         var email = Accounts.NewEmail();
 
-        Assert.Equal("/sign-in/continue", await ComeBackAsync(browser, Subject(), email, verified: false));
+        Assert.Equal("/account/sign-in/continue", await ComeBackAsync(browser, Subject(), email, verified: false));
         Assert.Equal("email", (await browser.GetFromJsonAsync<PendingSignInView>(Url("/api/auth/external/pending"), Ct))!.Step);
         await browser.PostAsJsonAsync(Url("/api/auth/external/pending/email"), new { email }, Ct);
         var proven = await browser.PostAsJsonAsync(

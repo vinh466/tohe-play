@@ -75,9 +75,10 @@ export type Component = 'app' | 'console' | 'api' | 'platform';
  * - `page`: a single-page app's page (its index.html), whatever the path under the namespace;
  * - `static`: files from the image, as they are;
  * - `proxy`: passed to a service behind the hub (the API);
- * - `generated`: written by the platform — at build time (robots.txt) or by Caddy at run time (security.txt).
+ * - `generated`: written by the platform — at build time (robots.txt) or by Caddy at run time (security.txt);
+ * - `redirect`: answered with a temporary redirect to `redirectTo` (a placeholder until a page of its own arrives).
  */
-export type Served = 'page' | 'static' | 'proxy' | 'generated';
+export type Served = 'page' | 'static' | 'proxy' | 'generated' | 'redirect';
 
 /**
  * Which paths a namespace covers:
@@ -105,13 +106,15 @@ export interface Namespace {
   navigation: 'app-shell' | 'network';
   /** Static files only: `immutable` for hashed names, cached for a year; `revalidate` for the rest. */
   cache?: 'immutable' | 'revalidate';
+  /** Redirects only: where the namespace's path leads, with a 302 (the query is kept). */
+  redirectTo?: string;
   note: string;
 }
 
-const appPage = (id: string, path: string, note: string): Namespace => ({
+const appPage = (id: string, path: string, note: string, match: Match = 'tree'): Namespace => ({
   id,
   path,
-  match: path === '/' ? 'exact' : 'tree',
+  match,
   component: 'app',
   served: 'page',
   indexed: false,
@@ -140,8 +143,8 @@ const appFile = (
 });
 
 /**
- * The hub's host today (ADR 0040's layout): the app owns its prefixes at the root, the console is at /admin/. The next
- * steps of ADR 0042 move the app under /play and /account and the console to a host of its own.
+ * The hub's host (ADR 0042): the app owns /play and /account (and the short link /r/), the console is still at /admin/.
+ * The next steps move the console to a host of its own and put public pages at the root.
  */
 export const hubNamespaces: readonly Namespace[] = [
   // The API, on the players' origin (the backend-for-frontend pattern).
@@ -169,21 +172,36 @@ export const hubNamespaces: readonly Namespace[] = [
     note: 'The operator console, its own app with its own CSP and no service worker',
   },
 
-  // The app's pages (apps/hub/src/router.tsx).
-  appPage('catalog', '/', 'The catalog'),
-  appPage('welcome', '/welcome', 'Signing in'),
-  appPage('sign-in', '/sign-in', 'Back from a sign-in provider: /sign-in/continue'),
-  appPage('register', '/register', 'Signing up: /register, /register/confirm'),
-  appPage('password', '/password', 'A forgotten password: /password/forgot, /password/reset'),
-  appPage('profiles', '/profiles', 'The profile picker'),
-  appPage('account', '/account', 'The account: /account, /account/email'),
-  appPage('legal', '/legal', 'The terms and the privacy notice: /legal/terms, /legal/privacy'),
-  appPage('data', '/data', 'What telemetry sends'),
-  appPage('play', '/play', 'A game: /play/<gameId>'),
-  appPage('rooms', '/rooms', 'A game’s online rooms: /rooms/<gameId>'),
+  // The root, until the public pages arrive: it leads to the catalog. Not an app page, so the service worker leaves it
+  // to the network and a later pull request replaces this entry with the public home page.
+  {
+    id: 'root',
+    path: '/',
+    match: 'exact',
+    component: 'platform',
+    served: 'redirect',
+    indexed: false,
+    crawl: true,
+    navigation: 'network',
+    redirectTo: '/play',
+    note: 'Leads to the catalog until the public pages arrive',
+  },
+
+  // The app's pages (apps/hub/src/router.tsx): only game ids under /play, everything of a person under /account.
+  appPage(
+    'play',
+    '/play',
+    'The catalog (/play), a game (/play/<gameId>), its online rooms (/play/<gameId>/rooms), a room (…/rooms/<roomId>) and a hand played again (…/rooms/<roomId>/replay/<hand>)',
+  ),
+  appPage(
+    'account',
+    '/account',
+    'A person’s pages: /account/sign-in (and /continue), /register (and /confirm), /password/forgot, /password/reset, /profiles, /data; the account itself at /account and /account/email',
+  ),
   appPage('room-link', '/r', 'A room’s short link: /r/<code>'),
-  appPage('room', '/room', 'A room: /room/<roomId>'),
-  appPage('replay', '/replay', 'A hand played again: /replay/<roomId>/<hand>'),
+  // Rendered by the app for now; the public pages’ pull request serves them as static pages at the same URLs.
+  appPage('terms', '/terms', 'The terms of use', 'exact'),
+  appPage('privacy', '/privacy', 'The privacy notice', 'exact'),
 
   // The app's files (apps/hub/public and what the build adds).
   appFile('assets', '/assets', 'tree', 'immutable', 'Scripts, styles and images with hashed names'),
@@ -235,14 +253,78 @@ export const hubNamespaces: readonly Namespace[] = [
  */
 export const hubLinks = {
   Welcome: {
-    path: '/welcome',
+    path: '/account/sign-in',
     note: 'The sign-in screen; ?external= after a provider, ?deleting= after a deletion',
   },
-  SignInContinue: { path: '/sign-in/continue', note: 'One more step after a provider, the first time' },
-  RegisterConfirm: { path: '/register/confirm', note: 'The link in the sign-up email: ?attempt=&code=' },
-  PasswordReset: { path: '/password/reset', note: 'The link in the password email: ?attempt=&code=' },
+  SignInContinue: {
+    path: '/account/sign-in/continue',
+    note: 'One more step after a provider, the first time',
+  },
+  RegisterConfirm: {
+    path: '/account/register/confirm',
+    note: 'The link in the sign-up email: ?attempt=&code=',
+  },
+  PasswordReset: { path: '/account/password/reset', note: 'The link in the password email: ?attempt=&code=' },
   AccountEmail: { path: '/account/email', note: 'The link that confirms a new address: ?attempt=&code=' },
   Account: { path: '/account', note: 'The account page; ?linked= or ?link_error= after linking a provider' },
-  Profiles: { path: '/profiles', note: 'The profile picker; ?auto=true goes straight on with one profile' },
+  Profiles: {
+    path: '/account/profiles',
+    note: 'The profile picker; ?auto=true goes straight on with one profile',
+  },
   ConsoleSetup: { path: '/admin/setup', note: 'Where a new deployment’s first owner claims the console' },
 } as const satisfies Record<string, { path: string; note: string }>;
+
+/**
+ * An old path of the app that answers 301 to its new one, the query kept. `from` and `to` may share `:name` segments
+ * (one path segment each); with `tree`, `from` also covers what follows it (`/register/confirm`) and `to` takes it over.
+ */
+export interface Redirect {
+  /** A short name, unique in the map: it names the Caddy matcher. */
+  id: string;
+  from: string;
+  to: string;
+  tree: boolean;
+  note: string;
+}
+
+/**
+ * The paths the app had at the root before ADR 0042 moved it under /play and /account. They are kept for the links in
+ * emails already sent and for bookmarks; no date is set for removing them. /room/<id> and /replay/… are not here: they
+ * are only reached from inside the app and need a game id that an old link does not carry, so they are a 404.
+ * No `from` may lie in a namespace of the map (a test checks it).
+ */
+export const hubRedirects: readonly Redirect[] = [
+  { id: 'welcome', from: '/welcome', to: '/account/sign-in', tree: false, note: 'Signing in' },
+  {
+    id: 'signIn',
+    from: '/sign-in',
+    to: '/account/sign-in',
+    tree: true,
+    note: 'Back from a provider: /sign-in/continue',
+  },
+  {
+    id: 'register',
+    from: '/register',
+    to: '/account/register',
+    tree: true,
+    note: 'Signing up, and the link in the sign-up email: /register/confirm',
+  },
+  {
+    id: 'password',
+    from: '/password',
+    to: '/account/password',
+    tree: true,
+    note: 'A forgotten password, and the link in the password email: /password/reset',
+  },
+  { id: 'profiles', from: '/profiles', to: '/account/profiles', tree: false, note: 'The profile picker' },
+  { id: 'data', from: '/data', to: '/account/data', tree: false, note: 'What telemetry sends' },
+  { id: 'terms', from: '/legal/terms', to: '/terms', tree: false, note: 'The terms of use' },
+  { id: 'privacy', from: '/legal/privacy', to: '/privacy', tree: false, note: 'The privacy notice' },
+  {
+    id: 'rooms',
+    from: '/rooms/:gameId',
+    to: '/play/:gameId/rooms',
+    tree: false,
+    note: 'A game’s online rooms',
+  },
+];

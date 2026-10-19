@@ -3,7 +3,7 @@
 // a path in no namespace gets a real 404; robots.txt is the one the map generates; HSTS covers subdomains.
 // Runs against the hub's Caddy (docker compose up, CI's stack job), not `pnpm dev`, whose Vite answers every path
 // with the app. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e routes
-import { hubNamespaces, robotsTxt } from '@tohe/routes';
+import { hubNamespaces, hubRedirects, redirectTarget, robotsTxt } from '@tohe/routes';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const failures: string[] = [];
@@ -32,7 +32,36 @@ for (const path of appPages) {
   );
 }
 
+// The root leads to the catalog until the public pages arrive (302, the query kept); the app's old paths answer 301 to
+// the new ones, the query kept, for the links in emails already sent.
+{
+  const { response } = await get('/?invite=X');
+  check(
+    response.status === 302 && response.headers.get('location') === '/play?invite=X',
+    `/: 302 to /play, the query kept (${response.status} ${response.headers.get('location')})`,
+  );
+}
+for (const redirect of hubRedirects) {
+  const from = redirect.from.replace(/:\w+/g, 'tien-len');
+  const to = redirectTarget(from);
+  const { response } = await get(`${from}?attempt=A&code=123456`);
+  check(
+    response.status === 301 && response.headers.get('location') === `${to}?attempt=A&code=123456`,
+    `${from}: 301 to ${to}, the query kept (${response.status} ${response.headers.get('location')})`,
+  );
+}
+{
+  const { response } = await get('/register/confirm?attempt=A&code=123456');
+  check(
+    response.status === 301 &&
+      response.headers.get('location') === '/account/register/confirm?attempt=A&code=123456',
+    `/register/confirm: 301 to /account/register/confirm, the query kept (${response.status})`,
+  );
+}
+
 for (const path of [
+  '/room/0b7c',
+  '/replay/0b7c/3',
   '/nope',
   '/sitemap.xml',
   '/playground',

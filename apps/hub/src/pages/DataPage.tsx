@@ -22,7 +22,7 @@ export function DataPage() {
     <Screen narrow>
       <header className="flex items-center gap-3">
         <BackLink
-          to="/"
+          to="/play"
           aria-label={t('back')}
           className="grid size-11 place-items-center rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
         >

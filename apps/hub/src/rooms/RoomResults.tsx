@@ -103,8 +103,8 @@ export function RoomResults({ gameId, playerId }: { gameId: string; playerId: st
                   })}
                 </span>
                 <Link
-                  to="/replay/$roomId/$hand"
-                  params={{ roomId: hand.roomId, hand: String(hand.hand) }}
+                  to="/play/$gameId/rooms/$roomId/replay/$hand"
+                  params={{ gameId, roomId: hand.roomId, hand: String(hand.hand) }}
                   className="rounded-full bg-soft px-3 py-2 font-semibold text-accent text-sm"
                 >
                   {t('rooms.replay')}

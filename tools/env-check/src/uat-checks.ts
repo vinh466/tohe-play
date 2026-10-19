@@ -82,8 +82,9 @@ export async function checkUat(options: UatOptions, deps: UatDeps, r: Runner): P
     });
   }
 
-  await r.check('hub / answers 200', async () => {
-    const result = await http(`${hub}/`);
+  // /play, the app's catalog: the root only leads there until the public pages arrive (ADR 0042).
+  await r.check('hub /play answers 200', async () => {
+    const result = await http(`${hub}/play`);
     assert(result.status === 200, `answered ${result.status}`);
   });
   await r.check('/admin/ is the console', async () => {

@@ -41,11 +41,11 @@ export function RoomsPage() {
 
 /** Guests play offline only (ADR 0016): the bots, and a way to sign up. */
 function GuestLobby() {
-  const { gameId } = useParams({ from: '/rooms/$gameId' });
+  const { gameId } = useParams({ from: '/play/$gameId/rooms' });
   const { t } = useTranslation();
   return (
     <Screen narrow>
-      <BackLink to="/" className="font-semibold text-accent">
+      <BackLink to="/play" className="font-semibold text-accent">
         ← {t('backToGames')}
       </BackLink>
       <BackLink
@@ -57,7 +57,7 @@ function GuestLobby() {
       </BackLink>
       <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
         {t('guest.banner')}{' '}
-        <Link to="/register" className="font-bold underline underline-offset-4">
+        <Link to="/account/register" className="font-bold underline underline-offset-4">
           {t('guest.signUp')}
         </Link>
       </p>
@@ -66,7 +66,7 @@ function GuestLobby() {
 }
 
 function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers: boolean }) {
-  const { gameId } = useParams({ from: '/rooms/$gameId' });
+  const { gameId } = useParams({ from: '/play/$gameId/rooms' });
   const { t } = useTranslation();
   const navigate = useNavigate();
   const queryClient = useQueryClient();
@@ -117,7 +117,8 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
     };
   }, [gameId, queryClient]);
 
-  const open = (roomId: string) => void navigate({ to: '/room/$roomId', params: { roomId } });
+  const open = (roomId: string) =>
+    void navigate({ to: '/play/$gameId/rooms/$roomId', params: { gameId, roomId } });
   // A full table, or a hand going on, can still be watched when its host allows it.
   const join = useMutation({
     mutationFn: async (room: RoomSummary) => {
@@ -157,7 +158,7 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
           </BackLink>
         ) : (
           <BackLink
-            to="/"
+            to="/play"
             aria-label={t('backToGames')}
             className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
           >

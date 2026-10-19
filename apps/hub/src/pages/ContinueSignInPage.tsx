@@ -52,7 +52,7 @@ function Continue() {
   const pending = useQuery(pendingQuery);
   const cancel = useMutation({
     mutationFn: () => external.cancel(),
-    onSettled: () => navigate({ to: '/welcome', replace: true }),
+    onSettled: () => navigate({ to: '/account/sign-in', replace: true }),
   });
 
   if (pending.isPending) return <Loading label={t('loading')} />;
@@ -66,7 +66,7 @@ function Continue() {
             <p role="alert" className="text-ink">
               {t('external.expired')}
             </p>
-            <Link to="/welcome" className="font-bold text-brand-ink underline underline-offset-4">
+            <Link to="/account/sign-in" className="font-bold text-brand-ink underline underline-offset-4">
               {t('forgot.back')}
             </Link>
           </>

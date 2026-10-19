@@ -53,7 +53,7 @@ function prodSite(gameCsp: string): Fetcher {
       providers: [],
       email: true,
     }),
-    'https://toheplay.io.vn/': html('<html>', secureHeaders),
+    'https://toheplay.io.vn/play': html('<html>', secureHeaders),
     'http://toheplay.io.vn/': redirect(301, 'https://toheplay.io.vn/'),
     'https://www.toheplay.io.vn/x': redirect(301, 'https://toheplay.io.vn/x'),
     'https://toheplay.io.vn/admin/': html('<title>Quản trị</title><script src="/admin/assets/a.js">', {

@@ -216,7 +216,7 @@ public sealed class AdminUsersTests(ApiFactory factory) : IClassFixture<ApiFacto
         await admin.Client.PostAsJsonAsync(Url($"/api/admin/users/{me.Account.Id}/suspend"), new { reason = "Thử" }, Ct);
 
         var again = app.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
-        Assert.Equal("/welcome?external=suspended", await FakeProvider.ComeBackAsync(again, subject, null, verified: false));
+        Assert.Equal("/account/sign-in?external=suspended", await FakeProvider.ComeBackAsync(again, subject, null, verified: false));
     }
 
     // ------------------------------------------------------------------ helpers

@@ -157,7 +157,7 @@ function CodeStatus({ code }: { code: InviteCode }) {
 /** The link to share: the hub's sign-up with the code filled in. Copied where the browser allows it (HTTPS). */
 function InviteLink({ code, revoke, busy }: { code: string; revoke: (() => void) | null; busy: boolean }) {
   const [copied, setCopied] = useState(false);
-  const link = `${window.location.origin}/register?invite=${encodeURIComponent(code)}`;
+  const link = `${window.location.origin}/account/register?invite=${encodeURIComponent(code)}`;
   const copy = async () => {
     await navigator.clipboard.writeText(link);
     setCopied(true);

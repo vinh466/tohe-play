@@ -57,8 +57,8 @@ Kept for later, without DNS: `api.`, `account.`, `studio.`, `media.`, `uat.` ([A
 | Namespace | Component | Served | Indexed |
 | --- | --- | --- | --- |
 | `/` (the root only), `/games/`, `/guides/`, `/faq`, `/about`, `/terms`, `/privacy` | public pages | static HTML | yes |
-| `/play`, `/play/<gameId>/…` | the app — only game ids under `/play/`, so a game named like a page never collides | the app's page | no |
-| `/account/…` | the app — signing in and up, password, email, profiles, settings | the app's page | no |
+| `/play`, `/play/<gameId>/…` | the app — the catalog, and only game ids under `/play/`, so a game named like a page never collides: `/play/<gameId>`, `/play/<gameId>/rooms`, `/play/<gameId>/rooms/<roomId>`, `/play/<gameId>/rooms/<roomId>/replay/<hand>` | the app's page | no |
+| `/account/…` | the app — signing in and up (`/account/sign-in`, `/account/register`), password, email, profiles, what telemetry sends (`/account/data`), the account itself (`/account`) | the app's page | no |
 | `/r/<code>`, `/s/<code>` | the app's short links | the app's page | no |
 | the app's assets, manifest and service worker | the app | static | — |
 | `/api/…` | the API | proxied | — |
@@ -69,6 +69,28 @@ This table is the standard; the map in `@tohe/routes` holds the namespaces serve
 (see *Where things stand*). From the map the build generates the hub's Caddy
 routes, the service worker's list of app pages, `robots.txt` and the API's links to the hub, and a test fails when two
 namespaces overlap or a component serves a path outside its own.
+
+Until the public pages arrive, `/` answers `302` to `/play`, the query kept, and `/terms` and `/privacy` are rendered by
+the app (the public pages' pull request serves them as static pages at the same URLs).
+
+### Old paths
+
+The app lived at thirteen prefixes on the root before the move. The paths that emails already sent may carry answer
+`301` to the new ones, the query kept; they are listed in the map (`hubRedirects`) and kept without an end date:
+
+| Old | New |
+| --- | --- |
+| `/welcome` | `/account/sign-in` |
+| `/sign-in/…` | `/account/sign-in/…` |
+| `/register`, `/register/…` | `/account/register`, `/account/register/…` |
+| `/password/…` | `/account/password/…` |
+| `/profiles` | `/account/profiles` |
+| `/data` | `/account/data` |
+| `/legal/terms`, `/legal/privacy` | `/terms`, `/privacy` |
+| `/rooms/<gameId>` | `/play/<gameId>/rooms` |
+
+`/room/<roomId>` and `/replay/<roomId>/<hand>` were only reached from inside the app and need a game id an old link
+does not carry: they answer `404`.
 
 ## Common rules
 
@@ -110,7 +132,7 @@ stays in force for its part.
 | Part | Today | In place when |
 | --- | --- | --- |
 | The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; until the public pages arrive the root is the app's catalog and says `noindex`; `security.txt` once `hub.securityContact` is set in `platform-infra` | the map's pull request |
-| The app under `/play` and `/account`, the manifest's `id` | the app owns thirteen prefixes at the root; its catalog is `/` | the routes' pull request |
+| The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, and `/terms`, `/privacy` for now; manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the root answers `302` to `/play`; the old paths answer `301` | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | the landing page and the docs share `docs.toheplay.io.vn` | the public pages' pull request |
 | The console on `console.` | `/admin/` on the root | the console's pull request |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup |

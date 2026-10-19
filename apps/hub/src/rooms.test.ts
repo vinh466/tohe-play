@@ -93,7 +93,7 @@ describe('the lobby', () => {
 describe('the way back after signing in', () => {
   it('only ever goes to a page of this hub', () => {
     expect(isLocalPath('/r/482913')).toBe(true);
-    expect(isLocalPath('/room/0198-abc')).toBe(true);
+    expect(isLocalPath('/play/tien-len/rooms/0198-abc')).toBe(true);
     expect(isLocalPath('//evil.example/r/1')).toBe(false);
     expect(isLocalPath('https://evil.example')).toBe(false);
     expect(isLocalPath('javascript:alert(1)')).toBe(false);

@@ -38,7 +38,7 @@ function Picker({ me }: { me: MeView }) {
   // Back to a room link that needed a player (session/next.ts), or to the catalog.
   const goOn = useCallback(async () => {
     const next = takeNext();
-    leaveTo({ to: next ?? '/' });
+    leaveTo({ to: next ?? '/play' });
   }, [leaveTo]);
 
   // A real profile now plays on this device: the first time, offer it the guest's progress.
@@ -72,7 +72,7 @@ function Picker({ me }: { me: MeView }) {
     mutationFn: () => auth.logout(),
     onSettled: async () => {
       await setMe(null);
-      await navigate({ to: '/welcome', replace: true });
+      await navigate({ to: '/account/sign-in', replace: true });
     },
   });
 
@@ -95,7 +95,7 @@ function Picker({ me }: { me: MeView }) {
   // When the hub sent someone here to pick a player (`auto`), an account that leaves nobody to choose goes straight on
   // (ADR 0023): signing up and signing in already chose its only profile, or it has one profile without a PIN that
   // this device has not chosen yet. Decided on arrival, so the picker never flashes.
-  const { auto } = useSearch({ from: '/profiles' });
+  const { auto } = useSearch({ from: '/account/profiles' });
   const [arrival] = useState(() => {
     if (!auto) return null;
     const active = me.profiles.find((profile) => profile.id === me.activeProfileId);

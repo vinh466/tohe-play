@@ -22,7 +22,7 @@ type Props =
     };
 
 /**
- * Sends people where they belong: signed-out devices to /welcome, signed-in devices without a chosen player to
+ * Sends people where they belong: signed-out devices to /account/sign-in, signed-in devices without a chosen player to
  * the profile picker, and away from the sign-in screens once signed in. The picker is asked to choose by itself
  * (`auto`) when the account leaves nothing to choose. An account that has not accepted the terms the hub shows
  * accepts them first (ADR 0025).
@@ -42,16 +42,20 @@ export function RequireSession(props: Props) {
   switch (props.need) {
     case 'signedOut':
       return session.status === 'account' ? (
-        <Navigate to="/profiles" search={{ auto: true }} replace />
+        <Navigate to="/account/profiles" search={{ auto: true }} replace />
       ) : (
         props.children
       );
     case 'account':
-      return session.status === 'account' ? props.children(session) : <Navigate to="/welcome" replace />;
+      return session.status === 'account' ? (
+        props.children(session)
+      ) : (
+        <Navigate to="/account/sign-in" replace />
+      );
     case 'player':
       if ((session.status === 'signedOut' || !session.player) && props.returnTo) rememberNext(props.returnTo);
-      if (session.status === 'signedOut') return <Navigate to="/welcome" replace />;
-      if (!session.player) return <Navigate to="/profiles" search={{ auto: true }} replace />;
+      if (session.status === 'signedOut') return <Navigate to="/account/sign-in" replace />;
+      if (!session.player) return <Navigate to="/account/profiles" search={{ auto: true }} replace />;
       return props.children(session as PlayingSession);
   }
 }

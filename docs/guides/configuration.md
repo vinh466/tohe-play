@@ -74,7 +74,7 @@ keeps crawlers out of the API and the console, and any other path answers a real
 | Variable | What | Default |
 | --- | --- | --- |
 | `HUB_ORIGINS` | Space-separated hub origins allowed to embed games (`frame-ancestors`) | — required |
-| `PUBLIC_HUB_URL` | Where the games origin's own front page (`/`) leads | — required |
+| `PUBLIC_HUB_URL` | The hub's origin: the games origin's own front page (`/`) leads to its `/play` | — required |
 
 Every response of the games origin carries `X-Robots-Tag: noindex, nofollow`: a game page is meant only inside the
 hub's frame ([ADR 0039](../decisions/0039-games-on-a-domain-of-their-own.md)).
@@ -83,7 +83,7 @@ hub's frame ([ADR 0039](../decisions/0039-games-on-a-domain-of-their-own.md)).
 
 | Variable | What | Default |
 | --- | --- | --- |
-| `PUBLIC_HUB_URL` | Where the landing page's play button (`/play`) leads | `/`: the site's own home page |
+| `PUBLIC_HUB_URL` | The hub's origin: the landing page's play button (`/play`) leads to the hub's `/play` | unset: the site's own home page |
 | `TOHE_SITE_URL` | The site's own URL, for canonical links, the sitemap and `llms.txt` | empty: relative links |
 
 ## In the Helm chart

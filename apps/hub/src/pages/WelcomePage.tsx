@@ -45,7 +45,7 @@ function SignIn() {
   const queryClient = useQueryClient();
   const setMe = useSetMe();
   const config = useQuery(configQuery);
-  const { external, deleting } = useSearch({ from: '/welcome' });
+  const { external, deleting } = useSearch({ from: '/account/sign-in' });
   // The console's switches (ADR 0028).
   const passwordOn = config.data?.passwordSignIn ?? true;
   const registration = config.data?.registration ?? 'open';
@@ -160,7 +160,7 @@ function SignIn() {
           </Button>
           {config.data?.email ? (
             <Link
-              to="/password/forgot"
+              to="/account/password/forgot"
               className="text-center font-semibold text-accent underline underline-offset-4"
             >
               {t('welcome.forgot')}
@@ -182,7 +182,7 @@ function SignIn() {
         ) : (
           <p className="text-ink-soft">
             {t('welcome.noAccount')}{' '}
-            <Link to="/register" className="font-bold text-brand-ink underline underline-offset-4">
+            <Link to="/account/register" className="font-bold text-brand-ink underline underline-offset-4">
               {t('welcome.createAccount')}
             </Link>
           </p>

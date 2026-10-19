@@ -227,7 +227,7 @@ export function GameFrame({
       },
       onOpen: (what: ShellTarget) => {
         if (what === 'leaderboard') setBoard(true);
-        else void navigate({ to: '/rooms/$gameId', params: { gameId: game.id } });
+        else void navigate({ to: '/play/$gameId/rooms', params: { gameId: game.id } });
       },
       onSettings: (change) => setMuted(change.muted),
       onLog: ({ level, message }) => {

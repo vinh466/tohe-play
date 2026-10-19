@@ -1,4 +1,4 @@
-// An invite code from a link (`/register?invite=CODE`, ADR 0028), kept on this tab across the round trip to a sign-in
+// An invite code from a link (`/account/register?invite=CODE`, ADR 0028), kept on this tab across the round trip to a sign-in
 // provider, so signing up with Google still joins the community the link was for.
 const KEY = 'tohe.invite';
 

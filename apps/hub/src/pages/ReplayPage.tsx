@@ -44,7 +44,7 @@ export function replayFor(hand: HandReplay, deletedName: string): Replay {
 }
 
 function Replayer({ player }: { player: Player }) {
-  const { roomId, hand } = useParams({ from: '/replay/$roomId/$hand' });
+  const { gameId, roomId, hand } = useParams({ from: '/play/$gameId/rooms/$roomId/replay/$hand' });
   const { t } = useTranslation();
   const leaveTo = useLeaveTo();
   const games = useQuery(gamesQuery(player.id));
@@ -61,7 +61,8 @@ function Replayer({ player }: { player: Player }) {
     () => (record.data ? replayFor(record.data, deletedName) : undefined),
     [record.data, deletedName],
   );
-  const back = () => leaveTo({ to: '/rooms/$gameId', params: { gameId: record.data?.gameId ?? '' } });
+  const back = () =>
+    leaveTo({ to: '/play/$gameId/rooms', params: { gameId: record.data?.gameId ?? gameId } });
 
   if (record.isError || (record.data && games.isSuccess && !game)) {
     return (
@@ -69,7 +70,7 @@ function Replayer({ player }: { player: Player }) {
         <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-center text-danger">
           {record.isError ? t(errorKey(record.error)) : t('gameNotFound')}
         </p>
-        <BackLink to="/" className="text-center font-semibold text-accent">
+        <BackLink to="/play" className="text-center font-semibold text-accent">
           {t('backToGames')}
         </BackLink>
       </Screen>
@@ -83,7 +84,7 @@ function Replayer({ player }: { player: Player }) {
           {t('rooms.replayOldVersion', { version: record.data.gameVersion })}
         </p>
         <BackLink
-          to="/rooms/$gameId"
+          to="/play/$gameId/rooms"
           params={{ gameId: game.id }}
           className="text-center font-semibold text-accent"
         >
