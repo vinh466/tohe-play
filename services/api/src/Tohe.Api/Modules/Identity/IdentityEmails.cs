@@ -135,6 +135,29 @@ internal static class IdentityEmails
             [$"Tài khoản Tò He của bạn không còn đăng nhập bằng {provider}, và mọi thiết bị khác đã được đăng xuất."],
             footnote: "Nếu không phải bạn, hãy đặt lại mật khẩu ngay bằng \"Quên mật khẩu?\" rồi báo người quản lý Tò He."));
 
+    /// <summary>An authenticator added in the hub: the account signs in to the console with it (ADR 0027, 0042).</summary>
+    public static EmailMessage TwoFactorEnabled(string to) => new(
+        "two-factor-enabled",
+        to,
+        "Tài khoản Tò He đã bật xác thực hai lớp",
+        EmailLayout.Render(
+            "Đã bật xác thực hai lớp",
+            ["Một ứng dụng xác thực vừa được thêm vào tài khoản Tò He của bạn: từ nay tài khoản đăng nhập được bảng quản trị bằng mật khẩu và mã của ứng dụng đó."],
+            footnote: "Nếu không phải bạn, hãy đặt lại mật khẩu ngay bằng \"Quên mật khẩu?\" rồi báo người quản lý Tò He."));
+
+    /// <summary>Two-factor authentication turned off in the console: every session ended (ADR 0027, 0042).</summary>
+    public static EmailMessage TwoFactorDisabled(string to) => new(
+        "two-factor-disabled",
+        to,
+        "Tài khoản Tò He đã tắt xác thực hai lớp",
+        EmailLayout.Render(
+            "Đã tắt xác thực hai lớp",
+            [
+                "Xác thực hai lớp của tài khoản Tò He của bạn vừa được tắt ở bảng quản trị, và mọi thiết bị đã được đăng xuất.",
+                "Tài khoản không vào được bảng quản trị nữa cho đến khi thêm lại ứng dụng xác thực ở trang Tài khoản của Tò He.",
+            ],
+            footnote: "Nếu không phải bạn, hãy đặt lại mật khẩu ngay bằng \"Quên mật khẩu?\" rồi báo người quản lý Tò He."));
+
     /// <summary>
     /// The owner asked to delete the account (ADR 0034): the day after which the operator deletes it (ADR 0038), and
     /// the way to keep it.

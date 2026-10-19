@@ -228,6 +228,8 @@ const vi = {
     copied: 'Đã chép',
     saved: 'Tôi đã cất các mã này',
     manage: 'Tạo mã dự phòng mới hoặc tắt xác thực hai lớp ở trang Bảo mật của bảng quản trị.',
+    passwordFirst:
+      'Bảng quản trị đăng nhập bằng email, mật khẩu và mã 6 số từ ứng dụng xác thực. Tài khoản này chưa có mật khẩu: bấm “Đặt mật khẩu” ở trên trước, rồi quay lại thêm ứng dụng xác thực.',
   },
   deleteAccount: {
     title: 'Xoá tài khoản',
@@ -511,6 +513,7 @@ const vi = {
     codeUsed: 'Mã này vừa được dùng. Chờ ứng dụng hiện mã mới.',
     twoFactorEnabled: 'Xác thực hai lớp đã bật rồi.',
     authenticatorNotSetUp: 'Tạo khoá trước đã.',
+    passwordRequired: 'Bảng quản trị đăng nhập bằng mật khẩu: đặt mật khẩu cho tài khoản trước đã.',
     tooManyProfiles: 'Tài khoản đã có đủ số hồ sơ tối đa.',
     lastProfile: 'Tài khoản cần giữ ít nhất một hồ sơ.',
     nameRequired: 'Hãy đặt một cái tên nhé.',
@@ -755,6 +758,8 @@ const en: typeof vi = {
     copied: 'Copied',
     saved: 'I have saved these codes',
     manage: 'New recovery codes, or turning it off, are on the Security page of the admin console.',
+    passwordFirst:
+      'The admin console signs in with your email, your password and a 6-digit code from an authenticator app. This account has no password yet: choose “Set a password” above first, then come back to add the authenticator app.',
   },
   deleteAccount: {
     title: 'Delete the account',
@@ -1038,6 +1043,7 @@ const en: typeof vi = {
     codeUsed: 'That code was just used. Wait for the app to show a new one.',
     twoFactorEnabled: 'Two-factor authentication is on already.',
     authenticatorNotSetUp: 'Create a key first.',
+    passwordRequired: 'The admin console signs in with a password: set one for the account first.',
     tooManyProfiles: 'The account has the most profiles it can.',
     lastProfile: 'An account keeps at least one profile.',
     nameRequired: 'Please choose a name.',

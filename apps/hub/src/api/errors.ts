@@ -17,6 +17,7 @@ const byCode: Record<string, string> = {
   code_used: 'errors.codeUsed',
   two_factor_enabled: 'errors.twoFactorEnabled',
   authenticator_not_set_up: 'errors.authenticatorNotSetUp',
+  password_required: 'errors.passwordRequired',
   step_up_required: 'errors.stepUpRequired',
   manage_pin_not_set: 'errors.managePinNotSet',
   manage_pin_invalid: 'errors.managePinInvalid',

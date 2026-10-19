@@ -33,7 +33,7 @@ const WatchRun = lazy(() => import('./WatchRun.tsx'));
  * step-up level 2. Nobody decides about their own results.
  */
 export function ReviewResultPage() {
-  const { id } = useParams({ from: '/review/$id' });
+  const { id } = useParams({ from: '/_session/review/$id' });
   const resultId = Number(id);
   const valid = Number.isSafeInteger(resultId) && resultId > 0;
   const queryClient = useQueryClient();

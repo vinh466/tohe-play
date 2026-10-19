@@ -15,7 +15,7 @@ const roles = ['owner', 'admin', 'moderator', 'viewer'] as const;
  * suspension, an end to its sessions, its role, a profile renamed. Changes ask for step-up level 2 first.
  */
 export function UserPage() {
-  const { id } = useParams({ from: '/users/$id' });
+  const { id } = useParams({ from: '/_session/users/$id' });
   const queryClient = useQueryClient();
   const me = useSignedIn();
   const account = useQuery({ queryKey: ['admin', 'user', id], queryFn: () => admin.user(id) });

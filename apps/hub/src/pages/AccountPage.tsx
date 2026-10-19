@@ -664,7 +664,8 @@ function Security({ me }: { me: MeView }) {
 
 /**
  * The authenticator the console's sign-in asks for, for an account with a platform role (ADR 0027, 0042): added here,
- * within step-up level 2; new recovery codes and turning it off are in the console.
+ * within step-up level 2; new recovery codes and turning it off are in the console. The console's sign-in asks for the
+ * password too, so an account that signs in only with a provider sets one first (`password_required`).
  */
 function TwoFactor({ me }: { me: MeView }) {
   const { t } = useTranslation();
@@ -676,6 +677,7 @@ function TwoFactor({ me }: { me: MeView }) {
     void queryClient.invalidateQueries({ queryKey: ['account', 'two-factor'] });
   };
   if (!status.data) return null;
+  const needsPassword = !status.data.enabled && !me.account.hasPassword;
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -685,14 +687,18 @@ function TwoFactor({ me }: { me: MeView }) {
             ({status.data.enabled ? t('twoFactor.on') : t('twoFactor.off')})
           </span>
         </span>
-        {status.data.enabled ? null : (
+        {status.data.enabled || needsPassword ? null : (
           <Button variant="secondary" onClick={() => setOpen(true)}>
             {t('twoFactor.add')}
           </Button>
         )}
       </div>
       <p className="text-ink-soft text-sm">
-        {status.data.enabled ? t('twoFactor.manage') : t('twoFactor.hint')}
+        {status.data.enabled
+          ? t('twoFactor.manage')
+          : needsPassword
+            ? t('twoFactor.passwordFirst')
+            : t('twoFactor.hint')}
       </p>
       <SecureModal me={me} open={open} title={t('twoFactor.add')} onClose={close}>
         {() => <AuthenticatorSetup onDone={close} />}

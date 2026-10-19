@@ -12,7 +12,7 @@ export type ReviewList = 'held' | 'decided';
  * about, or the engine rejected, is found again under "Đã quyết", the latest first — to reopen it.
  */
 export function ReviewPage() {
-  const { list } = useSearch({ from: '/review' });
+  const { list } = useSearch({ from: '/_session/review' });
   const games = useQuery({ queryKey: ['admin', 'games'], queryFn: admin.games });
   const results = useInfiniteQuery({
     queryKey: ['admin', 'review', 'list', list],

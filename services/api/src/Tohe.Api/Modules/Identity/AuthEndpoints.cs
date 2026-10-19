@@ -497,30 +497,47 @@ internal sealed class PasswordSignIn(UserManager<Account> users, SignInManager<A
             return (PasswordCheck.MethodDisabled, null);
         }
 
-        // An email signs in. A username still does for an account from before email sign-in, until it adds an email.
+        var account = await FindAsync(login);
+        return (await CheckPasswordAsync(account, password), account);
+    }
+
+    /// <summary>
+    /// The account that signs in with <paramref name="login"/>: an email, or a username still, for an account from before
+    /// email sign-in, until it adds an email.
+    /// </summary>
+    public async Task<Account?> FindAsync(string login)
+    {
         login = login.Trim();
-        var account = login.Contains('@')
+        return login.Contains('@')
             ? await users.FindByEmailAsync(login)
             : await users.FindByNameAsync(login.ToLowerInvariant()) is { Email: null } legacy ? legacy : null;
+    }
+
+    /// <summary>
+    /// The password of <paramref name="account"/>, against Identity's lockout. No account — or one without a password —
+    /// costs a check against a hash nobody has, as long as a wrong password takes, and touches no lockout.
+    /// </summary>
+    public async Task<PasswordCheck> CheckPasswordAsync(Account? account, string password)
+    {
         if (account?.PasswordHash is null)
         {
             users.PasswordHasher.VerifyHashedPassword(new Account { DisplayName = "" }, NoAccountHash, password);
-            return (PasswordCheck.Refused, account);
+            return PasswordCheck.Refused;
         }
 
         var result = await signIn.CheckPasswordSignInAsync(account, password, lockoutOnFailure: true);
         if (result.IsLockedOut)
         {
-            return (PasswordCheck.LockedOut, account);
+            return PasswordCheck.LockedOut;
         }
 
         if (!result.Succeeded)
         {
-            return (PasswordCheck.Refused, account);
+            return PasswordCheck.Refused;
         }
 
         // Told only after the password was right: nobody learns which accounts are suspended (ADR 0027).
-        return (account.SuspendedAt is null ? PasswordCheck.Ok : PasswordCheck.Suspended, account);
+        return account.SuspendedAt is null ? PasswordCheck.Ok : PasswordCheck.Suspended;
     }
 
     /// <summary>The answer to a check that did not pass.</summary>

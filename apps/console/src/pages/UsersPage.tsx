@@ -11,7 +11,7 @@ import { Badge, Card, cell, Failed, Loading, PageTitle, row, Table } from '../ui
  * accounts whose owner asked to delete them, the soonest due first (ADR 0038).
  */
 export function UsersPage() {
-  const { q, deleting } = useSearch({ from: '/users' });
+  const { q, deleting } = useSearch({ from: '/_session/users' });
   const navigate = useNavigate({ from: '/users' });
   const [text, setText] = useState(q);
   const users = useQuery({

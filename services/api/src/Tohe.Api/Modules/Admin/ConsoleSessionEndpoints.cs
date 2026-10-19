@@ -83,17 +83,16 @@ internal static class ConsoleSessionEndpoints
         CancellationToken ct)
     {
         // The switch of the players' password sign-in (ADR 0028) does not apply: the console signs in with the
-        // password, and switching it back on happens in the console.
-        var (check, account) = await passwords.CheckAsync(request.Email, request.Password, ct, honourSwitch: false);
-        if (check is PasswordCheck.Refused or PasswordCheck.LockedOut)
+        // password, and switching it back on happens in the console. A player's password is never checked here: an
+        // account without a role or an authenticator is checked as no account is — as long, the same answer, its
+        // lockout untouched — so the console is no place to try the players' passwords.
+        var found = await passwords.FindAsync(request.Email);
+        var role = found is { TwoFactorEnabled: true } ? await roles.RoleOfAsync(found.Id, ct) : null;
+        var account = role is null ? null : found;
+        var check = await passwords.CheckPasswordAsync(account, request.Password);
+        if (account is null || role is not { } held || check is not (PasswordCheck.Ok or PasswordCheck.Suspended))
         {
             return PasswordSignIn.Problem(check);
-        }
-
-        // From here the password was right. Without a role or an authenticator the answer is a wrong password's.
-        if (await roles.RoleOfAsync(account!.Id, ct) is not { } role || !account.TwoFactorEnabled)
-        {
-            return Problems.InvalidCredentials();
         }
 
         // Wrong codes count towards the lockout even when refused: the transaction commits either way, with an audit
@@ -109,7 +108,9 @@ internal static class ConsoleSessionEndpoints
             return code == CodeCheck.LockedOut ? Problems.LockedOut() : Problems.InvalidCredentials();
         }
 
-        // Told only to whoever proved the account is theirs, as in the hub.
+        // Told only to whoever proved the account is theirs, as in the hub — so by now the proof is spent: the recovery
+        // code is gone, the authenticator's code of this step used. On purpose: nothing is told before the proof
+        // (docs/architecture/admin.md).
         if (check == PasswordCheck.Suspended)
         {
             await transaction.CommitAsync(ct);
@@ -128,7 +129,7 @@ internal static class ConsoleSessionEndpoints
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         var until = await session.SignInAsync(http, account);
-        return TypedResults.Ok(AdminEndpoints.MeView(account, role, until, secureUntil: null));
+        return TypedResults.Ok(AdminEndpoints.MeView(account, held, until, secureUntil: null));
     }
 
     private static async Task<Results<Ok<AdminMeView>, UnauthorizedHttpResult, ValidationProblem, ProblemHttpResult>> StepUpAsync(

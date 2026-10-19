@@ -42,9 +42,12 @@ public sealed class AppOptions
 
     internal bool HasValidPublicUrl() => IsOrigin(PublicUrl);
 
-    internal bool HasValidConsoleUrl() =>
+    /// <param name="gamesOrigin">Where games are served from (<c>Games:PublicOrigin</c>): never the console's host
+    /// either, or a game would run on the console's origin.</param>
+    internal bool HasValidConsoleUrl(Uri? gamesOrigin) =>
         IsOrigin(ConsoleUrl)
-        && (ConsoleUrl is null || !IsOrigin(PublicUrl) || PublicUrl is null || ConsoleUrl.Authority != PublicUrl.Authority);
+        && (ConsoleUrl is null || !IsOrigin(PublicUrl) || PublicUrl is null || ConsoleUrl.Authority != PublicUrl.Authority)
+        && (ConsoleUrl is null || gamesOrigin is null || ConsoleUrl.Authority != gamesOrigin.Authority);
 
     private static bool IsOrigin(Uri? url) =>
         url is null
@@ -88,9 +91,11 @@ internal static class PlatformModule
         var app = builder.Services.AddOptions<AppOptions>()
             .BindConfiguration(AppOptions.Section)
             .Validate(o => o.HasValidPublicUrl(), "App:PublicUrl must be an absolute http(s) URL with no path, e.g. https://tohe.example.org")
-            .Validate(
-                o => o.HasValidConsoleUrl(),
-                "App:ConsoleUrl must be an absolute http(s) URL with no path on a host (or port) of its own, e.g. https://console.tohe.example.org");
+            // Games:PublicOrigin read as configured, not through GamesOptions: its own validation stays its own.
+            .Validate<IConfiguration>(
+                (o, config) => o.HasValidConsoleUrl(
+                    Uri.TryCreate(config[$"{GamesOptions.Section}:{nameof(GamesOptions.PublicOrigin)}"], UriKind.Absolute, out var games) ? games : null),
+                "App:ConsoleUrl must be an absolute http(s) URL with no path on a host (or port) of its own — neither the hub's nor the games', e.g. https://console.tohe.example.org");
         if (!BuildTime.IsGeneratingOpenApi)
         {
             options.ValidateOnStart();

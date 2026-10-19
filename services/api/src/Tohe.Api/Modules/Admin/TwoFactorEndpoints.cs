@@ -3,6 +3,7 @@ using System.Text;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 
 namespace Tohe.Api.Modules.Admin;
@@ -28,9 +29,10 @@ public sealed record TwoFactorCodeRequest(string? Code = null);
 
 /// <summary>
 /// The console's two-factor authentication (ADR 0027, 0042): an authenticator app (TOTP). An account with a platform
-/// role adds one in the hub, behind step-up level 2 — the console's sign-in needs it, so it cannot be added there —
-/// and then signs in to the console with its code, or a recovery code. In the console it gets new recovery codes or
-/// turns it off, which ends every session of the account, the console's included.
+/// role and a password adds one in the hub, behind step-up level 2 — the console's sign-in needs it, so it cannot be
+/// added there — and then signs in to the console with its code, or a recovery code. In the console it gets new
+/// recovery codes or turns it off, which ends every session of the account, the console's included. Turning it on and
+/// off is told to the account's address.
 /// </summary>
 internal static class TwoFactorEndpoints
 {
@@ -68,12 +70,12 @@ internal static class TwoFactorEndpoints
 
         account.MapPost("/setup", SetUpAsync)
             .WithName("SetUpAuthenticator")
-            .WithSummary("A new authenticator key for the console, while two-factor authentication is off (a platform role, step-up level 2).");
+            .WithSummary("A new authenticator key for the console, while two-factor authentication is off (a platform role and a password, step-up level 2).");
 
         account.MapPost("/enable", EnableAsync)
             .RequireRateLimiting(IdentityModule.CodeRateLimit)
             .WithName("EnableTwoFactor")
-            .WithSummary("A code from the new key turns two-factor authentication on; recovery codes once (a platform role, step-up level 2).");
+            .WithSummary("A code from the new key turns two-factor authentication on; recovery codes once (a platform role and a password, step-up level 2).");
     }
 
     // ------------------------------------------------------------------ the console
@@ -110,6 +112,7 @@ internal static class TwoFactorEndpoints
         UserManager<Account> users,
         IUserStore<Account> store,
         ConsoleSessionWriter session,
+        IEmailOutbox outbox,
         AdminAudit audit,
         ToheDbContext db,
         CancellationToken ct)
@@ -128,6 +131,12 @@ internal static class TwoFactorEndpoints
             await ((IUserTwoFactorRecoveryCodeStore<Account>)store).ReplaceCodesAsync(account, [], ct);
             await users.UpdateAsync(account);
             audit.Add(AdminActor.Of(account, http), AuditActions.TwoFactorDisable);
+            // Every change to how the account signs in is told to its address (ADR 0024, 0026).
+            if (outbox.Enabled && account.Email is { } email)
+            {
+                outbox.Add(IdentityEmails.TwoFactorDisabled(email));
+            }
+
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
         }
@@ -187,6 +196,7 @@ internal static class TwoFactorEndpoints
         UserManager<Account> users,
         IUserStore<Account> store,
         PlatformRoles roles,
+        IEmailOutbox outbox,
         AdminAudit audit,
         ToheDbContext db,
         TimeProvider clock,
@@ -219,6 +229,11 @@ internal static class TwoFactorEndpoints
         await users.UpdateAsync(account);
         var codes = (await users.GenerateNewTwoFactorRecoveryCodesAsync(account, RecoveryCodes))!.ToList();
         audit.Add(AdminActor.Of(account, http), AuditActions.TwoFactorEnable);
+        if (outbox.Enabled && account.Email is { } email)
+        {
+            outbox.Add(IdentityEmails.TwoFactorEnabled(email));
+        }
+
         await db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return TypedResults.Ok(new RecoveryCodesView(codes));
@@ -226,7 +241,8 @@ internal static class TwoFactorEndpoints
 
     /// <summary>
     /// Only an account with a platform role adds an authenticator — players do not sign in with one — while it has none
-    /// yet, within step-up level 2 on this device (ADR 0025).
+    /// yet, with a password of its own — the console's sign-in asks for it, so an account that signs in only with a
+    /// provider sets one first — and within step-up level 2 on this device (ADR 0025).
     /// </summary>
     private static async Task<ProblemHttpResult?> EnrolmentRefusalAsync(
         Account account, HttpContext http, PlatformRoles roles, TimeProvider clock, CancellationToken ct)
@@ -239,6 +255,11 @@ internal static class TwoFactorEndpoints
         if (account.TwoFactorEnabled)
         {
             return Problems.Of(StatusCodes.Status409Conflict, "two_factor_enabled", "Two-factor authentication is on already");
+        }
+
+        if (account.PasswordHash is null)
+        {
+            return Problems.Of(StatusCodes.Status409Conflict, "password_required", "The console signs in with a password: set one first");
         }
 
         return SessionClaims.IsSecure(http.User, clock.GetUtcNow()) ? null : Problems.StepUpRequired();

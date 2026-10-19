@@ -73,12 +73,17 @@ sequenceDiagram
 - **Its own sign-in.** `POST /api/admin/session` takes the email, the password and a code from the authenticator — or
   a recovery code, once. Only an account with a platform role and two-factor authentication on gets a console session;
   a wrong password, a wrong or used code, no code, no role, no authenticator, no such account: all answer `401
-  invalid_credentials`, so the console tells nobody which accounts hold a role. It shares the players' checks
-  (`PasswordSignIn`): Identity's lockout (wrong codes count with wrong passwords, 10 in a row, 5 minutes), the `auth`
-  rate-limit bucket, and suspension, told (`account_suspended`) only to whoever brought the right password and code. An
-  account its owner asked to delete is refused (`account_deleting`): signing in to the hub keeps it, the console does
-  not. The switch of the players' password sign-in (ADR 0028) does not apply here: the console signs in with the
-  password, and the switch goes back on in the console.
+  invalid_credentials`, so the console tells nobody which accounts hold a role. It never checks a player's password:
+  the account is looked up first, and one without a role or an authenticator is checked as no account is — against a
+  hash nobody has, as long as a wrong password takes — so its lockout stays untouched and the console is no place to
+  try the players' passwords. It shares the players' checks (`PasswordSignIn`): Identity's lockout (wrong codes count
+  with wrong passwords, 10 in a row, 5 minutes), the `auth` rate-limit bucket, and suspension, told
+  (`account_suspended`) only to whoever brought the right password and code. An account its owner asked to delete is
+  refused (`account_deleting`): signing in to the hub keeps it, the console does not. Both are told only after the
+  proof, so a refused sign-in has spent it: the recovery code is gone, the authenticator's code cannot work again for
+  three minutes. On purpose — nothing about the account is told before the password and the code. The switch of the
+  players' password sign-in (ADR 0028) does not apply here: the console signs in with the password, and the switch goes
+  back on in the console.
 - **Its own cookie.** `__Host-tohe.console` when the console's URL is HTTPS, `tohe.console` otherwise — `HttpOnly`,
   `Secure` over HTTPS, **`SameSite=Strict`**, `Path=/`, no `Domain`. It lasts **12 hours from the sign-in**, never
   longer: no sliding, and re-issuing it after step-up keeps its end (the `tohe:console_until` claim). A new security
@@ -197,11 +202,15 @@ flowchart TD
 ```
 
 - **In the hub**, Quản lý tài khoản → Bảo mật tài khoản → Xác thực hai lớp, for an account with a platform role only
-  (`admin_required` otherwise): players do not sign in with one. Turning it on leaves other sessions alone — the
-  account only got safer.
+  (`admin_required` otherwise): players do not sign in with one. The account needs a password of its own — the
+  console's sign-in asks for it — so one that signs in only with a provider (Google…) is refused
+  (`password_required`), and the page points to setting a password first. Turning it on leaves other sessions alone —
+  the account only got safer — and tells the account's address, as every change to how it signs in is told (ADR 0024,
+  0026).
 - **In the console**, Bảo mật: new recovery codes, or turning it off — both behind step-up level 2 in the console
   session. Turning it off gives the account a new security stamp and a new key: every session ends, the console's
-  included, and the console's sign-in refuses the account until an authenticator is added again in the hub.
+  included, and the console's sign-in refuses the account until an authenticator is added again in the hub. The
+  account's address is told.
 - **Wrong codes** count towards Identity's lockout, like wrong passwords (10 in a row, 5 minutes), and the `auth`
   bucket limits sign-ins per address. A code that worked cannot work again for three minutes: one seen over a shoulder
   opens nothing elsewhere.
@@ -399,13 +408,13 @@ three failures in a row without anyone opening the page.
 Every one of them answers on the console's host alone; anywhere else, `404`.
 
 In the hub, behind the players' session: `GET /api/account/two-factor` (on or not), `POST /api/account/two-factor/setup`
-(a new key) and `/enable` (its first code turns it on; the recovery codes once) — for an account with a platform role,
-the last two within step-up level 2.
+(a new key) and `/enable` (its first code turns it on; the recovery codes once) — for an account with a platform role
+and a password, the last two within step-up level 2.
 
 Refusals: 401 without a console session, or `invalid_credentials` from the sign-in; 403 `admin_required`,
 `step_up_required`, `password_invalid`, `account_suspended`, `account_deleting`, `email_required`, `setup_token_invalid`,
 `setup_email_not_allowed`, `admin_self`, `admin_rank`; 429 `locked_out`;
-409 `setup_closed`, `two_factor_enabled`, `authenticator_not_set_up`, `last_owner`, `settings_last_method`,
+409 `setup_closed`, `two_factor_enabled`, `password_required`, `authenticator_not_set_up`, `last_owner`, `settings_last_method`,
 `settings_lockout_self`, `community_exists`, `invite_code_exists`, `review_not_allowed`; 400 with field codes `code_invalid`, `code_used`,
 `locked_out`, `reason_required`, `reason_too_long`, `role_invalid`, `registration_invalid`, `method_unknown`,
 `invite_code_invalid`, `max_uses_invalid`, `expires_in_past`, `note_too_long` and the name rules'.

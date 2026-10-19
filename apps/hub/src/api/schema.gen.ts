@@ -989,7 +989,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** A new authenticator key for the console, while two-factor authentication is off (a platform role, step-up level 2). */
+        /** A new authenticator key for the console, while two-factor authentication is off (a platform role and a password, step-up level 2). */
         post: operations["SetUpAuthenticator"];
         delete?: never;
         options?: never;
@@ -1006,7 +1006,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** A code from the new key turns two-factor authentication on; recovery codes once (a platform role, step-up level 2). */
+        /** A code from the new key turns two-factor authentication on; recovery codes once (a platform role and a password, step-up level 2). */
         post: operations["EnableTwoFactor"];
         delete?: never;
         options?: never;
