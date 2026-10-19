@@ -106,6 +106,7 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 |---|---|
 | Mỗi PR | Review và merge |
 | Mỗi lần lên UAT / prod | Nói "deploy" / "lên prod" — agent gắn tag và làm phần còn lại (E-01) |
+| B1 lên prod | Merge PR `platform-infra` đặt `hub.securityContact: security@toheplay.io.vn` (agent mở lúc "lên prod"); chưa đặt thì `security.txt` trả 404 |
 | B3, B4 lên prod | Merge PR `platform-infra` đổi values (key `docs`, `console`, host `console.`) cùng bản chart — không chỉ là `targetRevision` nên chờ owner |
 | B4 | DNS `console` (proxied) + Cloudflare Access: một application cho `console.toheplay.io.vn`, chính sách cho phép email của owner |
 | B5 | Thêm `notify.toheplay.io.vn` ở Resend (Cloudflare tự thêm DNS), đổi người gửi trong Infisical `/tohe` và `uat.env`; chọn dịch vụ trang trạng thái, CNAME `status` DNS-only |
@@ -121,7 +122,7 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 |---|---|---|
 | N1 | `docs/n1-environments` | [#71](https://github.com/vinh466/tohe-play/pull/71) **merged** (2026-10-19, `9759e98`) — master: ADR 0041; builder (Sonnet · high): docs + `.claude/agents`; reviewer (Opus · high): 0 blocker, 5 major, 9 minor, đã sửa; `pnpm verify` xanh; **CI xanh** (verify, chart, stack) |
 | CI | `ci/run-what-changed` | [#73](https://github.com/vinh466/tohe-play/pull/73) **merged** (2026-10-19); PR chỉ docs giờ ~50 giây (#74), PR code ~8,6 phút — ngoài 18 PR, owner yêu cầu: CI chạy theo phạm vi thay đổi (notes / docs / all), job song song, cache Turborepo; `main` vẫn chạy đủ, không đọc cache |
-| N2 | `feat/n2-env-check` | [#76](https://github.com/vinh466/tohe-play/pull/76) mở (2026-10-19), chờ owner review — builder (Sonnet · high); lần chạy thật đầu tiên bắt được sự cố: DNS `games.toheplay.io.vn` mất (NXDOMAIN), game prod không tải |
+| N2 | `feat/n2-env-check` | [#76](https://github.com/vinh466/tohe-play/pull/76) mở (2026-10-19), chờ owner review — builder (Sonnet · high); lần chạy thật đầu tiên bắt được sự cố: DNS `games.toheplay.io.vn` mất (NXDOMAIN), game prod không tải; owner thêm lại, `check:prod` 17 đạt / 0 lỗi (19:00) |
 | N3 | `feat/n3-stack-image-seed` | [#75](https://github.com/vinh466/tohe-play/pull/75) mở (2026-10-19), chờ owner review — builder (Sonnet · high); master thêm khoá thứ hai `Dev:SeedAllowed` (không seed được UAT kể cả khi ép môi trường Development); `pnpm verify` xanh, 261 API test |
-| B1 | `feat/b1-layout-standard` | đang làm (2026-10-19) — master: ADR 0042 + `docs/architecture/hosts-and-paths.md`; builder (Opus · high): `@tohe/routes`, sinh cấu hình, 404, robots, security.txt, HSTS, cờ Scalar |
+| B1 | `feat/b1-layout-standard` | [#77](https://github.com/vinh466/tohe-play/pull/77) mở (2026-10-19), chờ owner review — master: ADR 0042 + `docs/architecture/hosts-and-paths.md`; builder (Opus · high): `@tohe/routes`, sinh cấu hình, 404, robots, security.txt, HSTS, cờ Scalar; reviewer (Opus · high): 0 blocker, 4 major, 7 minor, đã sửa; `pnpm verify` xanh. Tạm: gốc `noindex` tới B3; `sitemap.xml` dời sang B3 |
 | K1 | `docs/k1-vision` | [#74](https://github.com/vinh466/tohe-play/pull/74) draft (2026-10-19), chờ owner duyệt từng câu — master viết |

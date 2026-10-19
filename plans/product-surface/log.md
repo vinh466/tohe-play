@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (tối, đợt đầu) — agent
+
+- Owner "enhance CI" → [#73](https://github.com/vinh466/tohe-play/pull/73) merged (PR docs ~50 s, PR code ~8,6 phút). Owner
+  "làm việc tiếp" → K1 #74 (draft), N3 #75, N2 #76, B1 #77 — worker không commit, master review rồi commit; reviewer cho B1.
+- N2 chạy thật lần đầu bắt sự cố prod ~18:30: DNS `games` mất (NXDOMAIN) → owner thêm lại; 19:00 `check:prod` 17 đạt / 0 lỗi
+  (cảnh báo duy nhất: chưa có tag `prod-`). `_dmarc` đã đúng chỗ.
+- Chờ owner: review #74–#77; `hub.securityContact` ở platform-infra khi B1 lên prod. Sau B1: B2 + B4.
+
 ## 2026-10-19 (N1) — agent
 
 - Lần chạy đầu của rule: master viết ADR 0041; builder (Sonnet · high) viết `environments.md`, sửa docs, 4 agent

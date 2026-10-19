@@ -4,7 +4,8 @@
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
 - Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-19); thứ tự xây theo pull
-  request ở **[delivery.md](delivery.md)**; N1 đang làm (2026-10-19). Còn mở: E-02 Q2 (không chặn), E-05 (Cổng).
+  request ở **[delivery.md](delivery.md)**; N1 và CI đã merge, N2 N3 K1 B1 chờ owner review (2026-10-19). Còn mở: E-02 Q2
+  (không chặn), E-05 (Cổng).
 - Started: 2026-10-19 · Branch: `plan/product-surface` · PR:
   [tohe-play#72](https://github.com/vinh466/tohe-play/pull/72) (draft, về `main`; #70 cũ đã merge vào `plan/public-launch`)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
@@ -15,13 +16,13 @@
 
 ## Next — one item
 
-**N1 — spec môi trường — đang làm** ([delivery.md](delivery.md)): `docs/guides/environments.md` + ADR *Environments, tags and
-promotion* + dòng prod trong `AGENTS.md` + định nghĩa agent `.claude/agents/` + sửa sự thật ở `uat.md`/`index.md`/roadmap.
+**Owner review đợt đầu** ([delivery.md → Trạng thái](delivery.md#trạng-thái)): N2 [#76](https://github.com/vinh466/tohe-play/pull/76),
+N3 [#75](https://github.com/vinh466/tohe-play/pull/75), B1 [#77](https://github.com/vinh466/tohe-play/pull/77), K1
+[#74](https://github.com/vinh466/tohe-play/pull/74). B1 merge xong thì agent mở B2 và B4 (hai worker).
 
 ## Waiting on the owner
 
-0. **Sự cố prod (2026-10-19 ~18:30)**: bản ghi DNS `games.toheplay.io.vn` không còn trong zone Cloudflare (NXDOMAIN từ chính nameserver Cloudflare) → game trên prod không tải. Thêm lại `games` (proxied, giống `docs`); agent kiểm lại bằng `pnpm check:prod` (#76).
-1. Review PR của N1 khi agent báo.
+1. Review và merge #75, #76, #77; duyệt từng câu #74.
 2. Gửi một thư thử tới `hello@` và `security@toheplay.io.vn` từ hộp thư khác (DNS đã đủ — agent kiểm 2026-10-19).
 3. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt).
 4. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (không chặn gì; cần trước S1).
