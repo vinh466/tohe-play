@@ -1,4 +1,4 @@
-# Tò He chart values. Required: publicUrls.hub, publicUrls.games (and publicUrls.site while site.enabled), and the
+# Tò He chart values. Required: publicUrls.hub, publicUrls.games (and publicUrls.docs while docs.enabled), and the
 # secrets — secrets.existingSecret, or secrets.values. The chart refuses to render without them, with a message that
 # names the missing value. README.md describes every key; docs/guides/configuration.md what each image reads.
 
@@ -16,8 +16,9 @@ publicUrls:
   # https://games.tohe.example beside https://tohe.example — never a domain shared with apps that are not Tò He's
   # (ADR 0039, 0040).
   games: ""
-  # The landing page and the docs. Required while site.enabled.
-  site: ""
+  # The developer docs, at the root of their own host (ADR 0042) — e.g. https://docs.tohe.example. Required while
+  # docs.enabled. The public home page at the hub's root links to it.
+  docs: ""
   # The operators' console (ADR 0027, 0042): a host of its own with a session of its own, served by the hub's pods on
   # their port 8081 — e.g. https://console.tohe.example beside https://tohe.example. Put an access proxy in front of it
   # (Cloudflare Access). Empty: no console — no ingress rule, and the API answers its routes with 404.
@@ -58,7 +59,7 @@ api:
   allowedHosts: ""
   reference:
     # The API reference — Scalar at /api/docs and the OpenAPI documents under /api/openapi/ — on the hub's origin.
-    # Off: they answer 404. The docs site carries the same reference, generated at build time (ADR 0042).
+    # Off: they answer 404. The docs carry the same reference, generated at build time (ADR 0042).
     enabled: false
   # Extra non-secret configuration as environment variables, e.g. { Rooms__GraceSeconds: "45" }.
   config: {}
@@ -138,11 +139,11 @@ games:
   podSecurityContext: *caddyPod
   securityContext: *caddyContainer
 
-site:
-  # The landing page and the docs. Off: no site workload, no site host on the ingress.
+docs:
+  # The developer docs. Off: no docs workload, no docs host on the ingress.
   enabled: true
   image:
-    repository: "" # default: <global.image.repository>/site
+    repository: "" # default: <global.image.repository>/docs
     tag: ""
   replicaCount: 1
   extraEnv: []
@@ -227,7 +228,7 @@ ingress:
   annotations: {}
   # TLS for the hosts; leave empty when TLS ends before the ingress (Cloudflare in front).
   #   - secretName: tohe-tls
-  #     hosts: [tohe.example.org, tohe-games.example.org, tohe-site.example.org]
+  #     hosts: [tohe.example.org, tohe-games.example.org, tohe-docs.example.org]
   tls: []
 
 networkPolicy:

@@ -6,6 +6,7 @@
       "outputs": [
         "$TURBO_ROOT$/deploy/docker/hub-routes.caddy",
         "$TURBO_ROOT$/deploy/docker/console-routes.caddy",
+        "$TURBO_ROOT$/deploy/docker/hub-sitemap.caddy",
         "$TURBO_ROOT$/apps/hub/public/robots.txt",
         "$TURBO_ROOT$/services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs"
       ]

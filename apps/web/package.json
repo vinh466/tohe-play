@@ -1,0 +1,20 @@
+{
+  "name": "@tohe/web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "The public pages on the players' host (Vietnamese): static HTML built into the hub image and served at its root (ADR 0042).",
+  "scripts": {
+    "dev": "astro dev",
+    "build": "astro build && node scripts/check-build.ts",
+    "preview": "astro preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tohe/design-tokens": "workspace:*",
+    "astro": "^7.3.0"
+  },
+  "devDependencies": {
+    "vitest": "^5.0.0"
+  }
+}

@@ -1,0 +1,7 @@
+{{- /* The developer docs, at the root of their host (ADR 0042); both URLs are read when the container starts (ADR 0021). */ -}}
+{{- if .Values.docs.enabled }}
+{{- $env := list
+  (dict "name" "PUBLIC_HUB_URL" "value" (trimSuffix "/" .Values.publicUrls.hub))
+  (dict "name" "TOHE_DOCS_URL" "value" (trimSuffix "/" .Values.publicUrls.docs)) -}}
+{{ include "tohe.caddyWorkload" (dict "root" . "component" "docs" "values" .Values.docs "env" $env "probePath" "/") }}
+{{- end }}

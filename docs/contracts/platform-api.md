@@ -34,4 +34,4 @@ new shape next to the old one, ship the hub, then remove the old shape.
 
 ## Reference
 
-The generated reference lives at [Platform API (generated)](/docs/reference/api/).
+The generated reference lives at [Platform API (generated)](/reference/api/).

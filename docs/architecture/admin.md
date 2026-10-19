@@ -418,4 +418,4 @@ Refusals: 401 without a console session, or `invalid_credentials` from the sign-
 `settings_lockout_self`, `community_exists`, `invite_code_exists`, `review_not_allowed`; 400 with field codes `code_invalid`, `code_used`,
 `locked_out`, `reason_required`, `reason_too_long`, `role_invalid`, `registration_invalid`, `method_unknown`,
 `invite_code_invalid`, `max_uses_invalid`, `expires_in_past`, `note_too_long` and the name rules'.
-Generated reference: [Admin API](/docs/reference/admin-api/).
+Generated reference: [Admin API](/reference/admin-api/).

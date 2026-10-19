@@ -14,11 +14,12 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `packages/routes` | The map of hosts and of the hub's and the console's path namespaces (ADR 0042) — generates both hosts' Caddy routes, the hub's service worker's app pages, `robots.txt` and the API's `HubPaths` and `ConsolePaths` |
 | `packages/game-sdk` | Game side (no runtime deps) and host side (`/host`) of the contract |
 | `packages/game-kit` | Game shell (menu stage, play stage, quick panel, HUD), Phaser setup, sounds, haptics, juice — use it for every new game (ADR 0012, 0020) |
-| `packages/design-tokens` | Light and dark colour tokens shared by the hub, the site and the kit (ADR 0013) |
+| `packages/design-tokens` | Light and dark colour tokens shared by the hub, the public pages, the docs and the kit (ADR 0013) |
 | `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
 | `apps/console` | The operator's console on a host of its own (`console.`, :4721 locally) with its own sign-in and session, and its own API at `/api/admin` (ADR 0027, 0042) |
-| `apps/site` | Landing (vi) + docs site (en) |
+| `apps/web` | The public pages on the players' host (vi): static, built into the hub image, served at its root (ADR 0042) |
+| `apps/docs` | The developer docs (en), rendered from `docs/`, at the root of their own host |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
 | `deploy/` | Helm chart (`deploy/helm/tohe`), Caddyfiles and Dockerfiles, UAT scripts (`deploy/uat`) |
 | `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report |

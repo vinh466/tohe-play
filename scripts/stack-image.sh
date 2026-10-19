@@ -56,7 +56,7 @@ if [[ -z "$running" ]] && curl -fsS -o /dev/null --max-time 2 "$HUB/" 2>/dev/nul
 fi
 
 log "pulling the images of $REF ($SHA) from ghcr.io"
-if ! "${compose[@]}" pull --quiet api hub games site; then
+if ! "${compose[@]}" pull --quiet api hub games docs; then
   log "no images for $SHA on ghcr.io." >&2
   log "CI publishes them for a commit on main once its checks pass — wait for that, or pick a later commit. A commit from before" >&2
   log "CI published images has none at all: this script never builds, so there is nothing to run for it." >&2

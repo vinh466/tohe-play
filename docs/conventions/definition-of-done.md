@@ -12,7 +12,7 @@ A change is done when **all** of these are true:
       PostgreSQL, games in conformance, user journeys in the e2e smoke test.
 - [ ] Generated files are regenerated and committed (OpenAPI, API types, JSON Schemas); `git status` is clean after
       `pnpm build`.
-- [ ] Docs describing the changed behaviour are updated in the same PR; links still resolve (the site build
+- [ ] Docs describing the changed behaviour are updated in the same PR; links still resolve (the docs build
       validates them).
 - [ ] An ADR exists for any decision that is expensive to reverse.
 - [ ] For games: `SPEC.md` matches the game, the conformance screenshot was looked at, and it was played on a

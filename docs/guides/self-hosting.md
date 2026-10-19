@@ -6,7 +6,7 @@ sidebar:
 ---
 
 The `tohe` chart in [`deploy/helm/tohe`](https://github.com/vinh466/tohe-play/tree/main/deploy/helm/tohe) runs the
-four images — hub, API, games origin, site — on Kubernetes
+four images — hub (with the public pages), API, games origin, docs — on Kubernetes
 ([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md)). Its README lists every value; this page
 walks through an install. What each image reads: [Configuration](configuration.md). How Tò He itself moves a build from
 UAT to production: [Environments and releases](environments.md).
@@ -15,12 +15,12 @@ UAT to production: [Environments and releases](environments.md).
 
 - Kubernetes 1.29 or later, `helm`, and an ingress controller (or your own routing — `ingress.enabled: false`).
 - A domain Tò He has to itself, and three hostnames on it pointing at the ingress: the hub, the games origin and the
-  site — four with the operators' console (`publicUrls.console`, e.g. `console.tohe.example`, best behind an access
+  docs — four with the operators' console (`publicUrls.console`, e.g. `console.tohe.example`, best behind an access
   proxy such as Cloudflare Access; [Admin console](../architecture/admin.md)). The games origin must be a different host from the hub's
   ([ADR 0002](../decisions/0002-games-in-sandboxed-iframe-on-own-origin.md); why the domain:
   [below](#the-games-origin)). HTTPS is strongly advised: the session cookie is only `Secure` on an `https` hub URL.
 - Nothing to build. CI publishes every commit on `main` that passed its checks: the four images,
-  `ghcr.io/vinh466/tohe-play/<api|hub|games|site>:sha-<commit>`, and the chart,
+  `ghcr.io/vinh466/tohe-play/<api|hub|games|docs>:sha-<commit>`, and the chart,
   `oci://ghcr.io/vinh466/charts/tohe` with version `<x.y.z>-g<short commit>`, whose images default to its own
   commit's. Both are public; the versions are listed under the repository's **Packages** on GitHub.
 
@@ -29,7 +29,7 @@ where:
 
 ```sh
 docker build -f deploy/docker/api.Dockerfile -t registry.example.org/tohe/api:1 .
-for target in hub games site; do
+for target in hub games docs; do
   docker build -f deploy/docker/web.Dockerfile --target "$target" -t "registry.example.org/tohe/$target:1" .
 done
 # docker push … each of the four, then add to the commands below:
@@ -46,7 +46,7 @@ helm install tohe oci://ghcr.io/vinh466/charts/tohe --version 0.1.0-g1a2b3c4 \
   --namespace tohe --create-namespace \
   --set publicUrls.hub=https://tohe.example \
   --set publicUrls.games=https://games.tohe.example \
-  --set publicUrls.site=https://docs.tohe.example \
+  --set publicUrls.docs=https://docs.tohe.example \
   --set publicUrls.console=https://console.tohe.example \
   --set secrets.values.postgresPassword="$(openssl rand -hex 24)" \
   --wait --timeout 10m
@@ -73,7 +73,7 @@ cluster:
 publicUrls:
   hub: https://tohe.example # a domain Tò He has to itself (see below)
   games: https://games.tohe.example
-  site: https://docs.tohe.example
+  docs: https://docs.tohe.example
 infra:
   postgres:
     mode: external
@@ -99,7 +99,7 @@ on the same site as every host of its domain, so it can set cookies they all rec
 carry their `SameSite` cookies.
 
 So give Tò He **a domain of its own**, with nothing else on it. Production runs the hub at `toheplay.io.vn`, the
-games origin at `games.toheplay.io.vn` and the site at `docs.toheplay.io.vn` ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)). The hub is
+games origin at `games.toheplay.io.vn` and the docs at `docs.toheplay.io.vn` ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)). The hub is
 then the same site as the games, and protects itself: its session cookie is `__Host-` on HTTPS, which no other
 host can set or shadow; the API refuses state-changing requests from another origin; and the games' CSP lets a
 game page load nothing from elsewhere and submit no form. Apps that are not Tò He's have none of that: never put

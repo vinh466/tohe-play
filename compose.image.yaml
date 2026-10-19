@@ -19,6 +19,6 @@ services:
     image: ghcr.io/vinh466/tohe-play/games:${TOHE_IMAGE_TAG:?set by scripts/stack-image.sh}
     build: !reset null
 
-  site:
-    image: ghcr.io/vinh466/tohe-play/site:${TOHE_IMAGE_TAG:?set by scripts/stack-image.sh}
+  docs:
+    image: ghcr.io/vinh466/tohe-play/docs:${TOHE_IMAGE_TAG:?set by scripts/stack-image.sh}
     build: !reset null

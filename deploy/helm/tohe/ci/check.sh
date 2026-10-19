@@ -33,7 +33,7 @@ expect_failure "publicUrls.hub is required" --set publicUrls.hub=
 # The schema catches a path before the templates do; Helm 3 and 4 word it differently, both say "match pattern".
 expect_failure "match pattern" --set publicUrls.games=https://g.example.test/path
 expect_failure "match pattern" --set hub.securityContact=security
-expect_failure "publicUrls.site is required" --set publicUrls.site=
+expect_failure "publicUrls.docs is required" --set publicUrls.docs=
 expect_failure "must use a different host each" --set publicUrls.games=https://tohe.example.test
 expect_failure "api.replicaCount must be 1" --set api.replicaCount=2
 expect_failure "secrets.values.postgresPassword is required" --set secrets.values.postgresPassword=
@@ -74,4 +74,13 @@ expect_render "the console may frame games" "$production" 'value: https://tohepl
 helm template tohe "$chart" -f "$chart/ci/standalone.yaml" --set publicUrls.console= >"$out/no-console.yaml"
 expect_no_render "no console: no App__ConsoleUrl" "$out/no-console.yaml" 'App__ConsoleUrl'
 expect_no_render "no console: no console port" "$out/no-console.yaml" '8081'
+
+# The public pages (ADR 0042): the hub's Caddy writes absolute URLs from the hub's own URL and links to the docs host;
+# with no docs workload there is no docs URL, and no docs Deployment or ingress rule.
+expect_render "the hub knows its own URL" "$production" 'name: TOHE_HUB_URL$'
+expect_render "the hub links to the docs host" "$production" 'name: TOHE_DOCS_URL$'
+expect_render "the docs have a Deployment of their own" "$production" '^  name: tohe-docs$'
+expect_render "the docs host has an ingress rule" "$production" '^    - host: docs.toheplay.io.vn$'
+expect_no_render "no docs: no TOHE_DOCS_URL" "$out/byo-ingress.yaml" 'TOHE_DOCS_URL'
+expect_no_render "no docs: no docs Deployment" "$out/byo-ingress.yaml" '^  name: tohe-docs$'
 echo "chart checks passed"

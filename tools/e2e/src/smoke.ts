@@ -1,8 +1,9 @@
 #!/usr/bin/env node
 // End-to-end smoke test against a running stack (pnpm dev, or docker compose up).
 // Opens the hub on a phone-sized viewport, launches the sample game, plays one round and checks that the
-// hub stored the score and the save locally. Every screen — hub, landing page, docs — is checked in the light and
-// the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke (SITE_URL defaults to :4710)
+// hub stored the score and the save locally. Every screen — the public page at the hub's root, the app, the docs — is
+// checked in the light and the dark theme. Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e smoke
+// (DOCS_URL, the docs host, defaults to :4710)
 // With ADMIN_LOGS_COMMAND (CI: the API container's log) a new deployment is claimed on the console's /setup with the
 // setup token the API logged; else, with ADMIN_GRANT_COMMAND (the API container's `admin grant`), a role is granted
 // (ADR 0027). Either way the authenticator is added in the hub, and the console — on its own host, CONSOLE_URL (default
@@ -15,7 +16,7 @@ import { totp } from './totp.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const catalogUrl = new URL('/play', hubUrl).href;
-const siteUrl = process.env.SITE_URL ?? hubUrl.replace(/:4720\/?$/, ':4710');
+const docsUrl = (process.env.DOCS_URL ?? hubUrl.replace(/:4720\/?$/, ':4710')).replace(/\/$/, '');
 const consoleUrl = (process.env.CONSOLE_URL ?? hubUrl.replace(/:4720\/?$/, ':4721')).replace(/\/$/, '');
 const grantCommand = process.env.ADMIN_GRANT_COMMAND?.split(' ').filter(Boolean);
 const logsCommand = process.env.ADMIN_LOGS_COMMAND?.split(' ').filter(Boolean);
@@ -95,8 +96,13 @@ const password = 'mat-khau-e2e-123';
 const email = `e2e${Date.now().toString(36)}@e2e.test`;
 
 try {
-  step(`open ${hubUrl} — the root leads to the catalog, and a new device on to the sign-in screen`);
+  step(
+    `open ${hubUrl} — a new device sees the public page, whose "Chơi ngay" leads on to the sign-in screen`,
+  );
   await page.goto(hubUrl);
+  await page.getByRole('link', { name: 'Chơi ngay' }).waitFor();
+  await shot('landing');
+  await page.getByRole('link', { name: 'Chơi ngay' }).tap();
   await page.waitForURL(/\/account\/sign-in$/);
   await shot('welcome');
 
@@ -360,15 +366,25 @@ try {
   await shot('leaderboard');
   await leaderboard.getByRole('button', { name: '✕' }).tap();
 
-  step(`the landing page (${siteUrl}) and the docs share the hub's light/dark choice`);
-  await page.goto(siteUrl);
-  await shot('landing');
+  step(
+    `the public page (${hubUrl}/?stay) and the docs (${docsUrl}) share the app's light/dark choice; a device that has played here goes on from the root to the app`,
+  );
+  await page.goto(`${hubUrl}/?stay`);
   await page.getByRole('button', { name: 'Tối' }).tap();
   await expectTheme('dark');
-  await page.goto(`${siteUrl}/docs/`);
+  await page.goto(docsUrl);
   await expectTheme('dark');
   await shot('docs');
+  await page.goto(`${hubUrl}/?stay`);
+  await expectTheme('dark');
+  await page.waitForTimeout(300);
+  if (new URL(page.url()).pathname !== '/') throw new Error(`/?stay was redirected to ${page.url()}`);
+  // The app keeps `tohe:guest` on a device that plays without an account; the page's script reads it (and the
+  // telemetry's device id) from the same origin's localStorage.
+  await page.evaluate(() => localStorage.setItem('tohe:guest', '1'));
   await page.goto(hubUrl);
+  await page.waitForURL(catalogUrl);
+  await page.evaluate(() => localStorage.removeItem('tohe:guest'));
   await expectTheme('dark');
 
   step(
