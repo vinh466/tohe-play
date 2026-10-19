@@ -48,12 +48,12 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 - **Choices:** *Theo máy* (system, the default), *Sáng* (light) and *Tối* (dark). Picking one applies it at once,
   everywhere:
   - in the hub, from the round 🌗 / ☀️ / 🌙 button in the top corner of its screens;
-  - on the landing page, from the three buttons in the top corner;
+  - on the public home page, from the three buttons in the top corner;
   - in the docs, from Starlight's own theme menu (*Auto / Light / Dark*).
 - **Storage:** the choice belongs to the device and lives in the `tohe-theme` cookie:
   - values `light` or `dark`; no cookie means system;
   - path `/`, one year, `SameSite=Lax`, plus `Secure` on HTTPS;
-  - cookies are per host, not per port, so the hub, the landing page and the docs on one host share the choice.
+  - cookies are per host, not per port, so the hub, the public pages and the docs on one host share the choice.
 - **The code** lives in `@tohe/design-tokens`:
   - `theme` reads and saves the choice, resolves *Theo máy* against the device, and applies a theme: `<html>` gets
     `data-theme` and `color-scheme` (for native controls and scrollbars), and `<meta name="theme-color">` gets
@@ -64,7 +64,8 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
   - **Hub:** serves a copy of `theme-init.js` from its own origin (`public/`), because its CSP forbids inline
     scripts. A test keeps the copy identical to the original. `src/theme/theme.ts` then follows live changes of
     the device setting and drives the picker.
-  - **Landing page:** inlines `theme-init.js`; a small script drives its buttons.
+  - **Public pages** (`apps/web`): share the hub's origin and its CSP rule, so `theme-init.js` is a file under `/_web/`
+    (the build emits it from `@tohe/design-tokens`); a small bundled script drives the buttons.
   - **Docs:** `src/components/ThemeProvider.astro` replaces Starlight's: it inlines `theme-init.js` and mirrors the
     cookie into Starlight's localStorage key, so Starlight's menu starts from the shared choice.
     `ThemeSelect.astro` wraps Starlight's menu to save changes in the cookie.
@@ -103,7 +104,7 @@ Games opt in; some games have one look by nature ([Game Contract](../contracts/g
 - Games: conformance in every declared theme (above); `games/merge-block` also tests that every number is readable
   on its block.
 - E2E smoke test (`tools/e2e`):
-  - every hub screen, the landing page and the docs are screenshotted in light and dark, with axe-core's
+  - every hub screen, the public home page and the docs are screenshotted in light and dark, with axe-core's
     colour-contrast rule in both;
   - the hub picker: dark survives a reload, and *Theo máy* follows the device live;
-  - a choice made on the landing page also applies to the docs and the hub.
+  - a choice made on the public home page also applies to the docs and the hub.

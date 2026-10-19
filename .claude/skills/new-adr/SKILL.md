@@ -13,4 +13,4 @@ description: Record an architecture decision in docs/decisions with the next fre
 4. Add a row to the table in `docs/decisions/index.md`.
 5. If it supersedes an ADR, set the old one's status to `Superseded by NNNN` — change nothing else in it.
 6. Update every doc page the decision affects, in the same change.
-7. Build the site (`pnpm --filter @tohe/site build`) so the link check runs.
+7. Build the docs (`pnpm --filter @tohe/docs build`) so the link check runs.

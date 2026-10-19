@@ -2,7 +2,7 @@
 import { type Fetcher, getJson } from './http.ts';
 
 export const REPOSITORY = 'vinh466/tohe-play';
-export const IMAGES = ['api', 'hub', 'games', 'site'] as const;
+export const IMAGES = ['api', 'hub', 'games', 'docs'] as const;
 export const CHART = 'vinh466/charts/tohe';
 
 export interface WorkflowRun {

@@ -48,6 +48,19 @@ const consolePage = html('<title>Tò He · Quản trị</title><script src="/ass
   'x-robots-tag': 'noindex, nofollow',
 });
 
+/** The public home page the hub's root serves (ADR 0042), with the headers a good one has. */
+const homeHeaders = {
+  ...secureHeaders,
+  'content-type': 'text/html; charset=utf-8',
+  'content-security-policy':
+    "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; frame-ancestors 'none'",
+};
+const homePage = (headers: Record<string, string> = homeHeaders): HttpResult =>
+  html(
+    '<html><head><link rel="canonical" href="https://toheplay.io.vn/"></head><body><a class="primary" href="/play">Chơi ngay</a></body></html>',
+    headers,
+  );
+
 function prodSite(gameCsp: string, overrides: Record<string, HttpResult> = {}): Fetcher {
   const pages: Record<string, HttpResult> = {
     'https://toheplay.io.vn/api/health': html('Healthy'),
@@ -58,6 +71,14 @@ function prodSite(gameCsp: string, overrides: Record<string, HttpResult> = {}): 
       providers: [],
       email: true,
     }),
+    'https://toheplay.io.vn/': homePage(),
+    'https://toheplay.io.vn/sitemap.xml': html(
+      '<urlset><url><loc>https://toheplay.io.vn/</loc></url></urlset>',
+      { 'content-type': 'application/xml; charset=utf-8' },
+    ),
+    'https://toheplay.io.vn/robots.txt': html(
+      'User-agent: *\nAllow: /\nDisallow: /api/\n\nSitemap: https://toheplay.io.vn/sitemap.xml\n',
+    ),
     'https://toheplay.io.vn/play': html('<html>', secureHeaders),
     'http://toheplay.io.vn/': redirect(301, 'https://toheplay.io.vn/'),
     'https://www.toheplay.io.vn/x': redirect(301, 'https://toheplay.io.vn/x'),
@@ -72,8 +93,8 @@ function prodSite(gameCsp: string, overrides: Record<string, HttpResult> = {}): 
       { id: 'hello', entryUrl: 'https://games.toheplay.io.vn/hello/1/index.html' },
     ]),
     'https://games.toheplay.io.vn/hello/1/index.html': html('<html>', { 'content-security-policy': gameCsp }),
-    'https://docs.toheplay.io.vn/': html('landing'),
-    'https://docs.toheplay.io.vn/docs/': html('docs'),
+    'https://docs.toheplay.io.vn/': html('docs'),
+    'https://docs.toheplay.io.vn/docs/guides/uat/?a=1': redirect(301, '/guides/uat/?a=1'),
     'https://docs.toheplay.io.vn/play': redirect(302, 'https://toheplay.io.vn'),
     ...overrides,
   };
@@ -113,6 +134,46 @@ describe('checkProd', () => {
   });
 
   it.each([
+    [
+      'the root is noindex',
+      { 'https://toheplay.io.vn/': homePage({ ...homeHeaders, 'x-robots-tag': 'noindex' }) },
+      '/ is the public home page',
+    ],
+    [
+      'the root is the app again',
+      { 'https://toheplay.io.vn/': html('<div id="root">', homeHeaders) },
+      '/ is the public home page',
+    ],
+    [
+      'the root allows an inline script',
+      {
+        'https://toheplay.io.vn/': homePage({
+          ...homeHeaders,
+          'content-security-policy':
+            "default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self'",
+        }),
+      },
+      '/ has its own CSP',
+    ],
+    [
+      'the sitemap lists relative URLs',
+      {
+        'https://toheplay.io.vn/sitemap.xml': html('<urlset><url><loc>/</loc></url></urlset>', {
+          'content-type': 'application/xml',
+        }),
+      },
+      '/sitemap.xml',
+    ],
+    [
+      'robots.txt names no sitemap',
+      { 'https://toheplay.io.vn/robots.txt': html('User-agent: *\n') },
+      '/robots.txt',
+    ],
+    [
+      'the docs host keeps the old /docs/ paths',
+      { 'https://docs.toheplay.io.vn/docs/guides/uat/?a=1': html('docs') },
+      '/docs/x answers 301',
+    ],
     ['the hub still serves /admin/', { 'https://toheplay.io.vn/admin/': consolePage }, '/admin/ is a 404'],
     [
       'the console redirects elsewhere than Cloudflare Access',

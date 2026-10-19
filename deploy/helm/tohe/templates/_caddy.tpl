@@ -1,5 +1,5 @@
 {{/*
-A Caddy workload — the hub, the games origin or the site: a Deployment and its Service.
+A Caddy workload — the hub, the games origin or the docs: a Deployment and its Service.
 dict "root" $ "component" "hub" "values" .Values.hub "env" (list (dict "name" … "value" …)) "probePath" "/"
 and, for a second site of the same Caddy, "ports" (list (dict "name" "console" "port" 8081)).
 */}}

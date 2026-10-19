@@ -1,5 +1,5 @@
 {{/*
-Names. A release called "tohe" gives tohe-api, tohe-hub, tohe-games, tohe-site, tohe-postgres.
+Names. A release called "tohe" gives tohe-api, tohe-hub, tohe-games, tohe-docs, tohe-postgres.
 */}}
 {{- define "tohe.fullname" -}}
 {{- if .Values.fullnameOverride -}}
@@ -105,14 +105,14 @@ Everything the chart cannot express in values.schema.json. Each failure names th
 {{- fail (printf "publicUrls.games must be an http(s) origin with no path, got %q" $urls.games) -}}
 {{- end -}}
 {{- $hosts := list (include "tohe.host" $urls.hub) (include "tohe.host" $urls.games) -}}
-{{- if .Values.site.enabled -}}
-{{- if not $urls.site -}}
-{{- fail "publicUrls.site is required while site.enabled: the landing page and docs, e.g. https://tohe-site.example.org" -}}
+{{- if .Values.docs.enabled -}}
+{{- if not $urls.docs -}}
+{{- fail "publicUrls.docs is required while docs.enabled: the developer docs, e.g. https://docs.tohe.example.org (ADR 0042)" -}}
 {{- end -}}
-{{- if not (regexMatch $urlPattern $urls.site) -}}
-{{- fail (printf "publicUrls.site must be an http(s) origin with no path, got %q" $urls.site) -}}
+{{- if not (regexMatch $urlPattern $urls.docs) -}}
+{{- fail (printf "publicUrls.docs must be an http(s) origin with no path, got %q" $urls.docs) -}}
 {{- end -}}
-{{- $hosts = append $hosts (include "tohe.host" $urls.site) -}}
+{{- $hosts = append $hosts (include "tohe.host" $urls.docs) -}}
 {{- end -}}
 {{- if $urls.console -}}
 {{- if not (regexMatch $urlPattern $urls.console) -}}

@@ -25,14 +25,16 @@ flowchart LR
   hub -- /api, same origin --> api[Platform API<br/>.NET + PostgreSQL]
   api -- indexes catalog.json --> games[(Games origin<br/>static builds)]
   game -. loaded from .-> games
-  site[Site<br/>landing + these docs]
+  web[Public pages<br/>home page, at the hub's root]
+  docs[Docs<br/>these docs]
 ```
 
 - **Hub** — login and profiles (milestone M1), game catalog, launcher, local-first saves.
 - **Games** — independent static builds, each in its own folder and technology, embedded in a sandboxed iframe
   on a separate origin. They talk to the platform only through the [Game Contract](contracts/game-contract-v1.md).
 - **Platform API** — the backend services games may need (saves, scores, profiles…), called only by the hub.
-- **Site** — the Vietnamese landing page and these English docs.
+- **Public pages** — the Vietnamese home page, at the root of the hub's host.
+- **Docs** — these English docs, at the root of their own host.
 
 ## Principles
 

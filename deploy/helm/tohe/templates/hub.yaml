@@ -1,10 +1,15 @@
 {{- /*
-The hub: the PWA, and /api proxied to the API on the same origin (deploy/docker/Caddyfile.hub). Its Caddy serves the
+The hub: the public pages at its root, the PWA, and /api proxied to the API on the same origin (deploy/docker/Caddyfile.hub). Its Caddy serves the
 console too, on a second site, port 8081, for the console's host (ADR 0027, 0042).
 */ -}}
 {{- $env := list
   (dict "name" "API_UPSTREAM" "value" (printf "%s:8080" (include "tohe.componentName" (dict "root" . "component" "api"))))
-  (dict "name" "GAMES_ORIGIN" "value" (include "tohe.origin" .Values.publicUrls.games)) -}}
+  (dict "name" "GAMES_ORIGIN" "value" (include "tohe.origin" .Values.publicUrls.games))
+  (dict "name" "TOHE_HUB_URL" "value" (trimSuffix "/" .Values.publicUrls.hub)) -}}
+{{- /* The public page's links to the developer docs; with no docs host they lead nowhere, so the page gets none. */ -}}
+{{- if .Values.docs.enabled }}
+{{- $env = append $env (dict "name" "TOHE_DOCS_URL" "value" (trimSuffix "/" .Values.publicUrls.docs)) }}
+{{- end }}
 {{- with .Values.hub.proxy.trustedProxies }}
 {{- $env = append $env (dict "name" "TOHE_TRUSTED_PROXIES" "value" (join " " .)) }}
 {{- end }}

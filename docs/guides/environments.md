@@ -15,7 +15,7 @@ does the steps.
 | | Development | CI | UAT | Production |
 | --- | --- | --- | --- | --- |
 | For | Building and trying | The automatic gate | The family's daily use, and where the images bound for production run first | The public |
-| Where | The developer's machine: `pnpm dev` or compose project `tohe`, ports 47xx | GitHub Actions: the pull request, then `main` | The homelab, `10.100.0.2`: hub `http://10.100.0.2:4820`, console `:4821`, site `:4810`, games `:4830`, compose project `tohe-uat` | Hub `https://toheplay.io.vn` (API at `/api`), console `https://console.toheplay.io.vn` behind Cloudflare Access, games `https://games.toheplay.io.vn`, docs and site `https://docs.toheplay.io.vn` ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md), [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)) |
+| Where | The developer's machine: `pnpm dev` or compose project `tohe`, ports 47xx | GitHub Actions: the pull request, then `main` | The homelab, `10.100.0.2`: hub `http://10.100.0.2:4820`, console `:4821`, docs `:4810`, games `:4830`, compose project `tohe-uat` | Hub `https://toheplay.io.vn` (API at `/api`), console `https://console.toheplay.io.vn` behind Cloudflare Access, games `https://games.toheplay.io.vn`, docs `https://docs.toheplay.io.vn` ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md), [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)) |
 | Runs | The working tree | The checks, then the images and the chart | The images of the newest `uat-` tag | The images of the newest `prod-` tag |
 | Data | Throwaway | Throwaway | Real, the family's | Real once people other than the owner use it |
 | Config lives in | `compose.yaml` | `.github/workflows/ci.yml` | `compose.uat.yaml` and `~/.config/tohe-uat/uat.env` on the homelab | The `apps/tohe` component of the `platform-infra` repository (Argo CD), secrets in Infisical `/tohe` |
@@ -79,7 +79,7 @@ and does not fetch.
 | --- | --- |
 | The commit is on `main` | `git merge-base --is-ancestor <commit> origin/main` |
 | CI is green for it | The `CI` workflow's run for the push of that commit to `main`, from the GitHub API, concluded `success` |
-| Its images and chart exist | The four images `ghcr.io/vinh466/tohe-play/<api, hub, games or site>:sha-<commit>` and the chart version `<Chart.yaml version at that commit>-g<7-char sha>` are on GHCR |
+| Its images and chart exist | The four images `ghcr.io/vinh466/tohe-play/<api, hub, games or docs>:sha-<commit>` and the chart version `<Chart.yaml version at that commit>-g<7-char sha>` are on GHCR |
 | A `prod-` tag goes only on a commit that has a `uat-` tag (`--for prod`) | `git tag --points-at <commit> --list 'uat-*'` |
 
 ```sh
@@ -97,7 +97,7 @@ The release notes come from the pull requests since the previous `prod-` tag, so
 `prod-*` (no update, no deletion) stops a tag from being moved by mistake; the owner can add it in the repository's
 settings.
 
-What CI publishes for each commit on `main`: the images `ghcr.io/vinh466/tohe-play/<api|hub|games|site>:sha-<full commit>`
+What CI publishes for each commit on `main`: the images `ghcr.io/vinh466/tohe-play/<api|hub|games|docs>:sha-<full commit>`
 and the chart `oci://ghcr.io/vinh466/charts/tohe` at version `<Chart.yaml version>-g<7-char sha>`. The `targetRevision`
 in `platform-infra` is that chart version.
 
@@ -110,13 +110,13 @@ HTTPS, `docker compose logs`, one `SELECT`).
 | | `pnpm check:uat` (on the homelab) | `pnpm check:prod` (from anywhere) |
 | --- | --- | --- |
 | Expects | `--expect <ref>`, else the newest `uat-` tag; `apiVersion` is the first 12 characters of its commit | `--expect <ref>`, else the newest `prod-` tag; `apiVersion` is `sha-<full commit>`. With neither, it prints the version and warns |
-| Hub | `/api/health` is `Healthy`; `/api/config`; `/play` answers; `/admin/` is a `404` | `/api/health` is `Healthy`; `/api/config` (version, registration, proof of work, providers, email); `/play` answers with CSP, HSTS and `nosniff`; `http://` redirects to `https://`; `www` redirects to the apex; `/admin/` is a `404` |
+| Hub | `/api/health` is `Healthy`; `/api/config`; `/` is the public home page (indexed, its own CSP without inline script, `Chơi ngay` leads to `/play`); `/sitemap.xml` is XML with absolute URLs and `robots.txt` names it; `/play` answers; `/admin/` is a `404` | `/api/health` is `Healthy`; `/api/config` (version, registration, proof of work, providers, email); the same checks of `/`, `/sitemap.xml` and `robots.txt`; `/play` answers with CSP, HSTS and `nosniff`; `http://` redirects to `https://`; `www` redirects to the apex; `/admin/` is a `404` |
 | Console | `:4821`: `/` is the console's page with `noindex`; `/api/admin/overview` is a `401` without its session; `/play` is a `404` | `https://console.toheplay.io.vn/` redirects to Cloudflare Access (`*.cloudflareaccess.com`) — or, without it, is the console's page with `noindex, nofollow` |
-| Site and docs | The site's `/` and `/docs/` answer | The docs host: `/` and `/docs/` answer, `/play` redirects to the hub's `/play` |
+| Docs | The docs host: `/` answers the docs, `/docs/<page>` answers `301` to `/<page>`, the query kept, and `/play` redirects to the hub's `/play` | The same |
 | Games | `/catalog.json` lists games; `/` redirects to the hub's `/play` with `noindex` | The same, and the first game's entry page answers with `form-action 'none'` in its CSP |
 | Underneath | The API log since `--since` (default 15 minutes) has no `fail:`, `crit:`, `Unhandled` or `Exception` line; the newest migration in the database is the newest migration file of the commit. Skipped with `--no-docker`, or when Docker is missing | The mail DNS records: DKIM, the `send` subdomain's SPF and MX, DMARC, and the domain's MX |
 
-The addresses can be overridden (`--hub`, `--console`, `--site`, `--games`, `--docs`, `--domain`; `--no-dns` skips the
+The addresses can be overridden (`--hub`, `--console`, `--games`, `--docs`, `--domain`; `--no-dns` skips the
 mail records). After a deploy the agent runs `pnpm check:uat --expect <tag>` or `pnpm check:prod --expect <tag>` with the
 tag it just made. `--since` for UAT is how far back to read the log, for example the time of the deploy.
 
@@ -144,14 +144,14 @@ If a check fails, say so and stop. Rolling back is the owner's call ([below](#ro
 | Scope | The pull request changes only | What runs |
 | --- | --- | --- |
 | `notes` | plan notes (`plans/`), agent and skill definitions (`.claude/`), `AGENTS.md`, `CLAUDE.md`, `README.md` | nothing: none of it is built or shipped |
-| `docs` | the above and the spec under `docs/` | Biome, and the site's build, which checks every internal link |
+| `docs` | the above and the spec under `docs/` | Biome, and the docs app's build, which checks every internal link |
 | `all` | anything else | every job: verify, chart, stack |
 
 - A push to `main` is always `all`, and its `pnpm verify` runs every task without reading a cache
   (`--cache=local:w`): what gets published has passed every check from scratch.
 - On a pull request, `pnpm verify` reads the Turborepo cache the base branch saved: a task whose inputs did not change
   replays its result. A task's inputs are declared in `turbo.json`; a file a task reads from outside its package (as the
-  site reads `docs/`) must be listed there, or a change to it will not rebuild the task. Turborepo's `--affected` is not
+  docs app reads `docs/`) must be listed there, or a change to it will not rebuild the task. Turborepo's `--affected` is not
   used for the same reason: it looks only at which package folders changed.
 - Verify, chart and stack run side by side; publish waits for all three, on `main` only.
 
@@ -159,7 +159,7 @@ If a check fails, say so and stop. Rolling back is the owner's call ([below](#ro
 
 Detail is in [Local development](local-development.md). In short:
 
-- **Mode A**, `pnpm dev`: hot reload for the API, the games origin, the hub and the site; PostgreSQL and Mailpit from
+- **Mode A**, `pnpm dev`: hot reload for the API, the games origin, the hub, the public pages and the docs; PostgreSQL and Mailpit from
   compose.
 - **Mode B**, `docker compose up --build -d`: the production-like containers. Do not run both at once; they share ports.
 - **Mode C**, `pnpm stack:image <tag|commit>`: the exact images CI published for a commit, in the `tohe-image` project on

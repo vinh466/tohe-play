@@ -1,9 +1,9 @@
 {
-  "name": "@tohe/site",
+  "name": "@tohe/docs",
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Landing page (Vietnamese) and developer docs (English, rendered from the repository's docs/ folder).",
+  "description": "Developer docs (English, rendered from the repository's docs/ folder), at the root of the docs host (ADR 0042).",
   "scripts": {
     "dev": "astro dev",
     "build": "astro build && node scripts/check-links.ts",

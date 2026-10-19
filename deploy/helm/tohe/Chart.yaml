@@ -2,7 +2,7 @@ apiVersion: v2
 name: tohe
 description: >-
   Tò He — a self-hosted platform for small casual games: the hub (PWA + /api proxy), the API, the games origin and
-  the landing/docs site. Runs from scratch with its own PostgreSQL, or on infrastructure you already run.
+  the developer docs. Runs from scratch with its own PostgreSQL, or on infrastructure you already run.
 type: application
 # The chart's own version. Published charts are <version>-g<short sha> (ADR 0021); image tags are a separate axis.
 version: 0.1.0

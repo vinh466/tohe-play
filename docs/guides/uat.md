@@ -13,9 +13,9 @@ production runs only a commit that ran here first: see [Environments and release
 
 | What | URL |
 | --- | --- |
-| Hub | <http://10.100.0.2:4820> |
+| Hub — the public home page at the root, the app at `/play` | <http://10.100.0.2:4820> |
 | Console | <http://10.100.0.2:4821> — its own sign-in ([Admin console](../architecture/admin.md)) |
-| Landing + docs | <http://10.100.0.2:4810> |
+| Docs | <http://10.100.0.2:4810> |
 | Games origin | `http://10.100.0.2:4830` (embedded by the hub) |
 
 The API and PostgreSQL are not published; the hub proxies `/api`, the console only its own routes (`/api/admin`). Development uses the separate `tohe` compose
@@ -48,7 +48,7 @@ The script:
 1. creates `~/.config/tohe-uat/uat.env` on first run (host, a random database password and a telemetry report
    token — keep this file; an older file gets the token added once);
 2. exports the exact commit with `git archive` into `~/.local/share/tohe-uat/src` — never a working copy;
-3. pulls the four images CI published for that commit, `ghcr.io/vinh466/tohe-play/<api|hub|games|site>:sha-<commit>`
+3. pulls the four images CI published for that commit, `ghcr.io/vinh466/tohe-play/<api|hub|games|docs>:sha-<commit>`
    ([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md)) — the same images production runs.
    CI publishes them after every check on `main` passed; until then the script stops and says so. A commit from
    before CI published images (a rollback that far) is built here instead, as deploys used to;

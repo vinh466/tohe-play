@@ -5,6 +5,7 @@ import { expectedCommit } from './expect.ts';
 import { robotsHas } from './headers.ts';
 import { type Fetcher, getJson } from './http.ts';
 import type { Git, Run } from './proc.ts';
+import { checkDocsHost, checkPublicPages } from './public-checks.ts';
 import { assert, clip, type Runner } from './runner.ts';
 import { newestMigration, uatVersion } from './versions.ts';
 
@@ -12,7 +13,8 @@ export interface UatOptions {
   hub: string;
   /** The console's own host (ADR 0042). */
   console: string;
-  site: string;
+  /** The developer docs, at the root of their own host (ADR 0042). */
+  docs: string;
   games: string;
   /** A ref whose commit UAT should run; else the newest `uat-` tag. */
   expect?: string;
@@ -70,7 +72,7 @@ export async function checkUat(options: UatOptions, deps: UatDeps, r: Runner): P
   const { http, git, run } = deps;
   const hub = trimSlash(options.hub);
   const consoleUrl = trimSlash(options.console);
-  const site = trimSlash(options.site);
+  const docs = trimSlash(options.docs);
   const games = trimSlash(options.games);
 
   let expected: Awaited<ReturnType<typeof expectedCommit>> = null;
@@ -113,7 +115,8 @@ export async function checkUat(options: UatOptions, deps: UatDeps, r: Runner): P
     });
   }
 
-  // /play, the app's catalog: the root only leads there until the public pages arrive (ADR 0042).
+  // The root is the public home page (ADR 0042); /play is the app's catalog.
+  await checkPublicPages(http, hub, r);
   await r.check('hub /play answers 200', async () => {
     const result = await http(`${hub}/play`);
     assert(result.status === 200, `answered ${result.status}`);
@@ -127,13 +130,8 @@ export async function checkUat(options: UatOptions, deps: UatDeps, r: Runner): P
   r.section(`console ${consoleUrl}`);
   await checkConsolePage(http, consoleUrl, r);
 
-  r.section(`site ${site}`);
-  for (const path of ['/', '/docs/']) {
-    await r.check(`${path} answers 200`, async () => {
-      const result = await http(`${site}${path}`);
-      assert(result.status === 200, `answered ${result.status}`);
-    });
-  }
+  r.section(`docs ${docs}`);
+  await checkDocsHost(http, docs, hub, r);
 
   r.section(`games ${games}`);
   await r.check('/catalog.json lists games', async () => {

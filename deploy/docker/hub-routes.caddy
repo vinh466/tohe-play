@@ -2,13 +2,12 @@
 # Do not edit: change the map and regenerate (ADR 0042, docs/architecture/hosts-and-paths.md).
 # The namespaces of the hub’s host as named matchers; Caddyfile.hub serves each and answers 404 to the rest.
 @apiProxy path /api /api/*
+@publicStaticRevalidate path /
+@publicStaticImmutable path /_web /_web/*
 @appPage path /play /play/* /account /account/* /r /r/* /terms /privacy
 @appStaticImmutable path /assets /assets/*
 @appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /registerSW.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png
-@platformGenerated path /robots.txt /.well-known /.well-known/*
-# /: Leads to the catalog until the public pages arrive.
-@rootRedirect path /
-redir @rootRedirect /play?{query} 302
+@platformGenerated path /robots.txt /sitemap.xml /.well-known /.well-known/*
 # The app’s old paths, kept for the links in emails already sent: 301 to the new path, the query kept.
 @legacyWelcome path_regexp legacyWelcome ^/welcome$
 redir @legacyWelcome /account/sign-in?{query} 301

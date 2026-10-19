@@ -58,7 +58,10 @@ compose=(docker compose -f compose.uat.yaml --env-file "$ENV_FILE")
 if grep -q 'TOHE_IMAGE_TAG' compose.uat.yaml; then
   # What the family tries is what production runs: the images CI built, tested and published for this commit.
   log "pulling the images of $SHA from ghcr.io"
-  if ! "${compose[@]}" pull --quiet api hub games site; then
+  # The services of that commit's own compose file (the docs service was called "site" before ADR 0042's layout, so a
+  # rollback past it must not name it), all but the database, which is Docker Hub's and is not pulled here.
+  mapfile -t services < <("${compose[@]}" config --services | grep -vx postgres)
+  if ! "${compose[@]}" pull --quiet "${services[@]}"; then
     log "no images for $SHA on ghcr.io: CI publishes them once the checks on main pass — try again then"
     exit 1
   fi
@@ -81,7 +84,7 @@ for _ in $(seq 1 60); do
     log "healthy — version $(curl -fsS "$HUB/api/config" | sed -E 's/.*"apiVersion":"([^"]*)".*/\1/')"
     log "hub  $HUB"
     log "console http://${TOHE_UAT_HOST}:4821"
-    log "docs http://${TOHE_UAT_HOST}:4810/docs/"
+    log "docs http://${TOHE_UAT_HOST}:4810"
     exit 0
   fi
   sleep 2

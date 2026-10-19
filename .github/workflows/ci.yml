@@ -18,7 +18,7 @@ env:
   ASTRO_TELEMETRY_DISABLED: 1
 
 # A pull request runs what it touches (docs/guides/environments.md#continuous-integration): nothing for notes only, the
-# site and its link check for docs, every job otherwise. A push to main runs every job, every task without reading a
+# docs app and its link check for docs, every job otherwise. A push to main runs every job, every task without reading a
 # cache, before anything is published. The jobs run side by side; none waits for another but publish.
 jobs:
   changes:
@@ -74,9 +74,9 @@ jobs:
       - name: Install Chromium for the conformance kit
         if: env.ALL == 'true'
         run: pnpm --filter @tohe/conformance exec playwright install --with-deps chromium
-      - name: Docs only — Biome, and the site with its link check
+      - name: Docs only — Biome, and the docs app with its link check
         if: env.ALL != 'true'
-        run: pnpm exec biome check . && pnpm exec turbo run build --filter=@tohe/site
+        run: pnpm exec biome check . && pnpm exec turbo run build --filter=@tohe/docs
       - name: pnpm verify
         if: env.ALL == 'true'
         run: pnpm verify ${{ github.event_name == 'push' && '--cache=local:w' || '' }}
@@ -113,14 +113,14 @@ jobs:
       - name: Build the images
         run: |
           docker build -f deploy/docker/api.Dockerfile -t tohe-api:ci .
-          for target in hub games site; do
+          for target in hub games docs; do
             docker build -f deploy/docker/web.Dockerfile --target "$target" -t "tohe-$target:ci" .
           done
       - uses: helm/kind-action@v1
         with:
           cluster_name: tohe
       - name: Load the images into kind
-        run: kind load docker-image tohe-api:ci tohe-hub:ci tohe-games:ci tohe-site:ci --name tohe
+        run: kind load docker-image tohe-api:ci tohe-hub:ci tohe-games:ci tohe-docs:ci --name tohe
       - name: Install from scratch (builtin PostgreSQL, the chart's own Secret)
         run: |
           helm install tohe deploy/helm/tohe \
@@ -139,7 +139,7 @@ jobs:
         run: |
           kubectl get pods,pvc,events -o wide
           kubectl describe pods
-          for component in api hub games site postgres; do
+          for component in api hub games docs postgres; do
             kubectl logs -l app.kubernetes.io/component=$component --tail=80 --all-containers || true
           done
 
@@ -187,8 +187,8 @@ jobs:
         run: pnpm --filter @tohe/e2e rooms
       - name: A newcomer's first touches (E-03)
         run: pnpm --filter @tohe/e2e journey
-      - name: Site is served
-        run: curl -fsS http://localhost:4710/docs/ | grep -q "Tò He"
+      - name: Docs are served at the root of their host
+        run: curl -fsS http://localhost:4710/ | grep -q "Tò He"
       - name: Stack logs
         if: failure()
         run: docker compose logs --no-color
@@ -232,10 +232,10 @@ jobs:
           labels=(--label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY"
             --label "org.opencontainers.image.revision=$GITHUB_SHA")
           docker build --pull -f deploy/docker/api.Dockerfile "${labels[@]}" -t "$IMAGES/api:$tag" .
-          for target in hub games site; do
+          for target in hub games docs; do
             docker build --pull -f deploy/docker/web.Dockerfile --target "$target" "${labels[@]}" -t "$IMAGES/$target:$tag" .
           done
-          for component in api hub games site; do
+          for component in api hub games docs; do
             docker push --quiet "$IMAGES/$component:$tag"
           done
       - name: Package and push the chart (<version>-g<short sha>)
@@ -246,6 +246,6 @@ jobs:
           {
             echo "### Published $GITHUB_SHA"
             echo
-            echo "- Images: \`$IMAGES/{api,hub,games,site}:sha-$GITHUB_SHA\`"
+            echo "- Images: \`$IMAGES/{api,hub,games,docs}:sha-$GITHUB_SHA\`"
             echo "- Chart: \`helm install tohe $CHARTS/tohe --version $version\`"
           } >>"$GITHUB_STEP_SUMMARY"

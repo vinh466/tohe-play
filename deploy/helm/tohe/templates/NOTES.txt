@@ -1,9 +1,9 @@
 Tò He {{ include "tohe.tag" (dict "root" . "image" .Values.api.image) }} — release {{ .Release.Name }} in {{ .Release.Namespace }}.
 
-  Hub (and /api):  {{ .Values.publicUrls.hub }}
+  Hub:             {{ .Values.publicUrls.hub }} (public pages, the app, /api)
   Games origin:    {{ .Values.publicUrls.games }}
-{{- if .Values.site.enabled }}
-  Site and docs:   {{ .Values.publicUrls.site }}
+{{- if .Values.docs.enabled }}
+  Docs:            {{ .Values.publicUrls.docs }} (developer docs, at the root of their host)
 {{- end }}
 {{- if .Values.publicUrls.console }}
   Console:         {{ .Values.publicUrls.console }} (put an access proxy in front of it)
