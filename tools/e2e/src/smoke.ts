@@ -450,7 +450,8 @@ function historyIndex(page: Page): Promise<number> {
 
 async function gameFrame(target: Page): Promise<Frame> {
   for (let i = 0; i < 100; i++) {
-    const frame = target.frames().find((f) => f.url().includes('/hello/'));
+    // Not the hub's own page: its address (/play/hello/…) names the game too.
+    const frame = target.frames().find((f) => f !== target.mainFrame() && f.url().includes('/hello/'));
     if (frame) return frame;
     await target.waitForTimeout(100);
   }
