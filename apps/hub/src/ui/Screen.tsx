@@ -1,6 +1,10 @@
 import type { ReactNode } from 'react';
+import { InAppStrip } from '../install/InstallNudge.tsx';
 
-/** Centred column with safe-area padding: the frame of every hub screen except the game launcher. */
+/**
+ * Centred column with safe-area padding: the frame of every hub screen except the game launcher. In the in-app browser
+ * of a chat app it opens with the strip that says to open the real browser.
+ */
 export function Screen({ children, narrow = false }: { children: ReactNode; narrow?: boolean }) {
   return (
     <main
@@ -8,6 +12,7 @@ export function Screen({ children, narrow = false }: { children: ReactNode; narr
         narrow ? 'max-w-md' : 'max-w-3xl'
       }`}
     >
+      <InAppStrip />
       {children}
     </main>
   );

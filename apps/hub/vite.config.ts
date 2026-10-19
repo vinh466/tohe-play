@@ -60,7 +60,8 @@ export default defineConfig({
       manifest: {
         name: 'Tò He',
         short_name: 'Tò He',
-        description: 'Góc chơi nhỏ của cả nhà',
+        description:
+          'Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link.',
         lang: 'vi',
         // The app's identity stays "/" whatever its start page; it starts at the catalog and is scoped to the whole
         // origin, whose pages the service worker answers only inside the map's namespaces (ADR 0042).
@@ -75,6 +76,39 @@ export default defineConfig({
           { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
           { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+        ],
+        // Long-press on the home-screen icon: straight into the reference game.
+        shortcuts: [
+          {
+            name: 'Ghép Khối',
+            short_name: 'Ghép Khối',
+            url: '/play/merge-block',
+            icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+        ],
+        // What Android's install dialog shows next to "Cài Tò He"; made by `pnpm --filter @tohe/hub generate:screenshots`.
+        screenshots: [
+          {
+            src: 'screenshots/catalog-light.png',
+            sizes: '780x1688',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Danh sách game, nền sáng',
+          },
+          {
+            src: 'screenshots/catalog-dark.png',
+            sizes: '780x1688',
+            type: 'image/png',
+            form_factor: 'narrow',
+            label: 'Danh sách game, nền tối',
+          },
+          {
+            src: 'screenshots/catalog-wide.png',
+            sizes: '1280x720',
+            type: 'image/png',
+            form_factor: 'wide',
+            label: 'Danh sách game trên màn hình rộng',
+          },
         ],
       },
       workbox: {

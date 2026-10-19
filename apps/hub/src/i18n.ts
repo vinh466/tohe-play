@@ -3,7 +3,7 @@ import { initReactI18next } from 'react-i18next';
 
 const vi = {
   appName: 'Tò He',
-  tagline: 'Góc chơi nhỏ của cả nhà',
+  tagline: 'Game nhỏ, mở ra là chơi',
   games: 'Trò chơi',
   play: 'Chơi',
   exit: 'Thoát',
@@ -71,7 +71,7 @@ const vi = {
   },
   welcome: {
     title: 'Chào mừng đến Tò He',
-    subtitle: 'Bố mẹ đăng nhập một lần, các bé chỉ cần chọn hình của mình.',
+    subtitle: 'Đăng nhập để giữ tiến độ chơi trên mọi máy.',
     email: 'Email',
     emailHint: 'Tài khoản tạo trước khi có email: dùng tên đăng nhập.',
     password: 'Mật khẩu',
@@ -86,11 +86,11 @@ const vi = {
     passwordOff: 'Đăng nhập bằng email và mật khẩu đang tạm tắt.',
     closed: 'Tò He đang tạm đóng đăng ký mới.',
     createAccount: 'Tạo tài khoản',
-    tryAsGuest: 'Chơi thử không cần tài khoản',
+    tryAsGuest: 'Chơi luôn, không cần tài khoản',
   },
   register: {
     title: 'Tạo tài khoản',
-    subtitle: 'Một tài khoản có thể có vài hồ sơ chơi — cho bạn và người thân. Các bé không cần mật khẩu.',
+    subtitle: 'Một tài khoản giữ tiến độ của bạn trên mọi máy, và có thể thêm hồ sơ chơi cho người thân.',
     displayName: 'Tên khi chơi',
     displayNameHint: 'Ai chơi cùng cũng thấy tên này. Đặt thoải mái, đổi lúc nào cũng được.',
     anotherName: 'Tên khác',
@@ -355,8 +355,45 @@ const vi = {
   },
   guest: {
     name: 'Khách',
-    banner: 'Bạn đang chơi thử — tiến độ chỉ lưu trên máy này.',
+    banner: 'Tiến độ đang lưu trên máy này.',
+    signIn: 'Đăng nhập',
     signUp: 'Tạo tài khoản',
+  },
+  menu: {
+    button: 'Menu',
+    title: 'Menu',
+    install: 'Cài app',
+    installHint: 'Mở Tò He từ màn hình chính',
+    feedback: 'Góp ý / báo lỗi',
+    feedbackHint: 'Gửi thư cho người làm Tò He',
+  },
+  feedback: {
+    subject: 'Góp ý Tò He',
+    intro: 'Viết góp ý hoặc lỗi bạn gặp ở đây:',
+    version: 'Phiên bản',
+    browser: 'Trình duyệt',
+  },
+  install: {
+    title: 'Cài Tò He',
+    body: 'Mở thẳng từ màn hình chính, như một app, chơi được cả khi không có mạng.',
+    action: 'Cài về máy',
+    later: 'Để sau',
+    iosIntro: 'Trên iPhone và iPad, cài bằng Safari, 4 bước:',
+    iosStep1: 'Bấm ⋯ ở góc dưới bên phải của Safari.',
+    iosStep2: 'Chọn “Chia sẻ”.',
+    iosStep3: 'Chọn “Thêm vào Màn hình chính”.',
+    iosStep4: 'Bật “Mở dưới dạng ứng dụng web”, rồi bấm “Thêm”.',
+    iosDone: 'Đã hiểu',
+    generic:
+      'Trình duyệt này chưa cho cài bằng một nút. Mở menu của trình duyệt (⋮ hoặc ⋯) và chọn “Cài đặt ứng dụng” hoặc “Thêm vào Màn hình chính”.',
+    inApp: {
+      title: 'Mở bằng trình duyệt',
+      zalo: 'Trong Zalo: bấm ⋯ ở góc trên, chọn “Mở bằng trình duyệt”. Hoặc chép link rồi dán vào Chrome / Safari.',
+      other: 'Bấm ⋯ ở góc trên và mở bằng trình duyệt, hoặc chép link rồi dán vào Chrome / Safari.',
+      copy: 'Chép link',
+      copied: 'Đã chép',
+      dismiss: 'Ẩn',
+    },
   },
   rooms: {
     lobbyTitle: '{{game}}',
@@ -531,7 +568,7 @@ const vi = {
 
 const en: typeof vi = {
   appName: 'Tò He',
-  tagline: 'A little play corner for the whole family',
+  tagline: 'Small games — open and play',
   games: 'Games',
   play: 'Play',
   exit: 'Exit',
@@ -599,7 +636,7 @@ const en: typeof vi = {
   },
   welcome: {
     title: 'Welcome to Tò He',
-    subtitle: 'A parent signs in once; children just pick their picture.',
+    subtitle: 'Sign in to keep your progress on every device.',
     email: 'Email',
     emailHint: 'An account made before email sign-in: use its username.',
     password: 'Password',
@@ -614,12 +651,12 @@ const en: typeof vi = {
     passwordOff: 'Signing in with email and password is off for now.',
     closed: 'Tò He is not taking new accounts for now.',
     createAccount: 'Create an account',
-    tryAsGuest: 'Try without an account',
+    tryAsGuest: 'Just play, no account',
   },
   register: {
     title: 'Create an account',
     subtitle:
-      'One account can hold a few player profiles — for you and your family. Children need no password.',
+      'One account keeps your progress on every device, and can hold profiles for the people close to you.',
     displayName: 'Your player name',
     displayNameHint: 'Everyone you play with sees it. Pick anything fun; change it any time.',
     anotherName: 'Another name',
@@ -886,8 +923,46 @@ const en: typeof vi = {
   },
   guest: {
     name: 'Guest',
-    banner: 'You are trying it out — progress is kept on this device only.',
+    banner: 'Your progress is kept on this device.',
+    signIn: 'Sign in',
     signUp: 'Create account',
+  },
+  menu: {
+    button: 'Menu',
+    title: 'Menu',
+    install: 'Install app',
+    installHint: 'Open Tò He from your home screen',
+    feedback: 'Feedback / report a problem',
+    feedbackHint: 'Write to the people who make Tò He',
+  },
+  feedback: {
+    subject: 'Tò He feedback',
+    intro: 'Write your feedback, or the problem you met, here:',
+    version: 'Version',
+    browser: 'Browser',
+  },
+  install: {
+    title: 'Install Tò He',
+    body: 'Open it straight from your home screen, like an app, and play even without a connection.',
+    action: 'Install',
+    later: 'Not now',
+    iosIntro: 'On iPhone and iPad, install with Safari, in 4 steps:',
+    iosStep1: 'Tap ⋯ at the bottom right of Safari.',
+    iosStep2: 'Choose “Share”.',
+    iosStep3: 'Choose “Add to Home Screen”.',
+    iosStep4: 'Turn on “Open as Web App”, then tap “Add”.',
+    iosDone: 'Got it',
+    generic:
+      'This browser has no install button. Open its menu (⋮ or ⋯) and choose “Install app” or “Add to Home Screen”.',
+    inApp: {
+      title: 'Open in your browser',
+      zalo: 'In Zalo: tap ⋯ at the top and choose “Open in browser”. Or copy the link and paste it into Chrome / Safari.',
+      other:
+        'Tap ⋯ at the top and open it in your browser, or copy the link and paste it into Chrome / Safari.',
+      copy: 'Copy link',
+      copied: 'Copied',
+      dismiss: 'Hide',
+    },
   },
   rooms: {
     lobbyTitle: '{{game}}',

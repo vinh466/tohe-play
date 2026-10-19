@@ -22,7 +22,7 @@ import { TextField } from '../ui/TextField.tsx';
 /** The lobby of a game played at a table (ADR 0016): quick play, a new room, a code, the bots, the open rooms. */
 export function RoomsPage() {
   return (
-    <RequireSession need="player">
+    <RequireSession need="player" guest={false}>
       {(session) =>
         session.status === 'account' ? (
           <Lobby

@@ -18,12 +18,44 @@ export type SessionState =
 
 const GUEST_FLAG = 'tohe:guest';
 
-/** "Chơi thử": play without an account on this device, until someone signs in. */
+const guestListeners = new Set<() => void>();
+const guestChanged = () => {
+  for (const listener of guestListeners) listener();
+};
+
+/**
+ * Playing without an account on this device, until someone signs in. A visitor with no session enters it by
+ * themselves (`RequireSession`); "Chơi thử" on the sign-in screen is the same flag. Listeners let the screens follow it.
+ */
 export const guestMode = {
   enabled: () => localStorage.getItem(GUEST_FLAG) === '1',
-  enable: () => localStorage.setItem(GUEST_FLAG, '1'),
-  disable: () => localStorage.removeItem(GUEST_FLAG),
+  enable: () => {
+    localStorage.setItem(GUEST_FLAG, '1');
+    guestChanged();
+  },
+  disable: () => {
+    localStorage.removeItem(GUEST_FLAG);
+    guestChanged();
+  },
+  subscribe: (listener: () => void) => {
+    guestListeners.add(listener);
+    return () => void guestListeners.delete(listener);
+  },
 };
+
+/** What a screen that needs someone playing does with the session (RequireSession). */
+export type PlayerGate = 'play' | 'enter-as-guest' | 'sign-in' | 'choose-profile';
+
+/**
+ * Opening the hub is playing (E-03): a device with no session and no guest flag becomes a guest by itself, so no
+ * sign-in screen stands before the first game. A screen that needs an account — a room link — passes
+ * `guest: false` and keeps sending guests and signed-out devices to sign in (or up).
+ */
+export function playerGate(session: SessionState, { guest }: { guest: boolean }): PlayerGate {
+  if (session.status === 'signedOut') return guest ? 'enter-as-guest' : 'sign-in';
+  if (session.status === 'account' && !session.player) return 'choose-profile';
+  return 'play';
+}
 
 export function resolveSession(
   me: MeView | null,

@@ -7,6 +7,7 @@
   "scripts": {
     "smoke": "mkdir -p test-results && node src/smoke.ts",
     "rooms": "mkdir -p test-results && node src/rooms.ts",
+    "journey": "mkdir -p test-results && node src/journey.ts",
     "routes": "node src/routes.ts",
     "typecheck": "tsc --noEmit"
   },
