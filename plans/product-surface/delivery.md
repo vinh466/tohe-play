@@ -120,4 +120,4 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 | PR | Nhánh | Trạng thái |
 |---|---|---|
 | N1 | `docs/n1-environments` | [#71](https://github.com/vinh466/tohe-play/pull/71) **merged** (2026-10-19, `9759e98`) — master: ADR 0041; builder (Sonnet · high): docs + `.claude/agents`; reviewer (Opus · high): 0 blocker, 5 major, 9 minor, đã sửa; `pnpm verify` xanh; **CI xanh** (verify, chart, stack) |
-| CI | `ci/run-what-changed` | [#73](https://github.com/vinh466/tohe-play/pull/73) mở (2026-10-19) — ngoài 18 PR, owner yêu cầu: CI chạy theo phạm vi thay đổi (notes / docs / all), job song song, cache Turborepo; `main` vẫn chạy đủ, không đọc cache |
+| CI | `ci/run-what-changed` | [#73](https://github.com/vinh466/tohe-play/pull/73) mở (2026-10-19), **CI xanh** 8,6 phút (trước ~11), chờ owner merge — ngoài 18 PR, owner yêu cầu: CI chạy theo phạm vi thay đổi (notes / docs / all), job song song, cache Turborepo; `main` vẫn chạy đủ, không đọc cache |
