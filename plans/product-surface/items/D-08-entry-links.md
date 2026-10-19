@@ -22,7 +22,7 @@ link được (game không gọi mạng).
 
 | Loại | URL | Ai tạo | Đưa tới | Bậc tối thiểu (D-06) | Ai xử lý chỗ đến |
 |---|---|---|---|---|---|
-| `site` | `/`, `/tro-choi/<slug>` | công khai | trang giới thiệu, trang game | — | trang tĩnh |
+| `site` | `/`, `/games/<gameId>` | công khai | trang giới thiệu, trang game | — | trang tĩnh |
 | `game` | `/play/<gameId>` | ai cũng được | menu của game | `identity.play` của game | hub mở game |
 | `room` | `/r/<mã 6 số>` (đã có) | người ở bàn | sảnh của đúng bàn đó | max(`identity.rooms`, luật của bàn) — mặc định `named` | hub (sảnh do hub vẽ, ADR 0016) |
 | `share` | `/s/<mã>` (mới) | game, qua hub | game, kèm một **đích bên trong game** (thử thách cùng seed, một màn, "vượt điểm của tôi") | `identity.play` | **game** (`init.entry`) |

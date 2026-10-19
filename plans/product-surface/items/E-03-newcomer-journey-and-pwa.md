@@ -45,8 +45,8 @@ flowchart TD
 
 ## Thay đổi
 
-1. **Vào là chơi.** Mọi lối vào đi qua đường ống của D-08; game `any` mở ngay với hồ sơ máy lặng lẽ. `/welcome` chỉ còn là
-   trang đăng nhập khi người ta chọn; một dải mảnh "Đăng nhập" ở danh mục.
+1. **Vào là chơi.** Mọi lối vào đi qua đường ống của D-08; game `any` mở ngay với hồ sơ máy lặng lẽ. Trang đăng nhập
+   (`/welcome` hôm nay, `/account/sign-in` nếu D-01 Q7) chỉ mở khi người ta chọn; một dải mảnh "Đăng nhập" ở danh mục.
 2. **Lời chào user-first** (D-03): nói với một người bất kỳ, thay câu chỉ dành cho bố mẹ.
 3. **Màn "tên + hình"** của bậc `named` (D-06): tên gợi ý tiếng Việt vui, hình chọn sẵn → một chạm "Vào".
 4. **Tờ đăng nhập** của bậc `account`: Google một chạm ở trên (D-05), email ở dưới; xong thì luồng liên kết của D-07.
@@ -57,7 +57,7 @@ flowchart TD
    - iPhone Safari: tờ hướng dẫn iOS 26 (⋯ → Chia sẻ → Thêm vào MH chính → bật "Mở dưới dạng ứng dụng web"); hồ sơ máy
      có tiến độ mà chưa account → "giữ tiến độ trước" (Google) hoặc mã chuyển máy (D-07 S8).
    - WebView Zalo/Messenger/Facebook (nhận qua User-Agent): dải "Mở bằng trình duyệt" + chép link + cách bật trong Zalo.
-   - Đang chạy standalone: không bao giờ hiện. Bỏ qua → im 14 ngày. Mục "Cài app" cố định trong menu → `/huong-dan/cai-dat`.
+   - Đang chạy standalone: không bao giờ hiện. Bỏ qua → im 14 ngày. Mục "Cài app" cố định trong menu → `/guides/install`.
 7. **Ô "Nhập mã"** trong app (mã bàn 6 số, mã chia sẻ 8 ký tự) — iPhone không mở app đã cài từ link (D-08 §1).
 8. **Lần đầu mở app đã cài**: `start_url` `/play`; chưa có hồ sơ (iPhone: storage mới) → "Chơi luôn" / "Đăng nhập" / "Tôi
    có mã chuyển máy".

@@ -3,9 +3,8 @@
 - Goal: một người chưa biết Tò He tìm thấy nó, chơi ngay không cần tài khoản, được rủ vào đúng bàn hay đúng game bằng một
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
-- Phase: **Resolve → Converge** ([process](../README.md#phases)) — mọi item đã decided trừ **D-01** (owner đang review v2) và
-  E-02 Q2; D-01 chốt là graduation list thành danh sách thật. Brief: owner "thấy cũng ổn r", "ổn nha, theo đề xuất"
-  (2026-10-19).
+- Phase: **Resolve → Converge** ([process](../README.md#phases)) — mọi item đã decided trừ **D-01** (Q2–Q6 chốt; Q1
+  chờ owner xem phần mở rộng, Q7–Q8 mới) và E-02 Q2. Brief: owner "thấy cũng ổn r", "ổn nha, theo đề xuất" (2026-10-19).
 - Started: 2026-10-19 · Branch: `plan/product-surface` (xếp trên `plan/public-launch`) · PR:
   [tohe-play#70](https://github.com/vinh466/tohe-play/pull/70) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) · Log: [log.md](log.md)
@@ -15,16 +14,19 @@
 
 ## Next — one item
 
-**Owner review [D-01 v2](items/D-01-host-and-path-layout.md)** (bảng trước → sau, hub quyết định trả gì, mỗi môi trường,
-cái không đổi, Q1–Q6). P0-1 không phụ thuộc D-01: agent bắt đầu P0-1 khi owner nói "làm".
+**Owner đọc [D-01 v3](items/D-01-host-and-path-layout.md) §3–§5** (một bản đồ namespace, luật path hay subdomain, giới
+hạn thật) rồi chốt Q1, Q7, Q8. P0-1 không phụ thuộc D-01: agent bắt đầu P0-1 khi owner nói "làm".
 
 ## Waiting on the owner
 
-1. [D-01](items/D-01-host-and-path-layout.md) Q1–Q6 — bố cục B · `/play` · slug tiếng Việt · Email Routing · tắt Scalar ở
-   prod · giữ tiền tố `/docs/`.
+1. [D-01](items/D-01-host-and-path-layout.md) Q1 (sau khi xem §3–§5) · Q7 gom route app vào `/play/…` + `/account/…` ·
+   Q8 `apps/site` → `apps/docs`.
 2. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* trên nội dung không (`search`/`ai-input` đã bật).
-3. **Cloudflare**: ~~DMARC~~ ✔ · Email Routing `hello@`/`security@` (chưa có MX) · AI Crawl Control: Search cho phép ·
-   xác nhận Bot Fight Mode / Under Attack / WAF challenge tắt · sau P1-2: TXT Search Console + Bing.
+3. **Cloudflare** — ~~DMARC~~ ✔. **Email Routing** (D-01 Q4): Email → Email Routing → bật cho `toheplay.io.vn` →
+   *Destination addresses*: thêm hộp thư của owner, bấm link xác minh trong thư → *Routing rules → Create address*:
+   `hello@` và `security@` → hộp thư đó → **Add records and onboard** (Cloudflare tự thêm 3 MX, SPF ở gốc, DKIM; không
+   đụng `send.` của Resend). Báo agent để kiểm DNS và gửi thư thử. AI Crawl Control: Search cho phép. Xác nhận Bot Fight
+   Mode / Under Attack / WAF challenge tắt. Sau P1-2: TXT Search Console + Bing.
 4. **Console prod**: bật Chống bot đăng ký (proof-of-work vẫn tắt, kiểm 2026-10-19 tối).
 5. **Google**: tạo OAuth client khi tới P1-3 (agent viết hướng dẫn từng bước).
 6. Duyệt câu tuổi/đồng ý (D-06 Q6 = A) cùng văn bản pháp lý — tới P1-6 / E-05.
@@ -37,7 +39,7 @@ cái không đổi, Q1–Q6). P0-1 không phụ thuộc D-01: agent bắt đầu
 | E-04 | [Spec nói đúng Tò He hôm nay](items/E-04-spec-truth.md) | 0 (a) · 1A (b) | enhancement | **decided** | — |
 | D-02 | [Domain lâu dài](items/D-02-long-term-domain.md) | 1A | decision | **decided** — `toheplay.io.vn` duy nhất | — |
 | D-03 | [Nói với ai](items/D-03-audience-and-message.md) | 1A | decision | **decided** — user-first, vòng đời một user | — |
-| D-01 | [Host và đường dẫn](items/D-01-host-and-path-layout.md) | 1A | decision | proposed v2 — owner đang review | — |
+| D-01 | [Host và đường dẫn](items/D-01-host-and-path-layout.md) | 1A | decision | proposed v3 — Q2–Q6 chốt; Q1, Q7, Q8 chờ | — |
 | D-04 | [Đo luồng người mới](items/D-04-measuring-newcomers.md) | 1A | decision | **decided** — B | — |
 | E-02 | [Trang công khai · SEO · GEO](items/E-02-public-pages-seo-geo.md) | 1A | enhancement | **decided** (Q2 mở) | D-01 |
 | D-06 | [Định danh theo bậc (hồ sơ máy)](items/D-06-identity-ladder.md) | 1B | decision | **decided** — B, Q6 = A | — |
@@ -56,7 +58,7 @@ Mỗi PR một mục đích, mang ADR + docs của nó, `pnpm verify` trước k
 | P0-1 | `docs/guides/environments.md`, ADR môi trường + tag + promote (sửa 0010, 0021 §5), `AGENTS.md` dòng prod, sửa `uat.md`/`index.md`/roadmap | mới | E-01, E-04a |
 | P0-2 | `tools/env-check`: `check:uat`, `check:prod`, `release:check <tag>` | — | E-01 §2, §6 |
 | P0-3 | Mode C `pnpm stack:image` + dữ liệu mẫu cho dev | — | E-01 §4 |
-| P1-1 | Bố cục D-01: `apps/web` vào image hub, Caddy (công khai → app → 404), robots/sitemap/`security.txt`, `/play`, manifest `id` | mới | D-01 |
+| P1-1 | Bố cục D-01: gói `@tohe/routes` + codegen (Caddy, SW, robots, `HubPaths` cho API, test va chạm); `apps/web` vào image hub; route app gom vào `/play/…` + `/account/…` (Q7); 404 thật, robots/sitemap/`security.txt`; manifest `id`; `docs.` lên gốc (Q8 `apps/docs`); cờ Scalar | mới | D-01 |
 | P1-2 | Nội dung công khai user-first, ảnh OG, JSON-LD, kiểm SEO trong build; `/new-game` + DoD | — | E-02 |
 | P1-3 | Google trên prod: hướng dẫn tạo client, kiểm luồng (owner cấu hình) | — | D-05 |
 | P1-4 | Hub, phần không cần server mới: vào là chơi, lời chào, cài app, manifest, `og:`, Góp ý | — | E-03 |

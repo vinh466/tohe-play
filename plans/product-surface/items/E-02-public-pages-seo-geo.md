@@ -25,12 +25,12 @@ thiệu hướng dẫn user dùng đc ToHe".
 | Trang | Để làm gì |
 |---|---|
 | `/` | Trong 5 giây biết Tò He là gì; ảnh/clip ngắn của game; nút chính **"Chơi ngay — không cần tài khoản"** → `/play`; nút phụ "Đăng nhập"; ba điểm khác biệt (mở là chơi · không quảng cáo · rủ bạn bằng một link); nói với **một người bất kỳ** (D-03) |
-| `/tro-choi/` + `/tro-choi/<slug>` | Mỗi game một trang: ảnh, chơi thế nào (lấy từ `SPEC.md`), hợp với ai/độ tuổi, chơi một mình hay cùng bạn, nút "Chơi ngay" → `/play/<id>` |
-| `/huong-dan/cai-dat` | Cài app: Android, iPhone (iOS 26: ⋯ → Chia sẻ → Thêm vào MH chính), mở link từ Zalo/Messenger bằng trình duyệt — có hình |
-| `/huong-dan/ca-nha` · `/huong-dan/choi-cung-ban` | Hồ sơ cho bé, mã quản lý; rủ bạn vào bàn bằng link/QR |
-| `/hoi-dap` | Câu hỏi thật, câu trả lời ngắn: miễn phí? quảng cáo? dữ liệu của bé? chơi offline? iPhone? — dạng mà AI dễ trích |
-| `/gioi-thieu` | Ai làm, vì sao không quảng cáo, liên hệ (`hello@`, D-01 Q4) |
-| `/dieu-khoan`, `/quyen-rieng-tu` | Bản tĩnh của văn bản đang ở `apps/hub/src/legal/documents.ts` (một nguồn, hai nơi hiển thị) |
+| `/games` + `/games/<gameId>` | Mỗi game một trang: ảnh, chơi thế nào (lấy từ `SPEC.md`), hợp với ai/độ tuổi, chơi một mình hay cùng bạn, nút "Chơi ngay" → `/play/<id>` |
+| `/guides/install` | Cài app: Android, iPhone (iOS 26: ⋯ → Chia sẻ → Thêm vào MH chính), mở link từ Zalo/Messenger bằng trình duyệt — có hình |
+| `/guides/profiles` · `/guides/play-together` | Hồ sơ cho bé, mã quản lý; rủ bạn vào bàn bằng link/QR |
+| `/faq` | Câu hỏi thật, câu trả lời ngắn: miễn phí? quảng cáo? dữ liệu của bé? chơi offline? iPhone? — dạng mà AI dễ trích |
+| `/about` | Ai làm, vì sao không quảng cáo, liên hệ (`hello@`, D-01 Q4) |
+| `/terms`, `/privacy` | Bản tĩnh của văn bản đang ở `apps/hub/src/legal/documents.ts` (một nguồn, hai nơi hiển thị) |
 
 ### Kỹ thuật (kiểm tự động trong build của `apps/web`)
 

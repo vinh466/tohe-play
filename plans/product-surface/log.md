@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-19 (nửa đêm) — agent
+
+- Owner trả lời D-01: Q2 `/play` + route tiếng Anh, Q3 route công khai tiếng Anh, Q4 Email Routing, Q5 tắt Scalar có cờ,
+  Q6 tài liệu lên gốc `docs.` → decided. Q1: hợp lý về hình thức, hỏi kỹ thuật/mở rộng của tiền tố path.
+- D-01 v3: một bản đồ namespace `@tohe/routes` sinh Caddy/SW/robots/`HubPaths` + test va chạm (hôm nay đường dẫn hub viết
+  tay ở 5 nơi); luật path hay subdomain + ví dụ; giới hạn thật; Q7 gom route app vào `/play/` + `/account/`; Q8 `apps/docs`.
+
 ## 2026-10-19 (gần nửa đêm) — agent
 
 - Owner: "ổn nha, theo đề xuất" → decided: E-01 Q6, E-04, D-04, D-05, D-06 (Q6 = A), D-07, D-08, E-02 (trừ Q2), E-03.

@@ -17,7 +17,7 @@ Contract và vài ADR —, đo lường (D-04), trang công khai (E-02), ngườ
 flowchart LR
   person([Người mới<br/>kênh của owner · tìm kiếm · AI · link bạn rủ]) --> pub
   subgraph root ["toheplay.io.vn (image hub)"]
-    pub["Trang công khai tĩnh<br/>/ · /tro-choi · /huong-dan · /hoi-dap"] -- "Chơi ngay" --> app
+    pub["Trang công khai tĩnh<br/>/ · /games · /guides · /faq"] -- "Chơi ngay" --> app
     links["/r/&lt;mã&gt; · /s/&lt;mã&gt;<br/>lối vào (D-08)"] --> app["App /play …<br/>PWA id “/”"]
     app --> api["/api"]
     admin["/admin/"] --> api
