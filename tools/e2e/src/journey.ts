@@ -375,10 +375,11 @@ try {
   }
   await installed.context().close();
 
-  step('what needs an account still asks for one: a room link sends a new device to sign in');
+  step('a room link on a new device asks for a name and the terms line, not an account (ADR 0043)');
   const link = await visitor('room-link', userAgents.androidChrome, browser);
   await link.goto(`${hubUrl}/r/123456`);
-  await link.waitForURL(/\/account\/sign-in$/);
+  await link.getByRole('heading', { name: 'Vào bàn cùng mọi người' }).waitFor();
+  await link.getByRole('button', { name: 'Nhờ bố mẹ' }).waitFor();
   await link.context().close();
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);

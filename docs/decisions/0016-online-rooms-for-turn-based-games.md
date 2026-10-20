@@ -10,7 +10,9 @@ sidebar:
   the board of the week is the calendar week, and a hand counts on public boards only with two people at the table,
   since [ADR 0029](0029-integrity-engine-and-boards-by-trust.md); invitations reach beyond the host's account by ID
   since [ADR 0033](0033-invite-a-profile-by-its-id.md);
-  a room is to admit `named` device profiles, by [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I2)
+  a room admits `named` device profiles, and a seat and a player may carry no account, since
+  [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I2a: a table's entry — anyone named, the default;
+  accounts only; the host's account — the children rule both ways, results marked)
 - **Date:** 2026-10-16
 
 ## Context

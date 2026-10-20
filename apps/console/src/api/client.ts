@@ -18,6 +18,7 @@ export type TwoFactorView = Schemas['TwoFactorView'];
 export type AccountSummary = Schemas['AccountSummary'];
 export type AccountDetail = Schemas['AccountDetail'];
 export type ProfileDetail = Schemas['ProfileDetail'];
+export type DeviceProfileDetail = Schemas['DeviceProfileDetail'];
 export type SignInSettings = Schemas['SignInSettingsView'];
 export type SignInMethod = Schemas['SignInMethodView'];
 export type Community = Schemas['CommunityView'];
@@ -127,6 +128,14 @@ export const admin = {
     call(api.POST('/api/admin/profiles/{id}/hidden', { params: { path: { id } }, body: { reason } })),
   showProfile: (id: string) =>
     call(api.DELETE('/api/admin/profiles/{id}/hidden', { params: { path: { id } } })),
+  /** Takes a profile — an account's or a device's — off every table it sits at or watches (ADR 0043). */
+  withdrawProfile: (id: string) =>
+    call(api.POST('/api/admin/profiles/{id}/withdraw', { params: { path: { id } } })),
+  /** Device profiles on the server by name or id, the latest used first (ADR 0043). */
+  deviceProfiles: (q: string) =>
+    call(api.GET('/api/admin/device-profiles', { params: { query: q ? { q } : {} } })),
+  renameDeviceProfile: (id: string, name: string) =>
+    call(api.PATCH('/api/admin/device-profiles/{id}', { params: { path: { id } }, body: { name } })),
   /** Held results, oldest first; `after` is the last page's `next`. */
   held: (after?: number) =>
     call(api.GET('/api/admin/review', { params: { query: after === undefined ? {} : { after } } })),

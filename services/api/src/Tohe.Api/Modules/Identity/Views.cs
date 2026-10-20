@@ -120,7 +120,7 @@ internal sealed class MeQueries(ToheDbContext db, PlatformRoles roles, IOptions<
 
     public static ProfileView ToView(Profile profile) => new(
         profile.Id,
-        profile.PublicId,
+        profile.PublicId!,
         profile.Name,
         profile.Avatar,
         profile.Kind == ProfileKind.Adult ? "adult" : "child",

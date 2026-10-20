@@ -153,6 +153,31 @@ public sealed class DeviceProfilesTests(ApiFactory factory) : IClassFixture<ApiF
         Assert.Equal(device, Assert.Single(me.Profiles).Id);
     }
 
+    [Fact]
+    public async Task With_a_provider_a_device_profiles_copy_on_the_server_becomes_the_first_profile_keeping_its_row()
+    {
+        var browser = _app.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var device = Guid.NewGuid();
+        Assert.Equal(HttpStatusCode.NoContent, (await browser.PostAsync(Url("/api/devices"), null, Ct)).StatusCode);
+        var copy = await browser.PostAsJsonAsync(
+            Url("/api/devices/profiles"), new { id = device, name = "Cáo Nhanh", avatar = "🐯", termsVersion = Accounts.TermsVersion }, Ct);
+        Assert.Equal(HttpStatusCode.OK, copy.StatusCode);
+        Assert.Equal(
+            "/account/sign-in/continue",
+            await FakeProvider.ComeBackAsync(browser, Guid.NewGuid().ToString("N"), Accounts.NewEmail(), verified: true, intent: $"?profile={device}"));
+
+        var response = await browser.PostAsJsonAsync(
+            Url("/api/auth/external/pending/signup"),
+            new { displayName = "Cáo Nhanh", acceptTerms = true, termsVersion = Accounts.TermsVersion, deviceProfile = Upload(device, "Cáo Nhanh") },
+            Ct);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var me = (await response.Content.ReadFromJsonAsync<ExternalOutcome>(Ct))!.Me!;
+        Assert.Equal(device, Assert.Single(me.Profiles).Id);
+        await using var scope = factory.Services.CreateAsyncScope();
+        var stored = await scope.ServiceProvider.GetRequiredService<ToheDbContext>().Profiles.AsNoTracking().SingleAsync(p => p.Id == device, Ct);
+        Assert.Equal((me.Account.Id, (Guid?)null, (string?)null), (stored.AccountId, stored.DeviceId, stored.TermsVersion));
+    }
+
     // ------------------------------------------------------------------ signing in: adopting
 
     [Fact]

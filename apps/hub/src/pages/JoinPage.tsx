@@ -1,11 +1,13 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
-import { Navigate, useNavigate, useParams } from '@tanstack/react-router';
+import { Link, Navigate, useNavigate, useParams } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { rooms } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { formatCode, normalizeCode } from '../rooms/model.ts';
+import { AtTables } from '../session/AtTables.tsx';
+import { rememberNext } from '../session/next.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
@@ -13,25 +15,24 @@ import { Button } from '../ui/Button.tsx';
 import { Screen } from '../ui/Screen.tsx';
 
 /**
- * A room link, /r/<code> (ADR 0016): sign in and pick a profile first if needed (the link is kept through both),
- * then a preview of the room and one tap to sit down.
+ * A room link, /r/<code> (ADR 0016, 0043): a phone with no account plays as its device profile — the `named` screen
+ * the first time, its copy on the server, then the room — and a signed-in one picks a profile first (the link is kept
+ * through it). Then a preview of the room and one tap to sit down.
  */
 export function JoinPage() {
   const { code } = useParams({ from: '/r/$code' });
   return (
-    <RequireSession need="player" device={false} returnTo={`/r/${normalizeCode(code)}`}>
-      {(session) =>
-        session.status === 'account' ? (
-          <Preview player={session.player} />
-        ) : (
-          <Navigate to="/account/register" replace />
-        )
-      }
+    <RequireSession need="player" returnTo={`/r/${normalizeCode(code)}`}>
+      {(session) => (
+        <AtTables session={session}>
+          {(player) => <Preview player={player} device={session.status === 'device'} />}
+        </AtTables>
+      )}
     </RequireSession>
   );
 }
 
-function Preview({ player }: { player: Player }) {
+function Preview({ player, device }: { player: Player; device: boolean }) {
   const { code: raw } = useParams({ from: '/r/$code' });
   const code = normalizeCode(raw);
   const { t } = useTranslation();
@@ -111,6 +112,15 @@ function Preview({ player }: { player: Player }) {
             <p role="alert" className="text-danger">
               {t(errorKey(watch.error ?? join.error))}
             </p>
+          ) : null}
+          {device && view.entry === 'account' ? (
+            <Link
+              to="/account/sign-in"
+              onClick={() => rememberNext(`/r/${code}`)}
+              className="font-bold text-accent underline underline-offset-4"
+            >
+              {t('named.signIn')}
+            </Link>
           ) : null}
         </section>
       ) : null}

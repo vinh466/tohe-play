@@ -2,7 +2,7 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError, auth, type MeView, type ProfileView, session } from '../api/client.ts';
+import { ApiError, auth, devices, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { deviceProfilesQuery, profileOptionsQuery } from '../api/queries.ts';
 import { useLeaveTo } from '../navigation/leave.tsx';
@@ -11,6 +11,7 @@ import { withProgress } from '../session/bringInChoices.ts';
 import { takeNext } from '../session/next.ts';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
+import { deleteEverywhere } from '../session/serverCopy.ts';
 import { deviceMode } from '../session/session.ts';
 import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
 import { db, type LocalProfile } from '../storage/db.ts';
@@ -18,7 +19,6 @@ import {
   AVATARS,
   createDeviceProfile,
   currentDeviceProfile,
-  deleteDeviceProfile,
   listDeviceProfiles,
   MAX_DEVICE_PROFILES,
   randomAvatar,
@@ -420,7 +420,8 @@ function DeviceProfileForm({
   });
   const remove = useMutation({
     mutationFn: async () => {
-      if (profile) await deleteDeviceProfile(db, profile.id);
+      // Its copy on the server goes too, when it has one (ADR 0043).
+      if (profile) await deleteEverywhere(db, devices, profile);
     },
     onSuccess: async () => {
       await changed();

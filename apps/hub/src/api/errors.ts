@@ -51,6 +51,8 @@ const byCode: Record<string, string> = {
   room_full: 'rooms.errors.full',
   room_locked: 'rooms.errors.locked',
   room_account_only: 'rooms.errors.accountOnly',
+  account_required: 'rooms.errors.accountRequired',
+  device_profile_not_found: 'named.gone',
   parent_permission: 'rooms.errors.parentPermission',
   game_too_young: 'rooms.errors.tooYoung',
   not_host: 'rooms.errors.notHost',

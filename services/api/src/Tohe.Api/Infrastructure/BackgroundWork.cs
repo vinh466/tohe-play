@@ -4,7 +4,7 @@ namespace Tohe.Api.Infrastructure;
 
 /// <summary>The last run of one background worker.</summary>
 /// <param name="Name">The worker: <c>catalog-sync</c>, <c>email-delivery</c>, <c>telemetry-maintenance</c>,
-/// <c>ranked-replays</c> or <c>audit-retention</c>.</param>
+/// <c>ranked-replays</c>, <c>audit-retention</c> or <c>device-cleanup</c>.</param>
 /// <param name="LastRunAt">When a run last ended, well or not.</param>
 /// <param name="LastSuccessAt">When a run last went well.</param>
 /// <param name="LastError">What went wrong, while the last run failed.</param>
@@ -27,6 +27,7 @@ public sealed class BackgroundWork(TimeProvider clock)
     public const string TelemetryMaintenance = "telemetry-maintenance";
     public const string RankedReplays = "ranked-replays";
     public const string AuditRetention = "audit-retention";
+    public const string DeviceCleanup = "device-cleanup";
 
     private const int MaxErrorLength = 300;
 

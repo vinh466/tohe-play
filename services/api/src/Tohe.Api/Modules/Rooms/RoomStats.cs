@@ -60,9 +60,12 @@ internal static class RoomStats
                     .Where(r => r.GameId == game && r.ProfileId == player.ProfileId)
                     .Select(r => new { r.Place, r.Points, r.At })
                     .ToListAsync(ct);
-                var board = (await boards.AccountHandsAsync(player.AccountId, game, since, ct))
-                    .Select(row => new LeaderRow(row.ProfileId, row.Name, row.Avatar, row.Hands, row.Firsts, row.Points))
-                    .ToList();
+                // A device profile has no account, so no account's board (ADR 0043).
+                var board = player.AccountId is { } accountId
+                    ? (await boards.AccountHandsAsync(accountId, game, since, ct))
+                        .Select(row => new LeaderRow(row.ProfileId, row.Name, row.Avatar, row.Hands, row.Firsts, row.Points))
+                        .ToList()
+                    : [];
                 var recent = mine.Where(r => r.At >= since).ToList();
                 return new RoomStatsView(
                     new PlayerStats(mine.Count, mine.Count(r => r.Place == 0), mine.Sum(r => r.Points)),

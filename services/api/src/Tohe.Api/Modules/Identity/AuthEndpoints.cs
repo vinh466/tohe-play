@@ -124,6 +124,7 @@ internal static class AuthEndpoints
 
     private static async Task<Results<Accepted<AttemptView>, ValidationProblem, ProblemHttpResult>> SignUpAsync(
         SignUpRequest request,
+        HttpContext http,
         Attempts attempts,
         IEmailOutbox outbox,
         UserManager<Account> users,
@@ -167,8 +168,9 @@ internal static class AuthEndpoints
             return Problems.Field("displayName", nameError);
         }
 
-        // A device profile whose id the server cannot take gets a new one on the device first (ADR 0043).
-        if (request.DeviceProfileId is { } deviceProfile && await devices.IdTakenAsync(deviceProfile, ct))
+        // A device profile whose id the server cannot take gets a new one on the device first (ADR 0043) — unless it is
+        // this device's own copy on the server, which comes in as itself.
+        if (request.DeviceProfileId is { } deviceProfile && await devices.TakenFromAsync(http, deviceProfile, ct))
         {
             return DeviceProfiles.IdTaken();
         }
@@ -221,6 +223,7 @@ internal static class AuthEndpoints
 
     private static async Task<Results<Ok<MeView>, ProblemHttpResult>> ConfirmSignUpAsync(
         ConfirmSignUpRequest request,
+        HttpContext http,
         Attempts attempts,
         UserManager<Account> users,
         Invites invites,
@@ -281,8 +284,10 @@ internal static class AuthEndpoints
             InviteCode = inviteCode,
         };
 
-        // An id taken since the sign-up started: the account is made the usual way, and the device keeps its profile.
-        if (device is not null && await devices.IdTakenAsync(device.Id, ct))
+        // This device's copy on the server becomes the account's, keeping its id, seats and results (ADR 0043). Another id
+        // taken since the sign-up started: the account is made the usual way, and the device keeps its profile.
+        var copy = device is null ? null : await devices.ServerCopyAsync(http, device.Id, ct);
+        if (device is not null && copy is null && await devices.IdTakenAsync(device.Id, ct))
         {
             device = null;
         }
@@ -304,7 +309,7 @@ internal static class AuthEndpoints
         // Every account starts with a profile to play as (ADR 0023), and plays as it at once: nobody else to choose. A
         // device profile that is the person's own is that profile; a child's joins it (ADR 0043).
         // Its id taken at this very moment: the account is made the usual way.
-        var profile = await devices.SaveFirstProfileAsync(account, attempt.DisplayName!, device, deviceName, now, ct);
+        var profile = await devices.SaveFirstProfileAsync(account, attempt.DisplayName!, device, deviceName, now, ct, copy);
 
         await transaction.CommitAsync(ct);
         metrics.SignUp(SignInMethods.Password, "completed");

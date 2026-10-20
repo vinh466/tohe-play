@@ -74,6 +74,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Registry:SyncEnabled", "false");
         // Tests sign in many times from one client address; the real limit is covered by its own configuration.
         builder.UseSetting("Identity:AuthRequestsPerMinute", "10000");
+        builder.UseSetting("Identity:DeviceRequestsPerMinute", "10000");
+        // Tests delete device profiles unused for 90 days themselves (ADR 0043).
+        builder.UseSetting("Identity:DeviceCleanupEnabled", "false");
         builder.UseSetting("Telemetry:RequestsPerMinute", "10000");
         builder.UseSetting("Telemetry:OperatorToken", TelemetryToken);
         // Tests run maintenance themselves, with the data they need.

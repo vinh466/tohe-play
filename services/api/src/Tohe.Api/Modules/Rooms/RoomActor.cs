@@ -5,12 +5,24 @@ using Tohe.Api.Modules.Identity;
 
 namespace Tohe.Api.Modules.Rooms;
 
-/// <summary>Who is asking: the active profile, as the room needs it.</summary>
-internal sealed record Player(Guid ProfileId, Guid AccountId, string Name, string Avatar, bool MayPlayWithOthers, int MaxGameMinAge)
+/// <summary>
+/// Who is asking: the active profile of an account's session, or a device profile acting with its device's key
+/// (ADR 0043) — which has no account, no age, and is an outsider to every account.
+/// </summary>
+internal sealed record Player(Guid ProfileId, Guid? AccountId, string Name, string Avatar, bool MayPlayWithOthers, int MaxGameMinAge)
 {
+    /// <summary>A device profile: no account.</summary>
+    public bool IsDevice => AccountId is null;
+
     public static Player From(ActiveProfile profile) =>
         new(profile.Id, profile.AccountId, profile.Name, profile.Avatar, profile.MayPlayWithOthers, profile.MaxGameMinAge);
+
+    public static Player From(DevicePlayer profile) =>
+        new(profile.Id, null, profile.Name, profile.Avatar, MayPlayWithOthers: true, MaxGameMinAge: int.MaxValue);
 }
+
+/// <summary>Someone watching: their account — none for a device profile — and whether a child kept to its account.</summary>
+internal sealed record Watcher(Guid? AccountId, bool Kept);
 
 /// <summary>Where a room's changes go: people's phones (SignalR) and the database.</summary>
 internal interface IRoomOutbox
@@ -62,8 +74,8 @@ internal sealed class RoomActor
     private readonly HashSet<int> _takenOver = [];
     private readonly HashSet<int> _ready = [];
     private readonly Dictionary<int, DateTimeOffset> _lastReaction = [];
-    /// <summary>Profiles watching without a seat.</summary>
-    private readonly HashSet<Guid> _watchers = [];
+    /// <summary>Profiles watching without a seat: their account (none for a device profile), and whether they are kept.</summary>
+    private readonly Dictionary<Guid, Watcher> _watchers = [];
     /// <summary>Other profiles of a player's account asked to the table: who asked, and until when.</summary>
     private readonly Dictionary<Guid, (Guid From, DateTimeOffset Until)> _invites = [];
     private DateTimeOffset? _turnDeadline;
@@ -158,7 +170,7 @@ internal sealed class RoomActor
             Room.Status.ToString().ToLowerInvariant(),
             Room.HostProfileId,
             Room.IsPublic,
-            Room.AccountOnly,
+            RoomEntries.NameOf(Room.Entry),
             Room.Locked,
             Room.Seats,
             Room.BotsFill,
@@ -172,13 +184,21 @@ internal sealed class RoomActor
             Room.Status is RoomStatus.Playing or RoomStatus.Between ? _handSeats : [],
             viewer is { } id ? SeatOf(id) : null,
             Room.AllowSpectators,
-            [.. _watchers]);
+            [.. _watchers.Keys],
+            Room.Entry == RoomEntry.Own);
     }
 
-    public bool IsWatcher(Guid profileId) => _watchers.Contains(profileId);
+    public bool IsWatcher(Guid profileId) => _watchers.ContainsKey(profileId);
 
     /// <summary>Seated, or watching: may enter the room's live connection.</summary>
-    public bool IsMember(Guid profileId) => SeatOf(profileId) is not null || _watchers.Contains(profileId);
+    public bool IsMember(Guid profileId) => SeatOf(profileId) is not null || _watchers.ContainsKey(profileId);
+
+    /// <summary>The people seated or watching who have an account: whose "play with outsiders" may matter now.</summary>
+    public IReadOnlyList<Guid> AccountMembers() =>
+    [
+        .. _seats.Where(seat => seat is { ProfileId: not null, AccountId: not null }).Select(seat => seat.ProfileId!.Value),
+        .. _watchers.Where(watcher => watcher.Value.AccountId is not null).Select(watcher => watcher.Key),
+    ];
 
     public RoomSummary Summary(Guid viewer)
     {
@@ -193,14 +213,16 @@ internal sealed class RoomActor
             Room.Seats,
             Room.Locked,
             Room.TurnSeconds,
-            SeatOf(viewer) is not null || _watchers.Contains(viewer),
+            SeatOf(viewer) is not null || _watchers.ContainsKey(viewer),
             Room.AllowSpectators);
     }
 
     // ------------------------------------------------------------------ joining and leaving
 
     /// <summary>Why <paramref name="player"/> may not sit at this table, or null.</summary>
-    public string? WhyNot(Player player)
+    /// <param name="keptNow">The account profiles at the table whose "play with outsiders" is off now (ADR 0043), when the
+    /// caller read them — the seats' own record is from when they sat.</param>
+    public string? WhyNot(Player player, IReadOnlySet<Guid>? keptNow = null)
     {
         if (IsClosed)
         {
@@ -212,16 +234,9 @@ internal sealed class RoomActor
             return null;
         }
 
-        var sameAccount = player.AccountId == Room.HostAccountId;
-        if (Room.AccountOnly && !sameAccount)
+        if (Door(player, keptNow) is { } closed)
         {
-            return RoomErrors.AccountOnly;
-        }
-
-        // A child the account's owner has not allowed only plays within the account: at tables that stay in it.
-        if (!player.MayPlayWithOthers && !(sameAccount && Room.AccountOnly))
-        {
-            return RoomErrors.ParentPermission;
+            return closed;
         }
 
         // An invitation from someone at the table opens a locked door (never the parent switch above).
@@ -234,7 +249,7 @@ internal sealed class RoomActor
     }
 
     /// <summary>Why <paramref name="player"/> may not watch, or null.</summary>
-    public string? WhyNotWatch(Player player)
+    public string? WhyNotWatch(Player player, IReadOnlySet<Guid>? keptNow = null)
     {
         if (IsClosed)
         {
@@ -251,23 +266,107 @@ internal sealed class RoomActor
             return RoomErrors.SpectatorsOff;
         }
 
-        var sameAccount = player.AccountId == Room.HostAccountId;
-        if (Room.AccountOnly && !sameAccount)
+        return Door(player, keptNow);
+    }
+
+    /// <summary>
+    /// Who the table lets in, sitting or watching (ADR 0016, 0043): its entry level, then the parent switch — a child
+    /// its account's owner has not let play with outsiders stays at tables kept to the account, and never meets a
+    /// device profile, which is always an outsider.
+    /// </summary>
+    private string? Door(Player player, IReadOnlySet<Guid>? keptNow)
+    {
+        var sameAccount = player.AccountId is { } account && account == Room.HostAccountId;
+        if (Room.Entry == RoomEntry.Own && !sameAccount)
         {
             return RoomErrors.AccountOnly;
         }
 
-        return !player.MayPlayWithOthers && !(sameAccount && Room.AccountOnly) ? RoomErrors.ParentPermission : null;
+        if (Room.Entry == RoomEntry.Account && player.IsDevice)
+        {
+            return RoomErrors.AccountRequired;
+        }
+
+        // A child the account's owner has not allowed only plays within the account: at tables that stay in it.
+        if (!player.MayPlayWithOthers && !(sameAccount && Room.Entry == RoomEntry.Own))
+        {
+            return RoomErrors.ParentPermission;
+        }
+
+        // …and never with a device profile, from whichever side the meeting would come, seated or watching.
+        if ((!player.MayPlayWithOthers && HasDeviceProfile()) || (player.IsDevice && HasKept(keptNow)))
+        {
+            return RoomErrors.ParentPermission;
+        }
+
+        return null;
     }
 
-    public async Task<string?> WatchAsync(Player player)
+    private bool HasDeviceProfile() =>
+        _seats.Any(seat => seat.IsDeviceProfile()) || _watchers.Values.Any(watcher => watcher.AccountId is null);
+
+    /// <summary>A child kept to its account is here, by its record when it came or by what its account says now.</summary>
+    private bool HasKept(IReadOnlySet<Guid>? keptNow) =>
+        _seats.Any(seat => seat.Kept || (seat.ProfileId is { } id && keptNow?.Contains(id) == true))
+        || _watchers.Any(watcher => watcher.Value.Kept || keptNow?.Contains(watcher.Key) == true);
+
+    /// <summary>Who still passes the door as it is now, for a member already in: its entry level.</summary>
+    private bool Passes(Guid? accountId) => Room.Entry switch
     {
-        if (WhyNotWatch(player) is { } problem)
+        RoomEntry.Own => accountId is { } account && account == Room.HostAccountId,
+        RoomEntry.Account => accountId is not null,
+        _ => true,
+    };
+
+    /// <summary>The profile's seat shows its new name (a moderator renamed it, or its owner).</summary>
+    public async Task RenameAsync(Guid profileId, string name)
+    {
+        if (SeatOf(profileId) is not { } seat || _seats[seat].Name == name)
+        {
+            return;
+        }
+
+        _seats[seat] = _seats[seat] with { Name = name };
+        await SaveAsync();
+        await _outbox.RoomChangedAsync(this);
+    }
+
+    /// <summary>
+    /// A child's account turned its "play with outsiders" off (ADR 0016, 0043): it stays only at a table kept to its
+    /// account — marked so a device profile never joins — and leaves any other.
+    /// </summary>
+    public async Task KeepAsync(Guid profileId, Guid accountId)
+    {
+        if (IsClosed || !IsMember(profileId))
+        {
+            return;
+        }
+
+        if (Room.Entry != RoomEntry.Own || Room.HostAccountId != accountId)
+        {
+            await LeaveAsync(profileId);
+            return;
+        }
+
+        if (SeatOf(profileId) is { } seat)
+        {
+            _seats[seat] = _seats[seat] with { Kept = true };
+            await SaveAsync();
+        }
+        else
+        {
+            _watchers[profileId] = _watchers[profileId] with { Kept = true };
+        }
+    }
+
+    public async Task<string?> WatchAsync(Player player, IReadOnlySet<Guid>? keptNow = null)
+    {
+        if (WhyNotWatch(player, keptNow) is { } problem)
         {
             return problem;
         }
 
-        if (_watchers.Add(player.ProfileId))
+        if (_watchers.TryAdd(player.ProfileId, new Watcher(player.AccountId, !player.MayPlayWithOthers)))
         {
             Touch();
             await _outbox.RoomChangedAsync(this);
@@ -332,9 +431,9 @@ internal sealed class RoomActor
         return auto < 0 ? null : auto;
     }
 
-    public async Task<string?> JoinAsync(Player player)
+    public async Task<string?> JoinAsync(Player player, IReadOnlySet<Guid>? keptNow = null)
     {
-        if (WhyNot(player) is { } problem)
+        if (WhyNot(player, keptNow) is { } problem)
         {
             return problem;
         }
@@ -345,7 +444,7 @@ internal sealed class RoomActor
         }
 
         var seat = FreeSeat()!.Value;
-        _seats[seat] = new SeatRecord(player.ProfileId, player.AccountId, player.Name, player.Avatar, null);
+        _seats[seat] = new SeatRecord(player.ProfileId, player.AccountId, player.Name, player.Avatar, null, Kept: !player.MayPlayWithOthers);
         _invites.Remove(player.ProfileId);
         _watchers.Remove(player.ProfileId);
         Touch();
@@ -362,7 +461,7 @@ internal sealed class RoomActor
     public async Task WithdrawAsync(Guid profileId)
     {
         _invites.Remove(profileId);
-        if (!IsClosed && (SeatOf(profileId) is not null || _watchers.Contains(profileId)))
+        if (!IsClosed && IsMember(profileId))
         {
             await LeaveAsync(profileId);
         }
@@ -407,8 +506,11 @@ internal sealed class RoomActor
 
         if (Room.HostProfileId == profileId)
         {
-            // The host role passes to the player seated longest: the lowest seat.
-            Room.HostProfileId = _seats.First(s => s.ProfileId is not null).ProfileId!.Value;
+            // The host role passes to the player seated longest: the lowest seat — with its account, so "the host's
+            // account" is the new host's; a device profile hosting has none (ADR 0043).
+            var host = _seats.First(s => s.ProfileId is not null);
+            Room.HostProfileId = host.ProfileId!.Value;
+            Room.HostAccountId = host.AccountId;
         }
 
         await SaveAsync();
@@ -485,7 +587,8 @@ internal sealed class RoomActor
     public string? HostOnly(Guid profileId) =>
         Room.HostProfileId != profileId ? RoomErrors.NotHost : Room.Status == RoomStatus.Playing ? RoomErrors.HandInProgress : null;
 
-    public async Task<string?> UpdateAsync(Guid profileId, UpdateRoomRequest request, string? optionsJson, IReadOnlyCollection<string> bots, (int Min, int Max) seats)
+    public async Task<string?> UpdateAsync(
+        Guid profileId, UpdateRoomRequest request, RoomEntry? entry, string? optionsJson, IReadOnlyCollection<string> bots, (int Min, int Max) seats)
     {
         if (HostOnly(profileId) is { } problem)
         {
@@ -519,7 +622,8 @@ internal sealed class RoomActor
         }
 
         Room.IsPublic = request.IsPublic ?? Room.IsPublic;
-        Room.AccountOnly = request.AccountOnly ?? Room.AccountOnly;
+        var reopened = entry is { } next && next != Room.Entry;
+        Room.Entry = entry ?? Room.Entry;
         Room.Locked = request.Locked ?? Room.Locked;
         Room.BotsFill = request.BotsFill ?? Room.BotsFill;
         Room.BotsTakeOver = request.BotsTakeOver ?? Room.BotsTakeOver;
@@ -531,6 +635,21 @@ internal sealed class RoomActor
         }
         Room.Options = optionsJson ?? Room.Options;
         Touch();
+
+        // A new door holds for those already in too (ADR 0043): whoever it would not let in leaves — between hands
+        // (the host changes nothing during one), so a seat empties.
+        if (reopened)
+        {
+            var outside = _seats.Where(seat => seat.ProfileId is not null && seat.Bot is null && !Passes(seat.AccountId))
+                .Select(seat => seat.ProfileId!.Value)
+                .Concat(_watchers.Where(watcher => !Passes(watcher.Value.AccountId)).Select(watcher => watcher.Key))
+                .ToList();
+            foreach (var member in outside)
+            {
+                await LeaveAsync(member);
+            }
+        }
+
         await SaveAsync();
         await _outbox.RoomChangedAsync(this);
         await _outbox.LobbyChangedAsync(Room.GameId);
@@ -837,7 +956,7 @@ internal sealed class RoomActor
         }
 
         // Watchers get the public view (no hand), as the rules module gives a spectator.
-        foreach (var watcher in _watchers)
+        foreach (var watcher in _watchers.Keys)
         {
             await SendViewAsync(watcher, events);
         }

@@ -58,7 +58,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Matches("^[0-9]{6}$", room.Code);
         Assert.Equal((0, "waiting"), (room.MySeat, room.Status));
 
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, accountOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, entry = "own" });
         var chu = await PersonAsync("Chú");
         var chuSees = await ListAsync(chu);
         Assert.Contains(chuSees, r => r.Id == room.Id);
@@ -237,7 +237,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     public async Task An_invitation_opens_a_locked_door_for_the_family_but_never_the_parent_switch()
     {
         var bo = await PersonAsync("Bố");
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, entry = "own" });
         var others = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
         foreach (var id in new[] { family.Id, others.Id })
         {
@@ -272,10 +272,10 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     {
         var bo = await PersonAsync("Bố");
         var open = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, entry = "own" });
         Assert.Equal(HttpStatusCode.OK, (await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{open.Id}"), new { locked = true }, Ct)).StatusCode);
         var chu = await PersonAsync("Chú");
-        var chuTable = await CreateAsync(chu, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        var chuTable = await CreateAsync(chu, new { gameId = "tien-len", seats = 3, entry = "own" });
         var chuId = chu.Me.Profiles[0].PublicId;
         Assert.Equal("anyone", chu.Me.Profiles[0].Invites);
 

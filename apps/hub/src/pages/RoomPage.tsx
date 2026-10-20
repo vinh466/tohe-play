@@ -11,9 +11,11 @@ import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame, type RoomBridge, type RoomUpdate } from '../launcher/GameFrame.tsx';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected, roomsHub } from '../rooms/connection.ts';
+import { hubRefusal, reportTrouble } from '../rooms/devicePlayer.ts';
 import { InviteById } from '../rooms/InviteById.tsx';
 import { formatCode, gameSeats, joinLink } from '../rooms/model.ts';
 import { RoomSettings, type RoomSettingsValue } from '../rooms/RoomSettings.tsx';
+import { AtTables } from '../session/AtTables.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { telemetry } from '../telemetry/telemetry.ts';
@@ -29,18 +31,25 @@ import { settingsBody } from './RoomsPage.tsx';
 export function RoomPage() {
   const { gameId, roomId } = useParams({ from: '/play/$gameId/rooms/$roomId' });
   return (
-    <RequireSession need="player" device={false} returnTo={`/play/${gameId}/rooms/${roomId}`}>
-      {(session) =>
-        session.status === 'account' ? (
-          <Room
-            player={session.player}
-            accountProfiles={session.me.profiles}
-            mayPlayWithOthers={
-              session.me.profiles.find((p) => p.id === session.player.id)?.playWithOthers ?? false
-            }
-          />
-        ) : null
-      }
+    <RequireSession need="player" returnTo={`/play/${gameId}/rooms/${roomId}`}>
+      {(session) => (
+        <AtTables session={session}>
+          {(player) =>
+            session.status === 'account' ? (
+              <Room
+                player={player}
+                accountProfiles={session.me.profiles}
+                mayPlayWithOthers={
+                  session.me.profiles.find((p) => p.id === player.id)?.playWithOthers ?? false
+                }
+              />
+            ) : (
+              // A device profile (ADR 0043): no account's profiles to ask in, and never kept to an account.
+              <Room player={player} accountProfiles={null} mayPlayWithOthers />
+            )
+          }
+        </AtTables>
+      )}
     </RequireSession>
   );
 }
@@ -59,7 +68,8 @@ function Room({
   mayPlayWithOthers,
 }: {
   player: Player;
-  accountProfiles: ProfileView[];
+  /** Null for a device profile, which asks nobody to the table: that stays an account's (ADR 0043). */
+  accountProfiles: ProfileView[] | null;
   mayPlayWithOthers: boolean;
 }) {
   const { gameId, roomId } = useParams({ from: '/play/$gameId/rooms/$roomId' });
@@ -117,7 +127,9 @@ function Room({
         setReconnecting(false);
         if (view) show(view);
         else setGone('notSeated');
-      } catch {
+      } catch (error) {
+        // A device profile whose copy is gone, or whose terms changed, hears it here too (ADR 0043).
+        reportTrouble(hubRefusal(error));
         setReconnecting(true);
       }
     };
@@ -287,7 +299,7 @@ function WaitingRoom({
   room: RoomView;
   game: GameSummary;
   player: Player;
-  accountProfiles: ProfileView[];
+  accountProfiles: ProfileView[] | null;
   ownAccountOnly: boolean;
   onLeave(): void;
 }) {
@@ -301,7 +313,9 @@ function WaitingRoom({
     onSuccess: (_, profileId) => setInvited((current) => new Set(current).add(profileId)),
   });
   const seated = new Set(room.seatList.map((s) => s.profileId).filter(Boolean));
-  const invitable = accountProfiles.filter((profile) => profile.id !== player.id && !seated.has(profile.id));
+  const invitable = (accountProfiles ?? []).filter(
+    (profile) => profile.id !== player.id && !seated.has(profile.id),
+  );
   const [copied, setCopied] = useState(false);
   const isHost = room.hostProfileId === player.id;
   const link = joinLink(room.code);
@@ -414,11 +428,11 @@ function WaitingRoom({
 
       {watching ? (
         <p className="rounded-2xl bg-notice px-4 py-3 text-center text-notice-ink">{t('rooms.watching')}</p>
-      ) : (
+      ) : accountProfiles ? (
         <Button variant="secondary" onClick={() => setInviting(true)}>
           {t('rooms.invite')}
         </Button>
-      )}
+      ) : null}
 
       {isHost ? (
         <div className="flex flex-col gap-3">
@@ -462,7 +476,7 @@ function WaitingRoom({
             {t(errorKey(invite.error))}
           </p>
         ) : null}
-        <InviteById roomId={room.id} accountOnly={room.accountOnly} />
+        <InviteById roomId={room.id} accountOnly={room.entry === 'own'} />
       </Modal>
 
       <Modal open={editing} title={t('rooms.settingsTitle')} onClose={() => setEditing(false)}>
@@ -471,7 +485,7 @@ function WaitingRoom({
           initial={{
             seats: room.seats,
             isPublic: room.isPublic,
-            accountOnly: room.accountOnly,
+            entry: room.entry as RoomSettingsValue['entry'],
             botsFill: room.botsFill,
             botLevel: room.botLevel,
             botsTakeOver: room.botsTakeOver,
@@ -480,6 +494,7 @@ function WaitingRoom({
             options: room.options as Record<string, unknown>,
           }}
           ownAccountOnly={ownAccountOnly}
+          device={accountProfiles === null}
           submitLabel={t('rooms.saveSettings')}
           busy={update.isPending}
           error={update.isError ? t(errorKey(update.error)) : null}

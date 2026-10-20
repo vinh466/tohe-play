@@ -31,7 +31,7 @@ import { useDeviceProfilesChanged, useSetMe } from './useSession.ts';
 
 const api: BringInApi = {
   adopt: (body) => account.adoptProfile(body),
-  merge: (id, name, data) => account.mergeProfile(id, name, data ?? {}),
+  merge: (id, name, data, deviceProfileId) => account.mergeProfile(id, name, data ?? {}, deviceProfileId),
   me: fetchMe,
 };
 

@@ -133,7 +133,7 @@ async function removeEverything(db: ToheDb, id: string) {
 
 /**
  * The server cannot take this id (`id_taken`): the device profile gets a new one, and its saves and scores move under
- * it. Returns the new id.
+ * it. The new id is unknown to the server: no copy there, and no terms accepted for it (ADR 0043). Returns the new id.
  */
 export async function reIdDeviceProfile(db: ToheDb, id: string): Promise<string> {
   const next = newId();
@@ -147,7 +147,8 @@ export async function reIdDeviceProfile(db: ToheDb, id: string): Promise<string>
     await db.scores.where('[profileId+gameId]').between(from, to).modify({ profileId: next });
     await db.ranked.filter((ranked) => ranked.profileId === id).modify({ profileId: next });
     await db.profiles.delete(id);
-    await db.profiles.add({ ...profile, id: next });
+    const { server: _server, termsVersion: _terms, ...rest } = profile;
+    await db.profiles.add({ ...rest, id: next });
   });
   if (currentDeviceProfile.get() === id) currentDeviceProfile.set(next);
   return next;

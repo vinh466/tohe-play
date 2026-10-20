@@ -1,4 +1,5 @@
 using System.Threading.RateLimiting;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Microsoft.Extensions.Options;
@@ -19,6 +20,13 @@ internal static class RoomsModule
     public const string CodeRateLimit = "room-codes";
     public const string HubPath = "/api/rooms/hub";
 
+    /// <summary>
+    /// A player at a table: an account's session, or — when the request names a device profile — the device key alone
+    /// (ADR 0043). The players' scheme picks one; never both.
+    /// </summary>
+    public static readonly AuthorizationPolicy PlayerPolicy =
+        new AuthorizationPolicyBuilder(DeviceKey.PlayerScheme).RequireAuthenticatedUser().Build();
+
     public static WebApplicationBuilder AddRoomsModule(this WebApplicationBuilder builder)
     {
         var services = builder.Services;
@@ -28,7 +36,12 @@ internal static class RoomsModule
         services.AddSingleton<RoomRegistry>();
         services.AddSingleton<RoomInvitations>();
         // Deleted profiles leave the tables, and finished hands keep nothing of them (ADR 0034).
-        services.AddScoped<IProfileData, RoomsProfileData>();
+        services.AddScoped<RoomsProfileData>();
+        services.AddScoped<IProfileData>(provider => provider.GetRequiredService<RoomsProfileData>());
+        // A device profile brought into an account takes its seats and results with it (ADR 0043).
+        services.AddScoped<IProfileMoves>(provider => provider.GetRequiredService<RoomsProfileData>());
+        services.AddScoped<IKeptChildren>(provider => provider.GetRequiredService<RoomsProfileData>());
+        services.AddScoped<IProfileNames>(provider => provider.GetRequiredService<RoomsProfileData>());
         services.AddSignalR(options => options.MaximumReceiveMessageSize = 16 * 1024);
         if (builder.Configuration.GetValue($"{RoomsOptions.Section}:ClockEnabled", defaultValue: true) && !BuildTime.IsGeneratingOpenApi)
         {
@@ -73,20 +86,25 @@ internal static class RoomsModule
 
         var rooms = api.MapGroup("/rooms")
             .WithTags("Rooms")
-            .RequireAuthorization()
+            .RequireAuthorization(PlayerPolicy)
             .AddEndpointFilter(async (context, next) =>
             {
-                var reader = context.HttpContext.RequestServices.GetRequiredService<IActiveProfile>();
-                var profile = await reader.GetAsync(context.HttpContext.User, context.HttpContext.RequestAborted);
-                if (profile is null)
+                var http = context.HttpContext;
+                var (player, problem) = await ResolveAsync(
+                    http,
+                    http.RequestServices.GetRequiredService<IActiveProfile>(),
+                    http.RequestServices.GetRequiredService<IDevicePlayers>(),
+                    http.RequestAborted);
+                if (player is null)
                 {
-                    return Problems.Of(StatusCodes.Status403Forbidden, "profile_required", "Choose a profile first");
+                    return problem;
                 }
 
-                context.HttpContext.Items[typeof(Player)] = Player.From(profile);
+                context.HttpContext.Items[typeof(Player)] = player;
                 return await next(context);
             })
-            .ProducesProblem(StatusCodes.Status403Forbidden);
+            .ProducesProblem(StatusCodes.Status403Forbidden)
+            .ProducesProblem(StatusCodes.Status412PreconditionFailed);
 
         rooms.MapGet("/", async (string game, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
             {
@@ -146,7 +164,7 @@ internal static class RoomsModule
             .WithSummary("A room the active profile sits at, or may see in the lobby.");
 
         rooms.MapPost("/{id:guid}/join", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
-                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, IKeptProfiles kept, CancellationToken ct) =>
             {
                 var player = PlayerOf(http);
                 if (registry.Find(id) is not { } room)
@@ -160,14 +178,14 @@ internal static class RoomsModule
                     return Refused(RoomErrors.TooYoung);
                 }
 
-                var problem = await room.RunAsync(() => room.JoinAsync(player));
+                var problem = await room.RunAsync(async () => await room.JoinAsync(player, await KeptNowAsync(room, player, kept, ct)));
                 return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
             })
             .WithName("JoinRoom")
             .WithSummary("Sit at a room: an empty seat, or between hands a bot's.");
 
         rooms.MapPost("/{id:guid}/watch", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
-                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, IKeptProfiles kept, CancellationToken ct) =>
             {
                 var player = PlayerOf(http);
                 if (registry.Find(id) is not { } room)
@@ -181,7 +199,7 @@ internal static class RoomsModule
                     return Refused(RoomErrors.TooYoung);
                 }
 
-                var problem = await room.RunAsync(() => room.WatchAsync(player));
+                var problem = await room.RunAsync(async () => await room.WatchAsync(player, await KeptNowAsync(room, player, kept, ct)));
                 return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
             })
             .WithName("WatchRoom")
@@ -205,13 +223,19 @@ internal static class RoomsModule
                     return TypedResults.NotFound();
                 }
 
+                // Asking by ID stays an account's (ADR 0043): a device profile asks nobody.
+                if (player.AccountId is not { } accountId)
+                {
+                    return Refused(RoomErrors.AccountRequired);
+                }
+
                 if (request.ProfileId == player.ProfileId)
                 {
                     return Refused(RoomErrors.NotInAccount);
                 }
 
                 // The account's other profiles, as always; another account's as its owner allows (ADR 0033).
-                var own = await profiles.ListAsync(player.AccountId, ct);
+                var own = await profiles.ListAsync(accountId, ct);
                 if (own.All(profile => profile.Id != request.ProfileId)
                     && await BeyondAccountAsync(room, player, request.ProfileId, registry, directory, invitations, options.Value, db, ct) is { } refused)
                 {
@@ -276,9 +300,29 @@ internal static class RoomsModule
                     options = json;
                 }
 
-                // A child the account's owner has not allowed keeps the table within the account.
-                var update = player.MayPlayWithOthers ? request : request with { AccountOnly = true };
-                var problem = await room.RunAsync(() => room.UpdateAsync(player.ProfileId, update, options, spec.Bots, (spec.MinSeats, spec.MaxSeats)));
+                RoomEntry? entry = null;
+                if (request.EntryAsked() is { } asked)
+                {
+                    if (!RoomEntries.TryParse(asked, out var parsed))
+                    {
+                        return Refused(RoomErrors.InvalidOptions);
+                    }
+
+                    entry = parsed;
+                }
+
+                // A child the account's owner has not allowed keeps the table within the account; a device profile hosts
+                // only a table it may sit at itself.
+                if (!player.MayPlayWithOthers)
+                {
+                    entry = RoomEntry.Own;
+                }
+                else if (player.IsDevice && entry is not (null or RoomEntry.Named))
+                {
+                    return Refused(RoomErrors.AccountRequired);
+                }
+
+                var problem = await room.RunAsync(() => room.UpdateAsync(player.ProfileId, request, entry, options, spec.Bots, (spec.MinSeats, spec.MaxSeats)));
                 return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
             })
             .WithName("UpdateRoom")
@@ -320,6 +364,34 @@ internal static class RoomsModule
     private static Player PlayerOf(HttpContext http) => (Player)http.Items[typeof(Player)]!;
 
     /// <summary>
+    /// For a device profile coming in: the children at the table kept to their accounts as their accounts say now
+    /// (ADR 0043). Read inside the room's turn, so nobody sits down meanwhile.
+    /// </summary>
+    private static async Task<IReadOnlySet<Guid>?> KeptNowAsync(RoomActor room, Player player, IKeptProfiles kept, CancellationToken ct) =>
+        player.IsDevice ? await kept.KeptAsync(room.AccountMembers(), ct) : null;
+
+    /// <summary>
+    /// The player a request acts as (ADR 0043): with the device key, the device profile it names — of that device, with
+    /// the terms the hub shows accepted — else the account session's active profile. Or the problem to answer.
+    /// </summary>
+    internal static async Task<(Player? Player, ProblemHttpResult? Problem)> ResolveAsync(
+        HttpContext http, IActiveProfile active, IDevicePlayers devices, CancellationToken ct)
+    {
+        if (DeviceKey.DeviceOf(http.User) is not null)
+        {
+            var found = await devices.FindAsync(http, ct);
+            return found.Player is { } device
+                ? (Player.From(device), null)
+                : (null, Problems.Of(found.Status, found.Code ?? "profile_required", (found.Code ?? "profile_required").Replace('_', ' ')));
+        }
+
+        var profile = await active.GetAsync(http.User, ct);
+        return profile is null
+            ? (null, Problems.Of(StatusCodes.Status403Forbidden, "profile_required", "Choose a profile first"))
+            : (Player.From(profile), null);
+    }
+
+    /// <summary>
     /// Why a profile of another account may not be asked to this table (ADR 0033), or null: it must be found — never a
     /// child of another account, nor a suspended account's — the table open to other accounts, the profile's owner must
     /// let the asker in, and the limits of D-17 hold. The invitation is counted when it may go.
@@ -335,12 +407,13 @@ internal static class RoomsModule
         ToheDbContext db,
         CancellationToken ct)
     {
-        if (await directory.FindAsync(profileId, player.AccountId, ct) is not { } target)
+        var accountId = player.AccountId!.Value;
+        if (await directory.FindAsync(profileId, accountId, ct) is not { } target)
         {
             return Refused(RoomErrors.ProfileNotFound);
         }
 
-        if (room.Room.AccountOnly)
+        if (room.Room.Entry == RoomEntry.Own)
         {
             return Refused(RoomErrors.AccountOnly);
         }
@@ -363,17 +436,20 @@ internal static class RoomsModule
             return Refused(RoomErrors.InviteeLimit);
         }
 
-        return invitations.TryTake(player.AccountId, options.InvitationsPerHour) ? null : Refused(RoomErrors.InviteLimit);
+        return invitations.TryTake(accountId, options.InvitationsPerHour) ? null : Refused(RoomErrors.InviteLimit);
     }
 
-    /// <summary>Shown in the lobby to this player: public, and a table it may join.</summary>
+    /// <summary>Shown in the lobby to this player: public, and a table it may join (its door, ADR 0043).</summary>
     private static bool Listed(RoomActor room, Player player)
     {
         var settings = room.Room;
-        var sameAccount = settings.HostAccountId == player.AccountId;
+        var sameAccount = player.AccountId is { } account && account == settings.HostAccountId;
         return settings.IsPublic
-            && (!settings.AccountOnly || sameAccount)
-            && (player.MayPlayWithOthers || (settings.AccountOnly && sameAccount));
+            && (settings.Entry != RoomEntry.Own || sameAccount)
+            && (settings.Entry != RoomEntry.Account || !player.IsDevice)
+            && (player.MayPlayWithOthers || (settings.Entry == RoomEntry.Own && sameAccount))
+            && (!player.IsDevice || !room.Seats.Any(seat => seat.Kept))
+            && (player.MayPlayWithOthers || !room.Seats.Any(seat => seat.IsDeviceProfile()));
     }
 
     private static async Task<Results<Ok<RoomView>, ValidationProblem, ProblemHttpResult>> CreateAsync(
@@ -407,6 +483,17 @@ internal static class RoomsModule
             return Problems.Field("botLevel", RoomErrors.InvalidOptions);
         }
 
+        if (!RoomEntries.TryParse(request.EntryAsked(), out var entry))
+        {
+            return Problems.Field("entry", RoomErrors.InvalidOptions);
+        }
+
+        // A device profile opens only a table it may sit at itself: one for anyone named (ADR 0043).
+        if (player.IsDevice && entry != RoomEntry.Named)
+        {
+            return Refused(RoomErrors.AccountRequired);
+        }
+
         var (optionsJson, invalid) = spec.Normalize(request.Options);
         if (invalid is not null)
         {
@@ -422,7 +509,7 @@ internal static class RoomsModule
         var now = clock.GetUtcNow();
         var seats = Enumerable.Range(0, request.Seats)
             .Select(index => index == 0
-                ? new SeatRecord(player.ProfileId, player.AccountId, player.Name, player.Avatar, null)
+                ? new SeatRecord(player.ProfileId, player.AccountId, player.Name, player.Avatar, null, Kept: !player.MayPlayWithOthers)
                 : SeatRecord.Empty)
             .ToList();
         var room = new Room
@@ -436,7 +523,7 @@ internal static class RoomsModule
             HostAccountId = player.AccountId,
             IsPublic = request.IsPublic,
             // A child the account's owner has not allowed only opens tables for the account's own profiles.
-            AccountOnly = request.AccountOnly || !player.MayPlayWithOthers,
+            Entry = player.MayPlayWithOthers ? entry : RoomEntry.Own,
             Seats = request.Seats,
             BotsFill = request.BotsFill && spec.Bots.Count > 0,
             BotLevel = request.BotLevel ?? spec.DefaultBot,
