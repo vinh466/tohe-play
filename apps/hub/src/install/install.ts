@@ -101,6 +101,12 @@ interface InstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
 }
 
+/** What the install store tells the newcomer funnel (telemetry/funnel.ts); the store knows nothing of telemetry. */
+export interface InstallReporter {
+  accepted(): void;
+  dismissed(): void;
+}
+
 export interface InstallState {
   env: Environment;
   canPrompt: boolean;
@@ -122,6 +128,7 @@ function readDismissed(): number | null {
 
 let state: InstallState | null = null;
 let promptEvent: InstallPromptEvent | null = null;
+let reporter: InstallReporter | null = null;
 const listeners = new Set<() => void>();
 
 const current = (): InstallState =>
@@ -147,9 +154,10 @@ export const installStore = {
 
   /**
    * Keeps the browser's install prompt for later. Called when the hub starts: the event fires once, early, and the
-   * page must not let the browser's own mini-bar take it.
+   * page must not let the browser's own mini-bar take it. `report` hears the answers (the newcomer funnel).
    */
-  capture() {
+  capture(report?: InstallReporter) {
+    reporter = report ?? null;
     window.addEventListener('beforeinstallprompt', (event) => {
       event.preventDefault();
       promptEvent = event as InstallPromptEvent;
@@ -171,8 +179,9 @@ export const installStore = {
     if (!current().shownThisVisit) change({ shownThisVisit: true });
   },
 
-  /** "Để sau": silent for 14 days. */
+  /** "Để sau", "Bỏ qua" or "Ẩn", or the browser's prompt closed: silent for 14 days. */
   dismiss(now = Date.now()) {
+    reporter?.dismissed();
     try {
       localStorage.setItem(DISMISSED_KEY, String(now));
     } catch {
@@ -190,6 +199,7 @@ export const installStore = {
     await event.prompt();
     const { outcome } = await event.userChoice;
     if (outcome === 'dismissed') installStore.dismiss();
+    else reporter?.accepted();
     return outcome;
   },
 };

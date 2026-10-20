@@ -48,6 +48,7 @@ public sealed class ToheMetrics
     private readonly Counter<long> _emailsSent;
     private readonly Counter<long> _emailsFailed;
     private readonly Counter<long> _signIns;
+    private readonly Counter<long> _signUps;
     private MetricsReadings? _readings;
 
     public ToheMetrics(IMeterFactory meters, BackgroundWork work, TimeProvider clock)
@@ -58,6 +59,10 @@ public sealed class ToheMetrics
             "email_failed", description: "Emails given up on after every try (EmailOptions.MaxAttempts).");
         _signIns = meter.CreateCounter<long>(
             "sign_ins", description: "Sign-ins by method (password, google, github, oidc) and outcome (ok, refused, locked).");
+
+        _signUps = meter.CreateCounter<long>(
+            "sign_ups",
+            description: "Sign-ups by method (password, google, github, oidc) and outcome (started: a code sent or a provider sign-up pending; completed: the account exists).");
 
         Gauge(meter, "database_up", "1 when the database answered the last sample, else 0.", r => r.DatabaseUp ? 1 : 0);
         Gauge(meter, "rooms_open", "Tables open.", r => r.RoomsOpen);
@@ -92,6 +97,11 @@ public sealed class ToheMetrics
     /// <param name="outcome"><c>ok</c>, <c>refused</c> (wrong password, suspended) or <c>locked</c>.</param>
     public void SignIn(string method, string outcome) =>
         _signIns.Add(1, new KeyValuePair<string, object?>("method", method), new KeyValuePair<string, object?>("outcome", outcome));
+
+    /// <param name="method"><c>password</c> or a provider's id: <c>google</c>, <c>github</c>, <c>oidc</c>.</param>
+    /// <param name="outcome"><c>started</c> (a code was sent, or a provider's new sign-up is waiting for its last step) or <c>completed</c> (the account exists).</param>
+    public void SignUp(string method, string outcome) =>
+        _signUps.Add(1, new KeyValuePair<string, object?>("method", method), new KeyValuePair<string, object?>("outcome", outcome));
 
     /// <summary>The sampler's latest reading; the gauges show nothing until the first.</summary>
     public void Read(MetricsReadings readings) => Volatile.Write(ref _readings, readings);

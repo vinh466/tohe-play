@@ -12,6 +12,7 @@ import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/p
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
+import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { CodeStep } from '../ui/CodeStep.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
@@ -252,6 +253,7 @@ function SignUpStep({ step }: { step: PendingSignInView }) {
     mutationFn: () => external.signUp(cleanName(name), TERMS_VERSION, inviteCode.trim() || null),
     onSuccess: async (result) => {
       invite.forget();
+      funnel.accountCreated();
       await outcome(result);
     },
   });

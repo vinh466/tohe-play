@@ -119,6 +119,7 @@ internal static class AuthEndpoints
         ProofOfWork proofs,
         ToheDbContext db,
         TimeProvider clock,
+        ToheMetrics metrics,
         CancellationToken ct)
     {
         if (!await settings.IsOnAsync(SignInMethods.Password, ct))
@@ -188,6 +189,12 @@ internal static class AuthEndpoints
             ? IdentityEmails.AlreadyRegistered(signsIn, attempts.Link(HubPaths.Welcome))
             : IdentityEmails.SignUpCode(email, code!, attempts.Link($"{HubPaths.RegisterConfirm}?attempt={attempt.Id}&code={code}")));
         await db.SaveChangesAsync(ct);
+        // Only a real sign-up counts: an address that has an account got the way back in, not a code to sign up with.
+        if (existing is null)
+        {
+            metrics.SignUp(SignInMethods.Password, "started");
+        }
+
         return TypedResults.Accepted((string?)null, new AttemptView(attempt.Id));
     }
 
@@ -200,6 +207,7 @@ internal static class AuthEndpoints
         SessionWriter session,
         MeQueries me,
         TimeProvider clock,
+        ToheMetrics metrics,
         CancellationToken ct)
     {
         var check = await attempts.CheckAsync(request.AttemptId, AttemptPurpose.SignUp, request.Code, accountId: null, ct);
@@ -273,6 +281,7 @@ internal static class AuthEndpoints
         }
 
         await transaction.CommitAsync(ct);
+        metrics.SignUp(SignInMethods.Password, "completed");
         var state = new DeviceSession(profile.Id);
         await session.WriteAsync(account, state);
         return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);

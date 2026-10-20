@@ -167,6 +167,41 @@ public sealed class TelemetryTests(ApiFactory factory) : IClassFixture<ApiFactor
     }
 
     [Fact]
+    public async Task The_report_counts_the_newcomer_funnel_per_day_with_three_ratios()
+    {
+        static TelemetryEventInput Step(string name, int count = 1) => new("count", Name: $"hub.funnel.{name}", Count: count);
+        await SendAsync(AndroidChrome, Batch(Guid.NewGuid(), Guid.NewGuid(),
+            Step("guest-start"), Step("first-game"), Step("install-offered.prompt"), Step("install-accepted")));
+        await SendAsync(IPhoneSafari, Batch(Guid.NewGuid(), Guid.NewGuid(),
+            Step("guest-start"), Step("install-offered.ios"), Step("install-dismissed"),
+            Step("sign-in-opened", 2), Step("account-created")));
+        // Not a funnel step, and a headless run: neither is counted.
+        await SendAsync(AndroidChrome, Batch(Guid.NewGuid(), Guid.NewGuid(),
+            new TelemetryEventInput("count", Name: "hub.play.session", Count: 3)));
+        await SendAsync(Headless, Batch(Guid.NewGuid(), Guid.NewGuid(), Step("guest-start", 5), Step("account-created", 5)));
+
+        var funnel = (await ReportAsync())!.Funnel;
+
+        Assert.Equal(2, funnel.Totals["hub.funnel.guest-start"]);
+        Assert.Equal(2, funnel.Totals["hub.funnel.sign-in-opened"]);
+        Assert.Equal(1, funnel.Totals["hub.funnel.account-created"]);
+        Assert.DoesNotContain("hub.play.session", funnel.Totals.Keys);
+        var today = Assert.Single(funnel.Days);
+        Assert.Equal(DateOnly.FromDateTime(DateTime.UtcNow), today.Day);
+        Assert.Equal(funnel.Totals, today.Counts);
+        // 1 of 2 guests finished a game; 1 of the 2 offers (prompt, ios) was accepted; 1 account for 2 openings.
+        Assert.Equal(new FunnelRatios(0.5, 0.5, 0.5), funnel.Ratios);
+    }
+
+    [Fact]
+    public void A_funnel_ratio_is_null_until_its_base_has_a_count()
+    {
+        Assert.Null(TelemetryReports.Ratio(3, 0));
+        Assert.Equal(0, TelemetryReports.Ratio(0, 4));
+        Assert.Equal(0.3333, TelemetryReports.Ratio(1, 3));
+    }
+
+    [Fact]
     public async Task Maintenance_rolls_finished_days_up_once_and_deletes_what_is_past_retention()
     {
         await using var scope = factory.Services.CreateAsyncScope();

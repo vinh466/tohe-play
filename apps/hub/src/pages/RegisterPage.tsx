@@ -15,6 +15,7 @@ import { withProof } from '../session/proofOfWork.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
+import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { CodeStep } from '../ui/CodeStep.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
@@ -44,6 +45,7 @@ function useSignedUp() {
   return async (me: MeView) => {
     guestMode.disable();
     invite.forget();
+    funnel.accountCreated();
     await setMe(me);
   };
 }

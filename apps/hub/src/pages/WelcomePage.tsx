@@ -10,6 +10,7 @@ import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
+import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
 import { Screen } from '../ui/Screen.tsx';
@@ -83,6 +84,7 @@ function SignIn() {
 
   const tryAsGuest = async () => {
     guestMode.enable();
+    funnel.guestStart();
     await queryClient.invalidateQueries({ queryKey: ['me'] });
     await navigate({ to: '/', replace: true });
   };

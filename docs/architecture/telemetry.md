@@ -63,6 +63,13 @@ Four kinds of event, in the Game Contract (`packages/contract/src/telemetry.ts`)
 | `hub.game.failed` | count | hub | the game never answered |
 | `hub.sync.failed.http-4xx` / `http-5xx` / `network` | count | hub | a save or score did not reach the server while online |
 | `hub.vitals.lcp-ms`, `hub.vitals.inp-ms`, `hub.vitals.cls` | metric | hub (`web-vitals`) | the hub's own pages; Safari from 26.2, and its INP is still unreliable |
+| `hub.funnel.guest-start` | count | hub | a device enters as a guest for the first time (once per device) |
+| `hub.funnel.first-game` | count | hub | the first finished game on this device (once per device) |
+| `hub.funnel.install-offered.prompt` / `.ios` / `.in-app` | count | hub | the install card / the iOS steps / the in-app browser's strip is shown by itself (once per device and variant) |
+| `hub.funnel.install-accepted` / `hub.funnel.install-dismissed` | count | hub | the browser's install prompt was accepted; it was dismissed, or "Để sau", "Bỏ qua" or "Ẩn" was chosen |
+| `hub.funnel.sign-in-opened` | count | hub | a guest opens the sign-in from the catalog's strip |
+| `hub.funnel.account-created` | count | hub | an account was created on this device |
+| `hub.funnel.standalone-open` | count | hub | the app starts as an installed app (once a day per device) |
 | `hub.telemetry.dropped` | count | hub | the hub's buffer was full |
 
 With every batch, once per page load, the hub sends its **context**: hub version, device class (phone, tablet,
@@ -89,6 +96,32 @@ session.telemetry.metric('game.tap-merge.board-fill-ms', ms);
 
 Names are lower-case words joined by dots (`game.<id>.…`), a metric's ends in its unit, and nothing about the player
 goes into one. A new name needs a row in the table above.
+
+## Newcomer funnel
+
+Decision: D-04 of the product-surface plan (`plans/product-surface`, not published): option B, aggregate counters, no
+third-party script, no identifier. Tò He promises no tracking, yet needs to know whether the
+first minutes work. The hub's `hub.funnel.*` counts above answer, in totals per day:
+
+- of the devices that arrived as guests, how many finished a first game (`first-game` / `guest-start`);
+- of the times the app was offered, how often it was accepted (`install-accepted` / every `install-offered.*`);
+- of the guests who opened the sign-in, how many made an account (`account-created` / `sign-in-opened`);
+- how often the installed app is opened (`standalone-open`).
+
+They are ordinary `count` events, so everything above applies: the same collector, budgets and three switches. With a
+switch off, nothing is sent. The steps that happen once are remembered on the device under one local-storage key,
+`tohe:funnel`, which holds only a step's name and the day it was counted (never an id, a name or a profile); a step
+is remembered only when it is counted, so turning telemetry on later does not owe the server a step it never saw.
+The server cannot join the steps of one person: it sees sums, and the device id only tells devices apart for up to 30
+days.
+
+**Never collected here:** who the person is, which profile or account, the email or provider, what they typed, which
+page they came from, or any link between two steps of the same device beyond the device's own 30-day id. A step
+with no name in the table is not counted.
+
+The server counts accounts too, on its own side and without identifiers: `tohe_sign_ups`
+([Metrics](metrics.md)), by method and `started` / `completed`. The report's `funnel` section is described
+[below](#reports-for-agents-and-the-owner).
 
 ## How it flows
 
@@ -147,7 +180,28 @@ the rotating device id should be checked if the platform ever goes public.
 a summary built from the raw events: totals; devices by OS, browser and class; one entry per game version, and one
 for the hub itself, with its errors (grouped, with "new" for fingerprints not seen before the window), frame
 summaries per platform and renderer (share of frames over 33 ms, the p95 bucket), metrics (p50, p95, max) and
-counts; and daily errors and plays from the roll-ups.
+counts; daily errors and plays from the roll-ups; and the `funnel`: from the raw events of the window, the sum of each
+`hub.funnel.*` name per UTC day and in total, and three ratios (`firstGamePerGuestStart`,
+`installAcceptedPerOffered`, `accountCreatedPerSignInOpened`), each `null` while its base has no count. Headless runs
+are left out of it as everywhere else.
+
+```json
+"funnel": {
+  "days": [
+    { "day": "2026-10-19", "counts": { "hub.funnel.guest-start": 4, "hub.funnel.first-game": 3 } },
+    { "day": "2026-10-20", "counts": { "hub.funnel.guest-start": 2, "hub.funnel.install-offered.prompt": 1 } }
+  ],
+  "totals": {
+    "hub.funnel.first-game": 3,
+    "hub.funnel.guest-start": 6,
+    "hub.funnel.install-offered.prompt": 1
+  },
+  "ratios": { "firstGamePerGuestStart": 0.5, "installAcceptedPerOffered": 0, "accountCreatedPerSignInOpened": null }
+}
+```
+
+The ratios are rough: a step counted once per device and one counted every time are not the same people, and a
+device whose telemetry was off is missing from both sides. Read them as a direction over days, not as a rate.
 
 It needs the operator token in the `X-Tohe-Operator` header: `Telemetry__OperatorToken`, kept in
 `~/.config/tohe-uat/uat.env` on UAT (`TOHE_UAT_TELEMETRY_TOKEN`, created by `deploy/uat/deploy.sh`) and
@@ -159,7 +213,8 @@ pnpm --filter @tohe/telemetry-report report -- --env uat --days 7   # Markdown; 
 
 The tool lists **Worth a look** first: new errors, errors in over 5 % of sessions, platforms with over 10 % of frames
 slower than 33 ms, renderer fallbacks, lost contexts, blocked audio, failed starts, sync failures and protocol
-errors. The `/health-report` skill tells an agent how to read it and to propose fixes, never to act on UAT itself.
+errors. Right after them it prints the **Newcomer funnel**: the three ratios with their counts, and a table per day.
+The `/health-report` skill tells an agent how to read it and to propose fixes, never to act on UAT itself.
 
 ## Phases
 

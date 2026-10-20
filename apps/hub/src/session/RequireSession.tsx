@@ -3,6 +3,7 @@ import { type ReactNode, useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { TermsPrompt } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
+import { funnel } from '../telemetry/telemetry.ts';
 import { Loading } from '../ui/Screen.tsx';
 import { rememberNext } from './next.ts';
 import { guestMode, type Player, playerGate, type SessionState } from './session.ts';
@@ -77,6 +78,9 @@ export function RequireSession(props: Props) {
 
 /** The first visit: the device plays as a guest from now on, until someone signs in. */
 function EnterAsGuest({ label }: { label: string }) {
-  useEffect(() => guestMode.enable(), []);
+  useEffect(() => {
+    guestMode.enable();
+    funnel.guestStart();
+  }, []);
   return <Loading label={label} />;
 }

@@ -59,13 +59,39 @@ public sealed record TelemetryEventInput(
 /// <summary>What happened on players' devices over a window of days (raw events, at most 30 days back).</summary>
 /// <param name="Games">One entry per game version, and one for the hub itself (no game id).</param>
 /// <param name="Daily">Errors and plays per day and game, from the daily roll-ups.</param>
+/// <param name="Funnel">The newcomer funnel: the hub's <c>hub.funnel.*</c> counts per day, and three ratios.</param>
 public sealed record TelemetryReport(
     DateTimeOffset From,
     DateTimeOffset To,
     TelemetryTotals Totals,
     IReadOnlyList<DeviceShare> Devices,
     IReadOnlyList<GameHealth> Games,
-    IReadOnlyList<DailyPoint> Daily);
+    IReadOnlyList<DailyPoint> Daily,
+    FunnelReport Funnel);
+
+/// <summary>
+/// How newcomers move through the hub, counted without following anyone (docs/architecture/telemetry.md, "Newcomer
+/// funnel"): sums of the hub's <c>hub.funnel.*</c> counts over the window, with headless runs left out as everywhere
+/// in the report. A device counts once for the steps that happen once, so these are about as many devices as events.
+/// </summary>
+/// <param name="Days">One entry per UTC day that has any funnel event, oldest first.</param>
+/// <param name="Totals">The whole window: each <c>hub.funnel.*</c> name with its count.</param>
+/// <param name="Ratios">Three steps against the one before; null when that one has no count yet.</param>
+public sealed record FunnelReport(
+    IReadOnlyList<FunnelDay> Days,
+    IReadOnlyDictionary<string, long> Totals,
+    FunnelRatios Ratios);
+
+/// <param name="Counts">Each <c>hub.funnel.*</c> name seen that day with its count.</param>
+public sealed record FunnelDay(DateOnly Day, IReadOnlyDictionary<string, long> Counts);
+
+/// <param name="FirstGamePerGuestStart"><c>hub.funnel.first-game</c> / <c>hub.funnel.guest-start</c>.</param>
+/// <param name="InstallAcceptedPerOffered"><c>hub.funnel.install-accepted</c> / the sum of every <c>hub.funnel.install-offered.*</c>.</param>
+/// <param name="AccountCreatedPerSignInOpened"><c>hub.funnel.account-created</c> / <c>hub.funnel.sign-in-opened</c>.</param>
+public sealed record FunnelRatios(
+    double? FirstGamePerGuestStart,
+    double? InstallAcceptedPerOffered,
+    double? AccountCreatedPerSignInOpened);
 
 public sealed record TelemetryTotals(int Devices, int Sessions, int Events);
 

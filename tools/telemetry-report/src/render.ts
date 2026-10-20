@@ -39,6 +39,17 @@ export interface GameHealth {
   counts: { name: string; total: number; sessions: number }[];
 }
 
+/** The newcomer funnel (docs/architecture/telemetry.md): the hub's `hub.funnel.*` counts; a ratio is null when its base is 0. */
+export interface Funnel {
+  days: { day: string; counts: Record<string, number> }[];
+  totals: Record<string, number>;
+  ratios: {
+    firstGamePerGuestStart: number | null;
+    installAcceptedPerOffered: number | null;
+    accountCreatedPerSignInOpened: number | null;
+  };
+}
+
 export interface TelemetryReport {
   from: string;
   to: string;
@@ -53,6 +64,7 @@ export interface TelemetryReport {
   }[];
   games: GameHealth[];
   daily: { day: string; gameId?: string | null; errors: number; plays: number }[];
+  funnel: Funnel;
 }
 
 /** Share of a game's sessions with an error above which it is flagged. */
@@ -120,6 +132,52 @@ const table = (head: string[], rows: (string | number)[][]) =>
         ),
       ].join('\n');
 
+const FUNNEL_PREFIX = 'hub.funnel.';
+
+/** The funnel as Markdown: the three ratios with their counts, then the days and the total of each step. */
+export function renderFunnel(funnel: Funnel): string[] {
+  const total = (name: string) => funnel.totals[FUNNEL_PREFIX + name] ?? 0;
+  const offered = Object.entries(funnel.totals)
+    .filter(([name]) => name.startsWith(`${FUNNEL_PREFIX}install-offered.`))
+    .reduce((sum, [, count]) => sum + count, 0);
+  const ratio = (value: number | null) => (value === null ? 'n/a' : percent(value));
+  const names = Object.keys(funnel.totals);
+  return [
+    '## Newcomer funnel',
+    '',
+    table(
+      ['Step', 'Ratio', 'Counts'],
+      [
+        [
+          'first game / guest start',
+          ratio(funnel.ratios.firstGamePerGuestStart),
+          `${total('first-game')} / ${total('guest-start')}`,
+        ],
+        [
+          'install accepted / offered',
+          ratio(funnel.ratios.installAcceptedPerOffered),
+          `${total('install-accepted')} / ${offered}`,
+        ],
+        [
+          'account created / sign-in opened',
+          ratio(funnel.ratios.accountCreatedPerSignInOpened),
+          `${total('account-created')} / ${total('sign-in-opened')}`,
+        ],
+      ],
+    ),
+    '',
+    table(
+      ['Day', ...names.map((name) => name.slice(FUNNEL_PREFIX.length))],
+      names.length === 0
+        ? []
+        : [
+            ...funnel.days.map((d) => [d.day, ...names.map((name) => d.counts[name] ?? 0)]),
+            ['total', ...names.map((name) => funnel.totals[name] ?? 0)],
+          ],
+    ),
+  ];
+}
+
 const day = (iso: string) => iso.slice(0, 16).replace('T', ' ');
 
 export function renderMarkdown(report: TelemetryReport): string {
@@ -132,6 +190,8 @@ export function renderMarkdown(report: TelemetryReport): string {
     '## Worth a look',
     '',
     found.length > 0 ? found.map((line) => `- ${line}`).join('\n') : '_Nothing stands out._',
+    '',
+    ...renderFunnel(report.funnel),
     '',
     '## Devices',
     '',

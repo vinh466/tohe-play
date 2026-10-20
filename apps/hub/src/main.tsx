@@ -3,11 +3,11 @@ import { RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './i18n.ts';
-import { installStore } from './install/install.ts';
+import { installStore, readEnvironment } from './install/install.ts';
 import { followTrail } from './navigation/leave.tsx';
 import { createAppRouter } from './router.tsx';
 import './styles.css';
-import { startTelemetry } from './telemetry/telemetry.ts';
+import { funnel, startTelemetry } from './telemetry/telemetry.ts';
 import { startTheme } from './theme/theme.ts';
 
 startTheme();
@@ -19,7 +19,10 @@ try {
   // Storage blocked: the home page shows itself, and its button leads here.
 }
 // The browser's install prompt fires once, early: keep it until the player asks (or a game has finished).
-installStore.capture();
+installStore.capture({
+  accepted: () => funnel.installAccepted(),
+  dismissed: () => funnel.installDismissed(),
+});
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { networkMode: 'offlineFirst', retry: 1 } },
@@ -27,6 +30,8 @@ const queryClient = new QueryClient({
 const router = createAppRouter(queryClient);
 followTrail(router.history);
 startTelemetry(queryClient);
+// Opening the installed app: counted once a day (the newcomer funnel).
+if (readEnvironment().standalone) funnel.standaloneOpen();
 
 createRoot(document.getElementById('root') as HTMLElement).render(
   <StrictMode>

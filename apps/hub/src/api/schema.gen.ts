@@ -1201,6 +1201,28 @@ export interface components {
             /** Format: double */
             stepP95Ms: null | number;
         };
+        FunnelDay: {
+            /** Format: date */
+            day: string;
+            counts: {
+                [key: string]: number;
+            };
+        };
+        FunnelRatios: {
+            /** Format: double */
+            firstGamePerGuestStart: null | number;
+            /** Format: double */
+            installAcceptedPerOffered: null | number;
+            /** Format: double */
+            accountCreatedPerSignInOpened: null | number;
+        };
+        FunnelReport: {
+            days: components["schemas"]["FunnelDay"][];
+            totals: {
+                [key: string]: number;
+            };
+            ratios: components["schemas"]["FunnelRatios"];
+        };
         GameHealth: {
             gameId: null | string;
             gameVersion: null | string;
@@ -1650,6 +1672,7 @@ export interface components {
             devices: components["schemas"]["DeviceShare"][];
             games: components["schemas"]["GameHealth"][];
             daily: components["schemas"]["DailyPoint"][];
+            funnel: components["schemas"]["FunnelReport"];
         };
         TelemetryTotals: {
             /** Format: int32 */
