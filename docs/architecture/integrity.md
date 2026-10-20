@@ -59,7 +59,9 @@ flowchart TD
 ```
 
 A device profile's runs brought into an account arrive together, long after they were played: `Rate` does not look
-at them, nor count them for the runs that follow; `Bounds` and `PersonalJump` do.
+at them; `Bounds` and `PersonalJump` do. A run played in the account is judged against the account's own runs only: a
+device profile's best neither hides it as "moving no board" nor raises the bar of `PersonalJump`, and its runs count for
+no `Rate`.
 
 Only a run that would move a board — a best of the week for its profile — is looked at past `Bounds`: a run that
 changes no board cannot mislead one, and a child who restarts often never sees "Đang được xem xét" for it. A final run

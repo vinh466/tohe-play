@@ -1,4 +1,5 @@
 using System.Text;
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Identity;
@@ -21,6 +22,12 @@ internal sealed class DeviceProgress(ToheDbContext db, IResults results, TimePro
             if (!ProgressModule.IsGameId(save.GameId))
             {
                 return "game_invalid";
+            }
+
+            // A save sent without its data has nothing to keep.
+            if (save.Data.ValueKind == JsonValueKind.Undefined)
+            {
+                return "save_invalid";
             }
 
             if (Encoding.UTF8.GetByteCount(save.Data.GetRawText()) > ProgressModule.MaxSaveBytes)

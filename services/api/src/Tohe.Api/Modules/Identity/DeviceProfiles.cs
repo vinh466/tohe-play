@@ -2,6 +2,7 @@ using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 using Tohe.Api.Infrastructure.Database;
 
 namespace Tohe.Api.Modules.Identity;
@@ -78,6 +79,13 @@ internal sealed class DeviceProfiles(ToheDbContext db, IDeviceProgress progress)
     /// True when the server cannot take this id: a profile has it, or had it and was deleted (ADR 0034). Aliases join
     /// these with step I2. Profile ids are not secrets, so the answer tells nothing worth hiding.
     /// </summary>
+    /// <summary>
+    /// The account's own profile with this id: a device profile it already took, sent again because the answer was lost
+    /// (ADR 0043). Bringing it in again is idempotent.
+    /// </summary>
+    public Task<Profile?> OwnAsync(Guid id, Guid accountId, CancellationToken ct) =>
+        db.Profiles.FirstOrDefaultAsync(profile => profile.Id == id && profile.AccountId == accountId, ct);
+
     public async Task<bool> IdTakenAsync(Guid id, CancellationToken ct) =>
         id == Guid.Empty
         || await db.Profiles.AnyAsync(profile => profile.Id == id, ct)
@@ -158,9 +166,69 @@ internal sealed class DeviceProfiles(ToheDbContext db, IDeviceProgress progress)
             OnPublicBoards = !child,
             Invites = child ? InviteScope.Account : InviteScope.Anyone,
             CreatedAt = now,
+            // What it reports as reached up to now was earned as a device profile, however it arrives later.
+            DeviceUntil = now,
         };
         db.Profiles.Add(profile);
         return profile;
+    }
+
+    /// <summary>The profiles' primary key: a device profile's id taken at this very moment.</summary>
+    private const string IdConstraint = "pk_profiles";
+
+    /// <summary>The public IDs' unique index: drawn again, never an <c>id_taken</c>.</summary>
+    private const string PublicIdConstraint = "ix_profiles_public_id";
+
+    /// <summary>
+    /// Saves the caller's unit of work, inside its transaction. A public ID another profile got at the same moment is
+    /// drawn again; false when a device profile's id was taken meanwhile — nothing of this unit was saved then.
+    /// </summary>
+    public async Task<bool> SaveAsync(CancellationToken ct)
+    {
+        for (var attempt = 0; ; attempt++)
+        {
+            try
+            {
+                await db.SaveChangesAsync(ct);
+                return true;
+            }
+            catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation } unique)
+            {
+                if (unique.ConstraintName == IdConstraint)
+                {
+                    return false;
+                }
+
+                if (unique.ConstraintName != PublicIdConstraint || attempt >= 3)
+                {
+                    throw;
+                }
+
+                foreach (var added in db.ChangeTracker.Entries<Profile>().Where(entry => entry.State == EntityState.Added))
+                {
+                    added.Entity.PublicId = await ProfileEndpoints.NewPublicIdAsync(db, ct);
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Saves a new account's first profile (<see cref="FirstProfileAsync"/>), within the caller's transaction, the
+    /// account already saved. A device profile whose id was taken at this very moment stays out: the account is made
+    /// the usual way and the device keeps its profile (ADR 0043).
+    /// </summary>
+    public async Task<Profile> SaveFirstProfileAsync(
+        Account account, string displayName, DeviceProfileUpload? device, string deviceName, DateTimeOffset now, CancellationToken ct)
+    {
+        var profile = await FirstProfileAsync(account, displayName, device, deviceName, now, ct);
+        if (await SaveAsync(ct))
+        {
+            return profile;
+        }
+
+        db.ChangeTracker.Clear();
+        var usual = await FirstProfileAsync(account, displayName, null, "", now, ct);
+        return await SaveAsync(ct) ? usual : throw new InvalidOperationException("A new profile's id was taken.");
     }
 
     /// <summary>

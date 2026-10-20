@@ -303,16 +303,8 @@ internal static class AuthEndpoints
 
         // Every account starts with a profile to play as (ADR 0023), and plays as it at once: nobody else to choose. A
         // device profile that is the person's own is that profile; a child's joins it (ADR 0043).
-        var profile = await devices.FirstProfileAsync(account, attempt.DisplayName!, device, deviceName, now, ct);
-        try
-        {
-            await db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
-        {
-            // Another request brought the device profile's id in at this very moment.
-            return Problems.AttemptClosed();
-        }
+        // Its id taken at this very moment: the account is made the usual way.
+        var profile = await devices.SaveFirstProfileAsync(account, attempt.DisplayName!, device, deviceName, now, ct);
 
         await transaction.CommitAsync(ct);
         metrics.SignUp(SignInMethods.Password, "completed");

@@ -387,6 +387,7 @@ const vi = {
     bringLater: 'Để sau',
     bringOne: 'Đưa vào tài khoản',
     keptHint: 'Chưa vào tài khoản: tiến độ chỉ lưu trên máy này.',
+    savesLeft: 'Đã gộp. Một số màn chơi đã lưu của {{names}} vẫn ở lại máy này, chưa gộp được vào tài khoản.',
   },
   menu: {
     button: 'Menu',
@@ -985,6 +986,7 @@ const en: typeof vi = {
     bringLater: 'Later',
     bringOne: 'Bring into the account',
     keptHint: 'Not in the account: progress is kept on this device only.',
+    savesLeft: 'Merged. Some saved games of {{names}} stay on this device: they did not fit in.',
   },
   menu: {
     button: 'Menu',

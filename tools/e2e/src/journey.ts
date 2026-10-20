@@ -2,7 +2,8 @@
 // End-to-end test of a newcomer's first touches (E-03) against a running stack, like smoke.ts. A fresh visitor opens
 // /play and plays the sample game as the device profile made for it, without signing in; after the first round a faked
 // `beforeinstallprompt` leads to the "Cài Tò He" card; then the visitor signs up keeping that device profile (ADR 0043):
-// its score is in the account and on no public board. An iPhone sees the steps of iOS; the in-app browsers of Zalo and
+// its score is in the account and on no public board; another phone's device profile is brought into that account on
+// signing in ("Thêm vào"). An iPhone sees the steps of iOS; the in-app browsers of Zalo and
 // Messenger see "Mở bằng trình duyệt" on arrival; the installed app (standalone) never sees any of it; a room link
 // still asks to sign in. Needs the sample game in the catalog (the smoke test waits for it the same way), and Mailpit
 // for the one sign-up's code.
@@ -259,6 +260,50 @@ try {
     throw new Error("the device profile's score is not on the account's board");
   if (account.server.includes(deviceId)) throw new Error("a device profile's score reached a public board");
   await android.context().close();
+
+  step(
+    'another phone plays as its own device profile, then signs in to that account: "Thêm vào" brings it in, and it plays on',
+  );
+  const second = await visitor('second', userAgents.androidChrome, browser);
+  await second.goto(catalogUrl);
+  await second.getByRole('link', { name: 'Đăng nhập' }).waitFor();
+  await playOneRound(second);
+  const secondId = await second.evaluate(() => localStorage.getItem('tohe:device-profile'));
+  if (!secondId) throw new Error('no device profile is playing on the second phone');
+  await second.getByRole('link', { name: 'Đăng nhập' }).tap();
+  await second.waitForURL(/\/account\/sign-in$/);
+  await second.getByLabel('Email', { exact: true }).fill(email);
+  await second.getByLabel('Mật khẩu').fill('mat-khau-e2e-123');
+  await second.getByRole('button', { name: 'Đăng nhập', exact: true }).tap();
+  await second.getByRole('heading', { name: 'Hồ sơ trên máy này' }).waitFor();
+  for (const choice of ['Thêm vào', 'Gộp vào', 'Giữ ở máy'])
+    await second.getByRole('button', { name: choice }).waitFor();
+  await check(second, 'bring-in');
+  await second.getByRole('button', { name: 'Thêm vào' }).tap();
+  await second.getByRole('button', { name: 'Xong' }).tap();
+  // Profile management: the account has no manage PIN yet, so its password.
+  await second.getByLabel('Mật khẩu').fill('mat-khau-e2e-123');
+  await second.getByRole('button', { name: 'Xác nhận' }).tap();
+  await second.waitForURL(catalogUrl);
+  const signedIn = await second.evaluate(async () => {
+    const me = (await (await fetch('/api/auth/me')).json()) as {
+      profiles: { id: string }[];
+      activeProfileId: string | null;
+    };
+    const server = (await (await fetch('/api/boards/hello/public?scope=server&period=week')).json()) as {
+      top: { profileId: string }[];
+    };
+    return {
+      profiles: me.profiles.map((p) => p.id),
+      active: me.activeProfileId,
+      server: server.top.map((r) => r.profileId),
+    };
+  });
+  if (!signedIn.profiles.includes(secondId)) throw new Error('the second device profile was not brought in');
+  if (signedIn.active !== secondId)
+    throw new Error('the phone does not play on as the profile it brought in');
+  if (signedIn.server.includes(secondId)) throw new Error("a device profile's score reached a public board");
+  await second.context().close();
 
   step(
     'an iPhone in Safari: after the first round, the sheet with the steps of iOS 26; "Đã hiểu" keeps it quiet',

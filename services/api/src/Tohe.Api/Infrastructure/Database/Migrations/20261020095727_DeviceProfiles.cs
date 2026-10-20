@@ -11,6 +11,22 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.AddColumn<DateTimeOffset>(
+                name: "device_until",
+                schema: "identity",
+                table: "profiles",
+                type: "timestamp with time zone",
+                nullable: true);
+
+            migrationBuilder.AddColumn<string>(
+                name: "kind",
+                schema: "identity",
+                table: "profile_names",
+                type: "character varying(8)",
+                maxLength: 8,
+                nullable: false,
+                defaultValue: "Rename");
+
             migrationBuilder.AddColumn<bool>(
                 name: "device_earned",
                 schema: "progress",
@@ -83,6 +99,16 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                 DROP TRIGGER results_device_earned_stays ON integrity.results;
                 DROP FUNCTION integrity.device_earned_stays();
                 """);
+
+            migrationBuilder.DropColumn(
+                name: "device_until",
+                schema: "identity",
+                table: "profiles");
+
+            migrationBuilder.DropColumn(
+                name: "kind",
+                schema: "identity",
+                table: "profile_names");
 
             migrationBuilder.DropIndex(
                 name: "ix_retired_profile_ids_profile_id",

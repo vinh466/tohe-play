@@ -411,7 +411,7 @@ function DeviceProfileForm({
   const save = useMutation({
     mutationFn: async () => {
       if (profile) await updateDeviceProfile(db, profile.id, { name: clean, avatar });
-      else await createDeviceProfile(db, { name: clean, avatar });
+      else await createDeviceProfile(db, { name: clean, avatar, chosen: true });
     },
     onSuccess: async () => {
       await changed();

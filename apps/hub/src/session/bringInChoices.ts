@@ -1,8 +1,20 @@
 // Bringing device profiles into an account (ADR 0043, step I1): what the hub asks, its defaults, and the requests.
 // docs/architecture/identity.md#bringing-one-into-an-account
-import { ApiError, type DeviceProfileUpload, type MeView, type ProfileView } from '../api/client.ts';
+import {
+  ApiError,
+  type DeviceProfileData,
+  type DeviceProfileUpload,
+  type MeView,
+  type ProfileView,
+} from '../api/client.ts';
 import type { LocalProfile, ToheDb } from '../storage/db.ts';
-import { deviceProfileData, reIdDeviceProfile } from '../storage/deviceProfiles.ts';
+import {
+  adoptedOnDevice,
+  deviceProfileData,
+  mergedOnDevice,
+  reIdDeviceProfile,
+  upload,
+} from '../storage/deviceProfiles.ts';
 import { hasProgress } from '../storage/repository.ts';
 
 /** What happens to one device profile when its device signs in to an account. */
@@ -86,17 +98,22 @@ export const needsStepUp = (choices: BringInChoices) =>
 export interface BringInApi {
   adopt(body: DeviceProfileUpload): Promise<MeView>;
   merge(id: string, name: string, data: DeviceProfileUpload['data']): Promise<MeView>;
+  /** The account as the server sees it now: an answer may have been lost. */
+  me(): Promise<MeView | null>;
 }
 
 export type BringInOutcome =
   | { status: 'adopted'; id: string; me: MeView }
-  | { status: 'merged'; into: string; me: MeView }
+  /** `savesLeft`: saves past one request's limit, kept with the device profile, which stays on the device then. */
+  | { status: 'merged'; into: string; me: MeView; savesLeft: number }
   /** The name rules refused its name: the player renames it first (`reason` is the rule). */
   | { status: 'rename'; reason: string | null };
 
 /**
- * Brings one device profile in. An id the server cannot take (`id_taken`) is replaced on the device — its saves and
- * scores move under the new one — and asked again, once.
+ * Brings one device profile in, and tidies the device after it. What the request sends counts as sent before it goes
+ * (`upload.hold`), and pending again if it failed. An id the server cannot take (`id_taken`) is first looked for in the
+ * account — the answer to an earlier request may have been lost, and then it is in already — else replaced on the device,
+ * its saves and scores moved under the new one, and asked again, once.
  */
 export async function bringIn(
   db: ToheDb,
@@ -107,21 +124,48 @@ export async function bringIn(
   try {
     if (choice.kind === 'merge') {
       const data = await deviceProfileData(db, device.id);
-      return { status: 'merged', into: choice.into, me: await api.merge(choice.into, device.name, data) };
+      const me = await sending(db, device.id, data, () => api.merge(choice.into, device.name, data));
+      const sent = (data.saves ?? []).map((save) => save.gameId);
+      const savesLeft = await mergedOnDevice(db, device.id, choice.into, sent);
+      return { status: 'merged', into: choice.into, me, savesLeft };
     }
     let id = device.id;
     for (let attempt = 0; ; attempt++) {
-      const upload = { ...uploadOf(device, choice.ageBand), id, data: await deviceProfileData(db, id) };
+      const data = await deviceProfileData(db, id);
+      const body = { ...uploadOf(device, choice.ageBand), id, data };
       try {
-        return { status: 'adopted', id, me: await api.adopt(upload) };
+        const me = await sending(db, id, data, () => api.adopt(body));
+        await adoptedOnDevice(db, id);
+        return { status: 'adopted', id, me };
       } catch (error) {
         if (!(error instanceof ApiError && error.code === 'id_taken') || attempt > 0) throw error;
+        const now = await api.me();
+        if (now?.profiles.some((profile) => profile.id === id)) {
+          await adoptedOnDevice(db, id);
+          return { status: 'adopted', id, me: now };
+        }
         id = await reIdDeviceProfile(db, id);
       }
     }
   } catch (error) {
     if (error instanceof ApiError && error.code === 'name_refused')
       return { status: 'rename', reason: error.reason };
+    throw error;
+  }
+}
+
+/** Sends a device profile's data, held as sent meanwhile and released when the request failed. */
+async function sending<T>(
+  db: ToheDb,
+  id: string,
+  data: DeviceProfileData,
+  request: () => Promise<T>,
+): Promise<T> {
+  await upload.hold(db, id, data);
+  try {
+    return await request();
+  } catch (error) {
+    await upload.release(db, id, data);
     throw error;
   }
 }

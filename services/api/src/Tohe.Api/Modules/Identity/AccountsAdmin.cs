@@ -54,7 +54,8 @@ public sealed record ProfileDetail(
     bool OnPublicBoards,
     bool HiddenFromBoards);
 
-public sealed record NameChange(string Name, DateTimeOffset At);
+/// <param name="Kind"><c>rename</c>: a name it had · <c>merged</c>: a device profile's name merged into it (ADR 0043).</param>
+public sealed record NameChange(string Name, DateTimeOffset At, string Kind = "rename");
 
 /// <summary>A profile as the console names it next to its results: never more than a moderator needs.</summary>
 /// <param name="Account">Its account's address, or an old account's username.</param>
@@ -180,7 +181,8 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
                 profile.Kind == ProfileKind.Adult ? "adult" : "child",
                 profile.AgeBand,
                 profile.CreatedAt,
-                [.. names[profile.Id].Select(name => new NameChange(name.Name, name.At))],
+                [.. names[profile.Id].Select(name => new NameChange(
+                    name.Name, name.At, name.Kind == ProfileNameKind.Merged ? "merged" : "rename"))],
                 profile.OnPublicBoards,
                 profile.HiddenFromBoardsAt is not null))],
             account.DeleteAfter);

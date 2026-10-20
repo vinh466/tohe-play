@@ -2,7 +2,13 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError, type ExternalOutcome, external, type PendingSignInView } from '../api/client.ts';
+import {
+  ApiError,
+  type DeviceProfileUpload,
+  type ExternalOutcome,
+  external,
+  type PendingSignInView,
+} from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery } from '../api/queries.ts';
 import { ConsentCheckbox } from '../legal/Consent.tsx';
@@ -17,6 +23,7 @@ import {
   afterSignUp,
   defaultAnswer,
   type SignUpAnswer,
+  sendingSignUp,
   signingUpDeviceQuery,
   signUpUpload,
 } from '../session/signUpDevice.ts';
@@ -282,21 +289,21 @@ function SignUpStep({ step }: { step: PendingSignInView }) {
   const signUp = useMutation({
     mutationFn: async () => {
       const own = cleanName(name);
-      const upload = device
-        ? await signUpUpload(
-            db,
-            device,
-            answer,
-            answer.mine ? own : await rename.apply(device.id, device.name),
-          )
-        : null;
-      return external.signUp(own, TERMS_VERSION, inviteCode.trim() || null, upload);
+      let sent: DeviceProfileUpload | null = null;
+      if (device) {
+        const named = answer.mine ? own : await rename.apply(device.id, device.name);
+        sent = await signUpUpload(db, { ...device, name: named }, answer, named);
+      }
+      const result = await sendingSignUp(db, sent, () =>
+        external.signUp(own, TERMS_VERSION, inviteCode.trim() || null, sent),
+      );
+      return { result, sent };
     },
-    onSuccess: async (result) => {
+    onSuccess: async ({ result, sent }) => {
       invite.forget();
       funnel.accountCreated();
       if (result.me) {
-        await afterSignUp(db, result.me, device?.id ?? null);
+        await afterSignUp(db, result.me, sent);
         deviceMode.disable();
         await changed();
       }

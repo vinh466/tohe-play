@@ -102,6 +102,22 @@ public sealed class Profile
     public InviteScope Invites { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>
+    /// When the profile came from a device (ADR 0043): anything it reports as reached up to then was earned as a device
+    /// profile, whichever way it arrives, and stays off public boards. Null for a profile made in the account.
+    /// </summary>
+    public DateTimeOffset? DeviceUntil { get; set; }
+}
+
+/// <summary>Why a name is in a profile's name history.</summary>
+public enum ProfileNameKind
+{
+    /// <summary>The profile was made with it, or renamed to it — by its owner or a moderator.</summary>
+    Rename,
+
+    /// <summary>A device profile of that name was merged into this profile (ADR 0043); the profile kept its own name.</summary>
+    Merged,
 }
 
 /// <summary>
@@ -117,6 +133,9 @@ public sealed class ProfileName
     public required string Name { get; set; }
 
     public DateTimeOffset At { get; set; }
+
+    /// <summary>A name it had, or one merged into it (ADR 0043): renames are limited, merges are not.</summary>
+    public ProfileNameKind Kind { get; set; }
 }
 
 /// <summary>
@@ -153,6 +172,8 @@ internal sealed class ProfileNameConfiguration : IEntityTypeConfiguration<Profil
     {
         builder.ToTable("profile_names", "identity");
         builder.Property(name => name.Name).HasMaxLength(200);
+        // The trigger that keeps the history writes renames; a merge writes its own row.
+        builder.Property(name => name.Kind).HasConversion<string>().HasMaxLength(8).HasDefaultValue(ProfileNameKind.Rename);
         builder.HasIndex(name => new { name.ProfileId, name.At });
         builder.HasOne<Profile>()
             .WithMany()

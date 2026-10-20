@@ -175,10 +175,12 @@ public sealed class DeviceProfilesTests(ApiFactory factory) : IClassFixture<ApiF
     [Fact]
     public async Task An_id_a_profile_has_or_had_is_refused_and_a_new_one_is_taken()
     {
-        var (client, me) = await PlayerAsync("Bố");
+        var (client, _) = await PlayerAsync("Bố");
+        var (_, stranger) = await PlayerAsync("Người lạ");
         await Accounts.StepUpAsync(client);
 
-        var known = await client.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(me.Profiles[0].Id, "Mèo"), Ct);
+        // Another account's profile (this account's own would be taken again, idempotently).
+        var known = await client.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(stranger.Profiles[0].Id, "Mèo"), Ct);
         Assert.Equal((HttpStatusCode.Conflict, "id_taken"), (known.StatusCode, await CodeOfAsync(known)));
 
         // A deleted profile's id is retired with its public ID (ADR 0034): never adopted from a device.
@@ -347,6 +349,189 @@ public sealed class DeviceProfilesTests(ApiFactory factory) : IClassFixture<ApiF
             .Where(r => r.ProfileId == device).Select(r => r.Level).ToListAsync(Ct);
         Assert.Equal(runs.Length + 1, levels.Count);
         Assert.All(levels, level => Assert.Equal(TrustLevel.Checked, level));
+    }
+
+    // ------------------------------------------------------------------ review: idempotency, races, ownership
+
+    [Fact]
+    public async Task Adopting_again_after_a_lost_answer_is_idempotent()
+    {
+        await Games.KnowAsync(factory, "merge-block");
+        var (client, _) = await PlayerAsync("Bố");
+        await Accounts.StepUpAsync(client);
+        var device = Guid.NewGuid();
+        var upload = Upload(device, "Mèo Cam", runs: [10, 20]);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(Url("/api/profiles/adopt"), upload, Ct)).StatusCode);
+
+        // The same request again: its own profile now, so 200 — no second profile, no score twice, marks kept.
+        var again = await client.PostAsJsonAsync(Url("/api/profiles/adopt"), upload, Ct);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        Assert.Single((await again.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles, p => p.Id == device);
+        Assert.Equal([(10d, true), (20d, true)], await MarksAsync(device));
+    }
+
+    [Fact]
+    public async Task Two_accounts_adopting_one_id_at_once_get_one_profile_and_one_id_taken()
+    {
+        var (first, _) = await PlayerAsync("Một");
+        var (second, _) = await PlayerAsync("Hai");
+        await Accounts.StepUpAsync(first);
+        await Accounts.StepUpAsync(second);
+        var device = Guid.NewGuid();
+        var answers = await Task.WhenAll(
+            first.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(device, "Mèo"), Ct),
+            second.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(device, "Mèo"), Ct));
+        Assert.Equal([HttpStatusCode.OK, HttpStatusCode.Conflict], answers.Select(a => a.StatusCode).Order());
+        Assert.Equal("id_taken", await CodeOfAsync(answers.Single(a => a.StatusCode == HttpStatusCode.Conflict)));
+    }
+
+    [Fact]
+    public async Task The_empty_id_is_never_taken()
+    {
+        var (client, _) = await PlayerAsync("Bố");
+        await Accounts.StepUpAsync(client);
+        var empty = await client.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(Guid.Empty, "Mèo"), Ct);
+        Assert.Equal((HttpStatusCode.Conflict, "id_taken"), (empty.StatusCode, await CodeOfAsync(empty)));
+    }
+
+    [Fact]
+    public async Task Adopting_with_an_age_band_makes_a_child_profile()
+    {
+        var (client, _) = await PlayerAsync("Bố");
+        await Accounts.StepUpAsync(client);
+        var device = Guid.NewGuid();
+        var adopted = await client.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(device, "Bé Na", ageBand: "6-8"), Ct);
+        var child = (await adopted.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles.Single(p => p.Id == device);
+        Assert.Equal(("child", "6-8", false, false, "account"), (child.Kind, child.AgeBand, child.OnPublicBoards, child.PlayWithOthers, child.Invites));
+    }
+
+    [Fact]
+    public async Task Merging_needs_step_up_and_only_into_the_accounts_own_profile()
+    {
+        var (client, _) = await PlayerAsync("Bố");
+        var (_, stranger) = await PlayerAsync("Người lạ");
+        var locked = await client.PostAsJsonAsync(Url($"/api/profiles/{stranger.Profiles[0].Id}/merge"), new { name = "Mèo" }, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "parent_gate_required"), (locked.StatusCode, await CodeOfAsync(locked)));
+        await Accounts.StepUpAsync(client);
+        var foreign = await client.PostAsJsonAsync(Url($"/api/profiles/{stranger.Profiles[0].Id}/merge"), new { name = "Mèo" }, Ct);
+        Assert.Equal(HttpStatusCode.NotFound, foreign.StatusCode);
+    }
+
+    [Fact]
+    public async Task A_merged_name_is_in_the_history_as_merged_and_costs_no_rename()
+    {
+        var (client, me) = await PlayerAsync("Bố");
+        var target = me.Profiles[0].Id;
+        await Accounts.StepUpAsync(client);
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(Url($"/api/profiles/{target}/merge"), new { name = "Mèo Cam" }, Ct)).StatusCode);
+        for (var i = 1; i <= 5; i++)
+        {
+            var renamed = await client.PatchAsJsonAsync(Url($"/api/profiles/{target}"), new { name = $"Bố {i}" }, Ct);
+            Assert.Equal(HttpStatusCode.OK, renamed.StatusCode);
+        }
+
+        var sixth = await client.PatchAsJsonAsync(Url($"/api/profiles/{target}"), new { name = "Bố 6" }, Ct);
+        Assert.Equal((HttpStatusCode.TooManyRequests, "rename_limit"), (sixth.StatusCode, await CodeOfAsync(sixth)));
+        await using var scope = factory.Services.CreateAsyncScope();
+        var kinds = await scope.ServiceProvider.GetRequiredService<ToheDbContext>().ProfileNameHistory
+            .Where(n => n.ProfileId == target && n.Name == "Mèo Cam").Select(n => n.Kind).ToListAsync(Ct);
+        Assert.Equal([ProfileNameKind.Merged], kinds);
+    }
+
+    [Fact]
+    public async Task An_id_taken_between_starting_and_confirming_a_sign_up_makes_the_account_the_usual_way()
+    {
+        var client = factory.CreateClient();
+        var email = Accounts.NewEmail();
+        var device = Guid.NewGuid();
+        var attempt = await StartAsync(client, email, "Bố", device);
+
+        // Meanwhile another account brings a profile with that id in.
+        var (other, _) = await PlayerAsync("Khác");
+        await Accounts.StepUpAsync(other);
+        Assert.Equal(HttpStatusCode.OK, (await other.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(device, "Mèo"), Ct)).StatusCode);
+
+        var me = await ConfirmAsync(client, email, attempt, Upload(device, "Bố"));
+        Assert.NotEqual(device, Assert.Single(me.Profiles).Id);
+    }
+
+    [Fact]
+    public async Task A_provider_sign_up_brings_in_no_device_profile_whose_id_is_taken_or_not_the_one_that_started()
+    {
+        var (_, owner) = await PlayerAsync("Chủ");
+        var taken = owner.Profiles[0].Id;
+        foreach (var (started, sent) in new[] { (taken, taken), (Guid.NewGuid(), Guid.NewGuid()) })
+        {
+            var browser = _app.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+            await FakeProvider.ComeBackAsync(browser, Guid.NewGuid().ToString("N"), Accounts.NewEmail(), verified: true, intent: $"?profile={started}");
+            var response = await browser.PostAsJsonAsync(
+                Url("/api/auth/external/pending/signup"),
+                new { displayName = "Cáo", acceptTerms = true, termsVersion = Accounts.TermsVersion, deviceProfile = Upload(sent, "Cáo") },
+                Ct);
+            Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+            var profile = Assert.Single((await response.Content.ReadFromJsonAsync<ExternalOutcome>(Ct))!.Me!.Profiles);
+            Assert.NotEqual(sent, profile.Id);
+        }
+    }
+
+    [Fact]
+    public async Task Ordinary_sync_never_takes_a_device_profiles_mark_away()
+    {
+        await Games.KnowAsync(factory, "merge-block");
+        var (client, _) = await PlayerAsync("Bố");
+        await Accounts.StepUpAsync(client);
+        var device = Guid.NewGuid();
+        var sent = new DeviceScore(Guid.NewGuid(), "merge-block", "default", 40, DateTimeOffset.UtcNow.AddDays(-2));
+        var upload = new DeviceProfileUpload(device, "Mèo", "🐯", null, new DeviceProfileData([], [sent]));
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(Url("/api/profiles/adopt"), upload, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(Url("/api/session/profile"), new { profileId = device }, Ct)).StatusCode);
+
+        // The same run again, higher — and one the device never sent with it, reached before it came in: both marked.
+        var scores = new[]
+        {
+            new ScoreInput(sent.ClientId, "merge-block", "default", 60, sent.AchievedAt),
+            new ScoreInput(Guid.NewGuid(), "merge-block", "default", 70, DateTimeOffset.UtcNow.AddDays(-1)),
+            new ScoreInput(Guid.NewGuid(), "merge-block", "default", 5, DateTimeOffset.UtcNow.AddMinutes(1)),
+        };
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(Url("/api/progress/scores"), new { scores }, Ct)).StatusCode);
+        Assert.Equal([(5d, false), (60d, true), (70d, true)], await MarksAsync(device));
+    }
+
+    [Fact]
+    public async Task A_device_profiles_best_neither_hides_a_later_run_from_the_rate_nor_raises_the_jump()
+    {
+        await Games.KnowAsync(factory, "merge-block");
+        var (client, _) = await PlayerAsync("Bố");
+        await Accounts.StepUpAsync(client);
+        var fast = Guid.NewGuid();
+        var jumpy = Guid.NewGuid();
+        foreach (var id in new[] { fast, jumpy })
+        {
+            Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(id, $"Mèo {id:N}"[..10], runs: [900]), Ct)).StatusCode);
+        }
+
+        // Faster than a person plays, all below the device profile's 900: the rate still holds the run past the limit.
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(Url("/api/session/profile"), new { profileId = fast }, Ct)).StatusCode);
+        var many = Enumerable.Range(1, IntegrityEngine.RateLimit + 1)
+            .Select(i => new ScoreInput(Guid.NewGuid(), "merge-block", "default", i, DateTimeOffset.UtcNow.AddMinutes(1)))
+            .ToArray();
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(Url("/api/progress/scores"), new { scores = many }, Ct)).StatusCode);
+
+        // Ten runs of 10, then 100: over five times its own best, whatever the device profile did.
+        Assert.Equal(HttpStatusCode.OK, (await client.PutAsJsonAsync(Url("/api/session/profile"), new { profileId = jumpy }, Ct)).StatusCode);
+        var steady = Enumerable.Range(0, IntegrityEngine.JumpHistory)
+            .Select(_ => new ScoreInput(Guid.NewGuid(), "merge-block", "default", 10, DateTimeOffset.UtcNow.AddMinutes(1)))
+            .Append(new ScoreInput(Guid.NewGuid(), "merge-block", "default", 100, DateTimeOffset.UtcNow.AddMinutes(1)))
+            .ToArray();
+        Assert.Equal(HttpStatusCode.OK, (await client.PostAsJsonAsync(Url("/api/progress/scores"), new { scores = steady }, Ct)).StatusCode);
+
+        await using var scope = factory.Services.CreateAsyncScope();
+        var held = await scope.ServiceProvider.GetRequiredService<ToheDbContext>().IntegrityDecisions
+            .Where(d => d.To == TrustLevel.Held && (d.Result!.ProfileId == fast || d.Result.ProfileId == jumpy))
+            .Select(d => new { d.Result!.ProfileId, d.Reason, d.Result.Value })
+            .ToListAsync(Ct);
+        Assert.Contains(held, d => d.ProfileId == fast && d.Reason == "rate");
+        Assert.Contains(held, d => d.ProfileId == jumpy && d.Reason == "personal_jump" && d.Value == 100);
     }
 
     // ------------------------------------------------------------------ helpers

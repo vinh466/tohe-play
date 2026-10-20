@@ -199,6 +199,17 @@ internal static class ProfileEndpoints
 
         await using var transaction = await context.Db.Database.BeginTransactionAsync(ct);
         await LockAccountAsync(context.Db, context.Account.Id, ct);
+
+        // Already this account's: the answer to an earlier request was lost. Taken again, idempotently — scores by their
+        // client ids, marked as before — so the device can drop it without making a second profile.
+        if (await devices.OwnAsync(request.Id, context.Account.Id, ct) is { } own)
+        {
+            await devices.ImportAsync(own.Id, context.Account.Id, request.Data, ct);
+            await context.Db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+            return TypedResults.Ok(await context.MeAsync(ct));
+        }
+
         if (await context.Db.Profiles.CountAsync(p => p.AccountId == context.Account.Id, ct) >= ProfileOptions.MaxProfilesPerAccount)
         {
             return Problems.Field("", "too_many_profiles");
@@ -211,13 +222,10 @@ internal static class ProfileEndpoints
 
         var profile = await devices.AddAsync(context.Account.Id, request, name, clock.GetUtcNow(), ct);
         await devices.ImportAsync(profile.Id, context.Account.Id, request.Data, ct);
-        try
+
+        // Another request brought the same id in at this very moment.
+        if (!await devices.SaveAsync(ct))
         {
-            await context.Db.SaveChangesAsync(ct);
-        }
-        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
-        {
-            // Another request brought the same id in at this very moment.
             return DeviceProfiles.IdTaken();
         }
 
@@ -256,7 +264,8 @@ internal static class ProfileEndpoints
             return TypedResults.NotFound();
         }
 
-        context.Db.ProfileNameHistory.Add(new ProfileName { ProfileId = target.Id, Name = name, At = clock.GetUtcNow() });
+        context.Db.ProfileNameHistory.Add(
+            new ProfileName { ProfileId = target.Id, Name = name, At = clock.GetUtcNow(), Kind = ProfileNameKind.Merged });
         await devices.ImportAsync(target.Id, context.Account.Id, request.Data, ct);
         await context.Db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
@@ -392,11 +401,11 @@ internal static class ProfileEndpoints
 
     /// <summary>
     /// Renames in the last 24 hours, read from the name history (D-17): every name it had but its first, the one it
-    /// was created with. A moderator's renames are in it too.
+    /// was created with. A moderator's renames are in it too; a device profile's name merged into it is not (ADR 0043).
     /// </summary>
     private static async Task<int> RenamesTodayAsync(ToheDbContext db, Guid profileId, DateTimeOffset now, CancellationToken ct)
     {
-        var names = db.ProfileNameHistory.Where(n => n.ProfileId == profileId);
+        var names = db.ProfileNameHistory.Where(n => n.ProfileId == profileId && n.Kind == ProfileNameKind.Rename);
         var first = await names.MinAsync(n => (long?)n.Id, ct);
         var since = now.AddDays(-1);
         return await names.CountAsync(n => n.At > since && n.Id != first, ct);

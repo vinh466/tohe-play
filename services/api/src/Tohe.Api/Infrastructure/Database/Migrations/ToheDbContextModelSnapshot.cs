@@ -622,6 +622,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset?>("DeviceUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("device_until");
+
                     b.Property<DateTimeOffset?>("HiddenFromBoardsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("hidden_from_boards_at");
@@ -690,6 +694,14 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<DateTimeOffset>("At")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("at");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("Rename")
+                        .HasColumnName("kind");
 
                     b.Property<string>("Name")
                         .IsRequired()

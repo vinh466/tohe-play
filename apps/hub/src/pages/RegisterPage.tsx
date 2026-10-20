@@ -21,6 +21,7 @@ import {
   defaultAnswer,
   pendingSignUp,
   type SignUpAnswer,
+  sendingSignUp,
   signingUpDeviceQuery,
   signUpUpload,
 } from '../session/signUpDevice.ts';
@@ -59,8 +60,8 @@ export function ConfirmRegistrationPage() {
 function useSignedUp() {
   const setMe = useSetMe();
   const changed = useDeviceProfilesChanged();
-  return async (me: MeView, deviceId: string | null) => {
-    await afterSignUp(db, me, deviceId);
+  return async ({ me, sent }: { me: MeView; sent: DeviceProfileUpload | null }) => {
+    await afterSignUp(db, me, sent);
     pendingSignUp.forget();
     deviceMode.disable();
     invite.forget();
@@ -170,14 +171,15 @@ function Register() {
   const confirm = useMutation({
     mutationFn: async (code: string) => {
       const sending = deviceId ? await db.profiles.get(deviceId) : undefined;
-      let upload: DeviceProfileUpload | null = null;
+      let sent: DeviceProfileUpload | null = null;
       if (sending) {
         const name = answer.mine ? displayName : await rename.apply(sending.id, sending.name);
-        upload = await signUpUpload(db, { ...sending, name }, answer, name);
+        sent = await signUpUpload(db, { ...sending, name }, answer, name);
       }
-      return auth.confirmRegistration(attemptId ?? '', code, upload);
+      const me = await sendingSignUp(db, sent, () => auth.confirmRegistration(attemptId ?? '', code, sent));
+      return { me, sent };
     },
-    onSuccess: (me) => signedUp(me, deviceId),
+    onSuccess: signedUp,
     onError: (error) => rename.caught(error, device?.name ?? ''),
   });
 
@@ -393,16 +395,26 @@ function ConfirmFromLink() {
   const signedUp = useSignedUp();
   // Opened in this browser, the sign-up started here: its device profile goes along. Elsewhere, the usual account.
   const pending = pendingSignUp.find(attempt);
+  // A child's device profile whose name the rules refuse is renamed here, and the same link's code sent again.
+  const rename = useDeviceRename();
   const confirm = useMutation({
     mutationFn: async () => {
       const device = pending ? await db.profiles.get(pending.deviceId) : undefined;
-      const upload =
-        pending && device
-          ? await signUpUpload(db, device, { mine: pending.mine, ageBand: pending.ageBand }, pending.name)
-          : null;
-      return auth.confirmRegistration(attempt, code, upload);
+      let sent: DeviceProfileUpload | null = null;
+      if (pending && device) {
+        const name = pending.mine ? pending.name : await rename.apply(device.id, device.name);
+        sent = await signUpUpload(
+          db,
+          { ...device, name },
+          { mine: pending.mine, ageBand: pending.ageBand },
+          name,
+        );
+      }
+      const me = await sendingSignUp(db, sent, () => auth.confirmRegistration(attempt, code, sent));
+      return { me, sent };
     },
-    onSuccess: (me) => signedUp(me, pending?.deviceId ?? null),
+    onSuccess: signedUp,
+    onError: (error) => rename.caught(error, pending?.name ?? ''),
   });
 
   const started = useRef(false);
@@ -416,7 +428,26 @@ function ConfirmFromLink() {
   return (
     <Screen narrow>
       <Brand subtitle={t('register.subtitle')} />
-      {confirm.isError ? (
+      {rename.refused ? (
+        <form
+          className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm"
+          onSubmit={(event) => {
+            event.preventDefault();
+            confirm.mutate();
+          }}
+        >
+          <TextField
+            label={t('device.rename')}
+            maxLength={128}
+            value={rename.refused.name}
+            onChange={(event) => rename.setName(event.target.value)}
+            error={t(refusedKey(rename.refused.reason))}
+          />
+          <Button type="submit" busy={confirm.isPending}>
+            {t('register.confirm')}
+          </Button>
+        </form>
+      ) : confirm.isError ? (
         <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 text-center shadow-sm">
           <p role="alert" className="text-danger">
             {t(errorKey(confirm.error))}

@@ -546,7 +546,6 @@ internal static class ExternalEndpoints
             device = null;
         }
 
-        Profile profile;
         try
         {
             if (!(await users.CreateAsync(account)).Succeeded
@@ -554,16 +553,16 @@ internal static class ExternalEndpoints
             {
                 return Problems.AttemptClosed();
             }
-
-            // The first profile: the device profile itself when it is the person's own, or the usual one (ADR 0043).
-            profile = await devices.FirstProfileAsync(account, displayName, device, deviceName, now, ct);
-            await db.SaveChangesAsync(ct);
         }
         catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            // The address, this provider's subject, or the device profile's id, was taken meanwhile.
+            // The address, or this provider's subject, was taken meanwhile.
             return Problems.AttemptClosed();
         }
+
+        // The first profile: the device profile itself when it is the person's own, or the usual one — also when its id
+        // was taken at this very moment (ADR 0043).
+        var profile = await devices.SaveFirstProfileAsync(account, displayName, device, deviceName, now, ct);
 
         await transaction.CommitAsync(ct);
         metrics.SignUp(attempt.Provider!, "completed");

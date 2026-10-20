@@ -13,7 +13,13 @@ import {
   suggestMergeTarget,
   withProgress,
 } from './session/bringInChoices.ts';
-import { afterSignUp, pendingSignUp, signingUpDevice, signUpUpload } from './session/signUpDevice.ts';
+import {
+  afterSignUp,
+  pendingSignUp,
+  sendingSignUp,
+  signingUpDevice,
+  signUpUpload,
+} from './session/signUpDevice.ts';
 import { type LocalProfile, openDb } from './storage/db.ts';
 import {
   adoptedOnDevice,
@@ -25,9 +31,11 @@ import {
   ensureDeviceProfile,
   listDeviceProfiles,
   MAX_DEVICE_PROFILES,
+  MAX_UPLOAD_SAVES,
   mergedOnDevice,
   reIdDeviceProfile,
   TooManyDeviceProfiles,
+  updateDeviceProfile,
 } from './storage/deviceProfiles.ts';
 import { hasProgress, loadSave, recordScore, storeSave } from './storage/repository.ts';
 
@@ -194,14 +202,15 @@ describe('device profiles', () => {
     await recordScore(db, { profileId: device.id, gameId: 'hello', board: 'default', value: 3 });
     await adoptedOnDevice(db, device.id);
     expect((await listDeviceProfiles(db)).map((p) => p.id)).toEqual([kept.id]);
-    expect(await db.saves.where('synced').equals(0).count()).toBe(0);
+    // Its scores never go up unmarked; a save carries no mark, so one not sent yet is left for ordinary sync.
     expect(await db.scores.where('synced').equals(0).count()).toBe(0);
+    expect(await db.saves.where('synced').equals(0).count()).toBe(1);
     expect(await loadSave(db, device.id, 'hello')).toEqual({ best: 3 });
 
     // Merged: its scores join the target's, sent; its saves go, the server kept the newer.
     await recordScore(db, { profileId: kept.id, gameId: 'hello', board: 'default', value: 8 });
     await storeSave(db, kept.id, 'hello', { best: 8 });
-    await mergedOnDevice(db, kept.id, 'target');
+    expect(await mergedOnDevice(db, kept.id, 'target', ['hello'])).toBe(0);
     expect(await listDeviceProfiles(db)).toEqual([]);
     expect(await db.scores.where('[profileId+gameId]').equals(['target', 'hello']).first()).toMatchObject({
       value: 8,
@@ -263,6 +272,7 @@ describe('bringing device profiles in on a sign-in (ADR 0043)', () => {
         return meWith([profile({ id: body.id })]);
       },
       merge: async () => meWith([]),
+      me: async () => meWith([]),
     };
     const outcome = await bringIn(db, api, device, { kind: 'add', ageBand: null });
     expect(outcome.status).toBe('adopted');
@@ -279,6 +289,7 @@ describe('bringing device profiles in on a sign-in (ADR 0043)', () => {
         throw new ApiError(422, 'name_refused', {}, null, 'name_reserved');
       },
       merge: async () => meWith([]),
+      me: async () => meWith([]),
     };
     expect(await bringIn(db, api, playing, { kind: 'add', ageBand: '6-8' })).toEqual({
       status: 'rename',
@@ -297,6 +308,7 @@ describe('bringing device profiles in on a sign-in (ADR 0043)', () => {
         merges.push([id, name]);
         return meWith([]);
       },
+      me: async () => meWith([]),
     };
     expect(await bringIn(db, api, playing, { kind: 'merge', into: 'p1' })).toMatchObject({
       status: 'merged',
@@ -306,12 +318,82 @@ describe('bringing device profiles in on a sign-in (ADR 0043)', () => {
   });
 });
 
+describe('what one request sends (ADR 0043 review)', () => {
+  it('a lost answer: id_taken for an id the account already has is taken as adopted, without a new id', async () => {
+    const db = fresh();
+    const device = await createDeviceProfile(db, { name: 'Mèo', avatar: '🐯' });
+    await recordScore(db, { profileId: device.id, gameId: 'hello', board: 'default', value: 4 });
+    let adopts = 0;
+    const api: BringInApi = {
+      adopt: async () => {
+        adopts++;
+        throw new ApiError(409, 'id_taken');
+      },
+      merge: async () => meWith([]),
+      me: async () => meWith([profile({ id: device.id })]),
+    };
+    expect(await bringIn(db, api, device, { kind: 'add', ageBand: null })).toMatchObject({
+      status: 'adopted',
+      id: device.id,
+    });
+    expect(adopts).toBe(1);
+    expect(await listDeviceProfiles(db)).toEqual([]);
+    expect(await db.scores.where('synced').equals(0).count()).toBe(0);
+  });
+
+  it('counts as sent while the request is out, and as pending again when it failed', async () => {
+    const db = fresh();
+    const device = await createDeviceProfile(db, { name: 'Mèo', avatar: '🐯' });
+    await recordScore(db, { profileId: device.id, gameId: 'hello', board: 'default', value: 4 });
+    await storeSave(db, device.id, 'hello', { best: 4 });
+    const pendingWhileOut: number[] = [];
+    const api: BringInApi = {
+      adopt: async () => {
+        pendingWhileOut.push(
+          (await db.scores.where('synced').equals(0).count()) +
+            (await db.saves.where('synced').equals(0).count()),
+        );
+        throw new TypeError('offline');
+      },
+      merge: async () => meWith([]),
+      me: async () => null,
+    };
+    await expect(bringIn(db, api, device, { kind: 'add', ageBand: null })).rejects.toThrow('offline');
+    expect(pendingWhileOut).toEqual([0]);
+    expect(await db.scores.where('synced').equals(0).count()).toBe(1);
+    expect(await db.saves.where('synced').equals(0).count()).toBe(1);
+    expect(await listDeviceProfiles(db)).toHaveLength(1);
+  });
+
+  it('a merge with more saves than one request carries keeps the rest with the device profile, on the device', async () => {
+    const db = fresh();
+    const device = await createDeviceProfile(db, { name: 'Mèo', avatar: '🐯' });
+    for (let i = 0; i < MAX_UPLOAD_SAVES + 2; i++) await storeSave(db, device.id, `game-${i}`, { i });
+    let sentSaves = 0;
+    const api: BringInApi = {
+      adopt: async () => meWith([]),
+      merge: async (_id, _name, data) => {
+        sentSaves = data?.saves?.length ?? 0;
+        return meWith([]);
+      },
+      me: async () => null,
+    };
+    const outcome = await bringIn(db, api, device, { kind: 'merge', into: 'p1' });
+    expect(sentSaves).toBe(MAX_UPLOAD_SAVES);
+    expect(outcome).toMatchObject({ status: 'merged', savesLeft: 2 });
+    expect((await listDeviceProfiles(db)).map((p) => p.id)).toEqual([device.id]);
+    expect(
+      await db.saves.where('[profileId+gameId]').between([device.id, ''], [device.id, '\uffff']).count(),
+    ).toBe(2);
+  });
+});
+
 describe('who plays after a sign-in brought the device profiles in', () => {
   const me = meWith([]);
 
   it('the profile the device profile being played became — its new id after id_taken — or its merge target', () => {
     expect(playsNext('d1', { d1: { status: 'adopted', id: 'd1-new', me } })).toBe('d1-new');
-    expect(playsNext('d1', { d1: { status: 'merged', into: 'p3', me } })).toBe('p3');
+    expect(playsNext('d1', { d1: { status: 'merged', into: 'p3', me, savesLeft: 0 } })).toBe('p3');
   });
 
   it('nobody new when it stayed on the device, or only another one came in', () => {
@@ -328,6 +410,16 @@ describe('the sign-up question (ADR 0043)', () => {
     expect(await signingUpDevice(db)).toBeNull();
     await storeSave(db, device.id, 'hello', { best: 1 });
     expect(await signingUpDevice(db)).toMatchObject({ id: device.id });
+  });
+
+  it('or once the player named it or chose its avatar — never for the untouched one the hub made', async () => {
+    const db = fresh();
+    const { profile: silent } = await ensureDeviceProfile(db, () => 'Mèo Vui');
+    expect(await signingUpDevice(db)).toBeNull();
+    await updateDeviceProfile(db, silent.id, { avatar: '🦄' });
+    expect(await signingUpDevice(db)).toMatchObject({ id: silent.id });
+    const named = await createDeviceProfile(db, { name: 'Tên tôi đặt', avatar: '🐯', chosen: true });
+    expect(await signingUpDevice(db)).toMatchObject({ id: named.id });
   });
 
   it('mine: the device profile becomes the first profile with the name chosen; a child keeps its name and age band', async () => {
@@ -349,9 +441,14 @@ describe('the sign-up question (ADR 0043)', () => {
   it('the account took it: it leaves the device; another device kept it', async () => {
     const db = fresh();
     const device = await createDeviceProfile(db, { name: 'Mèo Cam', avatar: '🐯' });
-    expect(await afterSignUp(db, meWith([profile({})]), device.id)).toBe(false);
+    await recordScore(db, { profileId: device.id, gameId: 'hello', board: 'default', value: 2 });
+    const sent = await signUpUpload(db, device, { mine: true, ageBand: '6-8' }, 'Mèo Cam');
+    // Made the usual way (the link opened elsewhere, or its id taken meanwhile): its data is pending again.
+    await sendingSignUp(db, sent, async () => meWith([profile({})]));
+    expect(await afterSignUp(db, meWith([profile({})]), sent)).toBe(false);
     expect(await listDeviceProfiles(db)).toHaveLength(1);
-    expect(await afterSignUp(db, meWith([profile({ id: device.id })]), device.id)).toBe(true);
+    expect(await db.scores.where('synced').equals(0).count()).toBe(1);
+    expect(await afterSignUp(db, meWith([profile({ id: device.id })]), sent)).toBe(true);
     expect(await listDeviceProfiles(db)).toHaveLength(0);
   });
 

@@ -55,6 +55,7 @@ erDiagram
   PROFILE_NAME {
     string name "every name it had, kept by a trigger"
     timestamp at
+    string kind "rename, or merged: a device profile's name (ADR 0043)"
   }
   PROFILE {
     uuid id
@@ -68,6 +69,7 @@ erDiagram
     bool on_public_boards "adults on, children off (ADR 0029)"
     timestamp asked_child_at "the owner said they asked the child (D-06)"
     timestamp hidden_from_boards_at "a moderator hid it from public boards (ADR 0031)"
+    timestamp device_until "it came from a device then: what it reached until then stays off public boards (ADR 0043)"
     string invites "who may ask it to a table by ID: Anyone, PlayedWith, Account — a child Account (ADR 0033)"
   }
   AUTH_ATTEMPT {
@@ -545,7 +547,7 @@ taking the consent back (R-07).
 | At most three combining marks on one character | Vietnamese needs two; more is "zalgo" |
 | Not a reserved name — Admin, Moderator, Support, System, Official, Tò He, Quản trị (viên), Kiểm duyệt, Hỗ trợ, Hệ thống, Chính thức, Người chơi đã xoá — compared without case, marks, separators or hidden joiners | Nobody passes for the platform. "Tò-HE 🦊" is taken; "Admin Nhí" is not |
 | No offensive word (`NameFilter`, [ADR 0035](../decisions/0035-filter-offensive-names-and-limit-renames.md)): whole words, or two side by side, or letters typed apart. Vietnamese words are matched **with their marks**, however typed; English words and Vietnamese teen code **without marks**, `0 1 3 4 5 7 @ $ !` read as letters, a letter repeated read once | Names are shown to strangers. "Fuuuck", "sh1t", "f u c k" are refused; "Bé Lớn", "Các Bạn", "Diễm", "Essex" are not — without their marks most Vietnamese swear words are everyday words. What slips through, a moderator renames |
-| Its owner renames a profile at most **5 times in 24 hours** (`Identity:ProfileRenamesPerDay`), counted from its name history (`rename_limit`) | Swearing and swapping back is pointless; nobody else meets the limit. A moderator's rename from the console is not limited |
+| Its owner renames a profile at most **5 times in 24 hours** (`Identity:ProfileRenamesPerDay`), counted from its name history (`rename_limit`) — a device profile's name merged into it is not a rename | Swearing and swapping back is pointless; nobody else meets the limit. A moderator's rename from the console is not limited |
 
 The API runs with invariant globalization (no ICU), where `string.Normalize` does nothing beyond ASCII. So the hub
 sends names composed (`normalize('NFC')`), the rules hold for composed and decomposed text alike, and reserved names
@@ -619,10 +621,19 @@ mark `device_earned`: such a result is never in a public board's audience, even 
 channel decides, no field of the request does ([Integrity and boards](integrity.md#public-boards)). What the device
 plays after that syncs like any account profile's.
 
+- **Past the limits.** Scores beyond the 1 000 never reach the server: the device keeps them, marked as sent. Saves
+  beyond the 50 carry no mark, so on adding they stay pending and ordinary sync takes them; on merging the device
+  profile keeps them and stays on the device, and the hub says so.
+- **A backstop.** A profile that came from a device keeps when (`identity.profiles.device_until`): a run it reports as
+  reached up to then is marked `device_earned` whichever way it arrives, ordinary sync included. A run marked once stays
+  marked: sending its client id again never clears it, and a trigger refuses to.
+- **Sent means sent.** The hub counts what a request carries as sent before the request goes, so ordinary sync never
+  sends it first; it is pending again if the request fails.
+
 ```mermaid
 flowchart TD
-  up["Signing up — by email, or a provider's first sign-in"] --> q{"The device profile playing has progress:<br/>'Hồ sơ “Mèo Cam” là của bạn?'"}
-  q -- "Của tôi (default)" --> first["It becomes the account's first profile: same id, its name and avatar,<br/>an adult's, a 12-digit ID given now — no empty first profile"]
+  up["Signing up — by email, or a provider's first sign-in"] --> q{"The device profile playing has progress, or was named by the player:<br/>'Hồ sơ “Mèo Cam” là của bạn?'"}
+  q -- "Của tôi (default)" --> first["It becomes the account's first profile: same id, its avatar, the name typed in the form<br/>(filled in with its own), an adult's, a 12-digit ID given now — no empty first profile"]
   q -- "Của con tôi" --> child["The usual first profile, and the device profile added<br/>as a child's profile with the age band chosen"]
   in["Signing in to an account that exists"] --> each{"For each device profile with progress"}
   each -- "Thêm vào tài khoản: the one playing, while below the limit" --> add["Added with its id"]
@@ -635,18 +646,23 @@ flowchart TD
   the link makes the account the usual way, and the original device offers to add its device profile the next time it
   signs in. With a provider, the hub starts at `/api/auth/external/{provider}?profile=<id>`; the id travels in the
   provider's state, then in the attempt, and `POST /api/auth/external/pending/signup` carries the device profile. A
-  device profile whose id is not the attempt's, or whose id was taken meanwhile, is not brought in: the account is made
-  the usual way and the device keeps it. Signing up needs no step-up: the person has just proved the address.
+  device profile whose id is not the attempt's, or whose id was taken meanwhile — even at the very moment the account
+  is made — is not brought in: the account is made the usual way and the device keeps it. Signing up needs no step-up:
+  the person has just proved the address. The question is asked when the device profile playing has progress, or when
+  the player named it or chose its avatar — never about the one the hub made silently and nobody touched.
 - **Signing in** (`/account/profiles` right after it): for each device profile **with progress**, **Thêm vào tài
   khoản** (keeps its id; only while the account is below its limit), **Gộp vào** one of the account's profiles (the
   hub suggests one with the same name or avatar) or **Giữ trên máy này**. By default the one playing is added — merged
   when the account is full — and the others stay. Adding or merging is profile management: step-up level 1 (ADR 0025),
   `POST /api/profiles/adopt` and `POST /api/profiles/{id}/merge`. Later, the picker lists the device profiles left on the
   device with "Đưa vào tài khoản".
-- **Adopting an id**: the API takes the device's id only if no profile has it and none ever had it — a deleted
-  profile's id is retired with its public ID (`identity.retired_profile_ids.profile_id`) — otherwise `409 id_taken`:
-  the hub gives the device profile a new id on the device, moves its saves and scores under it, and asks again. (I2
-  adds aliases to what an id must not be.)
+- **Adopting an id**: the API takes the device's id only if no profile has it and none ever had it — since I1 a deleted
+  profile's id is retired with its public ID (`identity.retired_profile_ids.profile_id`); ids of profiles deleted before
+  were not kept and cannot be — otherwise `409 id_taken`, also when two requests bring the same id in at once: the hub
+  first looks whether the account has it already (an answer lost), else gives the device profile a new id on the device,
+  moves its saves and scores under it, and asks again. (I2 adds aliases to what an id must not be.)
+- **Asking again is harmless**: an id that is already a profile of the same account answers 200 and takes the data
+  again — scores by their client ids, their marks kept — so a lost answer never makes a second profile.
 - **Its name** goes through the [name rules](#names) and the filter when it is brought in: a refused name answers
   `422 name_refused` (with the rule in `reason`), and the hub asks the player to rename it first.
 - **The account must be able to take it**: a suspended account, or one waiting to be deleted, takes nothing
@@ -654,9 +670,11 @@ flowchart TD
   with outsiders, asked to tables only within the account.
 - **Merging** (I1): a save present on one side is taken; present on both, the newer wins — the device's time against
   the server's — and the other is kept as the previous version (ADR 0005); scores join the target's, marked. The target
-  keeps its name and avatar; the device profile's name goes into its name history. There is no alias yet (I2).
+  keeps its name and avatar; the device profile's name goes into its name history as `merged` — not a rename, so it
+  costs none of the day's renames, and the console labels it. There is no alias yet (I2).
 - **After it**, the device drops the device profile from its list; its saves and scores stay under the account
-  profile's id, marked as sent — so ordinary sync never sends them again, unmarked.
+  profile's id, its scores marked as sent — so ordinary sync never sends them again, unmarked. Signing in, the device
+  then plays on as the profile it was playing: the one it became, or the one it was merged into.
 
 The levels `named` and `account`, the `named` screen and tables open to device profiles arrive with I2; until I4 every
 game asks for `any`, and until I2 a table asks for an account.

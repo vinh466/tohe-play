@@ -3,7 +3,12 @@
 import { queryOptions } from '@tanstack/react-query';
 import type { DeviceProfileUpload, MeView } from '../api/client.ts';
 import { db, type LocalProfile, type ToheDb } from '../storage/db.ts';
-import { adoptedOnDevice, currentDeviceProfile, deviceProfileData } from '../storage/deviceProfiles.ts';
+import {
+  adoptedOnDevice,
+  currentDeviceProfile,
+  deviceProfileData,
+  upload,
+} from '../storage/deviceProfiles.ts';
 import { hasProgress } from '../storage/repository.ts';
 import { uploadOf } from './bringInChoices.ts';
 
@@ -15,11 +20,15 @@ export interface SignUpAnswer {
 
 export const defaultAnswer: SignUpAnswer = { mine: true, ageBand: '6-8' };
 
-/** The device profile playing on this device, when it has progress: the one the sign-up asks about. */
+/**
+ * The device profile playing on this device, when the player made something of it — played, or named it or chose its
+ * avatar: the one the sign-up asks about. One the hub made silently and nobody touched is not asked about.
+ */
 export async function signingUpDevice(store: ToheDb): Promise<LocalProfile | null> {
   const id = currentDeviceProfile.get();
   const profile = id ? await store.profiles.get(id) : undefined;
-  return profile && (await hasProgress(store, profile.id)) ? profile : null;
+  if (!profile) return null;
+  return profile.chosen || (await hasProgress(store, profile.id)) ? profile : null;
 }
 
 export const signingUpDeviceQuery = queryOptions({
@@ -45,10 +54,39 @@ export async function signUpUpload(
   };
 }
 
-/** The account took the device profile (same id): it leaves the device's list; its saves and scores stay under it. */
-export async function afterSignUp(store: ToheDb, me: MeView, deviceId: string | null): Promise<boolean> {
-  if (!deviceId || !me.profiles.some((profile) => profile.id === deviceId)) return false;
-  await adoptedOnDevice(store, deviceId);
+/**
+ * Sends the step that makes the account with the device profile's data held as sent (`upload.hold`), so ordinary sync
+ * never sends it first, unmarked; released when the request failed.
+ */
+export async function sendingSignUp<T>(
+  store: ToheDb,
+  device: DeviceProfileUpload | null,
+  request: () => Promise<T>,
+): Promise<T> {
+  if (device?.data) await upload.hold(store, device.id, device.data);
+  try {
+    return await request();
+  } catch (error) {
+    if (device?.data) await upload.release(store, device.id, device.data);
+    throw error;
+  }
+}
+
+/**
+ * The account took the device profile (same id): it leaves the device's list; its saves and scores stay under it. Made
+ * the usual way instead, the device keeps it, its data pending again.
+ */
+export async function afterSignUp(
+  store: ToheDb,
+  me: MeView,
+  device: DeviceProfileUpload | null,
+): Promise<boolean> {
+  if (!device) return false;
+  if (!me.profiles.some((profile) => profile.id === device.id)) {
+    if (device.data) await upload.release(store, device.id, device.data);
+    return false;
+  }
+  await adoptedOnDevice(store, device.id);
   return true;
 }
 

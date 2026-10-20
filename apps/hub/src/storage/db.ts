@@ -13,6 +13,8 @@ export interface LocalProfile {
   name: string;
   avatar: string;
   createdAt: number;
+  /** The player named it or chose its avatar; absent for one the hub made silently, as the guest was. */
+  chosen?: boolean;
 }
 
 export interface LocalSave {

@@ -151,7 +151,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
             // A person's decision stands, and only a person releases what the engine held: automation only hides.
             if (!Settled(result))
             {
-                var (level, reason, details) = await JudgeRunAsync(result, batch, now, TrustLevel.Checked, rate: !deviceEarned, ct);
+                var (level, reason, details) = await JudgeRunAsync(result, batch, now, TrustLevel.Checked, deviceRun: deviceEarned, ct);
                 Move(result, isNew ? null : result.Level, level, reason, details, now, isNew);
             }
         }
@@ -197,7 +197,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
     public async Task<IntegrityResult> AddReplayedAsync(RankedRun ranked, double score, DateTimeOffset at, CancellationToken ct)
     {
         var result = AddRanked(ranked, score, at);
-        var (level, reason, details) = await JudgeRunAsync(result, [result], at, TrustLevel.Verified, rate: true, ct);
+        var (level, reason, details) = await JudgeRunAsync(result, [result], at, TrustLevel.Verified, deviceRun: false, ct);
         result.Level = level;
         Log(result, null, level, reason, details, at);
         return result;
@@ -237,10 +237,12 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
     /// would move a board (a best of the week), <c>PersonalJump</c> and <c>Rate</c>. A run that passes gets
     /// <paramref name="passed"/>: checked for what a device reported, verified for what the server replayed.
     /// </summary>
-    /// <param name="rate">False for a device profile's runs brought into an account: they arrive together, long after
-    /// they were played, so how fast they arrive says nothing about how fast a person played (ADR 0043).</param>
+    /// <param name="deviceRun">A device profile's run brought into an account (ADR 0043). It arrives with the others, long
+    /// after it was played, so how fast they arrive says nothing of play: <c>Rate</c> does not look at it. A run played
+    /// in the account is judged against the account's own runs only: a device profile's best neither hides it nor raises
+    /// the bar of <c>PersonalJump</c>, and its runs count for no rate.</param>
     private async Task<(TrustLevel Level, string Reason, object? Details)> JudgeRunAsync(
-        IntegrityResult run, List<IntegrityResult> batch, DateTimeOffset now, TrustLevel passed, bool rate, CancellationToken ct)
+        IntegrityResult run, List<IntegrityResult> batch, DateTimeOffset now, TrustLevel passed, bool deviceRun, CancellationToken ct)
     {
         var pass = (passed, passed == TrustLevel.Verified ? "replayed" : "checked", (object?)null);
         if (!_games.TryGetValue(run.GameId, out var knownGame))
@@ -257,10 +259,11 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
         var earlier = db.IntegrityResults.AsNoTracking().Where(result =>
             result.ProfileId == run.ProfileId && result.Kind == ResultKind.Run && result.GameId == run.GameId
             && result.Board == run.Board && result.Final && Counted.Contains(result.Level)
-            && result.Source != run.Source && !others.Contains(result.Source));
+            && result.Source != run.Source && !others.Contains(result.Source)
+            && (deviceRun || !result.DeviceEarned));
         var mine = batch.Where(result =>
             !ReferenceEquals(result, run) && result.Final && result.GameId == run.GameId && result.Board == run.Board
-            && Counted.Contains(result.Level)).ToList();
+            && Counted.Contains(result.Level) && (deviceRun || !result.DeviceEarned)).ToList();
 
         var week = Weeks.StartOf(now);
         var weekBest = Max(await earlier.Where(result => result.At >= week).MaxAsync(result => (double?)result.Value, ct),
@@ -278,7 +281,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
             return (TrustLevel.Held, "personal_jump", new { previousBest = allBest, runs = history });
         }
 
-        if (!rate)
+        if (deviceRun)
         {
             return pass;
         }

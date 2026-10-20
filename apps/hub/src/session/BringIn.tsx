@@ -1,11 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { account, type MeView } from '../api/client.ts';
+import { account, fetchMe, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { profileOptionsQuery } from '../api/queries.ts';
 import { db, type LocalProfile } from '../storage/db.ts';
-import { adoptedOnDevice, mergedOnDevice, updateDeviceProfile } from '../storage/deviceProfiles.ts';
+import { updateDeviceProfile } from '../storage/deviceProfiles.ts';
 import { AgeBandPicker } from '../ui/AgeBandPicker.tsx';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
@@ -32,6 +32,7 @@ import { useDeviceProfilesChanged, useSetMe } from './useSession.ts';
 const api: BringInApi = {
   adopt: (body) => account.adoptProfile(body),
   merge: (id, name, data) => account.mergeProfile(id, name, data ?? {}),
+  me: fetchMe,
 };
 
 /**
@@ -63,6 +64,8 @@ export function BringIn({
   const [done, setDone] = useState<string[]>([]);
   const [stage, setStage] = useState<'choose' | 'gate' | 'working'>('choose');
   const [error, setError] = useState<unknown>(null);
+  // Device profiles merged with more saves than one request carries: the rest stays with them on the device.
+  const [savesLeft, setSavesLeft] = useState<string[]>([]);
   const left = devices.filter((device) => !done.includes(device.id));
   // What came in, across tries (a refused name is renamed and tried again).
   const outcomes = useRef<Record<string, Exclude<BringInOutcome, { status: 'rename' }>>>({});
@@ -76,6 +79,7 @@ export function BringIn({
     let latest = me;
     const stillRefused: Record<string, string | null> = {};
     const finished: string[] = [];
+    const kept: string[] = [];
     let failed = false;
     try {
       for (const device of left) {
@@ -90,8 +94,9 @@ export function BringIn({
         }
         latest = outcome.me;
         outcomes.current[device.id] = outcome;
-        if (outcome.status === 'adopted') await adoptedOnDevice(db, outcome.id);
-        else await mergedOnDevice(db, device.id, outcome.into);
+        if (outcome.status === 'merged' && outcome.savesLeft > 0) {
+          kept.push(device.name);
+        }
         finished.push(device.id);
       }
     } catch (failure) {
@@ -102,13 +107,18 @@ export function BringIn({
     await changed();
     setDone((all) => [...all, ...finished]);
     setRefused(stillRefused);
+    setSavesLeft(kept);
     setStage('choose');
     // Done only when everything chosen went through: an error or a refused name stays on this screen.
-    return !failed && Object.keys(stillRefused).length === 0;
+    // Saves left on the device are said before leaving.
+    return !failed && Object.keys(stillRefused).length === 0 && kept.length === 0;
   };
 
   const submit = async () => {
-    if (!needsStepUp(choices)) return finish();
+    const pending = Object.fromEntries(
+      left.map((device) => [device.id, choices[device.id] ?? { kind: 'keep' as const }]),
+    );
+    if (!needsStepUp(pending)) return finish();
     if (!parentUnlocked(me)) return setStage('gate');
     if (await run()) finish();
   };
@@ -230,6 +240,11 @@ export function BringIn({
           );
         })}
       </ul>
+      {savesLeft.length > 0 ? (
+        <p role="status" className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
+          {t('device.savesLeft', { names: savesLeft.join(', ') })}
+        </p>
+      ) : null}
       {error ? (
         <p role="alert" className="text-center text-danger">
           {t(errorKey(error))}

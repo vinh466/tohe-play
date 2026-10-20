@@ -253,7 +253,9 @@ function ProfileRow({
     mutationFn: () => admin.renameProfile(profile.id, name.normalize('NFC')),
     onSuccess: onChange,
   });
-  const earlier = profile.names.slice(1);
+  // Names it had, newest first, and device profiles' names merged into it (ADR 0043), which it never carried.
+  const earlier = profile.names.filter((change) => change.kind !== 'merged').slice(1);
+  const merged = profile.names.filter((change) => change.kind === 'merged');
   return (
     <li className="flex flex-col gap-2 border-line border-b pb-4 last:border-0 last:pb-0">
       <div className="flex flex-wrap items-baseline gap-x-3">
@@ -273,6 +275,12 @@ function ProfileRow({
       {earlier.length > 0 ? (
         <p className="text-ink-soft text-sm">
           Tên trước đây: {earlier.map((change) => `${change.name} (đến ${dateTime(change.at)})`).join(', ')}
+        </p>
+      ) : null}
+      {merged.length > 0 ? (
+        <p className="text-ink-soft text-sm">
+          Gộp từ hồ sơ trên máy:{' '}
+          {merged.map((change) => `${change.name} (${dateTime(change.at)})`).join(', ')}
         </p>
       ) : null}
       {canModerate ? (

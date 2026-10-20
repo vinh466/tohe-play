@@ -75,11 +75,18 @@ export class TooManyDeviceProfiles extends Error {
 }
 
 /** A new device profile, which plays from now on. Refused past five. */
+/** `chosen`: the player named it (the profile picker), rather than the hub making it silently. */
 export async function createDeviceProfile(
   db: ToheDb,
-  { name, avatar }: { name: string; avatar: string },
+  { name, avatar, chosen = false }: { name: string; avatar: string; chosen?: boolean },
 ): Promise<LocalProfile> {
-  const profile: LocalProfile = { id: newId(), name, avatar, createdAt: Date.now() };
+  const profile: LocalProfile = {
+    id: newId(),
+    name,
+    avatar,
+    createdAt: Date.now(),
+    ...(chosen ? { chosen } : {}),
+  };
   await db.transaction('rw', db.profiles, async () => {
     if ((await db.profiles.count()) >= MAX_DEVICE_PROFILES) throw new TooManyDeviceProfiles();
     await db.profiles.add(profile);
@@ -88,12 +95,13 @@ export async function createDeviceProfile(
   return profile;
 }
 
+/** A new name or avatar: the player chose it, so a sign-up asks about this device profile (ADR 0043). */
 export async function updateDeviceProfile(
   db: ToheDb,
   id: string,
   changes: Partial<Pick<LocalProfile, 'name' | 'avatar'>>,
 ): Promise<void> {
-  await db.profiles.update(id, changes);
+  await db.profiles.update(id, { ...changes, chosen: true });
 }
 
 const ofProfile = (id: string) => [
@@ -198,8 +206,9 @@ export function bestFirst(scores: LocalScore[]): LocalScore[] {
  */
 export async function adoptedOnDevice(db: ToheDb, id: string): Promise<void> {
   const [from, to] = ofProfile(id);
-  await db.transaction('rw', db.profiles, db.saves, db.scores, async () => {
-    await db.saves.where('[profileId+gameId]').between(from, to).modify({ synced: 1 });
+  await db.transaction('rw', db.profiles, db.scores, async () => {
+    // Every score, the ones past the request's limit too: they never reach the server, where nothing would mark them.
+    // Saves past the limit stay pending: a save carries no mark, so ordinary sync takes them.
     await db.scores.where('[profileId+gameId]').between(from, to).modify({ synced: 1 });
     await db.profiles.delete(id);
   });
@@ -208,13 +217,49 @@ export async function adoptedOnDevice(db: ToheDb, id: string): Promise<void> {
 
 /**
  * The device profile was merged into an account's profile: its scores join the target's on this device, marked as sent;
- * its saves go — the server kept the newer of each, and the next sync brings it. It leaves the device's list.
+ * the saves sent go — the server kept the newer of each, and the next sync brings it. Saves past the request's limit
+ * stay with the device profile, which then stays on the device: returns how many.
  */
-export async function mergedOnDevice(db: ToheDb, id: string, targetId: string): Promise<void> {
+export async function mergedOnDevice(
+  db: ToheDb,
+  id: string,
+  targetId: string,
+  sentSaves: string[],
+): Promise<number> {
   const [from, to] = ofProfile(id);
-  await db.transaction('rw', db.profiles, db.saves, db.scores, db.ranked, async () => {
+  const left = await db.transaction('rw', db.profiles, db.saves, db.scores, db.ranked, async () => {
     await db.scores.where('[profileId+gameId]').between(from, to).modify({ profileId: targetId, synced: 1 });
-    await removeEverything(db, id);
+    for (const gameId of sentSaves) await db.saves.delete([id, gameId]);
+    const remaining = await db.saves.where('[profileId+gameId]').between(from, to).count();
+    if (remaining === 0) await removeEverything(db, id);
+    return remaining;
   });
-  if (currentDeviceProfile.get() === id) currentDeviceProfile.clear();
+  if (left === 0 && currentDeviceProfile.get() === id) currentDeviceProfile.clear();
+  return left;
+}
+
+/**
+ * What a request is about to send counts as sent before it goes, so ordinary sync — should the profile already be the
+ * account's — never sends it first, without its mark (ADR 0043). `release` undoes it when the request failed.
+ */
+export const upload = {
+  async hold(db: ToheDb, id: string, data: DeviceProfileData): Promise<void> {
+    await mark(db, id, data, 1);
+  },
+  async release(db: ToheDb, id: string, data: DeviceProfileData): Promise<void> {
+    await mark(db, id, data, 0);
+  },
+};
+
+async function mark(db: ToheDb, id: string, data: DeviceProfileData, synced: 0 | 1) {
+  const [from, to] = ofProfile(id);
+  const games = new Set((data.saves ?? []).map((save) => save.gameId));
+  await db.transaction('rw', db.saves, db.scores, async () => {
+    await db.scores.where('[profileId+gameId]').between(from, to).modify({ synced });
+    await db.saves
+      .where('[profileId+gameId]')
+      .between(from, to)
+      .filter((save) => games.has(save.gameId))
+      .modify({ synced });
+  });
 }
