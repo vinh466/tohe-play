@@ -37,7 +37,7 @@ flowchart TB
 | Hub | `apps/hub` | Profiles, catalog, launcher, host side of the contract, local-first storage and (M2) sync. |
 | Platform API | `services/api` | Identity (M1), registry, saves and scores (M2), parental settings. The only writer to the database. |
 | Games origin | `games/*` → `tools/games-host` | Immutable static builds under `/<id>/<version>/` plus `catalog.json`. |
-| Public pages | `apps/web` | The home page (Vietnamese), built into the hub image and served by its Caddy at the root of the hub's host ([Hosts and paths](hosts-and-paths.md)). |
+| Public pages | `apps/web` | The home page, the games' pages, the install guide, the FAQ, about, the terms and the privacy notice (Vietnamese), built into the hub image and served by its Caddy at the root of the hub's host ([Hosts and paths](hosts-and-paths.md#the-public-pages)). |
 | Docs | `apps/docs` + `docs/` | The developer docs (English), at the root of their own host. |
 | Admin console | `apps/console` | The operator's pages on a host of its own with its own sign-in, served by the hub image's server on a second site ([Admin console](admin.md)). |
 

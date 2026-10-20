@@ -12,7 +12,12 @@ RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lo
 
 FROM workspace AS build-hub
 # The console (ADR 0027) ships in the hub's image, served by its Caddy on a second site, the console's host (ADR 0042).
-RUN pnpm turbo run build --filter=@tohe/hub --filter=@tohe/console
+# One image for every environment (ADR 0021): the app's page carries its link preview (og:url, og:image) with the hub's
+# placeholder URL and a placeholder for the path asked for; they become template actions that the hub's Caddy fills in
+# from TOHE_HUB_URL and the request when it answers (Caddyfile.hub, @appPage). The build fails if one is left over.
+RUN pnpm turbo run build --filter=@tohe/hub --filter=@tohe/console \
+ && sed -i -e 's#https://tohe-hub\.invalid#[[[env "TOHE_HUB_URL"]]]#g' -e 's#/__request_path__#[[[.OriginalReq.URL.EscapedPath | html]]]#g' apps/hub/dist/index.html \
+ && if grep -rlE 'tohe-hub\.invalid|__request_path__' apps/hub/dist; then echo 'URL placeholder left in the app' >&2; exit 1; fi
 
 FROM workspace AS build-web
 # The public pages (apps/web) ship in the hub's image too, served by its Caddy at the root of the hub's host
@@ -20,12 +25,13 @@ FROM workspace AS build-web
 # docs host's URL (the links to the developer docs) are built as placeholders and turned into template actions that
 # the hub's Caddy fills in from TOHE_HUB_URL and TOHE_DOCS_URL at run time (Caddyfile.hub). Caddy only templates HTML,
 # XML and text, so the build fails if a placeholder lands anywhere else. "Chơi ngay" needs nothing here: it links to /play.
+# The pages and llms.txt carry the URLs: the HTML and the text file are rewritten.
 ENV TOHE_HUB_URL=https://tohe-hub.invalid TOHE_DOCS_URL=https://tohe-docs.invalid
 RUN pnpm turbo run build --filter=@tohe/web \
  && cd apps/web/dist \
- && find . -type f -name '*.html' \
+ && find . -type f \( -name '*.html' -o -name '*.txt' \) \
       -exec sed -i -e 's#https://tohe-hub\.invalid#[[[env "TOHE_HUB_URL"]]]#g' -e 's#https://tohe-docs\.invalid#[[[env "TOHE_DOCS_URL"]]]#g' {} + \
- && if grep -rlE 'tohe-(hub|docs)\.invalid' .; then echo 'URL placeholder left outside HTML' >&2; exit 1; fi
+ && if grep -rlE 'tohe-(hub|docs)\.invalid' .; then echo 'URL placeholder left outside HTML or text' >&2; exit 1; fi
 
 FROM workspace AS build-docs
 # One image for every environment (ADR 0021). The docs' own URL (canonical links, sitemap, llms.txt) is built as a

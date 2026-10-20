@@ -1,0 +1,58 @@
+---
+import { gamesPage, loadGames } from '../../content/games.ts';
+import { absolute } from '../../content/site.ts';
+// /games/: every game, from its own game.json (../../content/games.ts). A new game appears here by itself.
+import Page from '../../layouts/Page.astro';
+
+const games = loadGames();
+const jsonLd = [
+  {
+    '@type': 'CollectionPage',
+    name: gamesPage.heading,
+    description: gamesPage.description,
+    url: absolute('/games/'),
+    inLanguage: 'vi',
+    isPartOf: { '@id': absolute('/#website') },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: games.map((game, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: absolute(`/games/${game.id}/`),
+        name: game.name,
+      })),
+    },
+  },
+];
+---
+
+<Page title={gamesPage.title} description={gamesPage.description} path="/games/" jsonLd={jsonLd}>
+  <main id="main">
+    <h1>{gamesPage.heading}</h1>
+    <p class="lead">{gamesPage.lead}</p>
+    <ul class="cards">
+      {
+        games.map((game) => (
+          <li>
+            <div class="card">
+              <div class="card-head">
+                <img class="card-icon" src={game.icon} alt="" width="64" height="64" />
+                <h2 class="card-title">
+                  <a href={`/games/${game.id}/`}>{game.name}</a>
+                </h2>
+              </div>
+              <p>{game.description}</p>
+              <ul class="chips">{game.facts.map((fact) => <li>{fact}</li>)}</ul>
+              <p class="card-play">
+                <a href={`/play/${game.id}`} aria-label={`${gamesPage.play} ${game.name}`}>
+                  {gamesPage.play}
+                </a>
+              </p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+    <p><a href="/guides/install/">{gamesPage.install}</a></p>
+  </main>
+</Page>

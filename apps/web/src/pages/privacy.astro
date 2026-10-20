@@ -1,0 +1,25 @@
+---
+import { privacy, TERMS_VERSION } from '../../../hub/src/legal/documents.ts';
+import { legal } from '../content/legal.ts';
+// /privacy/: the privacy notice, rendered at build time from the app's own text, apps/hub/src/legal/documents.ts
+// (ADR 0025). The text is read, never copied: it has one source, and changing it there bumps TERMS_VERSION.
+import Page from '../layouts/Page.astro';
+---
+
+<Page title={legal.privacy.title} description={legal.privacy.description} path="/privacy/">
+  <main id="main" class="narrow">
+    <h1>{privacy.title}</h1>
+    <p class="note" role="note">{legal.draft(TERMS_VERSION)}</p>
+    <article class="legal" lang="vi">
+      {
+        privacy.sections.map((section) => (
+          <section>
+            <h2>{section.heading}</h2>
+            {section.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+          </section>
+        ))
+      }
+    </article>
+    <p><a href="/terms/">{legal.other.terms}</a></p>
+  </main>
+</Page>

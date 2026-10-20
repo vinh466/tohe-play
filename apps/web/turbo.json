@@ -2,12 +2,20 @@
   "$schema": "https://turborepo.com/schema.json",
   "extends": ["//"],
   "tasks": {
+    "build": {
+      "inputs": [
+        "$TURBO_DEFAULT$",
+        "$TURBO_ROOT$/apps/hub/src/legal/documents.ts",
+        "$TURBO_ROOT$/games/*/public/**"
+      ]
+    },
     "test": {
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/hub/src/main.tsx",
         "$TURBO_ROOT$/apps/hub/src/session/session.ts",
-        "$TURBO_ROOT$/apps/hub/src/telemetry/collector.ts"
+        "$TURBO_ROOT$/apps/hub/src/telemetry/collector.ts",
+        "$TURBO_ROOT$/games/*/public/**"
       ]
     }
   }

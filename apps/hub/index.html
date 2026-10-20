@@ -14,21 +14,29 @@
       content="Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link."
     />
     <!-- Link previews (Zalo, Messenger…) read these from the HTML, without running the app. og:url and og:image must be
-         absolute and so need the hub's public URL at run time: added with the Caddy template, not here (E-03). -->
+         absolute and so need the hub's public URL at run time (one image serves every environment, ADR 0021): the image's
+         build turns the placeholder host and path below into Caddy template actions (web.Dockerfile), which the hub's
+         Caddy fills in from TOHE_HUB_URL and the path asked for. The picture is the public pages' (apps/web/public). -->
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="Tò He" />
     <meta property="og:locale" content="vi_VN" />
+    <meta property="og:url" content="https://tohe-hub.invalid/__request_path__" />
+    <meta property="og:image" content="https://tohe-hub.invalid/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:image:alt" content="Tò He — game nhỏ, mở ra là chơi" />
     <meta property="og:title" content="Tò He" />
     <meta
       property="og:description"
       content="Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link."
     />
-    <meta name="twitter:card" content="summary" />
+    <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="Tò He" />
     <meta
       name="twitter:description"
       content="Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link."
     />
+    <meta name="twitter:image" content="https://tohe-hub.invalid/og.png" />
     <!-- Light/dark before the first paint (blocking on purpose; see src/theme/theme.ts). -->
     <script src="/theme-init.js"></script>
   </head>

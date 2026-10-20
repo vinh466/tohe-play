@@ -71,8 +71,8 @@ over the same key in Infisical.
 | `GAMES_ORIGIN` | Origin of the game iframes, written into the CSP — the same as the API's `Games:PublicOrigin` | — required |
 | `TOHE_TRUSTED_PROXIES` | Space-separated CIDRs of proxies in front of the hub that may say who the visitor is — e.g. a cluster's ingress pods | `127.0.0.1/32`: nobody, the hub is the edge |
 | `TOHE_CLIENT_IP_HEADERS` | Headers those proxies carry the visitor's address in, e.g. `CF-Connecting-IP` behind Cloudflare | `X-Forwarded-For` |
-| `TOHE_HUB_URL` | The hub's own public URL, e.g. `https://toheplay.io.vn`: the public home page's canonical and Open Graph links, the absolute URLs of `/sitemap.xml` and the `Sitemap:` line of `robots.txt`, all written when the container starts | unset: relative links, and `/sitemap.xml` answers `404` |
-| `TOHE_DOCS_URL` | The docs host's URL, for the public home page's links to the developer docs | unset: those links lead nowhere |
+| `TOHE_HUB_URL` | The hub's own public URL, e.g. `https://toheplay.io.vn`: the public pages' canonical, Open Graph and structured-data links, the app's own `og:url` and `og:image`, `llms.txt`, the absolute URLs of `/sitemap.xml` and the `Sitemap:` line of `robots.txt`, all written when the container starts | unset: relative links, and `/sitemap.xml` answers `404` |
+| `TOHE_DOCS_URL` | The docs host's URL, for the public pages' links to the developer docs | unset: those links lead nowhere |
 | `TOHE_SECURITY_CONTACT` | The address `/.well-known/security.txt` (RFC 9116) names for reporting vulnerabilities, e.g. `security@toheplay.io.vn`. The file's `Expires` is written on each request, 360 days ahead | unset: no `security.txt` (404) |
 
 Keep `TOHE_TRUSTED_PROXIES` narrow: anyone inside a trusted range can claim any address, and the API rate-limits

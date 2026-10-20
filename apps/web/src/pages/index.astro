@@ -1,282 +1,106 @@
 ---
+import { loadGames } from '../content/games.ts';
+import { home } from '../content/home.ts';
+import { absolute, docsUrl, site } from '../content/site.ts';
 // The public home page (Vietnamese), served at the root of the players' host (ADR 0042). The app starts at /play.
-// Colours come from the design tokens and follow the player's light/dark choice, shared with the app (ADR 0013).
-// The page's CSP allows no inline script and no inline style: both scripts below are files under /_web/.
-import '@tohe/design-tokens/tokens.css';
-import themeInitUrl from '@tohe/design-tokens/theme-init.js?url';
-import returningUrl from '../scripts/returning.js?url';
+// The words are in ../content/home.ts. A browser that has played here is sent on to the app by a script in <head>.
+import Page from '../layouts/Page.astro';
 
-// Where the developer docs are, and where this page is, are decided where the image runs, not where it was built
-// (ADR 0021): the image's build writes placeholders and the hub's Caddy fills in TOHE_DOCS_URL and TOHE_HUB_URL.
-const docsUrl = (process.env.TOHE_DOCS_URL ?? 'http://localhost:4710').replace(/\/$/, '');
-const hubUrl = (process.env.TOHE_HUB_URL ?? 'http://localhost:4720').replace(/\/$/, '');
-
-const title = 'Tò He — góc chơi nhỏ của cả nhà';
-const description =
-  'Tò He — góc chơi nhỏ của cả nhà: trò chơi nhanh, không quảng cáo, chạy ngay trên điện thoại.';
-
-const features = [
+const games = loadGames();
+const jsonLd = [
   {
-    icon: '🚫📢',
-    title: 'Không quảng cáo',
-    text: 'Chơi liền mạch, không bị cắt ngang. Không theo dõi, không mua hàng trong game.',
+    '@type': 'WebSite',
+    '@id': absolute('/#website'),
+    url: absolute('/'),
+    name: site.name,
+    description: home.description,
+    inLanguage: 'vi',
+    publisher: { '@id': absolute('/#organization') },
   },
   {
-    icon: '📱',
-    title: 'Mở là chơi',
-    text: 'Chạy ngay trên trình duyệt điện thoại, cài lên màn hình chính như một ứng dụng, chơi được cả khi mất mạng.',
+    '@type': 'Organization',
+    '@id': absolute('/#organization'),
+    name: site.name,
+    url: absolute('/'),
+    logo: absolute('/icon-512.png'),
+    description: home.organization.description,
+    email: site.email,
+    sameAs: [site.github],
   },
-  {
-    icon: '👨‍👩‍👧',
-    title: 'Cho cả nhà',
-    text: 'Mỗi người một hồ sơ, bé chỉ cần chọn hình đại diện. Trò chơi nhỏ gọn, vài phút một ván.',
-  },
-  {
-    icon: '🧩',
-    title: 'Nhiều trò, một chỗ',
-    text: 'Từ ghép khối, xếp gạch tới nông trại mini — mỗi trò là một "con tò he" nặn từ cùng một nền tảng.',
-  },
-];
-
-const themes = [
-  { choice: 'system', icon: '🌗', label: 'Theo máy' },
-  { choice: 'light', icon: '☀️', label: 'Sáng' },
-  { choice: 'dark', icon: '🌙', label: 'Tối' },
 ];
 ---
 
-<!doctype html>
-<html lang="vi">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-    <meta name="description" content={description} />
-    <meta name="theme-color" content="#f97316" />
-    <link rel="canonical" href={`${hubUrl}/`} />
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Tò He" />
-    <meta property="og:locale" content="vi_VN" />
-    <meta property="og:title" content={title} />
-    <meta property="og:description" content={description} />
-    <meta property="og:url" content={`${hubUrl}/`} />
-    <meta property="og:image" content={`${hubUrl}/icon-512.png`} />
-    <title>{title}</title>
-    {/* Blocking, before the first paint. A browser that has played here goes to the app; the saved light/dark choice applies. */}
-    <script is:inline src={returningUrl}></script>
-    <script is:inline src={themeInitUrl}></script>
-  </head>
-  <body>
-    <header class="hero">
-      <div class="themes" role="group" aria-label="Giao diện">
+<Page title={home.title} description={home.description} path="/" returning jsonLd={jsonLd}>
+  <main id="main" class="full">
+  <div class="hero">
+    <img src="/favicon.svg" alt="" width="96" height="96" />
+    <h1>{site.name}</h1>
+    <p class="lead">{home.lead}</p>
+    <div class="actions">
+      <a class="button primary" href="/play">{home.play}</a>
+    </div>
+    <p class="hint"><a href="/guides/install/">{home.installHint}</a></p>
+  </div>
+
+  <div class="container">
+    <section class="features" aria-label={site.tagline}>
+      {
+        home.features.map((feature) => (
+          <article>
+            <span class="icon" aria-hidden="true">
+              {feature.icon}
+            </span>
+            <h2>{feature.title}</h2>
+            <p>{feature.text}</p>
+          </article>
+        ))
+      }
+    </section>
+
+    <section class="band">
+      <h2>{home.games.heading}</h2>
+      <ul class="cards">
         {
-          themes.map(({ choice, icon, label }) => (
-            <button type="button" data-choice={choice} aria-label={label} title={label} aria-pressed="false">
-              <span aria-hidden="true">{icon}</span>
-            </button>
+          games.map((game) => (
+            <li>
+              <div class="card">
+                <div class="card-head">
+                  <img class="card-icon" src={game.icon} alt="" width="56" height="56" />
+                  <h3 class="card-title">
+                    <a href={`/games/${game.id}/`}>{game.name}</a>
+                  </h3>
+                </div>
+                <p>{game.description}</p>
+              </div>
+            </li>
           ))
         }
-      </div>
-      <img src="/favicon.svg" alt="" width="96" height="96" />
-      <h1>Tò He</h1>
-      <p class="lead">Góc chơi nhỏ của cả nhà — những trò chơi nhanh, gọn, không quảng cáo, mở ra là chơi.</p>
-      <div class="actions">
-        <a class="primary" href="/play">Chơi ngay</a>
-        <a class="secondary" href={`${docsUrl}/`}>Tài liệu kỹ thuật</a>
-      </div>
-    </header>
+      </ul>
+      <a class="more" href="/games/">{home.games.all}</a>
+    </section>
 
-    <main>
-      <section class="features" aria-label="Điểm nổi bật">
-        {
-          features.map((feature) => (
-            <article>
-              <span class="icon" aria-hidden="true">
-                {feature.icon}
-              </span>
-              <h2>{feature.title}</h2>
-              <p>{feature.text}</p>
-            </article>
-          ))
-        }
-      </section>
+    <section class="band">
+      <h2>{home.install.heading}</h2>
+      <p>{home.install.text}</p>
+      <a class="more" href="/guides/install/">{home.install.link}</a>
+    </section>
 
-      <section class="story">
-        <h2>Vì sao lại là "Tò He"?</h2>
-        <p>
-          Tò he là món đồ chơi nặn bằng bột màu của trẻ em Việt: nhỏ xinh, nhiều màu và được nặn rất nhanh. Mỗi trò
-          chơi ở đây cũng vậy — một con tò he nhỏ, nặn nhanh từ cùng một "bột nền" kỹ thuật chung.
-        </p>
-      </section>
+    <section class="band">
+      <h2>{home.story.heading}</h2>
+      <p>{home.story.text}</p>
+    </section>
 
-      <section class="dev">
-        <h2>Dành cho người làm game</h2>
-        <p>
-          Mỗi trò chơi là một gói độc lập, viết bằng công nghệ phù hợp, giao tiếp với nền tảng qua một hợp đồng nhỏ và
-          ổn định. Tài liệu kỹ thuật (tiếng Anh) mô tả kiến trúc, hợp đồng và cách tạo game mới — cho cả người lẫn AI.
-        </p>
-        <a href={`${docsUrl}/`}>Đọc tài liệu →</a>
-      </section>
-    </main>
+    <section class="band">
+      <h2>{home.questions.heading}</h2>
+      <p>{home.questions.text}</p>
+      <a class="more" href="/faq/">{home.questions.link}</a>
+    </section>
 
-    <footer>
-      <p>Tò He · dự án gia đình · <a href="https://github.com/vinh466/tohe-play">GitHub</a></p>
-    </footer>
-  </body>
-</html>
-
-<script>
-  import {
-    applyTheme,
-    deviceScheme,
-    resolveTheme,
-    saveChoice,
-    savedChoice,
-    type ThemeChoice,
-  } from '@tohe/design-tokens/theme';
-
-  // The three buttons show and change the choice; "Theo máy" follows the device live.
-  const buttons = [...document.querySelectorAll<HTMLButtonElement>('.themes button')];
-  const device = deviceScheme();
-  const show = () => {
-    const choice = savedChoice();
-    applyTheme(resolveTheme(choice, device.matches));
-    for (const button of buttons) button.setAttribute('aria-pressed', String(button.dataset.choice === choice));
-  };
-  for (const button of buttons) {
-    button.addEventListener('click', () => {
-      saveChoice(button.dataset.choice as ThemeChoice);
-      show();
-    });
-  }
-  device.addEventListener('change', show);
-  show();
-</script>
-
-<style>
-  :global(*) {
-    box-sizing: border-box;
-  }
-  :global(body) {
-    margin: 0;
-    font-family: system-ui, sans-serif;
-    background: var(--tohe-page);
-    color: var(--tohe-ink);
-    line-height: 1.6;
-  }
-  :global(:focus-visible) {
-    outline: 3px solid var(--tohe-focus);
-    outline-offset: 2px;
-  }
-  .hero {
-    position: relative;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.75rem;
-    padding: max(4rem, env(safe-area-inset-top)) 1.5rem 3rem;
-    text-align: center;
-    background: linear-gradient(180deg, var(--tohe-soft-strong) 0%, var(--tohe-page) 100%);
-  }
-  .themes {
-    position: absolute;
-    top: max(1rem, env(safe-area-inset-top));
-    right: 1rem;
-    display: flex;
-    gap: 0.25rem;
-    padding: 0.25rem;
-    border-radius: 999px;
-    background: var(--tohe-surface);
-    box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
-  }
-  .themes button {
-    width: 2.5rem;
-    height: 2.5rem;
-    border: 0;
-    border-radius: 999px;
-    background: transparent;
-    font-size: 1.15rem;
-    cursor: pointer;
-  }
-  .themes button[aria-pressed="true"] {
-    background: var(--tohe-soft-strong);
-    box-shadow: inset 0 0 0 2px var(--tohe-brand);
-  }
-  .hero img {
-    border-radius: 24px;
-  }
-  h1 {
-    margin: 0;
-    font-size: clamp(2.5rem, 8vw, 4rem);
-    font-weight: 900;
-    color: var(--tohe-brand-ink);
-  }
-  .lead {
-    max-width: 34rem;
-    margin: 0;
-    font-size: 1.2rem;
-  }
-  .actions {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 0.75rem;
-    margin-top: 1rem;
-  }
-  /* 1.25rem bold: white on brand meets WCAG AA as large text only (tokens.css). */
-  .actions a {
-    padding: 0.8rem 1.5rem;
-    border-radius: 1rem;
-    font-size: 1.25rem;
-    font-weight: 700;
-    text-decoration: none;
-  }
-  .primary {
-    background: var(--tohe-brand);
-    color: var(--tohe-on-brand);
-  }
-  .secondary {
-    background: var(--tohe-surface);
-    color: var(--tohe-accent);
-  }
-  main {
-    max-width: 60rem;
-    margin: 0 auto;
-    padding: 0 1.5rem 3rem;
-  }
-  .features {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-    gap: 1rem;
-  }
-  .features article {
-    padding: 1.25rem;
-    border-radius: 1.25rem;
-    background: var(--tohe-surface);
-  }
-  .features h2 {
-    margin: 0.5rem 0 0.25rem;
-    font-size: 1.15rem;
-  }
-  .features p {
-    margin: 0;
-    color: var(--tohe-ink-soft);
-  }
-  .icon {
-    font-size: 1.75rem;
-  }
-  .story,
-  .dev {
-    margin-top: 2.5rem;
-  }
-  .dev a,
-  footer a {
-    color: var(--tohe-brand-ink);
-    font-weight: 700;
-  }
-  footer {
-    padding: 2rem;
-    text-align: center;
-    color: var(--tohe-ink-soft);
-  }
-</style>
+    <section class="band">
+      <h2>{home.dev.heading}</h2>
+      <p>{home.dev.text}</p>
+      <a class="more" href={`${docsUrl}/`}>{home.dev.link}</a>
+    </section>
+  </div>
+  </main>
+</Page>

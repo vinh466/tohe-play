@@ -1,0 +1,447 @@
+/*
+ * The public pages' one stylesheet. Colours are the design tokens (ADR 0013) and nothing else, so every page follows
+ * the player's light or dark choice; there is no inline style on any page (its CSP forbids it), so this file is the
+ * only place a look is set.
+ */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+  font-family: system-ui, sans-serif;
+  background: var(--tohe-page);
+  color: var(--tohe-ink);
+  line-height: 1.6;
+}
+:focus-visible {
+  outline: 3px solid var(--tohe-focus);
+  outline-offset: 2px;
+}
+a {
+  color: var(--tohe-brand-ink);
+}
+img {
+  max-width: 100%;
+}
+h1,
+h2,
+h3 {
+  line-height: 1.25;
+}
+
+.skip {
+  position: absolute;
+  left: 0.5rem;
+  top: -4rem;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--tohe-surface);
+  color: var(--tohe-accent);
+  font-weight: 700;
+}
+.skip:focus {
+  top: 0.5rem;
+}
+
+/* Buttons and links that look like them. 1.25rem bold: white on brand meets WCAG AA as large text only (tokens.css). */
+.button {
+  display: inline-block;
+  padding: 0.8rem 1.5rem;
+  border-radius: 1rem;
+  font-size: 1.25rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+.button.primary {
+  background: var(--tohe-brand);
+  color: var(--tohe-on-brand);
+}
+.button.secondary {
+  background: var(--tohe-surface);
+  color: var(--tohe-accent);
+  border: 1px solid var(--tohe-line);
+}
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+/* The page body */
+main {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+/* The home page: the hero runs the full width, the rest sits in a container. */
+main.full {
+  max-width: none;
+  padding: 0;
+}
+main.full .container {
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: 0 1rem 3rem;
+}
+main.narrow {
+  max-width: 44rem;
+}
+main > h1 {
+  margin: 1.5rem 0 0.5rem;
+  font-size: clamp(1.9rem, 6vw, 2.75rem);
+  font-weight: 900;
+  color: var(--tohe-brand-ink);
+}
+.lead {
+  margin: 0 0 1.5rem;
+  font-size: 1.15rem;
+  color: var(--tohe-ink-soft);
+}
+section + section {
+  margin-top: 2rem;
+}
+section > h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.4rem;
+}
+.more {
+  display: inline-block;
+  margin-top: 0.5rem;
+  font-weight: 700;
+}
+.crumb {
+  display: inline-block;
+  margin-top: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* The home page */
+.hero {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 2rem 1.5rem 3rem;
+  text-align: center;
+  background: linear-gradient(180deg, var(--tohe-soft-strong) 0%, var(--tohe-page) 100%);
+}
+.hero img {
+  border-radius: 24px;
+}
+.hero h1 {
+  margin: 0;
+  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-weight: 900;
+  color: var(--tohe-brand-ink);
+}
+.hero .lead {
+  max-width: 34rem;
+  margin: 0;
+  font-size: 1.2rem;
+  color: var(--tohe-ink);
+}
+.hero .hint {
+  margin: 0.5rem 0 0;
+}
+.features {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.features article {
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: var(--tohe-surface);
+}
+.features h2 {
+  margin: 0.5rem 0 0.25rem;
+  font-size: 1.15rem;
+}
+.features p {
+  margin: 0;
+  color: var(--tohe-ink-soft);
+}
+.features .icon {
+  font-size: 1.75rem;
+}
+.band {
+  margin-top: 2.5rem;
+}
+
+/* Steps and lists of words */
+.steps {
+  margin: 0;
+  padding-left: 1.5rem;
+}
+.steps li {
+  margin-bottom: 0.5rem;
+  padding-left: 0.25rem;
+}
+.panel {
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: var(--tohe-surface);
+}
+.panel p {
+  margin: 0 0 0.75rem;
+}
+.panel p:last-child,
+.panel .steps:last-child {
+  margin-bottom: 0;
+}
+.note {
+  padding: 0.75rem 1rem;
+  border-radius: 1rem;
+  background: var(--tohe-notice);
+  color: var(--tohe-notice-ink);
+}
+.jump {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+.jump a {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 999px;
+  background: var(--tohe-soft);
+  color: var(--tohe-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+
+/* The FAQ */
+.qa {
+  margin: 0 0 0.75rem;
+  padding: 0.25rem 1.25rem;
+  border-radius: 1.25rem;
+  background: var(--tohe-surface);
+}
+.qa summary {
+  padding: 0.75rem 0;
+  font-weight: 700;
+  cursor: pointer;
+}
+.qa p {
+  margin: 0 0 1rem;
+  color: var(--tohe-ink-soft);
+}
+
+/* The terms and the privacy notice: the app's own articles, moved here */
+.legal {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 1.25rem;
+  border-radius: 1.5rem;
+  background: var(--tohe-surface);
+}
+.legal h2 {
+  margin: 0 0 0.5rem;
+  font-size: 1.15rem;
+}
+.legal p {
+  margin: 0 0 0.5rem;
+}
+.legal section + section {
+  margin-top: 0;
+}
+
+/* Footer */
+.site-footer {
+  padding: 2rem 1rem max(2rem, env(safe-area-inset-bottom));
+  text-align: center;
+  color: var(--tohe-ink-soft);
+}
+.site-footer p {
+  margin: 0 0 0.5rem;
+}
+.site-footer .links {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1.25rem;
+}
+.site-footer a {
+  color: var(--tohe-brand-ink);
+  font-weight: 700;
+}
+
+/* Cards: the games, the guides */
+.cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(16rem, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  height: 100%;
+  padding: 1.25rem;
+  border-radius: 1.25rem;
+  background: var(--tohe-surface);
+}
+.card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+.card-icon {
+  flex: none;
+  border-radius: 14px;
+}
+.card-title {
+  margin: 0;
+  font-size: 1.2rem;
+}
+.card-title a {
+  text-decoration: none;
+}
+.card p {
+  margin: 0;
+  color: var(--tohe-ink-soft);
+}
+.card-play {
+  margin-top: auto;
+  padding-top: 0.5rem;
+}
+.card-play a {
+  display: inline-block;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  background: var(--tohe-soft);
+  color: var(--tohe-accent);
+  font-weight: 700;
+  text-decoration: none;
+}
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.chips li {
+  padding: 0.15rem 0.7rem;
+  border-radius: 999px;
+  background: var(--tohe-soft);
+  color: var(--tohe-accent);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+/* A game's page */
+.game-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+.game-head img {
+  flex: none;
+  border-radius: 22px;
+}
+.game-head h1 {
+  margin: 0;
+  font-size: clamp(2rem, 7vw, 3rem);
+  font-weight: 900;
+  color: var(--tohe-brand-ink);
+}
+.game-head .chips {
+  margin-top: 0.5rem;
+}
+.game-intro {
+  margin: 1rem 0;
+  font-size: 1.15rem;
+}
+
+/* Header */
+.site-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem 1rem;
+  max-width: 60rem;
+  margin: 0 auto;
+  padding: max(0.75rem, env(safe-area-inset-top)) 1rem 0.5rem;
+}
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-right: auto;
+  color: var(--tohe-brand-ink);
+  font-size: 1.35rem;
+  font-weight: 900;
+  text-decoration: none;
+}
+.brand img {
+  border-radius: 12px;
+}
+.site-header nav {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 0.25rem;
+  order: 3;
+  width: 100%;
+}
+.site-header nav a {
+  padding: 0.6rem 0.75rem;
+  border-radius: 0.75rem;
+  color: var(--tohe-accent);
+  font-weight: 600;
+  text-decoration: none;
+}
+.site-header nav a:hover,
+.site-header nav a[aria-current="page"] {
+  background: var(--tohe-soft);
+}
+@media (min-width: 48rem) {
+  .site-header nav {
+    order: 0;
+    width: auto;
+  }
+  .brand {
+    margin-right: 0;
+  }
+  .themes {
+    margin-left: auto;
+  }
+}
+.themes {
+  display: flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 999px;
+  background: var(--tohe-surface);
+}
+.themes button {
+  width: 2.5rem;
+  height: 2.5rem;
+  border: 0;
+  border-radius: 999px;
+  background: transparent;
+  font-size: 1.15rem;
+  cursor: pointer;
+}
+.themes button[aria-pressed="true"] {
+  background: var(--tohe-soft-strong);
+  box-shadow: inset 0 0 0 2px var(--tohe-brand);
+}

@@ -1,11 +1,13 @@
 #!/usr/bin/env node
-// The hub's image serves the map in @tohe/routes (ADR 0042): the root is the public home page, indexed, with a CSP of
-// its own and assets under /_web/; every app namespace gets the app's page, not indexed; a path in no namespace gets a
-// real 404; robots.txt and sitemap.xml are the ones the map generates; HSTS covers subdomains. Its second
-// site serves the console's host: the console's page in the console's namespaces, never indexed, the API's console
-// routes behind the console's own session, and nothing else.
+// The hub's image serves the map in @tohe/routes (ADR 0042): the root and the other public pages (the games, the guides,
+// the FAQ, about, the terms and the privacy notice) are static HTML, indexed, each with the CSP of the public pages and a
+// link preview, assets under /_web/; every app namespace gets the app's page, not indexed, with its own link preview; a
+// path in no namespace gets a real 404; robots.txt, sitemap.xml and llms.txt list what the map generates; HSTS covers
+// subdomains. Its second site serves the console's host: the console's page in the console's namespaces, never
+// indexed, the API's console routes behind the console's own session, and nothing else.
 // Runs against the hub's Caddy (docker compose up, CI's stack job), not `pnpm dev`, whose Vite answers every path
 // with the app. Usage: HUB_URL=http://localhost:4720 CONSOLE_URL=http://localhost:4721 pnpm --filter @tohe/e2e routes
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import {
   consoleNamespaces,
   hubNamespaces,
@@ -19,6 +21,19 @@ const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 // The hub's own public URL as its container knows it (TOHE_HUB_URL: robots.txt and the sitemap write it).
 const publicHubUrl = (process.env.TOHE_HUB_URL ?? hubUrl).replace(/\/$/, '');
 const consoleUrl = process.env.CONSOLE_URL ?? hubUrl.replace(/:4720\/?$/, ':4721');
+// The games with a game.json: each has a page, and the sitemap lists it (the pages' build checks the same).
+const gamesDir = new URL('../../../games/', import.meta.url);
+const gameIds = readdirSync(gamesDir, { withFileTypes: true })
+  .filter((entry) => entry.isDirectory() && existsSync(new URL(`${entry.name}/public/game.json`, gamesDir)))
+  .map(
+    (entry) =>
+      (
+        JSON.parse(readFileSync(new URL(`${entry.name}/public/game.json`, gamesDir), 'utf8')) as {
+          id: string;
+        }
+      ).id,
+  )
+  .sort();
 const failures: string[] = [];
 const check = (ok: boolean, message: string) => {
   console.log(`${ok ? '✓' : '✗'} ${message}`);
@@ -42,6 +57,15 @@ for (const path of appPages) {
       body.includes('<div id="root">') &&
       (response.headers.get('x-robots-tag') ?? '').includes('noindex'),
     `${path}: the app's page, noindex (${response.status})`,
+  );
+  // The app's page carries its link preview with the hub's own URL and the address asked for; no placeholder is left.
+  check(
+    body.includes(`<meta property="og:url" content="${publicHubUrl}${path}"`) &&
+      body.includes(`<meta property="og:image" content="${publicHubUrl}/og.png"`) &&
+      !body.includes('.invalid') &&
+      !body.includes('[[[') &&
+      !body.includes('__request_path__'),
+    `${path}: its link preview names the hub's URL — og:url ${publicHubUrl}${path}, og:image /og.png`,
   );
 }
 
@@ -87,8 +111,90 @@ for (const path of appPages) {
       `${path}: served, cached for good, not indexed (${asset.response.status})`,
     );
   }
-  const inline = /<script(?![^>]*\ssrc=)[^>]*>|<style[\s>]/.test(body);
-  check(!inline, '/: no inline script or style in the page');
+  // A JSON-LD block is data, which the CSP leaves alone; any other script without a src runs, and is refused.
+  const inline = /<script(?![^>]*\ssrc=)(?![^>]*type="application\/ld\+json")[^>]*>|<style[\s>]/.test(body);
+  check(!inline, '/: no inline script or style in the page (JSON-LD data aside)');
+}
+
+// Every public page the map lists — the sitemap's own list, the games' pages from their game.json: HTML that is no
+// page of the app, indexed, with the pages' CSP, its own title and description, the canonical link, a link preview with
+// the shared picture, one h1 and no placeholder left. A path without its closing slash leads to the one with it.
+const pageTitles = new Set<string>();
+for (const path of sitemapPaths(undefined, gameIds)) {
+  const { response, body } = await get(path);
+  const csp = response.headers.get('content-security-policy') ?? '';
+  const title = /<title>([^<]+)<\/title>/.exec(body)?.[1] ?? '';
+  const meta = (name: string) =>
+    new RegExp(`<meta (?:name|property)="${name}" content="([^"]*)"`).exec(body)?.[1];
+  const canonical = /<link rel="canonical" href="([^"]*)"/.exec(body)?.[1] ?? '';
+  check(
+    response.status === 200 &&
+      (response.headers.get('content-type') ?? '').startsWith('text/html') &&
+      !body.includes('<div id="root">') &&
+      response.headers.get('x-robots-tag') === null &&
+      !/name="robots"/.test(body) &&
+      csp.includes("script-src 'self';") &&
+      csp.includes("style-src 'self';") &&
+      !/unsafe-|\*/.test(csp),
+    `${path}: a public page, indexed, with the pages' own CSP (${response.status})`,
+  );
+  check(
+    title !== '' &&
+      !pageTitles.has(title) &&
+      (meta('description') ?? '') !== '' &&
+      canonical === `${publicHubUrl}${path}` &&
+      meta('og:url') === `${publicHubUrl}${path}` &&
+      meta('og:image') === `${publicHubUrl}/og.png` &&
+      meta('twitter:card') === 'summary_large_image' &&
+      (body.match(/<h1[\s>]/g) ?? []).length === 1 &&
+      !body.includes('.invalid') &&
+      !body.includes('[[['),
+    `${path}: its own title and description, the canonical link, the link preview with the hub's URL, one h1 (${title})`,
+  );
+  pageTitles.add(title);
+  if (path !== '/') {
+    const bare = await get(path.slice(0, -1));
+    check(
+      bare.response.status === 308 && bare.response.headers.get('location') === path,
+      `${path.slice(0, -1)}: leads to ${path} (${bare.response.status})`,
+    );
+  }
+}
+{
+  // The terms and the privacy notice are static pages of the public pages, from the app's own text; the app has no
+  // page of them; the old /legal/ paths lead there (below). The picture and llms.txt are files of the public pages.
+  const terms = await get('/terms/');
+  const privacy = await get('/privacy/');
+  check(
+    terms.body.includes('Điều khoản sử dụng') &&
+      terms.body.includes('Tò He là gì') &&
+      !terms.body.includes('<div id="root">'),
+    '/terms/: the terms of use, static',
+  );
+  check(
+    privacy.body.includes('Chính sách quyền riêng tư') &&
+      privacy.body.includes('Tò He lưu những gì') &&
+      !privacy.body.includes('<div id="root">'),
+    '/privacy/: the privacy notice, static',
+  );
+  const play = await get('/play');
+  check(play.body.includes('<div id="root">'), '/play: still the app');
+  const image = await get('/og.png');
+  check(
+    image.response.status === 200 &&
+      (image.response.headers.get('content-type') ?? '').startsWith('image/png'),
+    `/og.png: the shared link-preview picture (${image.response.status})`,
+  );
+  const llms = await get('/llms.txt');
+  check(
+    llms.response.status === 200 &&
+      (llms.response.headers.get('content-type') ?? '').startsWith('text/plain') &&
+      sitemapPaths(undefined, gameIds).every(
+        (path) => path === '/' || llms.body.includes(`${publicHubUrl}${path}`),
+      ) &&
+      !llms.body.includes('.invalid'),
+    `/llms.txt: text, lists every public page with absolute URLs (${llms.response.status})`,
+  );
 }
 for (const redirect of hubRedirects) {
   const from = redirect.from.replace(/:\w+/g, 'tien-len');
@@ -112,6 +218,10 @@ for (const path of [
   '/room/0b7c',
   '/replay/0b7c/3',
   '/nope',
+  '/games/nope/',
+  '/guides/nope/',
+  '/faq/x/',
+  '/terms/x',
   '/_web/nope.js',
   '/web/index.html',
   '/sitemap.xml/x',
@@ -146,7 +256,9 @@ check(
     (sitemap.response.headers.get('content-type') ?? '').includes('xml') &&
     sitemap.body.includes('<urlset') &&
     sitemap.body.includes(`<loc>${publicHubUrl}/</loc>`) &&
-    sitemapPaths().every((path) => sitemap.body.includes(`<loc>${publicHubUrl}${path}</loc>`)),
+    sitemapPaths(undefined, gameIds).every((path) =>
+      sitemap.body.includes(`<loc>${publicHubUrl}${path}</loc>`),
+    ),
   `/sitemap.xml: XML, the indexed pages with absolute URLs (${sitemap.response.status})`,
 );
 

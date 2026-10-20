@@ -56,7 +56,21 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
    colours in a per-theme palette (`palette.ts`), DOM colours from the design tokens (`var(--tohe-*)`); every text
    at least 4.5:1 on its background (3:1 if large and bold).
 
-## 3. Verify
+## 3. Public page
+
+The game's public page, `/games/<id>/`, is made from `public/game.json` and `public/icon.svg` by itself (apps/web). What to
+do by hand:
+
+1. Check `game.json`: `description` is written for a stranger (it is the page's text and meta description), `minAge`,
+   `tags` and, with `rooms`, the seats and bots are true — the page's chips come from them.
+2. Add the game to `gameCopy` in `apps/web/src/content/games.ts`: `kind` (a few words after the name in the title),
+   `howTo` (3–5 short lines, Vietnamese, in the order of a first game) and `suits`. `pnpm --filter @tohe/web test` fails
+   without it.
+3. `pnpm --filter @tohe/routes build` (the sitemap lists the new page; commit the regenerated files) and
+   `pnpm --filter @tohe/web build` (its check fails on a page without title, description, canonical, link preview, one
+   `h1`, or a sitemap mismatch). Look at the page in light and dark.
+
+## 4. Verify
 
 ```sh
 pnpm --filter @tohe/game-<id> test
