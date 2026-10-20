@@ -106,10 +106,10 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 |---|---|
 | Mỗi PR | Review và merge |
 | Mỗi lần lên UAT / prod | Nói "deploy" / "lên prod" — agent gắn tag và làm phần còn lại (E-01) |
-| B4 lên prod | DNS `console` (proxied) + Cloudflare Access; merge PR values `publicUrls.console` (agent mở) — trước hoặc cùng tag `prod-` |
-| B1 lên prod | Merge PR `platform-infra` đặt `hub.securityContact: security@toheplay.io.vn` (agent mở lúc "lên prod"); chưa đặt thì `security.txt` trả 404 |
-| B3, B4 lên prod | Merge PR `platform-infra` đổi values (key `docs`, `console`, host `console.`) cùng bản chart — không chỉ là `targetRevision` nên chờ owner |
-| B4 | DNS `console` (proxied) + Cloudflare Access: một application cho `console.toheplay.io.vn`, chính sách cho phép email của owner |
+| B4 lên prod | ✔ DNS `console` + PR values (2026-10-20). Cloudflare Access: **tuỳ chọn** (owner 2026-10-20) — bật sau |
+| B1 lên prod | ✔ `hub.securityContact` trong platform-infra#240 (2026-10-20) |
+| B3, B4 lên prod | ✔ `publicUrls.docs`, `publicUrls.console` trong platform-infra#240 (2026-10-20) |
+| B4 | ✔ DNS `console` (proxied). *Tuỳ chọn:* Cloudflare Access — một application cho `console.toheplay.io.vn` (Self-hosted, path trống), chính sách Allow email của owner |
 | B5 | Thêm `notify.toheplay.io.vn` ở Resend (Cloudflare tự thêm DNS), đổi người gửi trong Infisical `/tohe` và `uat.env`; chọn dịch vụ trang trạng thái, CNAME `status` DNS-only |
 | S1 | Duyệt giọng văn trang công khai; sau khi lên: xác minh Search Console + Bing (TXT) |
 | S3 | Theo [hướng dẫn](../../docs/guides/sign-in-with-google.md) (#78): chọn chế độ Đăng ký, tạo OAuth client Google, secret `google-client-secret` vào Infisical `/tohe`, merge PR values |
@@ -131,5 +131,6 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 | B2 | `feat/b2-app-routes` | [#80](https://github.com/vinh466/tohe-play/pull/80) **merged** (2026-10-19, `8e056e1`) — builder (Sonnet · high): app dưới `/play`, `/account`, `/` 302 → `/play`, 301 cho đường dẫn cũ, manifest `id "/"`; master sửa e2e tìm iframe game |
 | B5 | `docs/b5-mail-and-status` | [#79](https://github.com/vinh466/tohe-play/pull/79) **merged** (2026-10-19, `9027c5c`) — master viết `mail-and-status.md` + `check:prod --sending-domain` |
 | B4 | `feat/b4-console-host` | [#81](https://github.com/vinh466/tohe-play/pull/81) **merged** (2026-10-19, `da7094f`, lúc CI còn đỏ) + [#82](https://github.com/vinh466/tohe-play/pull/82) **merged** (`b787005`) — builder (Opus · high): console ở host riêng (`:8081`), đăng nhập riêng + TOTP, cookie `SameSite=Strict` 12 giờ, `apps/console`; reviewer (Opus · high): mô hình bảo mật vững, 2 blocker (CI) + 6 minor, builder thứ hai sửa hết |
-| B3 | — | đang làm (2026-10-19 23:05) — builder (Sonnet · high) |
-| S2 | — | đang làm (2026-10-19 23:05) — builder (Sonnet · high), song song B3 (không đụng map/Caddy) |
+| B3 | `feat/b3-public-pages` | [#84](https://github.com/vinh466/tohe-play/pull/84) **merged** (2026-10-20, `27f2540`) — builder (Sonnet · high): `apps/web` ở gốc, `apps/site` → `apps/docs`, `site` → `docs` mọi nơi; master sửa service worker trả vỏ app ở `/` (Workbox `directoryIndex`) |
+| S2 | `feat/s2-first-touches` | [#85](https://github.com/vinh466/tohe-play/pull/85) **merged** (2026-10-20, `78b7a60`) — builder (Sonnet · high): vào là chơi (khách tự động), gợi ý cài app, Góp ý, manifest, e2e `journey`; master thêm namespace ảnh, `tohe:returning`, chồng lên B3 |
+| Phát hành | — | UAT `uat-2026-10-19.1` (d23baab), `uat-2026-10-19.2` (b787005), `uat-2026-10-20.1` (78b7a60, `check:uat` 20/20); **prod `prod-2026-10-20.1`** (78b7a60) qua [platform-infra#240](https://github.com/vinetic-spaces/platform-infra/pull/240) (owner merge 2026-10-20 08:38: chart + `publicUrls.docs`, `console`, `hub.securityContact`), `check:prod` 23/23 |

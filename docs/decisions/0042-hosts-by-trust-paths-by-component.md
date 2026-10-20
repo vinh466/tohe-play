@@ -7,7 +7,9 @@ sidebar:
 
 - **Status:** Accepted — the authenticator the console's sign-in asks for is enrolled on the hub's account page (Quản lý
   tài khoản → Bảo mật tài khoản), by an account with a role and a password: nobody signs in to the console without one,
-  so it cannot be added there ([Admin console](../architecture/admin.md#two-factor-authentication))
+  so it cannot be added there ([Admin console](../architecture/admin.md#two-factor-authentication)); Cloudflare Access in
+  front of the console is optional for now (owner, 2026-10-20): the console's own sign-in, a password and a code, is the
+  gate until the owner turns Access on
 - **Date:** 2026-10-19
 - **Amends:** [ADR 0040](0040-all-of-tohe-on-one-domain-of-its-own.md) — the paths on the hub's host and three new
   hosts; [ADR 0027](0027-platform-admin-and-the-first-owner.md) — the console leaves `/admin/` for a host of its own;

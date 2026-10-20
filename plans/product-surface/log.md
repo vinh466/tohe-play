@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-20 — agent
+
+- B3 #84, S2 #85 merged; CI bắt lỗi thật: service worker trả vỏ app ở `/` (Workbox `directoryIndex`) → sửa trước merge.
+- Owner "chờ CI xanh bạn deploy lên uat lẫn prod" → `uat-2026-10-20.1` (20/20) → `prod-2026-10-20.1`, platform-infra#240
+  (owner merge 08:38) → **prod chạy 78b7a60**, `check:prod` 23/23. GitHub Release: owner tạo (auto mode chặn agent).
+- Owner: Cloudflare Access cho console là tuỳ chọn (MFA đủ). Owner làm Google (S3) ngay — agent đưa giá trị, chờ Client ID.
+
 ## 2026-10-19 (khuya) — agent
 
 - Owner "deploy và làm" → `uat-2026-10-19.1` (d23baab) lên UAT, `check:uat` 11/11. B2 #80, B5 #79 merged. B4 #81 merged lúc CI
