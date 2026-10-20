@@ -5,6 +5,7 @@ using Tohe.Api.Modules.Admin;
 using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
+using Tohe.Api.Modules.Links;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
 using Tohe.Api.Modules.Rooms;
@@ -67,6 +68,10 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
     public DbSet<IntegrityDecision> IntegrityDecisions => Set<IntegrityDecision>();
 
     public DbSet<RankedRun> RankedRuns => Set<RankedRun>();
+
+    public DbSet<ShareLink> ShareLinks => Set<ShareLink>();
+
+    public DbSet<ShareLinkDay> ShareLinkDays => Set<ShareLinkDay>();
 
     public DbSet<OutboxEmail> EmailOutbox => Set<OutboxEmail>();
 

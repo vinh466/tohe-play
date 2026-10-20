@@ -4,7 +4,7 @@
 @apiProxy path /api /api/*
 @publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /terms /terms/* /privacy /privacy/* /og.png /llms.txt
 @publicStaticImmutable path /_web /_web/*
-@appPage path /play /play/* /account /account/* /r /r/*
+@appPage path /play /play/* /account /account/* /r /r/* /s /s/*
 @appStaticImmutable path /assets /assets/*
 @appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /registerSW.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png /screenshots /screenshots/*
 @platformGenerated path /robots.txt /sitemap.xml /.well-known /.well-known/*
@@ -27,3 +27,22 @@ redir @legacyTerms /terms/?{query} 301
 redir @legacyPrivacy /privacy/?{query} 301
 @legacyRooms path_regexp legacyRooms ^/rooms/([^/]+)$
 redir @legacyRooms /play/{re.legacyRooms.1}/rooms?{query} 301
+# Link previews: a crawler asking for a link of a previewed namespace gets the API’s card for it; people the app.
+@linkPreview {
+	path_regexp linkPreview ^/(r|s)/([0-9A-Za-z-]{1,20})$
+	header_regexp linkPreviewCrawler User-Agent (?i)(facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|Discordbot|WhatsApp/|LinkedInBot|Zalo)
+	not header_regexp linkPreviewBrowser User-Agent (?i)(Mobile|FBAN|FBAV|FB_IAB|Instagram)
+	not query app=*
+}
+rewrite @linkPreview /api/previews/{re.linkPreview.1}/{re.linkPreview.2}
+# Every other request: the hub’s CSP (the card keeps its own).
+@notLinkPreview {
+	not {
+		path_regexp ^/(r|s)/([0-9A-Za-z-]{1,20})$
+		header_regexp User-Agent (?i)(facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|Discordbot|WhatsApp/|LinkedInBot|Zalo)
+		not header_regexp User-Agent (?i)(Mobile|FBAN|FBAV|FB_IAB|Instagram)
+		not query app=*
+	}
+}
+# The previewed links, whoever asks: the answer varies with the User-Agent.
+@linkPreviewPaths path /r/* /s/*

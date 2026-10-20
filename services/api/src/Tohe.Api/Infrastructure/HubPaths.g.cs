@@ -30,6 +30,12 @@ public static class HubPaths
 
     /// <summary>The profile picker; ?auto=true goes straight on with one profile.</summary>
     public const string Profiles = "/account/profiles";
+
+    /// <summary>A room’s short link, /r/&lt;code&gt;: a link preview’s way to the app.</summary>
+    public const string RoomLink = "/r";
+
+    /// <summary>A share link, /s/&lt;code&gt;: a link preview’s way to the app (ADR 0044).</summary>
+    public const string ShareLink = "/s";
 }
 
 /// <summary>

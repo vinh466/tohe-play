@@ -34,6 +34,8 @@ internal static class RoomsModule
         services.TryAddSingleton(TimeProvider.System);
         services.AddHttpClient<RulesSource>(client => client.Timeout = TimeSpan.FromSeconds(10));
         services.AddSingleton<RoomRegistry>();
+        // Open tables by their code, for link previews (ADR 0044).
+        services.AddSingleton<IRoomPreviews>(provider => provider.GetRequiredService<RoomRegistry>());
         services.AddSingleton<RoomInvitations>();
         // Deleted profiles leave the tables, and finished hands keep nothing of them (ADR 0034).
         services.AddScoped<RoomsProfileData>();

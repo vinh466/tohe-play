@@ -63,7 +63,8 @@ stateDiagram-v2
   Closed --> [*]
 ```
 
-- A room closes when no human is left; bots never keep a room open. Its code is free again at once.
+- A room closes when no human is left; bots never keep a room open. Its code is not given out again for a day
+  (`Rooms:ClosedCodeReserved`), so an old link never opens a stranger's table ([Entry links](entry-links.md#rooms-a-closed-tables-code)).
 - The host role passes to the longest-seated human when the host leaves.
 - Seats can change only while `Waiting` or `BetweenHands`; a player who leaves mid-hand is replaced by a bot
   for the rest of that hand (if the room allows bots) or the hand ends for everybody (if not).
@@ -120,6 +121,9 @@ A 6-digit field with the numeric keypad (`inputmode="numeric"`), pasting allowed
 sixth digit is typed. The answer is the room's preview, or one of the messages in [When joining fails](#when-joining-fails).
 
 ### 5. Joining with a link
+
+A table's link is one kind of entry; the hub's entry pipeline, and the card a chat app shows for the link — naming no
+one, and the game only for a table listed publicly — are in [Entry links](entry-links.md).
 
 ```mermaid
 sequenceDiagram

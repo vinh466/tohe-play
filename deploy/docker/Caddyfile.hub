@@ -39,12 +39,16 @@ import /etc/caddy/hub-sitemap.caddy
 		# Browsers ignore this over plain HTTP (UAT, local), so it only takes effect behind HTTPS. includeSubDomains:
 		# every host of the domain is Tò He's and served over HTTPS (ADR 0040, 0042); no preload list.
 		Strict-Transport-Security "max-age=31536000; includeSubDomains"
-		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 	}
+	# The hub's CSP on everything but a link preview's card (ADR 0044), which keeps the API's own: it allows nothing but
+	# the card's one script, by its hash. @notLinkPreview comes from hub-routes.caddy, generated from @tohe/routes.
+	header @notLinkPreview Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 
 	# @apiProxy, @publicStaticRevalidate, @publicStaticImmutable, @appPage, @appStaticImmutable, @appStaticRevalidate,
 	# @platformGenerated, and the redirects as `redir` directives (the app's old paths answer 301 for the links in
-	# emails already sent), which Caddy runs before any `handle` below.
+	# emails already sent), which Caddy runs before any `handle` below. Then link previews (ADR 0044): a known crawler
+	# asking for /r/<code> or /s/<code> is rewritten to the API's card, /api/previews/<r|s>/<code>, which @apiProxy passes
+	# through untouched — never into a template; people get the app's page, unchanged.
 	import /etc/caddy/hub-routes.caddy
 
 	handle @apiProxy {
@@ -83,6 +87,8 @@ import /etc/caddy/hub-sitemap.caddy
 		root * /srv
 		header X-Robots-Tag "noindex"
 		header Cache-Control "no-cache"
+		# /r/<code> and /s/<code> answer a crawler the API's card and a person this page: a cache in front keeps them apart.
+		header @linkPreviewPaths Vary "User-Agent"
 		rewrite * /index.html
 		templates {
 			between [[[ ]]]

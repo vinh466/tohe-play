@@ -27,6 +27,7 @@ export type ReviewEntry = Schemas['ReviewEntry'];
 export type ReviewDetail = Schemas['ReviewDetail'];
 export type ProfileCard = Schemas['ProfileCard'];
 export type RunReplay = Schemas['RunReplay'];
+export type AdminShareLink = Schemas['AdminShareLinkView'];
 /** What a person decides about a result (ADR 0029). */
 export type ReviewDecision = 'approve' | 'reject' | 'reopen';
 
@@ -136,6 +137,10 @@ export const admin = {
     call(api.GET('/api/admin/device-profiles', { params: { query: q ? { q } : {} } })),
   renameDeviceProfile: (id: string, name: string) =>
     call(api.PATCH('/api/admin/device-profiles/{id}', { params: { path: { id } }, body: { name } })),
+  /** A share link by its code, typed any way codes are read (ADR 0044). */
+  shareLink: (code: string) => call(api.GET('/api/admin/links/{code}', { params: { path: { code } } })),
+  revokeShareLink: (code: string) =>
+    call(api.POST('/api/admin/links/{code}/revoke', { params: { path: { code } } })),
   /** Held results, oldest first; `after` is the last page's `next`. */
   held: (after?: number) =>
     call(api.GET('/api/admin/review', { params: { query: after === undefined ? {} : { after } } })),

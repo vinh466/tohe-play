@@ -40,10 +40,14 @@ public sealed record ConfirmCodeRequest(Guid AttemptId, [Required(AllowEmptyStri
 /// <param name="DeviceProfile">The device profile that started the sign-up, with what it played (ADR 0043): without
 /// an age band it becomes the account's first profile, with one it joins the usual first profile as a child's. Only
 /// when its id is the attempt's — sent from the device that started — and the server can take it.</param>
+/// <param name="EntryCode">The share link this sign-up came from (ADR 0044), passed once: counted as an account made from
+/// it when this request makes the account. Nothing of it is stored on the account; a code that names no link counts
+/// nothing and never fails the sign-up.</param>
 public sealed record ConfirmSignUpRequest(
     Guid AttemptId,
     [Required(AllowEmptyStrings = true)] string Code,
-    DeviceProfileUpload? DeviceProfile = null);
+    DeviceProfileUpload? DeviceProfile = null,
+    string? EntryCode = null);
 
 /// <param name="Email">The account's email — or, for an account from before email sign-in that has not added one yet,
 /// its username.</param>
@@ -233,6 +237,7 @@ internal static class AuthEndpoints
         MeQueries me,
         TimeProvider clock,
         ToheMetrics metrics,
+        IEnumerable<IEntrySignUps> entries,
         CancellationToken ct)
     {
         var check = await attempts.CheckAsync(request.AttemptId, AttemptPurpose.SignUp, request.Code, accountId: null, ct);
@@ -315,7 +320,25 @@ internal static class AuthEndpoints
         metrics.SignUp(SignInMethods.Password, "completed");
         var state = new DeviceSession(profile.Id);
         await session.WriteAsync(account, state);
+        await AccountMadeFromAsync(entries, request.EntryCode, ct);
         return TypedResults.Ok((await me.LoadAsync(account.Id, state, ct))!);
+    }
+
+    /// <summary>
+    /// The account just made came from a share link (ADR 0044): counted once, after the account is committed, so only a
+    /// request that made an account counts.
+    /// </summary>
+    internal static async Task AccountMadeFromAsync(IEnumerable<IEntrySignUps> entries, string? code, CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(code))
+        {
+            return;
+        }
+
+        foreach (var entry in entries)
+        {
+            await entry.AccountMadeAsync(code, ct);
+        }
     }
 
     private static async Task<Results<Ok<MeView>, ProblemHttpResult>> LoginAsync(

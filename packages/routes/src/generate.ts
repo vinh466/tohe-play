@@ -5,11 +5,14 @@ import {
   hubLinks,
   hubNamespaces,
   hubRedirects,
+  linkPreviewAppQuery,
+  linkPreviewBrowsers,
+  linkPreviewCrawlers,
   type Namespace,
   publicPages,
   type Redirect,
 } from './map.ts';
-import { covers, redirectPattern, redirectTemplate } from './match.ts';
+import { alternation, covers, linkPreviewPattern, redirectPattern, redirectTemplate } from './match.ts';
 
 const header = (comment: string) =>
   [
@@ -89,6 +92,42 @@ export function hubRedirectDirectives(
   return lines;
 }
 
+/**
+ * Link previews (ADR 0044): a known crawler asking for `/r/<code>` or `/s/<code>` — not sent on from a card already
+ * (`?app=`) — is rewritten to the API's card for it, `/api/previews/<r|s>/<code>`, which @apiProxy then passes through
+ * like any API answer — never into a template. A `rewrite` runs before every `handle` of the site; people, and any other
+ * path, keep the app's page. Also:
+ * - `@notLinkPreview`, every other request: Caddyfile.hub gives it the hub's CSP, so the card keeps the API's own, which
+ *   allows its one script by hash;
+ * - `@linkPreviewPaths`, the previewed namespaces' links: Caddyfile.hub's app page adds `Vary: User-Agent` there, as the
+ *   card does, so a cache in front keeps the two answers apart.
+ */
+export function linkPreviewDirectives(namespaces: readonly Namespace[] = hubNamespaces): string[] {
+  const previewed = namespaces.filter((namespace) => namespace.linkPreview);
+  if (previewed.length === 0) return [];
+  const conditions = (named: boolean) => [
+    `path_regexp${named ? ' linkPreview' : ''} ${linkPreviewPattern(namespaces)}`,
+    `header_regexp${named ? ' linkPreviewCrawler' : ''} User-Agent (?i)${alternation(linkPreviewCrawlers)}`,
+    `not header_regexp${named ? ' linkPreviewBrowser' : ''} User-Agent (?i)${alternation(linkPreviewBrowsers)}`,
+    `not query ${linkPreviewAppQuery}=*`,
+  ];
+  return [
+    '# Link previews: a crawler asking for a link of a previewed namespace gets the API’s card for it; people the app.',
+    '@linkPreview {',
+    ...conditions(true).map((line) => `\t${line}`),
+    '}',
+    'rewrite @linkPreview /api/previews/{re.linkPreview.1}/{re.linkPreview.2}',
+    '# Every other request: the hub’s CSP (the card keeps its own).',
+    '@notLinkPreview {',
+    '\tnot {',
+    ...conditions(false).map((line) => `\t\t${line}`),
+    '\t}',
+    '}',
+    '# The previewed links, whoever asks: the answer varies with the User-Agent.',
+    `@linkPreviewPaths path ${previewed.map((namespace) => `${namespace.path}/*`).join(' ')}`,
+  ];
+}
+
 /** deploy/docker/hub-routes.caddy, imported by Caddyfile.hub inside its site block. */
 export function hubCaddySnippet(
   namespaces: readonly Namespace[] = hubNamespaces,
@@ -102,6 +141,7 @@ export function hubCaddySnippet(
     lines.push(`@${name} path ${paths.join(' ')}`);
   }
   lines.push(...hubRedirectDirectives(namespaces, redirects));
+  lines.push(...linkPreviewDirectives(namespaces));
   return `${lines.join('\n')}\n`;
 }
 

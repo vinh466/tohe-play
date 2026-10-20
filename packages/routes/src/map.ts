@@ -109,6 +109,11 @@ export interface Namespace {
   cache?: 'immutable' | 'revalidate';
   /** Redirects only: where the namespace's path leads, with a 302 (the query is kept). */
   redirectTo?: string;
+  /**
+   * App pages only: `/<path>/<code>` asked by a link-preview crawler (`linkPreviewCrawlers`) is answered by the API's
+   * card for it, `/api/previews/<path>/<code>`, rather than the app's page (ADR 0044).
+   */
+  linkPreview?: boolean;
   note: string;
 }
 
@@ -173,7 +178,7 @@ const appFile = (
 
 /**
  * The hub's host (ADR 0042): the public pages own the root (apps/web), the app owns /play and /account (and the short
- * link /r/). The console has a host of its own (consoleNamespaces).
+ * links /r/ and /s/). The console has a host of its own (consoleNamespaces).
  */
 export const hubNamespaces: readonly Namespace[] = [
   // The API, on the players' origin (the backend-for-frontend pattern).
@@ -242,7 +247,11 @@ export const hubNamespaces: readonly Namespace[] = [
     '/account',
     'A person’s pages: /account/sign-in (and /continue), /register (and /confirm), /password/forgot, /password/reset, /profiles, /data; the account itself at /account and /account/email',
   ),
-  appPage('room-link', '/r', 'A room’s short link: /r/<code>'),
+  { ...appPage('room-link', '/r', 'A room’s short link: /r/<code>'), linkPreview: true },
+  {
+    ...appPage('share-link', '/s', 'A share link: /s/<code>, eight characters (ADR 0044)'),
+    linkPreview: true,
+  },
 
   // The app's files (apps/hub/public and what the build adds).
   appFile('assets', '/assets', 'tree', 'immutable', 'Scripts, styles and images with hashed names'),
@@ -363,6 +372,7 @@ export const consoleNamespaces: readonly Namespace[] = [
   consolePage('users', '/users', 'Accounts found (/users), one account (/users/<id>)', 'tree'),
   consolePage('review', '/review', 'Held and decided results (/review), one result (/review/<id>)', 'tree'),
   consolePage('communities', '/communities', 'Communities and their invite codes'),
+  consolePage('links', '/links', 'A share link found by its code, to revoke it (ADR 0044)'),
   consolePage('settings', '/settings', 'Sign-in methods and the registration mode'),
   consolePage('audit', '/audit', 'The audit log'),
   consolePage('security', '/security', 'The operator’s own two-factor authentication'),
@@ -430,6 +440,8 @@ export const hubLinks = {
     path: '/account/profiles',
     note: 'The profile picker; ?auto=true goes straight on with one profile',
   },
+  RoomLink: { path: '/r', note: 'A room’s short link, /r/<code>: a link preview’s way to the app' },
+  ShareLink: { path: '/s', note: 'A share link, /s/<code>: a link preview’s way to the app (ADR 0044)' },
 } as const satisfies Record<string, { path: string; note: string }>;
 
 /**
@@ -486,3 +498,38 @@ export const hubRedirects: readonly Redirect[] = [
     note: 'A game’s online rooms',
   },
 ];
+
+/**
+ * The link-preview crawlers (ADR 0044): a `User-Agent` with one of these, compared without case, asking for a link of a
+ * namespace with `linkPreview` gets the API's card for it. Messenger's cards are fetched by `facebookexternalhit`.
+ * Zalo's crawler is matched by its name alone, which its in-app browser also carries: `linkPreviewBrowsers` keeps
+ * people out.
+ */
+export const linkPreviewCrawlers: readonly string[] = [
+  'facebookexternalhit',
+  'Facebot',
+  'Twitterbot',
+  'TelegramBot',
+  'Slackbot',
+  'Discordbot',
+  'WhatsApp/',
+  'LinkedInBot',
+  'Zalo',
+];
+
+/**
+ * Marks of a person's browser — a phone's, or an app's in-app browser (Zalo's and Messenger's on a phone say `Mobile`,
+ * Facebook's and Messenger's `FBAN`/`FBAV`/`FB_IAB`): a `User-Agent` with one of these, compared without case, always
+ * gets the app's page, whatever crawler's name it also carries. People always get the app.
+ */
+export const linkPreviewBrowsers: readonly string[] = ['Mobile', 'FBAN', 'FBAV', 'FB_IAB', 'Instagram'];
+
+/**
+ * The query parameter that marks a person sent on from a card to the app (`?app=1`): the card's script, or its link
+ * with scripts off, adds it, and a request that carries it always gets the app's page — whatever its `User-Agent` says,
+ * so a person is never stuck on the card. The hub ignores it.
+ */
+export const linkPreviewAppQuery = 'app';
+
+/** The characters a code in a previewed link may have, and how many: anything else is the app's page. */
+export const linkPreviewCode = '[0-9A-Za-z-]{1,20}';

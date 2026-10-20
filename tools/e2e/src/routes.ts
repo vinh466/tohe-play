@@ -3,7 +3,8 @@
 // the FAQ, about, the terms and the privacy notice) are static HTML, indexed, each with the CSP of the public pages and a
 // link preview, assets under /_web/; every app namespace gets the app's page, not indexed, with its own link preview; a
 // path in no namespace gets a real 404; robots.txt, sitemap.xml and llms.txt list what the map generates; HSTS covers
-// subdomains. Its second site serves the console's host: the console's page in the console's namespaces, never
+// subdomains; a link-preview crawler gets the API's card for /s/<code> and /r/<code>, a person the app (ADR 0044). Its
+// second site serves the console's host: the console's page in the console's namespaces, never
 // indexed, the API's console routes behind the console's own session, and nothing else.
 // Runs against the hub's Caddy (docker compose up, CI's stack job), not `pnpm dev`, whose Vite answers every path
 // with the app. Usage: HUB_URL=http://localhost:4720 CONSOLE_URL=http://localhost:4721 pnpm --filter @tohe/e2e routes
@@ -345,6 +346,109 @@ for (const path of [
     (consoleRoot.headers.get('strict-transport-security') ?? '').includes('includeSubDomains'),
     'console: HSTS includes subdomains',
   );
+}
+
+// Link previews (ADR 0044): a known crawler asking for /s/<code> or /r/<code> gets the API's card — og: and twitter:
+// tags, escaped, naming no one at a table — while a person, in a browser or in Zalo's in-app browser, gets the app's
+// page. A share link is made the way the hub does: a device key, a device profile with the terms, then the link.
+{
+  const crawler = 'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)';
+  const people = {
+    android:
+      'Mozilla/5.0 (Linux; Android 14; SM-A556E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
+    zalo: 'Mozilla/5.0 (Linux; Android 14; SM-A556E) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0.0.0 Mobile Safari/537.36 Zalo/24.09.01',
+  };
+  const as = (path: string, userAgent: string) =>
+    fetch(new URL(path, hubUrl), { headers: { 'User-Agent': userAgent }, redirect: 'manual' });
+  const meta = (body: string, name: string) =>
+    new RegExp(`<meta (?:name|property)="${name}" content="([^"]*)"`).exec(body)?.[1];
+
+  const started = await fetch(new URL('/api/devices', hubUrl), { method: 'POST' });
+  const cookie = (started.headers.get('set-cookie') ?? '').split(';')[0] ?? '';
+  const profile = crypto.randomUUID();
+  const terms = '2026-10-20';
+  const registered = await fetch(new URL('/api/devices/profiles', hubUrl), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Cookie: cookie },
+    body: JSON.stringify({ id: profile, name: 'Mèo E2E', avatar: '🦊', termsVersion: terms }),
+  });
+  const game = gameIds.includes('merge-block') ? 'merge-block' : (gameIds[0] ?? '');
+  const made = await fetch(new URL('/api/links', hubUrl), {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      Cookie: cookie,
+      'X-Tohe-Device-Profile': profile,
+      'X-Tohe-Terms': terms,
+    },
+    body: JSON.stringify({ kind: 'game', gameId: game }),
+  });
+  const code = made.ok ? ((await made.json()) as { code: string }).code : '';
+  check(
+    registered.ok && made.ok && /^[0-9A-Z]{8}$/.test(code),
+    `a share link made as a device profile (${registered.status}, ${made.status} ${code})`,
+  );
+
+  const card = await as(`/s/${code}`, crawler);
+  const cardBody = await card.text();
+  check(
+    card.status === 200 &&
+      !cardBody.includes('<div id="root">') &&
+      meta(cardBody, 'og:title')?.startsWith('Mèo E2E mời bạn chơi ') === true &&
+      meta(cardBody, 'twitter:title') === meta(cardBody, 'og:title') &&
+      meta(cardBody, 'og:url') === `${publicHubUrl}/s/${code}` &&
+      meta(cardBody, 'og:image') === `${publicHubUrl}/og.png` &&
+      (card.headers.get('x-robots-tag') ?? '').includes('noindex'),
+    `/s/${code} for a crawler: the API's card, the maker and the game (${card.status} ${meta(cardBody, 'og:title')})`,
+  );
+  const table = await as('/r/123456', crawler);
+  const tableBody = await table.text();
+  check(
+    table.status === 200 &&
+      !tableBody.includes('<div id="root">') &&
+      meta(tableBody, 'og:title') === 'Lời mời vào bàn chơi Tò He',
+    `/r/123456 for a crawler: the table's card, naming no one (${table.status})`,
+  );
+  const unknown = await as('/s/ZZZZZZZZ', crawler);
+  check(
+    unknown.status === 200 && meta(await unknown.text(), 'og:title') === 'Tò He',
+    `/s/ZZZZZZZZ for a crawler: 200 and the generic card (${unknown.status})`,
+  );
+  // The card keeps its own CSP — its one script, by hash — and says it varies with the User-Agent.
+  const cardCsp = card.headers.get('content-security-policy') ?? '';
+  check(
+    /^default-src 'none'; script-src 'sha256-[A-Za-z0-9+/=]+';/.test(cardCsp) &&
+      !cardCsp.includes("script-src 'self'") &&
+      (card.headers.get('vary') ?? '').includes('User-Agent') &&
+      cardBody.includes(`href="${publicHubUrl}/s/${code}?app=1">Mở Tò He</a>`) &&
+      cardBody.includes('<script>'),
+    `/s/${code} for a crawler: its own CSP, Vary: User-Agent, the script and the link that send a person on (${cardCsp})`,
+  );
+  // Sent on from a card (?app=1), a crawler's User-Agent too gets the app — a person in an in-app browser is never stuck.
+  for (const path of [`/s/${code}?app=1`, '/r/123456?app=1']) {
+    const page = await as(path, crawler);
+    const body = await page.text();
+    check(
+      page.status === 200 &&
+        body.includes('<div id="root">') &&
+        (page.headers.get('content-security-policy') ?? '').includes("script-src 'self'") &&
+        (page.headers.get('vary') ?? '').includes('User-Agent'),
+      `${path} for a crawler's User-Agent: the app's page, with the hub's CSP and Vary (${page.status})`,
+    );
+  }
+  for (const [who, userAgent] of Object.entries(people)) {
+    for (const path of [`/s/${code}`, '/r/123456']) {
+      const page = await as(path, userAgent);
+      const body = await page.text();
+      check(
+        page.status === 200 &&
+          body.includes('<div id="root">') &&
+          meta(body, 'og:url') === `${publicHubUrl}${path}` &&
+          (page.headers.get('content-security-policy') ?? '').includes("script-src 'self'"),
+        `${path} for a person (${who}): the app's page, unchanged (${page.status})`,
+      );
+    }
+  }
 }
 
 if (failures.length > 0) {

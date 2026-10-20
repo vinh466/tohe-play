@@ -61,7 +61,7 @@ Kept for later, without DNS: `api.`, `account.`, `studio.`, `media.`, `uat.` ([A
 | `/og.png`, `/llms.txt` | public pages — the picture a link preview shows, and the list of the pages for AI readers | static | not in the sitemap |
 | `/play`, `/play/<gameId>/…` | the app — the catalog, and only game ids under `/play/`, so a game named like a page never collides: `/play/<gameId>`, `/play/<gameId>/rooms`, `/play/<gameId>/rooms/<roomId>`, `/play/<gameId>/rooms/<roomId>/replay/<hand>` | the app's page | no |
 | `/account/…` | the app — signing in and up (`/account/sign-in`, `/account/register`), password, email, profiles, what telemetry sends (`/account/data`), the account itself (`/account`) | the app's page | no |
-| `/r/<code>`, `/s/<code>` | the app's short links | the app's page | no |
+| `/r/<code>`, `/s/<code>` | the app's short links: a table's, a share link's ([Entry links](entry-links.md)); a known link-preview crawler gets the API's card for them instead, through a rewrite to `/api/previews/…` that the map generates | the app's page | no |
 | the app's assets, manifest and service worker | the app | static | — |
 | `/api/…` | the API | proxied | — |
 | `/.well-known/…`, `/robots.txt`, `/sitemap.xml` | the platform | generated | — |
@@ -159,7 +159,7 @@ does not carry: they answer `404`.
 
 | Namespace | Component | Served | Indexed |
 | --- | --- | --- | --- |
-| `/`, `/games`, `/health`, `/system`, `/users/…`, `/review/…`, `/communities`, `/settings`, `/audit`, `/security`, `/setup` | the console (`apps/console`) | the console's page | no |
+| `/`, `/games`, `/health`, `/system`, `/users/…`, `/review/…`, `/communities`, `/links`, `/settings`, `/audit`, `/security`, `/setup` | the console (`apps/console`) | the console's page | no |
 | `/assets/…`, `/index.html`, `/theme-init.js`, `/favicon.svg` | the console | static | no |
 | `/api/admin/…` | the API's console routes — and no other route of the API | proxied | — |
 | anything else — the hub's pages, `/admin`, `/robots.txt` | — | a real `404` | — |
@@ -208,7 +208,7 @@ stays in force for its part.
 | Part | Today | In place when |
 | --- | --- | --- |
 | The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; `security.txt` once `hub.securityContact` is set in `platform-infra` | the map's pull request |
-| The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`; manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the old paths answer `301` | the routes' pull request |
+| The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, `/s` (its page arrives with step I3b of [Entry links](entry-links.md)); manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the old paths answer `301` | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | in place: `apps/web` is built into the hub image and serves the home page, the games' pages, the install guide, the FAQ, about, and the terms and privacy notice at the root (indexed, its own CSP; a script on `/` sends a returning player to `/play`), with `/sitemap.xml`, `robots.txt`, `llms.txt` and the link-preview picture; `apps/docs` serves the docs at the root of `docs.toheplay.io.vn` (`/docs/<page>` answers `301`); the chart's `site` values are `docs` | the public pages' pull request |
 | The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup, optional for now (2026-10-20); the API does not check Access's token yet | the console's pull request |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |

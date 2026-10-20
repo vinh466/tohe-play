@@ -237,6 +237,7 @@ entries.
 | `profile.rename` | A profile renamed, with the names before and after |
 | `profile.hide`, `profile.show` | A profile hidden from public boards — the reason in the details — or let back |
 | `profile.withdraw` | A profile — an account's or a device's — taken off its tables |
+| `link.revoke` | A share link revoked, with its maker's profile id ([Entry links](entry-links.md#the-console)) |
 | `result.approve`, `result.reject`, `result.reopen` | A person's decision about a result (target `result {id}`), with the levels before and after and the note |
 | `settings.change` | Sign-in methods or the registration mode switched, with the new values |
 | `community.create` | A community made |
@@ -357,6 +358,7 @@ It exits with 0 when done, 1 when no account signs in with the address, 2 for a 
 | Hệ thống, `/system` | The build, environment and start time · migrations applied and pending · what each background worker last did · settings — the hub's and the console's addresses among them — never secrets | `BackgroundWork`, EF Core, options |
 | Người dùng, `/users`, `/users/{id}` | Accounts found — or those waiting to be deleted, the soonest due first — then one account and its profiles, with what may be done to them | `AccountsAdmin` |
 | Xem xét kết quả, `/review?list=held\|decided`, `/review/{id}` | The held results, oldest first, or the decided ones, latest first; then one result — its evidence, a ranked run played back in the game itself, its profile's history on the board, every change of level — and the decision | `IntegrityReview`, `AccountsAdmin`, `RegistryFacts` |
+| Link chia sẻ, `/links?code=` | A share link found by its code: its game, level, maker, state, uses and every count by day; revoking it | `ShareLinksAdmin` ([Entry links](entry-links.md#the-console)) |
 | Cộng đồng, `/communities` | Communities with how many accounts came with each, their invite codes and links; new ones, revoking | `CommunitiesAdmin` |
 | Đăng nhập & đăng ký, `/settings` | Each sign-in method and who relies on it alone; the registration mode; switching both | `RuntimeSettings`, `IdentityFacts` |
 | Nhật ký, `/audit` | The audit log, newest first, a page at a time | `admin.audit_log` |
@@ -409,6 +411,8 @@ three failures in a row without anyone opening the page.
 | `POST /api/admin/profiles/{id}/withdraw` | `admin.profiles.moderate`, step-up | Take a profile — an account's or a device's — off its tables |
 | `GET /api/admin/device-profiles?q=` | `admin.users.read` | Device profiles on the server by name or id, fifty at most |
 | `PATCH /api/admin/device-profiles/{id}` | `admin.profiles.moderate`, step-up | Rename a device profile on the server |
+| `GET /api/admin/links/{code}` | `admin.users.read` | A share link by its code: its maker, state and every count by day ([Entry links](entry-links.md#the-console)) |
+| `POST /api/admin/links/{code}/revoke` | `admin.profiles.moderate`, step-up | Revoke it; revoking again logs nothing |
 | `GET /api/admin/review?after=` · `GET /api/admin/review/decided?before=` | `admin.results.review` | Held results, oldest first · results people decided about or the engine rejected, the latest decision first; fifty at a time, with whose they are, how many are held, and the cursor of the next page |
 | `GET /api/admin/review/{id}` | `admin.results.review` | One result: where it stands and why, its evidence, its profile's history on the board, every change of level |
 | `GET /api/admin/review/{id}/run` | `admin.results.review` | A ranked run's seed and moves, and the build that played it — its entry URL — while the games origin serves it; 404 for a result with no ranked run |

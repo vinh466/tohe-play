@@ -65,6 +65,7 @@ export function Shell() {
               ...pages,
               ...(mayUsers ? [{ to: '/users', label: 'Người dùng' } as const] : []),
               ...(mayReview ? [{ to: '/review', label: 'Xem xét kết quả' } as const] : []),
+              ...(mayUsers ? [{ to: '/links', label: 'Link chia sẻ' } as const] : []),
               { to: '/communities', label: 'Cộng đồng' } as const,
               { to: '/settings', label: 'Đăng nhập & đăng ký' } as const,
               ...(mayAudit ? [{ to: '/audit', label: 'Nhật ký' } as const] : []),

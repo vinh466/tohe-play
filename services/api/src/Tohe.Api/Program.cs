@@ -8,6 +8,7 @@ using Tohe.Api.Modules.Dev;
 using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
+using Tohe.Api.Modules.Links;
 using Tohe.Api.Modules.Platform;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
@@ -42,6 +43,7 @@ builder.AddProgressModule();
 builder.AddIntegrityModule();
 builder.AddTelemetryModule();
 builder.AddRoomsModule();
+builder.AddLinksModule();
 builder.AddAdminModule();
 
 var app = builder.Build();
@@ -92,6 +94,7 @@ api.MapProgressEndpoints();
 api.MapIntegrityEndpoints();
 api.MapTelemetryEndpoints();
 api.MapRoomsEndpoints(app);
+api.MapLinksEndpoints();
 api.MapAdminEndpoints();
 
 await app.RunAsync();

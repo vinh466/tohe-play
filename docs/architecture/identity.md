@@ -540,6 +540,7 @@ sequenceDiagram
 | Its public ID, its id | Retired in `identity.retired_profile_ids`: never given to another profile, never adopted from a device — a device profile's id alone, as it has no public ID |
 | The ids merged into it (its aliases) | Retired with it; the aliases go ([Merge aliases](#merge-aliases)) |
 | A transfer code of it (a device profile) | Deleted with it |
+| The share links it made, and their counts (Links) | Deleted with it: their codes resolve as `unknown` ([Entry links](entry-links.md#its-life)). Merged into another profile, they move there; moved to another device, they stay |
 | The notes that it moved away from a device | Deleted with it |
 | An account's sign-in methods, roles, keys, sign-in attempts | Deleted with the account |
 | Sent email records · audit entries | 30 days (ADR 0022) · a year ([Admin console](admin.md#the-audit-log)) |
@@ -601,7 +602,7 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | A profile is asked to tables by its ID only as its owner allows — anyone, people it played with, its account — and a child only within its account; a child's ID is not found from outside its account, nor is a profile of a suspended account ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)) | `ProfileEndpoints` (`child_invites_account_only`, `GET /api/profiles/by-id`), `IProfileDirectory`, Rooms |
 | Unsafe `/api` requests from another origin (`Sec-Fetch-Site` ≠ `same-origin`) are rejected | `SameOriginGuard` middleware |
 | A profile is an account's or a device's on the server — exactly one — and has a public ID exactly when it is an account's | Check constraints `ck_profiles_owner`, `ck_profiles_public_id` on `identity.profiles` |
-| The device key acts only for its device's device profiles, and only on `/api/devices/*` and at tables; an account's session never acts for a device profile | `DeviceKey`, the `Tohe.Device` and `Tohe.Player` schemes, `DevicePlayers` |
+| The device key acts only for its device's device profiles, and only on `/api/devices/*`, at tables and on its share links (`/api/links`, [Entry links](entry-links.md)); an account's session never acts for a device profile | `DeviceKey`, the `Tohe.Device` and `Tohe.Player` schemes, `DevicePlayers` |
 | A device keeps at most five device profiles on the server; a new one takes the proof-of-work when the console asks, and the name filter | `DeviceEndpoints` |
 | A device profile acts at a table only with the terms the hub shows accepted (`412 terms_required`) | `DevicePlayers` |
 | Device profiles unused for 90 days, and devices unseen for 90 days, are deleted on the server with everything of them | `DeviceCleanup` |
@@ -806,6 +807,7 @@ device profiles in it with E-05):
 | A transfer code: the hashes of its six digits and of its secret, which device made it and which redeemed it, and the saves and scores it carries | `identity.profile_transfers` | ten minutes to redeem and confirm, ten more for the new device to fetch the answer; deleted with the profile |
 | That a profile moved away from a device, and when | `identity.profile_moves` | 90 days, or until that device is deleted |
 | An old id that names a profile it was merged into | `identity.profile_aliases` | with the profile it names; then retired |
+| The share links it made — code, game and version, level, expiry, maximum and uses, revoked — and their counts per day: opened, played, accounts made, totals only ([Entry links](entry-links.md)) | `links.share_links`, `links.share_link_days` | with the profile; merged, they move to the target |
 
 Nothing else: no address, no device fingerprint, no telemetry naming it (ADR 0015). Saves and scores stay on the device
 until the profile moves to another device — and then only while the transfer code lives — or is brought into an
@@ -918,7 +920,7 @@ merge; the alias keeps the old id reachable for what still names it:
 | --- | --- | --- |
 | `GET /api/auth/challenge` | — | A [proof-of-work](#proof-of-work) to solve before signing up or a reset, when the console asks for one |
 | `POST /api/auth/register` | — | Start signing up, with an invite code when [registration](#registration) needs one (and `proof` when the console asks), and the id of the device profile signing up (`deviceProfileId`, `409 id_taken`): a code to the email — 202 and an attempt, whoever the address belongs to |
-| `POST /api/auth/register/confirm` | — | The code creates the account and its first profile — the device profile sent with it, when it is the attempt's ([Device profiles](#bringing-one-into-an-account)) — which plays at once |
+| `POST /api/auth/register/confirm` | — | The code creates the account and its first profile — the device profile sent with it, when it is the attempt's ([Device profiles](#bringing-one-into-an-account)) — which plays at once; `entryCode`, the share link it came from, is counted once as an account made from it and stored nowhere on the account ([Entry links](entry-links.md#counts)) |
 | `POST /api/auth/login` / `POST /api/auth/logout` | — / session | Sign in with the email (an old account's username until it adds one) / out |
 | `POST /api/auth/password/forgot` | — | A code to set a new password, if the address has an account (`proof` when the console asks) — 202 either way |
 | `POST /api/auth/password/reset` | — | The code sets the new password; every other session ends |
@@ -926,7 +928,7 @@ merge; the alias keeps the old id reachable for what still names it:
 | `GET /api/auth/external/pending` | the browser that came back | The step that waits — `email`, `link` or `signup` — or 404 |
 | `POST /api/auth/external/pending/email` · `/email/confirm` | the browser that came back | A code to the address typed · the code proves it; an account with it is linked at once |
 | `POST /api/auth/external/pending/link-code` · `/link` | the browser that came back | A code to the account's address · the code, or the password, links and signs in |
-| `POST /api/auth/external/pending/signup` | the browser that came back | A name, the terms and an invite code when needed create the account — with the device profile sent, as by email; its first profile plays at once |
+| `POST /api/auth/external/pending/signup` | the browser that came back | A name, the terms and an invite code when needed create the account — with the device profile sent, as by email; its first profile plays at once; `entryCode` as by email |
 | `DELETE /api/auth/external/pending` | the browser that came back | Forget the sign-in that waits |
 | `GET /api/auth/me` | session | Account (with its email, linked providers, platform role — [Admin console](admin.md) — and community), its profiles (with public IDs, whether each is on public boards, whether a moderator hid it from them, and who may invite it), active profile, step-up expiries |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |

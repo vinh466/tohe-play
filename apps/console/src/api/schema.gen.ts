@@ -605,6 +605,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/links/{code}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A share link by its code, typed any way codes are read: its maker, state and every count by day. */
+        get: operations["GetAdminShareLink"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/links/{code}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a share link: it resolves as revoked from now on, and its preview is the generic one. */
+        post: operations["RevokeAdminShareLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -689,6 +723,28 @@ export interface components {
             /** Format: int32 */
             openRooms: number;
         };
+        AdminLinkDay: {
+            /** Format: date */
+            day: string;
+            /** Format: int32 */
+            opened: number;
+            /** Format: int32 */
+            played: number;
+            /** Format: int32 */
+            accountsMade: number;
+        };
+        AdminLinkMaker: {
+            /** Format: uuid */
+            profileId: string;
+            name: null | string;
+            child: boolean;
+            /** Format: uuid */
+            accountId: null | string;
+            /** Format: uuid */
+            deviceId: null | string;
+            stopped: boolean;
+            kept: boolean;
+        };
         AdminMeView: {
             /** Format: uuid */
             accountId: string;
@@ -735,6 +791,32 @@ export interface components {
             providers: string[];
             telemetry: boolean;
             operatorReport: boolean;
+        };
+        AdminShareLinkView: {
+            code: string;
+            kind: string;
+            gameId: string;
+            gameVersion: string;
+            level: string;
+            state: string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: int32 */
+            maxUses: null | number;
+            /** Format: int32 */
+            uses: number;
+            /** Format: date-time */
+            revokedAt: null | string;
+            maker: components["schemas"]["AdminLinkMaker"];
+            /** Format: int32 */
+            opened: number;
+            /** Format: int32 */
+            played: number;
+            /** Format: int32 */
+            accountsMade: number;
+            days: components["schemas"]["AdminLinkDay"][];
         };
         AdminSystem: {
             version: string;
@@ -2330,6 +2412,64 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetAdminShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminShareLinkView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RevokeAdminShareLink: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                code: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminShareLinkView"];
                 };
             };
             /** @description Not Found */
