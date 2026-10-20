@@ -674,6 +674,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/devices/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The transfers this device redeemed, newest first, while their answer is kept: a lost answer is read here. */
+        get: operations["ListRedeemedTransfers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/devices/transfers/{id}": {
         parameters: {
             query?: never;
@@ -3315,6 +3332,35 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["TransferView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListRedeemedTransfers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferView"][];
                 };
             };
             /** @description Unauthorized */

@@ -40,6 +40,9 @@ internal interface IRoomOutbox
 
     Task ClosedAsync(Guid roomId, string reason);
 
+    /// <summary>These phones no longer show the profile at this room: out of the room's and the seat's groups.</summary>
+    Task ForgetAsync(Guid roomId, Guid profileId, IReadOnlyCollection<string> connectionIds);
+
     Task SaveRoomAsync(Room room);
 
     Task SaveActionAsync(RoomAction action);
@@ -461,9 +464,19 @@ internal sealed class RoomActor
     public async Task WithdrawAsync(Guid profileId)
     {
         _invites.Remove(profileId);
+        // The phones that showed it — a device it moved away from (ADR 0043) among them — stop receiving its seat's views
+        // and the room, even should it sit here again from another device.
+        var phones = _connections.TryGetValue(profileId, out var set) ? set.ToList() : [];
         if (!IsClosed && IsMember(profileId))
         {
             await LeaveAsync(profileId);
+        }
+
+        if (phones.Count > 0)
+        {
+            _connections.Remove(profileId);
+            CountOnline();
+            await _outbox.ForgetAsync(Room.Id, profileId, phones);
         }
     }
 

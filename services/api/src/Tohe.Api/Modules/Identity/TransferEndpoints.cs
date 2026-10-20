@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.WebUtilities;
@@ -31,7 +32,8 @@ public sealed record TransferAnswer(bool Accept);
 public sealed record TransferRedemption(string? Secret = null, string? Code = null, ProofOfWorkSolution? Proof = null);
 
 /// <summary>A transfer as the device that redeemed it sees it (ADR 0043).</summary>
-/// <param name="State"><c>asked</c> (the old device is asked), <c>done</c>, <c>declined</c> or <c>expired</c>.</param>
+/// <param name="State"><c>asked</c> (the old device is asked), <c>done</c>, <c>declined</c>, <c>full</c> (this device had
+/// five profiles by the time the old one said yes) or <c>expired</c>.</param>
 /// <param name="Profile">Once done: the device profile, now this device's.</param>
 /// <param name="Data">Once done: its saves and scores.</param>
 public sealed record TransferView(Guid Id, string State, DeviceProfileView? Profile = null, DeviceProfileData? Data = null);
@@ -84,6 +86,10 @@ internal static class TransferEndpoints
             .WithName("RedeemTransfer")
             .WithSummary("Redeem a transfer code on this device: the secret moves the profile at once, six digits ask the old device first.");
 
+        transfers.MapGet("/transfers", ListAsync)
+            .WithName("ListRedeemedTransfers")
+            .WithSummary("The transfers this device redeemed, newest first, while their answer is kept: a lost answer is read here.");
+
         transfers.MapGet("/transfers/{id:guid}", GetAsync)
             .WithName("GetRedeemedTransfer")
             .WithSummary("A transfer this device redeemed: asked, done (with the profile, its saves and scores), declined or expired.");
@@ -125,6 +131,22 @@ internal static class TransferEndpoints
         var stale = now - TransferCodes.Grace;
         await db.ProfileTransfers.Where(t => t.ProfileId == id || t.ExpiresAt < stale).ExecuteDeleteAsync(ct);
 
+        // At most 1 MB a code, and 2 MB of live codes a device: the hub sends what fits, newest saves first, and keeps the
+        // rest on the old device.
+        var data = JsonSerializer.Serialize(request.Data ?? new DeviceProfileData(), Json);
+        var bytes = Encoding.UTF8.GetByteCount(data);
+        var others = await db.Database
+            .SqlQuery<long>($"""
+                SELECT COALESCE(SUM(octet_length(data::text)), 0)::bigint AS "Value"
+                FROM identity.profile_transfers
+                WHERE from_device_id = {deviceId} AND expires_at > {stale}
+                """)
+            .SingleAsync(ct);
+        if (bytes > TransferCodes.MaxDataBytes || others + bytes > TransferCodes.MaxDeviceBytes)
+        {
+            return Problems.Of(StatusCodes.Status400BadRequest, "upload_too_large", "Too many saves or scores for one transfer code");
+        }
+
         var transferId = Guid.CreateVersion7(now);
         var live = await LiveCodesAsync(db, now, ct);
         var code = TransferCodes.NewCode();
@@ -141,7 +163,7 @@ internal static class TransferEndpoints
             FromDeviceId = deviceId,
             CodeHash = TransferCodes.HashCode(transferId, code),
             SecretHash = TransferCodes.HashSecret(secret),
-            Data = JsonSerializer.Serialize(request.Data ?? new DeviceProfileData(), Json),
+            Data = data,
             State = TransferState.Open,
             CreatedAt = now,
             ExpiresAt = now + TransferCodes.Lifetime,
@@ -216,10 +238,10 @@ internal static class TransferEndpoints
         }
 
         var refused = await MoveAsync(db, modules, transfer, newDevice, now, ct);
-        if (refused is not null)
+        if (refused is not null && transfer.State == TransferState.Asked)
         {
-            // The new device cannot take it now: the code ends, and the new device hears it was declined.
-            transfer.State = TransferState.Declined;
+            // The new device filled up before the yes: the code ends, and the new device hears why.
+            transfer.State = TransferState.Full;
         }
 
         await db.SaveChangesAsync(ct);
@@ -247,8 +269,11 @@ internal static class TransferEndpoints
 
     /// <summary>
     /// A code redeemed on this device (ADR 0043). The proof-of-work first, when the console asks; then the secret moves
-    /// the profile at once, or six digits — while the server's wrong codes in the hour leave room — make the old device
-    /// asked. Under the transfer's lock, an open code within its ten minutes, of a profile still its device's: anything
+    /// the profile at once, or six digits make the old device asked. Wrong digits are counted for the address
+    /// (<c>Identity:TransferCodeMissesPerAddressPerHour</c>, past which it hears <c>429 transfer_limit</c>) and for the
+    /// whole server (<c>Identity:TransferCodeMissesPerHour</c>, past which digits take a proof-of-work, whatever the
+    /// console says): one source can neither guess on nor shut the digits for everyone. A right code gives its slots
+    /// back. Under the transfer's lock, an open code within its ten minutes, of a profile still its device's: anything
     /// else is the same <c>404 transfer_invalid</c>. The same device asking again with the same secret hears its answer
     /// again.
     /// </summary>
@@ -265,9 +290,15 @@ internal static class TransferEndpoints
         CancellationToken ct)
     {
         var deviceId = DeviceKey.DeviceOf(http.User)!.Value;
-        if (await settings.ProofOfWorkAsync(ct) && !proofs.Accepts(request.Proof))
+        var proven = false;
+        if (await settings.ProofOfWorkAsync(ct))
         {
-            return Problems.ProofOfWorkRequired();
+            if (!proofs.Accepts(request.Proof))
+            {
+                return Problems.ProofOfWorkRequired();
+            }
+
+            proven = true;
         }
 
         var now = clock.GetUtcNow();
@@ -286,16 +317,28 @@ internal static class TransferEndpoints
                 return TransferInvalid();
             }
 
-            var limit = options.Value.TransferCodeMissesPerHour;
-            if (misses.Exhausted(limit))
+            // Each slot is taken before the code is looked at, and given back when it was right.
+            var address = TransferMisses.AddressOf(http.Connection.RemoteIpAddress);
+            if (!misses.TryTake(address, options.Value.TransferCodeMissesPerAddressPerHour))
             {
-                return Problems.Of(StatusCodes.Status429TooManyRequests, "transfer_limit", "Too many wrong transfer codes this hour; use the QR code");
+                return Problems.Of(StatusCodes.Status429TooManyRequests, "transfer_limit", "Too many wrong transfer codes from here this hour; use the QR code");
+            }
+
+            var everyone = misses.TryTake(TransferMisses.Everyone, options.Value.TransferCodeMissesPerHour);
+            if (!everyone && !proven && !proofs.Accepts(request.Proof))
+            {
+                misses.GiveBack(address);
+                return Problems.ProofOfWorkRequired();
             }
 
             found = (await LiveCodesAsync(db, now, ct)).FirstOrDefault(live => TransferCodes.Matches(live, digits))?.Id;
-            if (found is null)
+            if (found is not null)
             {
-                misses.Count(limit);
+                misses.GiveBack(address);
+                if (everyone)
+                {
+                    misses.GiveBack(TransferMisses.Everyone);
+                }
             }
         }
 
@@ -370,6 +413,28 @@ internal static class TransferEndpoints
         var transfer = await db.ProfileTransfers.AsNoTracking()
             .FirstOrDefaultAsync(t => t.Id == id && t.ToDeviceId == deviceId && t.ExpiresAt > kept, ct);
         return transfer is null ? TransferNotFound() : TypedResults.Ok(await ViewAsync(db, transfer, now, ct));
+    }
+
+    /// <summary>
+    /// The transfers this device redeemed, while their answer is kept: the hub that lost the answer to six digits — the
+    /// app closed, the network gone — finds its transfer here, and the profile and data once it is done.
+    /// </summary>
+    private static async Task<Ok<List<TransferView>>> ListAsync(HttpContext http, ToheDbContext db, TimeProvider clock, CancellationToken ct)
+    {
+        var deviceId = DeviceKey.DeviceOf(http.User)!.Value;
+        var now = clock.GetUtcNow();
+        var kept = now - TransferCodes.Grace;
+        var transfers = await db.ProfileTransfers.AsNoTracking()
+            .Where(t => t.ToDeviceId == deviceId && t.ExpiresAt > kept)
+            .OrderByDescending(t => t.CreatedAt)
+            .ToListAsync(ct);
+        var views = new List<TransferView>();
+        foreach (var transfer in transfers)
+        {
+            views.Add(await ViewAsync(db, transfer, now, ct));
+        }
+
+        return TypedResults.Ok(views);
     }
 
     /// <summary>This device's profiles that moved away: the hub keeps what it played since as new device profiles.</summary>

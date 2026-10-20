@@ -204,6 +204,9 @@ internal sealed partial class AccountDeletion(
         var now = clock.GetUtcNow();
         db.RetiredProfileIds.AddRange(profiles.Select(p => new RetiredProfileId { PublicId = p.PublicId, ProfileId = p.Id, RetiredAt = now }));
 
+        // The notes that it moved away from a device go with it (ADR 0043): nothing of it is kept.
+        await db.ProfileMoves.Where(move => ids.Contains(move.ProfileId)).ExecuteDeleteAsync(ct);
+
         // A merge retired its copy's id already; an alias whose id is not retired yet is retired now.
         var aliases = await db.ProfileAliases.Where(alias => ids.Contains(alias.ProfileId)).Select(alias => alias.OldId).ToListAsync(ct);
         var retired = await db.RetiredProfileIds

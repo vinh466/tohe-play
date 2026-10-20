@@ -108,9 +108,19 @@ internal sealed class DeviceProfiles(
     public async Task<Profile?> ServerCopyAsync(HttpContext http, Guid id, CancellationToken ct)
     {
         var device = await http.AuthenticateAsync(DeviceKey.Scheme);
-        return device.Succeeded && DeviceKey.DeviceOf(device.Principal) is { } deviceId
-            ? await db.Profiles.FirstOrDefaultAsync(profile => profile.Id == id && profile.DeviceId == deviceId, ct)
-            : null;
+        if (!device.Succeeded || DeviceKey.DeviceOf(device.Principal) is not { } deviceId)
+        {
+            return null;
+        }
+
+        // Within the caller's transaction, the device's row is held first, as every change to its profiles takes it — a
+        // transfer code moving this very profile included — so the copy read here stays this device's until it commits.
+        if (db.Database.CurrentTransaction is not null)
+        {
+            await db.Database.ExecuteSqlAsync($"SELECT 1 FROM identity.devices WHERE id = {deviceId} FOR UPDATE", ct);
+        }
+
+        return await db.Profiles.FirstOrDefaultAsync(profile => profile.Id == id && profile.DeviceId == deviceId, ct);
     }
 
     /// <summary>
@@ -129,10 +139,12 @@ internal sealed class DeviceProfiles(
     /// <returns>False when the copy went at this very moment — deleted on its device, or cleaned up: nothing changed.</returns>
     public async Task<bool> ConvertAsync(Profile profile, Guid accountId, DeviceProfileUpload upload, string name, DateTimeOffset now, CancellationToken ct)
     {
-        // Its device's profiles are serialized on the device's row (DeviceEndpoints): read again under it.
-        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM identity.devices WHERE id = {profile.DeviceId} FOR UPDATE", ct);
+        // Its device's profiles are serialized on the device's row (DeviceEndpoints): read again under it. Still that
+        // device's — not moved to another with a transfer code meanwhile, nor deleted — or nothing changes.
+        var device = profile.DeviceId;
+        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM identity.devices WHERE id = {device} FOR UPDATE", ct);
         await db.Entry(profile).ReloadAsync(ct);
-        if (db.Entry(profile).State == EntityState.Detached || profile.DeviceId is null)
+        if (db.Entry(profile).State == EntityState.Detached || profile.DeviceId is null || profile.DeviceId != device)
         {
             return false;
         }

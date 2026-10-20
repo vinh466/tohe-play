@@ -1581,6 +1581,40 @@
         }
       }
     },
+    "/api/devices/transfers": {
+      "get": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "The transfers this device redeemed, newest first, while their answer is kept: a lost answer is read here.",
+        "operationId": "ListRedeemedTransfers",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/TransferView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/devices/transfers/{id}": {
       "get": {
         "tags": [

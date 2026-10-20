@@ -270,24 +270,241 @@ public sealed class TransferTests(ApiFactory factory) : IClassFixture<ApiFactory
         Assert.Null(await QueryAsync(db => db.Profiles.Where(p => p.Id == old.ProfileId).Select(p => p.DeviceId).SingleAsync(Ct)));
     }
 
+    // ------------------------------------------------------------------ races, and what happens meanwhile
+
+    [Fact]
+    public async Task Two_devices_redeeming_one_secret_at_once_move_it_once()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var code = await StartAsync(old);
+        var phones = new[] { await StartedPhoneAsync(), await StartedPhoneAsync() };
+        var answers = await Task.WhenAll(phones.Select(phone => RedeemAsync(phone, new { secret = code.Secret })));
+
+        Assert.Single(answers, answer => answer.StatusCode == HttpStatusCode.OK);
+        Assert.Single(answers, answer => answer.StatusCode == HttpStatusCode.NotFound);
+        var winner = phones[Array.FindIndex(answers, answer => answer.StatusCode == HttpStatusCode.OK)];
+        Assert.Equal(await DeviceOfAsync(winner), await QueryAsync(db => db.Profiles.Where(p => p.Id == old.ProfileId).Select(p => p.DeviceId).SingleAsync(Ct)));
+    }
+
+    [Fact]
+    public async Task Its_digits_and_its_secret_at_once_from_two_devices_settle_one_way()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var code = await StartAsync(old);
+        var typing = await StartedPhoneAsync();
+        var scanning = await StartedPhoneAsync();
+        var answers = await Task.WhenAll(RedeemAsync(typing, new { code = code.Code }), RedeemAsync(scanning, new { secret = code.Secret }));
+
+        // Either the digits asked first and the secret finds a used code, or the secret moved it and the digits find none.
+        Assert.Single(answers, answer => answer.StatusCode == HttpStatusCode.OK);
+        var device = await QueryAsync(db => db.Profiles.Where(p => p.Id == old.ProfileId).Select(p => p.DeviceId).SingleAsync(Ct));
+        if (answers[0].StatusCode == HttpStatusCode.OK)
+        {
+            Assert.Equal("asked", (await ReadAsync<TransferView>(answers[0])).State);
+            Assert.Equal(await DeviceOfAsync(old), device);
+        }
+        else
+        {
+            Assert.Equal("done", (await ReadAsync<TransferView>(answers[1])).State);
+            Assert.Equal(await DeviceOfAsync(scanning), device);
+        }
+    }
+
+    [Fact]
+    public async Task Another_device_neither_reads_nor_answers_nor_cancels_someone_elses_code()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var code = await StartAsync(old);
+        var phone = await StartedPhoneAsync();
+        Assert.Equal("asked", (await ReadAsync<TransferView>(await RedeemAsync(phone, new { code = code.Code }))).State);
+
+        // Not even the device that typed the digits: only the profile's own device answers.
+        foreach (var stranger in new[] { phone, await DevicePhoneAsync("Gà Con") })
+        {
+            var status = await stranger.Plain.GetAsync(Url($"/api/devices/profiles/{old.ProfileId}/transfer"), Ct);
+            Assert.Equal((HttpStatusCode.NotFound, "device_profile_not_found"), (status.StatusCode, await CodeAsync(status)));
+            var yes = await stranger.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{old.ProfileId}/transfer/confirm"), new { accept = true }, Ct);
+            Assert.Equal((HttpStatusCode.NotFound, "device_profile_not_found"), (yes.StatusCode, await CodeAsync(yes)));
+            Assert.Equal(HttpStatusCode.NoContent, (await stranger.Plain.DeleteAsync(Url($"/api/devices/profiles/{old.ProfileId}/transfer"), Ct)).StatusCode);
+        }
+
+        Assert.Equal("asked", (await old.Plain.GetFromJsonAsync<TransferStatusView>(Url($"/api/devices/profiles/{old.ProfileId}/transfer"), Ct))!.State);
+        Assert.Equal(await DeviceOfAsync(old), await QueryAsync(db => db.Profiles.Where(p => p.Id == old.ProfileId).Select(p => p.DeviceId).SingleAsync(Ct)));
+    }
+
+    [Fact]
+    public async Task A_yes_after_the_ten_minutes_moves_nothing_and_the_new_device_hears_it_expired()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var code = await StartAsync(old);
+        var phone = await StartedPhoneAsync();
+        var asked = await ReadAsync<TransferView>(await RedeemAsync(phone, new { code = code.Code }));
+        await ExpireAsync(old.ProfileId, TimeSpan.FromSeconds(-1));
+
+        var late = await old.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{old.ProfileId}/transfer/confirm"), new { accept = true }, Ct);
+        Assert.Equal((HttpStatusCode.NotFound, "transfer_not_found"), (late.StatusCode, await CodeAsync(late)));
+        Assert.Equal("expired", (await phone.Plain.GetFromJsonAsync<TransferView>(Url($"/api/devices/transfers/{asked.Id}"), Ct))!.State);
+        Assert.Equal(await DeviceOfAsync(old), await QueryAsync(db => db.Profiles.Where(p => p.Id == old.ProfileId).Select(p => p.DeviceId).SingleAsync(Ct)));
+    }
+
+    [Fact]
+    public async Task A_new_device_full_before_the_yes_hears_it_was_full_not_declined()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var code = await StartAsync(old);
+        var phone = await StartedPhoneAsync();
+        var asked = await ReadAsync<TransferView>(await RedeemAsync(phone, new { code = code.Code }));
+        for (var i = 0; i < DeviceKeys.MaxProfilesPerDevice; i++)
+        {
+            Assert.Equal(HttpStatusCode.OK, (await phone.Plain.PostAsJsonAsync(Url("/api/devices/profiles"), Registration(Guid.NewGuid(), $"Bé {i}"), Ct)).StatusCode);
+        }
+
+        var yes = await old.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{old.ProfileId}/transfer/confirm"), new { accept = true }, Ct);
+        Assert.Equal((HttpStatusCode.Conflict, "too_many_profiles"), (yes.StatusCode, await CodeAsync(yes)));
+        Assert.Equal("full", (await phone.Plain.GetFromJsonAsync<TransferView>(Url($"/api/devices/transfers/{asked.Id}"), Ct))!.State);
+    }
+
+    [Fact]
+    public async Task A_lost_answer_to_six_digits_is_found_in_this_devices_transfers()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var code = await StartAsync(old, new { saves = new[] { Save("merge-block") } });
+        var phone = await StartedPhoneAsync();
+        await RedeemAsync(phone, new { code = code.Code }); // its answer never reached the phone
+        Assert.Empty((await old.Plain.GetFromJsonAsync<List<TransferView>>(Url("/api/devices/transfers"), Ct))!);
+
+        var waiting = Assert.Single((await phone.Plain.GetFromJsonAsync<List<TransferView>>(Url("/api/devices/transfers"), Ct))!);
+        Assert.Equal("asked", waiting.State);
+        await old.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{old.ProfileId}/transfer/confirm"), new { accept = true }, Ct);
+        var done = Assert.Single((await phone.Plain.GetFromJsonAsync<List<TransferView>>(Url("/api/devices/transfers"), Ct))!);
+        Assert.Equal(("done", old.ProfileId), (done.State, done.Profile!.Id));
+        Assert.Single(done.Data!.AllSaves());
+    }
+
+    [Fact]
+    public async Task Deleting_or_merging_the_profile_while_its_code_lives_ends_the_code()
+    {
+        var deleted = await DevicePhoneAsync("Mèo Cam");
+        var deletedCode = await StartAsync(deleted);
+        Assert.Equal(HttpStatusCode.NoContent, (await deleted.Plain.DeleteAsync(Url($"/api/devices/profiles/{deleted.ProfileId}"), Ct)).StatusCode);
+        var phone = await StartedPhoneAsync();
+        Assert.Equal("transfer_invalid", await CodeAsync(await RedeemAsync(phone, new { secret = deletedCode.Secret })));
+
+        var merged = await DevicePhoneAsync("Gà Con");
+        var mergedCode = await StartAsync(merged);
+        var me = await Accounts.SignUpAsync(factory, merged.Plain, "Chú");
+        await Accounts.StepUpAsync(merged.Plain);
+        Assert.Equal(HttpStatusCode.OK, (await merged.Plain.PostAsJsonAsync(
+            Url($"/api/profiles/{me.Profiles[0].Id}/merge"), new { name = "Gà Con", deviceProfileId = merged.ProfileId }, Ct)).StatusCode);
+        Assert.Equal("transfer_invalid", await CodeAsync(await RedeemAsync(phone, new { secret = mergedCode.Secret })));
+        Assert.Equal(0, await QueryAsync(db => db.ProfileTransfers.CountAsync(t => t.ProfileId == deleted.ProfileId || t.ProfileId == merged.ProfileId, Ct)));
+    }
+
+    [Fact]
+    public async Task A_profile_that_moved_away_cannot_be_brought_into_an_account_by_its_old_device()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        await RedeemAsync(await StartedPhoneAsync(), new { secret = (await StartAsync(old)).Secret });
+        await Accounts.SignUpAsync(factory, old.Plain, "Chú");
+        await Accounts.StepUpAsync(old.Plain);
+        var adopt = await old.Plain.PostAsJsonAsync(Url("/api/profiles/adopt"), Upload(old.ProfileId, "Mèo Cam"), Ct);
+        Assert.Equal((HttpStatusCode.Conflict, "id_taken"), (adopt.StatusCode, await CodeAsync(adopt)));
+        Assert.NotNull(await QueryAsync(db => db.Profiles.Where(p => p.Id == old.ProfileId).Select(p => p.DeviceId).SingleAsync(Ct)));
+    }
+
+    [Fact]
+    public async Task Moved_away_notes_go_after_90_days_and_with_the_profile()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var phone = await StartedPhoneAsync();
+        await RedeemAsync(phone, new { secret = (await StartAsync(old)).Secret });
+        var second = await DevicePhoneAsync("Gà Con");
+        await RedeemAsync(phone, new { secret = (await StartAsync(second)).Secret });
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+            var longAgo = DateTimeOffset.UtcNow.AddDays(-91);
+            await db.ProfileMoves.Where(m => m.ProfileId == old.ProfileId).ExecuteUpdateAsync(set => set.SetProperty(m => m.MovedAt, longAgo), Ct);
+            await scope.ServiceProvider.GetRequiredService<DeviceCleanup>().RunAsync(Ct);
+        }
+
+        Assert.Empty((await old.Plain.GetFromJsonAsync<List<ProfileMoveView>>(Url("/api/devices/moves"), Ct))!);
+        Assert.Single((await second.Plain.GetFromJsonAsync<List<ProfileMoveView>>(Url("/api/devices/moves"), Ct))!);
+
+        // Deleted on its new device: nothing of it is kept, the note neither.
+        Assert.Equal(HttpStatusCode.NoContent, (await phone.Plain.DeleteAsync(Url($"/api/devices/profiles/{second.ProfileId}"), Ct)).StatusCode);
+        Assert.Empty((await second.Plain.GetFromJsonAsync<List<ProfileMoveView>>(Url("/api/devices/moves"), Ct))!);
+    }
+
     // ------------------------------------------------------------------ against guessing
 
     [Fact]
-    public async Task Wrong_six_digit_codes_have_a_limit_for_the_whole_server_and_the_secret_still_works()
+    public async Task Wrong_six_digit_codes_have_a_limit_per_address_and_the_secret_still_works()
     {
-        await using var app = factory.WithWebHostBuilder(builder => builder.UseSetting("Identity:TransferCodeMissesPerHour", "2"));
+        await using var app = factory.WithWebHostBuilder(builder => builder.UseSetting("Identity:TransferCodeMissesPerAddressPerHour", "2"));
         var old = await DevicePhoneAsync("Mèo Cam");
         var code = await StartAsync(old);
         var wrong = code.Code == "000000" ? "000001" : "000000";
 
-        // Two guessers on two devices share the server's hour.
+        // A right code gives its slot back: it never counts.
+        var guesser = await StartedPhoneAsync(app.CreateClient());
+        var right = await StartAsync(await DevicePhoneAsync("Gà Con"));
+        Assert.Equal("asked", (await ReadAsync<TransferView>(await RedeemAsync(guesser, new { code = right.Code }))).State);
+        Assert.Equal("transfer_invalid", await CodeAsync(await RedeemAsync(guesser, new { code = wrong })));
+        Assert.Equal("transfer_invalid", await CodeAsync(await RedeemAsync(guesser, new { code = wrong })));
+        var limited = await RedeemAsync(guesser, new { code = code.Code });
+        Assert.Equal((HttpStatusCode.TooManyRequests, "transfer_limit"), (limited.StatusCode, await CodeAsync(limited)));
+        Assert.Equal("done", (await ReadAsync<TransferView>(await RedeemAsync(guesser, new { secret = code.Secret }))).State);
+    }
+
+    [Fact]
+    public async Task Past_the_servers_wrong_codes_six_digits_take_a_proof_of_work_instead_of_being_shut()
+    {
+        await using var app = factory.WithWebHostBuilder(builder => builder
+            .UseSetting("Identity:TransferCodeMissesPerHour", "2")
+            .UseSetting("Identity:ProofOfWorkMaxNumber", "2000"));
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var code = await StartAsync(old);
+        var wrong = code.Code == "000000" ? "000001" : "000000";
+
         var guesser = await StartedPhoneAsync(app.CreateClient());
         var another = await StartedPhoneAsync(app.CreateClient());
         Assert.Equal("transfer_invalid", await CodeAsync(await RedeemAsync(guesser, new { code = wrong })));
         Assert.Equal("transfer_invalid", await CodeAsync(await RedeemAsync(another, new { code = wrong })));
-        var limited = await RedeemAsync(guesser, new { code = code.Code });
-        Assert.Equal((HttpStatusCode.TooManyRequests, "transfer_limit"), (limited.StatusCode, await CodeAsync(limited)));
-        Assert.Equal("done", (await ReadAsync<TransferView>(await RedeemAsync(another, new { secret = code.Secret }))).State);
+
+        // The console's switch is off, yet six digits now take a solved challenge — and still work with one.
+        var asked = await RedeemAsync(another, new { code = code.Code });
+        Assert.Equal((HttpStatusCode.BadRequest, "proof_of_work_required"), (asked.StatusCode, await CodeAsync(asked)));
+        var challenge = (await another.Plain.GetFromJsonAsync<ProofOfWorkChallenge>(Url("/api/auth/challenge"), Ct))!;
+        var number = Enumerable.Range(0, challenge.MaxNumber + 1).First(n => ProofOfWork.Hash(challenge.Salt, n) == challenge.Challenge);
+        var solved = await RedeemAsync(another, new { code = code.Code, proof = new ProofOfWorkSolution(challenge.Token, number) });
+        Assert.Equal("asked", (await ReadAsync<TransferView>(solved)).State);
+    }
+
+    [Fact]
+    public async Task A_code_carries_at_most_a_megabyte_and_a_device_two_in_its_live_codes()
+    {
+        var old = await DevicePhoneAsync("Mèo Cam");
+        var big = new string('x', 60_000);
+        object Saves(int count) => new { saves = Enumerable.Range(0, count).Select(i => new { gameId = $"game-{i}", data = new { big }, updatedAt = DateTimeOffset.UtcNow }) };
+
+        var tooBig = await old.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{old.ProfileId}/transfer"), new { termsVersion = Terms, data = Saves(17) }, Ct);
+        Assert.Equal((HttpStatusCode.BadRequest, "upload_too_large"), (tooBig.StatusCode, await CodeAsync(tooBig)));
+
+        // Two codes of 0.9 MB on one device; a third does not fit, and replacing one does.
+        var ids = new List<Guid> { old.ProfileId };
+        for (var i = 0; i < 2; i++)
+        {
+            var id = Guid.NewGuid();
+            Assert.Equal(HttpStatusCode.OK, (await old.Plain.PostAsJsonAsync(Url("/api/devices/profiles"), Registration(id, $"Bé {i}"), Ct)).StatusCode);
+            ids.Add(id);
+        }
+
+        Assert.Equal(HttpStatusCode.OK, (await old.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{ids[0]}/transfer"), new { termsVersion = Terms, data = Saves(15) }, Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await old.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{ids[1]}/transfer"), new { termsVersion = Terms, data = Saves(15) }, Ct)).StatusCode);
+        var third = await old.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{ids[2]}/transfer"), new { termsVersion = Terms, data = Saves(15) }, Ct);
+        Assert.Equal((HttpStatusCode.BadRequest, "upload_too_large"), (third.StatusCode, await CodeAsync(third)));
+        Assert.Equal(HttpStatusCode.OK, (await old.Plain.PostAsJsonAsync(Url($"/api/devices/profiles/{ids[1]}/transfer"), new { termsVersion = Terms, data = Saves(15) }, Ct)).StatusCode);
     }
 
     [Fact]
@@ -553,6 +770,15 @@ public sealed class TransferTests(ApiFactory factory) : IClassFixture<ApiFactory
             FinishedAt = DateTimeOffset.UtcNow,
         });
         await db.SaveChangesAsync(Ct);
+    }
+
+    /// <summary>The profile's code ends <paramref name="fromNow"/> from now (a negative span: it has ended).</summary>
+    private async Task ExpireAsync(Guid profileId, TimeSpan fromNow)
+    {
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        var at = DateTimeOffset.UtcNow + fromNow;
+        await db.ProfileTransfers.Where(t => t.ProfileId == profileId).ExecuteUpdateAsync(set => set.SetProperty(t => t.ExpiresAt, at), Ct);
     }
 
     private async Task<T> QueryAsync<T>(Func<ToheDbContext, Task<T>> query)

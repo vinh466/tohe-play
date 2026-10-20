@@ -314,7 +314,9 @@ Tables opened before I2a kept their door: "my account's profiles only" became `o
   merged into an account's profile, they move to it and a [merge alias](identity.md#merge-aliases) keeps the old id
   reachable. Moved to another device with a [transfer code](identity.md#the-transfer-code), it leaves its tables (a bot
   finishes a hand) and its seats and results stay its own; its old device acts for it no more
-  (`410 device_profile_moved`).
+  (`410 device_profile_moved`). A profile withdrawn from a table — moved, deleted, brought into an account — takes its
+  phones out of the room's groups (`room:{R}` and `room:{R}:{P}`), so a phone it left receives nothing of its seat even
+  should it sit there again from another device; `Exit` needs no profile that still acts.
 - **Moderation**: the console takes any profile off its tables — a bot finishes a hand in progress — and renames a
   device profile ([Admin console](admin.md#users)).
 

@@ -540,6 +540,7 @@ sequenceDiagram
 | Its public ID, its id | Retired in `identity.retired_profile_ids`: never given to another profile, never adopted from a device — a device profile's id alone, as it has no public ID |
 | The ids merged into it (its aliases) | Retired with it; the aliases go ([Merge aliases](#merge-aliases)) |
 | A transfer code of it (a device profile) | Deleted with it |
+| The notes that it moved away from a device | Deleted with it |
 | An account's sign-in methods, roles, keys, sign-in attempts | Deleted with the account |
 | Sent email records · audit entries | 30 days (ADR 0022) · a year ([Admin console](admin.md#the-audit-log)) |
 
@@ -605,7 +606,7 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | A device profile acts at a table only with the terms the hub shows accepted (`412 terms_required`) | `DevicePlayers` |
 | Device profiles unused for 90 days, and devices unseen for 90 days, are deleted on the server with everything of them | `DeviceCleanup` |
 | A transfer code moves only its own profile, only while that profile is its device's, once, within ten minutes; six typed digits move it only with the old device's yes | `TransferEndpoints` (the transfer's row locked; its code's hash cleared when used) |
-| Redeeming a transfer code takes the proof-of-work when the console asks, the `auth-code` bucket per address, and at most `Identity:TransferCodeMissesPerHour` wrong six-digit codes an hour for the whole server | `TransferEndpoints`, `TransferMisses` |
+| Redeeming a transfer code takes the proof-of-work when the console asks, the `auth-code` bucket per address, at most `Identity:TransferCodeMissesPerAddressPerHour` wrong six-digit codes an hour per address, and a proof-of-work for six digits past `Identity:TransferCodeMissesPerHour` wrong ones for the whole server | `TransferEndpoints`, `TransferMisses` |
 | An id merged into a profile, kept as its alias, is never taken again; deleting the profile retires it | `DeviceProfiles.IdTakenAsync`, `AccountDeletion` |
 | Per client IP, 10 requests a minute in each of three buckets: signing in or asking for a code (`auth`), typing a code back (`auth-code`), a PIN or the parent gate (`auth-gate`) | Rate limiter policies; `Identity:AuthRequestsPerMinute` |
 | 10 wrong passwords lock an account for 5 minutes; a password reset ends the lockout | ASP.NET Core Identity lockout |
@@ -630,8 +631,9 @@ key, the `named` screen and its terms line, tables open to `named` device profil
 - **Up to five per device** (`MAX_DEVICE_PROFILES`), in `/account/profiles` while no account is signed in: switch, make
   one (a suggested name, an avatar), rename, delete; the last one stays. Deleting removes its saves and scores from the
   device, and its copy on the server when it has one. Its ✏️ sheet also has **Chuyển sang máy khác**, and the page's
-  foot **Tôi có mã chuyển máy** ([the transfer code](#the-transfer-code)). On an iPhone, the install steps say that the
-  installed app does not share Safari's data, and how to take a profile along.
+  foot **Tôi có mã chuyển máy** ([the transfer code](#the-transfer-code)). While one of them was never on the server, the
+  page says that such a profile lives only on this device and goes with the browser's data — ADR 0043's warning. On an
+  iPhone, the install steps say that the installed app does not share Safari's data, and how to take a profile along.
 - **From the guest.** The guest of earlier versions — one local profile per device — is the device's first device
   profile: same id, same saves and scores, moved by the IndexedDB upgrade to version 4 without copying anything. The
   device keeps the key `tohe:guest` in `localStorage` for "this device plays without an account" (the public pages
@@ -851,8 +853,10 @@ sequenceDiagram
 
 - **Only a copy on the server moves.** "Chuyển sang máy khác" on a device profile with no copy, or with terms not yet
   accepted, shows the `named` screen and its line first and sends the copy, as for a table. The code carries the
-  profile's saves and scores — at most 50 saves and 1 000 scores, as when one is brought into an account
-  (`400 upload_too_large`) — sent with the request that makes it; the hub marks them as sent.
+  profile's saves and scores — at most 50 saves and 1 000 scores, as when one is brought into an account, and at most
+  1 MB of them; a device's live codes carry 2 MB together (`400 upload_too_large`) — sent with the request that makes
+  it. The hub sends what fits, the newest saves first, and marks as sent exactly what the last code carried: what stays
+  behind is kept on the old device should the profile move.
 - **The code**: six random digits, and a secret of 32 random bytes for the QR code. Both are stored hashed — the
   digits as SHA-256 of the transfer's id and the digits, as the one-time codes by email; the secret as its SHA-256 —
   and the answer that made them is the only time they are seen. Alive **ten minutes**; **one per profile**: a new code
@@ -865,19 +869,30 @@ sequenceDiagram
   API every two seconds); "Không" ends it. Only the secret, read from the QR code or opened as its link, moves the
   profile at once. The link carries the secret after `#`, so it never reaches a server's log.
 - **Against guessing**: redeeming takes the proof-of-work of ADR 0037 when the console turns it on; each address has
-  the `auth-code` bucket (`Identity:AuthRequestsPerMinute`, every redemption counts); and wrong six-digit codes are
-  counted for the whole server, `Identity:TransferCodeMissesPerHour` (100) an hour, past which a six-digit code is
-  refused (`429 transfer_limit`) until the hour has room — the secret still works. A hit by chance still needs the old
-  device's yes.
+  the `auth-code` bucket (`Identity:AuthRequestsPerMinute`, every redemption counts). Wrong six-digit codes are counted
+  twice — a slot is taken before the code is looked at and given back when it was right: per address,
+  `Identity:TransferCodeMissesPerAddressPerHour` (10) an hour, past which that address hears `429 transfer_limit`; and
+  for the whole server, `Identity:TransferCodeMissesPerHour` (100) an hour, past which six digits take a proof-of-work
+  (`400 proof_of_work_required`, whatever the console's switch says) rather than being refused — so no single source can
+  shut the digits for everyone. The secret works throughout. A hit by chance still needs the old device's yes.
 - **Bound to its profile.** A code moves the profile it was made for and nothing else, and only while that profile is
   still its device's: brought into an account or deleted meanwhile, the code is gone with it. The new device needs its
-  own key (`POST /api/devices`), room for one more profile (`409 too_many_profiles`), and is not the old device
-  (`409 transfer_same_device`).
+  own key (`POST /api/devices`), room for one more profile (`409 too_many_profiles`; filled up before the old device's
+  yes, the transfer ends as `full`), and is not the old device (`409 transfer_same_device`). Bringing a copy into an
+  account, merging it and moving it all hold its device's row first, so one of them happens and the others find it
+  gone.
 - **The move**, in one transaction holding both devices' rows: the profile leaves the tables it sits at (a bot finishes
   a hand), its `device_id` becomes the new device's, and the old device is noted as one it moved away from
   (`identity.profile_moves`). Its id, name, avatar, terms, seats and results stay as they were. The new device gets the
-  profile and the saves and scores in the answer — again, if it asks again with the same secret or polls the same
-  transfer, for ten minutes after the code ends.
+  profile and the saves and scores in the answer — again, if it asks again with the same secret, polls the same
+  transfer, or lists its transfers (`GET /api/devices/transfers`), for ten minutes after the code ends. The phones that
+  showed it at a table leave the table's groups, so its old device hears nothing of its seat.
+- **Nothing lost on the new device**: the hub keeps the redemption in IndexedDB (`cache`, `transfer:pending`: the
+  secret, then the transfer's id) before the request goes and after each answer, until it settles — done, declined,
+  full, expired, or gone (`404`). On the receive page, and whenever the hub opens, it carries on: the transfer it named,
+  or — the answer lost — this device's transfers, or the secret again. A network error only waits for next time. The
+  field takes the six digits or the transfer link pasted whole ("Chép link" on the old device), the way in for an
+  installed iPhone app that cannot open the QR code's link.
 - **The old device** learns it on its next request naming the profile — `410 device_profile_moved` from the rooms, the
   copy or the transfer — or from `GET /api/devices/moves` when the hub opens (asked only when a device profile of it
   has a copy). The hub says "'Mèo Cam' đã chuyển sang máy khác"; what was played there since the code was made — a save
@@ -934,10 +949,11 @@ merge; the alias keeps the old id reachable for what still names it:
 | `DELETE /api/devices/profiles/{id}` | device key | Delete the copy for good ([Deleting](#deleting)) — 204, or `404 device_profile_not_found` |
 | `POST /api/devices/profiles/{id}/transfer` | device key | A [transfer code](#the-transfer-code) for this device's profile: `{termsVersion, data?}` → `{code, secret, expiresAt}`, replacing any before; `404 device_profile_not_found`, `410 device_profile_moved`, `412 terms_required`, `400 upload_too_large` |
 | `GET /api/devices/profiles/{id}/transfer` | device key | Its live code: `{state: open \| asked, expiresAt}` — `asked` when a new device typed the six digits; `404 transfer_not_found`, `410 device_profile_moved` once it moved |
-| `POST /api/devices/profiles/{id}/transfer/confirm` | device key | The old device's answer to six typed digits, `{accept}` — 204; `404 transfer_not_found`, `409 too_many_profiles` (the new device filled up meanwhile) |
+| `POST /api/devices/profiles/{id}/transfer/confirm` | device key | The old device's answer to six typed digits, `{accept}` — 204; `404 transfer_not_found`, `409 too_many_profiles` (the new device filled up meanwhile: the transfer ends as `full`) |
 | `DELETE /api/devices/profiles/{id}/transfer` | device key | Cancel its code — 204 |
 | `POST /api/devices/transfers/redeem` | device key | `{secret}` or `{code}`, with `proof` when the console asks → `{id, state: done \| asked, profile?, data?}`; `400 proof_of_work_required`, `404 transfer_invalid`, `409 too_many_profiles`, `409 transfer_same_device`, `429 transfer_limit` |
-| `GET /api/devices/transfers/{id}` | device key (the device that redeemed) | The transfer as that device sees it: `asked`, `done` (with `profile` and `data`), `declined`, `expired`; `404 transfer_not_found` |
+| `GET /api/devices/transfers/{id}` | device key (the device that redeemed) | The transfer as that device sees it: `asked`, `done` (with `profile` and `data`), `declined`, `full`, `expired`; `404 transfer_not_found` |
+| `GET /api/devices/transfers` | device key | The transfers this device redeemed, newest first, while their answer is kept: how a lost answer is found |
 | `GET /api/devices/moves` | device key | This device's profiles that moved away: `[{profileId, movedAt}]` |
 | `GET /api/profiles/by-id/{publicId}` | session | A profile's card — id, ID, name, avatar — to confirm before asking it to a table ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); never a child of another account nor a profile of an account suspended or waiting to be deleted (`profile_not_found`); 20 lookups an hour per account (`lookup_limit`) |
 | `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`, `onPublicBoards` — with `askedChild` to turn a child's on — and an adult's `invites`: `anyone`, `played-with`, `account`) / delete a profile — never the last — with everything of it ([above](#deleting)) |

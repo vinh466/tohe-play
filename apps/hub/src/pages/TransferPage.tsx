@@ -4,20 +4,23 @@ import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next';
 import { ApiError, devices, type TransferCodeView, type TransferView, transfers } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
-import { configQuery } from '../api/queries.ts';
 import { TERMS_VERSION } from '../legal/documents.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { NamedScreen, SendCopy } from '../session/AtTables.tsx';
 import { withProof } from '../session/proofOfWork.ts';
 import { lostServerCopy, tablesStep, termsAgain } from '../session/serverCopy.ts';
 import {
-  cleanCode,
   clock,
   POLL_MS,
-  receive,
+  type Prove,
+  pendingTransfer,
+  readTyped,
+  redeemTransfer,
+  resumeTransfer,
   secondsLeft,
   secretFromHash,
   secretFromScan,
+  settleAnswer,
   settleMoves,
   showCode,
   startTransfer,
@@ -280,26 +283,34 @@ type ReceivePhase =
   | { step: 'scanning' }
   | { step: 'waiting'; id: string }
   | { step: 'done'; name: string }
-  | { step: 'ended'; reason: 'declined' | 'expired' };
+  | { step: 'ended'; reason: 'declined' | 'expired' | 'full' };
 
-/** "Tôi có mã chuyển máy": six digits, a QR code scanned, or the link the QR code carries (its secret after `#`). */
+const prove: Prove = (send) => withProof(undefined, send);
+
+/**
+ * "Tôi có mã chuyển máy": six digits, the transfer link pasted, a QR code scanned, or the link the QR code carries (its
+ * secret after `#`). What it redeems is kept on the device until it settles, so a lost answer or a closed app finds it
+ * again here, or when the hub next opens.
+ */
 export function TransferReceivePage() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const changed = useDeviceProfilesChanged();
-  const config = useQuery(configQuery);
   const [phase, setPhase] = useState<ReceivePhase>({ step: 'form' });
   const [typed, setTyped] = useState('');
   const [showErrors, setShowErrors] = useState(false);
 
-  const settle = useCallback(
-    async (view: TransferView) => {
+  const show = useCallback(
+    async (view: TransferView | null) => {
+      if (!view) return;
       if (view.state === 'done') {
-        const profile = await receive(db, view);
         await changed();
-        setPhase({ step: 'done', name: profile?.name ?? '' });
+        setPhase({ step: 'done', name: view.profile?.name ?? '' });
       } else if (view.state === 'asked') setPhase({ step: 'waiting', id: view.id });
-      else setPhase({ step: 'ended', reason: view.state === 'declined' ? 'declined' : 'expired' });
+      else {
+        const reason = view.state === 'declined' ? 'declined' : view.state === 'full' ? 'full' : 'expired';
+        setPhase({ step: 'ended', reason });
+      }
     },
     [changed],
   );
@@ -308,43 +319,53 @@ export function TransferReceivePage() {
     mutationFn: async (body: { secret: string } | { code: string }) => {
       if ((await db.profiles.count()) >= MAX_DEVICE_PROFILES) throw new TooManyDeviceProfiles();
       await devices.start();
-      return withProof(config.data?.proofOfWork, (proof) =>
-        transfers.redeem({ ...body, proof: proof ?? null }),
-      );
+      return redeemTransfer(db, transfers, body, prove);
     },
-    onSuccess: settle,
+    onSuccess: show,
   });
 
-  // The link of a QR code: its secret after `#`, redeemed at once and taken off the address bar.
+  // On opening: what this device was redeeming goes on; else the link of a QR code, its secret after `#`, is redeemed
+  // at once and taken off the address bar.
   const { mutate } = redeem;
-  const fromLink = useRef(false);
+  const opened = useRef(false);
   useEffect(() => {
-    if (fromLink.current || config.isPending) return;
-    fromLink.current = true;
+    if (opened.current) return;
+    opened.current = true;
     const secret = secretFromHash(window.location.hash);
-    if (!secret) return;
-    window.history.replaceState(window.history.state, '', window.location.pathname);
-    mutate({ secret });
-  }, [config.isPending, mutate]);
+    if (secret) window.history.replaceState(window.history.state, '', window.location.pathname);
+    void resumeTransfer(db, transfers, prove)
+      .catch(() => null)
+      .then(async (view) => {
+        if (view) await show(view);
+        else if (secret) mutate({ secret });
+      });
+  }, [mutate, show]);
 
-  // Waiting for the old device's yes: asked every two seconds.
+  // Waiting for the old device's yes: asked every two seconds. Only "no such transfer" ends it; the network may come back.
   const waiting = phase.step === 'waiting' ? phase.id : null;
   useEffect(() => {
     if (!waiting) return;
     const timer = setInterval(() => {
       transfers
         .get(waiting)
-        .then(settle)
-        .catch(() => setPhase({ step: 'ended', reason: 'expired' }));
+        .then(async (view) => {
+          await settleAnswer(db, view);
+          await show(view);
+        })
+        .catch(async (error: unknown) => {
+          if (!(error instanceof ApiError && error.status === 404)) return;
+          await pendingTransfer.clear(db);
+          setPhase({ step: 'ended', reason: 'expired' });
+        });
     }, POLL_MS);
     return () => clearInterval(timer);
-  }, [waiting, settle]);
+  }, [waiting, show]);
 
-  const code = cleanCode(typed);
+  const read = readTyped(typed, window.location.origin);
   const submit = (event: FormEvent) => {
     event.preventDefault();
     setShowErrors(true);
-    if (code) redeem.mutate({ code });
+    if (read) redeem.mutate(read);
   };
   const failure =
     redeem.error instanceof TooManyDeviceProfiles
@@ -352,6 +373,14 @@ export function TransferReceivePage() {
       : redeem.isError
         ? t(errorKey(redeem.error))
         : null;
+  const ended =
+    phase.step !== 'ended'
+      ? null
+      : phase.reason === 'declined'
+        ? t('transfer.declined')
+        : phase.reason === 'full'
+          ? t('transfer.full', { max: MAX_DEVICE_PROFILES })
+          : t('transfer.receiveExpired');
 
   if (phase.step === 'done') {
     return (
@@ -376,7 +405,7 @@ export function TransferReceivePage() {
       </Screen>
     );
   }
-  if (redeem.isPending && !code) return <Loading label={t('transfer.receiving')} />;
+  if (redeem.isPending && !read) return <Loading label={t('transfer.receiving')} />;
 
   return (
     <Screen narrow>
@@ -385,9 +414,9 @@ export function TransferReceivePage() {
           <h1 className="font-black text-2xl text-brand-ink">{t('transfer.receiveTitle')}</h1>
           <p className="text-ink-soft">{t('transfer.receiveBody')}</p>
         </div>
-        {phase.step === 'ended' ? (
+        {ended ? (
           <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-danger">
-            {phase.reason === 'declined' ? t('transfer.declined') : t('transfer.receiveExpired')}
+            {ended}
           </p>
         ) : null}
         {phase.step === 'scanning' ? (
@@ -402,12 +431,11 @@ export function TransferReceivePage() {
           <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
             <TextField
               label={t('transfer.codeInput')}
-              inputMode="numeric"
+              hint={t('transfer.codeHint')}
               autoComplete="one-time-code"
-              maxLength={9}
               value={typed}
               onChange={(event) => setTyped(event.target.value)}
-              error={showErrors && !code ? t('transfer.errors.invalid') : null}
+              error={showErrors && !read ? t('transfer.errors.invalid') : null}
               className="text-center"
             />
             {failure ? (

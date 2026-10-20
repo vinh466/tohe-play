@@ -21,6 +21,9 @@ public enum TransferState
 
     /// <summary>The old device said no.</summary>
     Declined,
+
+    /// <summary>The old device said yes, but the new one had five device profiles by then.</summary>
+    Full,
 }
 
 /// <summary>
@@ -163,6 +166,12 @@ public static class TransferCodes
     /// <summary>The QR code's secret: 32 random bytes.</summary>
     public const int SecretBytes = 32;
 
+    /// <summary>The saves and scores one code carries, as JSON: 1 MB.</summary>
+    public const int MaxDataBytes = 1_000_000;
+
+    /// <summary>What a device's live codes carry together: 2 MB.</summary>
+    public const long MaxDeviceBytes = 2_000_000;
+
     /// <summary>A moved-away note is kept this long — as long as a device unseen is.</summary>
     public static readonly TimeSpan MovesKept = TimeSpan.FromDays(90);
 
@@ -197,15 +206,16 @@ public static class TransferCodes
 public sealed record ProfileTransferCode(Guid Id, string CodeHash);
 
 /// <summary>
-/// Wrong six-digit transfer codes for the whole server in the last hour (ADR 0043,
-/// <c>Identity:TransferCodeMissesPerHour</c>): past the limit, six-digit codes are refused until the hour has room.
+/// Wrong six-digit transfer codes in the last hour (ADR 0043): per client address
+/// (<c>Identity:TransferCodeMissesPerAddressPerHour</c>, past which that address is refused) and for the whole server
+/// (<c>Identity:TransferCodeMissesPerHour</c>, past which six digits take a proof-of-work).
 /// </summary>
 internal sealed class TransferMisses(TimeProvider clock) : HourlyAllowance(clock)
 {
-    /// <summary>The whole server counts as one.</summary>
-    private static readonly Guid Everyone = Guid.Empty;
+    /// <summary>The whole server counts as one key.</summary>
+    public static readonly Guid Everyone = Guid.Empty;
 
-    public bool Exhausted(int limit) => !HasRoom(Everyone, limit);
-
-    public void Count(int limit) => TryTake(Everyone, limit);
+    /// <summary>A client address as a key of its own: the first 16 bytes of its SHA-256.</summary>
+    public static Guid AddressOf(System.Net.IPAddress? address) =>
+        new(SHA256.HashData(Encoding.UTF8.GetBytes($"transfer:{address?.ToString() ?? "unknown"}")).AsSpan(0, 16));
 }

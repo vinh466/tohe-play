@@ -288,8 +288,10 @@ export const transfers = {
     call(api.DELETE('/api/devices/profiles/{id}/transfer', { params: { path: { id } } })),
   /** The new device redeems the secret, or the six digits. */
   redeem: (body: TransferRedemption) => call(api.POST('/api/devices/transfers/redeem', { body })),
-  /** A transfer this device redeemed: asked, done, declined or expired. */
+  /** A transfer this device redeemed: asked, done, declined, full or expired. */
   get: (id: string) => call(api.GET('/api/devices/transfers/{id}', { params: { path: { id } } })),
+  /** This device's redeemed transfers, newest first: a lost answer is found here. */
+  list: () => call(api.GET('/api/devices/transfers')),
 };
 
 /** Saves and scores of the active profile (M2); the hub calls these from storage/sync.ts, never from games. */

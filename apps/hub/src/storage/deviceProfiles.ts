@@ -275,6 +275,9 @@ export async function markSent(db: ToheDb, id: string, data: DeviceProfileData):
   const saves = new Map((data.saves ?? []).map((save) => [save.gameId, Date.parse(save.updatedAt)]));
   const scores = new Map((data.scores ?? []).map((score) => [score.clientId, score.value]));
   await db.transaction('rw', db.saves, db.scores, async () => {
+    // Only the code made last counts: what an earlier code carried, and this one does not, is unsent again.
+    await db.saves.where('[profileId+gameId]').between(from, to).modify({ synced: 0 });
+    await db.scores.where('[profileId+gameId]').between(from, to).modify({ synced: 0 });
     await db.saves
       .where('[profileId+gameId]')
       .between(from, to)

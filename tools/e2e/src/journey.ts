@@ -409,7 +409,7 @@ try {
   await newPhone.goto(`${hubUrl}/account/transfer`);
   await newPhone.getByRole('heading', { name: 'Nhận hồ sơ từ máy khác' }).waitFor();
   await check(newPhone, 'transfer-receive');
-  await newPhone.getByLabel('6 số trên máy cũ').fill(digits);
+  await newPhone.getByLabel('6 số hoặc link chuyển máy').fill(digits);
   await newPhone.getByRole('button', { name: 'Nhận hồ sơ' }).tap();
   await newPhone.getByRole('heading', { name: 'Đang chờ máy cũ đồng ý…' }).waitFor();
   await oldPhone.getByRole('button', { name: 'Đồng ý' }).tap();

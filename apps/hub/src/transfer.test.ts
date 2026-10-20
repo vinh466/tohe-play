@@ -1,13 +1,19 @@
 import 'fake-indexeddb/auto';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import type { DeviceProfileData, TransferView } from './api/client.ts';
+import { ApiError, type DeviceProfileData, type TransferView } from './api/client.ts';
 import { onDeviceTrouble, reportTrouble } from './rooms/devicePlayer.ts';
 import {
   checkMoves,
   cleanCode,
   clock,
+  fitTransfer,
   movedNotices,
+  type Prove,
+  pendingTransfer,
+  readTyped,
   receive,
+  redeemTransfer,
+  resumeTransfer,
   secondsLeft,
   secretFromHash,
   secretFromScan,
@@ -21,7 +27,9 @@ import { openDb, type ToheDb } from './storage/db.ts';
 import {
   createDeviceProfile,
   currentDeviceProfile,
+  deviceProfileData,
   MAX_DEVICE_PROFILES,
+  markSent,
   TooManyDeviceProfiles,
 } from './storage/deviceProfiles.ts';
 import { loadSave, recordScore, storeSave } from './storage/repository.ts';
@@ -54,9 +62,12 @@ function server() {
     cancel: async () => undefined,
     redeem: async () => ({ id: 't1', state: 'asked' }),
     get: async () => ({ id: 't1', state: 'asked' }),
+    list: async () => [],
   };
   return api;
 }
+
+const noProof: Prove = (send) => send(null);
 
 /** A device profile with a copy on the server and the terms accepted, a save and a score. */
 async function onServer(db: ToheDb, name = 'Mèo Cam') {
@@ -239,5 +250,128 @@ describe('the old device after the move', () => {
     reportTrouble('room_full', 'p1');
     stop();
     expect(heard).toEqual(['device_profile_moved:p1']);
+  });
+});
+
+describe('nothing lost on the new device', () => {
+  const profile = { id: 'moved-1', name: 'Mèo Cam', avatar: '🐯', termsVersion: TERMS };
+  const done: TransferView = {
+    id: 't1',
+    state: 'done',
+    profile,
+    data: { saves: [{ gameId: 'merge-block', data: { level: 7 }, updatedAt: '2026-10-20T09:00:00Z' }] },
+  };
+
+  it('finds the answer to six digits in its transfers when the answer was lost on the way', async () => {
+    const db = fresh();
+    const api = server();
+    // The server took the digits; the phone never heard it.
+    api.redeem = async () => {
+      throw new TypeError('Failed to fetch');
+    };
+    await expect(redeemTransfer(db, api, { code: '482913' }, noProof)).rejects.toBeInstanceOf(TypeError);
+    expect(await pendingTransfer.get(db)).toMatchObject({});
+
+    api.list = async () => [{ id: 't1', state: 'asked' }];
+    expect((await resumeTransfer(db, api, noProof))?.state).toBe('asked');
+    expect((await pendingTransfer.get(db))?.transferId).toBe('t1');
+
+    // The old phone said yes meanwhile.
+    api.get = async () => done;
+    expect((await resumeTransfer(db, api, noProof))?.state).toBe('done');
+    expect(await db.profiles.get('moved-1')).toMatchObject({ name: 'Mèo Cam' });
+    expect(await loadSave(db, 'moved-1', 'merge-block')).toEqual({ level: 7 });
+    expect(await pendingTransfer.get(db)).toBeNull();
+    expect(await resumeTransfer(db, api, noProof)).toBeNull();
+  });
+
+  it('redeems the secret again after the app was closed, and the same answer arrives', async () => {
+    const db = fresh();
+    const api = server();
+    api.redeem = async () => {
+      throw new TypeError('Failed to fetch');
+    };
+    await expect(redeemTransfer(db, api, { secret: SECRET }, noProof)).rejects.toBeInstanceOf(TypeError);
+
+    // The app opens again: no transfer is listed yet, so the secret is redeemed once more — the same device hears the
+    // same answer.
+    const sent: unknown[] = [];
+    api.redeem = async (body) => {
+      sent.push(body.secret);
+      return done;
+    };
+    expect((await resumeTransfer(db, api, noProof))?.state).toBe('done');
+    expect(sent).toEqual([SECRET]);
+    expect(await db.profiles.get('moved-1')).toBeDefined();
+  });
+
+  it('keeps waiting through a network error and stops at a transfer gone', async () => {
+    const db = fresh();
+    await pendingTransfer.set(db, { transferId: 't1', until: Date.now() + 60_000 });
+    const api = server();
+    api.get = async () => {
+      throw new TypeError('Failed to fetch');
+    };
+    await expect(resumeTransfer(db, api, noProof)).rejects.toBeInstanceOf(TypeError);
+    expect(await pendingTransfer.get(db)).not.toBeNull();
+
+    api.get = async () => {
+      throw new ApiError(404, 'transfer_not_found');
+    };
+    expect(await resumeTransfer(db, api, noProof)).toBeNull();
+    expect(await pendingTransfer.get(db)).toBeNull();
+  });
+
+  it('forgets what is past the time the server keeps the answer', async () => {
+    const db = fresh();
+    await pendingTransfer.set(db, { transferId: 't1', until: Date.now() - 1 });
+    expect(await pendingTransfer.get(db)).toBeNull();
+  });
+});
+
+describe('what a code carries, and what the field takes', () => {
+  it('fits in one code: the oldest saves stay behind first, then the lowest scores', () => {
+    const big = 'x'.repeat(1000);
+    const data: DeviceProfileData = {
+      saves: [0, 1, 2].map((i) => ({ gameId: `g${i}`, data: { big }, updatedAt: '2026-10-20T09:00:00Z' })),
+      scores: [5, 4].map((value) => ({
+        clientId: `s${value}`,
+        gameId: 'g0',
+        board: 'score',
+        value,
+        achievedAt: '2026-10-20T09:00:00Z',
+        final: true,
+      })),
+    };
+    expect(fitTransfer(data, 10_000)).toEqual(data);
+    const fitted = fitTransfer(data, 1800);
+    expect(fitted.saves?.map((save) => save.gameId)).toEqual(['g0']);
+    expect(fitted.scores).toHaveLength(2);
+    expect(fitTransfer(data, 20)).toEqual({ saves: [], scores: [] });
+  });
+
+  it('takes six digits, or the transfer link pasted whole', () => {
+    expect(readTyped('482 913', ORIGIN)).toEqual({ code: '482913' });
+    expect(readTyped(` ${transferLink(ORIGIN, SECRET)} `, ORIGIN)).toEqual({ secret: SECRET });
+    expect(readTyped(transferLink('https://elsewhere.example', SECRET), ORIGIN)).toBeNull();
+    expect(readTyped('4829', ORIGIN)).toBeNull();
+  });
+
+  it('counts only what the last code carried as sent', async () => {
+    const db = fresh();
+    const profile = await onServer(db);
+    await storeSave(db, profile.id, 'tap-merge', { level: 1 });
+    const both = await deviceProfileData(db, profile.id);
+    await markSent(db, profile.id, both);
+    expect((await db.saves.toArray()).map((save) => save.synced)).toEqual([1, 1]);
+
+    // A later code carried only one save: the other is unsent again, kept should the profile move.
+    await markSent(db, profile.id, {
+      ...both,
+      saves: both.saves?.filter((save) => save.gameId === 'merge-block'),
+    });
+    const saves = await db.saves.toArray();
+    expect(saves.find((save) => save.gameId === 'merge-block')?.synced).toBe(1);
+    expect(saves.find((save) => save.gameId === 'tap-merge')?.synced).toBe(0);
   });
 });

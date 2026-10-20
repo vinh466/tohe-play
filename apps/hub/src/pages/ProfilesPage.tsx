@@ -359,6 +359,10 @@ function DevicePicker() {
         ) : null}
       </ul>
       <p className="text-center text-ink-soft text-sm">{t('device.hint', { max: MAX_DEVICE_PROFILES })}</p>
+      {/* ADR 0043: a device profile never on the server is lost with the browser's data — the hub says so here. */}
+      {list.some((profile) => !profile.server) ? (
+        <p className="text-center text-ink-soft text-sm">{t('device.onlyHere')}</p>
+      ) : null}
 
       <footer className="mt-auto flex flex-col items-center gap-3">
         {/* A profile from another device, moved here with its transfer code (ADR 0043). */}
