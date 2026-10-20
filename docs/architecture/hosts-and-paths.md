@@ -22,7 +22,7 @@ flowchart TB
     app["The app (PWA)<br/>/play · /account · /r · /s"]
     papi["/api → API"]
   end
-  subgraph ops ["console.toheplay.io.vn — operators, behind Cloudflare Access"]
+  subgraph ops ["console.toheplay.io.vn — operators, own sign-in (Cloudflare Access optional)"]
     console["Console"]
     capi["/api/admin → API"]
   end
@@ -40,7 +40,7 @@ flowchart TB
 | Host | Role | Session | Indexed | Served by |
 | --- | --- | --- | --- | --- |
 | `toheplay.io.vn` | Players: public pages, the app, the API | `__Host-tohe.session`, `SameSite=Lax` | public pages only | the hub image's Caddy: the public pages (`apps/web`, in `/srv/web`) and the app (`/srv`), proxying `/api` |
-| `console.toheplay.io.vn` | Operators: the console, the API's console routes | `__Host-tohe.console`, `SameSite=Strict`; Cloudflare Access first | no | the hub image's Caddy, a second site |
+| `console.toheplay.io.vn` | Operators: the console, the API's console routes | `__Host-tohe.console`, `SameSite=Strict`; Cloudflare Access first once the owner turns it on (optional for now) | no | the hub image's Caddy, a second site |
 | `games.toheplay.io.vn` | Game builds, the catalog | none | no | the games image |
 | `docs.toheplay.io.vn` | Developer docs at the root of the host, generated API references, `llms.txt` | none | yes | the docs image (`apps/docs`) |
 | `status.toheplay.io.vn` | Status and incidents | none | yes | a service outside Tò He's infrastructure |
@@ -168,5 +168,5 @@ stays in force for its part.
 | The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; `security.txt` once `hub.securityContact` is set in `platform-infra` | the map's pull request |
 | The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, and `/terms`, `/privacy` for now; manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the old paths answer `301` | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | in place: `apps/web` is built into the hub image and serves the home page at `/` (indexed, its own CSP, a script that sends a returning player to `/play`), with `/sitemap.xml` and `robots.txt` from the map; `apps/docs` serves the docs at the root of `docs.toheplay.io.vn` (`/docs/<page>` answers `301`); the chart's `site` values are `docs`. More pages (games, guides, FAQ, about, static terms and privacy) are the next pull requests | the public pages' pull request |
-| The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup; the API does not check Access's token yet | the console's pull request |
+| The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup, optional for now (2026-10-20); the API does not check Access's token yet | the console's pull request |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |

@@ -4,8 +4,8 @@
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
 - Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-19); thứ tự xây theo pull
-  request ở **[delivery.md](delivery.md)**; N1–N3, B1, B2, B4, B5, S3, K1 đã merge (2026-10-19), UAT chạy `uat-` của
-  chúng; B3 và S2 đang làm. Còn mở: E-02 Q2 (cần trước S1), E-05 (Cổng).
+  request ở **[delivery.md](delivery.md)**; N1–N3, B1–B5, S2, S3, K1 đã merge và **chạy trên prod** từ
+  `prod-2026-10-20.1` (2026-10-20). Còn lại: S1, S4, I1–I4, K2. Còn mở: E-02 Q2 (cần trước S1), E-05 (Cổng).
 - Started: 2026-10-19 · Trên `main` từ [#72](https://github.com/vinh466/tohe-play/pull/72) (2026-10-19); mỗi lần cập nhật
   là một pull request nhỏ
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
@@ -16,19 +16,20 @@
 
 ## Next — one item
 
-**B3 + S2** (hai worker, 2026-10-19 23:05): B3 = trang công khai `apps/web` ở gốc, `apps/site` → `apps/docs` ở gốc `docs.`,
-key chart `site` → `docs`; S2 = những chạm đầu của người mới (vào là chơi, cài app, manifest, `og:`, Góp ý). Sau đó I1.
+**I1 — hồ sơ máy ở hub** (D-06, D-07; ADR mới + reviewer) khi owner nói "làm". S1 (nội dung công khai, `og:image`) chờ
+[E-02 Q2](items/E-02-public-pages-seo-geo.md); S4 (bộ đếm phễu) làm song song được.
 
 ## Waiting on the owner
 
-1. **Trước "lên prod"** cho B1–B5: DNS `console` (proxied) + Cloudflare Access cho `console.toheplay.io.vn`; agent mở PR
-   values `platform-infra` (`publicUrls.console`, `hub.securityContact`) để owner merge — thiếu thì console prod trả 404.
-2. **Chế độ Đăng ký** (đề xuất: Theo lời mời) — trước khi bật Google (S3); prod đang `Mở`.
-3. **Console prod**: bật Chống bot đăng ký (đề xuất).
-4. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* (đề xuất: không) — cần trước S1.
-5. Cloudflare: AI Crawl Control — Search cho phép; Bot Fight Mode / Under Attack / WAF challenge tắt; chọn dịch vụ `status.`.
-6. Việc tay: thư thử tới `hello@`, `security@`; Google client ([guide](../../docs/guides/sign-in-with-google.md)); Resend
-   `notify.` ([guide](../../docs/guides/mail-and-status.md)).
+1. **S3 — Google** (owner làm 2026-10-20): chọn chế độ Đăng ký ở console (đề xuất: Theo lời mời) → tạo Google client theo
+   [guide](../../docs/guides/sign-in-with-google.md) → `google-client-secret` vào Infisical `/tohe` → gửi agent **Client ID**
+   → agent mở PR values `platform-infra`, owner merge → agent kiểm. Xong thì S3 done.
+2. **Console prod**: bật Chống bot đăng ký (đề xuất).
+3. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* (đề xuất: không) — cần trước S1.
+4. Cloudflare: AI Crawl Control — Search cho phép; Bot Fight Mode / Under Attack / WAF challenge tắt; chọn dịch vụ `status.`.
+5. Việc tay: thư thử tới `hello@`, `security@`; Resend `notify.` ([guide](../../docs/guides/mail-and-status.md)).
+6. *Tuỳ chọn:* Cloudflare Access cho `console.toheplay.io.vn` — owner 2026-10-20: "hiện rảnh tôi sẽ bật sau, giờ có MFA
+   cũng uy tín rồi" (console đã đòi mật khẩu + mã 6 số).
 7. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng" — PR draft là chưa sẵn sàng.
 
 ## Board

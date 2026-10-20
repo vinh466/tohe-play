@@ -179,6 +179,10 @@ Theo PR ở [delivery.md](../delivery.md):
 
 ## Decision
 
+**owner** (2026-10-20, chat): "đưa cái này vào tùy chọn, hiện rảnh tôi sẽ bật sau, giờ có mf2 cũng uy tín r" →
+Cloudflare Access trước `console.` là **tuỳ chọn** cho tới khi owner bật; cổng là đăng nhập riêng của console (mật khẩu +
+mã 6 số, phiên `SameSite=Strict` 12 giờ).
+
 **owner** (2026-10-19, chat): "Q1. uh thôi thấy cũng rất hợp lý về hình thức lẫn sạch, nhưng k biết về kỹ thuật hay tính mở
 rộng sau này cho các thành phần hay thêm thành phần có tốt k th · Q2. /play hợp lý nha, các route khác cũng dùng english
 luôn giúp tôi · Q3 các route dùng english luôn giúp tôi, ổn chứ · Q4 ổn, tôi cần làm gì thêm · Q5 Tắt, nhưng có cờ bật đc
