@@ -28,12 +28,18 @@ export function normalizeTyped(input: string): string {
   return input.replace(/[\s-]/g, '').toUpperCase().replace(/[IL]/g, '1').replace(/O/g, '0');
 }
 
+/** A table's code: digits only, spaces and hyphens ignored — I, L and O are a share link's reading, not a table's. */
+const tableDigits = (input: string) => input.replace(/[\s-]/g, '');
+
 /** A code of a known kind — from the address `/r/<code>` or `/s/<code>`, or a game's id — or null when it is not one. */
 export function readCodeOf(kind: EntryKind, raw: string): EntryIntent | null {
   if (raw.length > MAX_INPUT) return null;
   if (kind === 'play') return GAME.test(raw) ? { kind, code: raw } : null;
+  if (kind === 'room') {
+    const code = tableDigits(raw);
+    return ROOM.test(code) ? { kind, code } : null;
+  }
   const code = normalizeTyped(raw);
-  if (kind === 'room') return ROOM.test(code) ? { kind, code } : null;
   return SHARE.test(code) ? { kind, code } : null;
 }
 
@@ -46,10 +52,7 @@ export function readCode(input: string): EntryIntent | null {
   if (text.length === 0 || text.length > MAX_INPUT) return null;
   const link = /\/([rs])\/([0-9A-Za-z-]{1,20})(?:[/?#]|$)/.exec(text);
   if (link) return readCodeOf(link[1] === 'r' ? 'room' : 'share', link[2] ?? '');
-  const code = normalizeTyped(text);
-  if (ROOM.test(code)) return { kind: 'room', code };
-  if (SHARE.test(code)) return { kind: 'share', code };
-  return null;
+  return readCodeOf('room', text) ?? readCodeOf('share', text);
 }
 
 /** The hub's own path for an intent, built from its kind and its checked code only. */

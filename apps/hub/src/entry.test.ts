@@ -72,6 +72,13 @@ describe('reading a code', () => {
     expect(readCode('Vào bàn nè: https://toheplay.io.vn/r/482913')).toEqual({ kind: 'room', code: '482913' });
   });
 
+  it('reads a table’s code as digits only: I, L and O are a share link’s reading', () => {
+    expect(readCode('48291O')).toBeNull();
+    expect(readCode('4829I3')).toBeNull();
+    expect(readCodeOf('room', '482-9I3')).toBeNull();
+    expect(readCodeOf('room', '482 913')).toEqual({ kind: 'room', code: '482913' });
+  });
+
   it('refuses what is no code', () => {
     for (const input of ['', '   ', '48291', '4829131', '7KQ2M9X', '7KQ2M9XAB', '7KQ2M9XU', '7KQ2M9X!']) {
       expect(readCode(input), input).toBeNull();
@@ -213,7 +220,129 @@ describe('the intent kept on a tab', () => {
   });
 });
 
+describe('the player an intent is for', () => {
+  const share = { kind: 'share', code: '7KQ2M9XA' } as const;
+
+  it('is the one the gate let through: another player never inherits it', () => {
+    const entry = createEntryStore(tab(), clock().now);
+    entry.keep(share);
+    entry.claim(share, 'p-mum');
+    expect(entry.current('p-mum')).toMatchObject({ ...share, player: 'p-mum' });
+    expect(entry.current('p-kid')).toBeNull();
+    // Forgotten, not only hidden.
+    expect(entry.current()).toBeNull();
+  });
+
+  it('is anyone’s until the gate lets someone through: signing in on the named screen goes on', () => {
+    const entry = createEntryStore(tab(), clock().now);
+    entry.keep(share);
+    expect(entry.current('p-account')).toMatchObject(share);
+  });
+
+  it('starts again for the player now at the gate when it was kept for another', () => {
+    const time = clock();
+    const entry = createEntryStore(tab(), time.now);
+    entry.keep(share);
+    entry.claim(share, 'p-mum');
+    entry.resolved(share.code, okLink(share.code));
+    time.pass(1000);
+    entry.claim(share, 'p-kid');
+    expect(entry.current('p-kid')).toMatchObject({ player: 'p-kid', at: time.now() });
+    expect(entry.current('p-kid')?.link).toBeUndefined();
+    expect(entry.signUpCode()).toBeNull();
+  });
+
+  it('follows the same player to a new id', () => {
+    const entry = createEntryStore(tab(), clock().now);
+    entry.keep(share);
+    entry.claim(share, 'old-id');
+    entry.renamed('old-id', 'new-id');
+    expect(entry.current('new-id')).toMatchObject({ player: 'new-id' });
+  });
+});
+
+describe('forgetting the entry on a shared device', () => {
+  const room = { kind: 'room', code: '482913' } as const;
+
+  it('keeps it when the picker the hub sent someone to chooses a profile', () => {
+    const entry = createEntryStore(tab(), clock().now);
+    entry.keep(room);
+    entry.switched({ auto: true, from: null, to: 'p-mum' });
+    entry.switched({ auto: true, from: 'p-dad', to: 'p-mum' });
+    expect(entry.current()).toMatchObject(room);
+  });
+
+  it('keeps it when the same profile is chosen again by hand', () => {
+    const entry = createEntryStore(tab(), clock().now);
+    entry.keep(room);
+    entry.switched({ auto: undefined, from: 'p-mum', to: 'p-mum' });
+    expect(entry.current()).toMatchObject(room);
+  });
+
+  it('forgets it when another profile is chosen by hand ("Đổi người chơi")', () => {
+    const storage = tab();
+    const entry = createEntryStore(storage, clock().now);
+    entry.keep(room);
+    storage.setItem('tohe:next', '/r/482913');
+    entry.switched({ auto: undefined, from: 'p-mum', to: 'p-kid' });
+    expect(entry.current()).toBeNull();
+    expect(storage.getItem('tohe:next')).toBeNull();
+  });
+
+  it('forgets it, and the link it came from, on signing out and on a new profile', () => {
+    for (const event of ['sign-out', 'new profile']) {
+      const entry = createEntryStore(tab(), clock().now);
+      entry.keep({ kind: 'share', code: '7KQ2M9XA' });
+      entry.resolved('7KQ2M9XA', okLink('7KQ2M9XA'));
+      // What the hub does on either (WelcomePage, ProfilesPage, legal/Consent.tsx, "Thêm người chơi").
+      entry.forget();
+      expect(entry.current(), event).toBeNull();
+      expect(entry.signUpCode(), event).toBeNull();
+    }
+  });
+});
+
+describe('a resolution read back from storage', () => {
+  it('is used when it is the API’s shape', () => {
+    const storage = tab();
+    const time = clock();
+    const entry = createEntryStore(storage, time.now);
+    entry.keep({ kind: 'share', code: '7KQ2M9XA' });
+    entry.resolved('7KQ2M9XA', okLink('7KQ2M9XA', { level: 'named' }));
+    expect(createEntryStore(storage, time.now).current()?.link).toMatchObject({ level: 'named' });
+  });
+
+  it('is asked again when it is not', () => {
+    const storage = tab();
+    const time = clock();
+    for (const link of [
+      { ...okLink('7KQ2M9XA'), level: 'admin' },
+      { ...okLink('7KQ2M9XA'), state: 'open' },
+      { ...okLink('OTHERXXX') },
+      { ...okLink('7KQ2M9XA'), gameId: '../account' },
+      'ok',
+    ]) {
+      storage.setItem(
+        'tohe:entry',
+        JSON.stringify({ kind: 'share', code: '7KQ2M9XA', at: time.now(), link }),
+      );
+      expect(createEntryStore(storage, time.now).current()?.link, JSON.stringify(link)).toBeUndefined();
+    }
+  });
+});
+
 describe('the share link an account was made from', () => {
+  it('keeps its hour from the first opening: a reload does not push it', () => {
+    const time = clock();
+    const entry = createEntryStore(tab(), time.now);
+    entry.resolved('7KQ2M9XA', okLink('7KQ2M9XA'));
+    time.pass(KEEP_MS - 1000);
+    entry.resolved('7KQ2M9XA', okLink('7KQ2M9XA'));
+    expect(entry.signUpCode()).toBe('7KQ2M9XA');
+    time.pass(1000);
+    expect(entry.signUpCode()).toBeNull();
+  });
+
   it('is sent once, within the hour, from a link that opened', () => {
     const time = clock();
     const entry = createEntryStore(tab(), time.now);

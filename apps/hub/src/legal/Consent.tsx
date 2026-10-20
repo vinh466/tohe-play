@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { account, auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { entry } from '../entry/intent.ts';
 import { useSetMe } from '../session/useSession.ts';
 import { db } from '../storage/db.ts';
 import { Button } from '../ui/Button.tsx';
@@ -61,6 +62,8 @@ export function TermsPrompt({ me }: { me: MeView }) {
   const signOut = useMutation({
     mutationFn: () => auth.logout(),
     onSettled: async () => {
+      // Whoever signs in next on this device did not come for this tab's entry (ADR 0044).
+      entry.forget();
       await db.cache.delete('me');
       window.location.assign('/account/sign-in');
     },

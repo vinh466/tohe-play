@@ -34,7 +34,7 @@ export function deadEndScreen(
     case 'not-for-profile':
       return {
         title: child ? 'entry.tooYoungTitle' : 'entry.goneTitle',
-        body: child ? 'entry.tooYoungBody' : 'entry.goneBody',
+        body: child ? (game.name ? 'entry.tooYoungBody' : 'entry.tooYoungBodyNoGame') : 'entry.goneBody',
         toGame: false,
         codeBox: false,
       };

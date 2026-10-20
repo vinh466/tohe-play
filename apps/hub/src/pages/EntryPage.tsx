@@ -1,11 +1,18 @@
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, Navigate, useNavigate, useParams } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, type LinkIntent, links, rooms } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
-import { type EntryIntent, formatEntryCode, highestLevel, readCodeOf, readLevel } from '../entry/codes.ts';
+import {
+  type EntryIntent,
+  formatEntryCode,
+  highestLevel,
+  type Level,
+  readCodeOf,
+  readLevel,
+} from '../entry/codes.ts';
 import { DeadEnd, EntryTrouble } from '../entry/DeadEnd.tsx';
 import { linkDeadEnds } from '../entry/deadEnds.ts';
 import { EntryGate } from '../entry/EntryGate.tsx';
@@ -30,10 +37,10 @@ const GAME_LEVEL = 'any';
  */
 export function RoomEntryPage() {
   const { code: raw } = useParams({ from: '/r/$code' });
-  const intent = readCodeOf('room', raw);
+  const intent = useMemo(() => readCodeOf('room', raw), [raw]);
   if (!intent) return <DeadEnd reason="unknown" />;
   return (
-    <EntryGate intent={intent} level={highestLevel(GAME_LEVEL, 'named')}>
+    <EntryGate key={intent.code} intent={intent} level={highestLevel(GAME_LEVEL, 'named')}>
       {(player, session) => (
         <RoomPreview intent={intent} player={player} device={session.status === 'device'} />
       )}
@@ -58,10 +65,13 @@ function RoomPreview({ intent, player, device }: { intent: EntryIntent; player: 
   const view = room.data;
   const game = games.data?.find((g) => g.id === view?.gameId);
   const host = view?.seatList.find((seat) => seat.profileId === view.hostProfileId);
-  // No table has this code — never used, or closed (its code is not given out again for a day).
+  // No table has this code — never used, or closed (its code is not given out again for a day). Any other 404 — the
+  // device profile's copy gone (`device_profile_not_found`) — is the device's trouble: the intent stays.
   const gone =
     room.error instanceof ApiError &&
-    (room.error.status === 404 || room.error.code === 'room_not_found' || room.error.code === 'room_closed');
+    (room.error.code === 'room_not_found' ||
+      room.error.code === 'room_closed' ||
+      (room.error.status === 404 && room.error.code === null));
 
   // The table's lobby is open, or the code leads nowhere: either way the intent is over.
   const settled = Boolean(view) || gone;
@@ -162,13 +172,16 @@ function RoomPreview({ intent, player, device }: { intent: EntryIntent; player: 
  */
 export function ShareEntryPage() {
   const { code: raw } = useParams({ from: '/s/$code' });
-  const intent = readCodeOf('share', raw);
+  const intent = useMemo(() => readCodeOf('share', raw), [raw]);
   if (!intent) return <DeadEnd reason="unknown" />;
   return <ShareResolve key={intent.code} intent={intent} />;
 }
 
 function ShareResolve({ intent }: { intent: EntryIntent }) {
   const { t } = useTranslation();
+  // Raised when `play` answers `level_required` (the API's backstop): the player goes back through the gate at that
+  // level — the named screen, or signing in — rather than trying the same again.
+  const [floor, setFloor] = useState<Level>('any');
   // Kept once, when the page opens: once reached, a later drawing of this screen must not keep it again.
   const [kept] = useState(() => entry.keep(intent));
   const opened = useQuery({
@@ -201,9 +214,23 @@ function ShareResolve({ intent }: { intent: EntryIntent }) {
       <DeadEnd reason="unknown" />
     );
   }
+  const level = highestLevel(GAME_LEVEL, readLevel(link.level), floor);
   return (
-    <EntryGate intent={intent} level={highestLevel(GAME_LEVEL, readLevel(link.level))}>
-      {(player) => <OpenShare intent={intent} at={kept.at} link={link} player={player} />}
+    <EntryGate intent={intent} level={level}>
+      {(player) => (
+        <OpenShare
+          intent={intent}
+          at={kept.at}
+          link={link}
+          player={player}
+          level={level}
+          onLevel={(asked) => {
+            // Back to the gate, and play asked again behind it — never a loop at the same level.
+            entry.keep(intent);
+            setFloor(asked);
+          }}
+        />
+      )}
     </EntryGate>
   );
 }
@@ -213,11 +240,17 @@ function OpenShare({
   at,
   link,
   player,
+  level,
+  onLevel,
 }: {
   intent: EntryIntent;
   at: number;
   link: LinkIntent;
   player: Player;
+  /** The level the gate asked. */
+  level: Level;
+  /** The API asked a higher level than the gate did: back to the gate at that level. */
+  onLevel(level: Level): void;
 }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -225,7 +258,7 @@ function OpenShare({
   // The profile's catalog has the game: a child's lists only the games for its age (ADR 0043, step 6).
   const game = games.data?.find((g) => g.id === link.gameId);
   const play = useQuery({
-    queryKey: ['entry-play', intent.code, at],
+    queryKey: ['entry-play', intent.code, at, level],
     queryFn: () => once(`play:${intent.code}:${at}`, () => links.play(intent.code)),
     enabled: Boolean(game),
     retry: false,
@@ -240,7 +273,17 @@ function OpenShare({
     if (result?.state === 'ok' && result.gameId)
       void navigate({ to: '/play/$gameId', params: { gameId: result.gameId }, replace: true });
   }, [settled, result, intent, navigate]);
+  // `level_required`: the link asks more than this player has — the gate again, at the level the API names.
+  const required =
+    play.error instanceof ApiError && play.error.code === 'level_required'
+      ? readLevel(play.error.level)
+      : null;
+  const higher = required !== null && highestLevel(level, required) !== level ? required : null;
+  useEffect(() => {
+    if (higher) onLevel(higher);
+  }, [higher, onLevel]);
 
+  if (higher) return <Loading label={t('loading')} />;
   if (missing)
     return <DeadEnd reason="not-for-profile" gameName={link.gameName} child={player.kind === 'child'} />;
   if (games.isError) return <EntryTrouble message={t('loadFailed')} onRetry={() => void games.refetch()} />;

@@ -1,10 +1,11 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import type { HostHandle } from '@tohe/game-sdk/host';
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { readCodeOf } from '../entry/codes.ts';
+import { DeadEnd } from '../entry/DeadEnd.tsx';
 import { EntryGate } from '../entry/EntryGate.tsx';
 import { entry } from '../entry/intent.ts';
 import { GameFrame } from '../launcher/GameFrame.tsx';
@@ -20,7 +21,7 @@ import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 export function PlayPage() {
   const { gameId } = useParams({ from: '/play/$gameId' });
   const { t } = useTranslation();
-  const intent = readCodeOf('play', gameId);
+  const intent = useMemo(() => readCodeOf('play', gameId), [gameId]);
   if (!intent) return <Message text={t('gameNotFound')} back={t('backToGames')} />;
   return (
     <EntryGate key={gameId} intent={intent} level="any">
@@ -62,6 +63,8 @@ function Launcher({ player }: { player: Player }) {
   }, [settled, gameId]);
 
   if (games.isSuccess && !game) {
+    // A child's catalog lists only the games for its age (ADR 0043, 0044 step 6): said as such, not as "not found".
+    if (player.kind === 'child') return <DeadEnd reason="not-for-profile" child />;
     return <Message text={t('gameNotFound')} back={t('backToGames')} />;
   }
   if (!game || !gamesOrigin) return <div className="fixed inset-0 bg-page" />;

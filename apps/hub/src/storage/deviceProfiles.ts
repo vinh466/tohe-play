@@ -3,6 +3,7 @@
 // guest of earlier versions is the first one (db.ts, version 4). docs/architecture/identity.md#device-profiles
 import Dexie from 'dexie';
 import type { DeviceProfileData } from '../api/client.ts';
+import { entry } from '../entry/intent.ts';
 import { type LocalProfile, type LocalSave, type LocalScore, newId, type ToheDb } from './db.ts';
 
 /** A device holds at most this many device profiles (ADR 0043). */
@@ -119,7 +120,11 @@ export async function deleteDeviceProfile(db: ToheDb, id: string): Promise<boole
     await removeEverything(db, id);
     return true;
   });
-  if (deleted && currentDeviceProfile.get() === id) currentDeviceProfile.clear();
+  if (deleted && currentDeviceProfile.get() === id) {
+    currentDeviceProfile.clear();
+    // The player of this tab's entry is gone: the entry with it (ADR 0044).
+    entry.forget();
+  }
   return deleted;
 }
 
@@ -151,6 +156,8 @@ export async function reIdDeviceProfile(db: ToheDb, id: string): Promise<string>
     await db.profiles.add({ ...rest, id: next });
   });
   if (currentDeviceProfile.get() === id) currentDeviceProfile.set(next);
+  // The same player under a new id: an entry kept for it stays its own (ADR 0044).
+  entry.renamed(id, next);
   return next;
 }
 
@@ -348,6 +355,8 @@ export async function receiveDeviceProfile(
     );
   });
   currentDeviceProfile.set(profile.id);
+  // A profile received from another device plays now: the entry this tab kept was not its (ADR 0044).
+  entry.forget();
   const stored = await db.profiles.get(profile.id);
   if (!stored) throw new Error('The device profile is gone');
   return stored;

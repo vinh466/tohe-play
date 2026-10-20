@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, auth, devices, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { deviceProfilesQuery, profileOptionsQuery } from '../api/queries.ts';
-import { intentPath } from '../entry/codes.ts';
+import { intentPath, isEntryPath } from '../entry/codes.ts';
 import { entry } from '../entry/intent.ts';
 import { useLeaveTo } from '../navigation/leave.tsx';
 import { BringIn } from '../session/BringIn.tsx';
@@ -51,24 +51,25 @@ export function ProfilesPage() {
 }
 
 /**
- * Back to the entry this tab keeps (ADR 0044) — a link, a typed code, a game — or a page that needed a player
- * (session/next.ts), or to the catalog.
+ * On, as `player`: to a page that needed a player (session/next.ts) — a table, say — or to the entry this tab keeps
+ * for this player (ADR 0044) — a link, a typed code, a game — or to the catalog. A page remembered since the entry was
+ * kept means the entry was left behind: it goes. An entry the gate let another player through goes too.
  */
 function useGoOn() {
   const leaveTo = useLeaveTo();
-  return useCallback(async () => {
-    const next = takeNext();
-    const kept = entry.current();
-    leaveTo({ to: kept ? intentPath(kept) : (next ?? '/play') });
-  }, [leaveTo]);
-}
-
-/**
- * Another profile chosen by hand on a shared device ("Đổi người chơi", not the picker the hub sent someone to): the
- * entry this tab kept was someone else's (ADR 0044).
- */
-function forgetEntryOnSwitch(auto: boolean | undefined, from: string | null, to: string) {
-  if (!auto && from !== to) entry.forget();
+  return useCallback(
+    async (player: string) => {
+      const next = takeNext();
+      if (next && !isEntryPath(next)) {
+        entry.forget();
+        leaveTo({ to: next });
+        return;
+      }
+      const kept = entry.current(player);
+      leaveTo({ to: kept ? intentPath(kept) : (next ?? '/play') });
+    },
+    [leaveTo],
+  );
 }
 
 /**
@@ -126,10 +127,10 @@ function Picker({ me }: { me: MeView }) {
     mutationFn: ({ profile, pin }: { profile: ProfileView; pin?: string }) =>
       session.selectProfile(profile.id, pin),
     onSuccess: async (next, { profile }) => {
-      forgetEntryOnSwitch(auto, me.activeProfileId, profile.id);
+      entry.switched({ auto, from: me.activeProfileId, to: profile.id });
       setPinFor(null);
       await setMe(next);
-      await goOn();
+      await goOn(profile.id);
     },
     onError: (error, { profile }) => {
       if (error instanceof ApiError && error.code === 'pin_required') setPinFor(profile);
@@ -170,7 +171,7 @@ function Picker({ me }: { me: MeView }) {
     if (next && !switched.current) {
       switched.current = true;
       handled.current = true;
-      if (next.id === me.activeProfileId) void goOn();
+      if (next.id === me.activeProfileId) void goOn(next.id);
       else if (next.hasPin) {
         setMoving(false);
         setPinFor(next);
@@ -181,7 +182,7 @@ function Picker({ me }: { me: MeView }) {
     handled.current = true;
     const active = me.profiles.find((profile) => profile.id === me.activeProfileId);
     const only = me.profiles.length === 1 ? me.profiles[0] : undefined;
-    if (active) void goOn();
+    if (active) void goOn(active.id);
     else if (only && !only.hasPin) play({ profile: only });
     else setMoving(false);
   }, [offer, playNext, me, goOn, play]);
@@ -314,10 +315,10 @@ function DevicePicker() {
   const list = profiles.data ?? [];
 
   const choose = async (profile: LocalProfile) => {
-    forgetEntryOnSwitch(auto, current, profile.id);
+    entry.switched({ auto, from: current, to: profile.id });
     currentDeviceProfile.set(profile.id);
     await changed();
-    await goOn();
+    await goOn(profile.id);
   };
 
   if (profiles.isPending) return <Loading label={t('loading')} />;
@@ -442,7 +443,11 @@ function DeviceProfileForm({
   const save = useMutation({
     mutationFn: async () => {
       if (profile) await updateDeviceProfile(db, profile.id, { name: clean, avatar });
-      else await createDeviceProfile(db, { name: clean, avatar, chosen: true });
+      else {
+        await createDeviceProfile(db, { name: clean, avatar, chosen: true });
+        // "Thêm người chơi": someone new plays now, and the entry this tab kept was not theirs (ADR 0044).
+        entry.forget();
+      }
     },
     onSuccess: async () => {
       await changed();

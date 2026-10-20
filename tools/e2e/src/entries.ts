@@ -4,7 +4,8 @@
 // phone from a link preview's card (`?app=1`), keeps its intent through the named screen and lands in the game, `play`
 // counted once though the game is reloaded; one that asks for an account keeps it through signing up, which passes
 // `entryCode`; "Nhập mã" takes a share link's eight characters and a table's six digits; a link revoked in "Link của
-// tôi" and an unknown code show their dead ends. Needs the sample game (hello) and Tiến Lên in the catalog, and Mailpit.
+// tôi", a link used up, a closed table and an unknown code show their dead ends; a host's own table, a table for
+// accounts only and "Đổi hạn" work as before the pipeline. Needs the sample game (hello) and Tiến Lên in the catalog, and Mailpit.
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e entries
 import { AxeBuilder } from '@axe-core/playwright';
 import { type BrowserContext, chromium, type Page } from 'playwright';
@@ -99,17 +100,41 @@ const mine = (page: Page) =>
   page.evaluate(async () => (await (await fetch('/api/links/mine')).json()) as Mine[]);
 
 /** A link made with the maker's session, asking `level` of whoever opens it. */
-async function makeLink(page: Page, level: 'any' | 'named' | 'account'): Promise<string> {
-  const made = await page.evaluate(async (asked) => {
-    const response = await fetch('/api/links', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ kind: 'game', gameId: 'hello', level: asked }),
-    });
-    return response.ok ? ((await response.json()) as { code: string }).code : `HTTP ${response.status}`;
-  }, level);
+async function makeLink(
+  page: Page,
+  level: 'any' | 'named' | 'account',
+  maxUses: number | null = null,
+): Promise<string> {
+  const made = await page.evaluate(
+    async ({ asked, uses }) => {
+      const response = await fetch('/api/links', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ kind: 'game', gameId: 'hello', level: asked, maxUses: uses }),
+      });
+      return response.ok ? ((await response.json()) as { code: string }).code : `HTTP ${response.status}`;
+    },
+    { asked: level, uses: maxUses },
+  );
   if (!/^[0-9A-Z]{8}$/.test(made)) throw new Error(`could not make a ${level} link: ${made}`);
   return made;
+}
+
+/** A Tiến Lên table the page's player hosts: `named` lets anyone with the link in, `account` only accounts. */
+async function openTable(page: Page, entry: 'named' | 'account'): Promise<{ id: string; code: string }> {
+  const table = await page.evaluate(async (door) => {
+    const response = await fetch('/api/rooms', {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ gameId: 'tien-len', seats: 4, isPublic: false, botsFill: true, entry: door }),
+    });
+    return response.ok
+      ? ((await response.json()) as { id: string; code: string })
+      : `HTTP ${response.status}`;
+  }, entry);
+  if (typeof table === 'string' || !/^\d{6}$/.test(table.code))
+    throw new Error(`could not open a table: ${table}`);
+  return table;
 }
 
 try {
@@ -209,15 +234,7 @@ try {
   await inGame(typist, 'hello');
 
   step('…and a table’s six digits: the named screen, then the table');
-  const table = await maker.evaluate(async () => {
-    const response = await fetch('/api/rooms', {
-      method: 'POST',
-      headers: { 'content-type': 'application/json' },
-      body: JSON.stringify({ gameId: 'tien-len', seats: 4, isPublic: false, botsFill: true }),
-    });
-    return response.ok ? ((await response.json()) as { code: string }).code : `HTTP ${response.status}`;
-  });
-  if (!/^\d{6}$/.test(table)) throw new Error(`could not open a table: ${table}`);
+  const { id: tableId, code: table } = await openTable(maker, 'named');
   await typist.goto(`${hubUrl}/play`);
   await typist.getByRole('button', { name: 'Nhập mã' }).first().tap();
   await box.getByLabel('Mã bàn chơi hoặc link mời').fill(`${table.slice(0, 3)} ${table.slice(3)}`);
@@ -227,6 +244,26 @@ try {
   await typist.getByRole('checkbox').check();
   await typist.getByRole('button', { name: 'Vào chơi' }).tap();
   await typist.getByRole('button', { name: 'Vào ngồi' }).waitFor();
+
+  step('the host opening its own table’s link goes straight to the table');
+  await maker.goto(`${hubUrl}/r/${table}`);
+  await maker.waitForURL(`${hubUrl}/play/tien-len/rooms/${tableId}`);
+
+  step('a table that closed: its link and its code say "Mã này không mở được nữa"');
+  await maker.goto(`${hubUrl}/play`);
+  const left = await maker.evaluate(
+    async (id) => (await fetch(`/api/rooms/${id}/leave`, { method: 'POST' })).status,
+    tableId,
+  );
+  if (left >= 300) throw new Error(`the host could not leave its table (${left})`);
+  await typist.goto(`${hubUrl}/r/${table}`);
+  await typist.getByRole('heading', { name: 'Mã này không mở được nữa' }).waitFor();
+
+  step('a table for accounts only: a device profile sees it, and the way to sign in');
+  const accountsOnly = await openTable(maker, 'account');
+  await typist.goto(`${hubUrl}/r/${accountsOnly.code}`);
+  await typist.getByRole('button', { name: 'Vào ngồi' }).waitFor();
+  await typist.getByRole('link', { name: 'Đăng nhập' }).last().waitFor();
 
   step('the maker revokes a link in "Link của tôi"; opened again, it says so and offers the game');
   await maker.goto(`${hubUrl}/account/links`);
@@ -246,6 +283,35 @@ try {
   await check(late, 'revoked');
   await late.getByRole('link', { name: 'Chơi Chạm Chấm' }).tap();
   await inGame(late, 'hello');
+
+  step('"Đổi hạn" gives a link a new expiry, from now');
+  const keepCard = maker.getByRole('listitem').filter({ hasText: `${shown.slice(0, 4)} ${shown.slice(4)}` });
+  await keepCard.getByRole('button', { name: 'Đổi hạn' }).tap();
+  const expiry = maker.getByRole('dialog', { name: 'Cho link dùng thêm' });
+  await check(maker, 'change-expiry');
+  await expiry.getByRole('button', { name: '7 ngày' }).tap();
+  await expiry.waitFor({ state: 'hidden' });
+  const changed = await maker.evaluate(async (code) => {
+    const list = (await (await fetch('/api/links/mine')).json()) as { code: string; expiresAt: string }[];
+    return Date.parse(list.find((link) => link.code === code)?.expiresAt ?? '') - Date.now();
+  }, shown);
+  const week = 7 * 24 * 3600 * 1000;
+  if (!(Math.abs(changed - week) < 10 * 60 * 1000))
+    throw new Error(`"7 ngày" left the link ${changed} ms, not a week`);
+
+  step('a link with one use: the first opens the game, the next says it is used up and offers the game');
+  const single = await makeLink(maker, 'any', 1);
+  await late.goto(`${hubUrl}/s/${single}`);
+  await inGame(late, 'hello');
+  const second = await phone('second');
+  await second.goto(`${hubUrl}/s/${single}`);
+  await second.getByRole('heading', { name: 'Link mời đã hết lượt' }).waitFor();
+  await second.getByRole('link', { name: 'Chơi Chạm Chấm' }).waitFor();
+
+  step('a canonical code with only ?app=1: the address drops it, and the link opens');
+  await second.goto(`${hubUrl}/s/${shown}?app=1`);
+  await second.waitForURL(`${hubUrl}/s/${shown}`);
+  await inGame(second, 'hello');
 
   step('an unknown code: "Mã này không mở được nữa", with the catalog and the "Nhập mã" box');
   await late.goto(`${hubUrl}/s/ZZZZZZZZ`);

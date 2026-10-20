@@ -140,7 +140,7 @@ sequenceDiagram
   else signed in, no profile chosen
     H->>P: "Ai đang chơi?" — the entry kept on this tab for an hour, then back to /r/482913
   end
-  H->>API: GET /api/rooms/by-code/482913
+  H->>API: GET /api/rooms/code/482913
   API-->>H: preview: game, host, seats, options, state
   H->>P: "Vào phòng của Ba?" [Vào ngồi] [Xem]
   P->>H: Vào ngồi

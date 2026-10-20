@@ -141,7 +141,11 @@ function LinkCard({ link, game, player }: { link: ShareLinkView; game?: GameSumm
     },
   });
   const revoke = useMutation({ mutationFn: () => links.revoke(link.code), onSuccess: refresh });
-  const failed = change.error ?? revoke.error;
+  /** A refused change or revoke, in words: a link gone (a bare 404) has its own. */
+  const said = (error: unknown) =>
+    error instanceof ApiError && error.status === 404 && !error.code
+      ? t('links.errors.gone')
+      : t(errorKey(error));
   const date = (at: string) =>
     new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(at));
   const when =
@@ -190,11 +194,9 @@ function LinkCard({ link, game, player }: { link: ShareLinkView; game?: GameSumm
         {when}
         {link.maxUses !== null ? ` · ${t('links.uses', { uses: link.uses, max: link.maxUses })}` : ''}
       </p>
-      {failed ? (
+      {revoke.isError ? (
         <p role="alert" className="text-danger text-sm">
-          {failed instanceof ApiError && failed.status === 404 && !failed.code
-            ? t('links.errors.gone')
-            : t(errorKey(failed))}
+          {said(revoke.error)}
         </p>
       ) : null}
       {link.state === 'revoked' ? null : (
@@ -214,7 +216,10 @@ function LinkCard({ link, game, player }: { link: ShareLinkView; game?: GameSumm
           <button
             type="button"
             className={`${action} bg-soft text-accent active:bg-soft-strong`}
-            onClick={() => setChoosing(true)}
+            onClick={() => {
+              change.reset();
+              setChoosing(true);
+            }}
           >
             {t('links.change')}
           </button>
@@ -231,6 +236,11 @@ function LinkCard({ link, game, player }: { link: ShareLinkView; game?: GameSumm
       <Modal open={choosing} title={t('links.changeTitle')} onClose={() => setChoosing(false)}>
         <div className="flex flex-col gap-3">
           <p className="text-ink-soft">{t('links.changeBody')}</p>
+          {change.isError ? (
+            <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-danger">
+              {said(change.error)}
+            </p>
+          ) : null}
           {EXPIRY_CHOICES.map((hours) => (
             <Button
               key={hours}

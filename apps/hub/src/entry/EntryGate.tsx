@@ -34,18 +34,24 @@ export function EntryGate({
   const path = intentPath(intent);
   // No `returnTo`: the picker goes on to the kept intent, which ends once reached — a path remembered here would send
   // a later sign-in back to a game or a link already reached.
+  // Through the gate: the intent is this player's from now on — another profile chosen later never inherits it, and one
+  // kept for another player is forgotten here.
+  const through = (player: Player, session: PlayingSession) => {
+    entry.claim(intent, player.id);
+    return children(player, session);
+  };
   return (
     <RequireSession need="player">
       {(session) => {
         if (level === 'any') {
           // Nothing asked of the player: an account's session acts as itself, never as a device profile.
           if (session.status === 'account') actAsDevice(null);
-          return children(session.player, session);
+          return through(session.player, session);
         }
         if (level === 'account' && session.status === 'device') return <AccountNeeded path={path} />;
         return (
           <AtTables session={session} purpose={intent.kind === 'room' ? 'table' : 'entry'}>
-            {(player) => children(player, session)}
+            {(player) => through(player, session)}
           </AtTables>
         );
       }}

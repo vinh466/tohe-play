@@ -35,6 +35,7 @@ export function EnterCodeForm({ onGo, autoFocus = false }: { onGo?: () => void; 
       <TextField
         label={t('entry.codeLabel')}
         hint={hint}
+        live
         error={tried && !read ? t('entry.codeInvalid') : null}
         autoCapitalize="characters"
         autoComplete="off"

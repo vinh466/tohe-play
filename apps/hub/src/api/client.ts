@@ -62,6 +62,8 @@ export class ApiError extends Error {
     readonly triesLeft: number | null = null,
     /** With `name_refused`: the name rule that refused it (`name_reserved`, `name_inappropriate`…). */
     readonly reason: string | null = null,
+    /** With `level_required`: the level a share link asks for (ADR 0044). */
+    readonly level: string | null = null,
   ) {
     super(`API ${status}${code ? ` ${code}` : ''}`);
   }
@@ -88,6 +90,7 @@ export async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
     errors?: unknown;
     triesLeft?: unknown;
     reason?: unknown;
+    level?: unknown;
   };
   throw new ApiError(
     response.status,
@@ -97,6 +100,7 @@ export async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
       : {},
     typeof problem.triesLeft === 'number' ? problem.triesLeft : null,
     typeof problem.reason === 'string' ? problem.reason : null,
+    typeof problem.level === 'string' ? problem.level : null,
   );
 }
 

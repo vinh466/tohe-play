@@ -1,6 +1,9 @@
+import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
+import { gamesQuery } from '../api/queries.ts';
 import { BackLink } from '../navigation/leave.tsx';
+import { useSession } from '../session/useSession.ts';
 import { Button, buttonClass } from '../ui/Button.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { type DeadEndReason, deadEndScreen } from './deadEnds.ts';
@@ -21,12 +24,19 @@ export function DeadEnd({
   const { t } = useTranslation();
   const screen = deadEndScreen(reason, { id: gameId, name: gameName }, child);
   const game = gameName ?? '';
+  // "Chơi {game}" only when the game is in the catalog of whoever plays here — a child's lists only the games for its
+  // age, and a game may have left the catalog since the link was made.
+  const session = useSession();
+  const playerId =
+    session.status === 'account' || session.status === 'device' ? (session.player?.id ?? null) : null;
+  const catalog = useQuery({ ...gamesQuery(playerId), enabled: screen.toGame && Boolean(gameId) });
+  const playable = Boolean(gameId) && Boolean(catalog.data?.some((listed) => listed.id === gameId));
   return (
     <Screen narrow>
       <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 text-center shadow-sm">
         <h1 className="font-black text-2xl text-brand-ink">{t(screen.title)}</h1>
         <p className="text-ink">{t(screen.body, { game })}</p>
-        {screen.toGame && gameId ? (
+        {screen.toGame && gameId && playable ? (
           <Link to="/play/$gameId" params={{ gameId }} replace className={buttonClass()}>
             {t('entry.toGame', { game: game || gameId })}
           </Link>
