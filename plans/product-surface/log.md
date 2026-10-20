@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-20 (chiều) — agent
+
+- Google lên prod 13:29 (S3 xong): Infisical `/tohe/api` → `tohe-api-env`; API khởi động trước khi Secret có nên owner
+  restart một lần. Owner giữ đăng ký **mở**, bật chống bot — **người dùng thật đã vào**.
+- Owner: làm nốt Phase 1 rồi phase review toàn diện trước launch chính thức. S4 + S1 (hai builder); ADR 0043 cho I1 (#91).
+- Alertmanager prod chờ owner chọn kênh; thử khôi phục DB để khi chốt ngày launch.
+
 ## 2026-10-20 — agent
 
 - B3 #84, S2 #85 merged; CI bắt lỗi thật: service worker trả vỏ app ở `/` (Workbox `directoryIndex`) → sửa trước merge.

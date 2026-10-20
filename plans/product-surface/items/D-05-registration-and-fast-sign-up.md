@@ -55,6 +55,9 @@ sẽ phải thêm oauth để user vào nhanh chơi)".
 
 ## Decision
 
+**owner** (2026-10-20, chat): "cứ mở đăng ký, giờ happy case đã đến user r" → đăng ký **mở** trên prod; Google chạy
+từ 2026-10-20 13:29 (S3, cấu hình qua Infisical `/tohe/api`); chống bot (proof-of-work) owner đã bật.
+
 **owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
 
 Q1 = **có** (owner tạo OAuth client ở P1-3, agent viết hướng dẫn). Q2 = **có**: Zalo là một item của Phase 2 (account không email). Q3 = **có**.

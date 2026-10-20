@@ -65,6 +65,9 @@ tốn công nhất và cần owner duyệt giọng văn.
 
 ## Decision
 
+**agent** (2026-10-20): Q2 = **không** (`ai-train=no`) theo đề xuất, vì owner giao "làm nốt những cái bạn đề xuất"
+— một dòng trong `robots.txt`, owner đổi được bất cứ lúc nào.
+
 **owner** (2026-10-19, chat): "ổn nha, theo đề xuất" — trả lời lượt gom câu hỏi ở PLAN → *Waiting on the owner*.
 
 Q1 = chỉ tiếng Việt ở Phase 1 · Q3 = ảnh tĩnh trước, clip sau · **Q2 còn mở** — không có đề xuất mặc định (sở thích của owner); `search` và `ai-input` bật.
