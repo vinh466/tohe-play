@@ -56,8 +56,8 @@ export function TermsPrompt({ me }: { me: MeView }) {
   const setMe = useSetMe();
   const [agreed, setAgreed] = useState(false);
   const accept = useMutation({ mutationFn: () => account.acceptTerms(TERMS_VERSION), onSuccess: setMe });
-  // Signing out is a choice: it leads to the sign-in screen, not on into a guest's progress. A full load, so the
-  // screen that asked for a player does not take the signed-out device for a visitor and play it as a guest.
+  // Signing out is a choice: it leads to the sign-in screen, not on into a device profile. A full load, so the
+  // screen that asked for a player does not take the signed-out device for a visitor and play it as a device profile.
   const signOut = useMutation({
     mutationFn: () => auth.logout(),
     onSettled: async () => {

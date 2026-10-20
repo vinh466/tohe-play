@@ -196,7 +196,7 @@
           "content": {
             "application/json": {
               "schema": {
-                "$ref": "#/components/schemas/ConfirmCodeRequest"
+                "$ref": "#/components/schemas/ConfirmSignUpRequest"
               }
             }
           },
@@ -1062,6 +1062,112 @@
                 }
               }
             }
+          }
+        }
+      }
+    },
+    "/api/profiles/adopt": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Bring a device profile into the account with its id, saves and scores (ADR 0043); 409 id_taken when the id cannot be taken.",
+        "operationId": "AdoptProfile",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeviceProfileUpload"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/profiles/{id}/merge": {
+      "post": {
+        "tags": [
+          "Identity"
+        ],
+        "summary": "Upload a device profile's saves and scores under one of the account's profiles: the newer save wins (ADR 0043).",
+        "operationId": "MergeProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MergeProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
           }
         }
       }
@@ -2811,6 +2917,16 @@
               "null",
               "string"
             ]
+          },
+          "deviceProfile": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DeviceProfileUpload"
+              }
+            ]
           }
         }
       },
@@ -2827,6 +2943,32 @@
           },
           "code": {
             "type": "string"
+          }
+        }
+      },
+      "ConfirmSignUpRequest": {
+        "required": [
+          "attemptId",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "attemptId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "code": {
+            "type": "string"
+          },
+          "deviceProfile": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DeviceProfileUpload"
+              }
+            ]
           }
         }
       },
@@ -2952,6 +3094,119 @@
           "plays": {
             "type": "integer",
             "format": "int64"
+          }
+        }
+      },
+      "DeviceProfileData": {
+        "type": "object",
+        "properties": {
+          "saves": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DeviceSave"
+            }
+          },
+          "scores": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/DeviceScore"
+            }
+          }
+        }
+      },
+      "DeviceProfileUpload": {
+        "required": [
+          "id",
+          "name",
+          "avatar"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "ageBand": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DeviceProfileData"
+              }
+            ]
+          }
+        }
+      },
+      "DeviceSave": {
+        "required": [
+          "gameId",
+          "data",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "gameId": {
+            "type": "string"
+          },
+          "data": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "DeviceScore": {
+        "required": [
+          "clientId",
+          "gameId",
+          "board",
+          "value",
+          "achievedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "clientId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "board": {
+            "type": "string"
+          },
+          "value": {
+            "type": "number",
+            "format": "double"
+          },
+          "achievedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "final": {
+            "type": "boolean",
+            "default": true
           }
         }
       },
@@ -3707,6 +3962,27 @@
               "string"
             ],
             "format": "date-time"
+          }
+        }
+      },
+      "MergeProfileRequest": {
+        "required": [
+          "name"
+        ],
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string"
+          },
+          "data": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/DeviceProfileData"
+              }
+            ]
           }
         }
       },
@@ -4698,6 +4974,13 @@
                 "$ref": "#/components/schemas/ProofOfWorkSolution"
               }
             ]
+          },
+          "deviceProfileId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
           }
         }
       },

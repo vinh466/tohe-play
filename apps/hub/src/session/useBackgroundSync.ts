@@ -37,9 +37,9 @@ const trackedProgress: ProgressApi = {
 /** The hub's one syncer (M2): saves and scores of the playing profile, to and from the API. */
 export const syncer = createSyncer(db, trackedProgress);
 
-/** Account profiles sync; guests keep everything on the device. */
+/** Account profiles sync; device profiles keep everything on the device (ADR 0043). */
 export const syncsWithServer = (player: Player | null): player is Player =>
-  player !== null && player.kind !== 'guest';
+  player !== null && player.kind !== 'device';
 
 /** Syncs the playing profile when a screen opens and whenever the device comes back online. */
 export function useBackgroundSync(player: Player | null) {

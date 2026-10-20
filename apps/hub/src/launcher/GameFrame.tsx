@@ -198,7 +198,7 @@ export function GameFrame({
           telemetry: telemetryOn(),
           room: room && table ? { id: room.id, ...table } : undefined,
           replay,
-          // What the game's menu may offer (ADR 0018): signed-in profiles have boards and rooms; guests do not.
+          // What the game's menu may offer (ADR 0018): signed-in profiles have boards and rooms; device profiles do not.
           shell: hasShell(game)
             ? {
                 leaderboard: synced && game.capabilities.includes('scores'),

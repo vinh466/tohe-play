@@ -16,7 +16,7 @@ import { Screen } from '../ui/Screen.tsx';
 /** A finished online hand played back in the game (ADR 0016), from the seat of the person watching it. */
 export function ReplayPage() {
   return (
-    <RequireSession need="player" guest={false}>
+    <RequireSession need="player" device={false}>
       {({ player }) => <Replayer player={player} />}
     </RequireSession>
   );

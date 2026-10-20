@@ -2639,6 +2639,10 @@
           "at": {
             "type": "string",
             "format": "date-time"
+          },
+          "kind": {
+            "type": "string",
+            "default": "rename"
           }
         }
       },

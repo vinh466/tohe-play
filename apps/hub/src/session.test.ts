@@ -2,9 +2,7 @@ import 'fake-indexeddb/auto';
 import { describe, expect, it, vi } from 'vitest';
 import { ApiError, type MeView } from './api/client.ts';
 import { errorKey } from './api/errors.ts';
-import { guestMode, parentUnlocked, playerGate, resolveSession } from './session/session.ts';
-import { openDb } from './storage/db.ts';
-import { hasProgress, loadSave, moveProgress, recordScore, storeSave } from './storage/repository.ts';
+import { deviceMode, parentUnlocked, playerGate, resolveSession } from './session/session.ts';
 
 const me = (overrides: Partial<MeView> = {}): MeView => ({
   account: {
@@ -55,22 +53,22 @@ const me = (overrides: Partial<MeView> = {}): MeView => ({
   ...overrides,
 });
 
-const guestProfile = { id: 'guest-1', name: 'Bạn nhỏ', avatar: '🐸', createdAt: 0 };
+const deviceProfile = { id: 'device-1', name: 'Mèo Cam', avatar: '🐸', createdAt: 0 };
 
 describe('resolveSession', () => {
-  it('is signed out without an account or guest mode', () => {
-    expect(resolveSession(null, false, guestProfile)).toEqual({ status: 'signedOut' });
+  it('is signed out without an account or device mode', () => {
+    expect(resolveSession(null, false, deviceProfile)).toEqual({ status: 'signedOut' });
   });
 
-  it('plays as the local guest in guest mode', () => {
-    expect(resolveSession(null, true, guestProfile)).toMatchObject({
-      status: 'guest',
-      player: { id: 'guest-1', kind: 'guest' },
+  it('plays as the device profile in device mode, by its own name (ADR 0043)', () => {
+    expect(resolveSession(null, true, deviceProfile)).toMatchObject({
+      status: 'device',
+      player: { id: 'device-1', name: 'Mèo Cam', kind: 'device' },
     });
   });
 
-  it('prefers the account over guest mode and needs a chosen profile to play', () => {
-    expect(resolveSession(me(), true, guestProfile)).toMatchObject({ status: 'account', player: null });
+  it('prefers the account over device mode and needs a chosen profile to play', () => {
+    expect(resolveSession(me(), true, deviceProfile)).toMatchObject({ status: 'account', player: null });
     expect(resolveSession(me({ activeProfileId: 'p-kid' }), false, null)).toMatchObject({
       status: 'account',
       player: { id: 'p-kid', name: 'Na', kind: 'child' },
@@ -103,51 +101,33 @@ describe('errorKey', () => {
   });
 });
 
-describe('moving guest progress', () => {
-  it('moves scores and saves without overwriting the target profile', async () => {
-    const db = openDb(`test-${crypto.randomUUID()}`);
-    await storeSave(db, 'guest', 'hello', { best: 5 });
-    await storeSave(db, 'guest', 'merge', { level: 2 });
-    await storeSave(db, 'kid', 'merge', { level: 9 });
-    await recordScore(db, { profileId: 'guest', gameId: 'hello', board: 'default', value: 5 });
-
-    expect(await hasProgress(db, 'guest')).toBe(true);
-    await moveProgress(db, 'guest', 'kid');
-
-    expect(await hasProgress(db, 'guest')).toBe(false);
-    expect(await loadSave(db, 'kid', 'hello')).toEqual({ best: 5 });
-    expect(await loadSave(db, 'kid', 'merge')).toEqual({ level: 9 });
-    expect(await db.scores.where('[profileId+gameId]').equals(['kid', 'hello']).count()).toBe(1);
-  });
-});
-
 describe('playerGate: opening the hub is playing (E-03)', () => {
-  const signedOut = resolveSession(null, false, guestProfile);
-  const guest = resolveSession(null, true, guestProfile);
+  const signedOut = resolveSession(null, false, deviceProfile);
+  const device = resolveSession(null, true, deviceProfile);
 
-  it('a device with no session and no guest flag enters guest mode by itself, with no sign-in screen', () => {
-    expect(playerGate(signedOut, { guest: true })).toBe('enter-as-guest');
+  it('a device with no session enters device mode by itself, with no sign-in screen', () => {
+    expect(playerGate(signedOut, { device: true })).toBe('enter-as-device');
   });
 
-  it('a guest and a chosen profile play at once', () => {
-    expect(playerGate(guest, { guest: true })).toBe('play');
-    expect(playerGate(resolveSession(me({ activeProfileId: 'p-kid' }), false, null), { guest: true })).toBe(
+  it('a device profile and a chosen profile play at once', () => {
+    expect(playerGate(device, { device: true })).toBe('play');
+    expect(playerGate(resolveSession(me({ activeProfileId: 'p-kid' }), false, null), { device: true })).toBe(
       'play',
     );
   });
 
   it('an account with no chosen profile goes to the picker', () => {
-    expect(playerGate(resolveSession(me(), false, null), { guest: true })).toBe('choose-profile');
+    expect(playerGate(resolveSession(me(), false, null), { device: true })).toBe('choose-profile');
   });
 
   it('what needs an account (a room link) still asks a signed-out device to sign in', () => {
-    expect(playerGate(signedOut, { guest: false })).toBe('sign-in');
-    // A guest reaches the page, which sends them to sign up (JoinPage) or shows the bots (RoomsPage).
-    expect(playerGate(guest, { guest: false })).toBe('play');
+    expect(playerGate(signedOut, { device: false })).toBe('sign-in');
+    // A device profile reaches the page, which sends it to sign up (JoinPage) or shows the bots (RoomsPage).
+    expect(playerGate(device, { device: false })).toBe('play');
   });
 });
 
-describe('guestMode', () => {
+describe('deviceMode', () => {
   const store = new Map<string, string>();
   vi.stubGlobal('localStorage', {
     getItem: (key: string) => store.get(key) ?? null,
@@ -155,16 +135,18 @@ describe('guestMode', () => {
     removeItem: (key: string) => void store.delete(key),
   });
 
-  it('tells the screens when a visitor becomes a guest, and when someone signs in', () => {
+  it('tells the screens when a visitor plays as a device profile, and when someone signs in', () => {
     let heard = 0;
-    const stop = guestMode.subscribe(() => heard++);
-    expect(guestMode.enabled()).toBe(false);
-    guestMode.enable();
-    expect(guestMode.enabled()).toBe(true);
-    guestMode.disable();
-    expect(guestMode.enabled()).toBe(false);
+    const stop = deviceMode.subscribe(() => heard++);
+    expect(deviceMode.enabled()).toBe(false);
+    deviceMode.enable();
+    expect(deviceMode.enabled()).toBe(true);
+    // The key the public pages read stays the one guest mode had.
+    expect(localStorage.getItem('tohe:guest')).toBe('1');
+    deviceMode.disable();
+    expect(deviceMode.enabled()).toBe(false);
     stop();
-    guestMode.enable();
+    deviceMode.enable();
     expect(heard).toBe(2);
   });
 });

@@ -1,6 +1,9 @@
 import { queryOptions } from '@tanstack/react-query';
+import i18n from '../i18n.ts';
+import { funName } from '../session/profileNames.ts';
 import { db } from '../storage/db.ts';
-import { ensureGuestProfile, withOfflineCache } from '../storage/repository.ts';
+import { ensureDeviceProfile, listDeviceProfiles } from '../storage/deviceProfiles.ts';
+import { withOfflineCache } from '../storage/repository.ts';
 import { ApiError, fetchConfig, fetchGames, fetchMe, fetchProfileOptions, type MeView } from './client.ts';
 
 export const configQuery = queryOptions({
@@ -44,9 +47,24 @@ export const profileOptionsQuery = queryOptions({
   staleTime: Number.POSITIVE_INFINITY,
 });
 
-/** The local guest profile used in "Chơi thử" mode. */
-export const profileQuery = queryOptions({
-  queryKey: ['profile'],
-  queryFn: () => ensureGuestProfile(db),
+/**
+ * The device profile playing on this device (ADR 0043) — made silently, with a suggested name, the first time a device
+ * plays without an account; `onMade` hears of that first one.
+ */
+export const deviceProfileQuery = (onMade?: () => void) =>
+  queryOptions({
+    queryKey: ['device-profile'],
+    queryFn: async () => {
+      const { profile, made } = await ensureDeviceProfile(db, () => funName(i18n.language));
+      if (made) onMade?.();
+      return profile;
+    },
+    staleTime: Number.POSITIVE_INFINITY,
+  });
+
+/** Every device profile of this device, oldest first. */
+export const deviceProfilesQuery = queryOptions({
+  queryKey: ['device-profiles'],
+  queryFn: () => listDeviceProfiles(db),
   staleTime: Number.POSITIVE_INFINITY,
 });

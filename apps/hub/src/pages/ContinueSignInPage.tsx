@@ -1,17 +1,35 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useNavigate } from '@tanstack/react-router';
-import { type FormEvent, useState } from 'react';
+import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError, type ExternalOutcome, external, type PendingSignInView } from '../api/client.ts';
+import {
+  ApiError,
+  type DeviceProfileUpload,
+  type ExternalOutcome,
+  external,
+  type PendingSignInView,
+} from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery } from '../api/queries.ts';
 import { ConsentCheckbox } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
+import { refusedKey } from '../session/bringInChoices.ts';
 import { invite } from '../session/invite.ts';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
-import { guestMode } from '../session/session.ts';
-import { useSetMe } from '../session/useSession.ts';
+import { SignUpQuestion } from '../session/SignUpQuestion.tsx';
+import { deviceMode } from '../session/session.ts';
+import {
+  afterSignUp,
+  defaultAnswer,
+  type SignUpAnswer,
+  sendingSignUp,
+  signingUpDeviceQuery,
+  signUpUpload,
+} from '../session/signUpDevice.ts';
+import { useDeviceRename } from '../session/useDeviceRename.ts';
+import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
+import { db } from '../storage/db.ts';
 import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { CodeStep } from '../ui/CodeStep.tsx';
@@ -33,13 +51,15 @@ export function ContinueSignInPage() {
   );
 }
 
-/** Signed in: the page's session guard moves on to the picker. Otherwise the next step shows. */
+/**
+ * Signed in: the page's session guard moves on to the picker, which offers to bring the device profiles in (ADR 0043).
+ * Otherwise the next step shows.
+ */
 function useOutcome() {
   const setMe = useSetMe();
   const queryClient = useQueryClient();
   return async (outcome: ExternalOutcome) => {
     if (outcome.me) {
-      guestMode.disable();
       await setMe(outcome.me);
     } else {
       queryClient.setQueryData(pendingQuery.queryKey, outcome.pending);
@@ -239,23 +259,57 @@ function LinkStep({ step }: { step: PendingSignInView }) {
   );
 }
 
-/** No account has the address: a name and the terms finish signing up, and the first profile plays at once. */
+/**
+ * No account has the address: a name and the terms finish signing up, and the first profile plays at once. The device
+ * profile that started the sign-in comes along, asked about first (ADR 0043).
+ */
 function SignUpStep({ step }: { step: PendingSignInView }) {
   const { t, i18n } = useTranslation();
   const outcome = useOutcome();
+  const changed = useDeviceProfilesChanged();
   const config = useQuery(configQuery);
   const registration = config.data?.registration ?? 'open';
+  const device = useQuery(signingUpDeviceQuery).data ?? null;
+  const [answer, setAnswer] = useState<SignUpAnswer>(defaultAnswer);
+  const rename = useDeviceRename();
   const [name, setName] = useState(() => funName(i18n.language));
+  const named = useRef(false);
+  useEffect(() => {
+    if (!device || named.current) return;
+    named.current = true;
+    setName(device.name);
+  }, [device]);
+  const answered = (next: SignUpAnswer) => {
+    if (device && next.mine !== answer.mine) setName(next.mine ? device.name : funName(i18n.language));
+    setAnswer(next);
+  };
   const [inviteCode, setInviteCode] = useState(() => invite.get().toUpperCase());
   const [agreed, setAgreed] = useState(false);
   const [showErrors, setShowErrors] = useState(false);
   const signUp = useMutation({
-    mutationFn: () => external.signUp(cleanName(name), TERMS_VERSION, inviteCode.trim() || null),
-    onSuccess: async (result) => {
+    mutationFn: async () => {
+      const own = cleanName(name);
+      let sent: DeviceProfileUpload | null = null;
+      if (device) {
+        const named = answer.mine ? own : await rename.apply(device.id, device.name);
+        sent = await signUpUpload(db, { ...device, name: named }, answer, named);
+      }
+      const result = await sendingSignUp(db, sent, () =>
+        external.signUp(own, TERMS_VERSION, inviteCode.trim() || null, sent),
+      );
+      return { result, sent };
+    },
+    onSuccess: async ({ result, sent }) => {
       invite.forget();
       funnel.accountCreated();
+      if (result.me) {
+        await afterSignUp(db, result.me, sent);
+        deviceMode.disable();
+        await changed();
+      }
       await outcome(result);
     },
+    onError: (error) => rename.caught(error, device?.name ?? ''),
   });
   const inviteError = registration === 'invite' && !inviteCode.trim() ? t('errors.inviteRequired') : null;
   const server = signUp.error instanceof ApiError ? signUp.error : null;
@@ -286,6 +340,16 @@ function SignUpStep({ step }: { step: PendingSignInView }) {
     <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
       <h2 className="font-bold text-ink text-xl">{t('external.signUpTitle', { provider: step.provider })}</h2>
       <p className="wrap-anywhere text-ink">{t('external.signUpBody', { email: step.email })}</p>
+      {device ? <SignUpQuestion device={device} answer={answer} onChange={answered} /> : null}
+      {rename.refused ? (
+        <TextField
+          label={t('device.rename')}
+          maxLength={128}
+          value={rename.refused.name}
+          onChange={(event) => rename.setName(event.target.value)}
+          error={t(refusedKey(rename.refused.reason))}
+        />
+      ) : null}
       <div className="flex items-end gap-2">
         <TextField
           className="flex-1"
@@ -322,7 +386,7 @@ function SignUpStep({ step }: { step: PendingSignInView }) {
         onChange={setAgreed}
         error={showErrors && !agreed ? t('errors.termsRequired') : null}
       />
-      {signUp.isError && !server?.field('inviteCode') ? (
+      {signUp.isError && !server?.field('inviteCode') && !rename.refused ? (
         <p role="alert" className="text-danger">
           {t(errorKey(signUp.error))}
         </p>

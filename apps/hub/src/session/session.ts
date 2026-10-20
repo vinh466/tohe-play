@@ -7,60 +7,62 @@ export interface Player {
   id: string;
   name: string;
   avatar: string;
-  /** Child profiles see games filtered by age; guests and adults do not. */
-  kind: 'adult' | 'child' | 'guest';
+  /** Child profiles see games filtered by age; device profiles (ADR 0043) and adults do not. */
+  kind: 'adult' | 'child' | 'device';
 }
 
 export type SessionState =
   | { status: 'signedOut' }
-  | { status: 'guest'; player: Player }
+  | { status: 'device'; player: Player }
   | { status: 'account'; me: MeView; player: Player | null };
 
-const GUEST_FLAG = 'tohe:guest';
+/** Kept from guest mode: the public pages read it to send a returning device to the app (hosts-and-paths.md). */
+const DEVICE_FLAG = 'tohe:guest';
 
-const guestListeners = new Set<() => void>();
-const guestChanged = () => {
-  for (const listener of guestListeners) listener();
+const deviceListeners = new Set<() => void>();
+const deviceChanged = () => {
+  for (const listener of deviceListeners) listener();
 };
 
 /**
- * Playing without an account on this device, until someone signs in. A visitor with no session enters it by
- * themselves (`RequireSession`); "Chơi thử" on the sign-in screen is the same flag. Listeners let the screens follow it.
+ * This device plays as its device profiles (ADR 0043), until someone signs in. A visitor with no session enters it by
+ * themselves (`RequireSession`); "Chơi luôn" on the sign-in screen is the same flag. It stays on through a sign-in until
+ * the profile picker has offered to bring the device profiles into the account. Listeners let the screens follow it.
  */
-export const guestMode = {
-  enabled: () => localStorage.getItem(GUEST_FLAG) === '1',
+export const deviceMode = {
+  enabled: () => localStorage.getItem(DEVICE_FLAG) === '1',
   enable: () => {
-    localStorage.setItem(GUEST_FLAG, '1');
-    guestChanged();
+    localStorage.setItem(DEVICE_FLAG, '1');
+    deviceChanged();
   },
   disable: () => {
-    localStorage.removeItem(GUEST_FLAG);
-    guestChanged();
+    localStorage.removeItem(DEVICE_FLAG);
+    deviceChanged();
   },
   subscribe: (listener: () => void) => {
-    guestListeners.add(listener);
-    return () => void guestListeners.delete(listener);
+    deviceListeners.add(listener);
+    return () => void deviceListeners.delete(listener);
   },
 };
 
 /** What a screen that needs someone playing does with the session (RequireSession). */
-export type PlayerGate = 'play' | 'enter-as-guest' | 'sign-in' | 'choose-profile';
+export type PlayerGate = 'play' | 'enter-as-device' | 'sign-in' | 'choose-profile';
 
 /**
- * Opening the hub is playing (E-03): a device with no session and no guest flag becomes a guest by itself, so no
- * sign-in screen stands before the first game. A screen that needs an account — a room link — passes
- * `guest: false` and keeps sending guests and signed-out devices to sign in (or up).
+ * Opening the hub is playing (E-03): a device with no session plays as its device profile, made silently on the first
+ * visit, so no sign-in screen stands before the first game. A screen that needs an account — a room link — passes
+ * `device: false` and keeps sending signed-out devices to sign in (or up).
  */
-export function playerGate(session: SessionState, { guest }: { guest: boolean }): PlayerGate {
-  if (session.status === 'signedOut') return guest ? 'enter-as-guest' : 'sign-in';
+export function playerGate(session: SessionState, { device }: { device: boolean }): PlayerGate {
+  if (session.status === 'signedOut') return device ? 'enter-as-device' : 'sign-in';
   if (session.status === 'account' && !session.player) return 'choose-profile';
   return 'play';
 }
 
 export function resolveSession(
   me: MeView | null,
-  guest: boolean,
-  guestProfile: LocalProfile | null,
+  asDevice: boolean,
+  deviceProfile: LocalProfile | null,
 ): SessionState {
   if (me) {
     const active = me.profiles.find((p) => p.id === me.activeProfileId);
@@ -77,10 +79,15 @@ export function resolveSession(
         : null,
     };
   }
-  if (guest && guestProfile) {
+  if (asDevice && deviceProfile) {
     return {
-      status: 'guest',
-      player: { id: guestProfile.id, name: guestProfile.name, avatar: guestProfile.avatar, kind: 'guest' },
+      status: 'device',
+      player: {
+        id: deviceProfile.id,
+        name: deviceProfile.name,
+        avatar: deviceProfile.avatar,
+        kind: 'device',
+      },
     };
   }
   return { status: 'signedOut' };

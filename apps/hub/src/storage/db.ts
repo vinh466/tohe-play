@@ -1,13 +1,20 @@
 // Local-first storage. Saves and scores land here first, so games keep working when the API is down; sync.ts pushes
-// what is not `synced` yet and pulls what other devices wrote (M2, ADR 0005).
+// what is not `synced` yet and pulls what other devices wrote (M2, ADR 0005). `profiles` holds the device profiles
+// (ADR 0043, deviceProfiles.ts); account profiles live on the server.
 import type { JsonValue } from '@tohe/game-sdk';
 import Dexie, { type EntityTable } from 'dexie';
 
+/**
+ * A device profile (ADR 0043): a player of this device only, with no account. The guest of earlier versions is one —
+ * the device's first.
+ */
 export interface LocalProfile {
   id: string;
   name: string;
   avatar: string;
   createdAt: number;
+  /** The player named it or chose its avatar; absent for one the hub made silently, as the guest was. */
+  chosen?: boolean;
 }
 
 export interface LocalSave {
@@ -94,6 +101,20 @@ export function openDb(name = 'tohe'): ToheDb {
     );
   // v3 (ADR 0030): ranked runs handed in, waiting to reach the API.
   db.version(3).stores({ ranked: '++id, synced' });
+  // v4 (ADR 0043): the guest becomes the device's first device profile — same row, same id, so its saves and scores stay
+  // where they are. Device profiles are listed oldest first; a row from before without a time sorts first.
+  db.version(4)
+    .stores({ profiles: 'id, createdAt' })
+    .upgrade((tx) =>
+      tx
+        .table('profiles')
+        .toCollection()
+        .modify((profile: LocalProfile) => {
+          profile.createdAt ??= 0;
+          profile.name ||= 'Bạn nhỏ';
+          profile.avatar ||= '🦊';
+        }),
+    );
   return db;
 }
 

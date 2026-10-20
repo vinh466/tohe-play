@@ -68,6 +68,9 @@ const byCode: Record<string, string> = {
   invite_limit: 'rooms.errors.inviteLimit',
   invitee_limit: 'rooms.errors.inviteeLimit',
   child_invites_account_only: 'errors.childInvitesAccountOnly',
+  name_refused: 'errors.nameRefused',
+  upload_too_large: 'errors.uploadTooLarge',
+  id_taken: 'errors.generic',
 };
 
 /** The i18n key to show for a failed request. */

@@ -1,7 +1,7 @@
 // Background sync of saves, scores and ranked runs (M2, ADR 0005, ADR 0030). Every write lands on the device first;
 // this pushes what is pending and pulls what other devices wrote, for the profile active in the session (the API only
 // accepts that one). A pending local save always wins: it reaches the server later, and the server keeps the version
-// it replaces. Guests never sync.
+// it replaces. Device profiles never sync: theirs goes up once, when one is brought into an account (ADR 0043).
 import type { JsonValue } from '@tohe/game-sdk';
 import type { ToheDb } from './db.ts';
 

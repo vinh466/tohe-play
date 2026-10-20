@@ -907,6 +907,8 @@ export interface components {
             name: string;
             /** Format: date-time */
             at: string;
+            /** @default rename */
+            kind: string;
         };
         OutboxState: {
             enabled: boolean;

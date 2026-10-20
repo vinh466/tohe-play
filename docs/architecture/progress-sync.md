@@ -17,7 +17,9 @@ rest.
    device has). This is what lets a child continue on another device.
 
 Only **account profiles** sync, and only the profile active in the session (the API accepts writes for that one
-only). **Guests** keep everything on the device.
+only). **Device profiles** keep everything on the device; their saves and scores reach the server only when one is
+brought into an account, in one request, and those scores never reach a public board
+([Identity](identity.md#bringing-one-into-an-account)).
 
 ## Conflicts
 

@@ -97,14 +97,14 @@ const email = `e2e${Date.now().toString(36)}@e2e.test`;
 
 try {
   step(
-    `open ${hubUrl} — a new device sees the public page; "Chơi ngay" plays as a guest, and signing in is a choice`,
+    `open ${hubUrl} — a new device sees the public page; "Chơi ngay" plays as a device profile, and signing in is a choice`,
   );
   await page.goto(hubUrl);
   await page.getByRole('link', { name: 'Chơi ngay' }).waitFor();
   await shot('landing');
   await page.getByRole('link', { name: 'Chơi ngay' }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
-  await page.getByRole('link', { name: 'Đăng nhập' }).tap(); // the slim strip for guests
+  await page.getByRole('link', { name: 'Đăng nhập' }).tap(); // the slim strip of a device profile
   await page.waitForURL(/\/account\/sign-in$/);
   await shot('welcome');
 
@@ -381,7 +381,7 @@ try {
   await expectTheme('dark');
   await page.waitForTimeout(300);
   if (new URL(page.url()).pathname !== '/') throw new Error(`/?stay was redirected to ${page.url()}`);
-  // The app keeps `tohe:guest` on a device that plays without an account; the page's script reads it (and the
+  // The app keeps `tohe:guest` on a device that plays as its device profiles; the page's script reads it (and the
   // telemetry's device id) from the same origin's localStorage.
   await page.evaluate(() => localStorage.setItem('tohe:guest', '1'));
   await page.goto(hubUrl);

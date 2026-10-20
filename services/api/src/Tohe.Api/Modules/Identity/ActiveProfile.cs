@@ -8,6 +8,7 @@ namespace Tohe.Api.Modules.Identity;
 /// <summary>The profile playing in this request's session, as other modules may see it.</summary>
 /// <param name="AccountId">The account that owns the profile.</param>
 /// <param name="PlayWithOthers">A child the owner lets play online with other accounts (ADR 0016).</param>
+/// <param name="DeviceUntil">When it came from a device (ADR 0043): what it reached until then was a device profile's.</param>
 public sealed record ActiveProfile(
     Guid Id,
     Guid AccountId,
@@ -15,7 +16,8 @@ public sealed record ActiveProfile(
     string? AgeBand,
     string Name = "",
     string Avatar = "",
-    bool PlayWithOthers = false)
+    bool PlayWithOthers = false,
+    DateTimeOffset? DeviceUntil = null)
 {
     /// <summary>Highest game <c>minAge</c> this profile may see; unlimited for adults and guests.</summary>
     public int MaxGameMinAge => Kind == ProfileKind.Child && AgeBand is { } band ? ProfileOptions.MinAgeOf(band) : int.MaxValue;
@@ -43,7 +45,7 @@ internal sealed class ActiveProfileReader(ToheDbContext db) : IActiveProfile
         // Only a profile of the signed-in account: a profile id from another account can never be used.
         return await db.Profiles.AsNoTracking()
             .Where(p => p.Id == profileId && p.AccountId == accountId)
-            .Select(p => new ActiveProfile(p.Id, p.AccountId, p.Kind, p.AgeBand, p.Name, p.Avatar, p.PlayWithOthers))
+            .Select(p => new ActiveProfile(p.Id, p.AccountId, p.Kind, p.AgeBand, p.Name, p.Avatar, p.PlayWithOthers, p.DeviceUntil))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }

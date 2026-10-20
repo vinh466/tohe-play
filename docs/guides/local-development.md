@@ -49,7 +49,7 @@ pnpm dev                                # API (dotnet watch) + games origin + hu
 
 Open <http://localhost:4720/play> (under compose the root, <http://localhost:4720>, is the public home page; under
 `pnpm dev` it is on <http://localhost:4711>). The API migrates the database on start and indexes the games within ~15 s.
-A new device plays as a guest at once, with no sign-in screen. To sign up, use the "Đăng nhập" strip on the catalog
+A new device plays as a device profile at once, with no sign-in screen. To sign up, use the "Đăng nhập" strip on the catalog
 and "Tạo tài khoản": any email and a password of 8+ characters (the code arrives in Mailpit,
 <http://localhost:4760>); add a child profile under "Quản lý tài khoản".
 

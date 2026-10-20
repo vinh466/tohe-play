@@ -111,7 +111,7 @@ privacy notice are not copy of this app: change them in `documents.ts`, with `TE
   script and stylesheet is a file under `/_web/` (the build's `scripts/check-build.ts` fails when one is inlined); the
   Caddy test in `@tohe/routes` checks the header.
 - **A returning player goes to the app**: a small blocking script in `<head>` sends a browser that already has this
-  origin's `tohe:guest` (a guest on the device) or `tohe:telemetry:device` (the id the app's telemetry gives a device)
+  origin's `tohe:guest` (the device plays as its device profiles; the key kept from guest mode) or `tohe:telemetry:device` (the id the app's telemetry gives a device)
   in `localStorage` to `/play` with `location.replace`. The session cookie is `HttpOnly`, so it cannot be the signal.
   `/?stay` (any `stay` parameter) never redirects, so the page can still be looked at. *Chơi ngay* links to `/play`.
 - **One image for every environment**: the build writes the hub's and the docs host's URLs as placeholders that the

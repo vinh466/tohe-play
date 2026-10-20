@@ -16,6 +16,9 @@ namespace Tohe.Api.Modules.Identity;
 /// <param name="TermsVersion">The version of the documents the hub showed.</param>
 /// <param name="Proof">The answer to a challenge from <c>GET /api/auth/challenge</c>, when the server asks for one
 /// (<c>proofOfWork</c> in <c>/api/config</c>, ADR 0037).</param>
+/// <param name="DeviceProfileId">The device profile signing up, when the device has one (ADR 0043): kept on the
+/// attempt, so only the confirmation that sends this device profile brings it in. 409 <c>id_taken</c> when the server
+/// cannot take its id.</param>
 public sealed record SignUpRequest(
     [Required(AllowEmptyStrings = true)] string Email,
     [Required(AllowEmptyStrings = true), StringLength(128)] string Password,
@@ -23,7 +26,8 @@ public sealed record SignUpRequest(
     bool AcceptTerms,
     string? TermsVersion,
     string? InviteCode = null,
-    ProofOfWorkSolution? Proof = null);
+    ProofOfWorkSolution? Proof = null,
+    Guid? DeviceProfileId = null);
 
 /// <summary>A flow waiting for the code sent by email. The same answer whoever the address belongs to (ADR 0024).</summary>
 /// <param name="AttemptId">Send it back with the code: a code opens only the attempt it was sent for.</param>
@@ -31,6 +35,15 @@ public sealed record AttemptView(Guid AttemptId);
 
 /// <param name="Code">The six digits from the email; spaces are fine.</param>
 public sealed record ConfirmCodeRequest(Guid AttemptId, [Required(AllowEmptyStrings = true)] string Code);
+
+/// <param name="Code">The six digits from the email; spaces are fine.</param>
+/// <param name="DeviceProfile">The device profile that started the sign-up, with what it played (ADR 0043): without
+/// an age band it becomes the account's first profile, with one it joins the usual first profile as a child's. Only
+/// when its id is the attempt's — sent from the device that started — and the server can take it.</param>
+public sealed record ConfirmSignUpRequest(
+    Guid AttemptId,
+    [Required(AllowEmptyStrings = true)] string Code,
+    DeviceProfileUpload? DeviceProfile = null);
 
 /// <param name="Email">The account's email — or, for an account from before email sign-in that has not added one yet,
 /// its username.</param>
@@ -117,6 +130,7 @@ internal static class AuthEndpoints
         ISignInSettings settings,
         Invites invites,
         ProofOfWork proofs,
+        DeviceProfiles devices,
         ToheDbContext db,
         TimeProvider clock,
         ToheMetrics metrics,
@@ -153,6 +167,12 @@ internal static class AuthEndpoints
             return Problems.Field("displayName", nameError);
         }
 
+        // A device profile whose id the server cannot take gets a new one on the device first (ADR 0043).
+        if (request.DeviceProfileId is { } deviceProfile && await devices.IdTakenAsync(deviceProfile, ct))
+        {
+            return DeviceProfiles.IdTaken();
+        }
+
         // 16 or older, and the terms: under 16, a child plays as a profile a parent makes (ADR 0023, 0025).
         if (!request.AcceptTerms || !Consent.IsVersion(request.TermsVersion))
         {
@@ -184,7 +204,8 @@ internal static class AuthEndpoints
             passwordHash: existing is null ? passwordHash : null,
             displayName: displayName,
             termsVersion: request.TermsVersion,
-            inviteCode: Invites.Normalize(request.InviteCode));
+            inviteCode: Invites.Normalize(request.InviteCode),
+            deviceProfileId: request.DeviceProfileId);
         outbox.Add(existing?.Email is { } signsIn
             ? IdentityEmails.AlreadyRegistered(signsIn, attempts.Link(HubPaths.Welcome))
             : IdentityEmails.SignUpCode(email, code!, attempts.Link($"{HubPaths.RegisterConfirm}?attempt={attempt.Id}&code={code}")));
@@ -199,10 +220,11 @@ internal static class AuthEndpoints
     }
 
     private static async Task<Results<Ok<MeView>, ProblemHttpResult>> ConfirmSignUpAsync(
-        ConfirmCodeRequest request,
+        ConfirmSignUpRequest request,
         Attempts attempts,
         UserManager<Account> users,
         Invites invites,
+        DeviceProfiles devices,
         ToheDbContext db,
         SessionWriter session,
         MeQueries me,
@@ -217,6 +239,15 @@ internal static class AuthEndpoints
         }
 
         var attempt = check.Attempt!;
+        // The device profile that started it, from the device that started it (ADR 0043). A refused name is changed on
+        // the device first, before the attempt is used: the same code works again.
+        var device = DeviceProfiles.Of(attempt, request.DeviceProfile);
+        var deviceName = "";
+        if (device is not null && devices.Check(device, out deviceName) is { } refused)
+        {
+            return refused;
+        }
+
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         if (!await attempts.UseAsync(attempt, ct)
             || await db.Users.AnyAsync(a => a.NormalizedEmail == attempt.NormalizedEmail, ct))
@@ -250,19 +281,12 @@ internal static class AuthEndpoints
             InviteCode = inviteCode,
         };
 
-        // Every account starts with a profile to play as (ADR 0023), and plays as it at once: nobody else to choose.
-        var profile = new Profile
+        // An id taken since the sign-up started: the account is made the usual way, and the device keeps its profile.
+        if (device is not null && await devices.IdTakenAsync(device.Id, ct))
         {
-            Id = Guid.CreateVersion7(now),
-            AccountId = id,
-            PublicId = await ProfileEndpoints.NewPublicIdAsync(db, ct),
-            Name = attempt.DisplayName!,
-            Avatar = ProfileOptions.Avatars[0],
-            Kind = ProfileKind.Adult,
-            // An adult's profile is on public boards from the start (ADR 0029); they switch it off in its settings.
-            OnPublicBoards = true,
-            CreatedAt = now,
-        };
+            device = null;
+        }
+
         try
         {
             var created = await users.CreateAsync(account);
@@ -270,15 +294,17 @@ internal static class AuthEndpoints
             {
                 return Problems.AttemptClosed();
             }
-
-            db.Profiles.Add(profile);
-            await db.SaveChangesAsync(ct);
         }
         catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
             // Another attempt for the same address got there first.
             return Problems.AttemptClosed();
         }
+
+        // Every account starts with a profile to play as (ADR 0023), and plays as it at once: nobody else to choose. A
+        // device profile that is the person's own is that profile; a child's joins it (ADR 0043).
+        // Its id taken at this very moment: the account is made the usual way.
+        var profile = await devices.SaveFirstProfileAsync(account, attempt.DisplayName!, device, deviceName, now, ct);
 
         await transaction.CommitAsync(ct);
         metrics.SignUp(SignInMethods.Password, "completed");

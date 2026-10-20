@@ -445,6 +445,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<Guid?>("DeviceProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_profile_id");
+
                     b.Property<string>("DisplayName")
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
@@ -618,6 +622,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("created_at");
 
+                    b.Property<DateTimeOffset?>("DeviceUntil")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("device_until");
+
                     b.Property<DateTimeOffset?>("HiddenFromBoardsAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("hidden_from_boards_at");
@@ -687,6 +695,14 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("at");
 
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("Rename")
+                        .HasColumnName("kind");
+
                     b.Property<string>("Name")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -714,12 +730,20 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnName("public_id")
                         .IsFixedLength();
 
+                    b.Property<Guid?>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
                     b.Property<DateTimeOffset>("RetiredAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("retired_at");
 
                     b.HasKey("PublicId")
                         .HasName("pk_retired_profile_ids");
+
+                    b.HasIndex("ProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_retired_profile_ids_profile_id");
 
                     b.ToTable("retired_profile_ids", "identity");
                 });
@@ -815,6 +839,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<DateTimeOffset?>("DeviceAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("device_at");
+
+                    b.Property<bool>("DeviceEarned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("device_earned");
 
                     b.Property<bool>("Final")
                         .HasColumnType("boolean")
@@ -1050,6 +1078,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<Guid>("ClientId")
                         .HasColumnType("uuid")
                         .HasColumnName("client_id");
+
+                    b.Property<bool>("DeviceEarned")
+                        .HasColumnType("boolean")
+                        .HasColumnName("device_earned");
 
                     b.Property<bool>("Final")
                         .ValueGeneratedOnAdd()

@@ -45,12 +45,16 @@ internal static partial class ProgressModule
     [GeneratedRegex("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")]
     private static partial Regex GameIdPattern();
 
+    public static bool IsGameId(string gameId) => GameIdPattern().IsMatch(gameId);
+
     public static WebApplicationBuilder AddProgressModule(this WebApplicationBuilder builder)
     {
         // What the admin console counts about play (ADR 0027).
         builder.Services.AddScoped<ProgressFacts>();
         // A deleted profile's saves and scores go with it (ADR 0034).
         builder.Services.AddScoped<IProfileData, ProgressProfileData>();
+        // What a device profile played, taken in with it when it comes into an account (ADR 0043).
+        builder.Services.AddScoped<IDeviceProgress, DeviceProgress>();
         return builder;
     }
 
@@ -138,6 +142,9 @@ internal static partial class ProgressModule
                 var changed = new List<ScoreEntry>();
                 foreach (var input in request.Scores)
                 {
+                    // A backstop of ADR 0043: a run this profile reached before it came from its device was a device
+                    // profile's, whichever way it arrives — the mark only ever goes on.
+                    var fromDevice = profile.DeviceUntil is { } until && input.AchievedAt <= until;
                     if (known.TryGetValue(input.ClientId, out var entry))
                     {
                         // A long run reporting again: keep its highest score; once final it stays final.
@@ -154,6 +161,7 @@ internal static partial class ProgressModule
 
                         entry.Final |= input.Final;
                         entry.RecordedAt = clock.GetUtcNow();
+                        entry.DeviceEarned |= fromDevice;
                     }
                     else
                     {
@@ -167,6 +175,7 @@ internal static partial class ProgressModule
                             RecordedAt = clock.GetUtcNow(),
                             ClientId = input.ClientId,
                             Final = input.Final,
+                            DeviceEarned = fromDevice,
                         };
                         db.Scores.Add(entry);
                         known[input.ClientId] = entry;
@@ -175,12 +184,15 @@ internal static partial class ProgressModule
                     changed.Add(entry);
                 }
 
-                // The engine decides how far each can be trusted, saved with the scores (ADR 0029).
-                await results.SubmitRunsAsync(
-                    profile.Id,
-                    profile.AccountId,
-                    [.. changed.Select(entry => new RunClaim(entry.ClientId, entry.GameId, entry.Board, entry.Value, entry.Final, entry.AchievedAt))],
-                    ct);
+                // The engine decides how far each can be trusted, saved with the scores (ADR 0029); a device profile's
+                // stay off public boards (ADR 0043).
+                static RunClaim Claim(ScoreEntry entry) =>
+                    new(entry.ClientId, entry.GameId, entry.Board, entry.Value, entry.Final, entry.AchievedAt);
+                await results.SubmitRunsAsync(profile.Id, profile.AccountId, [.. changed.Where(e => !e.DeviceEarned).Select(Claim)], ct);
+                if (changed.Any(e => e.DeviceEarned))
+                {
+                    await results.SubmitDeviceRunsAsync(profile.Id, profile.AccountId, [.. changed.Where(e => e.DeviceEarned).Select(Claim)], ct);
+                }
                 await db.SaveChangesAsync(ct);
                 return TypedResults.Ok(new RecordScoresResult(changed.Count));
             })
@@ -194,7 +206,7 @@ internal static partial class ProgressModule
     /// PostgreSQL keeps microseconds; .NET has 100 ns ticks. Rounding first makes the time in a PUT's answer equal to
     /// the one a later GET reads, which devices compare.
     /// </summary>
-    private static DateTimeOffset ToDatabasePrecision(DateTimeOffset time) =>
+    internal static DateTimeOffset ToDatabasePrecision(DateTimeOffset time) =>
         new(time.Ticks - (time.Ticks % 10), time.Offset);
 
     private static ActiveProfile Active(HttpContext http) => (ActiveProfile)http.Items[typeof(ActiveProfile)]!;

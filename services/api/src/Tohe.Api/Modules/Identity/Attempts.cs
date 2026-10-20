@@ -73,7 +73,8 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
         string? passwordHash = null,
         string? displayName = null,
         string? termsVersion = null,
-        string? inviteCode = null)
+        string? inviteCode = null,
+        Guid? deviceProfileId = null)
     {
         var now = clock.GetUtcNow();
 
@@ -102,6 +103,7 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
             DisplayName = displayName,
             TermsVersion = termsVersion,
             InviteCode = inviteCode,
+            DeviceProfileId = deviceProfileId,
             TriesLeft = Codes.Tries,
             CreatedAt = now,
             ExpiresAt = now + Codes.LifetimeOf(purpose),
@@ -114,8 +116,9 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
     /// A sign-in back from a provider (ADR 0026), waiting for its next step and bound to the browser by the caller.
     /// <paramref name="code"/>, when given, is what the next step sends to <paramref name="email"/>.
     /// </summary>
+    /// <param name="deviceProfileId">The device profile that started the sign-in, if any (ADR 0043).</param>
     public AuthAttempt NewExternal(
-        string provider, string providerKey, string providerName, string? email, bool emailProven, string? code)
+        string provider, string providerKey, string providerName, string? email, bool emailProven, string? code, Guid? deviceProfileId)
     {
         var now = clock.GetUtcNow();
         var id = Guid.NewGuid();
@@ -130,6 +133,7 @@ internal sealed class Attempts(ToheDbContext db, TimeProvider clock, ILookupNorm
             ProviderKey = providerKey,
             ProviderName = providerName,
             EmailProven = emailProven,
+            DeviceProfileId = deviceProfileId,
             TriesLeft = Codes.Tries,
             CreatedAt = now,
             ExpiresAt = now + Codes.Lifetime,

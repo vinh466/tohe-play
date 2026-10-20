@@ -50,6 +50,12 @@ public sealed class ScoreEntry
 
     /// <summary>False while the run goes on.</summary>
     public bool Final { get; set; } = true;
+
+    /// <summary>
+    /// Earned by a device profile: it came with the request that brought one into an account (ADR 0043). Set by that
+    /// channel only, never cleared.
+    /// </summary>
+    public bool DeviceEarned { get; set; }
 }
 
 internal sealed class SavedGameConfiguration : IEntityTypeConfiguration<SavedGame>

@@ -63,6 +63,12 @@ public sealed class AuthAttempt
     /// <summary>Signing up: the invite code given (ADR 0028), used when the code comes back and the account is made.</summary>
     public string? InviteCode { get; init; }
 
+    /// <summary>
+    /// Signing up, by email or with a provider: the device profile that started it (ADR 0043). Only a device profile with
+    /// this id, sent by the step that makes the account, is brought in.
+    /// </summary>
+    public Guid? DeviceProfileId { get; init; }
+
     /// <summary>External: the provider's scheme (<c>google</c>, <c>github</c>, <c>oidc</c>).</summary>
     public string? Provider { get; init; }
 

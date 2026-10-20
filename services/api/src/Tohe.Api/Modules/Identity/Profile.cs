@@ -102,6 +102,22 @@ public sealed class Profile
     public InviteScope Invites { get; set; }
 
     public DateTimeOffset CreatedAt { get; set; }
+
+    /// <summary>
+    /// When the profile came from a device (ADR 0043): anything it reports as reached up to then was earned as a device
+    /// profile, whichever way it arrives, and stays off public boards. Null for a profile made in the account.
+    /// </summary>
+    public DateTimeOffset? DeviceUntil { get; set; }
+}
+
+/// <summary>Why a name is in a profile's name history.</summary>
+public enum ProfileNameKind
+{
+    /// <summary>The profile was made with it, or renamed to it — by its owner or a moderator.</summary>
+    Rename,
+
+    /// <summary>A device profile of that name was merged into this profile (ADR 0043); the profile kept its own name.</summary>
+    Merged,
 }
 
 /// <summary>
@@ -117,6 +133,9 @@ public sealed class ProfileName
     public required string Name { get; set; }
 
     public DateTimeOffset At { get; set; }
+
+    /// <summary>A name it had, or one merged into it (ADR 0043): renames are limited, merges are not.</summary>
+    public ProfileNameKind Kind { get; set; }
 }
 
 /// <summary>
@@ -126,6 +145,12 @@ public sealed class ProfileName
 public sealed class RetiredProfileId
 {
     public required string PublicId { get; set; }
+
+    /// <summary>
+    /// The deleted profile's id, so a device never brings it back as a device profile's id (ADR 0043). Null for profiles
+    /// deleted before device profiles, whose ids were not kept.
+    /// </summary>
+    public Guid? ProfileId { get; set; }
 
     public DateTimeOffset RetiredAt { get; set; }
 }
@@ -137,6 +162,7 @@ internal sealed class RetiredProfileIdConfiguration : IEntityTypeConfiguration<R
         builder.ToTable("retired_profile_ids", "identity");
         builder.HasKey(retired => retired.PublicId);
         builder.Property(retired => retired.PublicId).HasMaxLength(ProfileIds.Length).IsFixedLength();
+        builder.HasIndex(retired => retired.ProfileId).IsUnique();
     }
 }
 
@@ -146,6 +172,8 @@ internal sealed class ProfileNameConfiguration : IEntityTypeConfiguration<Profil
     {
         builder.ToTable("profile_names", "identity");
         builder.Property(name => name.Name).HasMaxLength(200);
+        // The trigger that keeps the history writes renames; a merge writes its own row.
+        builder.Property(name => name.Kind).HasConversion<string>().HasMaxLength(8).HasDefaultValue(ProfileNameKind.Rename);
         builder.HasIndex(name => new { name.ProfileId, name.At });
         builder.HasOne<Profile>()
             .WithMany()

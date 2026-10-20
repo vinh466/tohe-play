@@ -105,12 +105,13 @@ Generated reference: [Platform API](/reference/api/).
 
 Opening the hub is playing ([vision](../vision.md)); nothing stands between a link and the first game.
 
-- **No sign-in before playing.** A device with no session and no guest flag becomes a guest by itself
-  (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`); `/account/sign-in` opens only when chosen — from
-  the catalog's slim "Đăng nhập" strip, the profile button, or for what needs an account. A room link (`/r/<code>`), a
-  room, the rooms lobby and a replay keep asking a signed-out device to sign in (`guest={false}`). Signing out is a
-  choice and leads to the sign-in screen. When a profile is chosen later, the hub offers the guest's progress once
-  ([Identity](identity.md#guest-mode)).
+- **No sign-in before playing.** A device with no session plays as its device profile at once — the first visit makes
+  one silently, with a suggested name (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`);
+  `/account/sign-in` opens only when chosen — from the catalog's slim "Đăng nhập" strip, or for what needs an account.
+  A room link (`/r/<code>`), a room, the rooms lobby and a replay keep asking a signed-out device to sign in
+  (`device={false}`). Signing out is a choice and leads to the sign-in screen. Signing up asks whether the device
+  profile is the person's own, and signing in offers to bring each device profile with progress into the account
+  ([Identity](identity.md#device-profiles)).
 - **Installing: one component, three ways** (`apps/hub/src/install/`). `chooseInstall` is a pure decision from the
   environment, what the browser handed over, whether a game finished, whether the visit had its offer and when the
   player last said no:
