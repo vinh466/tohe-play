@@ -86,12 +86,12 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
         }
 
         var maker = await standings.FindAsync(link.MakerProfileId, ct);
-        return new ResolvedLink(link, maker, StateOf(link, maker is null or { Stopped: true }, clock.GetUtcNow()));
+        return new ResolvedLink(link, maker, StateOf(link, maker is null or { Silenced: true }, clock.GetUtcNow()));
     }
 
     /// <summary>
     /// What a link resolves to now: revoked — by its maker, the console, or while its maker's account is suspended or
-    /// waiting to be deleted — then expired, then used up.
+    /// waiting to be deleted, or its maker is a child whose "play with others" is off — then expired, then used up.
     /// </summary>
     public static string StateOf(ShareLink link, bool makerStopped, DateTimeOffset now) =>
         link.RevokedAt is not null || makerStopped ? LinkStates.Revoked
@@ -152,7 +152,7 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
     }
 
     /// <summary>The maker's links, newest first, with their totals as the maker sees them.</summary>
-    public async Task<IReadOnlyList<ShareLinkView>> MineAsync(Guid makerId, CancellationToken ct)
+    public async Task<IReadOnlyList<ShareLinkView>> MineAsync(Guid makerId, bool makerSilenced, CancellationToken ct)
     {
         var rows = await db.ShareLinks.AsNoTracking()
             .Where(link => link.MakerProfileId == makerId)
@@ -167,18 +167,18 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
             })
             .ToListAsync(ct);
         var now = clock.GetUtcNow();
-        return [.. rows.Select(row => View(row.Link, row.Opened, row.Played, row.Made, now))];
+        return [.. rows.Select(row => View(row.Link, row.Opened, row.Played, row.Made, makerSilenced, now))];
     }
 
     /// <summary>One link of the maker's, as the maker sees it.</summary>
-    public async Task<ShareLinkView> ViewAsync(ShareLink link, CancellationToken ct)
+    public async Task<ShareLinkView> ViewAsync(ShareLink link, bool makerSilenced, CancellationToken ct)
     {
         var totals = await db.ShareLinkDays.AsNoTracking()
             .Where(day => day.LinkId == link.Id)
             .GroupBy(day => day.LinkId)
             .Select(days => new { Opened = days.Sum(d => d.Opened), Played = days.Sum(d => d.Played), Made = days.Sum(d => d.AccountsMade) })
             .FirstOrDefaultAsync(ct);
-        return View(link, totals?.Opened ?? 0, totals?.Played ?? 0, totals?.Made ?? 0, clock.GetUtcNow());
+        return View(link, totals?.Opened ?? 0, totals?.Played ?? 0, totals?.Made ?? 0, makerSilenced, clock.GetUtcNow());
     }
 
     /// <summary>The maker's own link — a session acts for its profile, never for a stranger's links.</summary>
@@ -194,13 +194,26 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
         return db.ShareLinks.CountAsync(link => link.MakerProfileId == makerId && link.CreatedAt > since, ct);
     }
 
-    /// <summary>The link saved with a fresh code; drawn again when another link has it (40 bits: rarely, if ever).</summary>
+    /// <summary>
+    /// Holds the maker's links until the caller's transaction ends: a transaction-scoped advisory lock on the profile's
+    /// id, so its count of the day and its new link are one step.
+    /// </summary>
+    public Task LockMakerAsync(Guid makerId, CancellationToken ct) =>
+        db.Database.ExecuteSqlAsync($"SELECT pg_advisory_xact_lock(hashtextextended({"links.make:" + makerId}, 0))", ct);
+
+    /// <summary>
+    /// The link saved with a fresh code, within the caller's transaction; drawn again when another link has it (40 bits:
+    /// rarely, if ever) — back to a savepoint, as a failed statement ends the transaction otherwise.
+    /// </summary>
     public async Task SaveNewAsync(ShareLink link, CancellationToken ct)
     {
+        var transaction = db.Database.CurrentTransaction
+            ?? throw new InvalidOperationException("A new link is saved in the caller's transaction.");
         for (var attempt = 0; ; attempt++)
         {
             link.Code = LinkCodes.New();
             db.ShareLinks.Add(link);
+            await transaction.CreateSavepointAsync("new_link", ct);
             try
             {
                 await db.SaveChangesAsync(ct);
@@ -209,18 +222,19 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
             catch (DbUpdateException e) when (attempt < 3
                 && e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
             {
+                await transaction.RollbackToSavepointAsync("new_link", ct);
                 db.Entry(link).State = EntityState.Detached;
             }
         }
     }
 
-    private static ShareLinkView View(ShareLink link, int opened, int played, int made, DateTimeOffset now) => new(
+    private static ShareLinkView View(ShareLink link, int opened, int played, int made, bool makerSilenced, DateTimeOffset now) => new(
         link.Code,
         LinkNames.Of(link.Kind),
         link.GameId,
         link.GameVersion,
         LinkNames.Of(link.Level),
-        StateOf(link, makerStopped: false, now),
+        StateOf(link, makerSilenced, now),
         link.CreatedAt,
         link.ExpiresAt,
         link.MaxUses,

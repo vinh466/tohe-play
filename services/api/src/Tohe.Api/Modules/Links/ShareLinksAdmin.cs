@@ -8,7 +8,8 @@ namespace Tohe.Api.Modules.Links;
 /// <param name="Name">Its current name; null when the profile is gone.</param>
 /// <param name="AccountId">Its account; null for a device profile, whose device is <paramref name="DeviceId"/>.</param>
 /// <param name="Stopped">Its account is suspended or waiting to be deleted: its links resolve as revoked meanwhile.</param>
-public sealed record AdminLinkMaker(Guid ProfileId, string? Name, bool Child, Guid? AccountId, Guid? DeviceId, bool Stopped);
+/// <param name="Kept">A child kept to its account ("play with others" off): its links resolve as revoked meanwhile.</param>
+public sealed record AdminLinkMaker(Guid ProfileId, string? Name, bool Child, Guid? AccountId, Guid? DeviceId, bool Stopped, bool Kept);
 
 /// <summary>A share link's counts on one UTC day.</summary>
 public sealed record AdminLinkDay(DateOnly Day, int Opened, int Played, int AccountsMade);
@@ -73,13 +74,13 @@ internal sealed class ShareLinksAdmin(ToheDbContext db, IProfileStandings standi
             link.GameId,
             link.GameVersion,
             LinkNames.Of(link.Level),
-            ShareLinks.StateOf(link, maker is null or { Stopped: true }, clock.GetUtcNow()),
+            ShareLinks.StateOf(link, maker is null or { Silenced: true }, clock.GetUtcNow()),
             link.CreatedAt,
             link.ExpiresAt,
             link.MaxUses,
             link.Uses,
             link.RevokedAt,
-            new AdminLinkMaker(link.MakerProfileId, maker?.Name, maker?.Child ?? false, maker?.AccountId, maker?.DeviceId, maker?.Stopped ?? false),
+            new AdminLinkMaker(link.MakerProfileId, maker?.Name, maker?.Child ?? false, maker?.AccountId, maker?.DeviceId, maker?.Stopped ?? false, maker?.Kept ?? false),
             days.Sum(day => day.Opened),
             days.Sum(day => day.Played),
             days.Sum(day => day.AccountsMade),

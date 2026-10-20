@@ -2,6 +2,7 @@ import {
   consoleNamespaces,
   hubNamespaces,
   hubRedirects,
+  linkPreviewAppQuery,
   linkPreviewBrowsers,
   linkPreviewCode,
   linkPreviewCrawlers,
@@ -109,10 +110,12 @@ export function linkPreviewPattern(namespaces: readonly Namespace[] = hubNamespa
 
 /**
  * Whether the hub's Caddy answers this request with the API's card (ADR 0044): a link of a previewed namespace, asked by
- * a known crawler that carries no mark of a person's browser. The generated Caddy matcher does the same.
+ * a known crawler that carries no mark of a person's browser, and not sent on from a card already (`?app=`). The
+ * generated Caddy matcher does the same.
  */
-export function isLinkPreview(pathname: string, userAgent: string): boolean {
+export function isLinkPreview(pathname: string, userAgent: string, search = ''): boolean {
   return (
+    !new URLSearchParams(search).has(linkPreviewAppQuery) &&
     new RegExp(linkPreviewPattern()).test(pathname) &&
     new RegExp(alternation(linkPreviewCrawlers), 'i').test(userAgent) &&
     !new RegExp(alternation(linkPreviewBrowsers), 'i').test(userAgent)

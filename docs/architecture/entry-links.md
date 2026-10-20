@@ -69,7 +69,7 @@ A link resolves to one state, checked in this order:
 | State | When |
 | --- | --- |
 | `unknown` | No link has this code — never made, or its maker was deleted with its links |
-| `revoked` | Revoked by its maker or the console — or its maker's **account is suspended or waiting to be deleted**: it resolves as revoked, and shows no name, for as long as that lasts |
+| `revoked` | Revoked by its maker or the console — or its maker's **account is suspended or waiting to be deleted**, or its maker is a **child whose "Chơi online với người ngoài" is off**: it resolves as revoked, and shows no name, for as long as that lasts |
 | `expired` | Its expiry has passed |
 | `used_up` | Its maximum uses are taken |
 | `ok` | It opens |
@@ -86,7 +86,8 @@ Per link and per day (`links.share_link_days`, UTC days), totals only — never 
 
 **The maker** sees `opened` and `played` for its links, and `accountsMade` only from **three** upward — below that it
 reads as none, so a link sent to one friend never tells the maker that this friend signed up. **The console** sees every
-count.
+count. The threshold is a courtesy, not a guarantee: a maker who signs up twice from its own link reaches three with one
+friend; nothing more is stored to stop it.
 
 **Accounts made** rides on the request that makes the account — `POST /api/auth/register/confirm` and
 `POST /api/auth/external/pending/signup` take an optional `entryCode` — and is counted only when that request did make
@@ -103,6 +104,7 @@ malformed code never fails the sign-up.
 | The maker, a device profile, is merged into an account's profile | Move to the target, as the target's ([merge aliases](identity.md#merge-aliases)) |
 | The maker moves to another device with a transfer code | Stay with it: the same id |
 | The maker's account is suspended, or waits to be deleted | Resolve as `revoked` and show no name; lifting the suspension, or keeping the account, brings them back |
+| The maker is a child, and its account's owner turns "Chơi online với người ngoài" off — links merged into a child's profile too | Resolve as `revoked` and show no name; turned on again, they come back |
 
 ### The console
 
@@ -121,7 +123,8 @@ flowchart LR
   C[Crawler: /s/7KQ2M9XA] -->|User-Agent is a known crawler| Caddy
   P[Person: /s/7KQ2M9XA] --> Caddy
   Caddy -->|rewrite to /api/previews/s/7KQ2M9XA| API[API renders and escapes the card]
-  Caddy -->|everyone else| App[the app's page, unchanged]
+  Caddy -->|everyone else, and ?app=1| App[the app's page, unchanged]
+  API -.->|a browser runs the card's script| App
 ```
 
 - **Who is a crawler**: a `User-Agent` with `facebookexternalhit`, `Facebot`, `Twitterbot`, `TelegramBot`, `Slackbot`,
@@ -129,7 +132,18 @@ flowchart LR
   none of the marks of a phone's browser or an in-app browser (`Mobile`, `FBAN`, `FBAV`, `FB_IAB`, `Instagram`), so a
   person who opens the link inside Zalo or Messenger still gets the app. The list is `linkPreviewCrawlers` in
   `@tohe/routes`; the matcher and the rewrite in the hub's Caddy are generated from it. A spoofed `User-Agent` only
-  gets the same card.
+  gets the same card. **Zalo's crawler is not documented**: matching it by `Zalo` is a guess, to be confirmed from UAT's
+  Caddy access log after the deploy (the `User-Agent` of the requests that fetch a link pasted into Zalo).
+- **A person is never stuck on the card**, whatever the guess catches — Zalo's in-app browser on a tablet says no
+  `Mobile`. The card carries one static script, `location.replace(location.pathname + '?app=1')`, which crawlers do
+  not run and a browser runs at once; with scripts off, its link **"Mở Tò He"** leads to the same address. A request
+  with `?app=` always gets the app's page, whatever its `User-Agent` (`not query app=*` in the generated matcher); the
+  hub ignores the parameter (`/r/$code` reads no query; I3b's `/s/$code` drops it). The script does nothing once
+  `app=` is in the address, so the card asked for at its API path never reloads itself.
+- **The card keeps its own CSP**: `default-src 'none'` and the script allowed by its SHA-256 hash, nothing else. The
+  hub's Caddy gives its own CSP to every request but a card's (`@notLinkPreview`, generated with the matcher).
+- **`Vary: User-Agent`** on the card and on the app's page at `/r/*` and `/s/*`, as one address answers both: a cache
+  in front (Cloudflare in production) keeps them apart.
 - **Only well-formed codes**: `/r/` or `/s/` followed by one segment of letters, digits and hyphens (at most 20); any
   other path is the app's.
 - **Caddy never fills API output into a template**: it rewrites the request to the API and passes the answer through,
@@ -163,14 +177,18 @@ cached cannot be called back: revoking or deleting stops new cards only.
 | `POST /api/links/{code}/revoke` | its maker | Revoke it |
 | `POST /api/links/{code}/open` | — | Resolve to a typed intent; counts `opened` |
 | `POST /api/links/{code}/play` | — (the player, when the link asks `named` or `account`) | Resolve to open the game: takes a use and counts `played`; `403 level_required` (with `level`) when the request's player does not meet the link's level |
-| `GET /api/previews/r/{code}` · `GET /api/previews/s/{code}` | — | The crawler's card, HTML (not in the OpenAPI document) |
+| `GET`/`HEAD /api/previews/r/{code}` · `GET`/`HEAD /api/previews/s/{code}` | — | The crawler's card, HTML (not in the OpenAPI document) |
 | `GET /api/admin/links/{code}` · `POST /api/admin/links/{code}/revoke` | the console | Find · revoke |
 
 The intent is `{ code, state, kind, gameId, gameName, level, makerName }`: for `unknown`, only the state; for `expired`,
 `revoked` and `used_up`, the kind and the game too, so the hub can offer the game's menu as a way out; the maker's name
-only for `ok`, and never a child's. Resolving is public and limited per client address (the address the trusted proxy
-chain gives, as the sign-in's limits) — `Links:ResolvesPerMinute` — and for the whole server —
-`Links:ResolvesPerMinuteGlobal`; past either, `429`.
+only for `ok`, and never a child's. Resolving is public and limited per client address — the address the trusted proxy
+chain gives, an IPv6 address by its /64 (`ClientAddress`), `Links:ResolvesPerMinute`; past it, `429`. There is no limit
+for the whole server: a handful of addresses could use it up and switch every link off for everyone.
+
+**`play` is called once per reached intent**: when the hub opens the game for it, never again on a reload or on going
+back. **`maxUses` is no protection** against whoever holds the code — anyone may call `play` until the uses are gone;
+it only bounds how far a link travels.
 
 ## Rooms: a closed table's code
 
@@ -181,7 +199,10 @@ stranger's table; it resolves as no table — the same as a code never used ([Ro
 
 Not built yet; the API above is ready for it.
 
-1. **Resolve**: the address or the typed code becomes a typed intent — a kind and a code, never a free path.
+1. **Resolve**: the address or the typed code becomes a typed intent — a kind and a code, never a free path. A share
+   link resolves at once (`open`, public). A **table's code resolves only after the identity gate** (step 5): looking a
+   table up needs a player's session and is limited per profile; there is no anonymous lookup of a table, which would be
+   the oracle for private tables that ADR 0044 forbids.
 2. **Still good?** An `unknown` code: "Mã này không mở được nữa", with the catalog and the "Nhập mã" box. An `expired`,
    `revoked` or `used_up` share link: the reason and the game, with the game's menu as the way out.
 3. **Keep the intent** on the device, for an hour, per tab, through signing in, a provider's round trip, an email code

@@ -3397,7 +3397,7 @@
         "tags": [
           "Links"
         ],
-        "summary": "Resolve a share link by its code to a typed intent — ok, expired, revoked, used_up or unknown; counts it opened. Limited per address and for the server.",
+        "summary": "Resolve a share link by its code to a typed intent — ok, expired, revoked, used_up or unknown; counts it opened. Limited per address (an IPv6 address by its /64).",
         "operationId": "OpenShareLink",
         "parameters": [
           {

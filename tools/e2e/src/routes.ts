@@ -414,6 +414,28 @@ for (const path of [
     unknown.status === 200 && meta(await unknown.text(), 'og:title') === 'Tò He',
     `/s/ZZZZZZZZ for a crawler: 200 and the generic card (${unknown.status})`,
   );
+  // The card keeps its own CSP — its one script, by hash — and says it varies with the User-Agent.
+  const cardCsp = card.headers.get('content-security-policy') ?? '';
+  check(
+    /^default-src 'none'; script-src 'sha256-[A-Za-z0-9+/=]+';/.test(cardCsp) &&
+      !cardCsp.includes("script-src 'self'") &&
+      (card.headers.get('vary') ?? '').includes('User-Agent') &&
+      cardBody.includes(`href="${publicHubUrl}/s/${code}?app=1">Mở Tò He</a>`) &&
+      cardBody.includes('<script>'),
+    `/s/${code} for a crawler: its own CSP, Vary: User-Agent, the script and the link that send a person on (${cardCsp})`,
+  );
+  // Sent on from a card (?app=1), a crawler's User-Agent too gets the app — a person in an in-app browser is never stuck.
+  for (const path of [`/s/${code}?app=1`, '/r/123456?app=1']) {
+    const page = await as(path, crawler);
+    const body = await page.text();
+    check(
+      page.status === 200 &&
+        body.includes('<div id="root">') &&
+        (page.headers.get('content-security-policy') ?? '').includes("script-src 'self'") &&
+        (page.headers.get('vary') ?? '').includes('User-Agent'),
+      `${path} for a crawler's User-Agent: the app's page, with the hub's CSP and Vary (${page.status})`,
+    );
+  }
   for (const [who, userAgent] of Object.entries(people)) {
     for (const path of [`/s/${code}`, '/r/123456']) {
       const page = await as(path, userAgent);
@@ -421,7 +443,8 @@ for (const path of [
       check(
         page.status === 200 &&
           body.includes('<div id="root">') &&
-          meta(body, 'og:url') === `${publicHubUrl}${path}`,
+          meta(body, 'og:url') === `${publicHubUrl}${path}` &&
+          (page.headers.get('content-security-policy') ?? '').includes("script-src 'self'"),
         `${path} for a person (${who}): the app's page, unchanged (${page.status})`,
       );
     }

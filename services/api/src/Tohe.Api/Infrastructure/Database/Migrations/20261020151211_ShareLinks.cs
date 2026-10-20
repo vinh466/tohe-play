@@ -96,6 +96,9 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                 name: "ix_rooms_code_closed_at",
                 schema: "rooms",
                 table: "rooms");
+
+            migrationBuilder.DropSchema(
+                name: "links");
         }
     }
 }

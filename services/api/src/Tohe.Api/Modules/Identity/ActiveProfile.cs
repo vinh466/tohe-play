@@ -92,7 +92,12 @@ public interface IProfileNames
 /// be deleted (ADR 0034). A device profile has no account, and never stops.
 /// </summary>
 /// <param name="AccountId">Its account; null for a device profile on the server (ADR 0043).</param>
-public sealed record ProfileStanding(Guid Id, Guid? AccountId, Guid? DeviceId, string Name, bool Child, bool Stopped);
+/// <param name="Kept">A child its account's owner keeps to the account now: "Chơi online với người ngoài" is off.</param>
+public sealed record ProfileStanding(Guid Id, Guid? AccountId, Guid? DeviceId, string Name, bool Child, bool Stopped, bool Kept)
+{
+    /// <summary>What it shares with strangers stops meanwhile: its account stopped, or it is a child kept to its account.</summary>
+    public bool Silenced => Stopped || Kept;
+}
 
 /// <summary>Profiles by their ids, as other modules may show them (a share link's maker, ADR 0044).</summary>
 public interface IProfileStandings
@@ -113,7 +118,8 @@ internal sealed class ProfileStandings(ToheDbContext db) : IProfileStandings
                 profile.Name,
                 profile.Kind == ProfileKind.Child,
                 profile.AccountId != null && db.Users.Any(account =>
-                    account.Id == profile.AccountId && (account.SuspendedAt != null || account.DeleteAfter != null))))
+                    account.Id == profile.AccountId && (account.SuspendedAt != null || account.DeleteAfter != null)),
+                profile.Kind == ProfileKind.Child && !profile.PlayWithOthers))
             .FirstOrDefaultAsync(ct);
 }
 

@@ -743,6 +743,7 @@ export interface components {
             /** Format: uuid */
             deviceId: null | string;
             stopped: boolean;
+            kept: boolean;
         };
         AdminMeView: {
             /** Format: uuid */

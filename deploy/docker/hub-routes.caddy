@@ -32,5 +32,17 @@ redir @legacyRooms /play/{re.legacyRooms.1}/rooms?{query} 301
 	path_regexp linkPreview ^/(r|s)/([0-9A-Za-z-]{1,20})$
 	header_regexp linkPreviewCrawler User-Agent (?i)(facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|Discordbot|WhatsApp/|LinkedInBot|Zalo)
 	not header_regexp linkPreviewBrowser User-Agent (?i)(Mobile|FBAN|FBAV|FB_IAB|Instagram)
+	not query app=*
 }
 rewrite @linkPreview /api/previews/{re.linkPreview.1}/{re.linkPreview.2}
+# Every other request: the hub’s CSP (the card keeps its own).
+@notLinkPreview {
+	not {
+		path_regexp ^/(r|s)/([0-9A-Za-z-]{1,20})$
+		header_regexp User-Agent (?i)(facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|Discordbot|WhatsApp/|LinkedInBot|Zalo)
+		not header_regexp User-Agent (?i)(Mobile|FBAN|FBAV|FB_IAB|Instagram)
+		not query app=*
+	}
+}
+# The previewed links, whoever asks: the answer varies with the User-Agent.
+@linkPreviewPaths path /r/* /s/*

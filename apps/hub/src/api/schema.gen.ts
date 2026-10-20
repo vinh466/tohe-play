@@ -1229,7 +1229,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Resolve a share link by its code to a typed intent — ok, expired, revoked, used_up or unknown; counts it opened. Limited per address and for the server. */
+        /** Resolve a share link by its code to a typed intent — ok, expired, revoked, used_up or unknown; counts it opened. Limited per address (an IPv6 address by its /64). */
         post: operations["OpenShareLink"];
         delete?: never;
         options?: never;

@@ -159,6 +159,50 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
         Assert.DoesNotContain("Bé Na", card, StringComparison.Ordinal);
         var intent = await OpenAsync(factory.CreateClient(), made.Code);
         Assert.Null(intent.MakerName);
+
+        // Its owner turns the switch off: its links stop, as revoked with no name, and come back when it is on again.
+        var off = await parent.Client.PatchAsJsonAsync(Url($"/api/profiles/{child.ProfileId}"), new { playWithOthers = false }, Ct);
+        Assert.Equal(HttpStatusCode.OK, off.StatusCode);
+        var anyone = factory.CreateClient();
+        Assert.Equal(new LinkIntent(made.Code, "revoked", "game", Game, Game, "any"), await OpenAsync(anyone, made.Code));
+        Assert.Equal("revoked", (await PlayAsync(anyone, made.Code)).State);
+        Assert.Contains("<title>Tò He</title>", await PreviewAsync($"/api/previews/s/{made.Code}"), StringComparison.Ordinal);
+        Assert.Equal("revoked", Assert.Single(await MineAsync(child.Client)).State);
+        await parent.Client.PatchAsJsonAsync(Url($"/api/profiles/{child.ProfileId}"), new { playWithOthers = true }, Ct);
+        Assert.Equal("ok", (await OpenAsync(anyone, made.Code)).State);
+    }
+
+    [Fact]
+    public async Task Links_merged_into_a_child_follow_its_switch()
+    {
+        var device = await DevicePhoneAsync("Mèo Cam");
+        var link = await MakeAsync(device.Client, new { kind = "game", gameId = Game });
+        var me = await Accounts.SignUpAsync(factory, device.Plain, "Mẹ");
+        await Accounts.StepUpAsync(device.Plain);
+        var made = await device.Plain.PostAsJsonAsync(Url("/api/profiles"), new { name = "Bé Na", avatar = ProfileOptions.Avatars[1], ageBand = "9-12" }, Ct);
+        var child = (await ReadAsync<MeView>(made)).Profiles.Single(p => p.Name == "Bé Na").Id;
+        var merged = await device.Plain.PostAsJsonAsync(Url($"/api/profiles/{child}/merge"), new { name = "Mèo Cam", deviceProfileId = device.ProfileId }, Ct);
+        Assert.Equal(HttpStatusCode.OK, merged.StatusCode);
+
+        // A child's, kept to its account: revoked, no name.
+        Assert.Equal(new LinkIntent(link.Code, "revoked", "game", Game, Game, "any"), await OpenAsync(factory.CreateClient(), link.Code));
+        Assert.Equal(HttpStatusCode.OK, (await device.Plain.PatchAsJsonAsync(Url($"/api/profiles/{child}"), new { playWithOthers = true }, Ct)).StatusCode);
+        var intent = await OpenAsync(factory.CreateClient(), link.Code);
+        Assert.Equal(("ok", (string?)null), (intent.State, intent.MakerName));
+        Assert.Single(me.Profiles);
+    }
+
+    [Fact]
+    public async Task Requests_at_the_same_moment_never_pass_the_profiles_limit_together()
+    {
+        await using var limited = factory.WithWebHostBuilder(builder => builder.UseSetting("Links:MakesPerProfilePerDay", "2"));
+        var client = limited.CreateClient(new WebApplicationFactoryClientOptions { HandleCookies = true });
+        Assert.Equal(HttpStatusCode.NoContent, (await client.PostAsync(Url("/api/devices"), null, Ct)).StatusCode);
+        var profile = await RegisterAsync(client, "Một");
+        var answers = await Task.WhenAll(Enumerable.Range(0, 8).Select(_ => MakeAsResponseAsync(client, profile)));
+        Assert.Equal(2, answers.Count(answer => answer.StatusCode == HttpStatusCode.OK));
+        Assert.All(answers.Where(answer => answer.StatusCode != HttpStatusCode.OK), answer => Assert.Equal(HttpStatusCode.TooManyRequests, answer.StatusCode));
+        Assert.Equal(2, await QueryAsync(db => db.ShareLinks.CountAsync(l => l.MakerProfileId == profile, Ct)));
     }
 
     [Fact]
@@ -199,14 +243,14 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
         Assert.Equal((HttpStatusCode.TooManyRequests, "resolve_limit"), (third.StatusCode, await CodeAsync(third)));
     }
 
-    [Fact]
-    public async Task Resolving_is_limited_for_the_whole_server()
-    {
-        await using var limited = factory.WithWebHostBuilder(builder => builder.UseSetting("Links:ResolvesPerMinuteGlobal", "1"));
-        var client = limited.CreateClient();
-        Assert.Equal(HttpStatusCode.OK, (await client.PostAsync(Url("/api/links/7KQ2M9XA/open"), null, Ct)).StatusCode);
-        Assert.Equal(HttpStatusCode.TooManyRequests, (await client.PostAsync(Url("/api/links/7KQ2M9XA/open"), null, Ct)).StatusCode);
-    }
+    [Theory]
+    [InlineData(null, "unknown")]
+    [InlineData("203.0.113.7", "203.0.113.7")]
+    [InlineData("::ffff:203.0.113.7", "203.0.113.7")]
+    [InlineData("2001:db8:1:2:aaaa:bbbb:cccc:dddd", "2001:db8:1:2::/64")]
+    [InlineData("2001:db8:1:2::1", "2001:db8:1:2::/64")]
+    public void A_client_is_counted_by_its_ipv4_address_or_its_ipv6_64(string? address, string key) =>
+        Assert.Equal(key, Infrastructure.ClientAddress.PartitionKey(address is null ? null : System.Net.IPAddress.Parse(address)));
 
     [Fact]
     public async Task An_unknown_code_resolves_as_unknown_and_nothing_more()
@@ -444,12 +488,29 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
         Assert.Equal("text/html", response.Content.Headers.ContentType?.MediaType);
         Assert.Equal("noindex", response.Headers.GetValues("X-Robots-Tag").Single());
         var card = await response.Content.ReadAsStringAsync(Ct);
-        Assert.DoesNotContain("<script", card, StringComparison.OrdinalIgnoreCase);
+        // The only script is the card's own, static one.
+        Assert.Equal(1, card.Split("<script", StringSplitOptions.None).Length - 1);
+        Assert.Contains($"<script>{LinkPreviews.SendOnScript}</script>", card, StringComparison.Ordinal);
         Assert.DoesNotContain("{{", card, StringComparison.Ordinal);
         Assert.DoesNotContain("`", card, StringComparison.Ordinal);
         Assert.Contains("&lt;script&gt;alert(1)&lt;/script&gt;&quot;&#39; &#123;&#123; env &quot;SECRET&quot; &#125;&#125; &#96;x&#96; &amp;amp; mời bạn chơi merge-block", card, StringComparison.Ordinal);
         // Every attribute keeps its quotes: nothing broke out of one.
         Assert.All(card.Split('\n').Where(line => line.StartsWith("<meta", StringComparison.Ordinal)), line => Assert.Equal(0, line.Count(c => c == '"') % 2));
+    }
+
+    [Fact]
+    public async Task A_card_sends_a_person_on_to_the_app_with_its_one_script_allowed_by_hash()
+    {
+        var response = await factory.CreateClient().GetAsync(Url("/api/previews/r/123456"), Ct);
+        var csp = response.Headers.GetValues("Content-Security-Policy").Single();
+        var hash = Convert.ToBase64String(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(LinkPreviews.SendOnScript)));
+        Assert.Equal($"default-src 'none'; script-src 'sha256-{hash}'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'", csp);
+        Assert.Equal("User-Agent", response.Headers.Vary.Single());
+        var card = await response.Content.ReadAsStringAsync(Ct);
+        Assert.Contains("<a href=\"http://localhost/r/123456?app=1\">Mở Tò He</a>", card, StringComparison.Ordinal);
+        Assert.Contains("location.replace(location.pathname+'?app=1')", LinkPreviews.SendOnScript, StringComparison.Ordinal);
+        // Once sent on, it does nothing: a card asked for at its API path never reloads itself.
+        Assert.StartsWith("if(!/[?&]app=/.test(location.search))", LinkPreviews.SendOnScript, StringComparison.Ordinal);
     }
 
     [Fact]
@@ -473,7 +534,7 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
         Assert.Contains("<meta name=\"twitter:title\" content=\"Người chơi 1 mời bạn chơi merge-block\">", card, StringComparison.Ordinal);
         Assert.Contains($"<meta property=\"og:url\" content=\"http://localhost/s/{link.Code}\">", card, StringComparison.Ordinal);
         Assert.Contains("<meta property=\"og:image\" content=\"http://localhost/og.png\">", card, StringComparison.Ordinal);
-        Assert.Contains($"<a href=\"http://localhost/s/{link.Code}\">", card, StringComparison.Ordinal);
+        Assert.Contains($"<a href=\"http://localhost/s/{link.Code}?app=1\">Mở Tò He</a>", card, StringComparison.Ordinal);
         Assert.DoesNotContain("Lan", card, StringComparison.Ordinal);
     }
 

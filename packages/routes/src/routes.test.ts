@@ -427,7 +427,13 @@ describe('what the map generates', () => {
     expect(snippet).toContain(
       '\tnot header_regexp linkPreviewBrowser User-Agent (?i)(Mobile|FBAN|FBAV|FB_IAB|Instagram)\n',
     );
+    // A person sent on from a card (?app=1) always gets the app, whatever its User-Agent says.
+    expect(snippet).toContain('\tnot query app=*\n}\nrewrite @linkPreview');
     expect(snippet).toContain('rewrite @linkPreview /api/previews/{re.linkPreview.1}/{re.linkPreview.2}\n');
+    // Everything else, and only that, gets the hub's CSP; the previewed links vary with the User-Agent.
+    expect(snippet).toContain('@notLinkPreview {\n\tnot {\n\t\tpath_regexp ^/(r|s)/([0-9A-Za-z-]{1,20})$\n');
+    expect(snippet).toContain('\t\tnot query app=*\n\t}\n}\n');
+    expect(snippet).toContain('@linkPreviewPaths path /r/* /s/*\n');
     // The rewritten path is the API's, which @apiProxy serves: Caddy never puts the answer into a template.
     expect(matchHubPath('/api/previews/s/7KQ2M9XA')?.id).toBe('api');
   });
@@ -450,6 +456,9 @@ describe('what the map generates', () => {
     expect(isLinkPreview('/s/7KQ2M9XA/x', userAgent)).toBe(false);
     expect(isLinkPreview('/s/%3Cb%3E', userAgent)).toBe(false);
     expect(isLinkPreview('/s/', userAgent)).toBe(false);
+    expect(isLinkPreview('/s/7KQ2M9XA', userAgent, '?app=1')).toBe(false);
+    expect(isLinkPreview('/r/482913', userAgent, '?x=1&app=')).toBe(false);
+    expect(isLinkPreview('/r/482913', userAgent, '?apps=1')).toBe(true);
   });
 
   it.each([
@@ -559,6 +568,18 @@ describe('what the map generates', () => {
       const app = block(site(':8080'), 'appPage');
       expect(app).toContain('between [[[ ]]]');
       expect(app).toContain('rewrite * /index.html');
+      // The same links answer a crawler the API's card: a cache in front keeps the two apart.
+      expect(app).toContain('header @linkPreviewPaths Vary "User-Agent"');
+    });
+
+    it('gives the hub’s CSP to everything but a link preview’s card, which keeps the API’s own', () => {
+      const hub = site(':8080');
+      const csp =
+        hub.match(
+          /^\s*(?:header\s+@\w+\s+)?Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'/gm,
+        ) ?? [];
+      expect(csp).toHaveLength(1);
+      expect(csp[0]?.trim().startsWith('header @notLinkPreview Content-Security-Policy')).toBe(true);
     });
 
     it('serves the console’s matchers on :8081: a handler for each, and no other', () => {

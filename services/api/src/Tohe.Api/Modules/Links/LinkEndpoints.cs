@@ -27,7 +27,7 @@ public sealed record ChangeLinkRequest(int ExpiresInHours);
 
 /// <summary>
 /// Share links (ADR 0044): its maker — a profile acting with the account's session or with its device's key — makes,
-/// lists, changes and revokes its links; anyone resolves one by its code, limited per address and for the server.
+/// lists, changes and revokes its links; anyone resolves one by its code, limited per address.
 /// </summary>
 internal static class LinkEndpoints
 {
@@ -65,7 +65,7 @@ internal static class LinkEndpoints
             .AllowAnonymous()
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .WithName("OpenShareLink")
-            .WithSummary("Resolve a share link by its code to a typed intent — ok, expired, revoked, used_up or unknown; counts it opened. Limited per address and for the server.");
+            .WithSummary("Resolve a share link by its code to a typed intent — ok, expired, revoked, used_up or unknown; counts it opened. Limited per address (an IPv6 address by its /64).");
 
         links.MapPost("/{code}/play", PlayAsync)
             .AllowAnonymous()
@@ -87,6 +87,7 @@ internal static class LinkEndpoints
         IRegistryGames games,
         ShareLinks links,
         LinkMakers makers,
+        Infrastructure.Database.ToheDbContext db,
         IOptions<LinksOptions> options,
         TimeProvider clock,
         CancellationToken ct)
@@ -140,13 +141,17 @@ internal static class LinkEndpoints
             return Problems.Of(StatusCodes.Status403Forbidden, "too_young", "This game is not for this profile's age");
         }
 
+        // The device key, whichever profile acts — or the account, when its session carries no device key.
+        var key = maker.DeviceId ?? await DeviceOfRequestAsync(http) ?? maker.AccountId!.Value;
+
+        // The profile's count of the day and its new link, one request at a time: two at once never pass the limit both.
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        await links.LockMakerAsync(maker.ProfileId, ct);
         if (await links.MadeTodayAsync(maker.ProfileId, ct) >= options.Value.MakesPerProfilePerDay)
         {
             return LinkLimit();
         }
 
-        // The device key, whichever profile acts — or the account, when its session carries no device key.
-        var key = maker.DeviceId ?? await DeviceOfRequestAsync(http) ?? maker.AccountId!.Value;
         if (!makers.TryTake(key, options.Value.MakesPerDevicePerDay))
         {
             return LinkLimit();
@@ -169,6 +174,7 @@ internal static class LinkEndpoints
         try
         {
             await links.SaveNewAsync(link, ct);
+            await transaction.CommitAsync(ct);
         }
         catch
         {
@@ -176,14 +182,14 @@ internal static class LinkEndpoints
             throw;
         }
 
-        return TypedResults.Ok(await links.ViewAsync(link, ct));
+        return TypedResults.Ok(await links.ViewAsync(link, !maker.MayPlayWithOthers, ct));
     }
 
     private static async Task<Results<Ok<IReadOnlyList<ShareLinkView>>, ProblemHttpResult>> ListAsync(
         HttpContext http, IActiveProfile active, IDevicePlayers devices, ShareLinks links, CancellationToken ct)
     {
         var (maker, problem) = await MakerAsync(http, active, devices, ct);
-        return maker is null ? problem! : TypedResults.Ok(await links.MineAsync(maker.ProfileId, ct));
+        return maker is null ? problem! : TypedResults.Ok(await links.MineAsync(maker.ProfileId, !maker.MayPlayWithOthers, ct));
     }
 
     private static async Task<Results<Ok<ShareLinkView>, NotFound, ValidationProblem, ProblemHttpResult>> ChangeAsync(
@@ -220,7 +226,7 @@ internal static class LinkEndpoints
 
         link.ExpiresAt = clock.GetUtcNow().AddHours(request.ExpiresInHours);
         await db.SaveChangesAsync(ct);
-        return TypedResults.Ok(await links.ViewAsync(link, ct));
+        return TypedResults.Ok(await links.ViewAsync(link, !maker.MayPlayWithOthers, ct));
     }
 
     private static async Task<Results<Ok<ShareLinkView>, NotFound, ProblemHttpResult>> RevokeAsync(
@@ -247,7 +253,7 @@ internal static class LinkEndpoints
         // Revoking again is harmless: it keeps when it was first revoked.
         link.RevokedAt ??= clock.GetUtcNow();
         await db.SaveChangesAsync(ct);
-        return TypedResults.Ok(await links.ViewAsync(link, ct));
+        return TypedResults.Ok(await links.ViewAsync(link, !maker.MayPlayWithOthers, ct));
     }
 
     private static async Task<Results<Ok<LinkIntent>, ProblemHttpResult>> OpenAsync(

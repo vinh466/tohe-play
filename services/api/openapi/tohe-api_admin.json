@@ -1860,7 +1860,8 @@
           "child",
           "accountId",
           "deviceId",
-          "stopped"
+          "stopped",
+          "kept"
         ],
         "type": "object",
         "properties": {
@@ -1892,6 +1893,9 @@
             "format": "uuid"
           },
           "stopped": {
+            "type": "boolean"
+          },
+          "kept": {
             "type": "boolean"
           }
         }

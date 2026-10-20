@@ -96,7 +96,6 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Rooms:CodeLookupsPerMinute", "10000");
         // Share links resolved and previewed many times from one client address (ADR 0044); the limits have their own tests.
         builder.UseSetting("Links:ResolvesPerMinute", "10000");
-        builder.UseSetting("Links:ResolvesPerMinuteGlobal", "10000");
         builder.UseSetting("Links:PreviewsPerMinute", "10000");
         builder.UseSetting("Links:PreviewsPerMinuteGlobal", "10000");
         // Email goes to FakeSmtp; tests run delivery themselves (EmailDelivery), with the mail they need.

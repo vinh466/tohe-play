@@ -524,5 +524,12 @@ export const linkPreviewCrawlers: readonly string[] = [
  */
 export const linkPreviewBrowsers: readonly string[] = ['Mobile', 'FBAN', 'FBAV', 'FB_IAB', 'Instagram'];
 
+/**
+ * The query parameter that marks a person sent on from a card to the app (`?app=1`): the card's script, or its link
+ * with scripts off, adds it, and a request that carries it always gets the app's page — whatever its `User-Agent` says,
+ * so a person is never stuck on the card. The hub ignores it.
+ */
+export const linkPreviewAppQuery = 'app';
+
 /** The characters a code in a previewed link may have, and how many: anything else is the app's page. */
 export const linkPreviewCode = '[0-9A-Za-z-]{1,20}';

@@ -80,7 +80,11 @@ function ShareLinkCard({ link }: { link: AdminShareLink }) {
   const me = useSignedIn();
   const revoke = useMutation({
     mutationFn: () => admin.revokeShareLink(link.code),
-    onSuccess: (next) => queryClient.setQueryData(['admin', 'links', link.code], next),
+    // The query is keyed by the code as typed (lower case, spaces…): every one of them reads the revoked link again.
+    onSuccess: (next) => {
+      queryClient.setQueryData(['admin', 'links', link.code], next);
+      void queryClient.invalidateQueries({ queryKey: ['admin', 'links'] });
+    },
   });
   const mayRevoke = me.data?.permissions.includes('admin.profiles.moderate') ?? false;
   const secure = Boolean(me.data?.secureUntil);
@@ -104,6 +108,7 @@ function ShareLinkCard({ link }: { link: AdminShareLink }) {
           {maker.name ?? '—'}
           {maker.child ? ' (hồ sơ trẻ em)' : ''}
           {maker.stopped ? ' · tài khoản đang bị khoá hoặc chờ xoá' : ''}
+          {maker.kept ? ' · đang tắt “Chơi online với người ngoài”' : ''}
         </Fact>
         <Fact label={maker.accountId ? 'Tài khoản' : 'Hồ sơ trên máy'}>
           <span className="font-mono text-xs">{maker.accountId ?? maker.profileId}</span>

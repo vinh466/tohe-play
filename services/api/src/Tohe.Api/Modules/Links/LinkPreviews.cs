@@ -1,3 +1,4 @@
+using System.Security.Cryptography;
 using System.Text;
 using System.Text.RegularExpressions;
 using Microsoft.Extensions.Options;
@@ -15,16 +16,39 @@ internal sealed record PreviewCard(string Title, string Description);
 /// Link previews of room and share links, for crawlers only (ADR 0044): the hub's Caddy rewrites a known crawler's
 /// <c>/r/&lt;code&gt;</c> and <c>/s/&lt;code&gt;</c> here and passes the answer through, never into a template. This renders
 /// and escapes every value itself, answers 200 every time — the generic card for anything unknown, dead, or past the
-/// limits — and never names anyone at a table, nor a child.
+/// limits — and never names anyone at a table, nor a child. A person who lands here anyway — a crawler's name in an
+/// in-app browser — is sent on to the app at once by the card's one script, or by its "Mở Tò He" link with scripts off:
+/// <c>?app=1</c> keeps Caddy from sending them here again.
 /// </summary>
 internal sealed partial class LinkPreviews(
     ShareLinks links, IRoomPreviews rooms, IRegistryGames games, IOptions<AppOptions> app, LinkLimits limits)
 {
-    /// <summary>What the app's own page says (apps/hub/index.html): the generic card.</summary>
+    /// <summary>
+    /// What the app's own page says: the generic card. Its source is the description in apps/hub/index.html — keep the
+    /// two in step.
+    /// </summary>
     public const string Description =
         "Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link.";
 
     public static readonly PreviewCard Generic = new("Tò He", Description);
+
+    /// <summary>The query that marks a person sent on to the app: Caddy never answers it with a card (@tohe/routes).</summary>
+    public const string AppQuery = "app=1";
+
+    /// <summary>
+    /// The card's only script: a browser that runs it goes on to the app at the same path — crawlers run no script. It is
+    /// static, reads only <c>location</c>, and does nothing once the query says it went on already, so a card asked for
+    /// at its API path never reloads itself.
+    /// </summary>
+    public const string SendOnScript = "if(!/[?&]app=/.test(location.search))location.replace(location.pathname+'?app=1')";
+
+    /// <summary>
+    /// The card's own CSP: nothing but <see cref="SendOnScript"/>, allowed by its hash. The hub's Caddy leaves it alone on
+    /// the cards it rewrites here.
+    /// </summary>
+    public static readonly string ContentSecurityPolicy =
+        $"default-src 'none'; script-src 'sha256-{Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(SendOnScript)))}'; "
+        + "base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
     /// <summary>A table's card when it is not listed publicly, or not there: the same for all, naming no one.</summary>
     public static readonly PreviewCard Table = new("Lời mời vào bàn chơi Tò He", Description);
@@ -77,10 +101,16 @@ internal sealed partial class LinkPreviews(
         var url = PathCode().IsMatch(code) ? $"{hub}{namespacePath}/{code}" : $"{hub}/";
         http.Response.Headers["X-Robots-Tag"] = "noindex";
         http.Response.Headers.CacheControl = "no-cache";
+        // The same address answers the app to a person: a cache in front (Cloudflare) must keep the two apart.
+        http.Response.Headers.Vary = "User-Agent";
+        http.Response.Headers.ContentSecurityPolicy = ContentSecurityPolicy;
         return Results.Content(Render(card, url, $"{hub}/og.png"), "text/html; charset=utf-8", Encoding.UTF8, StatusCodes.Status200OK);
     }
 
-    /// <summary>The card as a small HTML page: <c>og:</c> and <c>twitter:</c> tags and a link to the app.</summary>
+    /// <summary>
+    /// The card as a small HTML page: <c>og:</c> and <c>twitter:</c> tags, the script that sends a person on, and a link
+    /// to the app for a browser with scripts off.
+    /// </summary>
     public static string Render(PreviewCard card, string url, string image)
     {
         var title = Escape(card.Title);
@@ -110,7 +140,9 @@ internal sealed partial class LinkPreviews(
             <meta name="twitter:image" content="{picture}">
             </head>
             <body>
-            <p><a href="{href}">{title}</a></p>
+            <p>{title}</p>
+            <p><a href="{Escape(url + "?" + AppQuery)}">Mở Tò He</a></p>
+            <script>{SendOnScript}</script>
             </body>
             </html>
 

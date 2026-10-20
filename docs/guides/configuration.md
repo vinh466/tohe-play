@@ -43,7 +43,7 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Auth:Providers:Oidc:RequireHttpsMetadata` | `false` only for a test issuer on plain HTTP | `true` |
 | `Rooms:*` | Timers, bots and limits of online rooms ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); `Rooms:ClosedCodeReserved`, how long a closed table's code is not given out again ([ADR 0044](../decisions/0044-entry-links.md)) | see `RoomsOptions`; `1.00:00:00` |
 | `Links:MakesPerProfilePerDay`, `Links:MakesPerDevicePerDay` | Share links one profile, and one device key (or one account whose session carries none), may make in 24 hours ([Entry links](../architecture/entry-links.md)) | `30`, `60` |
-| `Links:ResolvesPerMinute`, `Links:ResolvesPerMinuteGlobal` | Share links resolved (`open`, `play`) per client address, and for the whole server, per minute; past either, `429` | `30`, `600` |
+| `Links:ResolvesPerMinute` | Share links resolved (`open`, `play`) per client address — an IPv6 address by its /64 — per minute; past it, `429`. No limit for the whole server | `30` |
 | `Links:PreviewsPerMinute`, `Links:PreviewsPerMinuteGlobal` | Link previews per client address, and for the whole server, per minute; past either, the generic card — still `200` | `60`, `600` |
 | `Integrity:Replays`, `Integrity:ReplayInterval` | Replay ranked runs in the background, and how often to look for new ones ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)) | `true`, `00:00:05` |
 | `Admin:SetupToken` | The token that makes a new deployment's first owner, at the console's `/setup` ([Admin console](../architecture/admin.md#the-first-owner)); keep it in the secret store | unset: made up at start and logged once while there is no owner |

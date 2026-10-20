@@ -122,8 +122,9 @@ internal sealed partial class RoomRegistry(
         {
             var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
 
-            // A code unique among open rooms, and not one a table closed with in the last day (ADR 0044): an old link
-            // never opens a stranger's table. At family scale a collision is rare, a retry rarer still.
+            // A code unique among open rooms — in memory, and in the database, should a table be opening as the API starts
+            // — and not one a table closed with in the last day (ADR 0044): an old link never opens a stranger's table.
+            // At family scale a collision is rare, a retry rarer still.
             var reservedSince = clock.GetUtcNow() - options.Value.ClosedCodeReserved;
             for (var attempt = 0; ; attempt++)
             {
@@ -131,7 +132,7 @@ internal sealed partial class RoomRegistry(
                 var code = room.Code;
                 if (attempt > 20
                     || (FindByCode(code) is null
-                        && !await db.Rooms.AnyAsync(closed => closed.Code == code && closed.ClosedAt != null && closed.ClosedAt > reservedSince, cancellationToken)))
+                        && !await db.Rooms.AnyAsync(taken => taken.Code == code && (taken.ClosedAt == null || taken.ClosedAt > reservedSince), cancellationToken)))
                 {
                     break;
                 }

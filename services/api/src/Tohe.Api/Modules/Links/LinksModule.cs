@@ -19,11 +19,11 @@ public sealed class LinksOptions
     /// </summary>
     public int MakesPerDevicePerDay { get; set; } = 60;
 
-    /// <summary>Resolves of share links (open and play) per client address per minute.</summary>
+    /// <summary>
+    /// Resolves of share links (open and play) per client address — an IPv6 address by its /64 — per minute. No limit
+    /// for the whole server: a few addresses could then switch every link off for everyone.
+    /// </summary>
     public int ResolvesPerMinute { get; set; } = 30;
-
-    /// <summary>Resolves of share links per minute for the whole server.</summary>
-    public int ResolvesPerMinuteGlobal { get; set; } = 600;
 
     /// <summary>Link previews per client address per minute; past it, the generic card, read from nothing.</summary>
     public int PreviewsPerMinute { get; set; } = 60;
@@ -73,9 +73,10 @@ internal static class LinksModule
 internal sealed class LinkMakers(TimeProvider clock) : SlidingAllowance(clock, TimeSpan.FromDays(1));
 
 /// <summary>
-/// The limits of the public link routes (ADR 0044): resolving share links, and link previews, each per client address —
-/// the one the trusted proxy chain gives, as the sign-in's limits — and for the whole server, in fixed windows of a
-/// minute.
+/// The limits of the public link routes (ADR 0044), in fixed windows of a minute, per client address — the one the
+/// trusted proxy chain gives, an IPv6 address by its /64 (<see cref="ClientAddress"/>): resolving share links; and link
+/// previews, also for the whole server, as a tripped preview only answers the generic card. Resolving has no limit for
+/// the whole server, which a few addresses could use up to switch every link off.
 /// </summary>
 internal sealed class LinkLimits : IDisposable
 {
@@ -84,11 +85,15 @@ internal sealed class LinkLimits : IDisposable
 
     public LinkLimits(IOptions<LinksOptions> options)
     {
-        _resolves = Chained(options.Value.ResolvesPerMinute, options.Value.ResolvesPerMinuteGlobal);
-        _previews = Chained(options.Value.PreviewsPerMinute, options.Value.PreviewsPerMinuteGlobal);
+        _resolves = PerAddress(options.Value.ResolvesPerMinute);
+        _previews = PartitionedRateLimiter.CreateChained(
+            PerAddress(options.Value.PreviewsPerMinute),
+            PartitionedRateLimiter.Create<HttpContext, string>(_ => RateLimitPartition.GetFixedWindowLimiter(
+                "server",
+                _ => new FixedWindowRateLimiterOptions { PermitLimit = options.Value.PreviewsPerMinuteGlobal, Window = TimeSpan.FromMinutes(1) })));
     }
 
-    /// <summary>Counts a resolve; false when the address, or the server, had its minute's worth.</summary>
+    /// <summary>Counts a resolve; false when the address had its minute's worth.</summary>
     public bool TryResolve(HttpContext http) => TryTake(_resolves, http);
 
     /// <summary>Counts a preview; false when the address, or the server, had its minute's worth.</summary>
@@ -106,12 +111,8 @@ internal sealed class LinkLimits : IDisposable
         return lease.IsAcquired;
     }
 
-    private static PartitionedRateLimiter<HttpContext> Chained(int perAddress, int global) =>
-        PartitionedRateLimiter.CreateChained(
-            PartitionedRateLimiter.Create<HttpContext, string>(http => RateLimitPartition.GetFixedWindowLimiter(
-                http.Connection.RemoteIpAddress?.ToString() ?? "unknown",
-                _ => new FixedWindowRateLimiterOptions { PermitLimit = perAddress, Window = TimeSpan.FromMinutes(1) })),
-            PartitionedRateLimiter.Create<HttpContext, string>(_ => RateLimitPartition.GetFixedWindowLimiter(
-                "server",
-                _ => new FixedWindowRateLimiterOptions { PermitLimit = global, Window = TimeSpan.FromMinutes(1) })));
+    private static PartitionedRateLimiter<HttpContext> PerAddress(int limit) =>
+        PartitionedRateLimiter.Create<HttpContext, string>(http => RateLimitPartition.GetFixedWindowLimiter(
+            ClientAddress.PartitionKey(http.Connection.RemoteIpAddress),
+            _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) }));
 }
