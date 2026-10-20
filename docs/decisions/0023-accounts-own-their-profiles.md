@@ -7,7 +7,8 @@ sidebar:
 
 - **Status:** Accepted — inviting a profile by its ID, as its owner allows, since [ADR 0033](0033-invite-a-profile-by-its-id.md);
   a deleted profile's ID is retired for good, and accounts and profiles are deleted, since [ADR 0034](0034-delete-accounts-and-profiles-for-good.md);
-  names with an offensive word are refused, and renames limited, since [ADR 0035](0035-filter-offensive-names-and-limit-renames.md)
+  names with an offensive word are refused, and renames limited, since [ADR 0035](0035-filter-offensive-names-and-limit-renames.md);
+  an account's profile, its first one included, may come from a device and keep its id and name, by [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I1)
 - **Date:** 2026-10-18
 - **Supersedes:** [ADR 0004](0004-identity-households-and-profiles.md) (households) · **Amends:**
   [ADR 0011](0011-password-sign-in-first.md) (no invites; the parent gate guards the account and its profiles)

@@ -5,7 +5,7 @@ sidebar:
   order: 24
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — a device profile, with no email and no account, exists beside accounts by [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I1)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0011](0011-password-sign-in-first.md) — accounts sign in with a verified email; a username only
   still signs in an account from before, until it adds an email
