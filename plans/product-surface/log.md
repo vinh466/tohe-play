@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-20 (tối) — agent
+
+- S4 #93, S1 #94 → `prod-2026-10-20.2`; I1 #96 → `prod-2026-10-20.3`, `check:prod` 23/23.
+- I2 chia hai, I2a #97 + I2b #99 merged (reviewer mỗi phần); **chưa deploy** — chờ owner, đề xuất Điều khoản trước.
+- Owner "chốt" ADR 0044 #98 và 0045 #100 (mọi điểm agent thêm) và merge. I3 chia hai: I3a (server) đang review, I3b
+  (hub) sau; code I4 sau I3. Owner vẫn tự chạy `gh pr merge` (auto mode chặn agent).
+
 ## 2026-10-20 (chiều) — agent
 
 - Google lên prod 13:29 (S3 xong): Infisical `/tohe/api` → `tohe-api-env`; API khởi động trước khi Secret có nên owner
