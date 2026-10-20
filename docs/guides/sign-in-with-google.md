@@ -1,6 +1,6 @@
 ---
 title: Sign in with Google
-description: Switch on "Tiếp tục với Google" in production — the Google client the owner makes, where its secret goes, the values that wire it in, the console switch and the checks.
+description: Switch on "Tiếp tục với Google" in production — the Google client the owner makes, who may sign up, its two keys in Infisical, the console switch and the checks.
 sidebar:
   order: 8
 ---
@@ -12,8 +12,11 @@ answers `providers: []`. This guide turns it on, in order: Google is the fast wa
 
 | Who | Does |
 | --- | --- |
-| The owner | Makes the Google client, puts its secret in Infisical, decides who may sign up, merges the `platform-infra` pull request |
-| The agent | Opens the `platform-infra` pull request, then checks production |
+| The owner | Decides who may sign up, makes the Google client, puts its ID and secret in Infisical |
+| The agent | Checks production |
+
+No pull request is needed: production's API takes its own settings from the Infisical folder `/tohe/api`, one key per
+setting ([Configuration](configuration.md#settings-from-infisical-in-production)).
 
 **Production only.** Google takes no redirect address on plain HTTP or on a bare IP, so UAT (`http://10.100.0.2:4820`)
 cannot offer Google. Development can, with a client of its own (see [the end of this guide](#on-a-development-machine)).
@@ -42,20 +45,11 @@ In the [Google Cloud console](https://console.cloud.google.com/), in a project o
 
 A new or changed redirect address can take from five minutes to a few hours to work at Google.
 
-## 2. The secret in Infisical (owner)
-
-In Infisical, project `platform`, environment `prod`, path **`/tohe`**: add `google-client-secret` with the client secret.
-The client ID is not a secret; it goes in the values (step 4).
-
-Do this **before** step 4 is merged. The API reads the key from the `tohe-secrets` Secret, and a key that is not there
-stops the pod from starting (`CreateContainerConfigError`), as `email-smtp-password` would. Reloader rolls the pods
-whenever `tohe-secrets` changes; on its own, the new key changes nothing until the values ask for it.
-
-## 3. Who may sign up (owner, before step 4)
+## 2. Who may sign up (owner, before step 3)
 
 A provider that has its keys is **on** unless the console switched it off. So Google is live for everyone as soon as the
-API rolls out with step 4, and the console cannot switch it off before then. Decide first who may make an account the
-first time they sign in with Google: **the console → Đăng nhập & đăng ký → Đăng ký**:
+API restarts with its keys (step 3), and the console cannot switch it off before then. Decide first who may make an
+account the first time they sign in with Google: **the console → Đăng nhập & đăng ký → Đăng ký**:
 
 - `Mở`: anyone.
 - `Theo lời mời`: with an invite code.
@@ -65,31 +59,22 @@ It is `Mở` on production today. Someone whose Google address already has a Tò
 a code to that address, and once they confirm it, Google is linked to that account
 ([ADR 0026](../decisions/0026-sign-in-methods-and-account-linking.md)).
 
-## 4. The values (agent opens, owner merges)
+## 3. The keys in Infisical (owner)
 
-A pull request to `vinetic-spaces/platform-infra`, in `apps/tohe/values.yaml`, beside the mail settings:
+In Infisical, project `platform`, environment `prod`, folder **`/tohe/api`** (create it the first time), two keys with
+exactly these names:
 
-```yaml
-api:
-  config:
-    # …the Email__ settings stay as they are.
-    Auth__Providers__Google__ClientId: "<the client ID>.apps.googleusercontent.com"
-  extraEnv:
-    # …Email__Smtp__Password stays as it is.
-    - name: Auth__Providers__Google__ClientSecret
-      valueFrom:
-        secretKeyRef:
-          name: tohe-secrets
-          key: google-client-secret
-```
+| Key | Value |
+| --- | --- |
+| `Auth__Providers__Google__ClientId` | the client ID, `….apps.googleusercontent.com` |
+| `Auth__Providers__Google__ClientSecret` | the client secret |
 
-The note at the top of `apps/tohe/base/static-secret.yaml` gains the key `google-client-secret`. The pull request changes
-values, not `targetRevision`, so the owner merges it ([Environments and releases](environments.md)). The configuration
-keys are listed in [Configuration](configuration.md).
+Within a minute the operator copies them into the API's Secret and Reloader restarts the API with them. The API offers
+Google only with both keys; with one of them missing it starts as before, without Google.
 
-## 5. Check (agent, then owner)
+## 4. Check (agent, then owner)
 
-Once Argo CD has rolled the API:
+Once the API has restarted:
 
 1. `curl -s https://toheplay.io.vn/api/config` lists `{"id":"google","name":"Google"}` under `providers`, and the
    console lists Google under **Cách đăng nhập**, switched on.
@@ -104,9 +89,9 @@ When it goes wrong:
 | What you see | Why |
 | --- | --- |
 | Google says `redirect_uri_mismatch` | The redirect address in the client differs from step 1.4 — `http`, a trailing `/`, another host — or Google has not applied it yet |
-| Google says `invalid_client` | The client ID in the values or the secret in Infisical is wrong, or the secret was rotated away |
+| Google says `invalid_client` | The client ID or the secret in Infisical is wrong, or the secret was rotated away |
 | Tò He says *Cách đăng nhập đó đang tạm tắt* | Google is off in the console |
-| No Google in the console | The API has no client ID or no secret: look at steps 2 and 4, and at the API's log |
+| No Google in the console | The API has no client ID or no secret: look at step 3 (both keys, their exact names, in `/tohe/api`), and at the API's log |
 
 ## Turning it off, rotating the secret
 
@@ -119,7 +104,7 @@ asks once more.
 A Google client holds two secrets at once, so rotating needs no downtime:
 
 1. Add a secret to the client in Google.
-2. Put the new one in Infisical `/tohe` as `google-client-secret`. Reloader rolls the API pods.
+2. Put the new one in Infisical `/tohe/api` as `Auth__Providers__Google__ClientSecret`. Reloader restarts the API.
 3. Sign in with Google once to check.
 4. Disable and delete the old secret in Google.
 
