@@ -32,7 +32,7 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0016](0016-online-rooms-for-turn-based-games.md) | Online rooms for turn-based games, refereed by the API with the game's own rules | Accepted; the seed's secrecy amended by 0017; household tables are account tables since 0023; calendar weeks and the two-people rule since 0029; invitations reach beyond the account by ID since 0033 |
 | [0017](0017-replays-of-finished-online-hands.md) | Replay finished online hands with the game's own rules module | Accepted; a deleted player's seat shows as such since 0034 |
 | [0018](0018-every-game-opens-on-its-own-main-menu.md) | Every game opens on its own main menu and has one menu button | Accepted; the screens amended by 0019 and 0020 |
-| [0019](0019-game-shell-2-title-screen-hud-and-first-screen.md) | Give every game a title screen, a HUD and a pause that holds, from the kit | Accepted; stages amended by 0020 |
+| [0019](0019-game-shell-2-title-screen-hud-and-first-screen.md) | Give every game a title screen, a HUD and a pause that holds, from the kit | Accepted; stages amended by 0020; an entry opens play since 0045 |
 | [0020](0020-a-game-has-a-menu-stage-and-a-play-stage.md) | Give every game a menu stage and a play stage | Accepted |
 | [0021](0021-release-production-through-the-tohe-chart.md) | Release production through the Tò He Helm chart; one set of images configured at run time | Accepted; promotion follows a prod- tag since 0041; HSTS for subdomains and the site to serve only the docs by 0042 |
 | [0022](0022-send-transactional-email-through-an-outbox.md) | Send transactional email through an outbox and an SMTP relay | Accepted |
@@ -43,7 +43,7 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0027](0027-platform-admin-and-the-first-owner.md) | Run the platform from an admin console on the hub's origin; roles grant permissions; a setup token makes the first owner | Accepted; the console frames the games origin to watch a ranked run since 0032; the audit log keeps a year since 0034; the console moved to its own host, with a sign-in of its own, by 0042 |
 | [0028](0028-sign-in-and-registration-at-run-time.md) | Switch sign-in methods and registration at run time; communities join by invite code | Accepted; the proof-of-work switch since 0037 |
 | [0029](0029-integrity-engine-and-boards-by-trust.md) | One integrity engine gives every result a trust level from its evidence; boards read by trust | Accepted; a result left to people keeps its value since 0031; a deleted profile's results go with their decisions since 0034 |
-| [0030](0030-ranked-runs-replayed-by-the-server.md) | Ranked runs: the server deals the seed, the game hands in its moves, the server replays them | Accepted; a ranked game also plays a run back to watch since 0032 |
+| [0030](0030-ranked-runs-replayed-by-the-server.md) | Ranked runs: the server deals the seed, the game hands in its moves, the server replays them | Accepted; a ranked game also plays a run back to watch since 0032; not from an entry, since 0045 |
 | [0031](0031-people-decide-what-the-engine-held.md) | People decide what the engine held: the console's review, and profiles hidden from public boards | Accepted |
 | [0032](0032-watch-a-ranked-run-in-the-game-itself.md) | Watch a ranked run in the game itself, in the admin console | Accepted |
 | [0033](0033-invite-a-profile-by-its-id.md) | Invite a profile to a table by its ID, as its owner allows; a child is never found from outside | Accepted |
@@ -56,5 +56,6 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0040](0040-all-of-tohe-on-one-domain-of-its-own.md) | Run all of Tò He on toheplay.io.vn, the games one level below the hub | Accepted; hosts and paths laid out by 0042 |
 | [0041](0041-promote-one-build-through-the-environments-by-tag.md) | Promote one build through the environments by tag; production runs only what ran on UAT | Accepted |
 | [0042](0042-hosts-by-trust-paths-by-component.md) | Lay out Tò He by trust: one domain, a host per trust boundary, a path per component | Accepted |
-| [0043](0043-device-profiles-and-identity-levels.md) | Every player is a profile of this device or of an account; the highest level any source needs is asked for | Accepted; arrives in steps (I1, I2) |
-| [0044](0044-entry-links.md) | Every way into Tò He is an entry; share links are objects on the server; one pipeline in the hub | Accepted; arrives with step I3 |
+| [0043](0043-device-profiles-and-identity-levels.md) | Every player is a profile of this device or of an account; the highest level any source needs is asked for | Accepted; arrives in steps (I1, I2); the game's level from 0045 |
+| [0044](0044-entry-links.md) | Every way into Tò He is an entry; share links are objects on the server; one pipeline in the hub | Accepted; arrives with step I3; games take entries from 0045 |
+| [0045](0045-games-declare-identity-and-entries.md) | A game declares the identity it needs and the entries it takes; it asks the hub for more, and to share | Accepted; arrives with step I4 |

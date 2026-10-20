@@ -5,7 +5,8 @@ sidebar:
   order: 30
 ---
 
-- **Status:** Accepted — a ranked game also plays a run back to watch, since [ADR 0032](0032-watch-a-ranked-run-in-the-game-itself.md)
+- **Status:** Accepted — a ranked game also plays a run back to watch, since [ADR 0032](0032-watch-a-ranked-run-in-the-game-itself.md); a game played from
+  an entry is not a ranked run, by [ADR 0045](0045-games-declare-identity-and-entries.md)
 - **Date:** 2026-10-18
 - **Amends:** [Game Contract v1](../contracts/game-contract-v1.md) — a capability, a manifest block and three messages,
   all optional (protocol stays 1); [ADR 0005](0005-offline-first.md) — a ranked run needs the network when it starts;

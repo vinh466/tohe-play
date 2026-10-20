@@ -5,7 +5,8 @@ sidebar:
   order: 44
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — an `entry` share link is made on a game's request and given to the game in `init`, by
+  [ADR 0045](0045-games-declare-identity-and-entries.md) (step I4)
 - **Date:** 2026-10-20
 - **Amends:** [ADR 0016](0016-online-rooms-for-turn-based-games.md) — a room's link goes through the entry pipeline, has a
   preview, and a closed table's code is not given out again for a day; [ADR 0043](0043-device-profiles-and-identity-levels.md)
