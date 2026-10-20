@@ -3,6 +3,7 @@ import { AuditPage } from './pages/AuditPage.tsx';
 import { CommunitiesPage } from './pages/CommunitiesPage.tsx';
 import { GamesPage } from './pages/GamesPage.tsx';
 import { HEALTH_DAYS, HealthPage } from './pages/HealthPage.tsx';
+import { LinksPage } from './pages/LinksPage.tsx';
 import { OverviewPage } from './pages/OverviewPage.tsx';
 import { type ReviewList, ReviewPage } from './pages/ReviewPage.tsx';
 import { ReviewResultPage } from './pages/ReviewResultPage.tsx';
@@ -86,6 +87,15 @@ const communitiesRoute = createRoute({
   path: '/communities',
   component: CommunitiesPage,
 });
+const linksRoute = createRoute({
+  getParentRoute: () => sessionRoute,
+  path: '/links',
+  // ?code=: the share link to find (ADR 0044).
+  validateSearch: (search: Record<string, unknown>): { code: string } => ({
+    code: typeof search.code === 'string' ? search.code : '',
+  }),
+  component: LinksPage,
+});
 
 /**
  * The console lives at the root of a host of its own (ADR 0042); every path here is a namespace of the console's host
@@ -103,6 +113,7 @@ export const routeTree = rootRoute.addChildren([
     reviewRoute,
     reviewResultRoute,
     communitiesRoute,
+    linksRoute,
     settingsRoute,
     auditRoute,
     securityRoute,

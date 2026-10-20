@@ -91,6 +91,7 @@ owns its tables in its own PostgreSQL schema. Modules do not read each other's t
 | Telemetry | done ([ADR 0015](../decisions/0015-device-telemetry.md)) | `/api/telemetry`, `/api/telemetry/report` — see [Device telemetry](telemetry.md) |
 | Admin | the platform at a glance, users, sign-in and registration, communities ([ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md), [0028](../decisions/0028-sign-in-and-registration-at-run-time.md)) | `/api/admin/*`, an OpenAPI document of its own; reads what the other modules expose — see [Admin console](admin.md) |
 | Rooms | done ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | `/api/rooms/*`, SignalR `/api/rooms/hub` — see [Online rooms](rooms.md) |
+| Links | share links and link previews on the server; the hub's entry pipeline next ([ADR 0044](../decisions/0044-entry-links.md)) | `/api/links/*`, `/api/previews/*` — see [Entry links](entry-links.md) |
 
 Generated reference: [Platform API](/reference/api/).
 

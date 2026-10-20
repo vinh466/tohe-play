@@ -1218,6 +1218,109 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("ranked_runs", "integrity");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Links.ShareLink", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Code")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character(8)")
+                        .HasColumnName("code")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<string>("GameId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("game_id");
+
+                    b.Property<string>("GameVersion")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("game_version");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Level")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("level");
+
+                    b.Property<Guid>("MakerProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("maker_profile_id");
+
+                    b.Property<int?>("MaxUses")
+                        .HasColumnType("integer")
+                        .HasColumnName("max_uses");
+
+                    b.Property<DateTimeOffset?>("RevokedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("revoked_at");
+
+                    b.Property<int>("Uses")
+                        .HasColumnType("integer")
+                        .HasColumnName("uses");
+
+                    b.HasKey("Id")
+                        .HasName("pk_share_links");
+
+                    b.HasIndex("Code")
+                        .IsUnique()
+                        .HasDatabaseName("ix_share_links_code");
+
+                    b.HasIndex("MakerProfileId", "CreatedAt")
+                        .HasDatabaseName("ix_share_links_maker_profile_id_created_at");
+
+                    b.ToTable("share_links", "links");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Links.ShareLinkDay", b =>
+                {
+                    b.Property<Guid>("LinkId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("link_id");
+
+                    b.Property<DateOnly>("Day")
+                        .HasColumnType("date")
+                        .HasColumnName("day");
+
+                    b.Property<int>("AccountsMade")
+                        .HasColumnType("integer")
+                        .HasColumnName("accounts_made");
+
+                    b.Property<int>("Opened")
+                        .HasColumnType("integer")
+                        .HasColumnName("opened");
+
+                    b.Property<int>("Played")
+                        .HasColumnType("integer")
+                        .HasColumnName("played");
+
+                    b.HasKey("LinkId", "Day")
+                        .HasName("pk_share_link_days");
+
+                    b.ToTable("share_link_days", "links");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Progress.SavedGame", b =>
                 {
                     b.Property<Guid>("ProfileId")
@@ -1550,6 +1653,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .IsUnique()
                         .HasDatabaseName("ix_rooms_code")
                         .HasFilter("closed_at IS NULL");
+
+                    b.HasIndex("Code", "ClosedAt")
+                        .HasDatabaseName("ix_rooms_code_closed_at")
+                        .HasFilter("closed_at IS NOT NULL");
 
                     b.HasIndex("GameId", "Status")
                         .HasDatabaseName("ix_rooms_game_id_status");
@@ -2210,6 +2317,16 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasConstraintName("fk_ranked_runs_integrity_results_result_id");
 
                     b.Navigation("Result");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Links.ShareLinkDay", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Links.ShareLink", null)
+                        .WithMany()
+                        .HasForeignKey("LinkId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_share_link_days_share_links_link_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Rooms.RoomAction", b =>

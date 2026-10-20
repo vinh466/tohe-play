@@ -2,6 +2,9 @@ import {
   consoleNamespaces,
   hubNamespaces,
   hubRedirects,
+  linkPreviewBrowsers,
+  linkPreviewCode,
+  linkPreviewCrawlers,
   type Match,
   type Namespace,
   type Redirect,
@@ -88,4 +91,30 @@ export function redirectTarget(
     if (found) return redirectTemplate(redirect, (n) => found[n] ?? '');
   }
   return undefined;
+}
+
+/** Any of `words`, as one regular expression's alternation (the same text for RE2 in Caddy and for JavaScript). */
+export const alternation = (words: readonly string[]) => `(${words.map(escapeRegExp).join('|')})`;
+
+/**
+ * The path of a link a crawler gets a card for: `/<namespace>/<code>` of a namespace with `linkPreview` — group 1 the
+ * namespace without its slash, group 2 the code.
+ */
+export function linkPreviewPattern(namespaces: readonly Namespace[] = hubNamespaces): string {
+  const paths = namespaces
+    .filter((namespace) => namespace.linkPreview)
+    .map((namespace) => namespace.path.slice(1));
+  return `^/(${paths.map(escapeRegExp).join('|')})/(${linkPreviewCode})$`;
+}
+
+/**
+ * Whether the hub's Caddy answers this request with the API's card (ADR 0044): a link of a previewed namespace, asked by
+ * a known crawler that carries no mark of a person's browser. The generated Caddy matcher does the same.
+ */
+export function isLinkPreview(pathname: string, userAgent: string): boolean {
+  return (
+    new RegExp(linkPreviewPattern()).test(pathname) &&
+    new RegExp(alternation(linkPreviewCrawlers), 'i').test(userAgent) &&
+    !new RegExp(alternation(linkPreviewBrowsers), 'i').test(userAgent)
+  );
 }

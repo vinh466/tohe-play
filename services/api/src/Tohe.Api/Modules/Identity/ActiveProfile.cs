@@ -86,6 +86,47 @@ public interface IProfileNames
     Task RenamedAsync(Guid profileId, string name, CancellationToken ct);
 }
 
+/// <summary>
+/// A profile as other modules may name it to strangers, by its id (ADR 0044): its current name on the server — a
+/// moderator's when one renamed it — whether it is a child's, and whether its account stopped: suspended, or waiting to
+/// be deleted (ADR 0034). A device profile has no account, and never stops.
+/// </summary>
+/// <param name="AccountId">Its account; null for a device profile on the server (ADR 0043).</param>
+public sealed record ProfileStanding(Guid Id, Guid? AccountId, Guid? DeviceId, string Name, bool Child, bool Stopped);
+
+/// <summary>Profiles by their ids, as other modules may show them (a share link's maker, ADR 0044).</summary>
+public interface IProfileStandings
+{
+    /// <summary>The profile with this id, or null: deleted, or never there.</summary>
+    Task<ProfileStanding?> FindAsync(Guid profileId, CancellationToken ct);
+}
+
+internal sealed class ProfileStandings(ToheDbContext db) : IProfileStandings
+{
+    public async Task<ProfileStanding?> FindAsync(Guid profileId, CancellationToken ct) =>
+        await db.Profiles.AsNoTracking()
+            .Where(profile => profile.Id == profileId)
+            .Select(profile => new ProfileStanding(
+                profile.Id,
+                profile.AccountId,
+                profile.DeviceId,
+                profile.Name,
+                profile.Kind == ProfileKind.Child,
+                profile.AccountId != null && db.Users.Any(account =>
+                    account.Id == profile.AccountId && (account.SuspendedAt != null || account.DeleteAfter != null))))
+            .FirstOrDefaultAsync(ct);
+}
+
+/// <summary>
+/// An account made from an entry (ADR 0044): the hub passes the share link's code once, with the request that makes the
+/// account, and the module that keeps the links counts it. Nothing is stored on the account or the profile.
+/// </summary>
+public interface IEntrySignUps
+{
+    /// <summary>Counts an account made from the entry with this code; a code that names no link counts nothing.</summary>
+    Task AccountMadeAsync(string code, CancellationToken ct);
+}
+
 /// <summary>A player as other modules may show it (e.g. on a leaderboard).</summary>
 public sealed record PlayerCard(Guid Id, string Name, string Avatar);
 

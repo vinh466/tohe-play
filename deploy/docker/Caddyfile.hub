@@ -44,7 +44,9 @@ import /etc/caddy/hub-sitemap.caddy
 
 	# @apiProxy, @publicStaticRevalidate, @publicStaticImmutable, @appPage, @appStaticImmutable, @appStaticRevalidate,
 	# @platformGenerated, and the redirects as `redir` directives (the app's old paths answer 301 for the links in
-	# emails already sent), which Caddy runs before any `handle` below.
+	# emails already sent), which Caddy runs before any `handle` below. Then link previews (ADR 0044): a known crawler
+	# asking for /r/<code> or /s/<code> is rewritten to the API's card, /api/previews/<r|s>/<code>, which @apiProxy passes
+	# through untouched — never into a template; people get the app's page, unchanged.
 	import /etc/caddy/hub-routes.caddy
 
 	handle @apiProxy {

@@ -5,10 +5,14 @@ namespace Tohe.Api.Infrastructure;
 /// to tables (ADR 0033) — or the whole server, under one key: wrong transfer codes (ADR 0043). In memory: one API
 /// process serves everyone (ADR 0016), and a restart forgets an hour at most.
 /// </summary>
-internal abstract class HourlyAllowance(TimeProvider clock)
-{
-    private static readonly TimeSpan Window = TimeSpan.FromHours(1);
+internal abstract class HourlyAllowance(TimeProvider clock) : SlidingAllowance(clock, TimeSpan.FromHours(1));
 
+/// <summary>
+/// How many times each key — an account, a device — may do one thing in a sliding window of <paramref name="window"/>.
+/// In memory: one API process serves everyone (ADR 0016), and a restart forgets one window at most.
+/// </summary>
+internal abstract class SlidingAllowance(TimeProvider clock, TimeSpan window)
+{
     private readonly Dictionary<Guid, LinkedList<DateTimeOffset>> _uses = [];
     private readonly Lock _gate = new();
 
@@ -57,7 +61,7 @@ internal abstract class HourlyAllowance(TimeProvider clock)
             _uses[accountId] = times = new LinkedList<DateTimeOffset>();
         }
 
-        var since = clock.GetUtcNow() - Window;
+        var since = clock.GetUtcNow() - window;
         while (times.First is { } oldest && oldest.Value <= since)
         {
             times.RemoveFirst();

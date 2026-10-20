@@ -244,6 +244,8 @@ internal static class IdentityModule
         services.AddScoped<IBoardAudience, BoardAudience>();
         services.AddScoped<CommunitiesAdmin>();
         services.AddScoped<IActiveProfile, ActiveProfileReader>();
+        // Profiles by id as strangers may be shown them: a share link's maker (ADR 0044).
+        services.AddScoped<IProfileStandings, ProfileStandings>();
         services.AddScoped<IAccountProfiles, AccountProfilesReader>();
         return builder;
     }

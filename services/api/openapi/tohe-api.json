@@ -3119,6 +3119,371 @@
         }
       }
     },
+    "/api/links": {
+      "post": {
+        "tags": [
+          "Links"
+        ],
+        "summary": "Make a share link to a game, as the acting profile: a `named` feature — a device profile with its terms accepted, a child only with \"play with others\" on; 30 a day per profile, 60 per device key.",
+        "operationId": "MakeShareLink",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MakeLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/links/mine": {
+      "get": {
+        "tags": [
+          "Links"
+        ],
+        "summary": "The acting profile's share links, newest first (100 at most), with their state and counts; accounts made only from three upward.",
+        "operationId": "ListMyShareLinks",
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/ShareLinkView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/links/{code}": {
+      "patch": {
+        "tags": [
+          "Links"
+        ],
+        "summary": "A new expiry for one of the acting profile's links, from now: one hour to 90 days.",
+        "operationId": "ChangeShareLink",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ChangeLinkRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/links/{code}/revoke": {
+      "post": {
+        "tags": [
+          "Links"
+        ],
+        "summary": "Revoke one of the acting profile's links: it resolves as revoked from now on.",
+        "operationId": "RevokeShareLink",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "412": {
+            "description": "Precondition Failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ShareLinkView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/links/{code}/open": {
+      "post": {
+        "tags": [
+          "Links"
+        ],
+        "summary": "Resolve a share link by its code to a typed intent — ok, expired, revoked, used_up or unknown; counts it opened. Limited per address and for the server.",
+        "operationId": "OpenShareLink",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkIntent"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/links/{code}/play": {
+      "post": {
+        "tags": [
+          "Links"
+        ],
+        "summary": "Resolve a share link to open its game: takes one use and counts it played. A link asking `named` or `account` needs such a player (403 level_required). Limited as opening.",
+        "operationId": "PlayShareLink",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/LinkIntent"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Too Many Requests",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/account/two-factor": {
       "get": {
         "tags": [
@@ -3421,6 +3786,18 @@
           }
         }
       },
+      "ChangeLinkRequest": {
+        "required": [
+          "expiresInHours"
+        ],
+        "type": "object",
+        "properties": {
+          "expiresInHours": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
       "ClientConfig": {
         "required": [
           "gamesOrigin",
@@ -3498,6 +3875,12 @@
                 "$ref": "#/components/schemas/DeviceProfileUpload"
               }
             ]
+          },
+          "entryCode": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -3539,6 +3922,12 @@
               {
                 "$ref": "#/components/schemas/DeviceProfileUpload"
               }
+            ]
+          },
+          "entryCode": {
+            "type": [
+              "null",
+              "string"
             ]
           }
         }
@@ -4517,6 +4906,76 @@
           }
         }
       },
+      "LinkCounts": {
+        "required": [
+          "opened",
+          "played",
+          "accountsMade"
+        ],
+        "type": "object",
+        "properties": {
+          "opened": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "played": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accountsMade": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          }
+        }
+      },
+      "LinkIntent": {
+        "required": [
+          "code",
+          "state"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "kind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gameId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "gameName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "level": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "makerName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "LinkProofRequest": {
         "type": "object",
         "properties": {
@@ -4546,6 +5005,41 @@
           },
           "password": {
             "type": "string"
+          }
+        }
+      },
+      "MakeLinkRequest": {
+        "required": [
+          "kind",
+          "gameId"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "level": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "expiresInHours": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "maxUses": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
           }
         }
       },
@@ -5596,6 +6090,72 @@
           }
         }
       },
+      "ShareLinkView": {
+        "required": [
+          "code",
+          "kind",
+          "gameId",
+          "gameVersion",
+          "level",
+          "state",
+          "createdAt",
+          "expiresAt",
+          "maxUses",
+          "uses",
+          "revokedAt",
+          "counts"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "gameVersion": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maxUses": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "uses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "counts": {
+            "$ref": "#/components/schemas/LinkCounts"
+          }
+        }
+      },
       "SignUpRequest": {
         "required": [
           "email",
@@ -6233,6 +6793,9 @@
     },
     {
       "name": "Rooms"
+    },
+    {
+      "name": "Links"
     },
     {
       "name": "Console"

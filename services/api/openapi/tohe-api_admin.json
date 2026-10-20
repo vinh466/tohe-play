@@ -1440,6 +1440,74 @@
           }
         }
       }
+    },
+    "/api/admin/links/{code}": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "A share link by its code, typed any way codes are read: its maker, state and every count by day.",
+        "operationId": "GetAdminShareLink",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShareLinkView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/links/{code}/revoke": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Revoke a share link: it resolves as revoked from now on, and its preview is the generic one.",
+        "operationId": "RevokeAdminShareLink",
+        "parameters": [
+          {
+            "name": "code",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AdminShareLinkView"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -1758,6 +1826,76 @@
           }
         }
       },
+      "AdminLinkDay": {
+        "required": [
+          "day",
+          "opened",
+          "played",
+          "accountsMade"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "opened": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "played": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accountsMade": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AdminLinkMaker": {
+        "required": [
+          "profileId",
+          "name",
+          "child",
+          "accountId",
+          "deviceId",
+          "stopped"
+        ],
+        "type": "object",
+        "properties": {
+          "profileId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "child": {
+            "type": "boolean"
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "deviceId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "stopped": {
+            "type": "boolean"
+          }
+        }
+      },
       "AdminMeView": {
         "required": [
           "accountId",
@@ -1933,6 +2071,94 @@
           },
           "operatorReport": {
             "type": "boolean"
+          }
+        }
+      },
+      "AdminShareLinkView": {
+        "required": [
+          "code",
+          "kind",
+          "gameId",
+          "gameVersion",
+          "level",
+          "state",
+          "createdAt",
+          "expiresAt",
+          "maxUses",
+          "uses",
+          "revokedAt",
+          "maker",
+          "opened",
+          "played",
+          "accountsMade",
+          "days"
+        ],
+        "type": "object",
+        "properties": {
+          "code": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "gameId": {
+            "type": "string"
+          },
+          "gameVersion": {
+            "type": "string"
+          },
+          "level": {
+            "type": "string"
+          },
+          "state": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "expiresAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "maxUses": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "uses": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "revokedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "maker": {
+            "$ref": "#/components/schemas/AdminLinkMaker"
+          },
+          "opened": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "played": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "accountsMade": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AdminLinkDay"
+            }
           }
         }
       },

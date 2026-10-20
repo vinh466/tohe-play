@@ -35,6 +35,9 @@ internal static class AuditActions
     /// <summary>A profile — an account's or a device's (ADR 0043) — removed from the tables it sat at or watched.</summary>
     public const string ProfileWithdraw = "profile.withdraw";
 
+    /// <summary>A share link revoked from the console (ADR 0044).</summary>
+    public const string LinkRevoke = "link.revoke";
+
     /// <summary>The console opened on a device: two-factor authentication passed.</summary>
     public const string ConsoleOpen = "console.open";
 

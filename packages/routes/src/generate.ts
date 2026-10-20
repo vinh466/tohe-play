@@ -5,11 +5,13 @@ import {
   hubLinks,
   hubNamespaces,
   hubRedirects,
+  linkPreviewBrowsers,
+  linkPreviewCrawlers,
   type Namespace,
   publicPages,
   type Redirect,
 } from './map.ts';
-import { covers, redirectPattern, redirectTemplate } from './match.ts';
+import { alternation, covers, linkPreviewPattern, redirectPattern, redirectTemplate } from './match.ts';
 
 const header = (comment: string) =>
   [
@@ -89,6 +91,24 @@ export function hubRedirectDirectives(
   return lines;
 }
 
+/**
+ * Link previews (ADR 0044): a known crawler asking for `/r/<code>` or `/s/<code>` is rewritten to the API's card for it,
+ * `/api/previews/<r|s>/<code>`, which @apiProxy then passes through like any API answer — never into a template. A
+ * `rewrite` runs before every `handle` of the site; people, and any other path, keep the app's page.
+ */
+export function linkPreviewDirectives(namespaces: readonly Namespace[] = hubNamespaces): string[] {
+  if (!namespaces.some((namespace) => namespace.linkPreview)) return [];
+  return [
+    '# Link previews: a crawler asking for a link of a previewed namespace gets the API’s card for it; people the app.',
+    '@linkPreview {',
+    `\tpath_regexp linkPreview ${linkPreviewPattern(namespaces)}`,
+    `\theader_regexp linkPreviewCrawler User-Agent (?i)${alternation(linkPreviewCrawlers)}`,
+    `\tnot header_regexp linkPreviewBrowser User-Agent (?i)${alternation(linkPreviewBrowsers)}`,
+    '}',
+    'rewrite @linkPreview /api/previews/{re.linkPreview.1}/{re.linkPreview.2}',
+  ];
+}
+
 /** deploy/docker/hub-routes.caddy, imported by Caddyfile.hub inside its site block. */
 export function hubCaddySnippet(
   namespaces: readonly Namespace[] = hubNamespaces,
@@ -102,6 +122,7 @@ export function hubCaddySnippet(
     lines.push(`@${name} path ${paths.join(' ')}`);
   }
   lines.push(...hubRedirectDirectives(namespaces, redirects));
+  lines.push(...linkPreviewDirectives(namespaces));
   return `${lines.join('\n')}\n`;
 }
 

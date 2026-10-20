@@ -72,7 +72,7 @@ public sealed class Room
 {
     public Guid Id { get; set; }
 
-    /// <summary>6 digits, unique among open rooms.</summary>
+    /// <summary>6 digits, unique among open rooms, and never one a table closed with in the last day (ADR 0044).</summary>
     public required string Code { get; set; }
 
     public required string GameId { get; set; }
@@ -208,8 +208,12 @@ internal sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
         builder.Property(room => room.Carry).HasColumnType("jsonb");
         builder.Property(room => room.HandCarry).HasColumnType("jsonb");
         builder.Property(room => room.Scores).HasColumnType("jsonb");
-        // A code is unique among open rooms only; a closed room's code can come back.
+        // A code is unique among open rooms only; a closed room's code comes back after a day (RoomsOptions.ClosedCodeReserved).
         builder.HasIndex(room => room.Code).IsUnique().HasFilter("closed_at IS NULL");
+        // A closed table's code is not given out again for a day (ADR 0044): new tables look it up.
+        builder.HasIndex(room => new { room.Code, room.ClosedAt })
+            .HasDatabaseName("ix_rooms_code_closed_at")
+            .HasFilter("closed_at IS NOT NULL");
         builder.HasIndex(room => new { room.GameId, room.Status });
     }
 }

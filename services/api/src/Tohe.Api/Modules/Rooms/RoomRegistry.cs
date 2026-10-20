@@ -39,6 +39,12 @@ public sealed class RoomsOptions
     /// <summary>Room codes one profile may look up per minute (guessing codes is the only way into a private room).</summary>
     public int CodeLookupsPerMinute { get; set; } = 20;
 
+    /// <summary>
+    /// How long a closed table's code is not given out again (ADR 0044), so an old table link never opens a stranger's
+    /// table.
+    /// </summary>
+    public TimeSpan ClosedCodeReserved { get; set; } = TimeSpan.FromDays(1);
+
     /// <summary>Invitations one account may send to other accounts' profiles in an hour (ADR 0033, D-17).</summary>
     public int InvitationsPerHour { get; set; } = 20;
 
@@ -53,6 +59,17 @@ public sealed class RoomsOptions
     public bool ClockEnabled { get; set; } = true;
 }
 
+/// <summary>A table as a link preview may show it (ADR 0044): its game, and whether it is listed publicly.</summary>
+/// <param name="Listed">Public, and open to more than its host's account: shown in the lobby to people it may seat.</param>
+public sealed record RoomPreview(string GameId, bool Listed);
+
+/// <summary>Open tables by their code, for link previews (ADR 0044).</summary>
+public interface IRoomPreviews
+{
+    /// <summary>The open table with this 6-digit code, or null.</summary>
+    RoomPreview? FindByCode(string code);
+}
+
 /// <summary>The open rooms: how many, how many in a hand, the profiles connected to them, and the rooms of each game.</summary>
 public sealed record LiveRooms(int Open, int Playing, int Online, IReadOnlyDictionary<string, int> OpenByGame);
 
@@ -65,12 +82,16 @@ internal sealed partial class RoomRegistry(
     IHubContext<RoomsHub> hub,
     IOptions<RoomsOptions> options,
     TimeProvider clock,
-    ILogger<RoomRegistry> logger)
+    ILogger<RoomRegistry> logger) : IRoomPreviews
 {
     private readonly ConcurrentDictionary<Guid, RoomActor> _rooms = new();
     private readonly ConcurrentDictionary<Guid, int> _minSeats = new();
 
     public IEnumerable<RoomActor> All => _rooms.Values;
+
+    /// <summary>Draws a table's code: six random digits. Tests replace it to draw a code they chose.</summary>
+    internal Func<string> DrawCode { get; set; } =
+        () => RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
 
     /// <summary>The open rooms right now, for the admin console (ADR 0027).</summary>
     public LiveRooms Live()
@@ -88,23 +109,34 @@ internal sealed partial class RoomRegistry(
 
     public RoomActor? FindByCode(string code) => _rooms.Values.FirstOrDefault(room => !room.IsClosed && room.Room.Code == code);
 
+    RoomPreview? IRoomPreviews.FindByCode(string code) =>
+        FindByCode(code) is { } room
+            ? new RoomPreview(room.Room.GameId, room.Room.IsPublic && room.Room.Entry != RoomEntry.Own)
+            : null;
+
     public int MinSeats(Guid roomId) => _minSeats.TryGetValue(roomId, out var min) ? min : 2;
 
     public async Task<RoomActor> CreateAsync(Room room, int minSeats, CancellationToken cancellationToken)
     {
-        // A code unique among open rooms; at family scale a collision is rare, a retry rarer still.
-        for (var attempt = 0; ; attempt++)
-        {
-            room.Code = RandomNumberGenerator.GetInt32(0, 1_000_000).ToString("D6", System.Globalization.CultureInfo.InvariantCulture);
-            if (FindByCode(room.Code) is null || attempt > 20)
-            {
-                break;
-            }
-        }
-
         await using (var scope = scopes.CreateAsyncScope())
         {
             var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+
+            // A code unique among open rooms, and not one a table closed with in the last day (ADR 0044): an old link
+            // never opens a stranger's table. At family scale a collision is rare, a retry rarer still.
+            var reservedSince = clock.GetUtcNow() - options.Value.ClosedCodeReserved;
+            for (var attempt = 0; ; attempt++)
+            {
+                room.Code = DrawCode();
+                var code = room.Code;
+                if (attempt > 20
+                    || (FindByCode(code) is null
+                        && !await db.Rooms.AnyAsync(closed => closed.Code == code && closed.ClosedAt != null && closed.ClosedAt > reservedSince, cancellationToken)))
+                {
+                    break;
+                }
+            }
+
             db.Rooms.Add(room);
             await db.SaveChangesAsync(cancellationToken);
         }

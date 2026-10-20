@@ -20,7 +20,15 @@ import {
   hubRedirects,
   type Namespace,
 } from './map.ts';
-import { matchConsolePath, matchHubPath, navigationAllowlist, overlap, redirectTarget } from './match.ts';
+import {
+  isLinkPreview,
+  linkPreviewPattern,
+  matchConsolePath,
+  matchHubPath,
+  navigationAllowlist,
+  overlap,
+  redirectTarget,
+} from './match.ts';
 
 /** The hub's pages (apps/hub/src/router.tsx); the hub's own test reads its router. */
 const appPages = [
@@ -30,6 +38,7 @@ const appPages = [
   '/play/tien-len/rooms/0b7c',
   '/play/tien-len/rooms/0b7c/replay/3',
   '/r/ABCD',
+  '/s/7KQ2M9XA',
   '/account',
   '/account/email',
   '/account/sign-in',
@@ -227,6 +236,7 @@ describe('the console’s host', () => {
     '/review',
     '/review/12',
     '/communities',
+    '/links',
     '/settings',
     '/audit',
     '/security',
@@ -407,6 +417,54 @@ describe('what the map generates', () => {
     expect(hubCaddySnippet()).toContain(' /workbox-* ');
   });
 
+  it('rewrites a crawler’s /r/<code> and /s/<code> to the API’s card, and nothing else', () => {
+    const snippet = hubCaddySnippet();
+    expect(linkPreviewPattern()).toBe('^/(r|s)/([0-9A-Za-z-]{1,20})$');
+    expect(snippet).toContain('@linkPreview {\n\tpath_regexp linkPreview ^/(r|s)/([0-9A-Za-z-]{1,20})$\n');
+    expect(snippet).toContain(
+      '\theader_regexp linkPreviewCrawler User-Agent (?i)(facebookexternalhit|Facebot|Twitterbot|TelegramBot|Slackbot|Discordbot|WhatsApp/|LinkedInBot|Zalo)\n',
+    );
+    expect(snippet).toContain(
+      '\tnot header_regexp linkPreviewBrowser User-Agent (?i)(Mobile|FBAN|FBAV|FB_IAB|Instagram)\n',
+    );
+    expect(snippet).toContain('rewrite @linkPreview /api/previews/{re.linkPreview.1}/{re.linkPreview.2}\n');
+    // The rewritten path is the API's, which @apiProxy serves: Caddy never puts the answer into a template.
+    expect(matchHubPath('/api/previews/s/7KQ2M9XA')?.id).toBe('api');
+  });
+
+  const crawlers = [
+    'facebookexternalhit/1.1 (+http://www.facebook.com/externalhit_uatext.php)',
+    'Facebot',
+    'Twitterbot/1.0',
+    'TelegramBot (like TwitterBot)',
+    'Slackbot-LinkExpanding 1.0 (+https://api.slack.com/robots)',
+    'Mozilla/5.0 (compatible; Discordbot/2.0; +https://discordapp.com)',
+    'WhatsApp/2.23.20.0 A',
+    'LinkedInBot/1.0 (compatible; Mozilla/5.0; Apache-HttpClient +http://www.linkedin.com)',
+    'Zalo',
+  ];
+  it.each(crawlers)('gives the card to %s', (userAgent) => {
+    expect(isLinkPreview('/s/7KQ2M9XA', userAgent)).toBe(true);
+    expect(isLinkPreview('/r/482913', userAgent)).toBe(true);
+    expect(isLinkPreview('/play/merge-block', userAgent)).toBe(false);
+    expect(isLinkPreview('/s/7KQ2M9XA/x', userAgent)).toBe(false);
+    expect(isLinkPreview('/s/%3Cb%3E', userAgent)).toBe(false);
+    expect(isLinkPreview('/s/', userAgent)).toBe(false);
+  });
+
+  it.each([
+    'Mozilla/5.0 (Linux; Android 14; SM-A556E) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Mobile Safari/537.36',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1',
+    'Mozilla/5.0 (Linux; Android 14; SM-A556E) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0.0.0 Mobile Safari/537.36 Zalo/24.09.01',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Zalo iOS/585 ZaloTheme/light ZaloLanguage/vi',
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 [FBAN/MessengerForiOS;FBAV/470.0.0;FBBV/1;FBDV/iPhone15,2]',
+    'Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36 [FB_IAB/Orca-Android;FBAV/470.0.0.0;]',
+    'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36',
+  ])('gives the app to a person: %s', (userAgent) => {
+    expect(isLinkPreview('/s/7KQ2M9XA', userAgent)).toBe(false);
+    expect(isLinkPreview('/r/482913', userAgent)).toBe(false);
+  });
+
   it('writes the redirects as directives, the query kept', () => {
     const snippet = hubCaddySnippet();
     expect(snippet).toContain('@legacyWelcome path_regexp legacyWelcome ^/welcome$\n');
@@ -534,5 +592,7 @@ describe('what the map generates', () => {
     expect(cs).toContain('public static class ConsolePaths');
     expect(cs).toContain('public const string Setup = "/setup";');
     expect(cs).toContain('public const string Api = "/api/admin";');
+    expect(cs).toContain('public const string ShareLink = "/s";');
+    expect(cs).toContain('public const string RoomLink = "/r";');
   });
 });

@@ -39,12 +39,15 @@ public sealed record LinkProofRequest(string? Code = null, string? Password = nu
 /// <param name="DeviceProfile">The device profile that started the sign-in with <c>?profile=</c>, with what it played
 /// (ADR 0043): without an age band it becomes the account's first profile, with one it joins the usual first profile as
 /// a child's.</param>
+/// <param name="EntryCode">The share link this sign-up came from (ADR 0044), passed once: counted as an account made from
+/// it when this request makes the account. Nothing of it is stored on the account.</param>
 public sealed record CompleteSignUpRequest(
     [Required(AllowEmptyStrings = true)] string DisplayName,
     bool AcceptTerms,
     string? TermsVersion,
     string? InviteCode = null,
-    DeviceProfileUpload? DeviceProfile = null);
+    DeviceProfileUpload? DeviceProfile = null,
+    string? EntryCode = null);
 
 /// <summary>
 /// Signing in with Google, GitHub or an OpenID Connect issuer, and linking them to accounts (ADR 0026). A provider's
@@ -470,6 +473,7 @@ internal static class ExternalEndpoints
         MeQueries me,
         TimeProvider clock,
         ToheMetrics metrics,
+        IEnumerable<IEntrySignUps> entries,
         CancellationToken ct)
     {
         var attempt = await PendingAsync(http, protection, db, clock, ct);
@@ -571,6 +575,7 @@ internal static class ExternalEndpoints
         Unbind(http);
         var state = new DeviceSession(profile.Id);
         await session.WriteAsync(account, state);
+        await AuthEndpoints.AccountMadeFromAsync(entries, request.EntryCode, ct);
         return TypedResults.Ok(new ExternalOutcome((await me.LoadAsync(account.Id, state, ct))!, null));
     }
 

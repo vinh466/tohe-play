@@ -178,6 +178,7 @@ internal static class AdminEndpoints
         UsersEndpoints.Map(admin);
         SettingsEndpoints.Map(admin);
         ReviewEndpoints.Map(admin);
+        LinksEndpoints.Map(admin);
     }
 
     /// <summary>The account, its role and what the role may do, and the console session.</summary>
