@@ -28,6 +28,12 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
 
     public DbSet<Device> Devices => Set<Device>();
 
+    public DbSet<ProfileTransfer> ProfileTransfers => Set<ProfileTransfer>();
+
+    public DbSet<ProfileMove> ProfileMoves => Set<ProfileMove>();
+
+    public DbSet<ProfileAlias> ProfileAliases => Set<ProfileAlias>();
+
     public DbSet<RetiredProfileId> RetiredProfileIds => Set<RetiredProfileId>();
 
     public DbSet<Community> Communities => Set<Community>();

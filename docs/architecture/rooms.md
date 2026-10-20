@@ -310,7 +310,11 @@ Tables opened before I2a kept their door: "my account's profiles only" became `o
   none, so its table stays `named`.
 - **Results**: a device profile's result of a hand is recorded like anyone's — `rooms.results` without an account — and
   goes to the integrity engine marked `device_earned`: it counts in its own statistics and replays, never on a public
-  board ([Integrity](integrity.md#public-boards)). Brought into an account, its results follow its id and stay marked.
+  board ([Integrity](integrity.md#public-boards)). Brought into an account, its results follow its id and stay marked;
+  merged into an account's profile, they move to it and a [merge alias](identity.md#merge-aliases) keeps the old id
+  reachable. Moved to another device with a [transfer code](identity.md#the-transfer-code), it leaves its tables (a bot
+  finishes a hand) and its seats and results stay its own; its old device acts for it no more
+  (`410 device_profile_moved`).
 - **Moderation**: the console takes any profile off its tables — a bot finishes a hand in progress — and renames a
   device profile ([Admin console](admin.md#users)).
 
@@ -413,9 +417,9 @@ device profile — the device key alone ([Who may sit](#who-may-sit)). "The acti
 | `POST /api/rooms/{id}/join` · `/leave` | Sit (an empty seat, or between hands a bot that only filled one) · leave (a bot finishes the hand) |
 | `PATCH /api/rooms/{id}` · `PUT …/seats/{seat}` · `POST …/start` | The host's controls, before a hand |
 | `POST /api/rooms/{id}/watch` | Watch without a seat, when the room allows spectators |
-| `POST /api/rooms/{id}/invite` · `GET /api/rooms/invites` | Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): `profile_not_found`, `room_account_only`, `invites_closed`, `invite_limit`, `invitee_limit`; a device profile asks nobody (`account_required`) · the active profile's invitations |
+| `POST /api/rooms/{id}/invite` · `GET /api/rooms/invites` | Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033), an id merged into a profile asking that profile: `profile_not_found`, `room_account_only`, `invites_closed`, `invite_limit`, `invitee_limit`; a device profile asks nobody (`account_required`) · the active profile's invitations |
 | `GET /api/rooms/stats?game=` | Its results (all time, this week) and the account's board of the week |
-| `GET /api/rooms/history?game=` · `GET /api/rooms/{id}/hands/{hand}` | Its last 20 hands · one hand to replay, only for the profiles that played it |
+| `GET /api/rooms/history?game=` · `GET /api/rooms/{id}/hands/{hand}` | Its last 20 hands · one hand to replay, only for the profiles that played it — a result under an id merged into it ([merge alias](identity.md#merge-aliases)) counts as its own, here and in its statistics |
 | `/api/rooms/hub` (SignalR) | `Enter`, `Exit`, `Act`, `Next`, `React`, `WatchLobby`; pushes `Room`, `View`, `Reaction`, `Closed`, `LobbyChanged` |
 
 - **One actor per room** runs everything that happens to it one at a time: joins, actions, bots, timers. A clock

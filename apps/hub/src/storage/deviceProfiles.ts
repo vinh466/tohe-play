@@ -3,7 +3,7 @@
 // guest of earlier versions is the first one (db.ts, version 4). docs/architecture/identity.md#device-profiles
 import Dexie from 'dexie';
 import type { DeviceProfileData } from '../api/client.ts';
-import { type LocalProfile, type LocalScore, newId, type ToheDb } from './db.ts';
+import { type LocalProfile, type LocalSave, type LocalScore, newId, type ToheDb } from './db.ts';
 
 /** A device holds at most this many device profiles (ADR 0043). */
 export const MAX_DEVICE_PROFILES = 5;
@@ -263,4 +263,126 @@ async function mark(db: ToheDb, id: string, data: DeviceProfileData, synced: 0 |
       .filter((save) => games.has(save.gameId))
       .modify({ synced });
   });
+}
+
+/**
+ * What a transfer code carries counts as sent once the code is made (ADR 0043, I2b): the saves as they were, the
+ * scores with the value they had. Anything played after — a save written again, a score new or grown — stays unsent,
+ * and is what the device keeps should the profile move away.
+ */
+export async function markSent(db: ToheDb, id: string, data: DeviceProfileData): Promise<void> {
+  const [from, to] = ofProfile(id);
+  const saves = new Map((data.saves ?? []).map((save) => [save.gameId, Date.parse(save.updatedAt)]));
+  const scores = new Map((data.scores ?? []).map((score) => [score.clientId, score.value]));
+  await db.transaction('rw', db.saves, db.scores, async () => {
+    await db.saves
+      .where('[profileId+gameId]')
+      .between(from, to)
+      .filter((save) => (saves.get(save.gameId) ?? Number.NEGATIVE_INFINITY) >= save.updatedAt)
+      .modify({ synced: 1 });
+    await db.scores
+      .where('[profileId+gameId]')
+      .between(from, to)
+      .filter((score) => scores.get(score.clientId) === score.value)
+      .modify({ synced: 1 });
+  });
+}
+
+/**
+ * A device profile that moved here with a transfer code (ADR 0043, I2b): it plays on this device from now on, with its
+ * id, name, avatar, the terms its player accepted, its copy on the server, its saves and its scores. Read again — the
+ * answer read twice — it keeps what it has and takes what is newer. Refused past five device profiles.
+ */
+export async function receiveDeviceProfile(
+  db: ToheDb,
+  profile: { id: string; name: string; avatar: string; termsVersion: string },
+  data: DeviceProfileData,
+): Promise<LocalProfile> {
+  const received: LocalProfile = {
+    id: profile.id,
+    name: profile.name,
+    avatar: profile.avatar,
+    createdAt: Date.now(),
+    chosen: true,
+    server: { name: profile.name, avatar: profile.avatar },
+    ...(profile.termsVersion ? { termsVersion: profile.termsVersion } : {}),
+  };
+  const [from, to] = ofProfile(profile.id);
+  await db.transaction('rw', db.profiles, db.saves, db.scores, async () => {
+    const known = await db.profiles.get(profile.id);
+    if (!known && (await db.profiles.count()) >= MAX_DEVICE_PROFILES) throw new TooManyDeviceProfiles();
+    await db.profiles.put(known ? { ...received, createdAt: known.createdAt } : received);
+    for (const save of data.saves ?? []) {
+      const updatedAt = Date.parse(save.updatedAt);
+      const local = await db.saves.get([profile.id, save.gameId]);
+      if (local && local.updatedAt >= updatedAt) continue;
+      await db.saves.put({
+        profileId: profile.id,
+        gameId: save.gameId,
+        data: save.data as LocalSave['data'],
+        updatedAt,
+        synced: 0,
+      });
+    }
+    const have = new Set(
+      (await db.scores.where('[profileId+gameId]').between(from, to).toArray()).map(
+        (score) => score.clientId,
+      ),
+    );
+    await db.scores.bulkAdd(
+      (data.scores ?? [])
+        .filter((score) => !have.has(score.clientId))
+        .map((score) => ({
+          profileId: profile.id,
+          gameId: score.gameId,
+          board: score.board,
+          value: score.value,
+          at: Date.parse(score.achievedAt),
+          synced: 0 as const,
+          clientId: score.clientId,
+          final: score.final ?? true,
+        })),
+    );
+  });
+  currentDeviceProfile.set(profile.id);
+  const stored = await db.profiles.get(profile.id);
+  if (!stored) throw new Error('The device profile is gone');
+  return stored;
+}
+
+/**
+ * The device profile moved to another device (ADR 0043, I2b): what went with its code leaves this device; what was
+ * played here since — a save written after, a score not sent — stays, as a new device profile with a new id and no copy
+ * on the server. Returns its name, and the new profile's id when one was kept; null when the device has no such profile.
+ */
+export async function movedAway(
+  db: ToheDb,
+  id: string,
+): Promise<{ name: string; kept: string | null } | null> {
+  const [from, to] = ofProfile(id);
+  const outcome = await db.transaction('rw', db.profiles, db.saves, db.scores, db.ranked, async () => {
+    const profile = await db.profiles.get(id);
+    if (!profile) return null;
+    await db.saves
+      .where('[profileId+gameId]')
+      .between(from, to)
+      .filter((save) => save.synced === 1)
+      .delete();
+    await db.scores
+      .where('[profileId+gameId]')
+      .between(from, to)
+      .filter((score) => score.synced === 1)
+      .delete();
+    const left =
+      (await db.saves.where('[profileId+gameId]').between(from, to).count()) +
+      (await db.scores.where('[profileId+gameId]').between(from, to).count());
+    if (left === 0) await removeEverything(db, id);
+    return { name: profile.name, left };
+  });
+  if (!outcome) return null;
+  if (outcome.left === 0) {
+    if (currentDeviceProfile.get() === id) currentDeviceProfile.clear();
+    return { name: outcome.name, kept: null };
+  }
+  return { name: outcome.name, kept: await reIdDeviceProfile(db, id) };
 }

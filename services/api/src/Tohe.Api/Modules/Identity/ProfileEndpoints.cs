@@ -253,7 +253,8 @@ internal static class ProfileEndpoints
     /// <summary>
     /// A device profile merged into one of the account's profiles (ADR 0043, step I1): its saves and scores go up under
     /// the target's id — the newer save wins, the other is kept as the previous one — its scores marked as a device's;
-    /// the target keeps its name and avatar, and the device profile's name joins its name history. No alias yet (I2).
+    /// the target keeps its name and avatar, and the device profile's name joins its name history. Its copy on the server,
+    /// of this request's device, moves into the target and its id becomes the target's alias (ADR 0043, step I2b).
     /// </summary>
     private static async Task<Results<Ok<MeView>, NotFound, ProblemHttpResult>> MergeProfileAsync(
         Guid id,
@@ -288,24 +289,34 @@ internal static class ProfileEndpoints
             return TypedResults.NotFound();
         }
 
-        // Its server copy (ADR 0043): this device's moves into the target and is deleted, its id retired; another
-        // device's, or any other profile's id, is not this device's to merge.
+        // Its server copy (ADR 0043): this device's moves into the target and is deleted, its id retired and kept as the
+        // target's alias; another device's, or any other profile's id, is not this device's to merge.
         Profile? copy = null;
+        var again = false;
         if (request.DeviceProfileId is { } deviceProfileId && deviceProfileId != target.Id)
         {
             copy = await devices.ServerCopyAsync(http, deviceProfileId, ct);
-            if (copy is null && await context.Db.Profiles.AnyAsync(p => p.Id == deviceProfileId, ct))
+            var alias = copy is null ? await devices.AliasOfAsync(deviceProfileId, ct) : null;
+            if (copy is null && (await context.Db.Profiles.AnyAsync(p => p.Id == deviceProfileId, ct) || (alias is { } other && other != target.Id)))
             {
                 return DeviceProfiles.IdTaken();
             }
+
+            // Merged into this target already: the answer was lost. The data is taken again, idempotently.
+            again = alias == target.Id;
         }
 
-        context.Db.ProfileNameHistory.Add(
-            new ProfileName { ProfileId = target.Id, Name = name, At = clock.GetUtcNow(), Kind = ProfileNameKind.Merged });
+        var now = clock.GetUtcNow();
+        if (!again)
+        {
+            context.Db.ProfileNameHistory.Add(
+                new ProfileName { ProfileId = target.Id, Name = name, At = now, Kind = ProfileNameKind.Merged });
+        }
+
         await devices.ImportAsync(target.Id, context.Account.Id, request.Data, ct);
         if (copy is not null)
         {
-            await devices.MoveAsync(copy, target, ct);
+            await devices.MoveAsync(copy, target, now, ct);
             await deletion.DeleteProfileAsync(copy, ct);
         }
 

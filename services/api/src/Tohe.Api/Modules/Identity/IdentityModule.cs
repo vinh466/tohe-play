@@ -27,6 +27,12 @@ public sealed class IdentityOptions
     /// </summary>
     public int DeviceRequestsPerMinute { get; set; } = 20;
 
+    /// <summary>
+    /// Wrong six-digit transfer codes the whole server takes in an hour (ADR 0043): past it, six-digit codes are refused
+    /// until the hour has room; the QR code's secret still works.
+    /// </summary>
+    public int TransferCodeMissesPerHour { get; set; } = 100;
+
     /// <summary>Profile IDs one account may look up in an hour (ADR 0033): found or not, every lookup counts.</summary>
     public int ProfileLookupsPerHour { get; set; } = 20;
 
@@ -211,6 +217,9 @@ internal static class IdentityModule
         services.AddScoped<IDevicePlayers, DevicePlayers>();
         services.AddScoped<IKeptProfiles, KeptProfiles>();
         services.AddScoped<DeviceCleanup>();
+        // The transfer code (ADR 0043, I2b): wrong six-digit codes for the whole server; and merge aliases, read by the rooms.
+        services.AddSingleton<TransferMisses>();
+        services.AddScoped<IProfileAliases, ProfileAliases>();
         if (builder.Configuration.GetValue($"{IdentityOptions.Section}:DeviceCleanupEnabled", defaultValue: true)
             && !BuildTime.IsGeneratingOpenApi)
         {
@@ -245,6 +254,7 @@ internal static class IdentityModule
         SessionEndpoints.Map(api);
         ProfileEndpoints.Map(api);
         DeviceEndpoints.Map(api);
+        TransferEndpoints.Map(api);
         return api;
     }
 }

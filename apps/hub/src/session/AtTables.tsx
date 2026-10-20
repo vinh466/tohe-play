@@ -26,6 +26,7 @@ import {
   termsAgain,
 } from './serverCopy.ts';
 import type { Player, SessionState } from './session.ts';
+import { movedNotices, settleMoves } from './transfer.ts';
 import { useDeviceProfilesChanged } from './useSession.ts';
 
 type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
@@ -55,12 +56,15 @@ function DeviceAtTables({ children }: { children: (player: Player) => ReactNode 
   const device = useQuery(deviceProfileQuery());
   const changed = useDeviceProfilesChanged();
 
-  // The server said the copy is gone, or the terms changed: a new id and a new copy, or the named screen again.
+  // The server said the copy is gone, or the terms changed: a new id and a new copy, or the named screen again. Moved
+  // to another device: what was played here since stays as a new device profile, and the player is told.
   useEffect(
     () =>
       onDeviceTrouble((trouble, id) => {
         void (async () => {
           if (trouble === 'device_profile_not_found') await lostServerCopy(db, id);
+          else if (trouble === 'device_profile_moved')
+            movedNotices.add(await settleMoves(db, [{ profileId: id }]));
           else await termsAgain(db, id);
           actAsDevice(null);
           await changed();
@@ -86,18 +90,25 @@ function DeviceAtTables({ children }: { children: (player: Player) => ReactNode 
   return children({ id: profile.id, name: profile.name, avatar: profile.avatar, kind: 'device' });
 }
 
-function useProve(): Prove {
+export function useProve(): Prove {
   const config = useQuery(configQuery);
   return (send) => withProof(config.data?.proofOfWork, send);
 }
 
 /** The copy is sent again — a new id after the old one was cleaned up, or a new name — without asking anything. */
-function SendCopy({ profile, onDone }: { profile: LocalProfile; onDone(): Promise<void> }) {
+export function SendCopy({
+  profile,
+  onDone,
+}: {
+  profile: LocalProfile;
+  /** With the profile as the device keeps it now: its id may be new. */
+  onDone(sent: LocalProfile): Promise<void>;
+}) {
   const { t } = useTranslation();
   const prove = useProve();
   const send = useMutation({
     mutationFn: () => sendServerCopy(db, devices, profile, TERMS_VERSION, prove),
-    onSuccess: () => onDone(),
+    onSuccess: (sent) => onDone(sent),
   });
   const { mutate, isIdle } = send;
   useEffect(() => {
@@ -119,8 +130,27 @@ function SendCopy({ profile, onDone }: { profile: LocalProfile; onDone(): Promis
  * — the terms, and 16 or older or a parent's permission — before anything of the profile reaches the server. Under 16
  * without a parent's word, "Nhờ bố mẹ" leads to signing in, where a parent makes a child's profile instead.
  */
-export function NamedScreen({ profile, onDone }: { profile: LocalProfile; onDone(): Promise<void> }) {
+export function NamedScreen({
+  profile,
+  onDone,
+  purpose = 'table',
+}: {
+  profile: LocalProfile;
+  /** With the profile as the device keeps it now: its id may be new. */
+  onDone(sent: LocalProfile): Promise<void>;
+  /** At a table (the default), or before a transfer code: the same line, other words around it. */
+  purpose?: 'table' | 'transfer';
+}) {
   const { t } = useTranslation();
+  const words =
+    purpose === 'transfer'
+      ? {
+          title: t('transfer.namedTitle'),
+          body: t('transfer.namedBody'),
+          kept: t('transfer.namedKept'),
+          go: t('transfer.namedGo'),
+        }
+      : { title: t('named.title'), body: t('named.body'), kept: t('named.kept'), go: t('named.go') };
   const navigate = useNavigate();
   const prove = useProve();
   const [name, setName] = useState(profile.name);
@@ -132,7 +162,7 @@ export function NamedScreen({ profile, onDone }: { profile: LocalProfile; onDone
       await updateDeviceProfile(db, profile.id, { name: clean, avatar });
       return sendServerCopy(db, devices, { ...profile, name: clean, avatar }, TERMS_VERSION, prove);
     },
-    onSuccess: () => onDone(),
+    onSuccess: (sent) => onDone(sent),
   });
   const refused =
     send.error instanceof ApiError && send.error.code === 'name_refused'
@@ -153,8 +183,8 @@ export function NamedScreen({ profile, onDone }: { profile: LocalProfile; onDone
     <Screen narrow>
       <form onSubmit={submit} className="flex flex-col gap-5 rounded-3xl bg-surface p-5 shadow-sm" noValidate>
         <div className="flex flex-col gap-1">
-          <h1 className="font-black text-2xl text-brand-ink">{t('named.title')}</h1>
-          <p className="text-ink-soft">{t('named.body')}</p>
+          <h1 className="font-black text-2xl text-brand-ink">{words.title}</h1>
+          <p className="text-ink-soft">{words.body}</p>
         </div>
         <TextField
           label={t('device.name')}
@@ -181,7 +211,7 @@ export function NamedScreen({ profile, onDone }: { profile: LocalProfile; onDone
           </span>
         </label>
         <p className="text-ink-soft text-sm">
-          {t('named.kept')}{' '}
+          {words.kept}{' '}
           <a href="/privacy" target="_blank" rel="noopener" className={link}>
             {t('legal.privacy')}
           </a>
@@ -193,7 +223,7 @@ export function NamedScreen({ profile, onDone }: { profile: LocalProfile; onDone
           </p>
         ) : null}
         <Button type="submit" disabled={!mayEnter(name, ticked)} busy={send.isPending}>
-          {t('named.go')}
+          {words.go}
         </Button>
       </form>
       <section className="flex flex-col gap-2 rounded-3xl bg-surface p-5 text-center shadow-sm">

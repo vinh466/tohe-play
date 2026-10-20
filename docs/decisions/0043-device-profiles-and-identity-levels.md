@@ -5,11 +5,13 @@ sidebar:
   order: 43
 ---
 
-- **Status:** Accepted — step I1 built; step I2 split in two: **I2a built** — the device key and its scheme, a device
+- **Status:** Accepted — steps I1 and I2 built. I2 came in two: **I2a** — the device key and its scheme, a device
   profile's copy on the server with the terms line and the `named` screen, tables open to `named` device profiles (the
-  default), the children rule, results marked, bringing a copy into an account (add, or merge without an alias), the
-  90-day cleanup, moderation ([Identity](../architecture/identity.md#device-profiles-on-the-server),
-  [Online rooms](../architecture/rooms.md#who-may-sit)); **I2b to come** — the transfer code and merge aliases
+  default), the children rule, results marked, bringing a copy into an account, the 90-day cleanup, moderation
+  ([Identity](../architecture/identity.md#device-profiles-on-the-server),
+  [Online rooms](../architecture/rooms.md#who-may-sit)); **I2b** — the transfer code, by QR code at once or by six
+  digits the old device confirms ([Identity](../architecture/identity.md#the-transfer-code)), and merge aliases, so
+  replays and links naming a merged id no longer break ([Identity](../architecture/identity.md#merge-aliases))
 - **Date:** 2026-10-20
 - **Amends:** [ADR 0023](0023-accounts-own-their-profiles.md) — an account's profile, its first one included, may come
   from a device, keeping its id and name; [ADR 0024](0024-email-identifies-an-account.md) — a device profile has no

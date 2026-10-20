@@ -5,8 +5,9 @@
 // its score is in the account and on no public board; another phone's device profile is brought into that account on
 // signing in ("Thêm vào"). An iPhone sees the steps of iOS; the in-app browsers of Zalo and
 // Messenger see "Mở bằng trình duyệt" on arrival; the installed app (standalone) never sees any of it; a room link
-// still asks to sign in. Needs the sample game in the catalog (the smoke test waits for it the same way), and Mailpit
-// for the one sign-up's code.
+// still asks to sign in; a device profile moves to a new phone with its transfer code (six digits, the old phone says
+// yes). Needs the sample game in the catalog (the smoke test waits for it the same way), and Mailpit for the one
+// sign-up's code.
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e journey
 import { AxeBuilder } from '@axe-core/playwright';
 import { type Browser, type BrowserContext, chromium, type Frame, type Page } from 'playwright';
@@ -381,6 +382,60 @@ try {
   await link.getByRole('heading', { name: 'Vào bàn cùng mọi người' }).waitFor();
   await link.getByRole('button', { name: 'Nhờ bố mẹ' }).waitFor();
   await link.context().close();
+
+  step(
+    'a device profile moves to a new phone with six digits the old phone confirms, its score with it (ADR 0043, I2b)',
+  );
+  const oldPhone = await visitor('transfer-old', userAgents.androidChrome, browser);
+  await oldPhone.goto(catalogUrl);
+  await oldPhone.getByRole('link', { name: 'Đăng nhập' }).waitFor();
+  await playOneRound(oldPhone);
+  const movingId = await oldPhone.evaluate(() => localStorage.getItem('tohe:device-profile'));
+  if (!movingId) throw new Error('no device profile is playing on the old phone');
+  await oldPhone.goto(`${hubUrl}/account/profiles`);
+  await oldPhone.getByRole('button', { name: /^Sửa / }).tap();
+  await oldPhone.getByRole('button', { name: /Chuyển sang máy khác/ }).tap();
+  // Never on the server yet: the named screen and its terms line first.
+  await oldPhone.getByRole('heading', { name: 'Trước khi chuyển máy' }).waitFor();
+  await oldPhone.getByRole('checkbox').check();
+  await oldPhone.getByRole('button', { name: 'Tạo mã' }).tap();
+  const shown = oldPhone.getByText(/^\d{3} \d{3}$/);
+  await shown.waitFor();
+  await oldPhone.getByRole('img', { name: 'Mã QR để chuyển hồ sơ' }).waitFor();
+  await check(oldPhone, 'transfer-code');
+  const digits = ((await shown.textContent()) ?? '').replace(/\s/g, '');
+
+  const newPhone = await visitor('transfer-new', userAgents.androidChrome, browser);
+  await newPhone.goto(`${hubUrl}/account/transfer`);
+  await newPhone.getByRole('heading', { name: 'Nhận hồ sơ từ máy khác' }).waitFor();
+  await check(newPhone, 'transfer-receive');
+  await newPhone.getByLabel('6 số trên máy cũ').fill(digits);
+  await newPhone.getByRole('button', { name: 'Nhận hồ sơ' }).tap();
+  await newPhone.getByRole('heading', { name: 'Đang chờ máy cũ đồng ý…' }).waitFor();
+  await oldPhone.getByRole('button', { name: 'Đồng ý' }).tap();
+  await newPhone.getByRole('heading', { name: /^Đã nhận/ }).waitFor();
+  await oldPhone.getByRole('heading', { name: /đã sang máy mới/ }).waitFor();
+  const arrived = await newPhone.evaluate(
+    (id) =>
+      new Promise<{ playing: string | null; scores: number }>((resolve, reject) => {
+        const open = indexedDB.open('tohe');
+        open.onerror = () => reject(open.error);
+        open.onsuccess = () => {
+          const read = open.result.transaction('scores').objectStore('scores').getAll();
+          read.onsuccess = () =>
+            resolve({
+              playing: localStorage.getItem('tohe:device-profile'),
+              scores: (read.result as { profileId: string }[]).filter((score) => score.profileId === id)
+                .length,
+            });
+        };
+      }),
+    movingId,
+  );
+  if (arrived.playing !== movingId) throw new Error('the new phone does not play as the profile it received');
+  if (arrived.scores === 0) throw new Error("the profile's score did not move with it");
+  await oldPhone.context().close();
+  await newPhone.context().close();
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);
   console.log('\nPASS');

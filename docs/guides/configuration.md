@@ -29,6 +29,7 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Telemetry:OperatorToken` | Token for `GET /api/telemetry/report` | empty: no reports |
 | `Identity:AuthRequestsPerMinute` | Requests per client address and minute in each of three buckets: signing in or asking for a code, typing a code back, a PIN or the parent gate (ADR 0024) | `10` |
 | `Identity:DeviceRequestsPerMinute` | Requests per client address and minute that make a device key or a device profile's copy on the server ([ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md)), a bucket of its own | `20` |
+| `Identity:TransferCodeMissesPerHour` | Wrong six-digit transfer codes the whole server takes in an hour; past it, six-digit codes are refused until the hour has room — the QR code's secret still works ([Identity](../architecture/identity.md#the-transfer-code)) | `100` |
 | `Identity:DeviceCleanupEnabled` | Delete, once a day, device profiles on the server unused for 90 days and devices unseen for 90 days ([Identity](../architecture/identity.md#device-profiles-on-the-server)) | `true` |
 | `Identity:SessionCheckInterval` | How often a session is checked against its account's security stamp: after a password reset or an email change, other sessions end within this long | `00:05:00` |
 | `Email:Mode` | `Smtp` to send email, `Disabled` to send none — features that need email are then unavailable ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) | `Disabled` (compose: Mailpit) |

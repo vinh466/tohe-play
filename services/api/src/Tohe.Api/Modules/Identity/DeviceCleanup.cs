@@ -8,7 +8,8 @@ namespace Tohe.Api.Modules.Identity;
 /// Device profiles on the server unused for 90 days, and devices unseen for 90 days, are deleted there (ADR 0043) —
 /// through ADR 0034's deletion, so each module purges what it keeps, seats read "Người chơi đã xoá" and ids are retired.
 /// A device that never kept a device profile is deleted a day after its key was made. The copies on the devices stay: a
-/// device that needs the server again gives its profile a new id.
+/// device that needs the server again gives its profile a new id. Transfer codes and moved-away notes past their time
+/// go too.
 /// </summary>
 internal sealed partial class DeviceCleanup(ToheDbContext db, AccountDeletion deletion, TimeProvider clock, ILogger<DeviceCleanup> logger)
 {
@@ -60,10 +61,17 @@ internal sealed partial class DeviceCleanup(ToheDbContext db, AccountDeletion de
         }
 
         // A key asked for and never used for a profile — a visit that sat nowhere, or a script — is not kept for 90 days.
+        // A device whose profiles moved away keeps its key, to hear it.
         var bare = clock.GetUtcNow() - Unclaimed;
         devices += await db.Devices
-            .Where(d => d.CreatedAt < bare && !db.Profiles.Any(p => p.DeviceId == d.Id))
+            .Where(d => d.CreatedAt < bare && !db.Profiles.Any(p => p.DeviceId == d.Id) && !db.ProfileMoves.Any(m => m.DeviceId == d.Id))
             .ExecuteDeleteAsync(ct);
+
+        // Transfer codes past the time their answer is kept, and notes of a profile that moved away 90 days ago (I2b).
+        var stale = clock.GetUtcNow() - TransferCodes.Grace;
+        await db.ProfileTransfers.Where(t => t.ExpiresAt < stale).ExecuteDeleteAsync(ct);
+        var forgotten = clock.GetUtcNow() - TransferCodes.MovesKept;
+        await db.ProfileMoves.Where(move => move.MovedAt < forgotten).ExecuteDeleteAsync(ct);
 
         if (profiles > 0 || devices > 0)
         {

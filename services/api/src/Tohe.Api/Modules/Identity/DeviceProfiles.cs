@@ -47,11 +47,11 @@ public sealed record DeviceProfileUpload(
     string? AgeBand = null,
     DeviceProfileData? Data = null);
 
-/// <summary>A device profile merged into one of the account's profiles (ADR 0043: no alias yet).</summary>
+/// <summary>A device profile merged into one of the account's profiles (ADR 0043).</summary>
 /// <param name="Name">The device profile's name: it goes into the target's name history, once it passes the name rules.</param>
 /// <param name="DeviceProfileId">The device profile's id. When it has a copy on the server, of this request's device (its
-/// key comes with the request), what it keeps there — seats and results at tables — moves to the target and the copy is
-/// deleted; another device's copy answers <c>409 id_taken</c>.</param>
+/// key comes with the request), what it keeps there — seats and results at tables — moves to the target, the copy is
+/// deleted and its id becomes an alias of the target; another device's copy answers <c>409 id_taken</c>.</param>
 public sealed record MergeProfileRequest(
     [Required(AllowEmptyStrings = true)] string Name, DeviceProfileData? Data = null, Guid? DeviceProfileId = null);
 
@@ -138,6 +138,8 @@ internal sealed class DeviceProfiles(
         }
 
         await WithdrawAsync(profile.Id, ct);
+        // Its transfer code, should it have one, moves a device profile: an account's profile is not one any more.
+        await db.ProfileTransfers.Where(transfer => transfer.ProfileId == profile.Id).ExecuteDeleteAsync(ct);
         var child = upload.AgeBand is not null;
         profile.AccountId = accountId;
         profile.DeviceId = null;
@@ -165,16 +167,26 @@ internal sealed class DeviceProfiles(
 
     /// <summary>
     /// What a device profile's server copy keeps moves to <paramref name="target"/> (ADR 0043), within the caller's
-    /// transaction; the caller then deletes the copy. There is no alias yet (I2b): a link to its old id finds nothing.
+    /// transaction, and its id becomes an alias of the target, so what still names it finds the target; the caller then
+    /// deletes the copy.
     /// </summary>
-    public async Task MoveAsync(Profile from, Profile target, CancellationToken ct)
+    public async Task MoveAsync(Profile from, Profile target, DateTimeOffset now, CancellationToken ct)
     {
         await WithdrawAsync(from.Id, ct);
         foreach (var module in moves)
         {
             await module.MergedAsync(from.Id, target.Id, target.AccountId!.Value, ct);
         }
+
+        // Ids merged into the copy before, were there any, name the target now: an alias never names a gone profile.
+        await db.ProfileAliases.Where(alias => alias.ProfileId == from.Id)
+            .ExecuteUpdateAsync(set => set.SetProperty(alias => alias.ProfileId, target.Id), ct);
+        db.ProfileAliases.Add(new ProfileAlias { OldId = from.Id, ProfileId = target.Id, CreatedAt = now });
     }
+
+    /// <summary>The profile the id was merged into, if it was (ADR 0043).</summary>
+    public Task<Guid?> AliasOfAsync(Guid id, CancellationToken ct) =>
+        db.ProfileAliases.Where(alias => alias.OldId == id).Select(alias => (Guid?)alias.ProfileId).FirstOrDefaultAsync(ct);
 
     /// <summary>It leaves the tables it sits at, or watches, as a device profile — a bot finishes a hand in progress.</summary>
     private async Task WithdrawAsync(Guid profileId, CancellationToken ct)
@@ -186,13 +198,14 @@ internal sealed class DeviceProfiles(
     }
 
     /// <summary>
-    /// True when the server cannot take this id: a profile has it, or had it and was deleted (ADR 0034). Aliases join
-    /// these with step I2b. Profile ids are not secrets, so the answer tells nothing worth hiding.
+    /// True when the server cannot take this id: a profile has it, had it and was deleted (ADR 0034), or was merged into
+    /// another and is its alias (ADR 0043). Profile ids are not secrets, so the answer tells nothing worth hiding.
     /// </summary>
     public async Task<bool> IdTakenAsync(Guid id, CancellationToken ct) =>
         id == Guid.Empty
         || await db.Profiles.AnyAsync(profile => profile.Id == id, ct)
-        || await db.RetiredProfileIds.AnyAsync(retired => retired.ProfileId == id, ct);
+        || await db.RetiredProfileIds.AnyAsync(retired => retired.ProfileId == id, ct)
+        || await db.ProfileAliases.AnyAsync(alias => alias.OldId == id, ct);
 
     /// <summary>Everything of a device profile but its id, checked before anything is made; null when it may come in.</summary>
     public ProblemHttpResult? Check(DeviceProfileUpload upload, out string name)

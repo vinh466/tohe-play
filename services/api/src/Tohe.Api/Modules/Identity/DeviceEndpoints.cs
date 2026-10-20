@@ -59,7 +59,7 @@ internal static class DeviceEndpoints
 
         profiles.MapDelete("/{id:guid}", DeleteAsync)
             .WithName("DeleteDeviceProfile")
-            .WithSummary("Delete a device profile's server copy and everything of it, for good (ADR 0034); its id is retired.");
+            .WithSummary("Delete a device profile's server copy and everything of it, for good (ADR 0034); its id is retired. 410 device_profile_moved when it moved to another device.");
     }
 
     private static async Task<NoContent> StartAsync(
@@ -112,6 +112,13 @@ internal static class DeviceEndpoints
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         // Serializes the device's profiles, so two requests cannot both pass the count of five.
         await db.Database.ExecuteSqlAsync($"SELECT 1 FROM identity.devices WHERE id = {deviceId} FOR UPDATE", ct);
+        // Moved to another device with a transfer code: this device's key speaks for it no more (ADR 0043).
+        if (await TransferEndpoints.MovedAwayAsync(db, deviceId, request.Id, ct)
+            && !await db.Profiles.AnyAsync(p => p.Id == request.Id && p.DeviceId == deviceId, ct))
+        {
+            return TransferEndpoints.DeviceProfileMoved();
+        }
+
         if (await db.Profiles.FirstOrDefaultAsync(p => p.Id == request.Id && p.DeviceId == deviceId, ct) is { } own)
         {
             // The server's name stays when a moderator chose it, or when the day's renames are used up: the rest is taken,
@@ -215,7 +222,9 @@ internal static class DeviceEndpoints
         var profile = await db.Profiles.FirstOrDefaultAsync(p => p.Id == id && p.DeviceId == deviceId, ct);
         if (profile is null)
         {
-            return DeviceProfileNotFound();
+            return await TransferEndpoints.MovedAwayAsync(db, deviceId, id, ct)
+                ? TransferEndpoints.DeviceProfileMoved()
+                : DeviceProfileNotFound();
         }
 
         await deletion.DeleteProfileAsync(profile, ct);
@@ -269,7 +278,10 @@ internal sealed class DevicePlayers(ToheDbContext db, TimeProvider clock) : IDev
             .FirstOrDefaultAsync(ct);
         if (profile is null)
         {
-            return new DevicePlayerLookup(null, StatusCodes.Status404NotFound, "device_profile_not_found");
+            // Moved to another device with a transfer code: told so, and the hub keeps what was played here since.
+            return await TransferEndpoints.MovedAwayAsync(db, deviceId, profileId, ct)
+                ? new DevicePlayerLookup(null, StatusCodes.Status410Gone, "device_profile_moved")
+                : new DevicePlayerLookup(null, StatusCodes.Status404NotFound, "device_profile_not_found");
         }
 
         if (profile.TermsVersion is null || profile.TermsVersion != DeviceKey.Terms(http))

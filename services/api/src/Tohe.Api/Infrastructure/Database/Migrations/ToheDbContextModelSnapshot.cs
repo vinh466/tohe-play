@@ -744,6 +744,52 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         });
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileAlias", b =>
+                {
+                    b.Property<Guid>("OldId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("old_id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.HasKey("OldId")
+                        .HasName("pk_profile_aliases");
+
+                    b.HasIndex("ProfileId")
+                        .HasDatabaseName("ix_profile_aliases_profile_id");
+
+                    b.ToTable("profile_aliases", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileMove", b =>
+                {
+                    b.Property<Guid>("DeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("device_id");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<DateTimeOffset>("MovedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("moved_at");
+
+                    b.HasKey("DeviceId", "ProfileId")
+                        .HasName("pk_profile_moves");
+
+                    b.HasIndex("MovedAt")
+                        .HasDatabaseName("ix_profile_moves_moved_at");
+
+                    b.ToTable("profile_moves", "identity");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileName", b =>
                 {
                     b.Property<long>("Id")
@@ -782,6 +828,83 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasDatabaseName("ix_profile_names_profile_id_at");
 
                     b.ToTable("profile_names", "identity");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileTransfer", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<string>("CodeHash")
+                        .HasMaxLength(64)
+                        .HasColumnType("character(64)")
+                        .HasColumnName("code_hash")
+                        .IsFixedLength();
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<string>("Data")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("data");
+
+                    b.Property<DateTimeOffset?>("DoneAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("done_at");
+
+                    b.Property<DateTimeOffset>("ExpiresAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("expires_at");
+
+                    b.Property<Guid>("FromDeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("from_device_id");
+
+                    b.Property<Guid>("ProfileId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("profile_id");
+
+                    b.Property<byte[]>("SecretHash")
+                        .IsRequired()
+                        .HasMaxLength(32)
+                        .HasColumnType("bytea")
+                        .HasColumnName("secret_hash");
+
+                    b.Property<string>("State")
+                        .IsRequired()
+                        .HasMaxLength(10)
+                        .HasColumnType("character varying(10)")
+                        .HasColumnName("state");
+
+                    b.Property<Guid?>("ToDeviceId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("to_device_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_profile_transfers");
+
+                    b.HasIndex("ExpiresAt")
+                        .HasDatabaseName("ix_profile_transfers_expires_at");
+
+                    b.HasIndex("FromDeviceId")
+                        .HasDatabaseName("ix_profile_transfers_from_device_id");
+
+                    b.HasIndex("ProfileId")
+                        .IsUnique()
+                        .HasDatabaseName("ix_profile_transfers_profile_id");
+
+                    b.HasIndex("SecretHash")
+                        .IsUnique()
+                        .HasDatabaseName("ix_profile_transfers_secret_hash");
+
+                    b.HasIndex("ToDeviceId")
+                        .HasDatabaseName("ix_profile_transfers_to_device_id");
+
+                    b.ToTable("profile_transfers", "identity");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Identity.RetiredProfileId", b =>
@@ -2013,6 +2136,26 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasConstraintName("fk_profiles_devices_device_id");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileAlias", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Profile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_profile_aliases_profiles_profile_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileMove", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Device", null)
+                        .WithMany()
+                        .HasForeignKey("DeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_profile_moves_devices_device_id");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileName", b =>
                 {
                     b.HasOne("Tohe.Api.Modules.Identity.Profile", null)
@@ -2021,6 +2164,29 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_profile_names_profiles_profile_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Identity.ProfileTransfer", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Device", null)
+                        .WithMany()
+                        .HasForeignKey("FromDeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_profile_transfers_devices_from_device_id");
+
+                    b.HasOne("Tohe.Api.Modules.Identity.Profile", null)
+                        .WithMany()
+                        .HasForeignKey("ProfileId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_profile_transfers_profiles_profile_id");
+
+                    b.HasOne("Tohe.Api.Modules.Identity.Device", null)
+                        .WithMany()
+                        .HasForeignKey("ToDeviceId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .HasConstraintName("fk_profile_transfers_devices_to_device_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Integrity.IntegrityDecision", b =>
