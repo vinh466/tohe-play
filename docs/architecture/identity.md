@@ -597,7 +597,7 @@ sign-in screen. See [A newcomer's first touches](overview.md#a-newcomers-first-t
 
 [ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md) replaces the guest with **device profiles** —
 "Hồ sơ trên máy này": up to five per device, each with a name and an avatar, local-first, reaching the server only when
-its player needs it, and linked into an account keeping its id. Games, platform features and tables each ask for a
+its player needs it, and brought into an account, keeping its id when it safely can. Games, platform features and tables each ask for a
 level — `any`, `named` or `account` — and the hub asks for the highest. It arrives in steps: I1 in the hub (the guest
 becomes the first device profile; linking on sign-up and sign-in), I2 on the server (tables for `named` device profiles,
 the transfer code). Until each step lands, guest mode above stays as it is.
