@@ -5,15 +5,17 @@ sidebar:
   order: 44
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — an `entry` share link is made on a game's request and given to the game in `init`, by
+  [ADR 0045](0045-games-declare-identity-and-entries.md) (step I4)
 - **Date:** 2026-10-20
 - **Amends:** [ADR 0016](0016-online-rooms-for-turn-based-games.md) — a room's link goes through the entry pipeline, has a
   preview, and a closed table's code is not given out again for a day; [ADR 0043](0043-device-profiles-and-identity-levels.md)
   — the identity gate is one step of the pipeline, and making a link is a `named` feature
 - **Decided by:** the owner, 2026-10-19 (plans/product-surface D-08: "ổn nha, theo đề xuất"). The agent added what an
   implementer needs, marked *(agent)* below where the owner should look — chiefly that **a table's preview names no one**,
-  which is stricter than D-08's example; the owner confirmed them on 2026-10-20 ("chốt"). The Game Contract's part (a game receiving an entry, asking for a share) is decided
-  by its own ADR with step I4; the first game to take a share entry is Ghép Khối ("Thách bạn").
+  which is stricter than D-08's example; the owner confirmed them on 2026-10-20 ("chốt"). The Game Contract's part (a
+  game receiving an entry, asking for a share) is decided by [ADR 0045](0045-games-declare-identity-and-entries.md)
+  with step I4; the first game to take a share entry is Ghép Khối ("Thách bạn").
 
 ## Context
 
