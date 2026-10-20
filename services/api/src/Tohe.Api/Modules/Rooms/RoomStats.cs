@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
 
 namespace Tohe.Api.Modules.Rooms;
@@ -51,18 +52,23 @@ internal static class RoomStats
 
     public static void Map(RouteGroupBuilder rooms, Func<HttpContext, Player> playerOf)
     {
-        rooms.MapGet("/stats", async (string game, HttpContext http, ToheDbContext db, IBoards boards, TimeProvider clock, CancellationToken ct) =>
+        rooms.MapGet("/stats", async (
+                string game, HttpContext http, ToheDbContext db, IBoards boards, IProfileAliases aliases, TimeProvider clock, CancellationToken ct) =>
             {
                 var player = playerOf(http);
+                var ids = await IdsAsync(aliases, player, ct);
                 // The calendar week, as on every board (ADR 0029).
                 var since = Weeks.StartOf(clock.GetUtcNow());
                 var mine = await db.RoomResults.AsNoTracking()
-                    .Where(r => r.GameId == game && r.ProfileId == player.ProfileId)
+                    .Where(r => r.GameId == game && r.ProfileId != null && ids.Contains(r.ProfileId.Value))
                     .Select(r => new { r.Place, r.Points, r.At })
                     .ToListAsync(ct);
-                var board = (await boards.AccountHandsAsync(player.AccountId, game, since, ct))
-                    .Select(row => new LeaderRow(row.ProfileId, row.Name, row.Avatar, row.Hands, row.Firsts, row.Points))
-                    .ToList();
+                // A device profile has no account, so no account's board (ADR 0043).
+                var board = player.AccountId is { } accountId
+                    ? (await boards.AccountHandsAsync(accountId, game, since, ct))
+                        .Select(row => new LeaderRow(row.ProfileId, row.Name, row.Avatar, row.Hands, row.Firsts, row.Points))
+                        .ToList()
+                    : [];
                 var recent = mine.Where(r => r.At >= since).ToList();
                 return new RoomStatsView(
                     new PlayerStats(mine.Count, mine.Count(r => r.Place == 0), mine.Sum(r => r.Points)),
@@ -72,11 +78,12 @@ internal static class RoomStats
             .WithName("GetRoomStats")
             .WithSummary("The active profile's online results in a game, and its account's board of the week.");
 
-        rooms.MapGet("/history", async (string game, HttpContext http, ToheDbContext db, CancellationToken ct) =>
+        rooms.MapGet("/history", async (string game, HttpContext http, ToheDbContext db, IProfileAliases aliases, CancellationToken ct) =>
             {
                 var player = playerOf(http);
+                var ids = await IdsAsync(aliases, player, ct);
                 var mine = await db.RoomResults.AsNoTracking()
-                    .Where(r => r.GameId == game && r.ProfileId == player.ProfileId)
+                    .Where(r => r.GameId == game && r.ProfileId != null && ids.Contains(r.ProfileId.Value))
                     .OrderByDescending(r => r.At)
                     .Take(HistoryLength)
                     .ToListAsync(ct);
@@ -100,12 +107,14 @@ internal static class RoomStats
             .WithSummary("The active profile's last 20 finished online hands of a game, newest first.");
 
         rooms.MapGet("/{id:guid}/hands/{hand:int}", async Task<Results<Ok<HandReplay>, NotFound>> (
-                Guid id, int hand, HttpContext http, ToheDbContext db, CancellationToken ct) =>
+                Guid id, int hand, HttpContext http, ToheDbContext db, IProfileAliases aliases, CancellationToken ct) =>
             {
                 var player = playerOf(http);
-                // Only the people who played a hand see it again: its seed reveals every card.
+                var ids = await IdsAsync(aliases, player, ct);
+                // Only the people who played a hand see it again: its seed reveals every card. A result under an id merged
+                // into the profile is its own (ADR 0043).
                 var played = await db.RoomResults.AsNoTracking()
-                    .FirstOrDefaultAsync(r => r.RoomId == id && r.Hand == hand && r.ProfileId == player.ProfileId, ct);
+                    .FirstOrDefaultAsync(r => r.RoomId == id && r.Hand == hand && r.ProfileId != null && ids.Contains(r.ProfileId.Value), ct);
                 var record = await db.RoomHands.AsNoTracking().FirstOrDefaultAsync(h => h.RoomId == id && h.Hand == hand, ct);
                 if (played is null || record is null)
                 {
@@ -135,6 +144,10 @@ internal static class RoomStats
             .WithName("GetHandReplay")
             .WithSummary("A finished hand the active profile played, with its seed and actions, to replay it in the game.");
     }
+
+    /// <summary>The ids whose results are the player's: its own, and those merged into it (ADR 0043's merge aliases).</summary>
+    private static async Task<List<Guid>> IdsAsync(IProfileAliases aliases, Player player, CancellationToken ct) =>
+        [.. await aliases.IdsOfAsync(player.ProfileId, ct)];
 
     private static JsonElement Parse(string json)
     {

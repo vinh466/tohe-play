@@ -226,7 +226,7 @@ internal static class DevSeed
             foreach (var profile in profiles)
             {
                 var kind = profile.Kind == ProfileKind.Child ? $"child {profile.AgeBand}" : "adult";
-                await output.WriteLineAsync($"    {profile.Avatar} {profile.Name} ({kind})   ID {ProfileIds.Format(profile.PublicId)}");
+                await output.WriteLineAsync($"    {profile.Avatar} {profile.Name} ({kind})   ID {ProfileIds.Format(profile.PublicId!)}");
             }
         }
 

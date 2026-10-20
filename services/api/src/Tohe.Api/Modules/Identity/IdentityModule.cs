@@ -21,6 +21,21 @@ public sealed class IdentityOptions
     /// </summary>
     public int AuthRequestsPerMinute { get; set; } = 10;
 
+    /// <summary>
+    /// Requests per client IP per minute that make a device key or a device profile's server copy (ADR 0043): a bucket of
+    /// its own, so a family's phones on one address never use up the sign-in's.
+    /// </summary>
+    public int DeviceRequestsPerMinute { get; set; } = 20;
+
+    /// <summary>
+    /// Wrong six-digit transfer codes the whole server takes in an hour (ADR 0043): past it, six digits take a
+    /// proof-of-work until the hour has room, whatever the console's switch says; the QR code's secret works as before.
+    /// </summary>
+    public int TransferCodeMissesPerHour { get; set; } = 100;
+
+    /// <summary>Wrong six-digit transfer codes one client address may type in an hour; past it, it hears <c>transfer_limit</c>.</summary>
+    public int TransferCodeMissesPerAddressPerHour { get; set; } = 10;
+
     /// <summary>Profile IDs one account may look up in an hour (ADR 0033): found or not, every lookup counts.</summary>
     public int ProfileLookupsPerHour { get; set; } = 20;
 
@@ -64,6 +79,9 @@ internal static class IdentityModule
     /// <summary>A profile's PIN and the parent gate's password.</summary>
     public const string GateRateLimit = "auth-gate";
 
+    /// <summary>A device key, and a device profile's server copy (ADR 0043).</summary>
+    public const string DeviceRateLimit = "device";
+
     public static WebApplicationBuilder AddIdentityModule(this WebApplicationBuilder builder)
     {
         var services = builder.Services;
@@ -74,6 +92,8 @@ internal static class IdentityModule
         authentication.AddIdentityCookies();
         // The console's session, a cookie of its own that only the console's routes read (ADR 0042).
         ConsoleSession.Add(authentication, services);
+        // The device key, and the players' scheme at tables that picks it or the session (ADR 0043).
+        DeviceKey.Add(authentication);
         // Google, GitHub and an OpenID Connect issuer, each only when the deployment gave it secrets (ADR 0026).
         services.AddSingleton(ExternalProviders.Add(authentication, builder.Configuration));
         services.AddAuthorization();
@@ -169,6 +189,15 @@ internal static class IdentityModule
                         _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) });
                 });
             }
+
+            options.AddPolicy(DeviceRateLimit, context =>
+            {
+                var limit = context.RequestServices.GetRequiredService<IOptions<IdentityOptions>>()
+                    .Value.DeviceRequestsPerMinute;
+                return RateLimitPartition.GetFixedWindowLimiter(
+                    context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    _ => new FixedWindowRateLimiterOptions { PermitLimit = limit, Window = TimeSpan.FromMinutes(1) });
+            });
         });
 
         // The API is only reachable through the hub's reverse proxy (Caddy / Vite), which sets X-Forwarded-For.
@@ -187,6 +216,18 @@ internal static class IdentityModule
         services.AddScoped<AccountDeletion>();
         // Bringing device profiles into accounts (ADR 0043).
         services.AddScoped<DeviceProfiles>();
+        // Device profiles on the server (ADR 0043): who acts at a table, and the 90-day cleanup.
+        services.AddScoped<IDevicePlayers, DevicePlayers>();
+        services.AddScoped<IKeptProfiles, KeptProfiles>();
+        services.AddScoped<DeviceCleanup>();
+        // The transfer code (ADR 0043, I2b): wrong six-digit codes for the whole server; and merge aliases, read by the rooms.
+        services.AddSingleton<TransferMisses>();
+        services.AddScoped<IProfileAliases, ProfileAliases>();
+        if (builder.Configuration.GetValue($"{IdentityOptions.Section}:DeviceCleanupEnabled", defaultValue: true)
+            && !BuildTime.IsGeneratingOpenApi)
+        {
+            services.AddHostedService<DeviceCleanupWorker>();
+        }
 
         // Profiles found by their public ID, for invitations to tables (ADR 0033).
         services.AddScoped<IProfileDirectory, ProfileDirectory>();
@@ -215,6 +256,8 @@ internal static class IdentityModule
         ExternalEndpoints.Map(api);
         SessionEndpoints.Map(api);
         ProfileEndpoints.Map(api);
+        DeviceEndpoints.Map(api);
+        TransferEndpoints.Map(api);
         return api;
     }
 }

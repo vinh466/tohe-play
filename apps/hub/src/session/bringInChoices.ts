@@ -25,10 +25,14 @@ export type BringInChoice =
 
 export type BringInChoices = Record<string, BringInChoice>;
 
-/** The device profiles worth asking about: those with progress on this device (ADR 0043). */
+/**
+ * The device profiles worth asking about: those with progress on this device, or a copy on the server — seats and
+ * results at tables (ADR 0043).
+ */
 export async function withProgress(db: ToheDb, profiles: LocalProfile[]): Promise<LocalProfile[]> {
   const kept: LocalProfile[] = [];
-  for (const profile of profiles) if (await hasProgress(db, profile.id)) kept.push(profile);
+  for (const profile of profiles)
+    if (profile.server || (await hasProgress(db, profile.id))) kept.push(profile);
   return kept;
 }
 
@@ -97,7 +101,13 @@ export const needsStepUp = (choices: BringInChoices) =>
 /** The API calls bringing in needs; injected so the logic is testable without a server. */
 export interface BringInApi {
   adopt(body: DeviceProfileUpload): Promise<MeView>;
-  merge(id: string, name: string, data: DeviceProfileUpload['data']): Promise<MeView>;
+  /** `deviceProfileId`: the device profile merged, whose copy on the server — if this device has one — goes too. */
+  merge(
+    id: string,
+    name: string,
+    data: DeviceProfileUpload['data'],
+    deviceProfileId: string,
+  ): Promise<MeView>;
   /** The account as the server sees it now: an answer may have been lost. */
   me(): Promise<MeView | null>;
 }
@@ -124,7 +134,9 @@ export async function bringIn(
   try {
     if (choice.kind === 'merge') {
       const data = await deviceProfileData(db, device.id);
-      const me = await sending(db, device.id, data, () => api.merge(choice.into, device.name, data));
+      const me = await sending(db, device.id, data, () =>
+        api.merge(choice.into, device.name, data, device.id),
+      );
       const sent = (data.saves ?? []).map((save) => save.gameId);
       const savesLeft = await mergedOnDevice(db, device.id, choice.into, sent);
       return { status: 'merged', into: choice.into, me, savesLeft };

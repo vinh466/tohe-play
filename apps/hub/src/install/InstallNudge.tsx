@@ -164,6 +164,8 @@ function InstallPanel({ variant, onDone }: { variant: InstallVariant; onDone(): 
               <li key={step}>{t(`install.${step}`)}</li>
             ))}
           </ol>
+          {/* Safari and the installed app keep apart what they store: a device profile does not follow (ADR 0043). */}
+          <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">{t('install.iosNote')}</p>
           <Button onClick={onDone}>{t('install.iosDone')}</Button>
         </div>
       );

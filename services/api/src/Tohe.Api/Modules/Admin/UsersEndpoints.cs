@@ -81,6 +81,24 @@ internal static class UsersEndpoints
             .WithName("HideAdminProfile")
             .WithSummary("Hide a profile from public boards; its owner's switch does not bring it back.");
 
+        admin.MapPost("/profiles/{id:guid}/withdraw", WithdrawProfileAsync)
+            .RequirePermission(AdminPermissions.ProfilesModerate)
+            .RequireStepUp()
+            .WithName("WithdrawAdminProfile")
+            .WithSummary("Take a profile — an account's or a device's — off every table it sits at or watches; a bot finishes a hand in progress.");
+
+        // Device profiles on the server (ADR 0043): no account, so found by their name or id, and renamed here.
+        admin.MapGet("/device-profiles", (string? q, AccountsAdmin accounts, CancellationToken ct) => accounts.DeviceProfilesAsync(q, ct))
+            .RequirePermission(AdminPermissions.UsersRead)
+            .WithName("SearchAdminDeviceProfiles")
+            .WithSummary("Device profiles on the server by name or id; the latest used first, fifty at most.");
+
+        admin.MapPatch("/device-profiles/{id:guid}", RenameDeviceProfileAsync)
+            .RequirePermission(AdminPermissions.ProfilesModerate)
+            .RequireStepUp()
+            .WithName("RenameAdminDeviceProfile")
+            .WithSummary("Rename a device profile on the server — to hide a name — under the same name rules; its history keeps the old name.");
+
         admin.MapDelete("/profiles/{id:guid}/hidden", ShowProfileAsync)
             .RequirePermission(AdminPermissions.ProfilesModerate)
             .RequireStepUp()
@@ -325,12 +343,12 @@ internal static class UsersEndpoints
         ToheDbContext db,
         CancellationToken ct)
     {
-        if (await accounts.FindProfileAsync(id, ct) is not { } profile)
+        if (await accounts.FindProfileAsync(id, ct) is not { AccountId: { } accountId } profile)
         {
             return TypedResults.NotFound();
         }
 
-        if (await GuardAsync(http, profile.AccountId, roles, ct) is { } refused)
+        if (await GuardAsync(http, accountId, roles, ct) is { } refused)
         {
             return refused;
         }
@@ -352,8 +370,79 @@ internal static class UsersEndpoints
             await transaction.CommitAsync(ct);
         }
 
-        return TypedResults.Ok((await accounts.DetailAsync(profile.AccountId, ct))!);
+        await accounts.ShowNameAsync(profile, ct);
+
+        return TypedResults.Ok((await accounts.DetailAsync(accountId, ct))!);
     }
+
+    /// <summary>
+    /// A moderator renames a device profile on the server (ADR 0035, 0043): its name is shown to strangers at tables, and
+    /// renaming is how a moderator hides one. The device keeps its own copy's name until it sends it again.
+    /// </summary>
+    private static async Task<Results<Ok<DeviceProfileDetail>, NotFound, ValidationProblem>> RenameDeviceProfileAsync(
+        Guid id,
+        RenameProfileRequest request,
+        HttpContext http,
+        UserManager<Account> users,
+        AccountsAdmin accounts,
+        AdminAudit audit,
+        ToheDbContext db,
+        CancellationToken ct)
+    {
+        if (await accounts.FindProfileAsync(id, ct) is not { DeviceId: not null } profile)
+        {
+            return TypedResults.NotFound();
+        }
+
+        await using (var transaction = await db.Database.BeginTransactionAsync(ct))
+        {
+            var (before, error) = await accounts.RenameAsync(profile, request.Name ?? "", ct);
+            if (error is not null)
+            {
+                return Problems.Field("name", error);
+            }
+
+            audit.Add(await ActorAsync(http, users), AuditActions.ProfileRename, DeviceLabel(profile), new { from = before, to = profile.Name });
+            await db.SaveChangesAsync(ct);
+            await transaction.CommitAsync(ct);
+        }
+
+        await accounts.ShowNameAsync(profile, ct);
+
+        return TypedResults.Ok((await accounts.DeviceProfileAsync(id, ct))!);
+    }
+
+    /// <summary>Takes a profile off its tables: an account's, under the usual guard, or a device's (ADR 0043).</summary>
+    private static async Task<Results<NoContent, NotFound, ProblemHttpResult>> WithdrawProfileAsync(
+        Guid id,
+        HttpContext http,
+        UserManager<Account> users,
+        AccountsAdmin accounts,
+        PlatformRoles roles,
+        AdminAudit audit,
+        ToheDbContext db,
+        CancellationToken ct)
+    {
+        if (await accounts.FindProfileAsync(id, ct) is not { } profile)
+        {
+            return TypedResults.NotFound();
+        }
+
+        if (profile.AccountId is { } accountId && await GuardAsync(http, accountId, roles, ct) is { } refused)
+        {
+            return refused;
+        }
+
+        await accounts.WithdrawAsync(profile.Id, ct);
+        audit.Add(
+            await ActorAsync(http, users),
+            AuditActions.ProfileWithdraw,
+            profile.PublicId is { } publicId ? $"{publicId} ({profile.Name})" : DeviceLabel(profile));
+        await db.SaveChangesAsync(ct);
+        return TypedResults.NoContent();
+    }
+
+    private static string DeviceLabel(Profile profile) => $"device profile {profile.Id} ({profile.Name})";
 
     private static async Task<Results<Ok<AccountDetail>, NotFound, ValidationProblem, ProblemHttpResult>> HideProfileAsync(
         Guid id,
@@ -406,12 +495,13 @@ internal static class UsersEndpoints
         TimeProvider clock,
         CancellationToken ct)
     {
-        if (await accounts.FindProfileAsync(id, ct) is not { } profile)
+        // A device profile is on no public board to hide it from (ADR 0043): it is renamed instead.
+        if (await accounts.FindProfileAsync(id, ct) is not { AccountId: { } accountId } profile)
         {
             return TypedResults.NotFound();
         }
 
-        if (await GuardAsync(http, profile.AccountId, roles, ct) is { } refused)
+        if (await GuardAsync(http, accountId, roles, ct) is { } refused)
         {
             return refused;
         }
@@ -423,7 +513,7 @@ internal static class UsersEndpoints
             $"{profile.PublicId} ({profile.Name})",
             reason is not null ? new { reason } : null);
         await db.SaveChangesAsync(ct);
-        return TypedResults.Ok((await accounts.DetailAsync(profile.AccountId, ct))!);
+        return TypedResults.Ok((await accounts.DetailAsync(accountId, ct))!);
     }
 
     /// <summary>Not one's own account, and not one whose role is as strong as one's own — unless one is an owner.</summary>

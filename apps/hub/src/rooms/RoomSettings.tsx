@@ -6,11 +6,17 @@ import { Button } from '../ui/Button.tsx';
 import { Switch } from '../ui/Switch.tsx';
 import { localized, TURN_CHOICES, withDefaults } from './model.ts';
 
+/**
+ * Who may sit (ADR 0043): anyone with a name others see — a device profile too — accounts only, or the host's account's
+ * own profiles.
+ */
+export type RoomEntry = 'named' | 'account' | 'own';
+
 /** What the create form and the host's settings edit (POST /api/rooms, PATCH /api/rooms/{id}). */
 export interface RoomSettingsValue {
   seats: number;
   isPublic: boolean;
-  accountOnly: boolean;
+  entry: RoomEntry;
   botsFill: boolean;
   botLevel: string | null;
   botsTakeOver: boolean;
@@ -25,7 +31,8 @@ export function defaultSettings(game: GameSummary): RoomSettingsValue {
   return {
     seats: rooms?.maxSeats ?? 4,
     isPublic: true,
-    accountOnly: false,
+    // A new table is open to anyone with the link (ADR 0043).
+    entry: 'named',
     botsFill: bots.length > 0,
     botLevel: bots[Math.floor((bots.length - 1) / 2)] ?? null,
     botsTakeOver: bots.length > 0,
@@ -77,6 +84,7 @@ export function RoomSettings({
   game,
   initial,
   ownAccountOnly,
+  device = false,
   submitLabel,
   busy,
   error,
@@ -86,6 +94,8 @@ export function RoomSettings({
   initial: RoomSettingsValue;
   /** A child the account's owner has not allowed to play with others: the room stays within the account. */
   ownAccountOnly: boolean;
+  /** A device profile hosts: its table is one it may sit at itself, open to anyone named. */
+  device?: boolean;
   submitLabel: string;
   busy: boolean;
   error: string | null;
@@ -93,7 +103,7 @@ export function RoomSettings({
 }) {
   const { t, i18n } = useTranslation();
   const [value, setValue] = useState<RoomSettingsValue>(
-    ownAccountOnly ? { ...initial, accountOnly: true } : initial,
+    ownAccountOnly ? { ...initial, entry: 'own' } : device ? { ...initial, entry: 'named' } : initial,
   );
   const set = (change: Partial<RoomSettingsValue>) => setValue((current) => ({ ...current, ...change }));
   const setOption = (id: string, option: unknown) =>
@@ -135,15 +145,18 @@ export function RoomSettings({
         <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
           {t('rooms.ownAccountForced')}
         </p>
+      ) : device ? (
+        <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">{t('rooms.deviceHost')}</p>
       ) : (
-        <Chips
+        <Chips<RoomEntry>
           label={t('rooms.who')}
           choices={[
-            { id: 'anyone', label: t('rooms.anyone') },
-            { id: 'account', label: t('rooms.ownAccount') },
+            { id: 'named', label: t('rooms.entryNamed') },
+            { id: 'account', label: t('rooms.entryAccount') },
+            { id: 'own', label: t('rooms.entryOwn') },
           ]}
-          value={value.accountOnly ? 'account' : 'anyone'}
-          onChange={(id) => set({ accountOnly: id === 'account' })}
+          value={value.entry}
+          onChange={(entry) => set({ entry })}
         />
       )}
       {rooms.bots.length > 0 ? (

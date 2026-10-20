@@ -28,8 +28,8 @@ internal sealed class BoardAudience(ToheDbContext db) : IBoardAudience
             .Join(
                 db.Users.Where(account => account.SuspendedAt == null && account.DeleteAfter == null),
                 profile => profile.AccountId,
-                account => account.Id,
-                (profile, account) => new BoardPlayer(profile.Id, profile.Name, profile.Avatar, profile.PublicId, account.CommunityId))
+                account => (Guid?)account.Id,
+                (profile, account) => new BoardPlayer(profile.Id, profile.Name, profile.Avatar, profile.PublicId!, account.CommunityId))
             .ToDictionaryAsync(player => player.Id, ct);
 
     public Task<Guid?> CommunityOfAsync(Guid accountId, CancellationToken ct) =>

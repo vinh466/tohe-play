@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give this device its key (ADR 0043): a cookie, renewed on use, 90 days. A device that has one keeps it. */
+        post: operations["StartDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/challenge": {
         parameters: {
             query?: never;
@@ -568,6 +585,144 @@ export interface paths {
         head?: never;
         /** Edit one of the account's profiles. */
         patch: operations["UpdateProfile"];
+        trace?: never;
+    };
+    "/api/devices/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make — or bring up to date — a device profile's server copy, with the terms its player accepted; 409 id_taken when the id cannot be taken. */
+        post: operations["RegisterDeviceProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a device profile's server copy and everything of it, for good (ADR 0034); its id is retired. 410 device_profile_moved when it moved to another device. */
+        delete: operations["DeleteDeviceProfile"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/profiles/{id}/transfer": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The profile's live code: open, or asked once a new device typed its six digits; 410 device_profile_moved once it moved. */
+        get: operations["GetTransfer"];
+        put?: never;
+        /** A transfer code for this device's profile, with its saves and scores: six digits and a secret, ten minutes, replacing any before. */
+        post: operations["StartTransfer"];
+        /** Cancel the profile's code. */
+        delete: operations["CancelTransfer"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/profiles/{id}/transfer/confirm": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** The old device's answer to six typed digits: yes moves the profile now, no ends the code. */
+        post: operations["ConfirmTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/transfers/redeem": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Redeem a transfer code on this device: the secret moves the profile at once, six digits ask the old device first. */
+        post: operations["RedeemTransfer"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/transfers": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The transfers this device redeemed, newest first, while their answer is kept: a lost answer is read here. */
+        get: operations["ListRedeemedTransfers"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/transfers/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** A transfer this device redeemed: asked, done (with the profile, its saves and scores), declined or expired. */
+        get: operations["GetRedeemedTransfer"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/moves": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** This device's profiles that moved to another device with a transfer code. */
+        get: operations["ListProfileMoves"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/games": {
@@ -1156,8 +1311,7 @@ export interface components {
             seats: number;
             /** @default true */
             isPublic: boolean;
-            /** @default false */
-            accountOnly: boolean;
+            entry?: null | string;
             /** @default true */
             botsFill: boolean;
             botLevel?: null | string;
@@ -1171,6 +1325,7 @@ export interface components {
             options?: unknown;
             /** @default false */
             spectators: boolean;
+            accountOnly?: null | boolean;
         };
         DailyPoint: {
             /** Format: date */
@@ -1185,6 +1340,14 @@ export interface components {
             saves?: null | components["schemas"]["DeviceSave"][];
             scores?: null | components["schemas"]["DeviceScore"][];
         };
+        DeviceProfileRegistration: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            avatar: string;
+            termsVersion: string;
+            proof?: null | components["schemas"]["ProofOfWorkSolution"];
+        };
         DeviceProfileUpload: {
             /** Format: uuid */
             id: string;
@@ -1192,6 +1355,13 @@ export interface components {
             avatar: string;
             ageBand?: null | string;
             data?: null | components["schemas"]["DeviceProfileData"];
+        };
+        DeviceProfileView: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            avatar: string;
+            termsVersion: string;
         };
         DeviceSave: {
             gameId: string;
@@ -1419,6 +1589,8 @@ export interface components {
         MergeProfileRequest: {
             name: string;
             data?: null | components["schemas"]["DeviceProfileData"];
+            /** Format: uuid */
+            deviceProfileId?: null | string;
         };
         MetricSummary: {
             name: string;
@@ -1471,6 +1643,12 @@ export interface components {
             publicId: string;
             name: string;
             avatar: string;
+        };
+        ProfileMoveView: {
+            /** Format: uuid */
+            profileId: string;
+            /** Format: date-time */
+            movedAt: string;
         };
         ProfileOptionsView: {
             avatars: string[];
@@ -1616,7 +1794,7 @@ export interface components {
             /** Format: uuid */
             hostProfileId: string;
             isPublic: boolean;
-            accountOnly: boolean;
+            entry: string;
             locked: boolean;
             /** Format: int32 */
             seats: number;
@@ -1635,6 +1813,7 @@ export interface components {
             mySeat: null | number;
             spectators: boolean;
             watchers: string[];
+            accountOnly: boolean;
         };
         SavedGameView: {
             gameId: string;
@@ -1762,6 +1941,36 @@ export interface components {
         TermsRequest: {
             version: string;
         };
+        TransferAnswer: {
+            accept: boolean;
+        };
+        TransferCodeView: {
+            code: string;
+            secret: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        TransferRedemption: {
+            secret?: null | string;
+            code?: null | string;
+            proof?: null | components["schemas"]["ProofOfWorkSolution"];
+        };
+        TransferStart: {
+            termsVersion: string;
+            data?: null | components["schemas"]["DeviceProfileData"];
+        };
+        TransferStatusView: {
+            state: string;
+            /** Format: date-time */
+            expiresAt: string;
+        };
+        TransferView: {
+            /** Format: uuid */
+            id: string;
+            state: string;
+            profile?: null | components["schemas"]["DeviceProfileView"];
+            data?: null | components["schemas"]["DeviceProfileData"];
+        };
         TwoFactorCodeRequest: {
             code?: null | string;
         };
@@ -1783,7 +1992,7 @@ export interface components {
             /** Format: int32 */
             seats?: null | number;
             isPublic?: null | boolean;
-            accountOnly?: null | boolean;
+            entry?: null | string;
             locked?: null | boolean;
             botsFill?: null | boolean;
             botLevel?: null | string;
@@ -1792,6 +2001,7 @@ export interface components {
             turnSeconds?: null | number;
             options?: unknown;
             spectators?: null | boolean;
+            accountOnly?: null | boolean;
         };
     };
     responses: never;
@@ -1899,6 +2109,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProfileOptionsView"];
                 };
+            };
+        };
+    };
+    StartDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2894,6 +3122,318 @@ export interface operations {
             };
         };
     };
+    RegisterDeviceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceProfileRegistration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceProfileView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DeleteDeviceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferStatusView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    StartTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferStart"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferCodeView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    CancelTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ConfirmTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferAnswer"];
+            };
+        };
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    RedeemTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["TransferRedemption"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListRedeemedTransfers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferView"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    GetRedeemedTransfer: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TransferView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    ListProfileMoves: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ProfileMoveView"][];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListGames: {
         parameters: {
             query?: never;
@@ -3335,6 +3875,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     CreateRoom: {
@@ -3377,6 +3926,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ListMyRooms: {
@@ -3399,6 +3957,15 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Precondition Failed */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3437,6 +4004,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ListMyHands: {
@@ -3461,6 +4037,15 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Precondition Failed */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3507,6 +4092,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     FindRoomByCode: {
@@ -3545,6 +4139,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     GetRoom: {
@@ -3582,6 +4185,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -3625,6 +4237,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     JoinRoom: {
@@ -3663,6 +4284,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     WatchRoom: {
@@ -3700,6 +4330,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -3741,6 +4380,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ListRoomInvites: {
@@ -3763,6 +4411,15 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Precondition Failed */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3805,6 +4462,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -3849,6 +4515,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     StartRoom: {
@@ -3886,6 +4561,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

@@ -108,8 +108,10 @@ Opening the hub is playing ([vision](../vision.md)); nothing stands between a li
 - **No sign-in before playing.** A device with no session plays as its device profile at once — the first visit makes
   one silently, with a suggested name (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`);
   `/account/sign-in` opens only when chosen — from the catalog's slim "Đăng nhập" strip, or for what needs an account.
-  A room link (`/r/<code>`), a room, the rooms lobby and a replay keep asking a signed-out device to sign in
-  (`device={false}`). Signing out is a choice and leads to the sign-in screen. Signing up asks whether the device
+  A room link (`/r/<code>`), a room, the rooms lobby and a replay play as the device profile too: the `named` screen —
+  a name others see, an avatar, the terms line — the first time, then its copy on the server and a seat at any table
+  open to anyone named ([Identity](identity.md#device-profiles-on-the-server), ADR 0043). Signing out is a choice and
+  leads to the sign-in screen. Signing up asks whether the device
   profile is the person's own, and signing in offers to bring each device profile with progress into the account
   ([Identity](identity.md#device-profiles)).
 - **Installing: one component, three ways** (`apps/hub/src/install/`). `chooseInstall` is a pure decision from the

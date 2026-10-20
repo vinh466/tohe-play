@@ -2,15 +2,17 @@ import { useMutation, useQuery } from '@tanstack/react-query';
 import { Link, useNavigate, useSearch } from '@tanstack/react-router';
 import { type FormEvent, useCallback, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError, auth, type MeView, type ProfileView, session } from '../api/client.ts';
+import { ApiError, auth, devices, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { deviceProfilesQuery, profileOptionsQuery } from '../api/queries.ts';
 import { useLeaveTo } from '../navigation/leave.tsx';
 import { BringIn } from '../session/BringIn.tsx';
 import { withProgress } from '../session/bringInChoices.ts';
+import { MovedNotice } from '../session/MovedNotice.tsx';
 import { takeNext } from '../session/next.ts';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
+import { deleteEverywhere } from '../session/serverCopy.ts';
 import { deviceMode } from '../session/session.ts';
 import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
 import { db, type LocalProfile } from '../storage/db.ts';
@@ -18,7 +20,6 @@ import {
   AVATARS,
   createDeviceProfile,
   currentDeviceProfile,
-  deleteDeviceProfile,
   listDeviceProfiles,
   MAX_DEVICE_PROFILES,
   randomAvatar,
@@ -311,6 +312,8 @@ function DevicePicker() {
         <ThemeButton />
       </header>
 
+      <MovedNotice />
+
       <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {list.map((profile, index) => (
           <li
@@ -356,8 +359,16 @@ function DevicePicker() {
         ) : null}
       </ul>
       <p className="text-center text-ink-soft text-sm">{t('device.hint', { max: MAX_DEVICE_PROFILES })}</p>
+      {/* ADR 0043: a device profile never on the server is lost with the browser's data — the hub says so here. */}
+      {list.some((profile) => !profile.server) ? (
+        <p className="text-center text-ink-soft text-sm">{t('device.onlyHere')}</p>
+      ) : null}
 
       <footer className="mt-auto flex flex-col items-center gap-3">
+        {/* A profile from another device, moved here with its transfer code (ADR 0043). */}
+        <Link to="/account/transfer" className="font-bold text-accent underline underline-offset-4">
+          {t('transfer.receive')}
+        </Link>
         <Link
           to="/account/sign-in"
           onClick={() => funnel.signInOpened()}
@@ -396,6 +407,7 @@ function DeviceProfileForm({
   onDone(): void;
 }) {
   const { t, i18n } = useTranslation();
+  const navigate = useNavigate();
   const changed = useDeviceProfilesChanged();
   const [name, setName] = useState(() => profile?.name ?? funName(i18n.language));
   const [avatar, setAvatar] = useState(() => profile?.avatar ?? randomAvatar());
@@ -420,7 +432,8 @@ function DeviceProfileForm({
   });
   const remove = useMutation({
     mutationFn: async () => {
-      if (profile) await deleteDeviceProfile(db, profile.id);
+      // Its copy on the server goes too, when it has one (ADR 0043).
+      if (profile) await deleteEverywhere(db, devices, profile);
     },
     onSuccess: async () => {
       await changed();
@@ -465,6 +478,15 @@ function DeviceProfileForm({
       <Button type="submit" busy={save.isPending}>
         {t('save')}
       </Button>
+      {profile ? (
+        // To another device with a transfer code (ADR 0043): the named screen and its copy on the server first if needed.
+        <Button
+          variant="secondary"
+          onClick={() => void navigate({ to: '/account/transfer/send', search: { profile: profile.id } })}
+        >
+          📲 {t('transfer.send')}
+        </Button>
+      ) : null}
       {profile && canDelete ? (
         <Button variant="ghost" onClick={() => setConfirmDelete(true)}>
           {t('device.delete')}

@@ -6,7 +6,8 @@ sidebar:
 ---
 
 > **Status: built, [phases](#phases) 1–3** ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md),
-> replays: [ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)).
+> replays: [ADR 0017](../decisions/0017-replays-of-finished-online-hands.md)); tables open to device profiles
+> ([ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md), step I2a — [Who may sit](#who-may-sit)).
 > The owner accepted the proposed answers to the [open questions](#decisions-on-the-proposals-open-questions).
 > Technology and evidence: [Online rooms research](../research/online-rooms.md). First game: Tiến Lên
 > ([research](../research/tien-len.md), [SPEC](../../games/tien-len/SPEC.md)).
@@ -28,7 +29,7 @@ flow should be built once, properly, so that later turn-based games (Cờ caro, 
 4. **Phones come and go.** Locking the screen, switching network or taking a call is the normal case. Every
    (re)connection receives a full snapshot of the seat's view, so a lost message never matters.
 5. **Safe for children.** No free chat (preset reactions only), no money or chips, names and avatars only, and a
-   child plays with other accounts only behind the account owner's switch.
+   child plays with other accounts — or device profiles — only behind the account owner's switch.
 6. **Offline still plays.** Without a connection a game offers "Chơi với máy": the same rules against bots on the
    phone.
 
@@ -37,7 +38,7 @@ flow should be built once, properly, so that later turn-based games (Cờ caro, 
 | Word | Vietnamese in the UI | Meaning |
 | --- | --- | --- |
 | Room | Phòng / bàn | A table for one game: seats, options, a code, a host. Lives from creation until the last person leaves. |
-| Seat | Ghế | A place at the table: empty, a profile, or a bot. |
+| Seat | Ghế | A place at the table: empty, a profile — an account's, or a device profile on the server (ADR 0043) — or a bot. |
 | Host | Chủ phòng | The profile that created the room, or the one it passed to. Changes options, adds bots, starts, removes players. |
 | Hand | Ván | One deal played to the end. |
 | Series | Bảng điểm | The running score of a room across its hands. |
@@ -128,9 +129,9 @@ sequenceDiagram
 
   P->>H: opens /r/482913 (from Zalo, QR, browser)
   alt not signed in on this device
-    H->>P: sign in (or register with an invite) — keeps next=/r/482913
-  end
-  alt no profile chosen
+    H->>P: plays as the device profile: the named screen the first time — a name, an avatar, the terms line (ADR 0043)
+    H->>API: POST /api/devices, POST /api/devices/profiles — then every request names it (X-Tohe-Device-Profile)
+  else signed in, no profile chosen
     H->>P: "Ai đang chơi?" — keeps next=/r/482913
   end
   H->>API: GET /api/rooms/by-code/482913
@@ -142,6 +143,8 @@ sequenceDiagram
   H->>P: waiting room, or the table if a hand is between deals
 ```
 
+- A phone with no account sits as its device profile — after the `named` screen the first time
+  ([Who may sit](#who-may-sit)). Signing in instead ("Đã có tài khoản? Đăng nhập", "Nhờ bố mẹ") keeps the way back.
 - The way back survives signing in, registering and the profile picker: the page that needs a player remembers its
   path in `sessionStorage` (`session/next.ts`, paths of the hub only), and the profile picker goes there instead of
   the catalog.
@@ -160,6 +163,8 @@ sequenceDiagram
 | Hand in progress, no free seat | "Ván đang chơi" | Watch, or sit at the next free seat between hands |
 | Room locked by the host | "Chủ phòng đã khóa phòng" | Lobby |
 | Child profile, another account, switch off | "Cần chủ tài khoản cho phép chơi với người ngoài" | Lobby |
+| Child profile, switch off, a device profile at the table — or a device profile, such a child at the table | the same | Lobby |
+| Device profile, a table for accounts only | "Bàn này chỉ dành cho người có tài khoản Tò He" | Sign in |
 | Game hidden for this profile's age | "Trò này chưa dành cho bạn" | Catalog |
 | Offline or API down | "Cần mạng để chơi online" | Chơi với máy |
 | Already seated in this room on another device | Takes the seat over on this device; the other device shows "Đang chơi ở máy khác" | — |
@@ -259,7 +264,7 @@ end.
 | Option | Choices | Proposed default |
 | --- | --- | --- |
 | Visibility | Public (in the lobby list) / private (code or link only) | Public |
-| Who may join | Anyone signed in on this server / my account's profiles only | Anyone |
+| Who may join | "Ai có link cũng vào" — anyone named, a device profile too / "Chỉ tài khoản" / "Chỉ hồ sơ trong tài khoản tôi" ([below](#who-may-sit)) | Ai có link cũng vào |
 | Seats | The game's range (Tiến lên 2–4) | 4 |
 | Bots fill empty seats at start | On / off | On |
 | Bot level | The game's levels (Dễ, Vừa, Khó) | Vừa |
@@ -271,6 +276,49 @@ end.
 **Game options** are declared by the game in `game.json` (choices and defaults) and validated by its rules module;
 the hub draws the form, so no game builds its own room screen. Tiến lên's house rules:
 [Tiến lên research](../research/tien-len.md#house-rules).
+
+## Who may sit
+
+[ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md): an online table asks for at least `named` — a name
+others see — and its creator may ask for more. A table's **entry** (`entry` in the API):
+
+| Entry | In the UI | Who sits |
+| --- | --- | --- |
+| `named` | Ai có link cũng vào | Anyone with a profile: an account's, or a device profile on the server. **The default** for a new table |
+| `account` | Chỉ tài khoản | Profiles of accounts; a device profile hears `403 account_required` |
+| `own` | Chỉ hồ sơ trong tài khoản tôi | The host's account's profiles (`room_account_only`) |
+
+Tables opened before I2a kept their door: "my account's profiles only" became `own`, the others `account`.
+
+- **A device profile acts with its device's key** ([Identity](identity.md#device-profiles-on-the-server)): the hub names
+  it in `X-Tohe-Device-Profile` on every rooms request and in the rooms hub's address, with the terms version it shows
+  (`X-Tohe-Terms`); the API's players' scheme then reads the device key and nothing else. Its copy on the server is made
+  first, after the `named` screen; `412 terms_required` and `404 device_profile_not_found` send the hub back there or to
+  a new id.
+- **What it may do**: everything a player does at a table — the lobby, quick play, a code or a link, sitting, watching,
+  playing, its results and replays — and open a table of its own, always `named`. It asks nobody by ID, and nobody finds
+  it by one: it has none (`account_required`).
+- **Children**: a child whose "Chơi online với người ngoài" is off sits only at tables kept to its account, and never
+  with a device profile — a device profile is always an outsider. The table checks both ways, seated or watching: such a
+  child does not come in where a device profile is, nor a device profile where such a child is, whatever the host opens
+  the door to later (`parent_permission`). For a device profile coming in, the table reads the children's switches as
+  their accounts say now, not as they were when they sat. Turning a child's switch off takes it off any table that is
+  not kept to its account.
+- **A new door holds for those in**: when the host changes the entry, whoever it would not let in leaves — a device
+  profile from a table for accounts, another account's profile from one kept to the host's account — seated or
+  watching. The host role passes with its account: "the host's account" is the new host's; a device profile hosting has
+  none, so its table stays `named`.
+- **Results**: a device profile's result of a hand is recorded like anyone's — `rooms.results` without an account — and
+  goes to the integrity engine marked `device_earned`: it counts in its own statistics and replays, never on a public
+  board ([Integrity](integrity.md#public-boards)). Brought into an account, its results follow its id and stay marked;
+  merged into an account's profile, they move to it and a [merge alias](identity.md#merge-aliases) keeps the old id
+  reachable. Moved to another device with a [transfer code](identity.md#the-transfer-code), it leaves its tables (a bot
+  finishes a hand) and its seats and results stay its own; its old device acts for it no more
+  (`410 device_profile_moved`). A profile withdrawn from a table — moved, deleted, brought into an account — takes its
+  phones out of the room's groups (`room:{R}` and `room:{R}:{P}`), so a phone it left receives nothing of its seat even
+  should it sit there again from another device; `Exit` needs no profile that still acts.
+- **Moderation**: the console takes any profile off its tables — a bot finishes a hand in progress — and renames a
+  device profile ([Admin console](admin.md#users)).
 
 ## Who sees what
 
@@ -358,6 +406,9 @@ A `Rooms` module in the API with its own `rooms` schema
 ([ADR 0003](../decisions/0003-backend-dotnet-modular-monolith-postgres.md)), reading games through the registry's
 `IRegistryGames` and profiles through `IActiveProfile`.
 
+Every endpoint below, and the rooms hub, takes the players' scheme: the account's session, or — when the request names a
+device profile — the device key alone ([Who may sit](#who-may-sit)). "The active profile" is whichever acts.
+
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/rooms?game=` | Rooms the active profile may see: public ones it may join, and the ones it sits at |
@@ -368,9 +419,9 @@ A `Rooms` module in the API with its own `rooms` schema
 | `POST /api/rooms/{id}/join` · `/leave` | Sit (an empty seat, or between hands a bot that only filled one) · leave (a bot finishes the hand) |
 | `PATCH /api/rooms/{id}` · `PUT …/seats/{seat}` · `POST …/start` | The host's controls, before a hand |
 | `POST /api/rooms/{id}/watch` | Watch without a seat, when the room allows spectators |
-| `POST /api/rooms/{id}/invite` · `GET /api/rooms/invites` | Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033): `profile_not_found`, `room_account_only`, `invites_closed`, `invite_limit`, `invitee_limit` · the active profile's invitations |
+| `POST /api/rooms/{id}/invite` · `GET /api/rooms/invites` | Ask a profile to the table — of the account, or another account's as its owner allows (ADR 0033), an id merged into a profile asking that profile: `profile_not_found`, `room_account_only`, `invites_closed`, `invite_limit`, `invitee_limit`; a device profile asks nobody (`account_required`) · the active profile's invitations |
 | `GET /api/rooms/stats?game=` | Its results (all time, this week) and the account's board of the week |
-| `GET /api/rooms/history?game=` · `GET /api/rooms/{id}/hands/{hand}` | Its last 20 hands · one hand to replay, only for the profiles that played it |
+| `GET /api/rooms/history?game=` · `GET /api/rooms/{id}/hands/{hand}` | Its last 20 hands · one hand to replay, only for the profiles that played it — a result under an id merged into it ([merge alias](identity.md#merge-aliases)) counts as its own, here and in its statistics |
 | `/api/rooms/hub` (SignalR) | `Enter`, `Exit`, `Act`, `Next`, `React`, `WatchLobby`; pushes `Room`, `View`, `Reaction`, `Closed`, `LobbyChanged` |
 
 - **One actor per room** runs everything that happens to it one at a time: joins, actions, bots, timers. A clock
@@ -404,7 +455,9 @@ A `Rooms` module in the API with its own `rooms` schema
 - **Same-origin only:** the WebSocket upgrade carries the session cookie, so `/api/rooms/hub` refuses an `Origin`
   other than the hub's own host (cross-site WebSocket hijacking); unsafe requests are covered by `SameOriginGuard`.
   The hub's CSP names its own `ws://` and `wss://` host next to `'self'` for browsers older than CSP3.
-- A signed-in profile is required; children's access follows the age filter and the parent switch.
+- A profile is required: an account's, with its session, or a device profile with its device's key — never one for the
+  other ([Identity](identity.md#device-profiles-on-the-server)). Children's access follows the age filter and the parent
+  switch.
 - Every action goes through the rules; the server never trusts a phone's idea of the state.
 - Codes come from a CSPRNG, are unique among open rooms, and die with the room; lookups by code are rate limited per
   account. A private room is protected by not being listed and by that limit on lookups.
@@ -434,8 +487,9 @@ whom.
 | `games/tien-len` | The rules: unit tests and a fast-check random-play bot over every house-rule combination and table size |
 | Conformance | A rooms game's module loaded on its own: platform functions, bot tables to the end at every size, determinism, JSON round trips, view sizes, no browser APIs; then the game at a two-seat table refereed by its own module, and replaying a hand its bots played |
 | API (`RoomsTests`) | Lobby visibility, codes, joining and refusals, the parent switch, host controls, options, a whole hand over SignalR with bots, refused actions, a restart rebuilding the hand, Jint limits and a hard bot's time, the hub's origin check; results, statistics and a replay that the rules module plays back to the same result; spectators; invitations, by ID too — the owner's setting, a child not found, the limits |
+| API (`ServerDeviceProfilesTests`) | Device profiles at tables (ADR 0043): the entry levels, the children rule both ways, a whole hand over SignalR with the device key and its results marked, the terms asked again |
 | Hub | Codes, seats as the game sees them, quick play, defaults, the way back after sign-in, the replay handed to the game |
-| e2e (`pnpm --filter @tohe/e2e rooms`, CI) | Two phones: create, join by link, start, a whole hand with hints, results on both, leave |
+| e2e (`pnpm --filter @tohe/e2e rooms`, CI) | Three phones: create; a friend with no account joins by link through the `named` screen; start, a whole hand with hints, results on both, leave, the friend's replay |
 
 
 ## Phases

@@ -24,7 +24,9 @@ internal static class IntegrityModule
         // People's decisions about held results, for the admin console (ADR 0029).
         builder.Services.AddScoped<IntegrityReview>();
         // A deleted profile's results and ranked runs go with it (ADR 0034).
-        builder.Services.AddScoped<IProfileData, IntegrityProfileData>();
+        builder.Services.AddScoped<IntegrityProfileData>();
+        builder.Services.AddScoped<IProfileData>(provider => provider.GetRequiredService<IntegrityProfileData>());
+        builder.Services.AddScoped<IProfileMoves>(provider => provider.GetRequiredService<IntegrityProfileData>());
         // Ranked runs (ADR 0030): dealt and taken in by the API, replayed in the background.
         builder.Services.AddOptions<IntegrityOptions>().BindConfiguration(IntegrityOptions.Section);
         builder.Services.AddScoped<RankedRuns>();

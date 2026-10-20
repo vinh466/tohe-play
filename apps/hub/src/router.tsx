@@ -112,6 +112,25 @@ const accountRoute = createRoute({
 // The terms of use and the privacy notice are static pages of apps/web (/terms/, /privacy/), rendered from
 // ./legal/documents.ts; the app links to them with a full navigation (ADR 0042).
 
+/**
+ * The transfer code (ADR 0043, I2b): the new device redeems one here — six digits, a QR code scanned, or the QR code's
+ * link, its secret after `#` — and the old device shows one for a device profile (`?profile=`). Loaded on demand (QR
+ * codes, the camera).
+ */
+const transferRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/account/transfer',
+  component: lazyRouteComponent(() => import('./pages/TransferPage.tsx'), 'TransferReceivePage'),
+});
+const transferSendRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/account/transfer/send',
+  validateSearch: (search: Record<string, unknown>): { profile: string } => ({
+    profile: typeof search.profile === 'string' ? search.profile : '',
+  }),
+  component: lazyRouteComponent(() => import('./pages/TransferPage.tsx'), 'TransferSendPage'),
+});
+
 /** What telemetry sends, this device's switch and the last batch (ADR 0015); open to everyone. */
 const dataRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -163,6 +182,8 @@ export function createAppRouter(queryClient: QueryClient) {
       accountRoute,
       accountEmailRoute,
       dataRoute,
+      transferRoute,
+      transferSendRoute,
       playRoute,
       roomsRoute,
       joinRoute,

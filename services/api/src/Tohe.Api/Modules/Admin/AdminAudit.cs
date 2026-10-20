@@ -32,6 +32,9 @@ internal static class AuditActions
     public const string ProfileHide = "profile.hide";
     public const string ProfileShow = "profile.show";
 
+    /// <summary>A profile — an account's or a device's (ADR 0043) — removed from the tables it sat at or watched.</summary>
+    public const string ProfileWithdraw = "profile.withdraw";
+
     /// <summary>The console opened on a device: two-factor authentication passed.</summary>
     public const string ConsoleOpen = "console.open";
 

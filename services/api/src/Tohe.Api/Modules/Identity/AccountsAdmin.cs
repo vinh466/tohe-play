@@ -57,6 +57,20 @@ public sealed record ProfileDetail(
 /// <param name="Kind"><c>rename</c>: a name it had · <c>merged</c>: a device profile's name merged into it (ADR 0043).</param>
 public sealed record NameChange(string Name, DateTimeOffset At, string Kind = "rename");
 
+/// <summary>
+/// A device profile on the server (ADR 0043), as the console shows it: no account, no email, no public ID — its name, its
+/// avatar, when it came and was last used, the terms its player accepted, and every name it had.
+/// </summary>
+public sealed record DeviceProfileDetail(
+    Guid Id,
+    string Name,
+    string Avatar,
+    DateTimeOffset CreatedAt,
+    DateTimeOffset? LastUsedAt,
+    string? TermsVersion,
+    DateTimeOffset? TermsAcceptedAt,
+    IReadOnlyList<NameChange> Names);
+
 /// <summary>A profile as the console names it next to its results: never more than a moderator needs.</summary>
 /// <param name="Account">Its account's address, or an old account's username.</param>
 public sealed record ProfileCard(Guid Id, string Name, string Avatar, string PublicId, Guid AccountId, string? Account);
@@ -65,9 +79,77 @@ public sealed record ProfileCard(Guid Id, string Name, string Avatar, string Pub
 /// What the admin console reads and changes of accounts and profiles (ADR 0027); the tables stay this module's. The
 /// console checks who may do what; this only does it.
 /// </summary>
-internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users, PlatformRoles roles)
+internal sealed class AccountsAdmin(
+    ToheDbContext db,
+    UserManager<Account> users,
+    PlatformRoles roles,
+    IEnumerable<IProfileData> modules,
+    IEnumerable<IProfileNames> names,
+    TimeProvider clock)
 {
     private const int Page = 50;
+
+    /// <summary>
+    /// Device profiles on the server whose name holds the text, or whose id starts with it (ADR 0043); the latest used
+    /// first. Nothing typed, the latest used.
+    /// </summary>
+    public async Task<IReadOnlyList<DeviceProfileDetail>> DeviceProfilesAsync(string? text, CancellationToken ct)
+    {
+        var query = db.Profiles.AsNoTracking().Where(profile => profile.DeviceId != null);
+        var typed = text?.Trim() ?? "";
+        if (typed.Length > 0)
+        {
+            var pattern = $"%{Like(typed)}%";
+            var prefix = $"{Like(typed.ToLowerInvariant())}%";
+            query = query.Where(profile =>
+                EF.Functions.ILike(profile.Name, pattern) || EF.Functions.Like(profile.Id.ToString(), prefix));
+        }
+
+        var profiles = await query
+            .OrderByDescending(profile => profile.LastUsedAt ?? profile.CreatedAt)
+            .Take(Page)
+            .ToListAsync(ct);
+        return await DeviceDetailsAsync(profiles, ct);
+    }
+
+    /// <summary>One device profile on the server, or null when there is none with this id.</summary>
+    public async Task<DeviceProfileDetail?> DeviceProfileAsync(Guid id, CancellationToken ct)
+    {
+        var profiles = await db.Profiles.AsNoTracking().Where(profile => profile.Id == id && profile.DeviceId != null).ToListAsync(ct);
+        return (await DeviceDetailsAsync(profiles, ct)).FirstOrDefault();
+    }
+
+    private async Task<IReadOnlyList<DeviceProfileDetail>> DeviceDetailsAsync(IReadOnlyList<Profile> profiles, CancellationToken ct)
+    {
+        var ids = profiles.Select(profile => profile.Id).ToList();
+        var names = (await db.ProfileNameHistory.AsNoTracking()
+                .Where(name => ids.Contains(name.ProfileId))
+                .OrderByDescending(name => name.At).ThenByDescending(name => name.Id)
+                .ToListAsync(ct))
+            .ToLookup(name => name.ProfileId);
+        return [.. profiles.Select(profile => new DeviceProfileDetail(
+            profile.Id,
+            profile.Name,
+            profile.Avatar,
+            profile.CreatedAt,
+            profile.LastUsedAt,
+            profile.TermsVersion,
+            profile.TermsAcceptedAt,
+            [.. names[profile.Id].Select(name => new NameChange(
+                name.Name, name.At, name.Kind == ProfileNameKind.Merged ? "merged" : "rename"))]))];
+    }
+
+    /// <summary>
+    /// The profile leaves every table it sits at or watches — a bot finishes a hand in progress — and invitations to it
+    /// end, as when it is deleted (ADR 0034); nothing it stored goes. A moderator's way to take someone off a table.
+    /// </summary>
+    public async Task WithdrawAsync(Guid profileId, CancellationToken ct)
+    {
+        foreach (var module in modules)
+        {
+            await module.WithdrawAsync([profileId], ct);
+        }
+    }
 
     /// <summary>
     /// Accounts whose email, username, display name or profile name holds the text, or whose profile ID starts with
@@ -86,7 +168,7 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
         var digits = string.Concat(typed.Where(c => !char.IsWhiteSpace(c)));
         if (digits.Length >= 4 && digits.All(char.IsAsciiDigit))
         {
-            query = query.Where(account => db.Profiles.Any(p => p.AccountId == account.Id && p.PublicId.StartsWith(digits)));
+            query = query.Where(account => db.Profiles.Any(p => p.AccountId == account.Id && p.PublicId!.StartsWith(digits)));
         }
         else if (typed.Length > 0)
         {
@@ -175,7 +257,7 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
             community,
             [.. profiles.Select(profile => new ProfileDetail(
                 profile.Id,
-                profile.PublicId,
+                profile.PublicId!,
                 profile.Name,
                 profile.Avatar,
                 profile.Kind == ProfileKind.Adult ? "adult" : "child",
@@ -194,9 +276,9 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
             .Join(
                 db.Users,
                 profile => profile.AccountId,
-                account => account.Id,
+                account => (Guid?)account.Id,
                 (profile, account) => new ProfileCard(
-                    profile.Id, profile.Name, profile.Avatar, profile.PublicId, account.Id, account.Email ?? account.UserName))
+                    profile.Id, profile.Name, profile.Avatar, profile.PublicId!, account.Id, account.Email ?? account.UserName))
             .ToDictionaryAsync(card => card.Id, ct);
 
     /// <summary>Hides a profile from public boards, or shows it again (ADR 0029); its owner's switch stays as it is.</summary>
@@ -237,8 +319,23 @@ internal sealed class AccountsAdmin(ToheDbContext db, UserManager<Account> users
 
         var before = profile.Name;
         profile.Name = clean;
+        // A device profile's copy keeps the moderator's name whatever its device sends later (ADR 0043).
+        if (profile.DeviceId is not null)
+        {
+            profile.NameModeratedAt = clock.GetUtcNow();
+        }
+
         await db.SaveChangesAsync(ct);
         return (before, null);
+    }
+
+    /// <summary>The tables show a profile's new name at once: its seats, as others see them.</summary>
+    public async Task ShowNameAsync(Profile profile, CancellationToken ct)
+    {
+        foreach (var table in names)
+        {
+            await table.RenamedAsync(profile.Id, profile.Name, ct);
+        }
     }
 
     private static string Like(string text) =>

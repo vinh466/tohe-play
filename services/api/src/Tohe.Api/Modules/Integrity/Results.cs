@@ -40,7 +40,8 @@ public sealed class IntegrityResult
 
     public Guid ProfileId { get; set; }
 
-    public Guid AccountId { get; set; }
+    /// <summary>The profile's account; null for a device profile on the server (ADR 0043), until it is brought in.</summary>
+    public Guid? AccountId { get; set; }
 
     public required string GameId { get; set; }
 
@@ -77,8 +78,9 @@ public sealed class IntegrityResult
     public string? DecidedBy { get; set; }
 
     /// <summary>
-    /// Earned by a device profile, sent with the request that brought it into an account (ADR 0043): in no public
-    /// board's audience, ever. Set by that channel only; a trigger refuses to clear it.
+    /// Earned by a device profile (ADR 0043) — sent with the request that brought it into an account, or at a table it sat
+    /// at as a device profile: in no public board's audience, ever. Set by those channels only; a trigger refuses to clear
+    /// it.
     /// </summary>
     public bool DeviceEarned { get; set; }
 }

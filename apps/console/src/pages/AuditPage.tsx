@@ -19,6 +19,7 @@ const actions: Record<string, string> = {
   'profile.rename': 'Đổi tên hồ sơ',
   'profile.hide': 'Ẩn hồ sơ khỏi bảng công khai',
   'profile.show': 'Cho hồ sơ hiện lại trên bảng công khai',
+  'profile.withdraw': 'Mời hồ sơ khỏi bàn chơi',
   'settings.change': 'Đổi cách đăng nhập, đăng ký',
   'community.create': 'Tạo cộng đồng',
   'invite.create': 'Tạo mã mời',
