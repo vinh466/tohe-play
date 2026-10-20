@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, auth, type DeviceProfileUpload, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery } from '../api/queries.ts';
+import { entry } from '../entry/intent.ts';
 import { ConsentCheckbox } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
 import { BackLink } from '../navigation/leave.tsx';
@@ -65,6 +66,8 @@ function useSignedUp() {
     pendingSignUp.forget();
     deviceMode.disable();
     invite.forget();
+    // The share link this tab came from counted the account: never again (ADR 0044).
+    entry.signedUp();
     funnel.accountCreated();
     await changed();
     await setMe(me);
@@ -176,7 +179,9 @@ function Register() {
         const name = answer.mine ? displayName : await rename.apply(sending.id, sending.name);
         sent = await signUpUpload(db, { ...sending, name }, answer, name);
       }
-      const me = await sendingSignUp(db, sent, () => auth.confirmRegistration(attemptId ?? '', code, sent));
+      const me = await sendingSignUp(db, sent, () =>
+        auth.confirmRegistration(attemptId ?? '', code, sent, entry.signUpCode()),
+      );
       return { me, sent };
     },
     onSuccess: signedUp,
@@ -410,7 +415,9 @@ function ConfirmFromLink() {
           name,
         );
       }
-      const me = await sendingSignUp(db, sent, () => auth.confirmRegistration(attempt, code, sent));
+      const me = await sendingSignUp(db, sent, () =>
+        auth.confirmRegistration(attempt, code, sent, entry.signUpCode()),
+      );
       return { me, sent };
     },
     onSuccess: signedUp,

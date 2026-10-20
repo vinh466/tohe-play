@@ -1,18 +1,32 @@
 import { useQuery } from '@tanstack/react-query';
 import { useParams } from '@tanstack/react-router';
 import type { HostHandle } from '@tohe/game-sdk/host';
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { configQuery, gamesQuery } from '../api/queries.ts';
+import { readCodeOf } from '../entry/codes.ts';
+import { EntryGate } from '../entry/EntryGate.tsx';
+import { entry } from '../entry/intent.ts';
 import { GameFrame } from '../launcher/GameFrame.tsx';
 import { hasShell } from '../launcher/manifest.ts';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
-import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 
+/**
+ * A game's menu, `/play/<gameId>` — an entry like any link (ADR 0044): the intent kept through the profile picker, the
+ * gate at the game's level (`any` until step I4), then the game, if the profile's catalog has it.
+ */
 export function PlayPage() {
-  return <RequireSession need="player">{({ player }) => <Launcher player={player} />}</RequireSession>;
+  const { gameId } = useParams({ from: '/play/$gameId' });
+  const { t } = useTranslation();
+  const intent = readCodeOf('play', gameId);
+  if (!intent) return <Message text={t('gameNotFound')} back={t('backToGames')} />;
+  return (
+    <EntryGate key={gameId} intent={intent} level="any">
+      {(player) => <Launcher player={player} />}
+    </EntryGate>
+  );
 }
 
 /** A game on its own: from its catalog card, or "Chơi với máy" in a rooms lobby. */
@@ -40,6 +54,12 @@ function Launcher({ player }: { player: Player }) {
     setConfirmingExit(false);
     paused.current?.resume();
   };
+
+  // The game is open, or not in this profile's catalog: either way the intent that led here is over.
+  const settled = Boolean(game && gamesOrigin) || (games.isSuccess && !game);
+  useEffect(() => {
+    if (settled) entry.reached({ kind: 'play', code: gameId });
+  }, [settled, gameId]);
 
   if (games.isSuccess && !game) {
     return <Message text={t('gameNotFound')} back={t('backToGames')} />;

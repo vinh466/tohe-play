@@ -122,8 +122,10 @@ sixth digit is typed. The answer is the room's preview, or one of the messages i
 
 ### 5. Joining with a link
 
-A table's link is one kind of entry; the hub's entry pipeline, and the card a chat app shows for the link — naming no
-one, and the game only for a table listed publicly — are in [Entry links](entry-links.md).
+A table's link is one kind of entry, and a table's six digits typed into "Nhập mã" are the same: the hub's entry
+pipeline keeps it through signing in and the `named` screen, looks the code up only after that gate, and ends a code
+with no table — never used, or closed — at "Mã này không mở được nữa". That pipeline, and the card a chat app shows for
+the link — naming no one, and the game only for a table listed publicly — are in [Entry links](entry-links.md).
 
 ```mermaid
 sequenceDiagram
@@ -136,7 +138,7 @@ sequenceDiagram
     H->>P: plays as the device profile: the named screen the first time — a name, an avatar, the terms line (ADR 0043)
     H->>API: POST /api/devices, POST /api/devices/profiles — then every request names it (X-Tohe-Device-Profile)
   else signed in, no profile chosen
-    H->>P: "Ai đang chơi?" — keeps next=/r/482913
+    H->>P: "Ai đang chơi?" — the entry kept on this tab for an hour, then back to /r/482913
   end
   H->>API: GET /api/rooms/by-code/482913
   API-->>H: preview: game, host, seats, options, state

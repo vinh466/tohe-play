@@ -5,7 +5,9 @@ import {
   createRouter,
   lazyRouteComponent,
   Outlet,
+  redirect,
 } from '@tanstack/react-router';
+import { canonicalEntry } from './entry/codes.ts';
 import { AccountEmailPage } from './pages/AccountEmailPage.tsx';
 import { AccountPage } from './pages/AccountPage.tsx';
 import { CatalogPage } from './pages/CatalogPage.tsx';
@@ -131,6 +133,13 @@ const transferSendRoute = createRoute({
   component: lazyRouteComponent(() => import('./pages/TransferPage.tsx'), 'TransferSendPage'),
 });
 
+/** "Link của tôi" (ADR 0044): the share links the profile playing made, their counts, a new expiry, revoking. */
+const linksRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/account/links',
+  component: lazyRouteComponent(() => import('./pages/LinksPage.tsx'), 'LinksPage'),
+});
+
 /** What telemetry sends, this device's switch and the last batch (ADR 0015); open to everyone. */
 const dataRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -151,10 +160,30 @@ const roomsRoute = createRoute({
   path: '/play/$gameId/rooms',
   component: lazyRouteComponent(() => import('./pages/RoomsPage.tsx'), 'RoomsPage'),
 });
-const joinRoute = createRoute({
+/**
+ * The entry pipeline (ADR 0044): a table's link and a share link. A person sent on from a link preview's card arrives
+ * with `?app=1`, which means nothing here: the address drops it, and takes the code in its canonical form.
+ */
+const noSearch = (): Record<string, never> => ({});
+const roomLinkRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: '/r/$code',
-  component: lazyRouteComponent(() => import('./pages/JoinPage.tsx'), 'JoinPage'),
+  validateSearch: noSearch,
+  beforeLoad: ({ params, search }) => {
+    const canonical = canonicalEntry('room', params.code, search);
+    if (canonical) throw redirect({ to: '/r/$code', params: canonical, search: {}, replace: true });
+  },
+  component: lazyRouteComponent(() => import('./pages/EntryPage.tsx'), 'RoomEntryPage'),
+});
+const shareLinkRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/s/$code',
+  validateSearch: noSearch,
+  beforeLoad: ({ params, search }) => {
+    const canonical = canonicalEntry('share', params.code, search);
+    if (canonical) throw redirect({ to: '/s/$code', params: canonical, search: {}, replace: true });
+  },
+  component: lazyRouteComponent(() => import('./pages/EntryPage.tsx'), 'ShareEntryPage'),
 });
 const roomRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -186,7 +215,9 @@ export function createAppRouter(queryClient: QueryClient) {
       transferSendRoute,
       playRoute,
       roomsRoute,
-      joinRoute,
+      roomLinkRoute,
+      shareLinkRoute,
+      linksRoute,
       roomRoute,
       replayRoute,
     ]),

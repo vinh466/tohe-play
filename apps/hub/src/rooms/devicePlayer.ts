@@ -1,6 +1,7 @@
-// Who acts at the tables (ADR 0043): the account's session, or a device profile with its device's key. The API reads
-// the device key only when a request names a device profile — by a header, or in the rooms hub's address, as a
-// WebSocket carries no headers — so the hub names one exactly while a device profile plays. docs/architecture/rooms.md
+// Who acts at the tables and on share links (ADR 0043, 0044): the account's session, or a device profile with its
+// device's key. The API reads the device key only when a request names a device profile — by a header, or in the rooms
+// hub's address, as a WebSocket carries no headers — so the hub names one exactly while a device profile plays.
+// docs/architecture/rooms.md, docs/architecture/entry-links.md
 import { api } from '../api/client.ts';
 import { TERMS_VERSION } from '../legal/documents.ts';
 
@@ -43,9 +44,12 @@ export function hubUrl(who: Acting | null = acting): string {
   return `${HUB_PATH}?${query.toString()}`;
 }
 
-/** The headers a rooms request carries while a device profile acts. */
+/** The API's paths where a device profile acts with its device's key: the tables, and its share links. */
+const ACTING_PATHS = ['/api/rooms', '/api/links'];
+
+/** The headers a request to the tables or to share links carries while a device profile acts. */
 export function deviceHeaders(path: string, who: Acting | null = acting): Record<string, string> {
-  if (!who || !path.startsWith('/api/rooms')) return {};
+  if (!who || !ACTING_PATHS.some((prefix) => path === prefix || path.startsWith(`${prefix}/`))) return {};
   return { [PROFILE_HEADER]: who.id, [TERMS_HEADER]: who.terms };
 }
 

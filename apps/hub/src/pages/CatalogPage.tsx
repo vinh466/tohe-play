@@ -2,12 +2,14 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { gamesQuery } from '../api/queries.ts';
+import { EnterCodeButton } from '../entry/EnterCode.tsx';
+import { ShareButton } from '../entry/ShareSheet.tsx';
 import { InstallNudge } from '../install/InstallNudge.tsx';
 import { hasShell } from '../launcher/manifest.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { MovedNotice } from '../session/MovedNotice.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
-import type { Player } from '../session/session.ts';
+import type { Player, SessionState } from '../session/session.ts';
 import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync.ts';
 import { funnel } from '../telemetry/telemetry.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
@@ -17,12 +19,15 @@ import { MenuButton } from '../ui/MenuButton.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
 
+type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
+
 export function CatalogPage() {
-  return <RequireSession need="player">{(session) => <Catalog player={session.player} />}</RequireSession>;
+  return <RequireSession need="player">{(session) => <Catalog session={session} />}</RequireSession>;
 }
 
-function Catalog({ player }: { player: Player }) {
+function Catalog({ session }: { session: PlayingSession }) {
   const { t } = useTranslation();
+  const { player } = session;
   const games = useQuery(gamesQuery(player.id));
   const onDevice = player.kind === 'device';
   useBackgroundSync(player);
@@ -74,9 +79,13 @@ function Catalog({ player }: { player: Player }) {
       )}
 
       <section aria-labelledby="games-heading" className="flex flex-col gap-3">
-        <h2 id="games-heading" className="font-bold text-ink text-xl">
-          {t('games')}
-        </h2>
+        {/* "Nhập mã" in sight on the first screen (ADR 0044): the installed app on an iPhone cannot follow a link. */}
+        <div className="flex items-center justify-between gap-3">
+          <h2 id="games-heading" className="font-bold text-ink text-xl">
+            {t('games')}
+          </h2>
+          <EnterCodeButton />
+        </div>
         {games.isPending && <p className="text-ink-soft">{t('loading')}</p>}
         {games.isError && <p className="text-danger">{t('loadFailed')}</p>}
         {games.data?.length === 0 && <p className="text-ink-soft">{t('noGames')}</p>}
@@ -100,6 +109,7 @@ function Catalog({ player }: { player: Player }) {
                 <span className="font-bold text-ink text-lg">{game.name}</span>
                 <span className="line-clamp-2 text-ink-soft text-sm">{game.description}</span>
               </Link>
+              <ShareButton game={game} session={session} />
               {syncsWithServer(player) ? <LeaderboardButton game={game} player={player} /> : null}
             </li>
           ))}

@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, auth, devices, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { deviceProfilesQuery, profileOptionsQuery } from '../api/queries.ts';
+import { intentPath } from '../entry/codes.ts';
+import { entry } from '../entry/intent.ts';
 import { useLeaveTo } from '../navigation/leave.tsx';
 import { BringIn } from '../session/BringIn.tsx';
 import { withProgress } from '../session/bringInChoices.ts';
@@ -48,13 +50,25 @@ export function ProfilesPage() {
   );
 }
 
-/** Back to a room link that needed a player (session/next.ts), or to the catalog. */
+/**
+ * Back to the entry this tab keeps (ADR 0044) — a link, a typed code, a game — or a page that needed a player
+ * (session/next.ts), or to the catalog.
+ */
 function useGoOn() {
   const leaveTo = useLeaveTo();
   return useCallback(async () => {
     const next = takeNext();
-    leaveTo({ to: next ?? '/play' });
+    const kept = entry.current();
+    leaveTo({ to: kept ? intentPath(kept) : (next ?? '/play') });
   }, [leaveTo]);
+}
+
+/**
+ * Another profile chosen by hand on a shared device ("Đổi người chơi", not the picker the hub sent someone to): the
+ * entry this tab kept was someone else's (ADR 0044).
+ */
+function forgetEntryOnSwitch(auto: boolean | undefined, from: string | null, to: string) {
+  if (!auto && from !== to) entry.forget();
 }
 
 /**
@@ -94,6 +108,7 @@ function useBringInOffer() {
 
 function Picker({ me }: { me: MeView }) {
   const { t } = useTranslation();
+  const { auto } = useSearch({ from: '/account/profiles' });
   const navigate = useNavigate();
   const setMe = useSetMe();
   const goOn = useGoOn();
@@ -110,7 +125,8 @@ function Picker({ me }: { me: MeView }) {
   const select = useMutation({
     mutationFn: ({ profile, pin }: { profile: ProfileView; pin?: string }) =>
       session.selectProfile(profile.id, pin),
-    onSuccess: async (next) => {
+    onSuccess: async (next, { profile }) => {
+      forgetEntryOnSwitch(auto, me.activeProfileId, profile.id);
       setPinFor(null);
       await setMe(next);
       await goOn();
@@ -124,6 +140,8 @@ function Picker({ me }: { me: MeView }) {
   const signOut = useMutation({
     mutationFn: () => auth.logout(),
     onSettled: async () => {
+      // Whoever signs in next on this device did not come for this tab's entry.
+      entry.forget();
       await setMe(null);
       await navigate({ to: '/account/sign-in', replace: true });
     },
@@ -141,7 +159,6 @@ function Picker({ me }: { me: MeView }) {
   // When the hub sent someone here to pick a player (`auto`), an account that leaves nobody to choose goes straight on
   // (ADR 0023): signing up and signing in already chose its only profile, or it has one profile without a PIN that
   // this device has not chosen yet. Decided once the device's profiles were offered, so the picker never flashes.
-  const { auto } = useSearch({ from: '/account/profiles' });
   const handled = useRef(!auto);
   const [moving, setMoving] = useState(!!auto);
   const play = select.mutate;
@@ -288,6 +305,7 @@ function Picker({ me }: { me: MeView }) {
  */
 function DevicePicker() {
   const { t } = useTranslation();
+  const { auto } = useSearch({ from: '/account/profiles' });
   const goOn = useGoOn();
   const changed = useDeviceProfilesChanged();
   const profiles = useQuery(deviceProfilesQuery);
@@ -296,6 +314,7 @@ function DevicePicker() {
   const list = profiles.data ?? [];
 
   const choose = async (profile: LocalProfile) => {
+    forgetEntryOnSwitch(auto, current, profile.id);
     currentDeviceProfile.set(profile.id);
     await changed();
     await goOn();
