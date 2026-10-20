@@ -9,8 +9,26 @@ namespace Tohe.Api.Modules.Rooms;
 /// their seats for the others who played, with nothing of them, and their own results lose who they were. A device
 /// profile brought into an account takes its seats and results with it (ADR 0043).
 /// </summary>
-internal sealed class RoomsProfileData(RoomRegistry registry, ToheDbContext db) : IProfileData, IProfileMoves
+internal sealed class RoomsProfileData(RoomRegistry registry, ToheDbContext db) : IProfileData, IProfileMoves, IKeptChildren, IProfileNames
 {
+    /// <summary>Its seats at live tables show the new name — a moderator's too — at once.</summary>
+    public async Task RenamedAsync(Guid profileId, string name, CancellationToken ct)
+    {
+        foreach (var room in registry.All.Where(room => !room.IsClosed && room.SeatOf(profileId) is not null))
+        {
+            await room.RunAsync(() => room.RenameAsync(profileId, name));
+        }
+    }
+
+    /// <summary>A child kept to its account now: it stays only at tables the account keeps to itself.</summary>
+    public async Task KeptAsync(Guid profileId, Guid accountId, CancellationToken ct)
+    {
+        foreach (var room in registry.All.Where(room => !room.IsClosed))
+        {
+            await room.RunAsync(() => room.KeepAsync(profileId, accountId));
+        }
+    }
+
     /// <summary>Its seats in finished hands and its results now name the account.</summary>
     public Task AdoptedAsync(Guid profileId, Guid accountId, CancellationToken ct) => MoveAsync(profileId, profileId, accountId, ct);
 

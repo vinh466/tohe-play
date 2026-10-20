@@ -3289,8 +3289,10 @@
             "default": true
           },
           "entry": {
-            "type": "string",
-            "default": "named"
+            "type": [
+              "null",
+              "string"
+            ]
           },
           "botsFill": {
             "type": "boolean",
@@ -3315,6 +3317,12 @@
           "spectators": {
             "type": "boolean",
             "default": false
+          },
+          "accountOnly": {
+            "type": [
+              "null",
+              "boolean"
+            ]
           }
         }
       },
@@ -5012,7 +5020,8 @@
           "handSeats",
           "mySeat",
           "spectators",
-          "watchers"
+          "watchers",
+          "accountOnly"
         ],
         "type": "object",
         "properties": {
@@ -5108,6 +5117,9 @@
               "type": "string",
               "format": "uuid"
             }
+          },
+          "accountOnly": {
+            "type": "boolean"
           }
         }
       },
@@ -5716,6 +5728,12 @@
           },
           "options": { },
           "spectators": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "accountOnly": {
             "type": [
               "null",
               "boolean"

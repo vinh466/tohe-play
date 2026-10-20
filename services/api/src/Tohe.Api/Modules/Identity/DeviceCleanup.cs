@@ -7,7 +7,8 @@ namespace Tohe.Api.Modules.Identity;
 /// <summary>
 /// Device profiles on the server unused for 90 days, and devices unseen for 90 days, are deleted there (ADR 0043) —
 /// through ADR 0034's deletion, so each module purges what it keeps, seats read "Người chơi đã xoá" and ids are retired.
-/// The copies on the devices stay: a device that needs the server again gives its profile a new id.
+/// A device that never kept a device profile is deleted a day after its key was made. The copies on the devices stay: a
+/// device that needs the server again gives its profile a new id.
 /// </summary>
 internal sealed partial class DeviceCleanup(ToheDbContext db, AccountDeletion deletion, TimeProvider clock, ILogger<DeviceCleanup> logger)
 {
@@ -16,6 +17,9 @@ internal sealed partial class DeviceCleanup(ToheDbContext db, AccountDeletion de
 
     /// <summary>Unused this long, a device profile — or a device — is deleted on the server.</summary>
     public static readonly TimeSpan Unused = TimeSpan.FromDays(90);
+
+    /// <summary>A device with no device profile on the server this long after its key was made is deleted.</summary>
+    public static readonly TimeSpan Unclaimed = TimeSpan.FromDays(1);
 
     /// <summary>Deletes what is due; returns how many device profiles and devices went.</summary>
     public async Task<(int Profiles, int Devices)> RunAsync(CancellationToken ct)
@@ -54,6 +58,12 @@ internal sealed partial class DeviceCleanup(ToheDbContext db, AccountDeletion de
             await transaction.CommitAsync(ct);
             db.ChangeTracker.Clear();
         }
+
+        // A key asked for and never used for a profile — a visit that sat nowhere, or a script — is not kept for 90 days.
+        var bare = clock.GetUtcNow() - Unclaimed;
+        devices += await db.Devices
+            .Where(d => d.CreatedAt < bare && !db.Profiles.Any(p => p.DeviceId == d.Id))
+            .ExecuteDeleteAsync(ct);
 
         if (profiles > 0 || devices > 0)
         {

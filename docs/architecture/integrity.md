@@ -72,7 +72,10 @@ person. Then nothing changes, its value neither: a person decides on the number 
 
 A finished hand (ADR 0016) is `verified · refereed` for every person at the table, saved in the transaction that stores
 the hand. With fewer than two people — the rest bots — it is not `public`: the account's board counts it, public boards
-will not (D-11). Playing with bots is not suspicious, only not comparable, so nothing is held for it.
+will not (D-11). Playing with bots is not suspicious, only not comparable, so nothing is held for it. Only profiles of
+accounts count as people here (ADR 0043): a device profile proves nobody else sat there — one account could play its
+own device profiles in another browser — so a hand needs two seats of accounts to be `public`; device profiles at the
+table are named in the decision's details (`devices`).
 
 ## Rules of version 1
 

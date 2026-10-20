@@ -82,6 +82,7 @@ erDiagram
     string invites "who may ask it to a table by ID: Anyone, PlayedWith, Account — a child Account (ADR 0033)"
     string terms_version "a device profile: the terms its player accepted, and when"
     timestamp last_used_at "a device profile: unused 90 days on the server, deleted there"
+    timestamp name_moderated_at "a device profile: a moderator chose its name, which its device keeps"
   }
   AUTH_ATTEMPT {
     uuid id "held by the client, sent back with the code"
@@ -666,7 +667,10 @@ flowchart TD
   signs in. With a provider, the hub starts at `/api/auth/external/{provider}?profile=<id>`; the id travels in the
   provider's state, then in the attempt, and `POST /api/auth/external/pending/signup` carries the device profile. A
   device profile whose id is not the attempt's, or whose id was taken meanwhile — even at the very moment the account
-  is made — is not brought in: the account is made the usual way and the device keeps it. Signing up needs no step-up:
+  is made — is not brought in: the account is made the usual way and the device keeps it. A device profile with a copy
+  on the server, of the device signing up (its key comes with the requests), is not "taken": the copy becomes the
+  account's first profile — or the child's beside it — the same row, keeping its id, seats and results, as when it is
+  [adopted](#bringing-one-into-an-account). Signing up needs no step-up:
   the person has just proved the address. The question is asked when the device profile playing has progress, or when
   the player named it or chose its avatar — never about the one the hub made silently and nobody touched.
 - **Signing in** (`/account/profiles` right after it): for each device profile **with progress** — or a copy on the
@@ -749,8 +753,10 @@ sequenceDiagram
   WebSocket cannot carry headers — and the session otherwise, never both; a named profile is found only among the key's
   device's own (`device_id`), so an account's session never acts for a device profile, nor one device for another's.
 - **Its id**, as when one is brought in: unknown to profiles and to retired ids, else `409 id_taken` and the hub gives it
-  a new one. Its own device sending its copy again answers 200 and brings it up to date — its name through the name
-  rules and the day's renames (`rename_limit`), its avatar, the terms.
+  a new one. Its own device sending its copy again answers 200 and brings it up to date — its avatar, the terms, and
+  its name through the name rules — and answers with the name the server keeps, which the device takes: the server's
+  stays when a moderator chose it (`name_moderated_at`, so a hidden name never comes back) or when the day's renames
+  are used up.
 - **Against abuse**: the proof-of-work of ADR 0037 when the console turns it on (a new copy only), a bucket per address
   (`device`, `Identity:DeviceRequestsPerMinute`), the name filter (`422 name_refused`), five copies per device
   (`409 too_many_profiles`).
@@ -759,7 +765,8 @@ sequenceDiagram
   screen again and sends the new version, kept with its time.
 - **Gone**: a device profile its device deleted, or the cleanup took, answers `404 device_profile_not_found`; the hub
   gives it a new id on the device, its data moved under it, and sends its copy again without asking — its player
-  accepted these terms already.
+  accepted these terms already, and the copy goes with the same version; new terms ask again as always. Any other new
+  id (`id_taken`) starts with no copy and no terms on the device.
 - **At tables** ([Online rooms](rooms.md#who-may-sit)): a table "Ai có link cũng vào" (`named`, the default) seats it; a
   table "Chỉ tài khoản" or "Chỉ hồ sơ trong tài khoản tôi" does not. It asks nobody by ID. A child whose "play with
   outsiders" is off never sits with it. Its results are marked as a device profile's and reach no public board
@@ -767,17 +774,19 @@ sequenceDiagram
 - **Deleting** it on the device deletes its copy (`DELETE /api/devices/profiles/{id}`, with the key) through
   [Deleting](#deleting): it leaves its tables, the modules purge, its seats read "Người chơi đã xoá", its id is retired.
 - **Cleanup** (`DeviceCleanup`, the `device-cleanup` worker, once a day): a device profile unused on the server for 90
-  days, and a device unseen for 90 days with its profiles, are deleted the same way. The copy on the device stays.
+  days, and a device unseen for 90 days with its profiles, are deleted the same way. A device key never used for a
+  device profile goes a day after it was made. The copy on the device stays.
 - **Moderation** ([Admin console](admin.md#users)): the console finds device profiles by name, renames one — how a
-  moderator hides a name — and takes any profile off its tables.
+  moderator hides a name; the name sticks, and its seats at live tables show it at once — and takes any profile off
+  its tables.
 
 **What the server keeps of a device profile, and for how long** — the facts the privacy notice needs (the owner covers
 device profiles in it with E-05):
 
 | What | Where | Until |
 | --- | --- | --- |
-| The device: the key's hash, when it was made and last seen | `identity.devices` | 90 days unseen |
-| The profile: id, name, avatar, the terms version and when accepted, when made and last used | `identity.profiles` (no account, no public ID, no email, no age) | deleted on the device, 90 days unused, or brought into an account |
+| The device: the key's hash, when it was made and last seen | `identity.devices` | 90 days unseen; a day, if it never kept a device profile |
+| The profile: id, name, avatar, the terms version and when accepted, when made and last used, when a moderator renamed it | `identity.profiles` (no account, no public ID, no email, no age) | deleted on the device, 90 days unused, or brought into an account |
 | Every name it had | `identity.profile_names` | with the profile |
 | Its seats, hands and results at tables | `rooms.*`, `integrity.results` (marked) | with the profile; seats in others' finished hands stay as "Người chơi đã xoá" |
 
@@ -817,7 +826,7 @@ until the profile is brought into an account (the transfer code of I2b will carr
 | `POST /api/profiles/adopt` | parent | Bring a device profile in with its id, saves and scores: a child's with an age band, an adult's without ([Device profiles](#bringing-one-into-an-account)) — its copy on the server, when this device's key came with the request, becomes the account's; `409 id_taken`, `422 name_refused` |
 | `POST /api/profiles/{id}/merge` | parent | Upload a device profile's saves and scores under one of the account's profiles — the newer save wins — and keep its name in the history; its copy on the server (`deviceProfileId`, this device's) moves there and is deleted; `409 id_taken`, `422 name_refused` |
 | `POST /api/devices` | — | The device key's cookie ([Device profiles on the server](#device-profiles-on-the-server)); a device that has one keeps it — 204 |
-| `POST /api/devices/profiles` | device key | Make, or bring up to date, a device profile's copy: `{id, name, avatar, termsVersion, proof?}` → `{id, name, avatar, termsVersion}`; `409 id_taken`, `409 too_many_profiles`, `412 terms_required`, `422 name_refused`, `429 rename_limit`, `400 proof_of_work_required` |
+| `POST /api/devices/profiles` | device key | Make, or bring up to date, a device profile's copy: `{id, name, avatar, termsVersion, proof?}` → `{id, name, avatar, termsVersion}` — the name the server keeps; `409 id_taken`, `409 too_many_profiles`, `412 terms_required`, `422 name_refused`, `400 proof_of_work_required` |
 | `DELETE /api/devices/profiles/{id}` | device key | Delete the copy for good ([Deleting](#deleting)) — 204, or `404 device_profile_not_found` |
 | `GET /api/profiles/by-id/{publicId}` | session | A profile's card — id, ID, name, avatar — to confirm before asking it to a table ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); never a child of another account nor a profile of an account suspended or waiting to be deleted (`profile_not_found`); 20 lookups an hour per account (`lookup_limit`) |
 | `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`, `onPublicBoards` — with `askedChild` to turn a child's on — and an adult's `invites`: `anyone`, `played-with`, `account`) / delete a profile — never the last — with everything of it ([above](#deleting)) |

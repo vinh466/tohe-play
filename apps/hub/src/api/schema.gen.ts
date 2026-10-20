@@ -1207,8 +1207,7 @@ export interface components {
             seats: number;
             /** @default true */
             isPublic: boolean;
-            /** @default named */
-            entry: string;
+            entry?: null | string;
             /** @default true */
             botsFill: boolean;
             botLevel?: null | string;
@@ -1222,6 +1221,7 @@ export interface components {
             options?: unknown;
             /** @default false */
             spectators: boolean;
+            accountOnly?: null | boolean;
         };
         DailyPoint: {
             /** Format: date */
@@ -1703,6 +1703,7 @@ export interface components {
             mySeat: null | number;
             spectators: boolean;
             watchers: string[];
+            accountOnly: boolean;
         };
         SavedGameView: {
             gameId: string;
@@ -1860,6 +1861,7 @@ export interface components {
             turnSeconds?: null | number;
             options?: unknown;
             spectators?: null | boolean;
+            accountOnly?: null | boolean;
         };
     };
     responses: never;

@@ -26,6 +26,17 @@ public static class RoomEntries
         _ => "own",
     };
 
+    /// <summary>
+    /// What a hub from before ADR 0043 meant (deprecated, remove after the next release): its "my account's profiles
+    /// only" is <c>own</c>, and its other tables were for accounts.
+    /// </summary>
+    public static string? FromAccountOnly(bool? accountOnly) => accountOnly switch
+    {
+        true => "own",
+        false => "account",
+        null => null,
+    };
+
     public static bool TryParse(string? name, out RoomEntry entry)
     {
         entry = name switch

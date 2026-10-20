@@ -13,6 +13,7 @@ const room = (over: Partial<RoomView> = {}): RoomView => ({
   hostProfileId: 'p-bo',
   isPublic: true,
   entry: 'named',
+  accountOnly: false,
   locked: false,
   seats: 4,
   botsFill: true,

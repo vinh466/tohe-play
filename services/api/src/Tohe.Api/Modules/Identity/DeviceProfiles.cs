@@ -95,10 +95,6 @@ internal sealed class DeviceProfiles(
     public const int MaxScores = 1000;
 
     /// <summary>
-    /// True when the server cannot take this id: a profile has it, or had it and was deleted (ADR 0034). Aliases join
-    /// these with step I2. Profile ids are not secrets, so the answer tells nothing worth hiding.
-    /// </summary>
-    /// <summary>
     /// The account's own profile with this id: a device profile it already took, sent again because the answer was lost
     /// (ADR 0043). Bringing it in again is idempotent.
     /// </summary>
@@ -118,19 +114,36 @@ internal sealed class DeviceProfiles(
     }
 
     /// <summary>
+    /// True when this request's device may not bring the id in: <see cref="IdTakenAsync"/>, unless the id is the server
+    /// copy of a device profile of this very device — which comes in as itself (ADR 0043).
+    /// </summary>
+    public async Task<bool> TakenFromAsync(HttpContext http, Guid id, CancellationToken ct) =>
+        await IdTakenAsync(id, ct) && await ServerCopyAsync(http, id, ct) is null;
+
+    /// <summary>
     /// A device profile's server copy becomes the account's profile, the same row and id (ADR 0043): its account set and
     /// its device cleared, a 12-digit ID given now, the template of an adult or — with an age band — a child (ADR 0025),
     /// and what it reached until now stays a device profile's. It leaves the tables it sits at as a device profile; its
     /// seats and results at finished hands follow its id. Within the caller's transaction.
     /// </summary>
-    public async Task ConvertAsync(Profile profile, Guid accountId, DeviceProfileUpload upload, string name, DateTimeOffset now, CancellationToken ct)
+    /// <returns>False when the copy went at this very moment — deleted on its device, or cleaned up: nothing changed.</returns>
+    public async Task<bool> ConvertAsync(Profile profile, Guid accountId, DeviceProfileUpload upload, string name, DateTimeOffset now, CancellationToken ct)
     {
+        // Its device's profiles are serialized on the device's row (DeviceEndpoints): read again under it.
+        await db.Database.ExecuteSqlAsync($"SELECT 1 FROM identity.devices WHERE id = {profile.DeviceId} FOR UPDATE", ct);
+        await db.Entry(profile).ReloadAsync(ct);
+        if (db.Entry(profile).State == EntityState.Detached || profile.DeviceId is null)
+        {
+            return false;
+        }
+
         await WithdrawAsync(profile.Id, ct);
         var child = upload.AgeBand is not null;
         profile.AccountId = accountId;
         profile.DeviceId = null;
         profile.PublicId = await ProfileEndpoints.NewPublicIdAsync(db, ct);
-        profile.Name = name;
+        // A name a moderator chose stays (ADR 0035).
+        profile.Name = profile.NameModeratedAt is null ? name : profile.Name;
         profile.Avatar = upload.Avatar;
         profile.Kind = child ? ProfileKind.Child : ProfileKind.Adult;
         profile.AgeBand = upload.AgeBand;
@@ -146,6 +159,8 @@ internal sealed class DeviceProfiles(
         {
             await module.AdoptedAsync(profile.Id, accountId, ct);
         }
+
+        return true;
     }
 
     /// <summary>
@@ -170,6 +185,10 @@ internal sealed class DeviceProfiles(
         }
     }
 
+    /// <summary>
+    /// True when the server cannot take this id: a profile has it, or had it and was deleted (ADR 0034). Aliases join
+    /// these with step I2b. Profile ids are not secrets, so the answer tells nothing worth hiding.
+    /// </summary>
     public async Task<bool> IdTakenAsync(Guid id, CancellationToken ct) =>
         id == Guid.Empty
         || await db.Profiles.AnyAsync(profile => profile.Id == id, ct)
@@ -288,9 +307,12 @@ internal sealed class DeviceProfiles(
                     throw;
                 }
 
-                foreach (var added in db.ChangeTracker.Entries<Profile>().Where(entry => entry.State == EntityState.Added))
+                // A profile made, or a device profile's copy given its public ID now (ConvertAsync).
+                foreach (var drawn in db.ChangeTracker.Entries<Profile>().Where(entry =>
+                    entry.State == EntityState.Added
+                    || (entry.State == EntityState.Modified && entry.Property(p => p.PublicId).IsModified)))
                 {
-                    added.Entity.PublicId = await ProfileEndpoints.NewPublicIdAsync(db, ct);
+                    drawn.Entity.PublicId = await ProfileEndpoints.NewPublicIdAsync(db, ct);
                 }
             }
         }
@@ -301,10 +323,18 @@ internal sealed class DeviceProfiles(
     /// account already saved. A device profile whose id was taken at this very moment stays out: the account is made
     /// the usual way and the device keeps its profile (ADR 0043).
     /// </summary>
+    /// <param name="copy">The device profile's server copy, of the device that sent it (<see cref="ServerCopyAsync"/>): it
+    /// becomes the account's, keeping its id, seats and results, instead of a new row.</param>
     public async Task<Profile> SaveFirstProfileAsync(
-        Account account, string displayName, DeviceProfileUpload? device, string deviceName, DateTimeOffset now, CancellationToken ct)
+        Account account,
+        string displayName,
+        DeviceProfileUpload? device,
+        string deviceName,
+        DateTimeOffset now,
+        CancellationToken ct,
+        Profile? copy = null)
     {
-        var profile = await FirstProfileAsync(account, displayName, device, deviceName, now, ct);
+        var profile = await FirstProfileAsync(account, displayName, device, deviceName, now, ct, copy);
         if (await SaveAsync(ct))
         {
             return profile;
@@ -328,11 +358,24 @@ internal sealed class DeviceProfiles(
     /// named <paramref name="displayName"/>, with the device profile as a child's beside it when there is one (ADR 0043).
     /// </summary>
     public async Task<Profile> FirstProfileAsync(
-        Account account, string displayName, DeviceProfileUpload? device, string deviceName, DateTimeOffset now, CancellationToken ct)
+        Account account,
+        string displayName,
+        DeviceProfileUpload? device,
+        string deviceName,
+        DateTimeOffset now,
+        CancellationToken ct,
+        Profile? copy = null)
     {
+        // Its server copy, gone at this very moment: a new row with its id would be refused, so the usual way.
+        if (device is not null && copy is not null && !await ConvertAsync(copy, account.Id, device, deviceName, now, ct))
+        {
+            device = null;
+            copy = null;
+        }
+
         if (device is { AgeBand: null })
         {
-            var own = await AddAsync(account.Id, device, deviceName, now, ct);
+            var own = copy ?? await AddAsync(account.Id, device, deviceName, now, ct);
             await ImportAsync(own.Id, account.Id, device.Data, ct);
             return own;
         }
@@ -353,7 +396,8 @@ internal sealed class DeviceProfiles(
         if (device is not null)
         {
             // Made a moment later, so the account's own profile stays the first in its list.
-            var child = await AddAsync(account.Id, device, deviceName, now.AddTicks(10), ct);
+            var child = copy ?? await AddAsync(account.Id, device, deviceName, now.AddTicks(10), ct);
+            child.CreatedAt = copy is null ? child.CreatedAt : now.AddTicks(10);
             await ImportAsync(child.Id, account.Id, device.Data, ct);
         }
 

@@ -209,6 +209,7 @@ internal static class IdentityModule
         services.AddScoped<DeviceProfiles>();
         // Device profiles on the server (ADR 0043): who acts at a table, and the 90-day cleanup.
         services.AddScoped<IDevicePlayers, DevicePlayers>();
+        services.AddScoped<IKeptProfiles, KeptProfiles>();
         services.AddScoped<DeviceCleanup>();
         if (builder.Configuration.GetValue($"{IdentityOptions.Section}:DeviceCleanupEnabled", defaultValue: true)
             && !BuildTime.IsGeneratingOpenApi)

@@ -370,6 +370,8 @@ internal static class UsersEndpoints
             await transaction.CommitAsync(ct);
         }
 
+        await accounts.ShowNameAsync(profile, ct);
+
         return TypedResults.Ok((await accounts.DetailAsync(accountId, ct))!);
     }
 
@@ -404,6 +406,8 @@ internal static class UsersEndpoints
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
         }
+
+        await accounts.ShowNameAsync(profile, ct);
 
         return TypedResults.Ok((await accounts.DeviceProfileAsync(id, ct))!);
     }

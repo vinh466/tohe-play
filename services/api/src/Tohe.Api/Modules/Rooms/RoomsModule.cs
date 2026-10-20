@@ -40,6 +40,8 @@ internal static class RoomsModule
         services.AddScoped<IProfileData>(provider => provider.GetRequiredService<RoomsProfileData>());
         // A device profile brought into an account takes its seats and results with it (ADR 0043).
         services.AddScoped<IProfileMoves>(provider => provider.GetRequiredService<RoomsProfileData>());
+        services.AddScoped<IKeptChildren>(provider => provider.GetRequiredService<RoomsProfileData>());
+        services.AddScoped<IProfileNames>(provider => provider.GetRequiredService<RoomsProfileData>());
         services.AddSignalR(options => options.MaximumReceiveMessageSize = 16 * 1024);
         if (builder.Configuration.GetValue($"{RoomsOptions.Section}:ClockEnabled", defaultValue: true) && !BuildTime.IsGeneratingOpenApi)
         {
@@ -162,7 +164,7 @@ internal static class RoomsModule
             .WithSummary("A room the active profile sits at, or may see in the lobby.");
 
         rooms.MapPost("/{id:guid}/join", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
-                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, IKeptProfiles kept, CancellationToken ct) =>
             {
                 var player = PlayerOf(http);
                 if (registry.Find(id) is not { } room)
@@ -176,14 +178,14 @@ internal static class RoomsModule
                     return Refused(RoomErrors.TooYoung);
                 }
 
-                var problem = await room.RunAsync(() => room.JoinAsync(player));
+                var problem = await room.RunAsync(async () => await room.JoinAsync(player, await KeptNowAsync(room, player, kept, ct)));
                 return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
             })
             .WithName("JoinRoom")
             .WithSummary("Sit at a room: an empty seat, or between hands a bot's.");
 
         rooms.MapPost("/{id:guid}/watch", async Task<Results<Ok<RoomView>, NotFound, ProblemHttpResult>> (
-                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, CancellationToken ct) =>
+                Guid id, HttpContext http, RoomRegistry registry, IRegistryGames games, IKeptProfiles kept, CancellationToken ct) =>
             {
                 var player = PlayerOf(http);
                 if (registry.Find(id) is not { } room)
@@ -197,7 +199,7 @@ internal static class RoomsModule
                     return Refused(RoomErrors.TooYoung);
                 }
 
-                var problem = await room.RunAsync(() => room.WatchAsync(player));
+                var problem = await room.RunAsync(async () => await room.WatchAsync(player, await KeptNowAsync(room, player, kept, ct)));
                 return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
             })
             .WithName("WatchRoom")
@@ -299,9 +301,9 @@ internal static class RoomsModule
                 }
 
                 RoomEntry? entry = null;
-                if (request.Entry is not null)
+                if (request.EntryAsked() is { } asked)
                 {
-                    if (!RoomEntries.TryParse(request.Entry, out var parsed))
+                    if (!RoomEntries.TryParse(asked, out var parsed))
                     {
                         return Refused(RoomErrors.InvalidOptions);
                     }
@@ -360,6 +362,13 @@ internal static class RoomsModule
     }
 
     private static Player PlayerOf(HttpContext http) => (Player)http.Items[typeof(Player)]!;
+
+    /// <summary>
+    /// For a device profile coming in: the children at the table kept to their accounts as their accounts say now
+    /// (ADR 0043). Read inside the room's turn, so nobody sits down meanwhile.
+    /// </summary>
+    private static async Task<IReadOnlySet<Guid>?> KeptNowAsync(RoomActor room, Player player, IKeptProfiles kept, CancellationToken ct) =>
+        player.IsDevice ? await kept.KeptAsync(room.AccountMembers(), ct) : null;
 
     /// <summary>
     /// The player a request acts as (ADR 0043): with the device key, the device profile it names — of that device, with
@@ -474,7 +483,7 @@ internal static class RoomsModule
             return Problems.Field("botLevel", RoomErrors.InvalidOptions);
         }
 
-        if (!RoomEntries.TryParse(request.Entry, out var entry))
+        if (!RoomEntries.TryParse(request.EntryAsked(), out var entry))
         {
             return Problems.Field("entry", RoomErrors.InvalidOptions);
         }

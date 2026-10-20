@@ -219,7 +219,12 @@ internal static class ProfileEndpoints
         // account's, keeping its id, its seats and results (ADR 0043).
         if (await devices.ServerCopyAsync(http, request.Id, ct) is { } copy)
         {
-            await devices.ConvertAsync(copy, context.Account.Id, request, name, clock.GetUtcNow(), ct);
+            // Gone at this very moment — deleted or cleaned up, its id retired: the hub gives it a new one.
+            if (!await devices.ConvertAsync(copy, context.Account.Id, request, name, clock.GetUtcNow(), ct))
+            {
+                return DeviceProfiles.IdTaken();
+            }
+
             await devices.ImportAsync(copy.Id, context.Account.Id, request.Data, ct);
             await devices.SaveAsync(ct);
             await transaction.CommitAsync(ct);
@@ -324,6 +329,7 @@ internal static class ProfileEndpoints
         Context context,
         TimeProvider clock,
         IOptions<IdentityOptions> options,
+        IEnumerable<IKeptChildren> tables,
         CancellationToken ct)
     {
         var profile = await context.Db.Profiles
@@ -383,8 +389,10 @@ internal static class ProfileEndpoints
         profile.Avatar = request.Avatar ?? profile.Avatar;
         profile.AgeBand = request.AgeBand ?? profile.AgeBand;
         profile.Invites = invites;
+        var keptNow = false;
         if (request.PlayWithOthers is { } others && profile.Kind == ProfileKind.Child)
         {
+            keptNow = profile.PlayWithOthers && !others;
             profile.PlayWithOthers = others;
         }
 
@@ -404,6 +412,16 @@ internal static class ProfileEndpoints
         }
 
         await context.Db.SaveChangesAsync(ct);
+
+        // Kept to its account from now on: it leaves the tables where outsiders — device profiles too — may sit.
+        if (keptNow)
+        {
+            foreach (var table in tables)
+            {
+                await table.KeptAsync(profile.Id, context.Account.Id, ct);
+            }
+        }
+
         return TypedResults.Ok(await context.MeAsync(ct));
     }
 

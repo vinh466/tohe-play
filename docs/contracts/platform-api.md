@@ -22,6 +22,12 @@ The Platform API (`services/api`) serves the hub. **Games never call it** — th
 | Telemetry | `POST /api/telemetry` is anonymous (the hub's batches, ADR 0015); `GET /api/telemetry/report` needs the operator token in `X-Tohe-Operator`. See [Device telemetry](../architecture/telemetry.md). |
 | Interactive docs | `GET /api/docs` (Scalar) on a running API where `Api:Reference:Enabled` is on: `pnpm dev` and compose, not UAT or production ([Configuration](../guides/configuration.md#api)). |
 
+## Deprecated
+
+| What | Since | Remove |
+| --- | --- | --- |
+| `accountOnly` on `POST /api/rooms` and `PATCH /api/rooms/{id}`, and in `RoomView` — read only when `entry` is left out: `true` is `own`, `false` is `account`; in a view, `entry == own` | ADR 0043, I2a: a hub cached on phones still sends and reads it | after the next release |
+
 ## Changing the API
 
 1. Change the endpoint in its module (`Modules/<Name>/`), with a test in `tests/Tohe.Api.Tests`.

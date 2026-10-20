@@ -80,7 +80,12 @@ public sealed record ProfileCard(Guid Id, string Name, string Avatar, string Pub
 /// console checks who may do what; this only does it.
 /// </summary>
 internal sealed class AccountsAdmin(
-    ToheDbContext db, UserManager<Account> users, PlatformRoles roles, IEnumerable<IProfileData> modules)
+    ToheDbContext db,
+    UserManager<Account> users,
+    PlatformRoles roles,
+    IEnumerable<IProfileData> modules,
+    IEnumerable<IProfileNames> names,
+    TimeProvider clock)
 {
     private const int Page = 50;
 
@@ -314,8 +319,23 @@ internal sealed class AccountsAdmin(
 
         var before = profile.Name;
         profile.Name = clean;
+        // A device profile's copy keeps the moderator's name whatever its device sends later (ADR 0043).
+        if (profile.DeviceId is not null)
+        {
+            profile.NameModeratedAt = clock.GetUtcNow();
+        }
+
         await db.SaveChangesAsync(ct);
         return (before, null);
+    }
+
+    /// <summary>The tables show a profile's new name at once: its seats, as others see them.</summary>
+    public async Task ShowNameAsync(Profile profile, CancellationToken ct)
+    {
+        foreach (var table in names)
+        {
+            await table.RenamedAsync(profile.Id, profile.Name, ct);
+        }
     }
 
     private static string Like(string text) =>

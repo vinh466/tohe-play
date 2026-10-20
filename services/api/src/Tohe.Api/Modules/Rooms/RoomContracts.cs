@@ -12,19 +12,28 @@ namespace Tohe.Api.Modules.Rooms;
 /// <param name="BotsTakeOver">A bot plays for a player whose phone is gone longer than the grace period.</param>
 /// <param name="TurnSeconds">Seconds per turn; 0 for none.</param>
 /// <param name="Options">The game's options (house rules) by id; missing ones take the game's defaults.</param>
+/// <param name="AccountOnly">Deprecated — a hub from before ADR 0043 still sends it; remove after the next release. Read
+/// only when <paramref name="Entry"/> is left out: <c>true</c> is <c>own</c>, <c>false</c> is <c>account</c>.</param>
 public sealed record CreateRoomRequest(
     [Required, StringLength(40)] string GameId,
     [Range(2, 8)] int Seats = 4,
     bool IsPublic = true,
-    [StringLength(8)] string Entry = "named",
+    [StringLength(8)] string? Entry = null,
     bool BotsFill = true,
     [StringLength(16)] string? BotLevel = null,
     bool BotsTakeOver = true,
     [Range(0, 120)] int TurnSeconds = 20,
     JsonElement? Options = null,
-    bool Spectators = false);
+    bool Spectators = false,
+    bool? AccountOnly = null)
+{
+    /// <summary>The entry asked for: <see cref="Entry"/>, else the old hub's <see cref="AccountOnly"/>, else <c>named</c>.</summary>
+    public string EntryAsked() => Entry ?? RoomEntries.FromAccountOnly(AccountOnly) ?? "named";
+}
 
 /// <summary>What the host may change before a hand starts; fields left out stay as they are.</summary>
+/// <param name="AccountOnly">Deprecated, as on <see cref="CreateRoomRequest"/>; read only when <paramref name="Entry"/>
+/// is left out. Remove after the next release.</param>
 public sealed record UpdateRoomRequest(
     [Range(2, 8)] int? Seats = null,
     bool? IsPublic = null,
@@ -35,7 +44,12 @@ public sealed record UpdateRoomRequest(
     bool? BotsTakeOver = null,
     [Range(0, 120)] int? TurnSeconds = null,
     JsonElement? Options = null,
-    bool? Spectators = null);
+    bool? Spectators = null,
+    bool? AccountOnly = null)
+{
+    /// <summary>The entry asked for, if any: <see cref="Entry"/>, else the old hub's <see cref="AccountOnly"/>.</summary>
+    public string? EntryAsked() => Entry ?? RoomEntries.FromAccountOnly(AccountOnly);
+}
 
 /// <param name="Bot">A bot level to seat a bot; null to empty the seat (removing a bot or a player).</param>
 public sealed record SetSeatRequest([StringLength(16)] string? Bot);
@@ -61,6 +75,8 @@ public sealed record SeatView(
 /// <param name="Watchers">Profiles watching the table now.</param>
 /// <param name="MySeat">The active profile's seat, or null if it is not at the table.</param>
 /// <param name="Entry">Who may sit: <c>named</c>, <c>account</c> or <c>own</c> (ADR 0043).</param>
+/// <param name="AccountOnly">Deprecated — <c>entry</c> is <c>own</c> — for a hub from before ADR 0043; remove after the
+/// next release.</param>
 public sealed record RoomView(
     Guid Id,
     string Code,
@@ -83,7 +99,8 @@ public sealed record RoomView(
     IReadOnlyList<int> HandSeats,
     int? MySeat,
     bool Spectators,
-    IReadOnlyList<Guid> Watchers);
+    IReadOnlyList<Guid> Watchers,
+    bool AccountOnly);
 
 /// <summary>A room in the lobby list.</summary>
 public sealed record RoomSummary(

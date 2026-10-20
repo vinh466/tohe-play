@@ -106,6 +106,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                 nullable: true);
 
             migrationBuilder.AddColumn<DateTimeOffset>(
+                name: "name_moderated_at",
+                schema: "identity",
+                table: "profiles",
+                type: "timestamp with time zone",
+                nullable: true);
+
+            migrationBuilder.AddColumn<DateTimeOffset>(
                 name: "terms_accepted_at",
                 schema: "identity",
                 table: "profiles",
@@ -250,6 +257,11 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                 table: "profiles");
 
             migrationBuilder.DropColumn(
+                name: "name_moderated_at",
+                schema: "identity",
+                table: "profiles");
+
+            migrationBuilder.DropColumn(
                 name: "terms_accepted_at",
                 schema: "identity",
                 table: "profiles");
@@ -258,6 +270,9 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                 name: "terms_version",
                 schema: "identity",
                 table: "profiles");
+
+            // Tables a device profile hosted have no host account: an empty one, as a deleted host's (RoomsProfileData).
+            migrationBuilder.Sql("UPDATE rooms.rooms SET host_account_id = '00000000-0000-0000-0000-000000000000' WHERE host_account_id IS NULL;");
 
             migrationBuilder.AlterColumn<Guid>(
                 name: "host_account_id",

@@ -166,8 +166,11 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
     public void SubmitHand(string gameId, Guid roomId, int hand, IReadOnlyList<HandSeat> seats, DateTimeOffset at)
     {
         // RoomVerifier: the server dealt and refereed the hand. With fewer than two people it is not comparable (D-11).
-        var people = seats.Count(seat => seat.ProfileId is not null);
-        var details = people < 2 ? new { people } : null;
+        // Only people of accounts count: a device profile proves nobody else was there — one account against its own
+        // device profiles in another browser would make a public hand (ADR 0043). They are named in the details.
+        var people = seats.Count(seat => seat is { ProfileId: not null, AccountId: not null });
+        var devices = seats.Count(seat => seat is { ProfileId: not null, AccountId: null });
+        object? details = people < 2 || devices > 0 ? new { people, devices } : null;
         foreach (var seat in seats)
         {
             if (seat is not { ProfileId: { } profileId })

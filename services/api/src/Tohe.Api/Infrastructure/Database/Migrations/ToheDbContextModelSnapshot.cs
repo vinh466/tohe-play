@@ -690,6 +690,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("name");
 
+                    b.Property<DateTimeOffset?>("NameModeratedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("name_moderated_at");
+
                     b.Property<bool>("OnPublicBoards")
                         .HasColumnType("boolean")
                         .HasColumnName("on_public_boards");

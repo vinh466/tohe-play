@@ -53,8 +53,8 @@ export function mayEnter(name: string, ticked: boolean): boolean {
 /**
  * Makes, or brings up to date, the device profile's copy, with the terms its player accepted: a device key first, then
  * the copy. An id the server cannot take (`id_taken`) is replaced on the device — its saves and scores move under the
- * new one — and asked again. A name renamed too often today stays as the server has it. Returns the profile as the device
- * keeps it now.
+ * new one — and asked again. The server answers with the name it keeps — a moderator's, or the one it had when the day's
+ * renames are used up (ADR 0035) — and the device keeps that one too. Returns the profile as the device keeps it now.
  */
 export async function sendServerCopy(
   db: ToheDb,
@@ -66,20 +66,21 @@ export async function sendServerCopy(
   await api.start();
   let id = profile.id;
   const name = cleanName(profile.name);
+  let kept: DeviceProfileView;
   for (let attempt = 0; ; attempt++) {
     try {
-      await prove((proof) =>
+      kept = await prove((proof) =>
         api.register({ id, name, avatar: profile.avatar, termsVersion: terms, proof: proof ?? null }),
       );
       break;
     } catch (error) {
-      if (error instanceof ApiError && error.code === 'rename_limit') break;
       if (!(error instanceof ApiError && error.code === 'id_taken') || attempt >= 2) throw error;
       id = await reIdDeviceProfile(db, id);
     }
   }
   await db.profiles.update(id, {
-    server: { name: profile.name, avatar: profile.avatar },
+    name: kept.name,
+    server: { name: kept.name, avatar: kept.avatar },
     termsVersion: terms,
   });
   const stored = await db.profiles.get(id);
@@ -94,9 +95,11 @@ export async function sendServerCopy(
  */
 export async function lostServerCopy(db: ToheDb, id: string): Promise<string | null> {
   // Several requests may hear it at once: the first gives the new id.
-  if (!(await db.profiles.get(id))) return null;
+  const lost = await db.profiles.get(id);
+  if (!lost) return null;
   const next = await reIdDeviceProfile(db, id);
-  await db.profiles.update(next, { server: undefined });
+  // The same player accepted these terms already: the copy goes again without asking (identity.md).
+  if (lost.termsVersion) await db.profiles.update(next, { termsVersion: lost.termsVersion });
   return next;
 }
 

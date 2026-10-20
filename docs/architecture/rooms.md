@@ -299,9 +299,15 @@ Tables opened before I2a kept their door: "my account's profiles only" became `o
   playing, its results and replays — and open a table of its own, always `named`. It asks nobody by ID, and nobody finds
   it by one: it has none (`account_required`).
 - **Children**: a child whose "Chơi online với người ngoài" is off sits only at tables kept to its account, and never
-  with a device profile — a device profile is always an outsider. The table checks both ways: such a child does not sit
-  where a device profile sits, nor a device profile where such a child sits, whatever the host opens the door to later
-  (`parent_permission`).
+  with a device profile — a device profile is always an outsider. The table checks both ways, seated or watching: such a
+  child does not come in where a device profile is, nor a device profile where such a child is, whatever the host opens
+  the door to later (`parent_permission`). For a device profile coming in, the table reads the children's switches as
+  their accounts say now, not as they were when they sat. Turning a child's switch off takes it off any table that is
+  not kept to its account.
+- **A new door holds for those in**: when the host changes the entry, whoever it would not let in leaves — a device
+  profile from a table for accounts, another account's profile from one kept to the host's account — seated or
+  watching. The host role passes with its account: "the host's account" is the new host's; a device profile hosting has
+  none, so its table stays `named`.
 - **Results**: a device profile's result of a hand is recorded like anyone's — `rooms.results` without an account — and
   goes to the integrity engine marked `device_earned`: it counts in its own statistics and replays, never on a public
   board ([Integrity](integrity.md#public-boards)). Brought into an account, its results follow its id and stay marked.

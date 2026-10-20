@@ -26,7 +26,12 @@ import {
 } from './session/serverCopy.ts';
 import { playerGate } from './session/session.ts';
 import { type LocalProfile, openDb } from './storage/db.ts';
-import { createDeviceProfile, currentDeviceProfile, listDeviceProfiles } from './storage/deviceProfiles.ts';
+import {
+  createDeviceProfile,
+  currentDeviceProfile,
+  listDeviceProfiles,
+  reIdDeviceProfile,
+} from './storage/deviceProfiles.ts';
 import { loadSave, storeSave } from './storage/repository.ts';
 
 const store = new Map<string, string>();
@@ -113,7 +118,8 @@ describe('the server copy', () => {
     expect(stored).toMatchObject({
       id: made.id,
       termsVersion: TERMS,
-      server: { name: ' Mèo Cam ', avatar: '🐯' },
+      name: 'Mèo Cam',
+      server: { name: 'Mèo Cam', avatar: '🐯' },
     });
   });
 
@@ -130,14 +136,30 @@ describe('the server copy', () => {
     expect((await listDeviceProfiles(db)).map((p) => p.id)).toEqual([stored.id]);
   });
 
-  it('goes on with the server’s name when the day’s renames are used up', async () => {
+  it('keeps the name the server answers with: a moderator’s, or the one before the day’s renames ran out', async () => {
+    const db = fresh();
+    const made = await createDeviceProfile(db, { name: 'Tên xấu', avatar: '🐯' });
+    const api = server();
+    api.register = async (body) => ({
+      id: body.id,
+      name: 'Người chơi',
+      avatar: body.avatar,
+      termsVersion: body.termsVersion,
+    });
+    const stored = await sendServerCopy(db, api, made, TERMS, noProof);
+    expect(stored).toMatchObject({ name: 'Người chơi', server: { name: 'Người chơi', avatar: '🐯' } });
+    // No loop: what the device keeps is what the server has.
+    expect(tablesStep(stored, TERMS)).toBe('play');
+  });
+
+  it('a new id is unknown to the server: no copy and no terms until it is sent', async () => {
     const db = fresh();
     const made = await createDeviceProfile(db, { name: 'Mèo', avatar: '🐯' });
-    const api = server();
-    api.register = async () => {
-      throw new ApiError(429, 'rename_limit');
-    };
-    expect(tablesStep(await sendServerCopy(db, api, made, TERMS, noProof), TERMS)).toBe('play');
+    const sent = await sendServerCopy(db, server(), made, TERMS, noProof);
+    const next = await reIdDeviceProfile(db, sent.id);
+    const now = (await listDeviceProfiles(db)).find((p) => p.id === next);
+    expect(now?.server).toBeUndefined();
+    expect(now?.termsVersion).toBeUndefined();
   });
 
   it('found gone on the server: a new id on the device, sent again without asking', async () => {

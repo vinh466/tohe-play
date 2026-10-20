@@ -540,8 +540,10 @@ internal static class ExternalEndpoints
             CommunityId = community,
             InviteCode = inviteCode,
         };
-        // An id taken since the sign-in started: the account is made the usual way, and the device keeps its profile.
-        if (device is not null && await devices.IdTakenAsync(device.Id, ct))
+        // This device's copy on the server becomes the account's (ADR 0043). Another id taken since the sign-in started:
+        // the account is made the usual way, and the device keeps its profile.
+        var copy = device is null ? null : await devices.ServerCopyAsync(http, device.Id, ct);
+        if (device is not null && copy is null && await devices.IdTakenAsync(device.Id, ct))
         {
             device = null;
         }
@@ -562,7 +564,7 @@ internal static class ExternalEndpoints
 
         // The first profile: the device profile itself when it is the person's own, or the usual one — also when its id
         // was taken at this very moment (ADR 0043).
-        var profile = await devices.SaveFirstProfileAsync(account, displayName, device, deviceName, now, ct);
+        var profile = await devices.SaveFirstProfileAsync(account, displayName, device, deviceName, now, ct, copy);
 
         await transaction.CommitAsync(ct);
         metrics.SignUp(attempt.Provider!, "completed");

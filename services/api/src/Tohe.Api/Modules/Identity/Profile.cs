@@ -130,6 +130,12 @@ public sealed class Profile
     public DateTimeOffset? TermsAcceptedAt { get; set; }
 
     /// <summary>
+    /// A moderator renamed this device profile on the server (ADR 0035, 0043): its device sending its copy again keeps the
+    /// moderator's name — the device takes it from the answer — so a hidden name does not come back.
+    /// </summary>
+    public DateTimeOffset? NameModeratedAt { get; set; }
+
+    /// <summary>
     /// A device profile on the server: when it last did something there. Unused for 90 days, it is deleted there
     /// (<see cref="DeviceCleanup"/>); the copy on the device stays.
     /// </summary>

@@ -278,9 +278,10 @@ level 2 and in the audit log:
 **Device profiles on the server** ([ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md),
 [Identity](identity.md#device-profiles-on-the-server)) have no account: the Users page lists them apart, under "Hồ sơ trên
 máy", found by name or id, the latest used first — when they were made and last used, the terms their player accepted,
-the names they had. A moderator renames one, which is how a name is hidden — the device keeps its own copy's name, and
-sends it again only when its player changes it — and takes it off its tables, as above. It is on no public board, so
-there is nothing to hide it from.
+the names they had. A moderator renames one, which is how a name is hidden: the name sticks — the device sending its
+copy again keeps the moderator's name and takes it from the answer (`name_moderated_at`) — and its seats at live tables
+show it at once. A moderator also takes it off its tables, as above. It is on no public board, so there is nothing to
+hide it from.
 
 Nobody acts on their own account here (`admin_self`) — that is what the hub is for — nor on an account whose role is as
 strong as theirs (`admin_rank`), except an owner on another owner.

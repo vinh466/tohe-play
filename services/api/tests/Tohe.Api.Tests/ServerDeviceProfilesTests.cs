@@ -4,6 +4,7 @@ using System.Text.Json;
 using System.Text.Json.Nodes;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Http.Connections;
+using Microsoft.AspNetCore.SignalR;
 using Microsoft.AspNetCore.SignalR.Client;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -314,6 +315,8 @@ public sealed class ServerDeviceProfilesTests(ApiFactory factory) : IClassFixtur
         Assert.True(device.DeviceEarned);
         Assert.Null(device.AccountId);
         Assert.False(Assert.Single(results, r => r.ProfileId == bo.ProfileId).DeviceEarned);
+        // One account and a device profile are not two people: the hand is on no public board (ADR 0029, 0043).
+        Assert.All(results, r => Assert.False(r.Public));
 
         // The device profile has its own results and replays, and no account's board.
         var stats = await phone.Client.GetFromJsonAsync<RoomStatsView>(Url("/api/rooms/stats?game=tien-len"), Ct);
@@ -463,6 +466,220 @@ public sealed class ServerDeviceProfilesTests(ApiFactory factory) : IClassFixtur
             (await bo.Client.GetFromJsonAsync<RoomView>(Url($"/api/rooms/{room.Id}"), Ct))!.SeatList, seat => seat.ProfileId == phone.ProfileId);
     }
 
+    // ------------------------------------------------------------------ the review of PR #97
+
+    [Fact]
+    public async Task Signing_up_by_email_from_a_device_profile_with_a_copy_keeps_its_id_seats_and_results()
+    {
+        var phone = await DevicePhoneAsync("Mèo Cam");
+        var bo = await PersonAsync("Bố");
+        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 2 });
+        await SatAsync(room.Id, phone.ProfileId);
+
+        // The device's own copy is not "taken": the sign-up starts with its id, and brings it in as itself.
+        var email = Accounts.NewEmail();
+        var started = await phone.Plain.PostAsJsonAsync(
+            Url("/api/auth/register"),
+            new { email, password = Accounts.Password, displayName = "Mèo Cam", acceptTerms = true, termsVersion = Accounts.TermsVersion, deviceProfileId = phone.ProfileId },
+            Ct);
+        Assert.Equal(HttpStatusCode.Accepted, started.StatusCode);
+        var attempt = (await started.Content.ReadFromJsonAsync<AttemptView>(Ct))!.AttemptId;
+        var confirmed = await phone.Plain.PostAsJsonAsync(
+            Url("/api/auth/register/confirm"),
+            new { attemptId = attempt, code = await factory.CodeSentToAsync(email), deviceProfile = Upload(phone.ProfileId, "Mèo Cam") },
+            Ct);
+        Assert.Equal(HttpStatusCode.OK, confirmed.StatusCode);
+        var me = (await confirmed.Content.ReadFromJsonAsync<MeView>(Ct))!;
+        Assert.Equal(phone.ProfileId, Assert.Single(me.Profiles).Id);
+        var stored = await CountAsync(db => db.Profiles.AsNoTracking().SingleAsync(p => p.Id == phone.ProfileId, Ct));
+        Assert.Equal((me.Account.Id, (Guid?)null), (stored.AccountId, stored.DeviceId));
+        Assert.Equal(me.Account.Id, await CountAsync(db => db.RoomResults.Where(r => r.ProfileId == phone.ProfileId).Select(r => r.AccountId).SingleAsync(Ct)));
+
+        // Another device's copy stays someone else's.
+        var other = await StartedPhoneAsync();
+        var taken = await other.Plain.PostAsJsonAsync(
+            Url("/api/auth/register"),
+            new { email = Accounts.NewEmail(), password = Accounts.Password, displayName = "Gà", acceptTerms = true, termsVersion = Accounts.TermsVersion, deviceProfileId = (await DevicePhoneAsync("Gà")).ProfileId },
+            Ct);
+        Assert.Equal((HttpStatusCode.Conflict, "id_taken"), (taken.StatusCode, await CodeAsync(taken)));
+    }
+
+    [Fact]
+    public async Task An_old_hub_still_opens_and_reads_tables_with_account_only()
+    {
+        var bo = await PersonAsync("Bố");
+        var own = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, accountOnly = true });
+        Assert.Equal(("own", true), (own.Entry, own.AccountOnly));
+        var accounts = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, accountOnly = false });
+        Assert.Equal(("account", false), (accounts.Entry, accounts.AccountOnly));
+
+        var changed = await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{accounts.Id}"), new { accountOnly = true }, Ct);
+        Assert.Equal("own", (await changed.Content.ReadFromJsonAsync<RoomView>(Ct))!.Entry);
+        // A new hub's entry wins over the old field.
+        var both = await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{accounts.Id}"), new { entry = "named", accountOnly = true }, Ct);
+        var view = (await both.Content.ReadFromJsonAsync<RoomView>(Ct))!;
+        Assert.Equal(("named", false), (view.Entry, view.AccountOnly));
+    }
+
+    [Fact]
+    public async Task A_kept_child_watching_keeps_device_profiles_out_whatever_the_host_opens_later()
+    {
+        var bo = await PersonAsync("Bố");
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, entry = "own", spectators = true });
+        var na = await ChildAsync(bo, "Na");
+        Assert.Equal(HttpStatusCode.OK, (await na.Client.PostAsync(Url($"/api/rooms/{family.Id}/watch"), null, Ct)).StatusCode);
+        await PlayAsAsync(bo, bo.Me.Profiles[0].Id);
+        await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{family.Id}"), new { entry = "named" }, Ct);
+
+        var phone = await DevicePhoneAsync("Mèo Cam");
+        var watch = await phone.Client.PostAsync(Url($"/api/rooms/{family.Id}/watch"), null, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (watch.StatusCode, await CodeAsync(watch)));
+        var sit = await phone.Client.PostAsync(Url($"/api/rooms/{family.Id}/join"), null, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (sit.StatusCode, await CodeAsync(sit)));
+    }
+
+    [Fact]
+    public async Task A_child_whose_switch_turns_off_leaves_a_table_with_outsiders_and_a_device_profile_sees_it_now()
+    {
+        var bo = await PersonAsync("Bố");
+        var na = await ChildAsync(bo, "Na");
+        await Accounts.StepUpAsync(bo.Client);
+        Assert.Equal(HttpStatusCode.OK, (await bo.Client.PatchAsJsonAsync(Url($"/api/profiles/{na.ProfileId}"), new { playWithOthers = true }, Ct)).StatusCode);
+        var phone = await DevicePhoneAsync("Mèo Cam");
+        var named = await CreateAsync(phone, new { gameId = "tien-len", seats = 3 });
+        await JoinAsync(na, named.Id);
+
+        // The parent turns the switch off: the child leaves the table where a device profile sits.
+        Assert.Equal(HttpStatusCode.OK, (await bo.Client.PatchAsJsonAsync(Url($"/api/profiles/{na.ProfileId}"), new { playWithOthers = false }, Ct)).StatusCode);
+        Assert.DoesNotContain((await phone.Client.GetFromJsonAsync<RoomView>(Url($"/api/rooms/{named.Id}"), Ct))!.SeatList, seat => seat.ProfileId == na.ProfileId);
+
+        // A table of the account the child sat at with the switch on: kept now, so no device profile comes in.
+        await Accounts.StepUpAsync(bo.Client);
+        await bo.Client.PatchAsJsonAsync(Url($"/api/profiles/{na.ProfileId}"), new { playWithOthers = true }, Ct);
+        await PlayAsAsync(bo, bo.Me.Profiles[0].Id);
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, entry = "own" });
+        await PlayAsAsync(bo, na.ProfileId);
+        await JoinAsync(bo, family.Id);
+        await Accounts.StepUpAsync(bo.Client);
+        await bo.Client.PatchAsJsonAsync(Url($"/api/profiles/{na.ProfileId}"), new { playWithOthers = false }, Ct);
+        await PlayAsAsync(bo, bo.Me.Profiles[0].Id);
+        await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{family.Id}"), new { entry = "named" }, Ct);
+        var refused = await phone.Client.PostAsync(Url($"/api/rooms/{family.Id}/join"), null, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (refused.StatusCode, await CodeAsync(refused)));
+    }
+
+    [Fact]
+    public async Task A_new_door_holds_for_those_already_in_and_the_host_role_passes_with_its_account()
+    {
+        var bo = await PersonAsync("Bố");
+        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 4, spectators = true });
+        var phone = await DevicePhoneAsync("Mèo Cam");
+        var watcher = await DevicePhoneAsync("Gà Con");
+        var chu = await PersonAsync("Chú");
+        await JoinAsync(phone, room.Id);
+        await JoinAsync(chu, room.Id);
+        Assert.Equal(HttpStatusCode.OK, (await watcher.Client.PostAsync(Url($"/api/rooms/{room.Id}/watch"), null, Ct)).StatusCode);
+
+        // For accounts only now: the device profiles — seated and watching — leave; the other account stays.
+        var changed = await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{room.Id}"), new { entry = "account" }, Ct);
+        var view = (await changed.Content.ReadFromJsonAsync<RoomView>(Ct))!;
+        Assert.DoesNotContain(view.SeatList, seat => seat.ProfileId == phone.ProfileId);
+        Assert.DoesNotContain(watcher.ProfileId, view.Watchers);
+        Assert.Contains(view.SeatList, seat => seat.ProfileId == chu.ProfileId);
+
+        // The host leaves: Chú hosts, with Chú's account — so "the host's account" is Chú's, and Bố's is outside.
+        Assert.Equal(HttpStatusCode.NoContent, (await bo.Client.PostAsync(Url($"/api/rooms/{room.Id}/leave"), null, Ct)).StatusCode);
+        var kept = await chu.Client.PatchAsJsonAsync(Url($"/api/rooms/{room.Id}"), new { entry = "own" }, Ct);
+        var after = (await kept.Content.ReadFromJsonAsync<RoomView>(Ct))!;
+        Assert.Equal(chu.ProfileId, after.HostProfileId);
+        Assert.Contains(after.SeatList, seat => seat.ProfileId == chu.ProfileId);
+        var outsider = await bo.Client.PostAsync(Url($"/api/rooms/{room.Id}/join"), null, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "room_account_only"), (outsider.StatusCode, await CodeAsync(outsider)));
+    }
+
+    [Fact]
+    public async Task A_moderators_rename_sticks_through_the_devices_next_copy_and_shows_at_its_table()
+    {
+        var phone = await DevicePhoneAsync("Tên Xấu");
+        var bo = await PersonAsync("Bố");
+        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 2 });
+        await JoinAsync(phone, room.Id);
+        var moderator = await Admins.NewAsync(factory, "moderator");
+        var renamed = await moderator.Client.PatchAsJsonAsync(Url($"/api/admin/device-profiles/{phone.ProfileId}"), new { name = "Người chơi" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, renamed.StatusCode);
+        Assert.Contains((await bo.Client.GetFromJsonAsync<RoomView>(Url($"/api/rooms/{room.Id}"), Ct))!.SeatList, seat => seat.Name == "Người chơi");
+
+        // The device sends its copy again with its old name: the server keeps the moderator's, and says so.
+        var again = await phone.Plain.PostAsJsonAsync(Url("/api/devices/profiles"), Registration(phone.ProfileId, "Tên Xấu"), Ct);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        Assert.Equal("Người chơi", (await again.Content.ReadFromJsonAsync<DeviceProfileView>(Ct))!.Name);
+    }
+
+    [Fact]
+    public async Task Past_the_days_renames_a_copy_sent_again_keeps_the_servers_name_and_takes_the_rest()
+    {
+        await using var app = factory.WithWebHostBuilder(builder => builder.UseSetting("Identity:ProfileRenamesPerDay", "0"));
+        var client = app.CreateClient();
+        await client.PostAsync(Url("/api/devices"), null, Ct);
+        var id = Guid.NewGuid();
+        await client.PostAsJsonAsync(Url("/api/devices/profiles"), Registration(id, "Mèo"), Ct);
+        var again = await client.PostAsJsonAsync(
+            Url("/api/devices/profiles"), new { id, name = "Mèo Mới", avatar = ProfileOptions.Avatars[5], termsVersion = "2026-12-01" }, Ct);
+        Assert.Equal(HttpStatusCode.OK, again.StatusCode);
+        var view = (await again.Content.ReadFromJsonAsync<DeviceProfileView>(Ct))!;
+        Assert.Equal(("Mèo", ProfileOptions.Avatars[5], "2026-12-01"), (view.Name, view.Avatar, view.TermsVersion));
+    }
+
+    [Fact]
+    public async Task A_device_key_never_used_for_a_profile_is_deleted_after_a_day()
+    {
+        var bare = await StartedPhoneAsync();
+        var used = await DevicePhoneAsync("Mèo Cam");
+        await using var scope = factory.Services.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+        var yesterday = DateTimeOffset.UtcNow.AddDays(-2);
+        await db.Devices.ExecuteUpdateAsync(set => set.SetProperty(d => d.CreatedAt, yesterday), Ct);
+        await scope.ServiceProvider.GetRequiredService<DeviceCleanup>().RunAsync(Ct);
+
+        Assert.Equal(HttpStatusCode.Unauthorized, (await bare.Plain.PostAsJsonAsync(Url("/api/devices/profiles"), Registration(Guid.NewGuid(), "Gà"), Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await used.Client.GetAsync(Url("/api/rooms/mine"), Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task On_the_rooms_hub_a_device_profile_is_named_in_the_address_and_needs_its_own_devices_key()
+    {
+        var phone = await DevicePhoneAsync("Mèo Cam");
+        var other = await DevicePhoneAsync("Gà Con");
+        var bo = await PersonAsync("Bố");
+        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
+        await JoinAsync(phone, room.Id);
+
+        // Another device's key naming this device profile: connected as a device, but no such profile of it.
+        await using (var stolen = Hub(other.Jar, $"api/rooms/hub?{DeviceKey.ProfileQuery}={phone.ProfileId}&{DeviceKey.TermsQuery}={Terms}"))
+        {
+            await stolen.StartAsync(Ct);
+            var refused = await Assert.ThrowsAsync<HubException>(() => stolen.InvokeAsync<RoomView?>("Enter", room.Id, Ct));
+            Assert.Contains("device_profile_not_found", refused.Message, StringComparison.Ordinal);
+        }
+
+        // An account's session naming a device profile in the address: the device key is read, and there is none.
+        var unauthorized = await bo.Client.PostAsync(
+            Url($"/api/rooms/hub/negotiate?negotiateVersion=1&{DeviceKey.ProfileQuery}={phone.ProfileId}&{DeviceKey.TermsQuery}={Terms}"), null, Ct);
+        Assert.Equal(HttpStatusCode.Unauthorized, unauthorized.StatusCode);
+    }
+
+    [Fact]
+    public async Task Another_site_of_the_same_site_cannot_make_keys_or_copies()
+    {
+        var phone = await StartedPhoneAsync();
+        using var start = new HttpRequestMessage(HttpMethod.Post, Url("/api/devices"));
+        start.Headers.Add("Sec-Fetch-Site", "same-site");
+        Assert.Equal(HttpStatusCode.Forbidden, (await phone.Plain.SendAsync(start, Ct)).StatusCode);
+        using var copy = new HttpRequestMessage(HttpMethod.Post, Url("/api/devices/profiles")) { Content = JsonContent.Create(Registration(Guid.NewGuid(), "Mèo")) };
+        copy.Headers.Add("Sec-Fetch-Site", "same-site");
+        Assert.Equal(HttpStatusCode.Forbidden, (await phone.Plain.SendAsync(copy, Ct)).StatusCode);
+    }
+
     // ------------------------------------------------------------------ helpers
 
     /// <summary>
@@ -599,6 +816,14 @@ public sealed class ServerDeviceProfilesTests(ApiFactory factory) : IClassFixtur
         {
         }
     }
+
+    private HubConnection Hub(CookieJar jar, string path) => new HubConnectionBuilder()
+        .WithUrl(new Uri(factory.Server.BaseAddress, path), options =>
+        {
+            options.HttpMessageHandlerFactory = _ => new Borrowed(jar);
+            options.Transports = HttpTransportType.LongPolling;
+        })
+        .Build();
 
     private Task<HubConnection> TableAsync(Person person, Guid roomId) => TableAsync(person.Jar, "api/rooms/hub", roomId);
 

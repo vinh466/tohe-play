@@ -94,10 +94,11 @@ internal static class DeviceEndpoints
         ProofOfWork proofs,
         TimeProvider clock,
         IOptions<IdentityOptions> options,
+        IEnumerable<IProfileNames> names,
         CancellationToken ct)
     {
         var deviceId = DeviceKey.DeviceOf(http.User)!.Value;
-        if (string.IsNullOrWhiteSpace(request.TermsVersion) || request.TermsVersion.Length > 32)
+        if (!Consent.IsVersion(request.TermsVersion))
         {
             return TermsRequired();
         }
@@ -113,17 +114,24 @@ internal static class DeviceEndpoints
         await db.Database.ExecuteSqlAsync($"SELECT 1 FROM identity.devices WHERE id = {deviceId} FOR UPDATE", ct);
         if (await db.Profiles.FirstOrDefaultAsync(p => p.Id == request.Id && p.DeviceId == deviceId, ct) is { } own)
         {
-            if (DeviceProfiles.CheckName(request.Name, out var renamed) is { } refusedRename)
+            // The server's name stays when a moderator chose it, or when the day's renames are used up: the rest is taken,
+            // and the answer carries the name the device keeps (ADR 0035, 0043).
+            var renamed = own.Name;
+            if (own.NameModeratedAt is null)
             {
-                return refusedRename;
+                if (DeviceProfiles.CheckName(request.Name, out var asked) is { } refusedRename)
+                {
+                    return refusedRename;
+                }
+
+                if (asked != own.Name
+                    && await ProfileEndpoints.RenamesTodayAsync(db, own.Id, now, ct) < options.Value.ProfileRenamesPerDay)
+                {
+                    renamed = asked;
+                }
             }
 
-            if (renamed != own.Name
-                && await ProfileEndpoints.RenamesTodayAsync(db, own.Id, now, ct) >= options.Value.ProfileRenamesPerDay)
-            {
-                return Problems.Of(StatusCodes.Status429TooManyRequests, "rename_limit", "This profile was renamed enough for today");
-            }
-
+            var newName = renamed != own.Name;
             own.Name = renamed;
             own.Avatar = request.Avatar;
             if (own.TermsVersion != request.TermsVersion)
@@ -135,6 +143,14 @@ internal static class DeviceEndpoints
             own.LastUsedAt = now;
             await db.SaveChangesAsync(ct);
             await transaction.CommitAsync(ct);
+            if (newName)
+            {
+                foreach (var table in names)
+                {
+                    await table.RenamedAsync(own.Id, own.Name, ct);
+                }
+            }
+
             return TypedResults.Ok(View(own));
         }
 
