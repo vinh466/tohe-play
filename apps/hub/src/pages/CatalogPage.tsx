@@ -23,7 +23,7 @@ export function CatalogPage() {
 function Catalog({ player }: { player: Player }) {
   const { t } = useTranslation();
   const games = useQuery(gamesQuery(player.id));
-  const isGuest = player.kind === 'guest';
+  const onDevice = player.kind === 'device';
   useBackgroundSync(player);
 
   return (
@@ -37,28 +37,26 @@ function Catalog({ player }: { player: Player }) {
           <ThemeButton />
           <MenuButton />
           <Link
-            to={isGuest ? '/account/sign-in' : '/account/profiles'}
+            to="/account/profiles"
             aria-label={t('switchProfile')}
             className="flex items-center gap-2 rounded-full bg-surface py-1.5 pr-4 pl-1.5 shadow-sm active:scale-95"
           >
             <Avatar avatar={player.avatar} size="sm" />
-            <span className="max-w-28 truncate font-semibold text-ink">
-              {isGuest ? t('guest.name') : player.name}
-            </span>
+            <span className="max-w-28 truncate font-semibold text-ink">{player.name}</span>
           </Link>
         </div>
       </header>
 
-      {/* Opening Tò He is playing: a guest sees only this slim strip, and signs in when it is worth it. */}
-      {isGuest ? (
+      {/* Opening Tò He is playing: a device profile sees only this slim strip, and signs in when it is worth it. */}
+      {onDevice ? (
         <p className="flex items-center justify-between gap-3 rounded-2xl bg-notice px-4 py-2 text-notice-ink text-sm">
-          {t('guest.banner')}
+          {t('device.banner')}
           <Link
             to="/account/sign-in"
             onClick={() => funnel.signInOpened()}
             className="font-bold underline underline-offset-4"
           >
-            {t('guest.signIn')}
+            {t('device.signIn')}
           </Link>
         </p>
       ) : null}

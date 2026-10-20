@@ -169,7 +169,7 @@ internal sealed partial class AccountDeletion(
         return new AccountDeletionOutcome(AccountDeletionState.Deleted, profiles.Count);
     }
 
-    /// <summary>Each module deletes what it keeps of the profiles, then their public IDs are retired for good.</summary>
+    /// <summary>Each module deletes what it keeps of the profiles, then their public IDs and ids are retired for good.</summary>
     private async Task PurgeAsync(IReadOnlyCollection<Profile> profiles, CancellationToken ct)
     {
         if (profiles.Count == 0)
@@ -186,7 +186,7 @@ internal sealed partial class AccountDeletion(
         }
 
         var now = clock.GetUtcNow();
-        db.RetiredProfileIds.AddRange(profiles.Select(p => new RetiredProfileId { PublicId = p.PublicId, RetiredAt = now }));
+        db.RetiredProfileIds.AddRange(profiles.Select(p => new RetiredProfileId { PublicId = p.PublicId, ProfileId = p.Id, RetiredAt = now }));
     }
 
     private Uri? Link(string path) => app.Value.PublicUrl is { } hub ? new Uri(hub, path) : null;

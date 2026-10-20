@@ -1,22 +1,6 @@
 import type { JsonValue } from '@tohe/game-sdk';
 import Dexie from 'dexie';
-import { type LocalProfile, type LocalRanked, newId, type ToheDb } from './db.ts';
-
-const AVATARS = ['🦊', '🐼', '🐯', '🐸', '🐧', '🐨', '🦁', '🐰'];
-
-/** The local profile used in "Chơi thử" (guest) mode: one per device, saves stay on the device. */
-export async function ensureGuestProfile(db: ToheDb): Promise<LocalProfile> {
-  const existing = await db.profiles.toCollection().first();
-  if (existing) return existing;
-  const profile: LocalProfile = {
-    id: newId(),
-    name: 'Bạn nhỏ',
-    avatar: AVATARS[Math.floor(Math.random() * AVATARS.length)] ?? '🦊',
-    createdAt: Date.now(),
-  };
-  await db.profiles.add(profile);
-  return profile;
-}
+import { type LocalRanked, newId, type ToheDb } from './db.ts';
 
 /** A ranked run the game handed in (ADR 0030): it waits on the device until sync takes it to the API. */
 export async function recordRanked(
@@ -83,29 +67,6 @@ export async function hasProgress(db: ToheDb, profileId: string): Promise<boolea
       .between([profileId, Dexie.minKey], [profileId, Dexie.maxKey])
       .count()) > 0
   );
-}
-
-/**
- * Hands the guest's progress on this device to a real profile (offered once, the first time a profile is chosen).
- * Scores move over; a save moves only where the target profile has none, so nothing it already has is overwritten.
- */
-export async function moveProgress(db: ToheDb, fromProfileId: string, toProfileId: string): Promise<void> {
-  await db.transaction('rw', db.saves, db.scores, async () => {
-    const saves = await db.saves
-      .where('[profileId+gameId]')
-      .between([fromProfileId, Dexie.minKey], [fromProfileId, Dexie.maxKey])
-      .toArray();
-    for (const save of saves) {
-      if (!(await db.saves.get([toProfileId, save.gameId]))) {
-        await db.saves.put({ ...save, profileId: toProfileId, synced: 0 });
-      }
-      await db.saves.delete([fromProfileId, save.gameId]);
-    }
-    await db.scores
-      .where('[profileId+gameId]')
-      .between([fromProfileId, Dexie.minKey], [fromProfileId, Dexie.maxKey])
-      .modify({ profileId: toProfileId, synced: 0 });
-  });
 }
 
 export async function bestScore(db: ToheDb, profileId: string, gameId: string): Promise<number | null> {

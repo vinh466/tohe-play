@@ -22,7 +22,7 @@ import { TextField } from '../ui/TextField.tsx';
 /** The lobby of a game played at a table (ADR 0016): quick play, a new room, a code, the bots, the open rooms. */
 export function RoomsPage() {
   return (
-    <RequireSession need="player" guest={false}>
+    <RequireSession need="player" device={false}>
       {(session) =>
         session.status === 'account' ? (
           <Lobby
@@ -32,15 +32,15 @@ export function RoomsPage() {
             }
           />
         ) : (
-          <GuestLobby />
+          <DeviceLobby />
         )
       }
     </RequireSession>
   );
 }
 
-/** Guests play offline only (ADR 0016): the bots, and a way to sign up. */
-function GuestLobby() {
+/** Device profiles play offline only until ADR 0043's I2 (ADR 0016): the bots, and a way to sign up. */
+function DeviceLobby() {
   const { gameId } = useParams({ from: '/play/$gameId/rooms' });
   const { t } = useTranslation();
   return (
@@ -56,9 +56,9 @@ function GuestLobby() {
         {t('rooms.playBots')}
       </BackLink>
       <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
-        {t('guest.banner')}{' '}
+        {t('device.banner')}{' '}
         <Link to="/account/register" className="font-bold underline underline-offset-4">
-          {t('guest.signUp')}
+          {t('device.signUp')}
         </Link>
       </p>
     </Screen>

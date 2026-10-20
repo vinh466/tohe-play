@@ -22,6 +22,13 @@ public interface IResults
     /// <summary>Runs of one profile, in the order they came; each is decided once it is final.</summary>
     Task SubmitRunsAsync(Guid profileId, Guid accountId, IReadOnlyList<RunClaim> runs, CancellationToken ct);
 
+    /// <summary>
+    /// Runs a device profile played before it was brought into an account (ADR 0043), sent with that request: decided as
+    /// any run, marked <see cref="IntegrityResult.DeviceEarned"/>, and in no public board's audience. Only that channel
+    /// calls this.
+    /// </summary>
+    Task SubmitDeviceRunsAsync(Guid profileId, Guid accountId, IReadOnlyList<RunClaim> runs, CancellationToken ct);
+
     /// <summary>A hand the server refereed: verified for every person at the table.</summary>
     void SubmitHand(string gameId, Guid roomId, int hand, IReadOnlyList<HandSeat> seats, DateTimeOffset at);
 }
@@ -62,7 +69,14 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
     private static bool Settled(IntegrityResult result) =>
         result.DecidedBy is not null || result.Level is TrustLevel.Held or TrustLevel.Rejected;
 
-    public async Task SubmitRunsAsync(Guid profileId, Guid accountId, IReadOnlyList<RunClaim> runs, CancellationToken ct)
+    public Task SubmitRunsAsync(Guid profileId, Guid accountId, IReadOnlyList<RunClaim> runs, CancellationToken ct) =>
+        SubmitAsync(profileId, accountId, runs, deviceEarned: false, ct);
+
+    public Task SubmitDeviceRunsAsync(Guid profileId, Guid accountId, IReadOnlyList<RunClaim> runs, CancellationToken ct) =>
+        SubmitAsync(profileId, accountId, runs, deviceEarned: true, ct);
+
+    private async Task SubmitAsync(
+        Guid profileId, Guid accountId, IReadOnlyList<RunClaim> runs, bool deviceEarned, CancellationToken ct)
     {
         var now = clock.GetUtcNow();
         var sources = runs.Select(run => RunSource(profileId, run.ClientId)).Distinct().ToList();
@@ -75,6 +89,12 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
         {
             var source = RunSource(profileId, run.ClientId);
             var isNew = !known.TryGetValue(source, out var result);
+            if (result is not null && deviceEarned)
+            {
+                // Touched by a device profile's upload: off public boards from now on, whatever else changes.
+                result.DeviceEarned = true;
+            }
+
             if (result is null)
             {
                 result = new IntegrityResult
@@ -91,6 +111,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
                     At = now,
                     DeviceAt = run.DeviceAt,
                     RuleVersion = RuleVersion,
+                    DeviceEarned = deviceEarned,
                 };
                 db.IntegrityResults.Add(result);
                 known[source] = result;
@@ -130,7 +151,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
             // A person's decision stands, and only a person releases what the engine held: automation only hides.
             if (!Settled(result))
             {
-                var (level, reason, details) = await JudgeRunAsync(result, batch, now, TrustLevel.Checked, ct);
+                var (level, reason, details) = await JudgeRunAsync(result, batch, now, TrustLevel.Checked, rate: !deviceEarned, ct);
                 Move(result, isNew ? null : result.Level, level, reason, details, now, isNew);
             }
         }
@@ -176,7 +197,7 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
     public async Task<IntegrityResult> AddReplayedAsync(RankedRun ranked, double score, DateTimeOffset at, CancellationToken ct)
     {
         var result = AddRanked(ranked, score, at);
-        var (level, reason, details) = await JudgeRunAsync(result, [result], at, TrustLevel.Verified, ct);
+        var (level, reason, details) = await JudgeRunAsync(result, [result], at, TrustLevel.Verified, rate: true, ct);
         result.Level = level;
         Log(result, null, level, reason, details, at);
         return result;
@@ -216,8 +237,10 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
     /// would move a board (a best of the week), <c>PersonalJump</c> and <c>Rate</c>. A run that passes gets
     /// <paramref name="passed"/>: checked for what a device reported, verified for what the server replayed.
     /// </summary>
+    /// <param name="rate">False for a device profile's runs brought into an account: they arrive together, long after
+    /// they were played, so how fast they arrive says nothing about how fast a person played (ADR 0043).</param>
     private async Task<(TrustLevel Level, string Reason, object? Details)> JudgeRunAsync(
-        IntegrityResult run, List<IntegrityResult> batch, DateTimeOffset now, TrustLevel passed, CancellationToken ct)
+        IntegrityResult run, List<IntegrityResult> batch, DateTimeOffset now, TrustLevel passed, bool rate, CancellationToken ct)
     {
         var pass = (passed, passed == TrustLevel.Verified ? "replayed" : "checked", (object?)null);
         if (!_games.TryGetValue(run.GameId, out var knownGame))
@@ -255,11 +278,17 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
             return (TrustLevel.Held, "personal_jump", new { previousBest = allBest, runs = history });
         }
 
+        if (!rate)
+        {
+            return pass;
+        }
+
+        // A device profile's upload is not play: its runs count for no rate of the runs that follow.
         var since = now - RateWindow;
         var recent = await db.IntegrityResults.AsNoTracking().CountAsync(
             result => result.ProfileId == run.ProfileId && result.Kind == ResultKind.Run && result.GameId == run.GameId
-                && result.At >= since && !others.Contains(result.Source) && result.Source != run.Source,
-            ct) + batch.Count(result => result.GameId == run.GameId);
+                && result.At >= since && !result.DeviceEarned && !others.Contains(result.Source) && result.Source != run.Source,
+            ct) + batch.Count(result => result.GameId == run.GameId && !result.DeviceEarned);
         if (recent > RateLimit)
         {
             return (TrustLevel.Held, "rate", new { runs = recent, minutes = RateWindow.TotalMinutes });

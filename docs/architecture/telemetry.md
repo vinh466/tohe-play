@@ -63,11 +63,11 @@ Four kinds of event, in the Game Contract (`packages/contract/src/telemetry.ts`)
 | `hub.game.failed` | count | hub | the game never answered |
 | `hub.sync.failed.http-4xx` / `http-5xx` / `network` | count | hub | a save or score did not reach the server while online |
 | `hub.vitals.lcp-ms`, `hub.vitals.inp-ms`, `hub.vitals.cls` | metric | hub (`web-vitals`) | the hub's own pages; Safari from 26.2, and its INP is still unreliable |
-| `hub.funnel.guest-start` | count | hub | a device enters as a guest for the first time (once per device) |
+| `hub.funnel.guest-start` | count | hub | a device makes its first device profile — it enters without an account for the first time (once per device; the name is kept from guest mode) |
 | `hub.funnel.first-game` | count | hub | the first finished game on this device (once per device) |
 | `hub.funnel.install-offered.prompt` / `.ios` / `.in-app` | count | hub | the install card / the iOS steps / the in-app browser's strip is shown by itself (once per device and variant) |
 | `hub.funnel.install-accepted` / `hub.funnel.install-dismissed` | count | hub | the browser's install prompt was accepted; it was dismissed, or "Để sau", "Bỏ qua" or "Ẩn" was chosen |
-| `hub.funnel.sign-in-opened` | count | hub | a guest opens the sign-in from the catalog's strip |
+| `hub.funnel.sign-in-opened` | count | hub | a device profile's player opens the sign-in from the catalog's strip |
 | `hub.funnel.account-created` | count | hub | an account was created on this device |
 | `hub.funnel.standalone-open` | count | hub | the app starts as an installed app (once a day per device) |
 | `hub.telemetry.dropped` | count | hub | the hub's buffer was full |
@@ -103,9 +103,9 @@ Decision: D-04 of the product-surface plan (`plans/product-surface`, not publish
 third-party script, no identifier. Tò He promises no tracking, yet needs to know whether the
 first minutes work. The hub's `hub.funnel.*` counts above answer, in totals per day:
 
-- of the devices that arrived as guests, how many finished a first game (`first-game` / `guest-start`);
+- of the devices that arrived without an account (their first device profile), how many finished a first game (`first-game` / `guest-start`);
 - of the times the app was offered, how often it was accepted (`install-accepted` / every `install-offered.*`);
-- of the guests who opened the sign-in, how many made an account (`account-created` / `sign-in-opened`);
+- of the players who opened the sign-in from a device profile, how many made an account (`account-created` / `sign-in-opened`);
 - how often the installed app is opened (`standalone-open`).
 
 They are ordinary `count` events, so everything above applies: the same collector, budgets and three switches. With a

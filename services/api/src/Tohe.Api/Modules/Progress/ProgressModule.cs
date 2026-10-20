@@ -45,12 +45,16 @@ internal static partial class ProgressModule
     [GeneratedRegex("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")]
     private static partial Regex GameIdPattern();
 
+    public static bool IsGameId(string gameId) => GameIdPattern().IsMatch(gameId);
+
     public static WebApplicationBuilder AddProgressModule(this WebApplicationBuilder builder)
     {
         // What the admin console counts about play (ADR 0027).
         builder.Services.AddScoped<ProgressFacts>();
         // A deleted profile's saves and scores go with it (ADR 0034).
         builder.Services.AddScoped<IProfileData, ProgressProfileData>();
+        // What a device profile played, taken in with it when it comes into an account (ADR 0043).
+        builder.Services.AddScoped<IDeviceProgress, DeviceProgress>();
         return builder;
     }
 
@@ -194,7 +198,7 @@ internal static partial class ProgressModule
     /// PostgreSQL keeps microseconds; .NET has 100 ns ticks. Rounding first makes the time in a PUT's answer equal to
     /// the one a later GET reads, which devices compare.
     /// </summary>
-    private static DateTimeOffset ToDatabasePrecision(DateTimeOffset time) =>
+    internal static DateTimeOffset ToDatabasePrecision(DateTimeOffset time) =>
         new(time.Ticks - (time.Ticks % 10), time.Offset);
 
     private static ActiveProfile Active(HttpContext http) => (ActiveProfile)http.Items[typeof(ActiveProfile)]!;

@@ -169,12 +169,12 @@ const resultsShown = (frame: Frame) =>
 
 try {
   const host = await phone('host', browser);
-  const guest = await phone('guest', browser);
+  const friend = await phone('friend', browser);
   const kid = await phone('kid', browser);
 
   step('two people register, each on their own phone');
   const parentAccount = await register(host, 'Bố Phòng');
-  await register(guest, 'Chú Khách');
+  await register(friend, 'Chú Khách');
 
   step(
     'the parent adds a child profile allowed to play with others; the child uses the parent’s second phone',
@@ -221,12 +221,12 @@ try {
   await host.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   const code = ((await host.locator('p.tracking-widest').textContent()) ?? '').replace(/\D/g, '');
   if (!/^\d{6}$/.test(code)) throw new Error(`no room code on the waiting room (${code})`);
-  step(`room ${code}: the guest opens its link`);
+  step(`room ${code}: the friend opens its link`);
   await shot(host, 'waiting-room');
 
-  await guest.goto(`${hubUrl}/r/${code}`);
-  await guest.getByRole('button', { name: 'Vào ngồi' }).tap();
-  await guest.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
+  await friend.goto(`${hubUrl}/r/${code}`);
+  await friend.getByRole('button', { name: 'Vào ngồi' }).tap();
+  await friend.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   await host.getByText('Chú Khách').waitFor();
 
   step('the host invites the child from the waiting room');
@@ -261,7 +261,7 @@ try {
   step('the host starts; the two players and the child see the table, the child never a hand nor a button');
   await host.getByRole('button', { name: 'Bắt đầu' }).tap();
   const hostGame = await gameFrame(host);
-  const guestGame = await gameFrame(guest);
+  const friendGame = await gameFrame(friend);
   const kidGame = await gameFrame(kid);
   await kidGame.getByText('Đang xem').waitFor();
   if (await kidGame.locator('#play').isVisible()) throw new Error('a spectator sees the play button');
@@ -283,26 +283,26 @@ try {
       await game.waitForTimeout(250);
     }
   };
-  await Promise.all([playHand(hostGame), playHand(guestGame)]);
+  await Promise.all([playHand(hostGame), playHand(friendGame)]);
   await host.screenshot({ path: 'test-results/rooms-results-host.png' });
-  await guest.screenshot({ path: 'test-results/rooms-results-guest.png' });
+  await friend.screenshot({ path: 'test-results/rooms-results-friend.png' });
 
-  step("the guest leaves from the game's menu (the hub asks first) and lands in the lobby");
-  await guestGame.locator('[data-tohe-menu]').tap();
-  await guestGame.getByRole('button', { name: 'Rời bàn' }).tap();
-  await guest.getByRole('dialog').getByRole('button', { name: 'Rời phòng' }).tap();
-  await guest.waitForURL(/\/play\/tien-len\/rooms$/);
+  step("the friend leaves from the game's menu (the hub asks first) and lands in the lobby");
+  await friendGame.locator('[data-tohe-menu]').tap();
+  await friendGame.getByRole('button', { name: 'Rời bàn' }).tap();
+  await friend.getByRole('dialog').getByRole('button', { name: 'Rời phòng' }).tap();
+  await friend.waitForURL(/\/play\/tien-len\/rooms$/);
 
-  step('the hand is in the guest’s results, and its replay plays to the end');
-  const replay = guest.getByRole('link', { name: 'Xem lại' }).first();
+  step('the hand is in the friend’s results, and its replay plays to the end');
+  const replay = friend.getByRole('link', { name: 'Xem lại' }).first();
   await replay.waitFor();
-  await shot(guest, 'lobby-results');
+  await shot(friend, 'lobby-results');
   await replay.tap();
-  await guest.waitForURL(/\/replay\//);
-  const replayGame = await gameFrame(guest);
+  await friend.waitForURL(/\/replay\//);
+  const replayGame = await gameFrame(friend);
   await replayGame.getByText(/Xem lại ván · bước/).waitFor();
   await replayGame.getByRole('button', { name: 'Xem lại từ đầu' }).waitFor({ timeout: 240_000 });
-  await guest.screenshot({ path: 'test-results/rooms-replay-end.png' });
+  await friend.screenshot({ path: 'test-results/rooms-replay-end.png' });
 
   if (errors.length > 0) throw new Error(`errors in the pages:\n${errors.join('\n')}`);
   console.log('✔ rooms e2e passed');

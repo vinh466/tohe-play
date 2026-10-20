@@ -36,11 +36,15 @@ public sealed record LinkProofRequest(string? Code = null, string? Password = nu
 /// <param name="DisplayName">The account's name, which also names its first profile (ADR 0023).</param>
 /// <param name="AcceptTerms">16 or older, and the terms and privacy notice (ADR 0025).</param>
 /// <param name="InviteCode">Needed when registration is by invite; welcome otherwise, for its community (ADR 0028).</param>
+/// <param name="DeviceProfile">The device profile that started the sign-in with <c>?profile=</c>, with what it played
+/// (ADR 0043): without an age band it becomes the account's first profile, with one it joins the usual first profile as
+/// a child's.</param>
 public sealed record CompleteSignUpRequest(
     [Required(AllowEmptyStrings = true)] string DisplayName,
     bool AcceptTerms,
     string? TermsVersion,
-    string? InviteCode = null);
+    string? InviteCode = null,
+    DeviceProfileUpload? DeviceProfile = null);
 
 /// <summary>
 /// Signing in with Google, GitHub or an OpenID Connect issuer, and linking them to accounts (ADR 0026). A provider's
@@ -101,8 +105,17 @@ internal static class ExternalEndpoints
             .WithSummary("Remove a provider from the account (needs step-up level 2); never the last way in.");
     }
 
+    /// <param name="profile">The device profile signing up, if it does (ADR 0043): its id travels in the provider's
+    /// state, then in the attempt.</param>
     private static async Task<IResult> Start(
-        string provider, string? intent, HttpContext http, ExternalProviderCatalog catalog, ISignInSettings settings, TimeProvider clock, CancellationToken ct)
+        string provider,
+        string? intent,
+        string? profile,
+        HttpContext http,
+        ExternalProviderCatalog catalog,
+        ISignInSettings settings,
+        TimeProvider clock,
+        CancellationToken ct)
     {
         if (catalog.Find(provider) is null)
         {
@@ -117,6 +130,11 @@ internal static class ExternalEndpoints
 
         var properties = new AuthenticationProperties { RedirectUri = $"{Paths}/{provider}/done" };
         properties.Items["provider"] = provider;
+        if (Guid.TryParse(profile, out var deviceProfile) && deviceProfile != Guid.Empty)
+        {
+            properties.Items["deviceProfile"] = deviceProfile.ToString();
+        }
+
         if (intent == "link")
         {
             // Linking from Quản lý tài khoản: step-up level 2 now, and the account to link comes back with the answer.
@@ -225,7 +243,9 @@ internal static class ExternalEndpoints
         var email = Attempts.ParseEmail(answer.Principal.FindFirstValue(ExternalProviders.EmailClaim));
         var verified = string.Equals(
             answer.Principal.FindFirstValue(ExternalProviders.EmailVerifiedClaim), "true", StringComparison.OrdinalIgnoreCase);
-        var attempt = attempts.NewExternal(provider, key, known.Name, verified ? email : null, verified && email is not null, code: null);
+        var deviceProfile = Guid.TryParse(properties.GetString("deviceProfile"), out var started) ? started : (Guid?)null;
+        var attempt = attempts.NewExternal(
+            provider, key, known.Name, verified ? email : null, verified && email is not null, code: null, deviceProfile);
         db.AuthAttempts.Add(attempt);
         await db.SaveChangesAsync(ct);
         // A sign-up is waiting, unless the provider vouched for an address that has an account: that one is linked.
@@ -444,6 +464,7 @@ internal static class ExternalEndpoints
         UserManager<Account> users,
         ISignInSettings settings,
         Invites invites,
+        DeviceProfiles devices,
         ToheDbContext db,
         SessionWriter session,
         MeQueries me,
@@ -470,6 +491,14 @@ internal static class ExternalEndpoints
         if (!request.AcceptTerms || !Consent.IsVersion(request.TermsVersion))
         {
             return Problems.Field("acceptTerms", "terms_required");
+        }
+
+        // The device profile that started it (ADR 0043); a refused name is changed on the device first.
+        var device = DeviceProfiles.Of(attempt, request.DeviceProfile);
+        var deviceName = "";
+        if (device is not null && devices.Check(device, out deviceName) is { } refused)
+        {
+            return refused;
         }
 
         if (!await settings.IsOnAsync(attempt.Provider!, ct))
@@ -511,18 +540,13 @@ internal static class ExternalEndpoints
             CommunityId = community,
             InviteCode = inviteCode,
         };
-        var profile = new Profile
+        // An id taken since the sign-in started: the account is made the usual way, and the device keeps its profile.
+        if (device is not null && await devices.IdTakenAsync(device.Id, ct))
         {
-            Id = Guid.CreateVersion7(now),
-            AccountId = id,
-            PublicId = await ProfileEndpoints.NewPublicIdAsync(db, ct),
-            Name = displayName,
-            Avatar = ProfileOptions.Avatars[0],
-            Kind = ProfileKind.Adult,
-            // An adult's profile is on public boards from the start (ADR 0029); they switch it off in its settings.
-            OnPublicBoards = true,
-            CreatedAt = now,
-        };
+            device = null;
+        }
+
+        Profile profile;
         try
         {
             if (!(await users.CreateAsync(account)).Succeeded
@@ -531,12 +555,13 @@ internal static class ExternalEndpoints
                 return Problems.AttemptClosed();
             }
 
-            db.Profiles.Add(profile);
+            // The first profile: the device profile itself when it is the person's own, or the usual one (ADR 0043).
+            profile = await devices.FirstProfileAsync(account, displayName, device, deviceName, now, ct);
             await db.SaveChangesAsync(ct);
         }
         catch (DbUpdateException e) when (e.InnerException is PostgresException { SqlState: PostgresErrorCodes.UniqueViolation })
         {
-            // The address, or this provider's subject, was taken meanwhile.
+            // The address, this provider's subject, or the device profile's id, was taken meanwhile.
             return Problems.AttemptClosed();
         }
 
@@ -697,7 +722,7 @@ internal static class ExternalEndpoints
     {
         var now = clock.GetUtcNow();
         await db.AuthAttempts.Where(a => a.Id == from.Id).ExecuteUpdateAsync(s => s.SetProperty(a => a.ClosedAt, now), ct);
-        var next = attempts.NewExternal(from.Provider!, from.ProviderKey!, from.ProviderName!, email, emailProven, code);
+        var next = attempts.NewExternal(from.Provider!, from.ProviderKey!, from.ProviderName!, email, emailProven, code, from.DeviceProfileId);
         db.AuthAttempts.Add(next);
         return next;
     }

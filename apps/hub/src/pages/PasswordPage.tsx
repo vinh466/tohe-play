@@ -8,7 +8,6 @@ import { configQuery } from '../api/queries.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { withProof } from '../session/proofOfWork.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
-import { guestMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
 import { Button } from '../ui/Button.tsx';
 import { CodeStep } from '../ui/CodeStep.tsx';
@@ -150,8 +149,8 @@ function NewPassword({
   const reset = useMutation({
     mutationFn: (code: string) => auth.resetPassword(attemptId, code, password),
     onSuccess: async (me: MeView) => {
-      guestMode.disable();
-      // A fresh session on this device; the page's session guard moves on.
+      // A fresh session on this device; the page's session guard moves on, to the picker, which offers to bring the
+      // device profiles in (ADR 0043).
       await setMe(me);
     },
   });

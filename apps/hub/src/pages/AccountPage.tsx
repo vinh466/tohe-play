@@ -8,6 +8,7 @@ import { configQuery, profileOptionsQuery } from '../api/queries.ts';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { AuthenticatorSetup } from '../session/Authenticator.tsx';
 import { EmailChange } from '../session/EmailChange.tsx';
+import { ParentGate } from '../session/ParentGate.tsx';
 import { formatProfileId } from '../session/profileIds.ts';
 import { cleanName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -20,7 +21,6 @@ import { Button, buttonClass } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { copyText } from '../ui/copyText.ts';
 import { Modal } from '../ui/Modal.tsx';
-import { PinPad } from '../ui/PinPad.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { Switch } from '../ui/Switch.tsx';
 import { TextField } from '../ui/TextField.tsx';
@@ -126,51 +126,6 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
     <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
       <h2 className="font-bold text-ink text-xl">{title}</h2>
       {children}
-    </section>
-  );
-}
-
-/**
- * Profile management opens with the account's manage PIN (step-up level 1, ADR 0025). Without one yet — or when it is
- * forgotten — the owner proves it is them (level 2), which opens it too and lets them set the PIN.
- */
-function ParentGate({ me }: { me: MeView }) {
-  const { t } = useTranslation();
-  const setMe = useSetMe();
-  const [forgot, setForgot] = useState(false);
-  const [wrong, setWrong] = useState(0);
-  const unlock = useMeMutation((pin: string) => session.unlockParentGate(pin));
-  const usePin = me.account.hasManagePin && !forgot;
-  return (
-    <section className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-3xl bg-surface p-6 shadow-sm">
-      <div className="text-center text-5xl">🔐</div>
-      <h2 className="text-center font-black text-2xl text-ink">{t('account.gateTitle')}</h2>
-      {usePin ? (
-        <>
-          <p className="text-center text-ink-soft">
-            {t('account.gateBody', { name: me.account.displayName })}
-          </p>
-          <PinPad
-            length={6}
-            errorKey={wrong}
-            error={unlock.isError ? t(errorKey(unlock.error)) : null}
-            disabled={unlock.isPending}
-            onComplete={(pin) =>
-              unlock.mutate(pin, {
-                onError: () => setWrong((n) => n + 1),
-              })
-            }
-          />
-          <Button variant="ghost" onClick={() => setForgot(true)}>
-            {t('managePin.forgot')}
-          </Button>
-        </>
-      ) : (
-        <>
-          <p className="text-center text-ink-soft">{t('managePin.firstBody')}</p>
-          <StepUp me={me} onDone={setMe} />
-        </>
-      )}
     </section>
   );
 }
@@ -642,7 +597,10 @@ function Security({ me }: { me: MeView }) {
             >
               {() => (
                 // A full trip to the provider and back, within the step-up just made (ADR 0026).
-                <a href={external.startUrl(provider.id, 'link')} className={buttonClass('primary')}>
+                <a
+                  href={external.startUrl(provider.id, { intent: 'link' })}
+                  className={buttonClass('primary')}
+                >
                   {t('external.continueWith', { name: provider.name })}
                 </a>
               )}

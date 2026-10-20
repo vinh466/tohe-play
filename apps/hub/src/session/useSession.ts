@@ -1,18 +1,20 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useCallback, useSyncExternalStore } from 'react';
 import type { MeView } from '../api/client.ts';
-import { meQuery, profileQuery } from '../api/queries.ts';
+import { deviceProfileQuery, meQuery } from '../api/queries.ts';
 import { db } from '../storage/db.ts';
-import { guestMode, resolveSession, type SessionState } from './session.ts';
+import { funnel } from '../telemetry/telemetry.ts';
+import { deviceMode, resolveSession, type SessionState } from './session.ts';
 
 /** The session, or `loading` while the first answer is pending. */
 export function useSession(): SessionState | { status: 'loading' } {
   const me = useQuery(meQuery);
-  // The flag is read live: a visitor entering guest mode by themselves changes the session without a navigation.
-  const asGuest = useSyncExternalStore(guestMode.subscribe, guestMode.enabled);
-  const guest = useQuery({ ...profileQuery, enabled: asGuest });
-  if (me.isPending || (asGuest && guest.isPending && !me.data)) return { status: 'loading' };
-  return resolveSession(me.data ?? null, asGuest, guest.data ?? null);
+  // The flag is read live: a visitor entering by themselves changes the session without a navigation.
+  const asDevice = useSyncExternalStore(deviceMode.subscribe, deviceMode.enabled);
+  // A device's first device profile is its first step in the newcomer funnel (`guest-start`, kept from guest mode).
+  const device = useQuery({ ...deviceProfileQuery(() => funnel.guestStart()), enabled: asDevice });
+  if (me.isPending || (asDevice && device.isPending && !me.data)) return { status: 'loading' };
+  return resolveSession(me.data ?? null, asDevice, device.data ?? null);
 }
 
 /** Store a new session answer from a mutation, and refresh what depends on the active profile. */
@@ -27,4 +29,13 @@ export function useSetMe() {
     },
     [queryClient],
   );
+}
+
+/** After a device profile was made, switched, renamed, deleted or brought into an account. */
+export function useDeviceProfilesChanged() {
+  const queryClient = useQueryClient();
+  return useCallback(async () => {
+    await queryClient.invalidateQueries({ queryKey: ['device-profile'] });
+    await queryClient.invalidateQueries({ queryKey: ['device-profiles'] });
+  }, [queryClient]);
 }

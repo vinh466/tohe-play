@@ -18,6 +18,8 @@ export type PendingSignInView = Schemas['PendingSignInView'];
 export type ExternalOutcome = Schemas['ExternalOutcome'];
 export type ExternalProvider = Schemas['ExternalProvider'];
 export type CreateProfileRequest = Schemas['CreateProfileRequest'];
+export type DeviceProfileData = Schemas['DeviceProfileData'];
+export type DeviceProfileUpload = Schemas['DeviceProfileUpload'];
 export type UpdateProfileRequest = Schemas['UpdateProfileRequest'];
 export type AccountBoardView = Schemas['AccountBoardView'];
 export type BoardRow = Schemas['BoardRow'];
@@ -48,6 +50,8 @@ export class ApiError extends Error {
     readonly code: string | null,
     readonly fields: Record<string, string[]> = {},
     readonly triesLeft: number | null = null,
+    /** With `name_refused`: the name rule that refused it (`name_reserved`, `name_inappropriate`…). */
+    readonly reason: string | null = null,
   ) {
     super(`API ${status}${code ? ` ${code}` : ''}`);
   }
@@ -69,7 +73,12 @@ interface Outcome<T> {
 export async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
   const { data, error, response } = await request;
   if (response.ok) return data as T;
-  const problem = (error ?? {}) as { code?: unknown; errors?: unknown; triesLeft?: unknown };
+  const problem = (error ?? {}) as {
+    code?: unknown;
+    errors?: unknown;
+    triesLeft?: unknown;
+    reason?: unknown;
+  };
   throw new ApiError(
     response.status,
     typeof problem.code === 'string' ? problem.code : null,
@@ -77,6 +86,7 @@ export async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
       ? (problem.errors as Record<string, string[]>)
       : {},
     typeof problem.triesLeft === 'number' ? problem.triesLeft : null,
+    typeof problem.reason === 'string' ? problem.reason : null,
   );
 }
 
@@ -97,8 +107,16 @@ export const auth = {
     call(api.POST('/api/auth/login', { body: { email, password } })),
   /** A code goes to the email; the account exists once it comes back. */
   register: (body: SignUpRequest) => call(api.POST('/api/auth/register', { body })),
-  confirmRegistration: (attemptId: string, code: string) =>
-    call(api.POST('/api/auth/register/confirm', { body: { attemptId, code } })),
+  /**
+   * `deviceProfile`: the device profile that started the sign-up, sent only from the device that started it (ADR 0043);
+   * the API brings it in when it is the attempt's.
+   */
+  confirmRegistration: (attemptId: string, code: string, deviceProfile?: DeviceProfileUpload | null) =>
+    call(
+      api.POST('/api/auth/register/confirm', {
+        body: { attemptId, code, deviceProfile: deviceProfile ?? null },
+      }),
+    ),
   forgotPassword: (email: string, proof: ProofOfWorkSolution | null) =>
     call(api.POST('/api/auth/password/forgot', { body: { email, proof } })),
   /** A proof-of-work to solve first, when the config says `proofOfWork` (ADR 0037). */
@@ -113,9 +131,17 @@ export const auth = {
  * browser for one more step: an address, a proof for the account that has it, or a name and the terms.
  */
 export const external = {
-  /** Where the browser goes — a full navigation, not a fetch. `link` adds the provider to the signed-in account. */
-  startUrl: (provider: string, intent?: 'link') =>
-    `/api/auth/external/${encodeURIComponent(provider)}${intent ? `?intent=${intent}` : ''}`,
+  /**
+   * Where the browser goes — a full navigation, not a fetch. `link` adds the provider to the signed-in account;
+   * `profile` names the device profile signing up, which travels in the provider's state (ADR 0043).
+   */
+  startUrl: (provider: string, options: { intent?: 'link'; profile?: string } = {}) => {
+    const query = new URLSearchParams();
+    if (options.intent) query.set('intent', options.intent);
+    if (options.profile) query.set('profile', options.profile);
+    const search = query.toString();
+    return `/api/auth/external/${encodeURIComponent(provider)}${search ? `?${search}` : ''}`;
+  },
   /** The step waiting on this browser, or null when nothing waits. */
   pending: async (): Promise<PendingSignInView | null> => {
     try {
@@ -135,11 +161,19 @@ export const external = {
         body: { code: proof.code ?? null, password: proof.password ?? null },
       }),
     ),
-  /** `inviteCode`: needed when registration is by invite, welcome otherwise (ADR 0028). */
-  signUp: (displayName: string, termsVersion: string, inviteCode: string | null) =>
+  /**
+   * `inviteCode`: needed when registration is by invite, welcome otherwise (ADR 0028). `deviceProfile`: the device
+   * profile that started the sign-in with `profile` (ADR 0043).
+   */
+  signUp: (
+    displayName: string,
+    termsVersion: string,
+    inviteCode: string | null,
+    deviceProfile: DeviceProfileUpload | null = null,
+  ) =>
     call(
       api.POST('/api/auth/external/pending/signup', {
-        body: { displayName, acceptTerms: true, termsVersion, inviteCode },
+        body: { displayName, acceptTerms: true, termsVersion, inviteCode, deviceProfile },
       }),
     ),
   cancel: () => call(api.DELETE('/api/auth/external/pending')),
@@ -181,6 +215,11 @@ export const account = {
   /** Technical telemetry from the account's devices (ADR 0015). */
   setTelemetry: (telemetry: boolean) => call(api.PATCH('/api/account', { body: { telemetry } })),
   addProfile: (body: CreateProfileRequest) => call(api.POST('/api/profiles', { body })),
+  /** A device profile comes in with its id, saves and scores (ADR 0043): `id_taken`, `name_refused`. */
+  adoptProfile: (body: DeviceProfileUpload) => call(api.POST('/api/profiles/adopt', { body })),
+  /** A device profile's saves and scores go up under one of the account's profiles; its name joins the history. */
+  mergeProfile: (id: string, name: string, data: DeviceProfileData) =>
+    call(api.POST('/api/profiles/{id}/merge', { params: { path: { id } }, body: { name, data } })),
   updateProfile: (id: string, body: UpdateProfileRequest) =>
     call(api.PATCH('/api/profiles/{id}', { params: { path: { id } }, body })),
   /** For good, with everything of the profile (ADR 0034). */

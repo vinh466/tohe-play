@@ -127,6 +127,12 @@ public sealed class RetiredProfileId
 {
     public required string PublicId { get; set; }
 
+    /// <summary>
+    /// The deleted profile's id, so a device never brings it back as a device profile's id (ADR 0043). Null for profiles
+    /// deleted before device profiles, whose ids were not kept.
+    /// </summary>
+    public Guid? ProfileId { get; set; }
+
     public DateTimeOffset RetiredAt { get; set; }
 }
 
@@ -137,6 +143,7 @@ internal sealed class RetiredProfileIdConfiguration : IEntityTypeConfiguration<R
         builder.ToTable("retired_profile_ids", "identity");
         builder.HasKey(retired => retired.PublicId);
         builder.Property(retired => retired.PublicId).HasMaxLength(ProfileIds.Length).IsFixedLength();
+        builder.HasIndex(retired => retired.ProfileId).IsUnique();
     }
 }
 

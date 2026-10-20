@@ -75,6 +75,12 @@ public sealed class IntegrityResult
 
     /// <summary>Who decided its level, when a person did (E3): the engine never overrules them.</summary>
     public string? DecidedBy { get; set; }
+
+    /// <summary>
+    /// Earned by a device profile, sent with the request that brought it into an account (ADR 0043): in no public
+    /// board's audience, ever. Set by that channel only; a trigger refuses to clear it.
+    /// </summary>
+    public bool DeviceEarned { get; set; }
 }
 
 /// <summary>

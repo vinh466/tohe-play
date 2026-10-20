@@ -46,6 +46,7 @@ public sealed record PublicBoardView(
 /// <summary>
 /// A community's board and the server's (ADR 0029), read from the results: only what each audience can trust, only
 /// profiles on public boards of accounts that are not suspended. Hands count with two people at the table (D-11).
+/// Results earned by a device profile are never on one (ADR 0043).
 /// </summary>
 internal sealed class PublicBoards(ToheDbContext db, IBoardAudience audience)
 {
@@ -99,6 +100,7 @@ internal sealed class PublicBoards(ToheDbContext db, IBoardAudience audience)
     {
         var best = await db.IntegrityResults.AsNoTracking()
             .Where(result => result.Kind == ResultKind.Run && result.GameId == gameId && result.Board == board && result.Public
+                && !result.DeviceEarned
                 && (result.Level == TrustLevel.Verified || (takeChecked && result.Level == TrustLevel.Checked))
                 && (since == null || result.At >= since))
             .GroupBy(result => result.ProfileId)
@@ -117,7 +119,7 @@ internal sealed class PublicBoards(ToheDbContext db, IBoardAudience audience)
     private async Task<List<Standing>> HandsAsync(string gameId, DateTimeOffset? since, CancellationToken ct)
     {
         var sums = await db.IntegrityResults.AsNoTracking()
-            .Where(result => result.Kind == ResultKind.Hand && result.GameId == gameId && result.Public
+            .Where(result => result.Kind == ResultKind.Hand && result.GameId == gameId && result.Public && !result.DeviceEarned
                 && result.Level == TrustLevel.Verified && (since == null || result.At >= since))
             .GroupBy(result => result.ProfileId)
             .Select(group => new

@@ -185,6 +185,8 @@ internal static class IdentityModule
         services.AddSingleton<ProofOfWork>();
         // Deleting profiles and accounts, with every module's data (ADR 0034); an account, by an admin (ADR 0038).
         services.AddScoped<AccountDeletion>();
+        // Bringing device profiles into accounts (ADR 0043).
+        services.AddScoped<DeviceProfiles>();
 
         // Profiles found by their public ID, for invitations to tables (ADR 0033).
         services.AddScoped<IProfileDirectory, ProfileDirectory>();

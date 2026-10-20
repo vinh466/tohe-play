@@ -518,6 +518,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/profiles/adopt": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Bring a device profile into the account with its id, saves and scores (ADR 0043); 409 id_taken when the id cannot be taken. */
+        post: operations["AdoptProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/profiles/{id}/merge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Upload a device profile's saves and scores under one of the account's profiles: the newer save wins (ADR 0043). */
+        post: operations["MergeProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/profiles/{id}": {
         parameters: {
             query?: never;
@@ -1087,11 +1121,18 @@ export interface components {
             acceptTerms: boolean;
             termsVersion: null | string;
             inviteCode?: null | string;
+            deviceProfile?: null | components["schemas"]["DeviceProfileUpload"];
         };
         ConfirmCodeRequest: {
             /** Format: uuid */
             attemptId: string;
             code: string;
+        };
+        ConfirmSignUpRequest: {
+            /** Format: uuid */
+            attemptId: string;
+            code: string;
+            deviceProfile?: null | components["schemas"]["DeviceProfileUpload"];
         };
         CountSummary: {
             name: string;
@@ -1139,6 +1180,36 @@ export interface components {
             errors: number;
             /** Format: int64 */
             plays: number;
+        };
+        DeviceProfileData: {
+            saves?: null | components["schemas"]["DeviceSave"][];
+            scores?: null | components["schemas"]["DeviceScore"][];
+        };
+        DeviceProfileUpload: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            avatar: string;
+            ageBand?: null | string;
+            data?: null | components["schemas"]["DeviceProfileData"];
+        };
+        DeviceSave: {
+            gameId: string;
+            data: components["schemas"]["JsonElement"];
+            /** Format: date-time */
+            updatedAt: string;
+        };
+        DeviceScore: {
+            /** Format: uuid */
+            clientId: string;
+            gameId: string;
+            board: string;
+            /** Format: double */
+            value: number;
+            /** Format: date-time */
+            achievedAt: string;
+            /** @default true */
+            final: boolean;
         };
         DeviceShare: {
             os: string;
@@ -1344,6 +1415,10 @@ export interface components {
             parentUnlockedUntil: null | string;
             /** Format: date-time */
             secureUntil: null | string;
+        };
+        MergeProfileRequest: {
+            name: string;
+            data?: null | components["schemas"]["DeviceProfileData"];
         };
         MetricSummary: {
             name: string;
@@ -1606,6 +1681,8 @@ export interface components {
             termsVersion: null | string;
             inviteCode?: null | string;
             proof?: null | components["schemas"]["ProofOfWorkSolution"];
+            /** Format: uuid */
+            deviceProfileId?: null | string;
         };
         StartRankedRunRequest: {
             gameId: string;
@@ -1887,7 +1964,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["ConfirmCodeRequest"];
+                "application/json": components["schemas"]["ConfirmSignUpRequest"];
             };
         };
         responses: {
@@ -2641,6 +2718,90 @@ export interface operations {
                 content: {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
+            };
+        };
+    };
+    AdoptProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceProfileUpload"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    MergeProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MergeProfileRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };

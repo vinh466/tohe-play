@@ -1,12 +1,15 @@
 #!/usr/bin/env node
 // End-to-end test of a newcomer's first touches (E-03) against a running stack, like smoke.ts. A fresh visitor opens
-// /play and plays the sample game without signing in; after the first round a faked `beforeinstallprompt` leads to the
-// "Cài Tò He" card; an iPhone sees the steps of iOS; the in-app browsers of Zalo and Messenger see "Mở bằng trình
-// duyệt" on arrival; the installed app (standalone) never sees any of it; a room link still asks to sign in. Needs the
-// sample game in the catalog (the smoke test waits for it the same way) and no account: nothing signs in.
+// /play and plays the sample game as the device profile made for it, without signing in; after the first round a faked
+// `beforeinstallprompt` leads to the "Cài Tò He" card; then the visitor signs up keeping that device profile (ADR 0043):
+// its score is in the account and on no public board. An iPhone sees the steps of iOS; the in-app browsers of Zalo and
+// Messenger see "Mở bằng trình duyệt" on arrival; the installed app (standalone) never sees any of it; a room link
+// still asks to sign in. Needs the sample game in the catalog (the smoke test waits for it the same way), and Mailpit
+// for the one sign-up's code.
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e journey
 import { AxeBuilder } from '@axe-core/playwright';
 import { type Browser, type BrowserContext, chromium, type Frame, type Page } from 'playwright';
+import { codeSentTo } from './mailpit.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const catalogUrl = new URL('/play', hubUrl).href;
@@ -162,13 +165,16 @@ const storedNo = (page: Page) => page.evaluate(() => localStorage.getItem('tohe:
 
 try {
   step(
-    'a new visitor opens the hub: the public page\'s "Chơi ngay" leads to the catalog, played as a guest, no sign-in',
+    'a new visitor opens the hub: "Chơi ngay" leads to the catalog, played as a device profile with a name, no sign-in',
   );
   const android = await visitor('android', userAgents.androidChrome, browser, [fakeInstallPrompt]);
   await android.goto(hubUrl);
   await android.getByRole('link', { name: 'Chơi ngay' }).tap();
   await android.waitForURL(catalogUrl);
-  await android.getByRole('link', { name: 'Đăng nhập' }).waitFor(); // the slim strip for guests
+  await android.getByRole('link', { name: 'Đăng nhập' }).waitFor(); // the slim strip of a device profile
+  const deviceName = (await android.getByRole('link', { name: 'Đổi người chơi' }).innerText()).trim();
+  if (!deviceName || deviceName === 'Khách')
+    throw new Error(`the catalog names no device profile: "${deviceName}"`);
   await android
     .getByRole('link', { name: /Ghép Khối|Chạm Chấm/ })
     .first()
@@ -210,6 +216,46 @@ try {
   const sheet = android.getByRole('dialog', { name: 'Cài Tò He' });
   await sheet.getByText(/Cài đặt ứng dụng/).waitFor();
   await sheet.getByRole('button', { name: '✕' }).tap();
+
+  step(
+    `the visitor signs up keeping the device profile "${deviceName}" (ADR 0043): its score is in the account, on no public board`,
+  );
+  const deviceId = await android.evaluate(() => localStorage.getItem('tohe:device-profile'));
+  if (!deviceId) throw new Error('no device profile is playing');
+  await android.getByRole('link', { name: 'Đăng nhập' }).tap();
+  await android.waitForURL(/\/account\/sign-in$/);
+  await android.getByRole('link', { name: 'Tạo tài khoản' }).tap();
+  await android.getByText(`Hồ sơ “${deviceName}” là của bạn?`).waitFor();
+  await check(android, 'sign-up-question');
+  const email = `e2e${Date.now().toString(36)}@e2e.test`;
+  await android.getByLabel('Email', { exact: true }).fill(email);
+  await android.getByLabel('Mật khẩu', { exact: true }).fill('mat-khau-e2e-123');
+  await android.getByLabel('Nhập lại mật khẩu').fill('mat-khau-e2e-123');
+  await android.getByRole('checkbox', { name: /16 tuổi/ }).check();
+  await android.getByRole('button', { name: 'Gửi mã xác nhận' }).tap();
+  await android.getByLabel('Mã xác nhận').fill(await codeSentTo(email));
+  await android.getByRole('button', { name: 'Tạo tài khoản' }).tap();
+  await android.waitForURL(catalogUrl);
+  const account = await android.evaluate(async () => {
+    const me = (await (await fetch('/api/auth/me')).json()) as { profiles: { id: string; name: string }[] };
+    const own = (await (await fetch('/api/boards/hello?period=week')).json()) as {
+      rows: { profileId: string }[];
+    };
+    const server = (await (await fetch('/api/boards/hello/public?scope=server&period=week')).json()) as {
+      top: { profileId: string }[];
+    };
+    return {
+      profiles: me.profiles.map((profile) => `${profile.id} ${profile.name}`),
+      own: own.rows.map((row) => row.profileId),
+      server: server.top.map((row) => row.profileId),
+    };
+  });
+  if (account.profiles.join() !== `${deviceId} ${deviceName}`) {
+    throw new Error(`the account's first profile is not the device profile: ${account.profiles.join(', ')}`);
+  }
+  if (!account.own.includes(deviceId))
+    throw new Error("the device profile's score is not on the account's board");
+  if (account.server.includes(deviceId)) throw new Error("a device profile's score reached a public board");
   await android.context().close();
 
   step(

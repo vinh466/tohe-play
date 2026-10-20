@@ -1,20 +1,33 @@
-import { useMutation, useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearch } from '@tanstack/react-router';
 import { type FormEvent, useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
-import { ApiError, auth, type MeView } from '../api/client.ts';
+import { ApiError, auth, type DeviceProfileUpload, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery } from '../api/queries.ts';
 import { ConsentCheckbox } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
 import { BackLink } from '../navigation/leave.tsx';
+import { refusedKey } from '../session/bringInChoices.ts';
 import { invite } from '../session/invite.ts';
 import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { withProof } from '../session/proofOfWork.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
-import { guestMode } from '../session/session.ts';
-import { useSetMe } from '../session/useSession.ts';
+import { SignUpQuestion } from '../session/SignUpQuestion.tsx';
+import { deviceMode } from '../session/session.ts';
+import {
+  afterSignUp,
+  defaultAnswer,
+  pendingSignUp,
+  type SignUpAnswer,
+  signingUpDeviceQuery,
+  signUpUpload,
+} from '../session/signUpDevice.ts';
+import { useDeviceRename } from '../session/useDeviceRename.ts';
+import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
+import { db } from '../storage/db.ts';
+import { reIdDeviceProfile } from '../storage/deviceProfiles.ts';
 import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { CodeStep } from '../ui/CodeStep.tsx';
@@ -39,13 +52,20 @@ export function ConfirmRegistrationPage() {
   );
 }
 
-/** A new account plays at once; the session guard of the page moves on as soon as the session changes. */
+/**
+ * A new account plays at once; the session guard of the page moves on as soon as the session changes. A device profile
+ * the account took leaves the device's list (ADR 0043); the others stay on the device.
+ */
 function useSignedUp() {
   const setMe = useSetMe();
-  return async (me: MeView) => {
-    guestMode.disable();
+  const changed = useDeviceProfilesChanged();
+  return async (me: MeView, deviceId: string | null) => {
+    await afterSignUp(db, me, deviceId);
+    pendingSignUp.forget();
+    deviceMode.disable();
     invite.forget();
     funnel.accountCreated();
+    await changed();
     await setMe(me);
   };
 }
@@ -53,7 +73,13 @@ function useSignedUp() {
 function Register() {
   const { t, i18n } = useTranslation();
   const signedUp = useSignedUp();
+  const rename = useDeviceRename();
+  const queryClient = useQueryClient();
   const config = useQuery(configQuery);
+  // The device profile playing, when it has progress: "Hồ sơ 'Mèo Cam' là của bạn?" (ADR 0043).
+  const device = useQuery(signingUpDeviceQuery).data ?? null;
+  const [answer, setAnswer] = useState<SignUpAnswer>(defaultAnswer);
+  const [deviceId, setDeviceId] = useState<string | null>(null);
   const { invite: linked } = useSearch({ from: '/account/register' });
   // A code from an invite link survives a trip to a sign-in provider (ADR 0028).
   useEffect(() => {
@@ -73,6 +99,19 @@ function Register() {
   const [attemptId, setAttemptId] = useState<string | null>(null);
   const set = (key: keyof typeof form) => (event: { target: { value: string } }) =>
     setForm((f) => ({ ...f, [key]: event.target.value }));
+  // Their own device profile names the account's first profile; for a child's, the person picks a name of their own.
+  const named = useRef(false);
+  useEffect(() => {
+    if (!device || named.current) return;
+    named.current = true;
+    setForm((f) => ({ ...f, displayName: device.name }));
+  }, [device]);
+  const answered = (next: SignUpAnswer) => {
+    if (device && next.mine !== answer.mine) {
+      setForm((f) => ({ ...f, displayName: next.mine ? device.name : funName(i18n.language) }));
+    }
+    setAnswer(next);
+  };
 
   const email = form.email.trim();
   const displayName = cleanName(form.displayName);
@@ -89,24 +128,57 @@ function Register() {
     inviteCode: registration === 'invite' && !form.inviteCode.trim() ? t('errors.inviteRequired') : null,
   };
 
+  const register = (id: string | null) =>
+    withProof(config.data?.proofOfWork, (proof) =>
+      auth.register({
+        email,
+        password: form.password,
+        displayName,
+        acceptTerms: agreed,
+        termsVersion: TERMS_VERSION,
+        inviteCode: form.inviteCode.trim() || null,
+        proof,
+        deviceProfileId: id,
+      }),
+    );
   const start = useMutation({
-    mutationFn: () =>
-      withProof(config.data?.proofOfWork, (proof) =>
-        auth.register({
-          email,
-          password: form.password,
-          displayName,
-          acceptTerms: agreed,
-          termsVersion: TERMS_VERSION,
-          inviteCode: form.inviteCode.trim() || null,
-          proof,
-        }),
-      ),
-    onSuccess: (attempt) => setAttemptId(attempt.attemptId),
+    mutationFn: async () => {
+      try {
+        return { attempt: await register(device?.id ?? null), id: device?.id ?? null };
+      } catch (error) {
+        // The server cannot take the device profile's id: it gets a new one on the device, and the sign-up starts again.
+        if (!(device && error instanceof ApiError && error.code === 'id_taken')) throw error;
+        const id = await reIdDeviceProfile(db, device.id);
+        await queryClient.invalidateQueries({ queryKey: ['signing-up-device'] });
+        return { attempt: await register(id), id };
+      }
+    },
+    onSuccess: ({ attempt, id }) => {
+      setAttemptId(attempt.attemptId);
+      setDeviceId(id);
+      if (id && device) {
+        pendingSignUp.remember({
+          attemptId: attempt.attemptId,
+          deviceId: id,
+          mine: answer.mine,
+          ageBand: answer.ageBand,
+          name: answer.mine ? displayName : device.name,
+        });
+      }
+    },
   });
   const confirm = useMutation({
-    mutationFn: (code: string) => auth.confirmRegistration(attemptId ?? '', code),
-    onSuccess: signedUp,
+    mutationFn: async (code: string) => {
+      const sending = deviceId ? await db.profiles.get(deviceId) : undefined;
+      let upload: DeviceProfileUpload | null = null;
+      if (sending) {
+        const name = answer.mine ? displayName : await rename.apply(sending.id, sending.name);
+        upload = await signUpUpload(db, { ...sending, name }, answer, name);
+      }
+      return auth.confirmRegistration(attemptId ?? '', code, upload);
+    },
+    onSuccess: (me) => signedUp(me, deviceId),
+    onError: (error) => rename.caught(error, device?.name ?? ''),
   });
 
   const server = start.error instanceof ApiError ? start.error : null;
@@ -197,7 +269,7 @@ function Register() {
           <CodeStep
             email={email}
             busy={confirm.isPending}
-            error={confirm.error}
+            error={rename.refused ? null : confirm.error}
             submitLabel={t('register.confirm')}
             onSubmit={(code) => confirm.mutate(code)}
             onResend={async () => {
@@ -208,9 +280,20 @@ function Register() {
               confirm.reset();
               setAttemptId(null);
             }}
-          />
+          >
+            {rename.refused ? (
+              <TextField
+                label={t('device.rename')}
+                maxLength={128}
+                value={rename.refused.name}
+                onChange={(event) => rename.setName(event.target.value)}
+                error={t(refusedKey(rename.refused.reason))}
+              />
+            ) : null}
+          </CodeStep>
         ) : (
           <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+            {device ? <SignUpQuestion device={device} answer={answer} onChange={answered} /> : null}
             {registration === 'invite' ? inviteField : null}
             <TextField
               label={t('register.email')}
@@ -308,9 +391,18 @@ function ConfirmFromLink() {
   const { t } = useTranslation();
   const { attempt, code } = useSearch({ from: '/account/register/confirm' });
   const signedUp = useSignedUp();
+  // Opened in this browser, the sign-up started here: its device profile goes along. Elsewhere, the usual account.
+  const pending = pendingSignUp.find(attempt);
   const confirm = useMutation({
-    mutationFn: () => auth.confirmRegistration(attempt, code),
-    onSuccess: signedUp,
+    mutationFn: async () => {
+      const device = pending ? await db.profiles.get(pending.deviceId) : undefined;
+      const upload =
+        pending && device
+          ? await signUpUpload(db, device, { mine: pending.mine, ageBand: pending.ageBand }, pending.name)
+          : null;
+      return auth.confirmRegistration(attempt, code, upload);
+    },
+    onSuccess: (me) => signedUp(me, pending?.deviceId ?? null),
   });
 
   const started = useRef(false);

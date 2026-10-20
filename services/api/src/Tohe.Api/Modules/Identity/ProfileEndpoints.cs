@@ -74,6 +74,14 @@ internal static class ProfileEndpoints
             .WithName("CreateProfile")
             .WithSummary("Add a profile to the account (at most five).");
 
+        profiles.MapPost("/adopt", AdoptProfileAsync)
+            .WithName("AdoptProfile")
+            .WithSummary("Bring a device profile into the account with its id, saves and scores (ADR 0043); 409 id_taken when the id cannot be taken.");
+
+        profiles.MapPost("/{id:guid}/merge", MergeProfileAsync)
+            .WithName("MergeProfile")
+            .WithSummary("Upload a device profile's saves and scores under one of the account's profiles: the newer save wins (ADR 0043).");
+
         profiles.MapPatch("/{id:guid}", UpdateProfileAsync)
             .WithName("UpdateProfile")
             .WithSummary("Edit one of the account's profiles.");
@@ -170,6 +178,99 @@ internal static class ProfileEndpoints
         await transaction.CommitAsync(ct);
         return TypedResults.Ok(await context.MeAsync(ct));
     }
+
+    /// <summary>
+    /// A device profile comes into the account keeping its id (ADR 0043): an adult's profile, or a child's with an age
+    /// band, made with its saves and scores in one transaction. Its scores are marked as a device's and stay off public
+    /// boards. Profile management: step-up level 1, as adding a profile (ADR 0025).
+    /// </summary>
+    private static async Task<Results<Ok<MeView>, ValidationProblem, ProblemHttpResult>> AdoptProfileAsync(
+        DeviceProfileUpload request, Context context, DeviceProfiles devices, TimeProvider clock, CancellationToken ct)
+    {
+        if (Closed(context.Account) is { } closed)
+        {
+            return closed;
+        }
+
+        if (devices.Check(request, out var name) is { } refused)
+        {
+            return refused;
+        }
+
+        await using var transaction = await context.Db.Database.BeginTransactionAsync(ct);
+        await LockAccountAsync(context.Db, context.Account.Id, ct);
+        if (await context.Db.Profiles.CountAsync(p => p.AccountId == context.Account.Id, ct) >= ProfileOptions.MaxProfilesPerAccount)
+        {
+            return Problems.Field("", "too_many_profiles");
+        }
+
+        if (await devices.IdTakenAsync(request.Id, ct))
+        {
+            return DeviceProfiles.IdTaken();
+        }
+
+        var profile = await devices.AddAsync(context.Account.Id, request, name, clock.GetUtcNow(), ct);
+        await devices.ImportAsync(profile.Id, context.Account.Id, request.Data, ct);
+        try
+        {
+            await context.Db.SaveChangesAsync(ct);
+        }
+        catch (DbUpdateException e) when (e.InnerException is Npgsql.PostgresException { SqlState: Npgsql.PostgresErrorCodes.UniqueViolation })
+        {
+            // Another request brought the same id in at this very moment.
+            return DeviceProfiles.IdTaken();
+        }
+
+        await transaction.CommitAsync(ct);
+        return TypedResults.Ok(await context.MeAsync(ct));
+    }
+
+    /// <summary>
+    /// A device profile merged into one of the account's profiles (ADR 0043, step I1): its saves and scores go up under
+    /// the target's id — the newer save wins, the other is kept as the previous one — its scores marked as a device's;
+    /// the target keeps its name and avatar, and the device profile's name joins its name history. No alias yet (I2).
+    /// </summary>
+    private static async Task<Results<Ok<MeView>, NotFound, ProblemHttpResult>> MergeProfileAsync(
+        Guid id, MergeProfileRequest request, Context context, DeviceProfiles devices, TimeProvider clock, CancellationToken ct)
+    {
+        if (Closed(context.Account) is { } closed)
+        {
+            return closed;
+        }
+
+        if (DeviceProfiles.CheckName(request.Name, out var name) is { } refused)
+        {
+            return refused;
+        }
+
+        if (devices.CheckData(request.Data) is { } invalid)
+        {
+            return invalid;
+        }
+
+        await using var transaction = await context.Db.Database.BeginTransactionAsync(ct);
+        await LockAccountAsync(context.Db, context.Account.Id, ct);
+        var target = await context.Db.Profiles.FirstOrDefaultAsync(p => p.Id == id && p.AccountId == context.Account.Id, ct);
+        if (target is null)
+        {
+            return TypedResults.NotFound();
+        }
+
+        context.Db.ProfileNameHistory.Add(new ProfileName { ProfileId = target.Id, Name = name, At = clock.GetUtcNow() });
+        await devices.ImportAsync(target.Id, context.Account.Id, request.Data, ct);
+        await context.Db.SaveChangesAsync(ct);
+        await transaction.CommitAsync(ct);
+        return TypedResults.Ok(await context.MeAsync(ct));
+    }
+
+    /// <summary>
+    /// Nothing comes into a suspended account (ADR 0027), nor one waiting to be deleted (ADR 0034) — as for any way into
+    /// an account (ADR 0043).
+    /// </summary>
+    private static ProblemHttpResult? Closed(Account account) =>
+        account.SuspendedAt is not null ? Problems.AccountSuspended()
+        : account.DeleteAfter is not null ? Problems.SessionEnded()
+        : null;
 
     private static async Task<Results<Ok<MeView>, NotFound, ValidationProblem, ProblemHttpResult>> UpdateProfileAsync(
         Guid id,

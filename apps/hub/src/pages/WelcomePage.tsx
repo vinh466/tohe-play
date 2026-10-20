@@ -8,9 +8,8 @@ import { configQuery } from '../api/queries.ts';
 import { EmailChange } from '../session/EmailChange.tsx';
 import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
-import { guestMode } from '../session/session.ts';
+import { deviceMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
-import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
 import { Screen } from '../ui/Screen.tsx';
@@ -58,7 +57,7 @@ function SignIn() {
   const login = useMutation({
     mutationFn: () => auth.login(email.trim(), password),
     onSuccess: async (me) => {
-      guestMode.disable();
+      // The device stays in device mode until the profile picker offered to bring its device profiles in (ADR 0043).
       if (me.account.email === null && config.data?.email) {
         setNeedsEmail(true);
         return;
@@ -82,9 +81,9 @@ function SignIn() {
     login.mutate();
   };
 
-  const tryAsGuest = async () => {
-    guestMode.enable();
-    funnel.guestStart();
+  // Back to the device profiles (ADR 0043): the first one is made then, if the device has none.
+  const playOnDevice = async () => {
+    deviceMode.enable();
     await queryClient.invalidateQueries({ queryKey: ['me'] });
     await navigate({ to: '/', replace: true });
   };
@@ -189,8 +188,8 @@ function SignIn() {
             </Link>
           </p>
         )}
-        <Button variant="ghost" onClick={() => void tryAsGuest()}>
-          {t('welcome.tryAsGuest')}
+        <Button variant="ghost" onClick={() => void playOnDevice()}>
+          {t('welcome.playOnDevice')}
         </Button>
       </div>
       <DataLink />

@@ -4,14 +4,7 @@ import { describe, expect, it } from 'vitest';
 import type { GameSummary } from './api/client.ts';
 import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './launcher/manifest.ts';
 import { openDb } from './storage/db.ts';
-import {
-  bestScore,
-  ensureGuestProfile,
-  loadSave,
-  recordScore,
-  storeSave,
-  withOfflineCache,
-} from './storage/repository.ts';
+import { bestScore, loadSave, recordScore, storeSave, withOfflineCache } from './storage/repository.ts';
 
 const hello: GameSummary = {
   id: 'hello',
@@ -54,10 +47,9 @@ describe('launcher', () => {
 });
 
 describe('local storage', () => {
-  it('creates one guest profile and keeps saves and best scores per profile', async () => {
+  it('keeps saves and best scores per profile', async () => {
     const db = openDb(`test-${crypto.randomUUID()}`);
-    const profile = await ensureGuestProfile(db);
-    expect(await ensureGuestProfile(db)).toEqual(profile);
+    const profile = { id: crypto.randomUUID() };
 
     expect(await loadSave(db, profile.id, 'hello')).toBeNull();
     await storeSave(db, profile.id, 'hello', { best: 3 });

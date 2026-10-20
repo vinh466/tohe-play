@@ -99,7 +99,8 @@ erDiagram
   ([Registration](#registration)).
 - An **attempt** waits for a code sent by email — signing up, a forgotten password, a new sign-in email — or for the
   last step of a sign-in back from a provider.
-- Saves and scores belong to a profile; boards show the profiles of one account.
+- Saves and scores belong to a profile; boards show the profiles of one account. A profile may have started as a
+  [device profile](#device-profiles), keeping its id.
 
 Tables live in the `identity` schema (`accounts`, `account_logins`, `profiles`, `profile_names`, `auth_attempts`,
 `communities`, `invite_codes`); the console's switches in `admin.settings` ([Admin console](admin.md#sign-in-and-registration)). Data Protection keys (used to encrypt
@@ -478,7 +479,8 @@ sequenceDiagram
 
 Signing up plays the new profile at once, and so does signing in to an account with one profile and no PIN — nobody
 else to choose, and one sign-in request fewer. The hub then sends the device through the picker with
-`/account/profiles?auto=true`, which goes straight on (offering the guest's progress first, if this device has some), and
+`/account/profiles?auto=true`, which goes straight on (offering first to bring in this device's device profiles that
+have progress, [Device profiles](#bringing-one-into-an-account)), and
 which also chooses a lone PIN-less profile by itself when a page needs a player and none is chosen. Opened by hand
 ("Đổi người chơi"), the picker always shows, so a one-profile account can still add a profile or manage the account.
 
@@ -521,7 +523,7 @@ sequenceDiagram
 | Saves, scores (Progress) | Deleted |
 | Results on boards, their decisions, ranked runs (Integrity) | Deleted — the one way past the decisions' append-only trigger ([Integrity](integrity.md#decisions)) |
 | Seats in finished hands and closed tables (Rooms) | Kept for the others who played, with nothing of them: a fresh random id, `Deleted: true`, no account, name or avatar; its results keep place and points, without profile or account |
-| Its public ID | Retired in `identity.retired_profile_ids`: never given to another profile |
+| Its public ID, its id | Retired in `identity.retired_profile_ids`: never given to another profile, never adopted from a device |
 | An account's sign-in methods, roles, keys, sign-in attempts | Deleted with the account |
 | Sent email records · audit entries | 30 days (ADR 0022) · a year ([Admin console](admin.md#the-audit-log)) |
 
@@ -584,39 +586,96 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | Per client IP, 10 requests a minute in each of three buckets: signing in or asking for a code (`auth`), typing a code back (`auth-code`), a PIN or the parent gate (`auth-gate`) | Rate limiter policies; `Identity:AuthRequestsPerMinute` |
 | 10 wrong passwords lock an account for 5 minutes; a password reset ends the lockout | ASP.NET Core Identity lockout |
 
-## Guest mode
+## Device profiles
 
-Opening the hub is playing: a device with no session and no guest flag becomes a guest by itself, with no sign-in
-screen first (the slim "Đăng nhập" strip on the catalog opens it when the player chooses). "Chơi luôn" on the sign-in
-screen is the same guest. A guest has one local profile per device (saves stay on the device). The first time a real
-profile is chosen on that device, the hub offers to move the guest's progress to it. What needs an account — a room
-link, a room, the rooms lobby, a replay — still asks a signed-out device to sign in or up; signing out leads to the
-sign-in screen. See [A newcomer's first touches](overview.md#a-newcomers-first-touches).
+[ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md): a player is a profile of this device or of an
+account. A **device profile** — "Hồ sơ trên máy này" — belongs to one browser (or installed app): a name, an avatar,
+saves and scores, all in IndexedDB. It has no email, no 12-digit ID, no public board and no age (it sees every game).
+This page describes step I1, which lives in the hub; device profiles on the server (the device key, tables for `named`
+device profiles, the transfer code, aliases, the 90-day cleanup) come with I2.
 
-## Device profiles (ADR 0043)
+- **Opening the hub is playing.** A device with no session plays as its device profile at once, with no sign-in screen
+  first: the first visit makes one silently, with a suggested Vietnamese name and an avatar from the profiles' set
+  (`ensureDeviceProfile`, the `any` level). The slim "Đăng nhập" strip on the catalog opens the sign-in when the player
+  chooses; "Chơi luôn" on the sign-in screen goes back to the device profiles. The catalog shows the device profile's
+  name. What needs an account — a room link, a room, the rooms lobby, a replay — still asks a signed-out device to sign
+  in or up; signing out of an account leads to the sign-in screen, and the device profiles stay.
+- **Up to five per device** (`MAX_DEVICE_PROFILES`), in `/account/profiles` while no account is signed in: switch, make
+  one (a suggested name, an avatar), rename, delete — on the device only; the last one stays. Deleting removes its saves
+  and scores from the device.
+- **From the guest.** The guest of earlier versions — one local profile per device — is the device's first device
+  profile: same id, same saves and scores, moved by the IndexedDB upgrade to version 4 without copying anything. The
+  device keeps the key `tohe:guest` in `localStorage` for "this device plays without an account" (the public pages
+  read it, [Hosts and paths](hosts-and-paths.md)); the device profile playing is `tohe:device-profile`.
+- **Nothing reaches the server** while a device profile stays on the device: it never syncs, and device telemetry
+  names no profile (ADR 0015).
 
-[ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md) replaces the guest with **device profiles** —
-"Hồ sơ trên máy này": up to five per device, each with a name and an avatar, local-first, reaching the server only when
-its player needs it, and brought into an account, keeping its id when it safely can. Games, platform features and tables each ask for a
-level — `any`, `named` or `account` — and the hub asks for the highest. It arrives in steps: I1 in the hub (the guest
-becomes the first device profile; linking on sign-up and sign-in), I2 on the server (tables for `named` device profiles,
-the transfer code). Until each step lands, guest mode above stays as it is.
+### Bringing one into an account
+
+A device profile's saves and scores reach the server **only** with the request that brings it in — one request,
+carrying at most 50 saves (each within the Game Contract's 64 KB) and 1 000 scores (the hub sends each board's best
+first). The server stores every score of that request, and every result the integrity engine makes of it, with the
+mark `device_earned`: such a result is never in a public board's audience, even once the profile is an account's — the
+channel decides, no field of the request does ([Integrity and boards](integrity.md#public-boards)). What the device
+plays after that syncs like any account profile's.
+
+```mermaid
+flowchart TD
+  up["Signing up — by email, or a provider's first sign-in"] --> q{"The device profile playing has progress:<br/>'Hồ sơ “Mèo Cam” là của bạn?'"}
+  q -- "Của tôi (default)" --> first["It becomes the account's first profile: same id, its name and avatar,<br/>an adult's, a 12-digit ID given now — no empty first profile"]
+  q -- "Của con tôi" --> child["The usual first profile, and the device profile added<br/>as a child's profile with the age band chosen"]
+  in["Signing in to an account that exists"] --> each{"For each device profile with progress"}
+  each -- "Thêm vào tài khoản: the one playing, while below the limit" --> add["Added with its id"]
+  each -- "Gộp vào …: the one playing when the account is full" --> merge["Its saves and scores uploaded under the target's id"]
+  each -- "Giữ trên máy này: the others" --> keep["Stays on the device; offered again from the picker"]
+```
+
+- **The id travels with the sign-up.** By email, `POST /api/auth/register` carries `deviceProfileId`, kept on the
+  attempt; the confirmation from the same device carries the device profile and its data. Opened on another device,
+  the link makes the account the usual way, and the original device offers to add its device profile the next time it
+  signs in. With a provider, the hub starts at `/api/auth/external/{provider}?profile=<id>`; the id travels in the
+  provider's state, then in the attempt, and `POST /api/auth/external/pending/signup` carries the device profile. A
+  device profile whose id is not the attempt's, or whose id was taken meanwhile, is not brought in: the account is made
+  the usual way and the device keeps it. Signing up needs no step-up: the person has just proved the address.
+- **Signing in** (`/account/profiles` right after it): for each device profile **with progress**, **Thêm vào tài
+  khoản** (keeps its id; only while the account is below its limit), **Gộp vào** one of the account's profiles (the
+  hub suggests one with the same name or avatar) or **Giữ trên máy này**. By default the one playing is added — merged
+  when the account is full — and the others stay. Adding or merging is profile management: step-up level 1 (ADR 0025),
+  `POST /api/profiles/adopt` and `POST /api/profiles/{id}/merge`. Later, the picker lists the device profiles left on the
+  device with "Đưa vào tài khoản".
+- **Adopting an id**: the API takes the device's id only if no profile has it and none ever had it — a deleted
+  profile's id is retired with its public ID (`identity.retired_profile_ids.profile_id`) — otherwise `409 id_taken`:
+  the hub gives the device profile a new id on the device, moves its saves and scores under it, and asks again. (I2
+  adds aliases to what an id must not be.)
+- **Its name** goes through the [name rules](#names) and the filter when it is brought in: a refused name answers
+  `422 name_refused` (with the rule in `reason`), and the hub asks the player to rename it first.
+- **The account must be able to take it**: a suspended account, or one waiting to be deleted, takes nothing
+  (`account_suspended`, `session_ended`); a child's profile starts with the child template — off public boards, no play
+  with outsiders, asked to tables only within the account.
+- **Merging** (I1): a save present on one side is taken; present on both, the newer wins — the device's time against
+  the server's — and the other is kept as the previous version (ADR 0005); scores join the target's, marked. The target
+  keeps its name and avatar; the device profile's name goes into its name history. There is no alias yet (I2).
+- **After it**, the device drops the device profile from its list; its saves and scores stay under the account
+  profile's id, marked as sent — so ordinary sync never sends them again, unmarked.
+
+The levels `named` and `account`, the `named` screen and tables open to device profiles arrive with I2; until I4 every
+game asks for `any`, and until I2 a table asks for an account.
 
 ## API
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
 | `GET /api/auth/challenge` | — | A [proof-of-work](#proof-of-work) to solve before signing up or a reset, when the console asks for one |
-| `POST /api/auth/register` | — | Start signing up, with an invite code when [registration](#registration) needs one (and `proof` when the console asks): a code to the email — 202 and an attempt, whoever the address belongs to |
-| `POST /api/auth/register/confirm` | — | The code creates the account and its first profile, which plays at once |
+| `POST /api/auth/register` | — | Start signing up, with an invite code when [registration](#registration) needs one (and `proof` when the console asks), and the id of the device profile signing up (`deviceProfileId`, `409 id_taken`): a code to the email — 202 and an attempt, whoever the address belongs to |
+| `POST /api/auth/register/confirm` | — | The code creates the account and its first profile — the device profile sent with it, when it is the attempt's ([Device profiles](#bringing-one-into-an-account)) — which plays at once |
 | `POST /api/auth/login` / `POST /api/auth/logout` | — / session | Sign in with the email (an old account's username until it adds one) / out |
 | `POST /api/auth/password/forgot` | — | A code to set a new password, if the address has an account (`proof` when the console asks) — 202 either way |
 | `POST /api/auth/password/reset` | — | The code sets the new password; every other session ends |
-| `GET /api/auth/external/{provider}` | — (`?intent=link`: session + level 2) | A navigation: off to the provider, back through `…/callback` and `…/done` |
+| `GET /api/auth/external/{provider}` | — (`?intent=link`: session + level 2) | A navigation: off to the provider, back through `…/callback` and `…/done`; `?profile=` names the device profile signing up |
 | `GET /api/auth/external/pending` | the browser that came back | The step that waits — `email`, `link` or `signup` — or 404 |
 | `POST /api/auth/external/pending/email` · `/email/confirm` | the browser that came back | A code to the address typed · the code proves it; an account with it is linked at once |
 | `POST /api/auth/external/pending/link-code` · `/link` | the browser that came back | A code to the account's address · the code, or the password, links and signs in |
-| `POST /api/auth/external/pending/signup` | the browser that came back | A name, the terms and an invite code when needed create the account; its first profile plays at once |
+| `POST /api/auth/external/pending/signup` | the browser that came back | A name, the terms and an invite code when needed create the account — with the device profile sent, as by email; its first profile plays at once |
 | `DELETE /api/auth/external/pending` | the browser that came back | Forget the sign-in that waits |
 | `GET /api/auth/me` | session | Account (with its email, linked providers, platform role — [Admin console](admin.md) — and community), its profiles (with public IDs, whether each is on public boards, whether a moderator hid it from them, and who may invite it), active profile, step-up expiries |
 | `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
@@ -632,6 +691,8 @@ the transfer code). Until each step lands, guest mode above stays as it is.
 | `GET /api/profiles/options` | — | Allowed avatars and age bands; how many profiles an account may own |
 | `PATCH /api/account` | parent | The account's telemetry switch |
 | `POST /api/profiles` | parent | Add a profile: a child's with an age band, an adult's without |
+| `POST /api/profiles/adopt` | parent | Bring a device profile in with its id, saves and scores: a child's with an age band, an adult's without ([Device profiles](#bringing-one-into-an-account)); `409 id_taken`, `422 name_refused` |
+| `POST /api/profiles/{id}/merge` | parent | Upload a device profile's saves and scores under one of the account's profiles — the newer save wins — and keep its name in the history; `422 name_refused` |
 | `GET /api/profiles/by-id/{publicId}` | session | A profile's card — id, ID, name, avatar — to confirm before asking it to a table ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); never a child of another account nor a profile of an account suspended or waiting to be deleted (`profile_not_found`); 20 lookups an hour per account (`lookup_limit`) |
 | `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`, `onPublicBoards` — with `askedChild` to turn a child's on — and an adult's `invites`: `anyone`, `played-with`, `account`) / delete a profile — never the last — with everything of it ([above](#deleting)) |
 
@@ -647,7 +708,8 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `password_not_set`, `email_required`, `terms_required`, `too_many_profiles`, `last_profile`, `name_required`, `name_invalid_character`,
 `name_too_long`, `name_reserved`, `name_inappropriate`, `rename_limit`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
 `last_method`, `account_suspended`, `session_ended`, `method_disabled`, `proof_of_work_required`, `registration_closed`, `invite_required`,
-`invite_invalid`, `asked_child_required`.
+`invite_invalid`, `asked_child_required`, `id_taken`, `name_refused` (with `reason`, the name rule that refused it),
+`upload_too_large`.
 Navigations answer with a redirect instead: `/account/sign-in?external=failed` (the provider refused, or was cancelled),
 `/account/sign-in?external=suspended`, `/account/sign-in?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`
 `step_up_required`, `provider_account_in_use`, `cross_origin` or `method_disabled`.

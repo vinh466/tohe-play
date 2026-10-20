@@ -58,6 +58,9 @@ flowchart TD
   rate -- no --> checked
 ```
 
+A device profile's runs brought into an account arrive together, long after they were played: `Rate` does not look
+at them, nor count them for the runs that follow; `Bounds` and `PersonalJump` do.
+
 Only a run that would move a board — a best of the week for its profile — is looked at past `Bounds`: a run that
 changes no board cannot mislead one, and a child who restarts often never sees "Đang được xem xét" for it. A final run
 reported again with a higher value is judged again — unless it is left to people: held, rejected, or decided by a
@@ -127,6 +130,11 @@ flowchart TD
   who -- yes --> ranked["Ranked: the first 50, and the viewer with two places on each side"]
 ```
 
+- **Never a device profile's results.** A run that reached the server with a device profile brought into an account
+  ([Identity](identity.md#bringing-one-into-an-account)) carries `device_earned` in `progress.scores` and
+  `integrity.results`, set by the channel it came through, never by the request's content. Both public queries leave
+  such results out (`&& !result.DeviceEarned`), whoever's they are now, and a trigger refuses to clear the mark on a
+  result. The account's own board counts them as any other.
 - **Who is on them** is Identity's to say (`IBoardAudience`): a profile with its switch "Hiện trên bảng công khai" on, of
   an account that is not suspended; for a community's board, of an account that came with that community (ADR 0028). An
   adult's profile starts on; a child's starts off, and its owner turns it on only by saying they asked the child
