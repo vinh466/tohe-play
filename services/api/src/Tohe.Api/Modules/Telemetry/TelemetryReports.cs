@@ -73,8 +73,47 @@ internal sealed class TelemetryReports(ToheDbContext db, TimeProvider clock)
 
         var totals = new TelemetryTotals(
             sessions.Values.Select(s => s.DeviceId).Distinct().Count(), sessions.Count, rows.Count);
-        return new TelemetryReport(from, to, totals, devices, games, await DailyAsync(from, ct));
+        return new TelemetryReport(from, to, totals, devices, games, await DailyAsync(from, ct), Funnel(rows));
     }
+
+    /// <summary>The prefix of the hub's newcomer-funnel counts (docs/architecture/telemetry.md).</summary>
+    internal const string FunnelPrefix = "hub.funnel.";
+
+    /// <summary>
+    /// The newcomer funnel from the raw rows (the window is at most the 30 days raw events are kept): the hub's own
+    /// <c>hub.funnel.*</c> counts per UTC day and in total, and three ratios.
+    /// </summary>
+    private static FunnelReport Funnel(List<Row> rows)
+    {
+        var funnel = rows
+            .Where(r => r.Kind == "count" && r.Source == "hub" && r.GameId is null
+                && r.Name!.StartsWith(FunnelPrefix, StringComparison.Ordinal))
+            .ToList();
+
+        var days = funnel
+            .GroupBy(r => DateOnly.FromDateTime(r.ReceivedAt.UtcDateTime))
+            .OrderBy(g => g.Key)
+            .Select(g => new FunnelDay(g.Key, Sum(g)))
+            .ToList();
+        var totals = Sum(funnel);
+
+        long Of(string name) => totals.GetValueOrDefault(FunnelPrefix + name);
+        var offered = totals.Where(t => t.Key.StartsWith(FunnelPrefix + "install-offered.", StringComparison.Ordinal)).Sum(t => t.Value);
+        return new FunnelReport(
+            days,
+            totals,
+            new FunnelRatios(
+                Ratio(Of("first-game"), Of("guest-start")),
+                Ratio(Of("install-accepted"), offered),
+                Ratio(Of("account-created"), Of("sign-in-opened"))));
+
+        static Dictionary<string, long> Sum(IEnumerable<Row> of) => of
+            .GroupBy(r => r.Name!)
+            .OrderBy(g => g.Key, StringComparer.Ordinal)
+            .ToDictionary(g => g.Key, g => g.Sum(r => (long)r.Count));
+    }
+
+    internal static double? Ratio(long part, long whole) => whole == 0 ? null : Math.Round((double)part / whole, 4);
 
     private static GameHealth Health(
         string? gameId,

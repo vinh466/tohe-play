@@ -8,6 +8,7 @@ import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync.ts';
+import { funnel } from '../telemetry/telemetry.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
 import { LeaderboardButton } from '../ui/Leaderboard.tsx';
@@ -52,7 +53,11 @@ function Catalog({ player }: { player: Player }) {
       {isGuest ? (
         <p className="flex items-center justify-between gap-3 rounded-2xl bg-notice px-4 py-2 text-notice-ink text-sm">
           {t('guest.banner')}
-          <Link to="/account/sign-in" className="font-bold underline underline-offset-4">
+          <Link
+            to="/account/sign-in"
+            onClick={() => funnel.signInOpened()}
+            className="font-bold underline underline-offset-4"
+          >
             {t('guest.signIn')}
           </Link>
         </p>

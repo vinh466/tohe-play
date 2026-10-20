@@ -16,6 +16,7 @@ import {
   type TelemetryContext,
   type TelemetrySwitches,
 } from './collector.ts';
+import { createFunnel } from './funnel.ts';
 
 const DEVICE_OFF = 'tohe:telemetry:device-off';
 const FLUSH_MS = 60_000;
@@ -85,6 +86,14 @@ export const telemetry = createCollector({
   storage,
   now: () => Date.now(),
   newId,
+});
+
+/** The newcomer funnel's counts (funnel.ts): through this collector, so every switch applies to them. */
+export const funnel = createFunnel({
+  count: (name) => telemetry.count(name),
+  consent: () => telemetry.consent,
+  storage,
+  now: () => Date.now(),
 });
 
 // ---------------------------------------------------------------- switches

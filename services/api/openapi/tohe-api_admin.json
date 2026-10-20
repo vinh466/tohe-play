@@ -2323,6 +2323,83 @@
           }
         }
       },
+      "FunnelDay": {
+        "required": [
+          "day",
+          "counts"
+        ],
+        "type": "object",
+        "properties": {
+          "day": {
+            "type": "string",
+            "format": "date"
+          },
+          "counts": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      },
+      "FunnelRatios": {
+        "required": [
+          "firstGamePerGuestStart",
+          "installAcceptedPerOffered",
+          "accountCreatedPerSignInOpened"
+        ],
+        "type": "object",
+        "properties": {
+          "firstGamePerGuestStart": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "installAcceptedPerOffered": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          },
+          "accountCreatedPerSignInOpened": {
+            "type": [
+              "null",
+              "number"
+            ],
+            "format": "double"
+          }
+        }
+      },
+      "FunnelReport": {
+        "required": [
+          "days",
+          "totals",
+          "ratios"
+        ],
+        "type": "object",
+        "properties": {
+          "days": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/FunnelDay"
+            }
+          },
+          "totals": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "integer",
+              "format": "int64"
+            }
+          },
+          "ratios": {
+            "$ref": "#/components/schemas/FunnelRatios"
+          }
+        }
+      },
       "GameHealth": {
         "required": [
           "gameId",
@@ -3148,7 +3225,8 @@
           "totals",
           "devices",
           "games",
-          "daily"
+          "daily",
+          "funnel"
         ],
         "type": "object",
         "properties": {
@@ -3180,6 +3258,9 @@
             "items": {
               "$ref": "#/components/schemas/DailyPoint"
             }
+          },
+          "funnel": {
+            "$ref": "#/components/schemas/FunnelReport"
           }
         }
       },

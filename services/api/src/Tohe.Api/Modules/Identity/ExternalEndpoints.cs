@@ -228,6 +228,12 @@ internal static class ExternalEndpoints
         var attempt = attempts.NewExternal(provider, key, known.Name, verified ? email : null, verified && email is not null, code: null);
         db.AuthAttempts.Add(attempt);
         await db.SaveChangesAsync(ct);
+        // A sign-up is waiting, unless the provider vouched for an address that has an account: that one is linked.
+        if (!(verified && email is not null && await users.FindByEmailAsync(email) is not null))
+        {
+            metrics.SignUp(provider, "started");
+        }
+
         Bind(http, protection, attempt);
         return Results.Redirect(HubPaths.SignInContinue);
     }
@@ -442,6 +448,7 @@ internal static class ExternalEndpoints
         SessionWriter session,
         MeQueries me,
         TimeProvider clock,
+        ToheMetrics metrics,
         CancellationToken ct)
     {
         var attempt = await PendingAsync(http, protection, db, clock, ct);
@@ -534,6 +541,7 @@ internal static class ExternalEndpoints
         }
 
         await transaction.CommitAsync(ct);
+        metrics.SignUp(attempt.Provider!, "completed");
         Unbind(http);
         var state = new DeviceSession(profile.Id);
         await session.WriteAsync(account, state);

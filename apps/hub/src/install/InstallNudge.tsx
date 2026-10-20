@@ -1,5 +1,6 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { copyText } from '../ui/copyText.ts';
 import { Modal } from '../ui/Modal.tsx';
@@ -29,6 +30,7 @@ export function InstallNudge() {
     if (wanted && wanted !== 'open-in-browser' && offer === null) {
       setOffer(wanted);
       installStore.shown();
+      funnel.installOffered(wanted);
     }
   }, [wanted, offer]);
 
@@ -79,6 +81,9 @@ export function InAppStrip() {
   const { t } = useTranslation();
   const variant = useInstallVariant('auto');
   const inApp = installStore.snapshot().env.inApp;
+  useEffect(() => {
+    if (variant === 'open-in-browser') funnel.installOffered('open-in-browser');
+  }, [variant]);
   if (variant !== 'open-in-browser') return null;
   return (
     <section

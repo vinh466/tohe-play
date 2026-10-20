@@ -11,7 +11,7 @@ import { syncer, syncsWithServer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
 import { loadSave, recordRanked, recordScore, storeSave } from '../storage/repository.ts';
 import { durationBucket } from '../telemetry/collector.ts';
-import { telemetry, telemetryOn } from '../telemetry/telemetry.ts';
+import { funnel, telemetry, telemetryOn } from '../telemetry/telemetry.ts';
 import { useTheme } from '../theme/useTheme.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
@@ -61,6 +61,12 @@ export interface RoomBridge {
     seats(seats: RoomSeat[], seat: number): void;
     reaction(seat: number, reaction: Reaction): void;
   }): () => void;
+}
+
+/** A game reported a final score: the moment the install card may show, and the newcomer funnel's first game. */
+function gameFinished() {
+  installStore.gameFinished();
+  funnel.firstGame();
 }
 
 /**
@@ -208,14 +214,14 @@ export function GameFrame({
       onScore: async ({ value, board, run, final }) => {
         await recordScore(db, { profileId: player.id, gameId: game.id, board, value, run, final });
         // A final score is a finished round: the moment Tò He may offer to be installed (install/install.ts).
-        if (final) installStore.gameFinished();
+        if (final) gameFinished();
         if (synced) syncer.syncSoon(player.id);
       },
       // Ranked runs (ADR 0030) for signed-in profiles: the API deals the seed; without it the game plays unranked.
       onRankedStart: synced ? () => runs.start(game.id) : undefined,
       onRankedFinish: async ({ run, moves, score }) => {
         await recordRanked(db, { profileId: player.id, gameId: game.id, run, moves, score });
-        installStore.gameFinished();
+        gameFinished();
         if (synced) syncer.syncSoon(player.id);
       },
       onRoomAct: (action) => room?.act(action),

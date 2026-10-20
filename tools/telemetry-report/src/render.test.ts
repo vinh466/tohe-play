@@ -71,6 +71,25 @@ const report: TelemetryReport = {
     },
   ],
   daily: [{ day: '2026-10-14', gameId: 'tap-merge', errors: 3, plays: 12 }],
+  funnel: {
+    days: [
+      { day: '2026-10-14', counts: { 'hub.funnel.guest-start': 4, 'hub.funnel.first-game': 2 } },
+      {
+        day: '2026-10-15',
+        counts: { 'hub.funnel.guest-start': 2, 'hub.funnel.install-offered.prompt': 1 },
+      },
+    ],
+    totals: {
+      'hub.funnel.first-game': 2,
+      'hub.funnel.guest-start': 6,
+      'hub.funnel.install-offered.prompt': 1,
+    },
+    ratios: {
+      firstGamePerGuestStart: 0.3333,
+      installAcceptedPerOffered: 0,
+      accountCreatedPerSignInOpened: null,
+    },
+  },
 };
 
 describe('report findings', () => {
@@ -102,5 +121,23 @@ describe('markdown', () => {
       '| Android Samsung Internet (phone) | webgl | 4 | 50000 | 18.0 % | ≤ 50 ms | 400 ms | 6.5 ms |',
     );
     expect(markdown).toContain('| 2026-10-14 | tap-merge | 3 | 12 |');
+  });
+});
+
+describe('funnel', () => {
+  it('shows the three ratios with their counts, n/a when the base is 0, and a column per step', () => {
+    const markdown = renderMarkdown(report);
+    expect(markdown).toContain('## Newcomer funnel');
+    expect(markdown).toContain('| first game / guest start | 33.3 % | 2 / 6 |');
+    expect(markdown).toContain('| install accepted / offered | 0.00 % | 0 / 1 |');
+    expect(markdown).toContain('| account created / sign-in opened | n/a | 0 / 0 |');
+    expect(markdown).toContain('| Day | first-game | guest-start | install-offered.prompt |');
+    expect(markdown).toContain('| 2026-10-14 | 2 | 4 | 0 |');
+    expect(markdown).toContain('| total | 2 | 6 | 1 |');
+  });
+
+  it('still renders the section when no newcomer has been counted', () => {
+    const empty = { days: [], totals: {}, ratios: report.funnel.ratios };
+    expect(renderMarkdown({ ...report, funnel: empty })).toContain('## Newcomer funnel');
   });
 });

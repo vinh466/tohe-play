@@ -40,11 +40,18 @@ restarts — PromQL's `increase()` reads them as counters.
 | `tohe_integrity_held`, `tohe_ranked_replays_waiting` | — | results held for a person; ranked runs waiting for their replay ([Integrity](integrity.md)) |
 | `tohe_account_deletions_due` | — | accounts whose seven days are over, waiting for an admin to delete them ([Identity](identity.md#deleting)) |
 | `tohe_sign_ins` | `method` (`password`, `google`, `github`, `oidc`), `outcome` (`ok`, `refused`, `locked`) | every sign-in |
+| `tohe_sign_ups` | `method` (`password`, `google`, `github`, `oidc`), `outcome` (`started`, `completed`) | every sign-up: `started` when the code is sent (password) or a new provider identity is back and waits for its last step; `completed` when the account exists |
 
 Labels are always bounded: never a profile, an account, an address, a room code or a raw path. The `tohe_` gauges
 of tables, the outbox, held results, replays and accounts due for deletion are read every sample by the Admin module's sampler, which puts
 together what each module tells — as the console's overview does — so the metrics never read another module's tables.
-The counters are counted where things happen: the email worker, the sign-in endpoints.
+The counters are counted where things happen: the email worker, the sign-in and sign-up endpoints.
+
+`tohe_sign_ups` is the server's half of the newcomer funnel ([Telemetry](telemetry.md#newcomer-funnel)): aggregate, no
+account, address or provider subject. A password sign-up for an address that already has an account is not counted
+(the person is sent the way back in, not a code), nor a provider that vouches for an existing account's address (that
+one is linked). A provider whose address is not vouched for counts as `started` before it is known whether it
+becomes a sign-up or a link, so `completed` over `started` is a floor for that method, not an exact rate.
 
 ## Alerts
 
