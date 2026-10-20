@@ -22,7 +22,8 @@ export async function checkPublicPages(http: Fetcher, hub: string, r: Runner): P
     assert(!/<meta[^>]*name="robots"[^>]*noindex/i.test(result.body), 'the page says noindex');
     assert(!result.body.includes('<div id="root">'), 'this is the app, not the public page');
     assert(
-      /<a[^>]*href="\/play"[^>]*>\s*Chơi ngay\s*<\/a>/.test(result.body),
+      // The button's label starts with "Chơi ngay" (it may go on: "Chơi ngay — không cần tài khoản").
+      /<a[^>]*href="\/play"[^>]*>\s*Chơi ngay\b[^<]*<\/a>/.test(result.body),
       "no 'Chơi ngay' link to /play",
     );
     const canonical = /<link rel="canonical" href="([^"]*)"/.exec(result.body)?.[1] ?? '';
