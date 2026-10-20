@@ -58,7 +58,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Matches("^[0-9]{6}$", room.Code);
         Assert.Equal((0, "waiting"), (room.MySeat, room.Status));
 
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, accountOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 2, entry = "own" });
         var chu = await PersonAsync("Chú");
         var chuSees = await ListAsync(chu);
         Assert.Contains(chuSees, r => r.Id == room.Id);
@@ -237,7 +237,7 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     public async Task An_invitation_opens_a_locked_door_for_the_family_but_never_the_parent_switch()
     {
         var bo = await PersonAsync("Bố");
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, entry = "own" });
         var others = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
         foreach (var id in new[] { family.Id, others.Id })
         {
@@ -272,10 +272,10 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
     {
         var bo = await PersonAsync("Bố");
         var open = await CreateAsync(bo, new { gameId = "tien-len", seats = 3 });
-        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, entry = "own" });
         Assert.Equal(HttpStatusCode.OK, (await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{open.Id}"), new { locked = true }, Ct)).StatusCode);
         var chu = await PersonAsync("Chú");
-        var chuTable = await CreateAsync(chu, new { gameId = "tien-len", seats = 3, accountOnly = true });
+        var chuTable = await CreateAsync(chu, new { gameId = "tien-len", seats = 3, entry = "own" });
         var chuId = chu.Me.Profiles[0].PublicId;
         Assert.Equal("anyone", chu.Me.Profiles[0].Invites);
 
@@ -494,6 +494,37 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal((0, """{"timer":0}"""), (action.Seat, action.Action));
     }
 
+    [Fact]
+    public async Task A_profile_withdrawn_from_a_table_takes_its_phones_out_of_the_tables_groups()
+    {
+        // A profile deleted, or moved to another device (ADR 0043): the phones that showed it receive nothing of the
+        // table any more, should it sit there again from another device.
+        var outbox = new RecordingOutbox();
+        var host = Guid.NewGuid();
+        var other = Guid.NewGuid();
+        var room = new Room
+        {
+            Id = Guid.NewGuid(),
+            Code = "654321",
+            GameId = "test",
+            GameVersion = "1.0.0",
+            RulesPath = "test/1.0.0/rules.js",
+            HostProfileId = host,
+            Seats = 2,
+            Status = RoomStatus.Waiting,
+            SeatList = JsonSerializer.Serialize(new[] { new SeatRecord(host, Guid.NewGuid(), "Bố", "🦊", null), new SeatRecord(other, null, "Mèo", "🐯", null) }),
+        };
+        var actor = new RoomActor(room, outbox, new RoomsOptions(), TimeProvider.System, _ => throw new InvalidOperationException("no rules needed"));
+        await actor.RunAsync(() => actor.ConnectedAsync(other, "old-phone"));
+        await actor.RunAsync(() => actor.ConnectedAsync(other, "old-tab"));
+        await actor.RunAsync(() => actor.ConnectedAsync(host, "host-phone"));
+
+        await actor.RunAsync(() => actor.WithdrawAsync(other));
+
+        Assert.Equal([(other, "old-phone"), (other, "old-tab")], outbox.Forgotten.Order().ToList());
+        Assert.Equal(1, actor.Online);
+    }
+
     /// <summary>The person's cookie jar for a hub connection, which disposes its handler when it closes.</summary>
     private sealed class Borrowed(HttpMessageHandler inner) : DelegatingHandler(inner)
     {
@@ -517,6 +548,14 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         public Task LobbyChangedAsync(string gameId) => Task.CompletedTask;
 
         public Task ClosedAsync(Guid roomId, string reason) => Task.CompletedTask;
+
+        public List<(Guid Profile, string Connection)> Forgotten { get; } = [];
+
+        public Task ForgetAsync(Guid roomId, Guid profileId, IReadOnlyCollection<string> connectionIds)
+        {
+            Forgotten.AddRange(connectionIds.Select(connection => (profileId, connection)));
+            return Task.CompletedTask;
+        }
 
         public Task SaveRoomAsync(Room room) => Task.CompletedTask;
 

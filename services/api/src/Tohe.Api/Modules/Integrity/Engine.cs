@@ -9,7 +9,10 @@ namespace Tohe.Api.Modules.Integrity;
 /// <summary>A run as the device reported it; the same client id again is the same run, grown (ADR 0014).</summary>
 public sealed record RunClaim(Guid ClientId, string GameId, string Board, double Value, bool Final, DateTimeOffset DeviceAt);
 
-/// <summary>A seat of a finished hand: a person, with a profile and an account, or a bot, with neither.</summary>
+/// <summary>
+/// A seat of a finished hand: a person, with a profile and an account — or a device profile, with a profile and no
+/// account (ADR 0043) — or a bot, with neither.
+/// </summary>
 /// <param name="Place">0 for first.</param>
 public sealed record HandSeat(int Seat, Guid? ProfileId, Guid? AccountId, int Place, int Points);
 
@@ -29,7 +32,10 @@ public interface IResults
     /// </summary>
     Task SubmitDeviceRunsAsync(Guid profileId, Guid accountId, IReadOnlyList<RunClaim> runs, CancellationToken ct);
 
-    /// <summary>A hand the server refereed: verified for every person at the table.</summary>
+    /// <summary>
+    /// A hand the server refereed: verified for every person at the table. A device profile's result is marked
+    /// <see cref="IntegrityResult.DeviceEarned"/>: it counts at its tables, never on a public board (ADR 0043).
+    /// </summary>
     void SubmitHand(string gameId, Guid roomId, int hand, IReadOnlyList<HandSeat> seats, DateTimeOffset at);
 }
 
@@ -160,11 +166,14 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
     public void SubmitHand(string gameId, Guid roomId, int hand, IReadOnlyList<HandSeat> seats, DateTimeOffset at)
     {
         // RoomVerifier: the server dealt and refereed the hand. With fewer than two people it is not comparable (D-11).
-        var people = seats.Count(seat => seat.ProfileId is not null);
-        var details = people < 2 ? new { people } : null;
+        // Only people of accounts count: a device profile proves nobody else was there — one account against its own
+        // device profiles in another browser would make a public hand (ADR 0043). They are named in the details.
+        var people = seats.Count(seat => seat is { ProfileId: not null, AccountId: not null });
+        var devices = seats.Count(seat => seat is { ProfileId: not null, AccountId: null });
+        object? details = people < 2 || devices > 0 ? new { people, devices } : null;
         foreach (var seat in seats)
         {
-            if (seat is not { ProfileId: { } profileId, AccountId: { } accountId })
+            if (seat is not { ProfileId: { } profileId })
             {
                 continue;
             }
@@ -173,7 +182,9 @@ internal sealed class IntegrityEngine(ToheDbContext db, IRegistryGames registry,
             {
                 Kind = ResultKind.Hand,
                 ProfileId = profileId,
-                AccountId = accountId,
+                AccountId = seat.AccountId,
+                // No account: a device profile's (ADR 0043). Only this channel and a device profile's upload mark one.
+                DeviceEarned = seat.AccountId is null,
                 GameId = gameId,
                 Board = HandsBoard,
                 Value = seat.Points,

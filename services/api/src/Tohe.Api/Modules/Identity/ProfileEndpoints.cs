@@ -185,7 +185,7 @@ internal static class ProfileEndpoints
     /// boards. Profile management: step-up level 1, as adding a profile (ADR 0025).
     /// </summary>
     private static async Task<Results<Ok<MeView>, ValidationProblem, ProblemHttpResult>> AdoptProfileAsync(
-        DeviceProfileUpload request, Context context, DeviceProfiles devices, TimeProvider clock, CancellationToken ct)
+        DeviceProfileUpload request, Context context, DeviceProfiles devices, HttpContext http, TimeProvider clock, CancellationToken ct)
     {
         if (Closed(context.Account) is { } closed)
         {
@@ -215,6 +215,23 @@ internal static class ProfileEndpoints
             return Problems.Field("", "too_many_profiles");
         }
 
+        // A device profile on the server, of this request's device (its key came with it): the same row becomes the
+        // account's, keeping its id, its seats and results (ADR 0043).
+        if (await devices.ServerCopyAsync(http, request.Id, ct) is { } copy)
+        {
+            // Gone at this very moment — deleted or cleaned up, its id retired: the hub gives it a new one.
+            if (!await devices.ConvertAsync(copy, context.Account.Id, request, name, clock.GetUtcNow(), ct))
+            {
+                return DeviceProfiles.IdTaken();
+            }
+
+            await devices.ImportAsync(copy.Id, context.Account.Id, request.Data, ct);
+            await devices.SaveAsync(ct);
+            await transaction.CommitAsync(ct);
+            return TypedResults.Ok(await context.MeAsync(ct));
+        }
+
+        // Any other profile, a profile that was, or another device's copy: not this device's to bring in.
         if (await devices.IdTakenAsync(request.Id, ct))
         {
             return DeviceProfiles.IdTaken();
@@ -236,10 +253,18 @@ internal static class ProfileEndpoints
     /// <summary>
     /// A device profile merged into one of the account's profiles (ADR 0043, step I1): its saves and scores go up under
     /// the target's id — the newer save wins, the other is kept as the previous one — its scores marked as a device's;
-    /// the target keeps its name and avatar, and the device profile's name joins its name history. No alias yet (I2).
+    /// the target keeps its name and avatar, and the device profile's name joins its name history. Its copy on the server,
+    /// of this request's device, moves into the target and its id becomes the target's alias (ADR 0043, step I2b).
     /// </summary>
     private static async Task<Results<Ok<MeView>, NotFound, ProblemHttpResult>> MergeProfileAsync(
-        Guid id, MergeProfileRequest request, Context context, DeviceProfiles devices, TimeProvider clock, CancellationToken ct)
+        Guid id,
+        MergeProfileRequest request,
+        Context context,
+        DeviceProfiles devices,
+        AccountDeletion deletion,
+        HttpContext http,
+        TimeProvider clock,
+        CancellationToken ct)
     {
         if (Closed(context.Account) is { } closed)
         {
@@ -264,9 +289,37 @@ internal static class ProfileEndpoints
             return TypedResults.NotFound();
         }
 
-        context.Db.ProfileNameHistory.Add(
-            new ProfileName { ProfileId = target.Id, Name = name, At = clock.GetUtcNow(), Kind = ProfileNameKind.Merged });
+        // Its server copy (ADR 0043): this device's moves into the target and is deleted, its id retired and kept as the
+        // target's alias; another device's, or any other profile's id, is not this device's to merge.
+        Profile? copy = null;
+        var again = false;
+        if (request.DeviceProfileId is { } deviceProfileId && deviceProfileId != target.Id)
+        {
+            copy = await devices.ServerCopyAsync(http, deviceProfileId, ct);
+            var alias = copy is null ? await devices.AliasOfAsync(deviceProfileId, ct) : null;
+            if (copy is null && (await context.Db.Profiles.AnyAsync(p => p.Id == deviceProfileId, ct) || (alias is { } other && other != target.Id)))
+            {
+                return DeviceProfiles.IdTaken();
+            }
+
+            // Merged into this target already: the answer was lost. The data is taken again, idempotently.
+            again = alias == target.Id;
+        }
+
+        var now = clock.GetUtcNow();
+        if (!again)
+        {
+            context.Db.ProfileNameHistory.Add(
+                new ProfileName { ProfileId = target.Id, Name = name, At = now, Kind = ProfileNameKind.Merged });
+        }
+
         await devices.ImportAsync(target.Id, context.Account.Id, request.Data, ct);
+        if (copy is not null)
+        {
+            await devices.MoveAsync(copy, target, now, ct);
+            await deletion.DeleteProfileAsync(copy, ct);
+        }
+
         await context.Db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return TypedResults.Ok(await context.MeAsync(ct));
@@ -287,6 +340,7 @@ internal static class ProfileEndpoints
         Context context,
         TimeProvider clock,
         IOptions<IdentityOptions> options,
+        IEnumerable<IKeptChildren> tables,
         CancellationToken ct)
     {
         var profile = await context.Db.Profiles
@@ -346,8 +400,10 @@ internal static class ProfileEndpoints
         profile.Avatar = request.Avatar ?? profile.Avatar;
         profile.AgeBand = request.AgeBand ?? profile.AgeBand;
         profile.Invites = invites;
+        var keptNow = false;
         if (request.PlayWithOthers is { } others && profile.Kind == ProfileKind.Child)
         {
+            keptNow = profile.PlayWithOthers && !others;
             profile.PlayWithOthers = others;
         }
 
@@ -367,6 +423,16 @@ internal static class ProfileEndpoints
         }
 
         await context.Db.SaveChangesAsync(ct);
+
+        // Kept to its account from now on: it leaves the tables where outsiders — device profiles too — may sit.
+        if (keptNow)
+        {
+            foreach (var table in tables)
+            {
+                await table.KeptAsync(profile.Id, context.Account.Id, ct);
+            }
+        }
+
         return TypedResults.Ok(await context.MeAsync(ct));
     }
 
@@ -403,7 +469,7 @@ internal static class ProfileEndpoints
     /// Renames in the last 24 hours, read from the name history (D-17): every name it had but its first, the one it
     /// was created with. A moderator's renames are in it too; a device profile's name merged into it is not (ADR 0043).
     /// </summary>
-    private static async Task<int> RenamesTodayAsync(ToheDbContext db, Guid profileId, DateTimeOffset now, CancellationToken ct)
+    internal static async Task<int> RenamesTodayAsync(ToheDbContext db, Guid profileId, DateTimeOffset now, CancellationToken ct)
     {
         var names = db.ProfileNameHistory.Where(n => n.ProfileId == profileId && n.Kind == ProfileNameKind.Rename);
         var first = await names.MinAsync(n => (long?)n.Id, ct);

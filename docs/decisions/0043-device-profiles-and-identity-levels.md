@@ -5,7 +5,14 @@ sidebar:
   order: 43
 ---
 
-- **Status:** Accepted — the identity gate is one step of the hub's entry pipeline, and making a link is a `named` feature, by
+- **Status:** Accepted — steps I1 and I2 built. I2 came in two: **I2a** — the device key and its scheme, a device
+  profile's copy on the server with the terms line and the `named` screen, tables open to `named` device profiles (the
+  default), the children rule, results marked, bringing a copy into an account, the 90-day cleanup, moderation
+  ([Identity](../architecture/identity.md#device-profiles-on-the-server),
+  [Online rooms](../architecture/rooms.md#who-may-sit)); **I2b** — the transfer code, by QR code at once or by six
+  digits the old device confirms ([Identity](../architecture/identity.md#the-transfer-code)), and merge aliases, so
+  replays and links naming a merged id no longer break ([Identity](../architecture/identity.md#merge-aliases)). The
+  identity gate is one step of the hub's entry pipeline, and making a link is a `named` feature, by
   [ADR 0044](0044-entry-links.md) (step I3); the game's level is `identity` in its manifest, by
   [ADR 0045](0045-games-declare-identity-and-entries.md) (step I4)
 - **Date:** 2026-10-20

@@ -16,6 +16,7 @@ sidebar:
   Ghép Khối's "Thách bạn" first). The agent added what an implementer needs, marked *(agent)* below where the owner
   should look — chiefly: **the hub's name and sign-in sheets never show a game's words**, and a share message is
   checked; **a link is made only when the player sends or copies it**; **becoming an account opens the game again**.
+  The owner confirmed them on 2026-10-20 ("chốt").
 
 ## Context
 

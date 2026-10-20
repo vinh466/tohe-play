@@ -43,8 +43,13 @@ internal sealed class IdentityFacts(ToheDbContext db)
     public Task<int> DeletionsDueAsync(DateTimeOffset now, CancellationToken ct) =>
         db.Users.CountAsync(account => account.DeleteAfter != null && account.DeleteAfter <= now, ct);
 
-    public async Task<Growth> ProfilesAsync(DateTimeOffset now, CancellationToken ct) => new(
-        await db.Profiles.CountAsync(ct),
-        await db.Profiles.CountAsync(profile => profile.CreatedAt > now.AddDays(-1), ct),
-        await db.Profiles.CountAsync(profile => profile.CreatedAt > now.AddDays(-7), ct));
+    /// <summary>The accounts' profiles: device profiles on the server (ADR 0043) are no account's, and not counted here.</summary>
+    public async Task<Growth> ProfilesAsync(DateTimeOffset now, CancellationToken ct)
+    {
+        var profiles = db.Profiles.Where(profile => profile.AccountId != null);
+        return new(
+            await profiles.CountAsync(ct),
+            await profiles.CountAsync(profile => profile.CreatedAt > now.AddDays(-1), ct),
+            await profiles.CountAsync(profile => profile.CreatedAt > now.AddDays(-7), ct));
+    }
 }

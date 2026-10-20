@@ -15,6 +15,14 @@ export interface LocalProfile {
   createdAt: number;
   /** The player named it or chose its avatar; absent for one the hub made silently, as the guest was. */
   chosen?: boolean;
+  /**
+   * It has a copy on the server (ADR 0043, I2), holding this name and avatar as the device last sent them: made the
+   * first time its player sat at a table. Cleared when the server says the copy is gone — deleted, or cleaned up after
+   * 90 days unused — and the hub gives it a new id.
+   */
+  server?: { name: string; avatar: string };
+  /** The version of the terms its player accepted with the line "16 or older, or a parent allowed it" (ADR 0043). */
+  termsVersion?: string;
 }
 
 export interface LocalSave {

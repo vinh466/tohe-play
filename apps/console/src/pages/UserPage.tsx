@@ -253,6 +253,8 @@ function ProfileRow({
     mutationFn: () => admin.renameProfile(profile.id, name.normalize('NFC')),
     onSuccess: onChange,
   });
+  // Off every table it sits at or watches: a bot finishes a hand in progress (ADR 0043).
+  const withdraw = useMutation({ mutationFn: () => admin.withdrawProfile(profile.id) });
   // Names it had, newest first, and device profiles' names merged into it (ADR 0043), which it never carried.
   const earlier = profile.names.filter((change) => change.kind !== 'merged').slice(1);
   const merged = profile.names.filter((change) => change.kind === 'merged');
@@ -309,6 +311,19 @@ function ProfileRow({
             Đổi tên
           </Button>
         </form>
+      ) : null}
+      {canModerate ? (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" busy={withdraw.isPending} onClick={() => withdraw.mutate()}>
+            Mời khỏi bàn chơi
+          </Button>
+          {withdraw.isSuccess ? <span className="text-ink-soft text-sm">Đã mời khỏi mọi bàn.</span> : null}
+          {withdraw.isError ? (
+            <span role="alert" className="text-danger text-sm">
+              {problem(withdraw.error)}
+            </span>
+          ) : null}
+        </div>
       ) : null}
       {canModerate && profile.hiddenFromBoards ? (
         <div className="flex flex-wrap items-center gap-2">

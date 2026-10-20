@@ -14,21 +14,33 @@ namespace Tohe.Api.Modules.Rooms;
 /// Server to client: <c>Room(RoomView)</c>, <c>View(roomId, view, events, seq, turnMs)</c>,
 /// <c>Reaction(roomId, seat, reaction)</c>, <c>Closed(roomId, reason)</c>, <c>LobbyChanged(gameId)</c>.
 /// </remarks>
-[Authorize]
-internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfile) : Hub
+[Authorize(AuthenticationSchemes = DeviceKey.PlayerScheme)]
+internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfile, IDevicePlayers devicePlayers) : Hub
 {
     /// <summary>The largest action a phone may send; Tiến lên's are a few dozen bytes.</summary>
     private const int MaxActionBytes = 4096;
 
     private static readonly HashSet<string> Reactions = ["wave", "laugh", "wow", "clap", "hurry", "gg", "sad", "heart"];
 
-    private async Task<ActiveProfile> ProfileAsync() =>
-        await activeProfile.GetAsync(Context.User!, Context.ConnectionAborted)
-        ?? throw new HubException("profile_required");
-
-    private HashSet<Guid> Entered()
+    /// <summary>
+    /// The player this connection acts as: an account's active profile, or the device profile its address names, with
+    /// its device's key (ADR 0043). The connection's request is read again on every call, as the session's profile can
+    /// change and a device profile can be deleted or asked for the terms again.
+    /// </summary>
+    private async Task<Player> ProfileAsync()
     {
-        if (Context.Items["rooms"] is not HashSet<Guid> rooms)
+        var http = Context.GetHttpContext() ?? throw new HubException("profile_required");
+        var (player, problem) = await RoomsModule.ResolveAsync(http, activeProfile, devicePlayers, Context.ConnectionAborted);
+        return player ?? throw new HubException(CodeOf(problem));
+    }
+
+    private static string CodeOf(Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult? problem) =>
+        problem?.ProblemDetails.Extensions.TryGetValue("code", out var code) == true && code is string text ? text : "profile_required";
+
+    /// <summary>The rooms this connection entered, and as which profile: leaving needs no profile that still acts.</summary>
+    private Dictionary<Guid, Guid> Entered()
+    {
+        if (Context.Items["rooms"] is not Dictionary<Guid, Guid> rooms)
         {
             rooms = [];
             Context.Items["rooms"] = rooms;
@@ -41,30 +53,35 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
     public async Task<RoomView?> Enter(Guid roomId)
     {
         var profile = await ProfileAsync();
-        if (registry.Find(roomId) is not { } room || !room.IsMember(profile.Id))
+        if (registry.Find(roomId) is not { } room || !room.IsMember(profile.ProfileId))
         {
             return null;
         }
 
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomOutbox.RoomGroup(roomId));
-        await Groups.AddToGroupAsync(Context.ConnectionId, RoomOutbox.PlayerGroup(roomId, profile.Id));
-        Entered().Add(roomId);
+        await Groups.AddToGroupAsync(Context.ConnectionId, RoomOutbox.PlayerGroup(roomId, profile.ProfileId));
+        Entered()[roomId] = profile.ProfileId;
         return await room.RunAsync(async () =>
         {
-            await room.ConnectedAsync(profile.Id, Context.ConnectionId);
-            return room.View(profile.Id);
+            await room.ConnectedAsync(profile.ProfileId, Context.ConnectionId);
+            return room.View(profile.ProfileId);
         });
     }
 
-    /// <summary>This phone stops showing the table (the seat stays; leaving it is <c>POST /api/rooms/{id}/leave</c>).</summary>
+    /// <summary>
+    /// This phone stops showing the table (the seat stays; leaving it is <c>POST /api/rooms/{id}/leave</c>). It needs no
+    /// profile that still acts — one deleted, or moved to another device, still lets its phone go.
+    /// </summary>
     public async Task Exit(Guid roomId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomOutbox.RoomGroup(roomId));
-        var profile = await ProfileAsync();
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomOutbox.PlayerGroup(roomId, profile.Id));
-        if (Entered().Remove(roomId) && registry.Find(roomId) is { } room)
+        if (Entered().Remove(roomId, out var profileId))
         {
-            await room.RunAsync(() => room.DisconnectedAsync(Context.ConnectionId));
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomOutbox.PlayerGroup(roomId, profileId));
+            if (registry.Find(roomId) is { } room)
+            {
+                await room.RunAsync(() => room.DisconnectedAsync(Context.ConnectionId));
+            }
         }
     }
 
@@ -82,7 +99,7 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
             return RoomErrors.NotFound;
         }
 
-        return await room.RunAsync(() => room.ActAsync(profile.Id, raw));
+        return await room.RunAsync(() => room.ActAsync(profile.ProfileId, raw));
     }
 
     /// <summary>Ready for the next hand.</summary>
@@ -94,7 +111,7 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
             return RoomErrors.NotFound;
         }
 
-        return await room.RunAsync(() => room.NextAsync(profile.Id, registry.MinSeats(roomId), Context.ConnectionAborted));
+        return await room.RunAsync(() => room.NextAsync(profile.ProfileId, registry.MinSeats(roomId), Context.ConnectionAborted));
     }
 
     /// <summary>One of the preset reactions; at most one every 1.5 s per seat.</summary>
@@ -103,7 +120,7 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
         var profile = await ProfileAsync();
         if (Reactions.Contains(reaction) && registry.Find(roomId) is { } room)
         {
-            await room.RunAsync(() => room.ReactAsync(profile.Id, reaction));
+            await room.RunAsync(() => room.ReactAsync(profile.ProfileId, reaction));
         }
     }
 
@@ -114,7 +131,7 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        foreach (var roomId in Entered())
+        foreach (var roomId in Entered().Keys)
         {
             if (registry.Find(roomId) is { } room)
             {

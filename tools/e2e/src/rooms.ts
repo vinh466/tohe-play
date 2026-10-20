@@ -1,9 +1,10 @@
 #!/usr/bin/env node
-// End-to-end test of online rooms (ADR 0016, 0017) against a running stack, on three phones. A parent opens a Tiến
-// Lên room from the lobby, a friend joins with the room's link, and the parent invites their child, who gets the
+// End-to-end test of online rooms (ADR 0016, 0017, 0043) against a running stack, on three phones. A parent opens a
+// Tiến Lên room from the lobby; a friend with no account opens the room's link on a new phone, names themselves on the
+// `named` screen, ticks the terms line and sits as a device profile; the parent invites their child, who gets the
 // invitation on the parent's second phone and watches the start of the hand. Both play it to the end with the game's
 // 💡 hints next to bots, and the results reach both. Back in the lobby the hand is in the friend's results, and its
-// replay plays to the end. The hub's screens are checked in light and dark. Five sign-in requests in all (signing up
+// replay plays to the end. The hub's screens are checked in light and dark. Four sign-in requests in all (signing up
 // plays the new profile at once): the API allows ten a minute from one address, and the smoke test before this one
 // may share the minute.
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e rooms
@@ -172,9 +173,8 @@ try {
   const friend = await phone('friend', browser);
   const kid = await phone('kid', browser);
 
-  step('two people register, each on their own phone');
+  step('the parent registers on their phone');
   const parentAccount = await register(host, 'Bố Phòng');
-  await register(friend, 'Chú Khách');
 
   step(
     'the parent adds a child profile allowed to play with others; the child uses the parent’s second phone',
@@ -221,10 +221,18 @@ try {
   await host.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   const code = ((await host.locator('p.tracking-widest').textContent()) ?? '').replace(/\D/g, '');
   if (!/^\d{6}$/.test(code)) throw new Error(`no room code on the waiting room (${code})`);
-  step(`room ${code}: the friend opens its link`);
+  step(`room ${code}: a friend with no account opens its link on a new phone`);
   await shot(host, 'waiting-room');
 
   await friend.goto(`${hubUrl}/r/${code}`);
+  step('the named screen: a name others see, an avatar, and the line ticked (ADR 0043)');
+  await friend.getByRole('heading', { name: 'Vào bàn cùng mọi người' }).waitFor();
+  const enter = friend.getByRole('button', { name: 'Vào chơi' });
+  if (await enter.isEnabled()) throw new Error('the named screen lets the friend in without the line ticked');
+  await friend.getByLabel('Tên', { exact: true }).fill('Chú Khách');
+  await friend.getByRole('checkbox', { name: /16 tuổi trở lên, hoặc bố mẹ đã cho phép/ }).check();
+  await shot(friend, 'named');
+  await enter.tap();
   await friend.getByRole('button', { name: 'Vào ngồi' }).tap();
   await friend.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   await host.getByText('Chú Khách').waitFor();

@@ -50,8 +50,9 @@ export type PlayerGate = 'play' | 'enter-as-device' | 'sign-in' | 'choose-profil
 
 /**
  * Opening the hub is playing (E-03): a device with no session plays as its device profile, made silently on the first
- * visit, so no sign-in screen stands before the first game. A screen that needs an account — a room link — passes
- * `device: false` and keeps sending signed-out devices to sign in (or up).
+ * visit, so no sign-in screen stands before the first game — nor before a table, since ADR 0043's I2a: a room link asks
+ * for a name and the terms line instead. A screen that needs an account passes `device: false` and sends signed-out
+ * devices to sign in (or up).
  */
 export function playerGate(session: SessionState, { device }: { device: boolean }): PlayerGate {
   if (session.status === 'signedOut') return device ? 'enter-as-device' : 'sign-in';

@@ -44,6 +44,7 @@ public sealed class MigrationTests : IAsyncLifetime
         var child = Guid.NewGuid();
         var removed = Guid.NewGuid();
         var room = Guid.NewGuid();
+        var open = Guid.NewGuid();
         var run = Guid.NewGuid();
         var seats = $$"""
             [{"ProfileId":"{{dadProfile}}","HouseholdId":"{{household}}","Name":"Bố","Avatar":"🦊","Bot":null,"Auto":false},
@@ -67,7 +68,9 @@ public sealed class MigrationTests : IAsyncLifetime
                 status, hand, seed, hand_seats, scores, created_at, updated_at)
             VALUES ('{{room}}', '482913', 'tien-len', '0.2.0', 'tien-len/0.2.0/rules.js', '{{dadProfile}}', '{{household}}',
                 false, true, false, 3, true, true, 30, '{}', '{{seats}}', 'waiting', 1, 7, '[0,1,2]', '[0,0,0]',
-                now(), now());
+                now(), now()),
+                   ('{{open}}', '482914', 'tien-len', '0.2.0', 'tien-len/0.2.0/rules.js', '{{dadProfile}}', '{{household}}',
+                true, false, false, 3, true, true, 30, '{}', '{{seats}}', 'waiting', 0, 0, '[]', '[0,0,0]', now(), now());
             INSERT INTO rooms.hands (room_id, game_id, game_version, hand, seed, options, seats, result, finished_at)
             VALUES ('{{room}}', 'tien-len', '0.2.0', 1, 7, '{}', '{{seats}}', '{}', now());
             INSERT INTO rooms.results (room_id, game_id, hand, seat, profile_id, household_id, place, points, at)
@@ -94,10 +97,13 @@ public sealed class MigrationTests : IAsyncLifetime
         Assert.Equal([false, false], telemetry);
 
         var hosted = await QueryAsync(
-            $"SELECT host_account_id, account_only, seat_list::text FROM rooms.rooms WHERE id = '{room}'",
-            reader => (Host: reader.GetGuid(0), AccountOnly: reader.GetBoolean(1), Seats: reader.GetString(2)));
+            $"SELECT host_account_id, entry, seat_list::text FROM rooms.rooms WHERE id = '{room}'",
+            reader => (Host: reader.GetGuid(0), Entry: reader.GetString(1), Seats: reader.GetString(2)));
         Assert.Equal(dad, hosted[0].Host);
-        Assert.True(hosted[0].AccountOnly);
+        // A household's table became the account's, then "Chỉ hồ sơ trong tài khoản tôi" (ADR 0043).
+        Assert.Equal("Own", hosted[0].Entry);
+        // A table open to other households was for accounts: "Chỉ tài khoản", never yet open to device profiles.
+        Assert.Equal(["Account"], await QueryAsync($"SELECT entry FROM rooms.rooms WHERE id = '{open}'", reader => reader.GetString(0)));
         AssertSeats(hosted[0].Seats, dadProfile, dad);
 
         var handSeats = await QueryAsync("SELECT seats::text FROM rooms.hands", reader => reader.GetString(0));

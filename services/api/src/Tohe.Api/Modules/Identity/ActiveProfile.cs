@@ -45,9 +45,45 @@ internal sealed class ActiveProfileReader(ToheDbContext db) : IActiveProfile
         // Only a profile of the signed-in account: a profile id from another account can never be used.
         return await db.Profiles.AsNoTracking()
             .Where(p => p.Id == profileId && p.AccountId == accountId)
-            .Select(p => new ActiveProfile(p.Id, p.AccountId, p.Kind, p.AgeBand, p.Name, p.Avatar, p.PlayWithOthers, p.DeviceUntil))
+            .Select(p => new ActiveProfile(p.Id, p.AccountId!.Value, p.Kind, p.AgeBand, p.Name, p.Avatar, p.PlayWithOthers, p.DeviceUntil))
             .FirstOrDefaultAsync(cancellationToken);
     }
+}
+
+/// <summary>
+/// Children kept to their account — "Chơi online với người ngoài" off — as their accounts say now (ADR 0016, 0043): a
+/// table reads it before a device profile joins, rather than trusting what was true when the child sat down.
+/// </summary>
+public interface IKeptProfiles
+{
+    /// <summary>Those of <paramref name="profileIds"/> that are children whose switch is off.</summary>
+    Task<IReadOnlySet<Guid>> KeptAsync(IReadOnlyCollection<Guid> profileIds, CancellationToken ct);
+}
+
+internal sealed class KeptProfiles(ToheDbContext db) : IKeptProfiles
+{
+    public async Task<IReadOnlySet<Guid>> KeptAsync(IReadOnlyCollection<Guid> profileIds, CancellationToken ct) =>
+        profileIds.Count == 0
+            ? new HashSet<Guid>()
+            : (await db.Profiles.AsNoTracking()
+                .Where(p => profileIds.Contains(p.Id) && p.Kind == ProfileKind.Child && !p.PlayWithOthers)
+                .Select(p => p.Id)
+                .ToListAsync(ct)).ToHashSet();
+}
+
+/// <summary>
+/// Told when an account turns a child's "play with outsiders" off (ADR 0016, 0043): implemented by the tables, which
+/// keep the child only where the account keeps to itself.
+/// </summary>
+public interface IKeptChildren
+{
+    Task KeptAsync(Guid profileId, Guid accountId, CancellationToken ct);
+}
+
+/// <summary>Told when a profile's name changes on the server (ADR 0035, 0043): the tables show the new one at once.</summary>
+public interface IProfileNames
+{
+    Task RenamedAsync(Guid profileId, string name, CancellationToken ct);
 }
 
 /// <summary>A player as other modules may show it (e.g. on a leaderboard).</summary>
@@ -83,9 +119,9 @@ internal sealed class ProfileDirectory(ToheDbContext db) : IProfileDirectory
             .Join(
                 db.Users.Where(account => account.SuspendedAt == null && account.DeleteAfter == null),
                 profile => profile.AccountId,
-                account => account.Id,
-                (profile, _) => new InviteTarget(
-                    profile.Id, profile.AccountId, profile.PublicId, profile.Name, profile.Avatar, profile.Invites))
+                account => (Guid?)account.Id,
+                (profile, account) => new InviteTarget(
+                    profile.Id, account.Id, profile.PublicId!, profile.Name, profile.Avatar, profile.Invites))
             .FirstOrDefaultAsync(cancellationToken);
 }
 

@@ -9,7 +9,7 @@ sidebar:
   [ADR 0031](0031-people-decide-what-the-engine-held.md); a deleted profile's results go with their decisions since
   [ADR 0034](0034-delete-accounts-and-profiles-for-good.md);
   results earned by a device profile keep their levels but are in no public board's audience, by [ADR 0043](0043-device-profiles-and-identity-levels.md) (from its
-  step I1)
+  step I1; since I2a also its hands at tables, a result with no account until it is brought into one)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0014](0014-live-scores-for-long-runs.md) — a run's place on a board follows the server's clock and
   its level; [ADR 0016](0016-online-rooms-for-turn-based-games.md) — the weekly board is the calendar week, and a hand

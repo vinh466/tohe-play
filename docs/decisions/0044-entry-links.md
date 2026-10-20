@@ -13,8 +13,9 @@ sidebar:
   — the identity gate is one step of the pipeline, and making a link is a `named` feature
 - **Decided by:** the owner, 2026-10-19 (plans/product-surface D-08: "ổn nha, theo đề xuất"). The agent added what an
   implementer needs, marked *(agent)* below where the owner should look — chiefly that **a table's preview names no one**,
-  which is stricter than D-08's example. The Game Contract's part (a game receiving an entry, asking for a share) is decided
-  by its own ADR with step I4; the first game to take a share entry is Ghép Khối ("Thách bạn").
+  which is stricter than D-08's example; the owner confirmed them on 2026-10-20 ("chốt"). The Game Contract's part (a
+  game receiving an entry, asking for a share) is decided by [ADR 0045](0045-games-declare-identity-and-entries.md)
+  with step I4; the first game to take a share entry is Ghép Khối ("Thách bạn").
 
 ## Context
 
