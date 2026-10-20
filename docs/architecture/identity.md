@@ -593,6 +593,15 @@ profile is chosen on that device, the hub offers to move the guest's progress to
 link, a room, the rooms lobby, a replay — still asks a signed-out device to sign in or up; signing out leads to the
 sign-in screen. See [A newcomer's first touches](overview.md#a-newcomers-first-touches).
 
+## Device profiles (ADR 0043)
+
+[ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md) replaces the guest with **device profiles** —
+"Hồ sơ trên máy này": up to five per device, each with a name and an avatar, local-first, reaching the server only when
+its player needs it, and linked into an account keeping its id. Games, platform features and tables each ask for a
+level — `any`, `named` or `account` — and the hub asks for the highest. It arrives in steps: I1 in the hub (the guest
+becomes the first device profile; linking on sign-up and sign-in), I2 on the server (tables for `named` device profiles,
+the transfer code). Until each step lands, guest mode above stays as it is.
+
 ## API
 
 | Endpoint | Auth | Purpose |

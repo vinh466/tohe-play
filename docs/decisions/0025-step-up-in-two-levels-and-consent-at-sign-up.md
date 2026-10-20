@@ -5,7 +5,7 @@ sidebar:
   order: 25
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — the age and consent line is also to be asked the first time a device profile goes online, by [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I2)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0011](0011-password-sign-in-first.md) — the parent gate opens with a manage PIN instead of the
   password; [ADR 0024](0024-email-identifies-an-account.md) — changing the email needs step-up level 2

@@ -7,7 +7,8 @@ sidebar:
 
 - **Status:** Accepted — a result left to people keeps its value, not only its level, since
   [ADR 0031](0031-people-decide-what-the-engine-held.md); a deleted profile's results go with their decisions since
-  [ADR 0034](0034-delete-accounts-and-profiles-for-good.md)
+  [ADR 0034](0034-delete-accounts-and-profiles-for-good.md);
+  a device profile's results are to have the lowest trust, by [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I2)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0014](0014-live-scores-for-long-runs.md) — a run's place on a board follows the server's clock and
   its level; [ADR 0016](0016-online-rooms-for-turn-based-games.md) — the weekly board is the calendar week, and a hand
