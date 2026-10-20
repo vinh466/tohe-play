@@ -57,3 +57,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0041](0041-promote-one-build-through-the-environments-by-tag.md) | Promote one build through the environments by tag; production runs only what ran on UAT | Accepted |
 | [0042](0042-hosts-by-trust-paths-by-component.md) | Lay out Tò He by trust: one domain, a host per trust boundary, a path per component | Accepted |
 | [0043](0043-device-profiles-and-identity-levels.md) | Every player is a profile of this device or of an account; the highest level any source needs is asked for | Accepted; arrives in steps (I1, I2) |
+| [0044](0044-entry-links.md) | Every way into Tò He is an entry; share links are objects on the server; one pipeline in the hub | Accepted; arrives with step I3 |

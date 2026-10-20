@@ -12,7 +12,9 @@ sidebar:
   since [ADR 0033](0033-invite-a-profile-by-its-id.md);
   a room admits `named` device profiles, and a seat and a player may carry no account, since
   [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I2a: a table's entry — anyone named, the default;
-  accounts only; the host's account — the children rule both ways, results marked)
+  accounts only; the host's account — the children rule both ways, results marked);
+  a room's link is to go through the hub's entry pipeline, with a preview that names no one, and a closed table's code
+  is not to be given out again for a day, by [ADR 0044](0044-entry-links.md) (step I3)
 - **Date:** 2026-10-16
 
 ## Context
