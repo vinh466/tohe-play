@@ -16,21 +16,20 @@
 
 ## Next — one item
 
-**I1 — hồ sơ máy ở hub** (D-06, D-07; ADR mới + reviewer) khi owner nói "làm". S1 (nội dung công khai, `og:image`) chờ
-[E-02 Q2](items/E-02-public-pages-seo-geo.md); S4 (bộ đếm phễu) làm song song được.
+**Làm nốt Phase 1, rồi phase review** (owner 2026-10-20: "làm nốt những cái bạn đề xuất cho xong đi, sau đó tôi để đến
+phase review … làm 1 nền tảng hoàn chỉnh về các mặt trước khi launch chính thức"): S4 và S1 đang làm (hai builder), I1 có
+ADR 0043 ([#91](https://github.com/vinh466/tohe-play/pull/91), chờ reviewer), rồi I2 → I3 → I4. Sau đó: một plan space mới
+để review toàn diện nền tảng (UI/UX, luồng, tính năng còn thiếu) trước khi launch chính thức.
 
 ## Waiting on the owner
 
-1. **S3 — Google** (owner làm 2026-10-20): chọn chế độ Đăng ký ở console (đề xuất: Theo lời mời) → tạo Google client theo
-   [guide](../../docs/guides/sign-in-with-google.md) → `google-client-secret` vào Infisical `/tohe` → gửi agent **Client ID**
-   → agent mở PR values `platform-infra`, owner merge → agent kiểm. Xong thì S3 done.
-2. **Console prod**: bật Chống bot đăng ký (đề xuất).
-3. [E-02 Q2](items/E-02-public-pages-seo-geo.md) — cho AI *huấn luyện* (đề xuất: không) — cần trước S1.
-4. Cloudflare: AI Crawl Control — Search cho phép; Bot Fight Mode / Under Attack / WAF challenge tắt; chọn dịch vụ `status.`.
-5. Việc tay: thư thử tới `hello@`, `security@`; Resend `notify.` ([guide](../../docs/guides/mail-and-status.md)).
-6. *Tuỳ chọn:* Cloudflare Access cho `console.toheplay.io.vn` — owner 2026-10-20: "hiện rảnh tôi sẽ bật sau, giờ có MFA
-   cũng uy tín rồi" (console đã đòi mật khẩu + mã 6 số).
-7. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng" — PR draft là chưa sẵn sàng.
+1. **Alertmanager trên prod**: chọn kênh nhận (đề xuất: Telegram) và đưa token vào Infisical — agent mở PR
+   `platform-infra` (cả cluster, owner merge).
+2. Cloudflare: AI Crawl Control — Search cho phép; Bot Fight Mode / Under Attack / WAF challenge tắt; chọn dịch vụ `status.`.
+3. Việc tay: thư thử tới `hello@`, `security@`; Resend `notify.` ([guide](../../docs/guides/mail-and-status.md)).
+4. Khi chốt ngày launch chính thức: thử khôi phục bản sao lưu DB prod một lần (owner 2026-10-20: "để tôi thử sau").
+5. *Tuỳ chọn:* Cloudflare Access cho `console.toheplay.io.vn` (owner 2026-10-20: MFA đủ cho lúc này).
+6. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng" — PR draft là chưa sẵn sàng.
 
 ## Board
 
