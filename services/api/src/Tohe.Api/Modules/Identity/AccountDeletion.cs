@@ -111,15 +111,27 @@ internal sealed partial class AccountDeletion(
     /// Deletes a profile and everything of it, now, within the caller's transaction (which holds the account): it
     /// leaves its tables, each module purges, and its public ID is retired.
     /// </summary>
-    public async Task DeleteProfileAsync(Profile profile, CancellationToken ct)
+    public Task DeleteProfileAsync(Profile profile, CancellationToken ct) => DeleteProfilesAsync([profile], ct);
+
+    /// <summary>
+    /// Deletes profiles and everything of them, now, within the caller's transaction: an account's (one at a time,
+    /// behind the parent gate) or device profiles on the server — deleted on their device, or unused for 90 days
+    /// (ADR 0043).
+    /// </summary>
+    public async Task DeleteProfilesAsync(IReadOnlyCollection<Profile> profiles, CancellationToken ct)
     {
-        foreach (var module in modules)
+        if (profiles.Count == 0)
         {
-            await module.WithdrawAsync([profile.Id], ct);
+            return;
         }
 
-        await PurgeAsync([profile], ct);
-        db.Profiles.Remove(profile);
+        foreach (var module in modules)
+        {
+            await module.WithdrawAsync([.. profiles.Select(p => p.Id)], ct);
+        }
+
+        await PurgeAsync(profiles, ct);
+        db.Profiles.RemoveRange(profiles);
         await db.SaveChangesAsync(ct);
     }
 
@@ -169,7 +181,10 @@ internal sealed partial class AccountDeletion(
         return new AccountDeletionOutcome(AccountDeletionState.Deleted, profiles.Count);
     }
 
-    /// <summary>Each module deletes what it keeps of the profiles, then their public IDs and ids are retired for good.</summary>
+    /// <summary>
+    /// Each module deletes what it keeps of the profiles, then their public IDs and ids are retired for good — a device
+    /// profile's id alone, as it has no public ID (ADR 0043).
+    /// </summary>
     private async Task PurgeAsync(IReadOnlyCollection<Profile> profiles, CancellationToken ct)
     {
         if (profiles.Count == 0)

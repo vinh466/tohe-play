@@ -9,6 +9,7 @@ import { errorKey } from '../api/errors.ts';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame } from '../launcher/GameFrame.tsx';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
+import { AtTables } from '../session/AtTables.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { Screen } from '../ui/Screen.tsx';
@@ -16,8 +17,8 @@ import { Screen } from '../ui/Screen.tsx';
 /** A finished online hand played back in the game (ADR 0016), from the seat of the person watching it. */
 export function ReplayPage() {
   return (
-    <RequireSession need="player" device={false}>
-      {({ player }) => <Replayer player={player} />}
+    <RequireSession need="player">
+      {(session) => <AtTables session={session}>{(player) => <Replayer player={player} />}</AtTables>}
     </RequireSession>
   );
 }

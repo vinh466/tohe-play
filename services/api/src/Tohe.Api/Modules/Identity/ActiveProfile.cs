@@ -45,7 +45,7 @@ internal sealed class ActiveProfileReader(ToheDbContext db) : IActiveProfile
         // Only a profile of the signed-in account: a profile id from another account can never be used.
         return await db.Profiles.AsNoTracking()
             .Where(p => p.Id == profileId && p.AccountId == accountId)
-            .Select(p => new ActiveProfile(p.Id, p.AccountId, p.Kind, p.AgeBand, p.Name, p.Avatar, p.PlayWithOthers, p.DeviceUntil))
+            .Select(p => new ActiveProfile(p.Id, p.AccountId!.Value, p.Kind, p.AgeBand, p.Name, p.Avatar, p.PlayWithOthers, p.DeviceUntil))
             .FirstOrDefaultAsync(cancellationToken);
     }
 }
@@ -83,9 +83,9 @@ internal sealed class ProfileDirectory(ToheDbContext db) : IProfileDirectory
             .Join(
                 db.Users.Where(account => account.SuspendedAt == null && account.DeleteAfter == null),
                 profile => profile.AccountId,
-                account => account.Id,
-                (profile, _) => new InviteTarget(
-                    profile.Id, profile.AccountId, profile.PublicId, profile.Name, profile.Avatar, profile.Invites))
+                account => (Guid?)account.Id,
+                (profile, account) => new InviteTarget(
+                    profile.Id, account.Id, profile.PublicId!, profile.Name, profile.Avatar, profile.Invites))
             .FirstOrDefaultAsync(cancellationToken);
 }
 

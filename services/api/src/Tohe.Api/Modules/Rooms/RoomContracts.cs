@@ -5,7 +5,8 @@ namespace Tohe.Api.Modules.Rooms;
 
 /// <param name="Seats">Seats at the table, within the game's range.</param>
 /// <param name="IsPublic">Listed in the lobby; otherwise the code or the link only.</param>
-/// <param name="AccountOnly">Only profiles of the host's account may join.</param>
+/// <param name="Entry">Who may sit (ADR 0043): <c>named</c> — anyone with a name, a device profile too, the default —
+/// <c>account</c> — profiles of accounts — or <c>own</c> — the host's account's profiles.</param>
 /// <param name="BotsFill">Empty seats get a bot when a hand starts.</param>
 /// <param name="BotLevel">One of the game's bot levels; the game's middle level when left out.</param>
 /// <param name="BotsTakeOver">A bot plays for a player whose phone is gone longer than the grace period.</param>
@@ -15,7 +16,7 @@ public sealed record CreateRoomRequest(
     [Required, StringLength(40)] string GameId,
     [Range(2, 8)] int Seats = 4,
     bool IsPublic = true,
-    bool AccountOnly = false,
+    [StringLength(8)] string Entry = "named",
     bool BotsFill = true,
     [StringLength(16)] string? BotLevel = null,
     bool BotsTakeOver = true,
@@ -27,7 +28,7 @@ public sealed record CreateRoomRequest(
 public sealed record UpdateRoomRequest(
     [Range(2, 8)] int? Seats = null,
     bool? IsPublic = null,
-    bool? AccountOnly = null,
+    [StringLength(8)] string? Entry = null,
     bool? Locked = null,
     bool? BotsFill = null,
     [StringLength(16)] string? BotLevel = null,
@@ -59,6 +60,7 @@ public sealed record SeatView(
 /// <param name="Spectators">People may watch without a seat.</param>
 /// <param name="Watchers">Profiles watching the table now.</param>
 /// <param name="MySeat">The active profile's seat, or null if it is not at the table.</param>
+/// <param name="Entry">Who may sit: <c>named</c>, <c>account</c> or <c>own</c> (ADR 0043).</param>
 public sealed record RoomView(
     Guid Id,
     string Code,
@@ -67,7 +69,7 @@ public sealed record RoomView(
     string Status,
     Guid HostProfileId,
     bool IsPublic,
-    bool AccountOnly,
+    string Entry,
     bool Locked,
     int Seats,
     bool BotsFill,
@@ -115,6 +117,9 @@ public static class RoomErrors
     public const string Full = "room_full";
     public const string Locked = "room_locked";
     public const string AccountOnly = "room_account_only";
+
+    /// <summary>The table is for accounts only, or the action is (an invitation by ID): a device profile is refused (ADR 0043).</summary>
+    public const string AccountRequired = "account_required";
     public const string ParentPermission = "parent_permission";
     public const string TooYoung = "game_too_young";
     public const string GameNotRooms = "game_not_rooms";

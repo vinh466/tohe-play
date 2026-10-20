@@ -72,6 +72,23 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Give this device its key (ADR 0043): a cookie, renewed on use, 90 days. A device that has one keeps it. */
+        post: operations["StartDevice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/auth/challenge": {
         parameters: {
             query?: never;
@@ -568,6 +585,40 @@ export interface paths {
         head?: never;
         /** Edit one of the account's profiles. */
         patch: operations["UpdateProfile"];
+        trace?: never;
+    };
+    "/api/devices/profiles": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Make — or bring up to date — a device profile's server copy, with the terms its player accepted; 409 id_taken when the id cannot be taken. */
+        post: operations["RegisterDeviceProfile"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/devices/profiles/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Delete a device profile's server copy and everything of it, for good (ADR 0034); its id is retired. */
+        delete: operations["DeleteDeviceProfile"];
+        options?: never;
+        head?: never;
+        patch?: never;
         trace?: never;
     };
     "/api/games": {
@@ -1156,8 +1207,8 @@ export interface components {
             seats: number;
             /** @default true */
             isPublic: boolean;
-            /** @default false */
-            accountOnly: boolean;
+            /** @default named */
+            entry: string;
             /** @default true */
             botsFill: boolean;
             botLevel?: null | string;
@@ -1185,6 +1236,14 @@ export interface components {
             saves?: null | components["schemas"]["DeviceSave"][];
             scores?: null | components["schemas"]["DeviceScore"][];
         };
+        DeviceProfileRegistration: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            avatar: string;
+            termsVersion: string;
+            proof?: null | components["schemas"]["ProofOfWorkSolution"];
+        };
         DeviceProfileUpload: {
             /** Format: uuid */
             id: string;
@@ -1192,6 +1251,13 @@ export interface components {
             avatar: string;
             ageBand?: null | string;
             data?: null | components["schemas"]["DeviceProfileData"];
+        };
+        DeviceProfileView: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            avatar: string;
+            termsVersion: string;
         };
         DeviceSave: {
             gameId: string;
@@ -1419,6 +1485,8 @@ export interface components {
         MergeProfileRequest: {
             name: string;
             data?: null | components["schemas"]["DeviceProfileData"];
+            /** Format: uuid */
+            deviceProfileId?: null | string;
         };
         MetricSummary: {
             name: string;
@@ -1616,7 +1684,7 @@ export interface components {
             /** Format: uuid */
             hostProfileId: string;
             isPublic: boolean;
-            accountOnly: boolean;
+            entry: string;
             locked: boolean;
             /** Format: int32 */
             seats: number;
@@ -1783,7 +1851,7 @@ export interface components {
             /** Format: int32 */
             seats?: null | number;
             isPublic?: null | boolean;
-            accountOnly?: null | boolean;
+            entry?: null | string;
             locked?: null | boolean;
             botsFill?: null | boolean;
             botLevel?: null | string;
@@ -1899,6 +1967,24 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["ProfileOptionsView"];
                 };
+            };
+        };
+    };
+    StartDevice: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
             };
         };
     };
@@ -2894,6 +2980,68 @@ export interface operations {
             };
         };
     };
+    RegisterDeviceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DeviceProfileRegistration"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeviceProfileView"];
+                };
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
+    DeleteDeviceProfile: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unauthorized */
+            401: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+        };
+    };
     ListGames: {
         parameters: {
             query?: never;
@@ -3335,6 +3483,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     CreateRoom: {
@@ -3377,6 +3534,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ListMyRooms: {
@@ -3399,6 +3565,15 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Precondition Failed */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3437,6 +3612,15 @@ export interface operations {
                     "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ListMyHands: {
@@ -3461,6 +3645,15 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Precondition Failed */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3507,6 +3700,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     FindRoomByCode: {
@@ -3545,6 +3747,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     GetRoom: {
@@ -3582,6 +3793,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -3625,6 +3845,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     JoinRoom: {
@@ -3663,6 +3892,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     WatchRoom: {
@@ -3700,6 +3938,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -3741,6 +3988,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     ListRoomInvites: {
@@ -3763,6 +4019,15 @@ export interface operations {
             };
             /** @description Forbidden */
             403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
+            /** @description Precondition Failed */
+            412: {
                 headers: {
                     [name: string]: unknown;
                 };
@@ -3805,6 +4070,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };
@@ -3849,6 +4123,15 @@ export interface operations {
                 };
                 content?: never;
             };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
+            };
         };
     };
     StartRoom: {
@@ -3886,6 +4169,15 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Precondition Failed */
+            412: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
+                };
             };
         };
     };

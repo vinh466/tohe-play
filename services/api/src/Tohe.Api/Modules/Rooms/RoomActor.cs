@@ -5,11 +5,20 @@ using Tohe.Api.Modules.Identity;
 
 namespace Tohe.Api.Modules.Rooms;
 
-/// <summary>Who is asking: the active profile, as the room needs it.</summary>
-internal sealed record Player(Guid ProfileId, Guid AccountId, string Name, string Avatar, bool MayPlayWithOthers, int MaxGameMinAge)
+/// <summary>
+/// Who is asking: the active profile of an account's session, or a device profile acting with its device's key
+/// (ADR 0043) — which has no account, no age, and is an outsider to every account.
+/// </summary>
+internal sealed record Player(Guid ProfileId, Guid? AccountId, string Name, string Avatar, bool MayPlayWithOthers, int MaxGameMinAge)
 {
+    /// <summary>A device profile: no account.</summary>
+    public bool IsDevice => AccountId is null;
+
     public static Player From(ActiveProfile profile) =>
         new(profile.Id, profile.AccountId, profile.Name, profile.Avatar, profile.MayPlayWithOthers, profile.MaxGameMinAge);
+
+    public static Player From(DevicePlayer profile) =>
+        new(profile.Id, null, profile.Name, profile.Avatar, MayPlayWithOthers: true, MaxGameMinAge: int.MaxValue);
 }
 
 /// <summary>Where a room's changes go: people's phones (SignalR) and the database.</summary>
@@ -158,7 +167,7 @@ internal sealed class RoomActor
             Room.Status.ToString().ToLowerInvariant(),
             Room.HostProfileId,
             Room.IsPublic,
-            Room.AccountOnly,
+            RoomEntries.NameOf(Room.Entry),
             Room.Locked,
             Room.Seats,
             Room.BotsFill,
@@ -212,16 +221,9 @@ internal sealed class RoomActor
             return null;
         }
 
-        var sameAccount = player.AccountId == Room.HostAccountId;
-        if (Room.AccountOnly && !sameAccount)
+        if (Door(player) is { } closed)
         {
-            return RoomErrors.AccountOnly;
-        }
-
-        // A child the account's owner has not allowed only plays within the account: at tables that stay in it.
-        if (!player.MayPlayWithOthers && !(sameAccount && Room.AccountOnly))
-        {
-            return RoomErrors.ParentPermission;
+            return closed;
         }
 
         // An invitation from someone at the table opens a locked door (never the parent switch above).
@@ -251,13 +253,41 @@ internal sealed class RoomActor
             return RoomErrors.SpectatorsOff;
         }
 
-        var sameAccount = player.AccountId == Room.HostAccountId;
-        if (Room.AccountOnly && !sameAccount)
+        return Door(player);
+    }
+
+    /// <summary>
+    /// Who the table lets in, sitting or watching (ADR 0016, 0043): its entry level, then the parent switch — a child
+    /// its account's owner has not let play with outsiders stays at tables kept to the account, and never meets a
+    /// device profile, which is always an outsider.
+    /// </summary>
+    private string? Door(Player player)
+    {
+        var sameAccount = player.AccountId is { } account && account == Room.HostAccountId;
+        if (Room.Entry == RoomEntry.Own && !sameAccount)
         {
             return RoomErrors.AccountOnly;
         }
 
-        return !player.MayPlayWithOthers && !(sameAccount && Room.AccountOnly) ? RoomErrors.ParentPermission : null;
+        if (Room.Entry == RoomEntry.Account && player.IsDevice)
+        {
+            return RoomErrors.AccountRequired;
+        }
+
+        // A child the account's owner has not allowed only plays within the account: at tables that stay in it.
+        if (!player.MayPlayWithOthers && !(sameAccount && Room.Entry == RoomEntry.Own))
+        {
+            return RoomErrors.ParentPermission;
+        }
+
+        // …and never with a device profile, from whichever side the meeting would come.
+        if ((!player.MayPlayWithOthers && _seats.Any(seat => seat.IsDeviceProfile()))
+            || (player.IsDevice && _seats.Any(seat => seat.Kept)))
+        {
+            return RoomErrors.ParentPermission;
+        }
+
+        return null;
     }
 
     public async Task<string?> WatchAsync(Player player)
@@ -345,7 +375,7 @@ internal sealed class RoomActor
         }
 
         var seat = FreeSeat()!.Value;
-        _seats[seat] = new SeatRecord(player.ProfileId, player.AccountId, player.Name, player.Avatar, null);
+        _seats[seat] = new SeatRecord(player.ProfileId, player.AccountId, player.Name, player.Avatar, null, Kept: !player.MayPlayWithOthers);
         _invites.Remove(player.ProfileId);
         _watchers.Remove(player.ProfileId);
         Touch();
@@ -485,7 +515,8 @@ internal sealed class RoomActor
     public string? HostOnly(Guid profileId) =>
         Room.HostProfileId != profileId ? RoomErrors.NotHost : Room.Status == RoomStatus.Playing ? RoomErrors.HandInProgress : null;
 
-    public async Task<string?> UpdateAsync(Guid profileId, UpdateRoomRequest request, string? optionsJson, IReadOnlyCollection<string> bots, (int Min, int Max) seats)
+    public async Task<string?> UpdateAsync(
+        Guid profileId, UpdateRoomRequest request, RoomEntry? entry, string? optionsJson, IReadOnlyCollection<string> bots, (int Min, int Max) seats)
     {
         if (HostOnly(profileId) is { } problem)
         {
@@ -519,7 +550,7 @@ internal sealed class RoomActor
         }
 
         Room.IsPublic = request.IsPublic ?? Room.IsPublic;
-        Room.AccountOnly = request.AccountOnly ?? Room.AccountOnly;
+        Room.Entry = entry ?? Room.Entry;
         Room.Locked = request.Locked ?? Room.Locked;
         Room.BotsFill = request.BotsFill ?? Room.BotsFill;
         Room.BotsTakeOver = request.BotsTakeOver ?? Room.BotsTakeOver;

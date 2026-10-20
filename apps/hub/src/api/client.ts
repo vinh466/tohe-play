@@ -35,6 +35,8 @@ export type RoomStatsView = Schemas['RoomStatsView'];
 export type HandSummary = Schemas['HandSummary'];
 export type HandReplay = Schemas['HandReplay'];
 export type RoomInvite = Schemas['RoomInvite'];
+export type DeviceProfileRegistration = Schemas['DeviceProfileRegistration'];
+export type DeviceProfileView = Schemas['DeviceProfileView'];
 
 /** Same origin: the hub serves /api through its reverse proxy (Vite in dev, Caddy in docker/UAT). */
 export const api = createClient<paths>({ baseUrl: '' });
@@ -217,9 +219,17 @@ export const account = {
   addProfile: (body: CreateProfileRequest) => call(api.POST('/api/profiles', { body })),
   /** A device profile comes in with its id, saves and scores (ADR 0043): `id_taken`, `name_refused`. */
   adoptProfile: (body: DeviceProfileUpload) => call(api.POST('/api/profiles/adopt', { body })),
-  /** A device profile's saves and scores go up under one of the account's profiles; its name joins the history. */
-  mergeProfile: (id: string, name: string, data: DeviceProfileData) =>
-    call(api.POST('/api/profiles/{id}/merge', { params: { path: { id } }, body: { name, data } })),
+  /**
+   * A device profile's saves and scores go up under one of the account's profiles; its name joins the history. Its copy
+   * on the server, if this device has one (`deviceProfileId`), moves there too and is deleted (ADR 0043).
+   */
+  mergeProfile: (id: string, name: string, data: DeviceProfileData, deviceProfileId: string | null = null) =>
+    call(
+      api.POST('/api/profiles/{id}/merge', {
+        params: { path: { id } },
+        body: { name, data, deviceProfileId },
+      }),
+    ),
   updateProfile: (id: string, body: UpdateProfileRequest) =>
     call(api.PATCH('/api/profiles/{id}', { params: { path: { id } }, body })),
   /** For good, with everything of the profile (ADR 0034). */
@@ -236,6 +246,19 @@ export const account = {
   twoFactor: () => call(api.GET('/api/account/two-factor')),
   setUpAuthenticator: () => call(api.POST('/api/account/two-factor/setup')),
   enableTwoFactor: (code: string) => call(api.POST('/api/account/two-factor/enable', { body: { code } })),
+};
+
+/**
+ * Device profiles on the server (ADR 0043): this device's key — a cookie the API sets — and the copies of its device
+ * profiles, made the first time one sits at a table.
+ */
+export const devices = {
+  /** The device's key; a device that has one keeps it. */
+  start: () => call(api.POST('/api/devices')),
+  /** Makes, or brings up to date, a device profile's server copy with the terms its player accepted. */
+  register: (body: DeviceProfileRegistration) => call(api.POST('/api/devices/profiles', { body })),
+  /** Deletes a device profile's server copy for good (ADR 0034); its seats read "Người chơi đã xoá". */
+  remove: (id: string) => call(api.DELETE('/api/devices/profiles/{id}', { params: { path: { id } } })),
 };
 
 /** Saves and scores of the active profile (M2); the hub calls these from storage/sync.ts, never from games. */

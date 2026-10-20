@@ -1,5 +1,5 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useParams } from '@tanstack/react-router';
+import { useNavigate, useParams } from '@tanstack/react-router';
 import { type FormEvent, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, type GameSummary, type RoomSummary, rooms } from '../api/client.ts';
@@ -11,6 +11,7 @@ import { ensureConnected, onReconnected } from '../rooms/connection.ts';
 import { formatCode, normalizeCode, quickPick } from '../rooms/model.ts';
 import { RoomResults } from '../rooms/RoomResults.tsx';
 import { defaultSettings, RoomSettings, type RoomSettingsValue } from '../rooms/RoomSettings.tsx';
+import { AtTables } from '../session/AtTables.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
@@ -19,53 +20,40 @@ import { Modal } from '../ui/Modal.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
 
-/** The lobby of a game played at a table (ADR 0016): quick play, a new room, a code, the bots, the open rooms. */
+/**
+ * The lobby of a game played at a table (ADR 0016): quick play, a new room, a code, the bots, the open rooms. A device
+ * profile comes in too, after the `named` screen the first time (ADR 0043).
+ */
 export function RoomsPage() {
   return (
-    <RequireSession need="player" device={false}>
-      {(session) =>
-        session.status === 'account' ? (
-          <Lobby
-            player={session.player}
-            mayPlayWithOthers={
-              session.me.profiles.find((p) => p.id === session.player.id)?.playWithOthers ?? false
-            }
-          />
-        ) : (
-          <DeviceLobby />
-        )
-      }
+    <RequireSession need="player">
+      {(session) => (
+        <AtTables session={session}>
+          {(player) => (
+            <Lobby
+              player={player}
+              device={session.status === 'device'}
+              mayPlayWithOthers={
+                session.status === 'device' ||
+                (session.me.profiles.find((p) => p.id === player.id)?.playWithOthers ?? false)
+              }
+            />
+          )}
+        </AtTables>
+      )}
     </RequireSession>
   );
 }
 
-/** Device profiles play offline only until ADR 0043's I2 (ADR 0016): the bots, and a way to sign up. */
-function DeviceLobby() {
-  const { gameId } = useParams({ from: '/play/$gameId/rooms' });
-  const { t } = useTranslation();
-  return (
-    <Screen narrow>
-      <BackLink to="/play" className="font-semibold text-accent">
-        ← {t('backToGames')}
-      </BackLink>
-      <BackLink
-        to="/play/$gameId"
-        params={{ gameId }}
-        className="rounded-3xl bg-brand px-5 py-4 text-center font-bold text-on-brand text-xl"
-      >
-        {t('rooms.playBots')}
-      </BackLink>
-      <p className="rounded-2xl bg-notice px-4 py-3 text-notice-ink text-sm">
-        {t('device.banner')}{' '}
-        <Link to="/account/register" className="font-bold underline underline-offset-4">
-          {t('device.signUp')}
-        </Link>
-      </p>
-    </Screen>
-  );
-}
-
-function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOthers: boolean }) {
+function Lobby({
+  player,
+  device,
+  mayPlayWithOthers,
+}: {
+  player: Player;
+  device: boolean;
+  mayPlayWithOthers: boolean;
+}) {
   const { gameId } = useParams({ from: '/play/$gameId/rooms' });
   const { t } = useTranslation();
   const navigate = useNavigate();
@@ -243,6 +231,7 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
           game={game}
           open={creating}
           ownAccountOnly={!mayPlayWithOthers}
+          device={device}
           onClose={() => setCreating(false)}
           onCreated={open}
         />
@@ -255,7 +244,7 @@ function Lobby({ player, mayPlayWithOthers }: { player: Player; mayPlayWithOther
 export const settingsBody = (value: RoomSettingsValue) => ({
   seats: value.seats,
   isPublic: value.isPublic,
-  accountOnly: value.accountOnly,
+  entry: value.entry,
   botsFill: value.botsFill,
   botLevel: value.botLevel,
   botsTakeOver: value.botsTakeOver,
@@ -268,12 +257,14 @@ function CreateRoom({
   game,
   open,
   ownAccountOnly,
+  device,
   onClose,
   onCreated,
 }: {
   game: GameSummary;
   open: boolean;
   ownAccountOnly: boolean;
+  device: boolean;
   onClose(): void;
   onCreated(roomId: string): void;
 }) {
@@ -288,6 +279,7 @@ function CreateRoom({
         game={game}
         initial={defaultSettings(game)}
         ownAccountOnly={ownAccountOnly}
+        device={device}
         submitLabel={t('rooms.createGo')}
         busy={create.isPending}
         error={create.isError ? t(errorKey(create.error)) : null}

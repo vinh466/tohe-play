@@ -5,7 +5,8 @@ sidebar:
   order: 37
 ---
 
-- **Status:** Accepted — the proof-of-work is also to guard making a device profile on the server and redeeming a transfer code, by [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I2)
+- **Status:** Accepted — the proof-of-work also guards making a device profile on the server since
+  [ADR 0043](0043-device-profiles-and-identity-levels.md) (its step I2a), and is to guard redeeming a transfer code (I2b)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0028](0028-sign-in-and-registration-at-run-time.md) — the console's run-time settings gain a switch
 

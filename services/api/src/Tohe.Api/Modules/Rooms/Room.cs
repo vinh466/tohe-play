@@ -3,6 +3,42 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Tohe.Api.Modules.Rooms;
 
+/// <summary>Who may sit at a table (ADR 0016, 0043): its creator chooses.</summary>
+public enum RoomEntry
+{
+    /// <summary>"Ai có link cũng vào": anyone with a name others see — a device profile on the server too. The default.</summary>
+    Named,
+
+    /// <summary>"Chỉ tài khoản": profiles of accounts only.</summary>
+    Account,
+
+    /// <summary>"Chỉ hồ sơ trong tài khoản tôi": the host's account's own profiles.</summary>
+    Own,
+}
+
+/// <summary>The names of <see cref="RoomEntry"/> in the API: <c>named</c>, <c>account</c>, <c>own</c>.</summary>
+public static class RoomEntries
+{
+    public static string NameOf(RoomEntry entry) => entry switch
+    {
+        RoomEntry.Named => "named",
+        RoomEntry.Account => "account",
+        _ => "own",
+    };
+
+    public static bool TryParse(string? name, out RoomEntry entry)
+    {
+        entry = name switch
+        {
+            "named" => RoomEntry.Named,
+            "account" => RoomEntry.Account,
+            "own" => RoomEntry.Own,
+            _ => (RoomEntry)(-1),
+        };
+        return Enum.IsDefined(entry);
+    }
+}
+
 public enum RoomStatus
 {
     /// <summary>Players gather; the host starts.</summary>
@@ -38,13 +74,14 @@ public sealed class Room
 
     public Guid HostProfileId { get; set; }
 
-    public Guid HostAccountId { get; set; }
+    /// <summary>The host's account; null while a device profile hosts (ADR 0043).</summary>
+    public Guid? HostAccountId { get; set; }
 
     /// <summary>Listed in the lobby; otherwise joined with the code or the link only.</summary>
     public bool IsPublic { get; set; }
 
-    /// <summary>Only profiles of the host's account may join.</summary>
-    public bool AccountOnly { get; set; }
+    /// <summary>Who may sit: anyone named, accounts only, or the host's account's own profiles (ADR 0043).</summary>
+    public RoomEntry Entry { get; set; }
 
     /// <summary>The host closed the door: nobody new may join.</summary>
     public bool Locked { get; set; }
@@ -101,15 +138,28 @@ public sealed class Room
 }
 
 /// <summary>A seat as stored: a person, a bot, or empty.</summary>
+/// <param name="AccountId">The person's account; null for a device profile (ADR 0043), a bot, or a deleted person.</param>
 /// <param name="Auto">A bot that filled an empty seat; a person who joins between hands takes its place.</param>
 /// <param name="Deleted">A person whose profile was deleted (ADR 0034): the seat stays in finished hands for the others
 /// at the table, with nothing of them — a random id, no account, no name, no avatar.</param>
+/// <param name="Kept">A child whose account's owner has not let it play with outsiders: it never sits with a device
+/// profile (ADR 0043).</param>
 public sealed record SeatRecord(
-    Guid? ProfileId, Guid? AccountId, string? Name, string? Avatar, string? Bot, bool Auto = false, bool Deleted = false)
+    Guid? ProfileId,
+    Guid? AccountId,
+    string? Name,
+    string? Avatar,
+    string? Bot,
+    bool Auto = false,
+    bool Deleted = false,
+    bool Kept = false)
 {
     public static readonly SeatRecord Empty = new(null, null, null, null, null);
 
     public bool IsEmpty => ProfileId is null && Bot is null;
+
+    /// <summary>A device profile sits here (ADR 0043): a person without an account.</summary>
+    public bool IsDeviceProfile() => ProfileId is not null && AccountId is null && Bot is null && !Deleted;
 }
 
 /// <summary>An accepted action of a hand, in order; replayed to rebuild the hand after a restart.</summary>
@@ -140,6 +190,7 @@ internal sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
         builder.Property(room => room.RulesPath).HasMaxLength(200);
         builder.Property(room => room.BotLevel).HasMaxLength(16);
         builder.Property(room => room.Status).HasConversion<string>().HasMaxLength(10);
+        builder.Property(room => room.Entry).HasConversion<string>().HasMaxLength(8).HasDefaultValue(RoomEntry.Named);
         builder.Property(room => room.Options).HasColumnType("jsonb");
         builder.Property(room => room.SeatList).HasColumnType("jsonb");
         builder.Property(room => room.HandSeats).HasColumnType("jsonb");

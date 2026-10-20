@@ -185,7 +185,7 @@ internal static class ProfileEndpoints
     /// boards. Profile management: step-up level 1, as adding a profile (ADR 0025).
     /// </summary>
     private static async Task<Results<Ok<MeView>, ValidationProblem, ProblemHttpResult>> AdoptProfileAsync(
-        DeviceProfileUpload request, Context context, DeviceProfiles devices, TimeProvider clock, CancellationToken ct)
+        DeviceProfileUpload request, Context context, DeviceProfiles devices, HttpContext http, TimeProvider clock, CancellationToken ct)
     {
         if (Closed(context.Account) is { } closed)
         {
@@ -215,6 +215,18 @@ internal static class ProfileEndpoints
             return Problems.Field("", "too_many_profiles");
         }
 
+        // A device profile on the server, of this request's device (its key came with it): the same row becomes the
+        // account's, keeping its id, its seats and results (ADR 0043).
+        if (await devices.ServerCopyAsync(http, request.Id, ct) is { } copy)
+        {
+            await devices.ConvertAsync(copy, context.Account.Id, request, name, clock.GetUtcNow(), ct);
+            await devices.ImportAsync(copy.Id, context.Account.Id, request.Data, ct);
+            await devices.SaveAsync(ct);
+            await transaction.CommitAsync(ct);
+            return TypedResults.Ok(await context.MeAsync(ct));
+        }
+
+        // Any other profile, a profile that was, or another device's copy: not this device's to bring in.
         if (await devices.IdTakenAsync(request.Id, ct))
         {
             return DeviceProfiles.IdTaken();
@@ -239,7 +251,14 @@ internal static class ProfileEndpoints
     /// the target keeps its name and avatar, and the device profile's name joins its name history. No alias yet (I2).
     /// </summary>
     private static async Task<Results<Ok<MeView>, NotFound, ProblemHttpResult>> MergeProfileAsync(
-        Guid id, MergeProfileRequest request, Context context, DeviceProfiles devices, TimeProvider clock, CancellationToken ct)
+        Guid id,
+        MergeProfileRequest request,
+        Context context,
+        DeviceProfiles devices,
+        AccountDeletion deletion,
+        HttpContext http,
+        TimeProvider clock,
+        CancellationToken ct)
     {
         if (Closed(context.Account) is { } closed)
         {
@@ -264,9 +283,27 @@ internal static class ProfileEndpoints
             return TypedResults.NotFound();
         }
 
+        // Its server copy (ADR 0043): this device's moves into the target and is deleted, its id retired; another
+        // device's, or any other profile's id, is not this device's to merge.
+        Profile? copy = null;
+        if (request.DeviceProfileId is { } deviceProfileId && deviceProfileId != target.Id)
+        {
+            copy = await devices.ServerCopyAsync(http, deviceProfileId, ct);
+            if (copy is null && await context.Db.Profiles.AnyAsync(p => p.Id == deviceProfileId, ct))
+            {
+                return DeviceProfiles.IdTaken();
+            }
+        }
+
         context.Db.ProfileNameHistory.Add(
             new ProfileName { ProfileId = target.Id, Name = name, At = clock.GetUtcNow(), Kind = ProfileNameKind.Merged });
         await devices.ImportAsync(target.Id, context.Account.Id, request.Data, ct);
+        if (copy is not null)
+        {
+            await devices.MoveAsync(copy, target, ct);
+            await deletion.DeleteProfileAsync(copy, ct);
+        }
+
         await context.Db.SaveChangesAsync(ct);
         await transaction.CommitAsync(ct);
         return TypedResults.Ok(await context.MeAsync(ct));
@@ -403,7 +440,7 @@ internal static class ProfileEndpoints
     /// Renames in the last 24 hours, read from the name history (D-17): every name it had but its first, the one it
     /// was created with. A moderator's renames are in it too; a device profile's name merged into it is not (ADR 0043).
     /// </summary>
-    private static async Task<int> RenamesTodayAsync(ToheDbContext db, Guid profileId, DateTimeOffset now, CancellationToken ct)
+    internal static async Task<int> RenamesTodayAsync(ToheDbContext db, Guid profileId, DateTimeOffset now, CancellationToken ct)
     {
         var names = db.ProfileNameHistory.Where(n => n.ProfileId == profileId && n.Kind == ProfileNameKind.Rename);
         var first = await names.MinAsync(n => (long?)n.Id, ct);

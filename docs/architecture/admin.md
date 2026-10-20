@@ -236,6 +236,7 @@ entries.
 | `user.delete` | An account deleted for good, its seven days over — how many profiles went with it in the details ([ADR 0038](../decisions/0038-an-account-waits-for-an-admin-after-its-seven-days.md)) |
 | `profile.rename` | A profile renamed, with the names before and after |
 | `profile.hide`, `profile.show` | A profile hidden from public boards — the reason in the details — or let back |
+| `profile.withdraw` | A profile — an account's or a device's — taken off its tables |
 | `result.approve`, `result.reject`, `result.reopen` | A person's decision about a result (target `result {id}`), with the levels before and after and the note |
 | `settings.change` | Sign-in methods or the registration mode switched, with the new values |
 | `community.create` | A community made |
@@ -271,6 +272,15 @@ level 2 and in the audit log:
 - **Hide a profile from public boards** (moderators too), with a reason only admins see, and let it back
   ([ADR 0031](../decisions/0031-people-decide-what-the-engine-held.md)). The owner's switch stays as it is and does not
   bring the profile back; the hub tells the owner it is hidden. The account's own board is unchanged.
+- **Take a profile off its tables** (moderators too, "Mời khỏi bàn chơi"): it leaves every table it sits at or watches —
+  a bot finishes a hand in progress — and invitations to it end, as when it is deleted; nothing it stored goes.
+
+**Device profiles on the server** ([ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md),
+[Identity](identity.md#device-profiles-on-the-server)) have no account: the Users page lists them apart, under "Hồ sơ trên
+máy", found by name or id, the latest used first — when they were made and last used, the terms their player accepted,
+the names they had. A moderator renames one, which is how a name is hidden — the device keeps its own copy's name, and
+sends it again only when its player changes it — and takes it off its tables, as above. It is on no public board, so
+there is nothing to hide it from.
 
 Nobody acts on their own account here (`admin_self`) — that is what the hub is for — nor on an account whose role is as
 strong as theirs (`admin_rank`), except an owner on another owner.
@@ -370,6 +380,7 @@ three failures in a row without anyone opening the page.
 | `telemetry-maintenance` | every `Telemetry:MaintenanceInterval` |
 | `ranked-replays` | every `Integrity:ReplayInterval` ([ranked runs](integrity.md#ranked-runs)) |
 | `audit-retention` | once a day: audit entries older than a year ([above](#the-audit-log)) |
+| `device-cleanup` | once a day: device profiles unused for 90 days, and devices unseen for 90 days, deleted on the server ([Identity](identity.md#device-profiles-on-the-server)) |
 
 ## API
 
@@ -394,6 +405,9 @@ three failures in a row without anyone opening the page.
 | `PUT /api/admin/users/{id}/role` | `admin.roles.write`, step-up | Give a role, or none |
 | `PATCH /api/admin/profiles/{id}` | `admin.profiles.moderate`, step-up | Rename a profile |
 | `POST` · `DELETE /api/admin/profiles/{id}/hidden` | `admin.profiles.moderate`, step-up | Hide a profile from public boards, with a reason · let it back |
+| `POST /api/admin/profiles/{id}/withdraw` | `admin.profiles.moderate`, step-up | Take a profile — an account's or a device's — off its tables |
+| `GET /api/admin/device-profiles?q=` | `admin.users.read` | Device profiles on the server by name or id, fifty at most |
+| `PATCH /api/admin/device-profiles/{id}` | `admin.profiles.moderate`, step-up | Rename a device profile on the server |
 | `GET /api/admin/review?after=` · `GET /api/admin/review/decided?before=` | `admin.results.review` | Held results, oldest first · results people decided about or the engine rejected, the latest decision first; fifty at a time, with whose they are, how many are held, and the cursor of the next page |
 | `GET /api/admin/review/{id}` | `admin.results.review` | One result: where it stands and why, its evidence, its profile's history on the board, every change of level |
 | `GET /api/admin/review/{id}/run` | `admin.results.review` | A ranked run's seed and moves, and the build that played it — its entry URL — while the games origin serves it; 404 for a result with no ranked run |

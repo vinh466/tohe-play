@@ -6,10 +6,46 @@ namespace Tohe.Api.Modules.Rooms;
 
 /// <summary>
 /// Deleted profiles at the tables (ADR 0034): they leave the live ones at once; finished hands and closed tables keep
-/// their seats for the others who played, with nothing of them, and their own results lose who they were.
+/// their seats for the others who played, with nothing of them, and their own results lose who they were. A device
+/// profile brought into an account takes its seats and results with it (ADR 0043).
 /// </summary>
-internal sealed class RoomsProfileData(RoomRegistry registry, ToheDbContext db) : IProfileData
+internal sealed class RoomsProfileData(RoomRegistry registry, ToheDbContext db) : IProfileData, IProfileMoves
 {
+    /// <summary>Its seats in finished hands and its results now name the account.</summary>
+    public Task AdoptedAsync(Guid profileId, Guid accountId, CancellationToken ct) => MoveAsync(profileId, profileId, accountId, ct);
+
+    /// <summary>Its seats in finished hands, its results and the closed tables it hosted move to the target.</summary>
+    public Task MergedAsync(Guid from, Guid to, Guid accountId, CancellationToken ct) => MoveAsync(from, to, accountId, ct);
+
+    private async Task MoveAsync(Guid from, Guid to, Guid accountId, CancellationToken ct)
+    {
+        var id = from.ToString();
+        var target = to.ToString();
+        var account = accountId.ToString();
+        await db.Database.ExecuteSqlAsync(
+            $"""
+            UPDATE rooms.hands AS h
+            SET seats = (
+                SELECT jsonb_agg(
+                    CASE WHEN t.seat->>'ProfileId' = {id}
+                        THEN t.seat || jsonb_build_object('ProfileId', {target}::text, 'AccountId', {account}::text)
+                        ELSE t.seat
+                    END ORDER BY t.position)
+                FROM jsonb_array_elements(h.seats) WITH ORDINALITY AS t(seat, position))
+            WHERE EXISTS (SELECT 1 FROM jsonb_array_elements(h.seats) AS s(seat) WHERE s.seat->>'ProfileId' = {id})
+            """,
+            ct);
+        await db.Database.ExecuteSqlAsync(
+            $"""
+            UPDATE rooms.rooms
+            SET host_profile_id = {to}, host_account_id = {accountId}
+            WHERE status = 'Closed' AND host_profile_id = {from}
+            """,
+            ct);
+        await db.RoomResults.Where(result => result.ProfileId == from)
+            .ExecuteUpdateAsync(set => set.SetProperty(r => r.ProfileId, to).SetProperty(r => r.AccountId, accountId), ct);
+    }
+
     public async Task WithdrawAsync(IReadOnlyCollection<Guid> profileIds, CancellationToken ct)
     {
         foreach (var room in registry.All.Where(room => !room.IsClosed))

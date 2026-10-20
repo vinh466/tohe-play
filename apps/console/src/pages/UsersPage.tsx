@@ -5,6 +5,7 @@ import { admin } from '../api/client.ts';
 import { count, dateTime, roleName } from '../format.ts';
 import { Button, Field } from '../ui/forms.tsx';
 import { Badge, Card, cell, Failed, Loading, PageTitle, row, Table } from '../ui/ui.tsx';
+import { DeviceProfiles } from './DeviceProfiles.tsx';
 
 /**
  * Accounts by address, username, name or profile ID (ADR 0027); nothing typed, the newest ones. "Chờ xoá" lists the
@@ -89,6 +90,7 @@ export function UsersPage() {
           </Table>
         )}
       </Card>
+      {deleting ? null : <DeviceProfiles q={q} />}
     </>
   );
 }

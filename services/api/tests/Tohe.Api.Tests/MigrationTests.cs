@@ -94,10 +94,11 @@ public sealed class MigrationTests : IAsyncLifetime
         Assert.Equal([false, false], telemetry);
 
         var hosted = await QueryAsync(
-            $"SELECT host_account_id, account_only, seat_list::text FROM rooms.rooms WHERE id = '{room}'",
-            reader => (Host: reader.GetGuid(0), AccountOnly: reader.GetBoolean(1), Seats: reader.GetString(2)));
+            $"SELECT host_account_id, entry, seat_list::text FROM rooms.rooms WHERE id = '{room}'",
+            reader => (Host: reader.GetGuid(0), Entry: reader.GetString(1), Seats: reader.GetString(2)));
         Assert.Equal(dad, hosted[0].Host);
-        Assert.True(hosted[0].AccountOnly);
+        // A household's table became the account's, then "Chỉ hồ sơ trong tài khoản tôi" (ADR 0043).
+        Assert.Equal("Own", hosted[0].Entry);
         AssertSeats(hosted[0].Seats, dadProfile, dad);
 
         var handSeats = await QueryAsync("SELECT seats::text FROM rooms.hands", reader => reader.GetString(0));

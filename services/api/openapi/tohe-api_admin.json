@@ -807,6 +807,122 @@
         }
       }
     },
+    "/api/admin/profiles/{id}/withdraw": {
+      "post": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Take a profile — an account's or a device's — off every table it sits at or watches; a bot finishes a hand in progress.",
+        "operationId": "WithdrawAdminProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "404": {
+            "description": "Not Found"
+          }
+        }
+      }
+    },
+    "/api/admin/device-profiles": {
+      "get": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Device profiles on the server by name or id; the latest used first, fifty at most.",
+        "operationId": "SearchAdminDeviceProfiles",
+        "parameters": [
+          {
+            "name": "q",
+            "in": "query",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/DeviceProfileDetail"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/device-profiles/{id}": {
+      "patch": {
+        "tags": [
+          "Admin"
+        ],
+        "summary": "Rename a device profile on the server — to hide a name — under the same name rules; its history keeps the old name.",
+        "operationId": "RenameAdminDeviceProfile",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RenameProfileRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/DeviceProfileDetail"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Not Found"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/admin/settings": {
       "get": {
         "tags": [
@@ -2174,6 +2290,61 @@
           "at": {
             "type": "string",
             "format": "date-time"
+          }
+        }
+      },
+      "DeviceProfileDetail": {
+        "required": [
+          "id",
+          "name",
+          "avatar",
+          "createdAt",
+          "lastUsedAt",
+          "termsVersion",
+          "termsAcceptedAt",
+          "names"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string"
+          },
+          "avatar": {
+            "type": "string"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "lastUsedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "termsVersion": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "termsAcceptedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/NameChange"
+            }
           }
         }
       },

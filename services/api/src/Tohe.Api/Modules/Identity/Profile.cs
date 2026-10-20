@@ -55,14 +55,24 @@ public sealed class Profile
 {
     public Guid Id { get; set; }
 
-    /// <summary>The account that owns this profile and manages it behind the parent gate.</summary>
-    public Guid AccountId { get; set; }
+    /// <summary>
+    /// The account that owns this profile and manages it behind the parent gate; null for a device profile on the server
+    /// (ADR 0043), which belongs to <see cref="DeviceId"/> instead. Exactly one of the two is set.
+    /// </summary>
+    public Guid? AccountId { get; set; }
+
+    /// <summary>
+    /// The device a device profile on the server belongs to (ADR 0043): only that device's key acts for it. Null for an
+    /// account's profile; cleared when the device profile is brought into an account, keeping its id.
+    /// </summary>
+    public Guid? DeviceId { get; set; }
 
     /// <summary>
     /// The profile's public identifier, 12 digits shown as <c>1234 5678 9012</c>: never changes, never reused, the
-    /// last digit a Damm check digit (<see cref="ProfileIds"/>). What people share to find each other (ADR 0023).
+    /// last digit a Damm check digit (<see cref="ProfileIds"/>). What people share to find each other (ADR 0023). A
+    /// device profile has none until it is brought into an account (ADR 0043).
     /// </summary>
-    public required string PublicId { get; set; }
+    public string? PublicId { get; set; }
 
     /// <summary>Chosen freely and not unique (<see cref="ProfileNames"/>): the public ID tells profiles apart.</summary>
     public required string Name { get; set; }
@@ -108,6 +118,22 @@ public sealed class Profile
     /// profile, whichever way it arrives, and stays off public boards. Null for a profile made in the account.
     /// </summary>
     public DateTimeOffset? DeviceUntil { get; set; }
+
+    /// <summary>
+    /// A device profile on the server (ADR 0043): the version of the terms its player accepted — with the line "16 or
+    /// older, or a parent allowed it" — when its data first reached the server, or since. Null for an account's profile,
+    /// whose account keeps the terms.
+    /// </summary>
+    public string? TermsVersion { get; set; }
+
+    /// <summary>When the device profile's player accepted <see cref="TermsVersion"/>.</summary>
+    public DateTimeOffset? TermsAcceptedAt { get; set; }
+
+    /// <summary>
+    /// A device profile on the server: when it last did something there. Unused for 90 days, it is deleted there
+    /// (<see cref="DeviceCleanup"/>); the copy on the device stays.
+    /// </summary>
+    public DateTimeOffset? LastUsedAt { get; set; }
 }
 
 /// <summary>Why a name is in a profile's name history.</summary>
@@ -144,7 +170,10 @@ public sealed class ProfileName
 /// </summary>
 public sealed class RetiredProfileId
 {
-    public required string PublicId { get; set; }
+    public long Id { get; set; }
+
+    /// <summary>The deleted profile's public ID; null for a device profile, which never had one (ADR 0043).</summary>
+    public string? PublicId { get; set; }
 
     /// <summary>
     /// The deleted profile's id, so a device never brings it back as a device profile's id (ADR 0043). Null for profiles
@@ -160,8 +189,9 @@ internal sealed class RetiredProfileIdConfiguration : IEntityTypeConfiguration<R
     public void Configure(EntityTypeBuilder<RetiredProfileId> builder)
     {
         builder.ToTable("retired_profile_ids", "identity");
-        builder.HasKey(retired => retired.PublicId);
+        builder.HasKey(retired => retired.Id);
         builder.Property(retired => retired.PublicId).HasMaxLength(ProfileIds.Length).IsFixedLength();
+        builder.HasIndex(retired => retired.PublicId).IsUnique();
         builder.HasIndex(retired => retired.ProfileId).IsUnique();
     }
 }
@@ -186,7 +216,12 @@ internal sealed class ProfileConfiguration : IEntityTypeConfiguration<Profile>
 {
     public void Configure(EntityTypeBuilder<Profile> builder)
     {
-        builder.ToTable("profiles", "identity");
+        // An account's profile, or a device's (ADR 0043) — exactly one — and a public ID exactly when it is an account's.
+        builder.ToTable("profiles", "identity", table =>
+        {
+            table.HasCheckConstraint("ck_profiles_owner", "(account_id IS NULL) <> (device_id IS NULL)");
+            table.HasCheckConstraint("ck_profiles_public_id", "(account_id IS NULL) = (public_id IS NULL)");
+        });
         builder.Property(profile => profile.PublicId).HasMaxLength(ProfileIds.Length).IsFixedLength();
         builder.HasIndex(profile => profile.PublicId).IsUnique();
         // Room for 24 visible characters even when each is a long emoji sequence (ProfileNames.MaxLength).
@@ -196,10 +231,18 @@ internal sealed class ProfileConfiguration : IEntityTypeConfiguration<Profile>
         builder.Property(profile => profile.Invites).HasConversion<string>().HasMaxLength(12);
         builder.Property(profile => profile.AgeBand).HasMaxLength(8);
         builder.Property(profile => profile.PlayWithOthers).HasDefaultValue(false);
+        builder.Property(profile => profile.TermsVersion).HasMaxLength(32);
         builder.HasIndex(profile => new { profile.AccountId, profile.CreatedAt });
+        builder.HasIndex(profile => profile.DeviceId);
         builder.HasOne<Account>()
             .WithMany()
             .HasForeignKey(profile => profile.AccountId)
             .OnDelete(DeleteBehavior.Cascade);
+        // A device's profiles go through the deletion of ADR 0034 before the device does (DeviceCleanup): never by a
+        // cascade, which would skip the modules' purge.
+        builder.HasOne<Device>()
+            .WithMany()
+            .HasForeignKey(profile => profile.DeviceId)
+            .OnDelete(DeleteBehavior.Restrict);
     }
 }

@@ -17,6 +17,7 @@ superseded.
 ```mermaid
 erDiagram
   ACCOUNT ||--|{ PROFILE : "owns 1 to 5"
+  DEVICE ||--o{ PROFILE : "keeps 0 to 5 device profiles on the server"
   PROFILE ||--|{ PROFILE_NAME : "was called"
   ACCOUNT ||--o{ ACCOUNT_LOGIN : "signs in with"
   ACCOUNT ||--o{ AUTH_ATTEMPT : "resets, email changes"
@@ -52,6 +53,12 @@ erDiagram
     string provider_key "the provider's subject"
     string provider_display_name "the name on its button"
   }
+  DEVICE {
+    uuid id
+    bytes key_hash "SHA-256 of the 32-byte key in its cookie"
+    timestamp created_at
+    timestamp last_seen_at "unseen 90 days: deleted"
+  }
   PROFILE_NAME {
     string name "every name it had, kept by a trigger"
     timestamp at
@@ -59,7 +66,9 @@ erDiagram
   }
   PROFILE {
     uuid id
-    string public_id "12 digits, unique, never changes"
+    uuid account_id "an account's profile — or"
+    uuid device_id "a device profile on the server (ADR 0043): exactly one of the two"
+    string public_id "12 digits, unique, never changes; an account's profile only"
     string name "free, 1 to 24 visible characters"
     string avatar "emoji"
     string kind "adult or child"
@@ -71,6 +80,8 @@ erDiagram
     timestamp hidden_from_boards_at "a moderator hid it from public boards (ADR 0031)"
     timestamp device_until "it came from a device then: what it reached until then stays off public boards (ADR 0043)"
     string invites "who may ask it to a table by ID: Anyone, PlayedWith, Account — a child Account (ADR 0033)"
+    string terms_version "a device profile: the terms its player accepted, and when"
+    timestamp last_used_at "a device profile: unused 90 days on the server, deleted there"
   }
   AUTH_ATTEMPT {
     uuid id "held by the client, sent back with the code"
@@ -105,7 +116,7 @@ erDiagram
   [device profile](#device-profiles), keeping its id.
 
 Tables live in the `identity` schema (`accounts`, `account_logins`, `profiles`, `profile_names`, `auth_attempts`,
-`communities`, `invite_codes`); the console's switches in `admin.settings` ([Admin console](admin.md#sign-in-and-registration)). Data Protection keys (used to encrypt
+`communities`, `invite_codes`, `devices`, `retired_profile_ids`); the console's switches in `admin.settings` ([Admin console](admin.md#sign-in-and-registration)). Data Protection keys (used to encrypt
 session cookies) live in `platform.data_protection_keys`.
 
 ## Signing up
@@ -525,7 +536,7 @@ sequenceDiagram
 | Saves, scores (Progress) | Deleted |
 | Results on boards, their decisions, ranked runs (Integrity) | Deleted — the one way past the decisions' append-only trigger ([Integrity](integrity.md#decisions)) |
 | Seats in finished hands and closed tables (Rooms) | Kept for the others who played, with nothing of them: a fresh random id, `Deleted: true`, no account, name or avatar; its results keep place and points, without profile or account |
-| Its public ID, its id | Retired in `identity.retired_profile_ids`: never given to another profile, never adopted from a device |
+| Its public ID, its id | Retired in `identity.retired_profile_ids`: never given to another profile, never adopted from a device — a device profile's id alone, as it has no public ID |
 | An account's sign-in methods, roles, keys, sign-in attempts | Deleted with the account |
 | Sent email records · audit entries | 30 days (ADR 0022) · a year ([Admin console](admin.md#the-audit-log)) |
 
@@ -585,6 +596,11 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | Saves, scores and the leaderboard belong to the active profile; boards list the account's profiles | Progress, via `IActiveProfile` and `IAccountProfiles` |
 | A profile is asked to tables by its ID only as its owner allows — anyone, people it played with, its account — and a child only within its account; a child's ID is not found from outside its account, nor is a profile of a suspended account ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)) | `ProfileEndpoints` (`child_invites_account_only`, `GET /api/profiles/by-id`), `IProfileDirectory`, Rooms |
 | Unsafe `/api` requests from another origin (`Sec-Fetch-Site` ≠ `same-origin`) are rejected | `SameOriginGuard` middleware |
+| A profile is an account's or a device's on the server — exactly one — and has a public ID exactly when it is an account's | Check constraints `ck_profiles_owner`, `ck_profiles_public_id` on `identity.profiles` |
+| The device key acts only for its device's device profiles, and only on `/api/devices/profiles` and at tables; an account's session never acts for a device profile | `DeviceKey`, the `Tohe.Device` and `Tohe.Player` schemes, `DevicePlayers` |
+| A device keeps at most five device profiles on the server; a new one takes the proof-of-work when the console asks, and the name filter | `DeviceEndpoints` |
+| A device profile acts at a table only with the terms the hub shows accepted (`412 terms_required`) | `DevicePlayers` |
+| Device profiles unused for 90 days, and devices unseen for 90 days, are deleted on the server with everything of them | `DeviceCleanup` |
 | Per client IP, 10 requests a minute in each of three buckets: signing in or asking for a code (`auth`), typing a code back (`auth-code`), a PIN or the parent gate (`auth-gate`) | Rate limiter policies; `Identity:AuthRequestsPerMinute` |
 | 10 wrong passwords lock an account for 5 minutes; a password reset ends the lockout | ASP.NET Core Identity lockout |
 
@@ -593,24 +609,27 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 [ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md): a player is a profile of this device or of an
 account. A **device profile** — "Hồ sơ trên máy này" — belongs to one browser (or installed app): a name, an avatar,
 saves and scores, all in IndexedDB. It has no email, no 12-digit ID, no public board and no age (it sees every game).
-This page describes step I1, which lives in the hub; device profiles on the server (the device key, tables for `named`
-device profiles, the transfer code, aliases, the 90-day cleanup) come with I2.
+Step I1 lives in the hub; step I2a puts a device profile on the server when its player sits at a table — the device
+key, the `named` screen and its terms line, tables open to `named` device profiles, the 90-day cleanup
+([below](#device-profiles-on-the-server)). The transfer code and merge aliases come with I2b.
 
 - **Opening the hub is playing.** A device with no session plays as its device profile at once, with no sign-in screen
   first: the first visit makes one silently, with a suggested Vietnamese name and an avatar from the profiles' set
   (`ensureDeviceProfile`, the `any` level). The slim "Đăng nhập" strip on the catalog opens the sign-in when the player
   chooses; "Chơi luôn" on the sign-in screen goes back to the device profiles. The catalog shows the device profile's
-  name. What needs an account — a room link, a room, the rooms lobby, a replay — still asks a signed-out device to sign
-  in or up; signing out of an account leads to the sign-in screen, and the device profiles stay.
+  name. A room link, the rooms lobby, a room and a replay play as the device profile too, after the `named` screen the
+  first time ([below](#device-profiles-on-the-server)); signing out of an account leads to the sign-in screen, and the
+  device profiles stay.
 - **Up to five per device** (`MAX_DEVICE_PROFILES`), in `/account/profiles` while no account is signed in: switch, make
-  one (a suggested name, an avatar), rename, delete — on the device only; the last one stays. Deleting removes its saves
-  and scores from the device.
+  one (a suggested name, an avatar), rename, delete; the last one stays. Deleting removes its saves and scores from the
+  device, and its copy on the server when it has one.
 - **From the guest.** The guest of earlier versions — one local profile per device — is the device's first device
   profile: same id, same saves and scores, moved by the IndexedDB upgrade to version 4 without copying anything. The
   device keeps the key `tohe:guest` in `localStorage` for "this device plays without an account" (the public pages
   read it, [Hosts and paths](hosts-and-paths.md)); the device profile playing is `tohe:device-profile`.
 - **Nothing reaches the server** while a device profile stays on the device: it never syncs, and device telemetry
-  names no profile (ADR 0015).
+  names no profile (ADR 0015). It reaches the server only when its player sits at a table, or brings it into an
+  account.
 
 ### Bringing one into an account
 
@@ -650,7 +669,8 @@ flowchart TD
   is made — is not brought in: the account is made the usual way and the device keeps it. Signing up needs no step-up:
   the person has just proved the address. The question is asked when the device profile playing has progress, or when
   the player named it or chose its avatar — never about the one the hub made silently and nobody touched.
-- **Signing in** (`/account/profiles` right after it): for each device profile **with progress**, **Thêm vào tài
+- **Signing in** (`/account/profiles` right after it): for each device profile **with progress** — or a copy on the
+  server — **Thêm vào tài
   khoản** (keeps its id; only while the account is below its limit), **Gộp vào** one of the account's profiles (the
   hub suggests one with the same name or avatar) or **Giữ trên máy này**. By default the one playing is added — merged
   when the account is full — and the others stay. Adding or merging is profile management: step-up level 1 (ADR 0025),
@@ -660,7 +680,12 @@ flowchart TD
   profile's id is retired with its public ID (`identity.retired_profile_ids.profile_id`); ids of profiles deleted before
   were not kept and cannot be — otherwise `409 id_taken`, also when two requests bring the same id in at once: the hub
   first looks whether the account has it already (an answer lost), else gives the device profile a new id on the device,
-  moves its saves and scores under it, and asks again. (I2 adds aliases to what an id must not be.)
+  moves its saves and scores under it, and asks again. (I2b adds aliases to what an id must not be.)
+- **A copy on the server** (I2a): when the id is a device profile on the server **of this request's device** — its key
+  came with the request — the same row becomes the account's: its account set, its device cleared, a 12-digit ID given
+  now, the adult or child template, `device_until` set. It leaves the tables it sits at as a device profile (a bot
+  finishes a hand); its seats in finished hands and its results follow its id, now naming the account, and stay marked
+  as a device profile's. Another device's copy is `409 id_taken`: the device key, never the id, speaks for it.
 - **Asking again is harmless**: an id that is already a profile of the same account answers 200 and takes the data
   again — scores by their client ids, their marks kept — so a lost answer never makes a second profile.
 - **Its name** goes through the [name rules](#names) and the filter when it is brought in: a refused name answers
@@ -671,13 +696,93 @@ flowchart TD
 - **Merging** (I1): a save present on one side is taken; present on both, the newer wins — the device's time against
   the server's — and the other is kept as the previous version (ADR 0005); scores join the target's, marked. The target
   keeps its name and avatar; the device profile's name goes into its name history as `merged` — not a rename, so it
-  costs none of the day's renames, and the console labels it. There is no alias yet (I2).
+  costs none of the day's renames, and the console labels it. The request names the device profile
+  (`deviceProfileId`): its copy on the server, of this request's device, moves into the target — seats in finished
+  hands, results, closed tables it hosted, still marked — and is then deleted through [Deleting](#deleting), its id
+  retired. There is no alias yet (I2b): a link or a replay that names its old id finds nothing. Another device's copy
+  is `409 id_taken`.
 - **After it**, the device drops the device profile from its list; its saves and scores stay under the account
   profile's id, its scores marked as sent — so ordinary sync never sends them again, unmarked. Signing in, the device
   then plays on as the profile it was playing: the one it became, or the one it was merged into.
 
-The levels `named` and `account`, the `named` screen and tables open to device profiles arrive with I2; until I4 every
-game asks for `any`, and until I2 a table asks for an account.
+### Device profiles on the server
+
+[ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md), step I2a. A device profile reaches the server
+**lazily**: the first time its player does something that needs it — today, sitting at a table, from a room link, the
+rooms lobby or a room. Until I4 every game asks for `any`; a table asks for at least `named`.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor P as Friend, no account
+  participant H as Hub
+  participant A as API
+  P->>H: opens /r/482913 on a new phone
+  H->>H: the device profile, made silently (the any level)
+  H->>P: the named screen: a name, an avatar, and the line to tick
+  P->>H: "Tôi đồng ý Điều khoản và từ 16 tuổi trở lên, hoặc bố mẹ đã cho phép" — Vào chơi
+  H->>A: POST /api/devices
+  A-->>H: 204 + the device key's cookie (90 days, renewed on use)
+  H->>A: POST /api/devices/profiles {id, name, avatar, termsVersion, proof?}
+  alt the id is unknown
+    A-->>H: 200 — the copy, with the terms version and the time
+  else the id is taken (or was)
+    A-->>H: 409 id_taken — the hub gives it a new id, moves its data under it, and sends again
+  end
+  H->>A: GET /api/rooms/code/482913, POST …/join — X-Tohe-Device-Profile and X-Tohe-Terms
+  A-->>H: the seat (a `named` table) — or 403 account_required (a table for accounts)
+```
+
+- **The `named` screen** (`session/AtTables.tsx`) comes before anything of the profile reaches the server: the name others
+  will see, an avatar, and one line to tick — "Tôi đồng ý Điều khoản và từ 16 tuổi trở lên, hoặc bố mẹ đã cho phép", with
+  the terms and the privacy notice a tap away. **Nhờ bố mẹ** leads to signing in (or up), where a parent makes a child's
+  profile instead; **Đã có tài khoản? Đăng nhập** too. The hub keeps on the device that the profile has a copy and which
+  terms its player accepted; a new name or avatar sends the copy again, without asking.
+- **The device key**: `POST /api/devices` gives the device one — 32 random bytes in a cookie, `tohe.device` over HTTP
+  and `__Host-tohe.device` (`Secure`) behind an HTTPS hub, as for the players' session; `HttpOnly`, `SameSite=Lax`,
+  `Path=/`, 90 days, renewed (with the device's `last_seen_at`) at most once an hour while in use. The server keeps
+  only its SHA-256. A device that has a key keeps it.
+- **Its own scheme, apart from the session's** (`DeviceKey`, `Tohe.Device`): the key authenticates
+  `/api/devices/profiles` and nothing else of the API's own; an account's endpoints read the session alone, so the key
+  never acts for an account's profile. At tables, the players' scheme (`Tohe.Player`) reads the device key **only** when
+  the request names a device profile — `X-Tohe-Device-Profile`, or `?deviceProfile=` in the rooms hub's address, where a
+  WebSocket cannot carry headers — and the session otherwise, never both; a named profile is found only among the key's
+  device's own (`device_id`), so an account's session never acts for a device profile, nor one device for another's.
+- **Its id**, as when one is brought in: unknown to profiles and to retired ids, else `409 id_taken` and the hub gives it
+  a new one. Its own device sending its copy again answers 200 and brings it up to date — its name through the name
+  rules and the day's renames (`rename_limit`), its avatar, the terms.
+- **Against abuse**: the proof-of-work of ADR 0037 when the console turns it on (a new copy only), a bucket per address
+  (`device`, `Identity:DeviceRequestsPerMinute`), the name filter (`422 name_refused`), five copies per device
+  (`409 too_many_profiles`).
+- **The terms again**: every action of a device profile at a table carries the version of the terms the hub shows
+  (`X-Tohe-Terms`). Another version than the one it accepted answers `412 terms_required`; the hub shows the `named`
+  screen again and sends the new version, kept with its time.
+- **Gone**: a device profile its device deleted, or the cleanup took, answers `404 device_profile_not_found`; the hub
+  gives it a new id on the device, its data moved under it, and sends its copy again without asking — its player
+  accepted these terms already.
+- **At tables** ([Online rooms](rooms.md#who-may-sit)): a table "Ai có link cũng vào" (`named`, the default) seats it; a
+  table "Chỉ tài khoản" or "Chỉ hồ sơ trong tài khoản tôi" does not. It asks nobody by ID. A child whose "play with
+  outsiders" is off never sits with it. Its results are marked as a device profile's and reach no public board
+  ([Integrity](integrity.md#public-boards)).
+- **Deleting** it on the device deletes its copy (`DELETE /api/devices/profiles/{id}`, with the key) through
+  [Deleting](#deleting): it leaves its tables, the modules purge, its seats read "Người chơi đã xoá", its id is retired.
+- **Cleanup** (`DeviceCleanup`, the `device-cleanup` worker, once a day): a device profile unused on the server for 90
+  days, and a device unseen for 90 days with its profiles, are deleted the same way. The copy on the device stays.
+- **Moderation** ([Admin console](admin.md#users)): the console finds device profiles by name, renames one — how a
+  moderator hides a name — and takes any profile off its tables.
+
+**What the server keeps of a device profile, and for how long** — the facts the privacy notice needs (the owner covers
+device profiles in it with E-05):
+
+| What | Where | Until |
+| --- | --- | --- |
+| The device: the key's hash, when it was made and last seen | `identity.devices` | 90 days unseen |
+| The profile: id, name, avatar, the terms version and when accepted, when made and last used | `identity.profiles` (no account, no public ID, no email, no age) | deleted on the device, 90 days unused, or brought into an account |
+| Every name it had | `identity.profile_names` | with the profile |
+| Its seats, hands and results at tables | `rooms.*`, `integrity.results` (marked) | with the profile; seats in others' finished hands stay as "Người chơi đã xoá" |
+
+Nothing else: no address, no device fingerprint, no telemetry naming it (ADR 0015). Saves and scores stay on the device
+until the profile is brought into an account (the transfer code of I2b will carry them between devices).
 
 ## API
 
@@ -709,8 +814,11 @@ game asks for `any`, and until I2 a table asks for an account.
 | `GET /api/profiles/options` | — | Allowed avatars and age bands; how many profiles an account may own |
 | `PATCH /api/account` | parent | The account's telemetry switch |
 | `POST /api/profiles` | parent | Add a profile: a child's with an age band, an adult's without |
-| `POST /api/profiles/adopt` | parent | Bring a device profile in with its id, saves and scores: a child's with an age band, an adult's without ([Device profiles](#bringing-one-into-an-account)); `409 id_taken`, `422 name_refused` |
-| `POST /api/profiles/{id}/merge` | parent | Upload a device profile's saves and scores under one of the account's profiles — the newer save wins — and keep its name in the history; `422 name_refused` |
+| `POST /api/profiles/adopt` | parent | Bring a device profile in with its id, saves and scores: a child's with an age band, an adult's without ([Device profiles](#bringing-one-into-an-account)) — its copy on the server, when this device's key came with the request, becomes the account's; `409 id_taken`, `422 name_refused` |
+| `POST /api/profiles/{id}/merge` | parent | Upload a device profile's saves and scores under one of the account's profiles — the newer save wins — and keep its name in the history; its copy on the server (`deviceProfileId`, this device's) moves there and is deleted; `409 id_taken`, `422 name_refused` |
+| `POST /api/devices` | — | The device key's cookie ([Device profiles on the server](#device-profiles-on-the-server)); a device that has one keeps it — 204 |
+| `POST /api/devices/profiles` | device key | Make, or bring up to date, a device profile's copy: `{id, name, avatar, termsVersion, proof?}` → `{id, name, avatar, termsVersion}`; `409 id_taken`, `409 too_many_profiles`, `412 terms_required`, `422 name_refused`, `429 rename_limit`, `400 proof_of_work_required` |
+| `DELETE /api/devices/profiles/{id}` | device key | Delete the copy for good ([Deleting](#deleting)) — 204, or `404 device_profile_not_found` |
 | `GET /api/profiles/by-id/{publicId}` | session | A profile's card — id, ID, name, avatar — to confirm before asking it to a table ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); never a child of another account nor a profile of an account suspended or waiting to be deleted (`profile_not_found`); 20 lookups an hour per account (`lookup_limit`) |
 | `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`, `onPublicBoards` — with `askedChild` to turn a child's on — and an adult's `invites`: `anyone`, `played-with`, `account`) / delete a profile — never the last — with everything of it ([above](#deleting)) |
 
@@ -727,7 +835,7 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `name_too_long`, `name_reserved`, `name_inappropriate`, `rename_limit`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
 `last_method`, `account_suspended`, `session_ended`, `method_disabled`, `proof_of_work_required`, `registration_closed`, `invite_required`,
 `invite_invalid`, `asked_child_required`, `id_taken`, `name_refused` (with `reason`, the name rule that refused it),
-`upload_too_large`.
+`upload_too_large`, `device_profile_not_found`; `terms_required` is also a device profile's `412` at a table.
 Navigations answer with a redirect instead: `/account/sign-in?external=failed` (the provider refused, or was cancelled),
 `/account/sign-in?external=suspended`, `/account/sign-in?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`
 `step_up_required`, `provider_account_in_use`, `cross_origin` or `method_disabled`.

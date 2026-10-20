@@ -134,9 +134,11 @@ flowchart TD
 
 - **Never a device profile's results.** A run that reached the server with a device profile brought into an account
   ([Identity](identity.md#bringing-one-into-an-account)) carries `device_earned` in `progress.scores` and
-  `integrity.results`, set by the channel it came through, never by the request's content. Both public queries leave
-  such results out (`&& !result.DeviceEarned`), whoever's they are now, and a trigger refuses to clear the mark on a
-  result. The account's own board counts them as any other.
+  `integrity.results`, set by the channel it came through, never by the request's content. So does a hand a device
+  profile played at a table (ADR 0043, I2a): `RoomVerifier` marks the result of a seat with a profile and no account —
+  verified like anyone's, with no account until the profile is brought into one, when it takes the account and keeps
+  the mark. Both public queries leave such results out (`&& !result.DeviceEarned`), whoever's they are now, and a
+  trigger refuses to clear the mark on a result. The account's own board counts them as any other.
 - **Who is on them** is Identity's to say (`IBoardAudience`): a profile with its switch "Hiện trên bảng công khai" on, of
   an account that is not suspended; for a community's board, of an account that came with that community (ADR 0028). An
   adult's profile starts on; a child's starts off, and its owner turns it on only by saying they asked the child
@@ -262,7 +264,7 @@ games origin no longer serves the old one, and the run is only numbers.
 
 | Table | Holds |
 | --- | --- |
-| `integrity.results` | One row per result: kind (`Run`, `Hand`), profile and account, game, board (`hands` for a hand), value, place, source (unique: `run:{profile}:{clientId}`, `hand:{room}:{hand}:{seat}`), final, level, public, the server's time, the device's, rule version, `decided_by` |
+| `integrity.results` | One row per result: kind (`Run`, `Hand`), profile and account (none for a device profile's hand, ADR 0043), game, board (`hands` for a hand), value, place, source (unique: `run:{profile}:{clientId}`, `hand:{room}:{hand}:{seat}`), final, level, public, the server's time, the device's, rule version, `decided_by` |
 | `integrity.decisions` | The append-only log above; a result's decisions go only with it, when its profile is deleted |
 | `integrity.ranked_runs` | One row per ranked run: profile and account, game, the build and verify module that started it, board, limits, seed, state (`Open`, `Submitted`, `Decided`, `Closed`), started and finished by the server's clock, the moves (JSON), the score claimed and replayed, tries, its result |
 

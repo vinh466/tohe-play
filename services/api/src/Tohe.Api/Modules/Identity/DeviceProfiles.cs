@@ -1,5 +1,6 @@
 using System.ComponentModel.DataAnnotations;
 using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
@@ -46,9 +47,26 @@ public sealed record DeviceProfileUpload(
     string? AgeBand = null,
     DeviceProfileData? Data = null);
 
-/// <summary>A device profile merged into one of the account's profiles (ADR 0043, step I1: no alias yet).</summary>
+/// <summary>A device profile merged into one of the account's profiles (ADR 0043: no alias yet).</summary>
 /// <param name="Name">The device profile's name: it goes into the target's name history, once it passes the name rules.</param>
-public sealed record MergeProfileRequest([Required(AllowEmptyStrings = true)] string Name, DeviceProfileData? Data = null);
+/// <param name="DeviceProfileId">The device profile's id. When it has a copy on the server, of this request's device (its
+/// key comes with the request), what it keeps there — seats and results at tables — moves to the target and the copy is
+/// deleted; another device's copy answers <c>409 id_taken</c>.</param>
+public sealed record MergeProfileRequest(
+    [Required(AllowEmptyStrings = true)] string Name, DeviceProfileData? Data = null, Guid? DeviceProfileId = null);
+
+/// <summary>
+/// What a module keeps under a device profile on the server (ADR 0043) — seats and results at tables — follows it into
+/// an account, within the caller's transaction. Implemented by the modules that keep something under one.
+/// </summary>
+public interface IProfileMoves
+{
+    /// <summary>The device profile is now the account's, with the same id: what it kept names the account.</summary>
+    Task AdoptedAsync(Guid profileId, Guid accountId, CancellationToken ct);
+
+    /// <summary>The device profile was merged into <paramref name="to"/>, of <paramref name="accountId"/>: what it kept moves there.</summary>
+    Task MergedAsync(Guid from, Guid to, Guid accountId, CancellationToken ct);
+}
 
 /// <summary>
 /// Stores what a device profile played under a profile of an account (ADR 0043), within the caller's unit of work:
@@ -67,7 +85,8 @@ public interface IDeviceProgress
 /// Bringing device profiles into accounts (ADR 0043, step I1): the checks every way in shares — on signing up, by email
 /// or with a provider, and from a signed-in device — and the profile it becomes.
 /// </summary>
-internal sealed class DeviceProfiles(ToheDbContext db, IDeviceProgress progress)
+internal sealed class DeviceProfiles(
+    ToheDbContext db, IDeviceProgress progress, IEnumerable<IProfileMoves> moves, IEnumerable<IProfileData> modules)
 {
     /// <summary>Saves one request may carry: one per game, with room to spare.</summary>
     public const int MaxSaves = 50;
@@ -85,6 +104,71 @@ internal sealed class DeviceProfiles(ToheDbContext db, IDeviceProgress progress)
     /// </summary>
     public Task<Profile?> OwnAsync(Guid id, Guid accountId, CancellationToken ct) =>
         db.Profiles.FirstOrDefaultAsync(profile => profile.Id == id && profile.AccountId == accountId, ct);
+
+    /// <summary>
+    /// The server copy of a device profile of the device whose key came with this request (ADR 0043), or null: any other
+    /// device's copy, or the id of an account's profile, is not this device's to bring in.
+    /// </summary>
+    public async Task<Profile?> ServerCopyAsync(HttpContext http, Guid id, CancellationToken ct)
+    {
+        var device = await http.AuthenticateAsync(DeviceKey.Scheme);
+        return device.Succeeded && DeviceKey.DeviceOf(device.Principal) is { } deviceId
+            ? await db.Profiles.FirstOrDefaultAsync(profile => profile.Id == id && profile.DeviceId == deviceId, ct)
+            : null;
+    }
+
+    /// <summary>
+    /// A device profile's server copy becomes the account's profile, the same row and id (ADR 0043): its account set and
+    /// its device cleared, a 12-digit ID given now, the template of an adult or — with an age band — a child (ADR 0025),
+    /// and what it reached until now stays a device profile's. It leaves the tables it sits at as a device profile; its
+    /// seats and results at finished hands follow its id. Within the caller's transaction.
+    /// </summary>
+    public async Task ConvertAsync(Profile profile, Guid accountId, DeviceProfileUpload upload, string name, DateTimeOffset now, CancellationToken ct)
+    {
+        await WithdrawAsync(profile.Id, ct);
+        var child = upload.AgeBand is not null;
+        profile.AccountId = accountId;
+        profile.DeviceId = null;
+        profile.PublicId = await ProfileEndpoints.NewPublicIdAsync(db, ct);
+        profile.Name = name;
+        profile.Avatar = upload.Avatar;
+        profile.Kind = child ? ProfileKind.Child : ProfileKind.Adult;
+        profile.AgeBand = upload.AgeBand;
+        profile.PlayWithOthers = false;
+        profile.OnPublicBoards = !child;
+        profile.Invites = child ? InviteScope.Account : InviteScope.Anyone;
+        profile.DeviceUntil = now;
+        // The account keeps the terms from now on.
+        profile.TermsVersion = null;
+        profile.TermsAcceptedAt = null;
+        profile.LastUsedAt = null;
+        foreach (var module in moves)
+        {
+            await module.AdoptedAsync(profile.Id, accountId, ct);
+        }
+    }
+
+    /// <summary>
+    /// What a device profile's server copy keeps moves to <paramref name="target"/> (ADR 0043), within the caller's
+    /// transaction; the caller then deletes the copy. There is no alias yet (I2b): a link to its old id finds nothing.
+    /// </summary>
+    public async Task MoveAsync(Profile from, Profile target, CancellationToken ct)
+    {
+        await WithdrawAsync(from.Id, ct);
+        foreach (var module in moves)
+        {
+            await module.MergedAsync(from.Id, target.Id, target.AccountId!.Value, ct);
+        }
+    }
+
+    /// <summary>It leaves the tables it sits at, or watches, as a device profile — a bot finishes a hand in progress.</summary>
+    private async Task WithdrawAsync(Guid profileId, CancellationToken ct)
+    {
+        foreach (var module in modules)
+        {
+            await module.WithdrawAsync([profileId], ct);
+        }
+    }
 
     public async Task<bool> IdTakenAsync(Guid id, CancellationToken ct) =>
         id == Guid.Empty
