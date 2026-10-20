@@ -3,6 +3,7 @@
   "extends": ["//"],
   "tasks": {
     "build": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/*/public/game.json"],
       "outputs": [
         "$TURBO_ROOT$/deploy/docker/hub-routes.caddy",
         "$TURBO_ROOT$/deploy/docker/console-routes.caddy",

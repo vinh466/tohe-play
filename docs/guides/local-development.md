@@ -29,7 +29,7 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 | Port | Service |
 | --- | --- |
 | 4710 | Docs, at the root of their own host (`pnpm dev` and compose) |
-| 4711 | The public pages' dev server (`pnpm dev` only). Under compose they are the root of the hub, 4720; under `pnpm dev` the root of 4720 is the app's dev server, which has no public page |
+| 4711 | The public pages' dev server (`pnpm dev` only). Under compose they are the root of the hub, 4720; under `pnpm dev` the root of 4720 is the app's dev server, which has no public page, and its paths (`/terms`, `/games/`…) are sent on to 4711 |
 | 4720 | Hub (open this) — proxies `/api` to the API |
 | 4721 | The console, on a host of its own with its own sign-in: its dev server under `pnpm dev`, the hub container's second site under `docker compose`. The API answers the console's routes at this address only (`App:ConsoleUrl`) ([Admin console](../architecture/admin.md)). Under `pnpm dev` it answers only at `http://localhost:4721`, not through `127.0.0.1` or a LAN IP: the API tells the console's host by the `Host` header |
 | 4730 | Games origin |

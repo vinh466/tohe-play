@@ -10,11 +10,12 @@
 #      TOHE_TRUSTED_PROXIES (CIDRs of proxies in front of this server, e.g. a cluster's ingress; default: none),
 #      TOHE_CLIENT_IP_HEADERS (headers those proxies put the visitor's address in, e.g. CF-Connecting-IP),
 #      TOHE_SECURITY_CONTACT (the address /.well-known/security.txt names; unset: no security.txt),
-#      TOHE_HUB_URL (this host's own public URL, e.g. https://toheplay.io.vn: the public page's canonical links, the
-#      sitemap and robots.txt need absolute URLs; unset: /sitemap.xml answers 404),
-#      TOHE_DOCS_URL (the docs host's URL, for the public page's links to the developer docs).
+#      TOHE_HUB_URL (this host's own public URL, e.g. https://toheplay.io.vn: the public pages' canonical and Open
+#      Graph links, the app's own og:url and og:image, the sitemap and robots.txt need absolute URLs; unset:
+#      /sitemap.xml answers 404),
+#      TOHE_DOCS_URL (the docs host's URL, for the public pages' links to the developer docs).
 # Both URLs are read when the container starts, so one image serves every environment (ADR 0021): the build writes
-# [[[env "TOHE_HUB_URL"]]] and [[[env "TOHE_DOCS_URL"]]] into the public page (web.Dockerfile).
+# [[[env "TOHE_HUB_URL"]]] and [[[env "TOHE_DOCS_URL"]]] into the public pages and the app's page (web.Dockerfile).
 {
 	admin off
 	servers {
@@ -53,15 +54,16 @@ import /etc/caddy/hub-sitemap.caddy
 		}
 	}
 
-	# The public pages (apps/web): the home page at the root, from /srv/web so its index.html is not the app's. They are
-	# indexed, and their CSP is their own: no script and no style but files of the page's own (the build puts them
-	# under /_web/), no frame, no form, no connection. The build wrote the hub's and the docs' URLs as template
-	# actions, filled in from the environment here.
+	# The public pages (apps/web): the home page at the root, the games, the guides, the FAQ, about, the terms and the
+	# privacy notice, each a folder with an index.html under /srv/web (so none is the app's index.html), plus /og.png
+	# and /llms.txt. file_server serves a folder's index.html and answers a path without its closing slash with a
+	# redirect to the one with it. They are indexed, and their CSP is their own: no script and no style but files of the
+	# page's own (the build puts them under /_web/), no frame, no form, no connection. The build wrote the hub's and the
+	# docs' URLs as template actions, filled in from the environment here.
 	handle @publicStaticRevalidate {
 		root * /srv/web
 		header Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'none'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
 		header Cache-Control "no-cache"
-		rewrite * /index.html
 		templates {
 			between [[[ ]]]
 		}
@@ -74,12 +76,17 @@ import /etc/caddy/hub-sitemap.caddy
 		file_server
 	}
 
-	# The app's pages: whatever the path inside its namespaces, the app's index.html, which routes it. Not indexed.
+	# The app's pages: whatever the path inside its namespaces, the app's index.html, which routes it. Not indexed. The
+	# build wrote the hub's URL and the path asked for as template actions into the page's link preview (og:url,
+	# og:image); the path is HTML-escaped by the template.
 	handle @appPage {
 		root * /srv
 		header X-Robots-Tag "noindex"
 		header Cache-Control "no-cache"
 		rewrite * /index.html
+		templates {
+			between [[[ ]]]
+		}
 		file_server
 	}
 
@@ -94,6 +101,10 @@ import /etc/caddy/hub-sitemap.caddy
 		root * /srv
 		header X-Robots-Tag "noindex"
 		header Cache-Control "no-cache"
+		# /index.html, which the service worker caches, is the same page as @appPage's: its link preview is filled in too.
+		templates {
+			between [[[ ]]]
+		}
 		file_server
 	}
 

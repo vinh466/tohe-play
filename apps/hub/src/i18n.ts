@@ -142,7 +142,6 @@ const vi = {
   legal: {
     terms: 'Điều khoản sử dụng',
     privacy: 'Chính sách quyền riêng tư',
-    draft: 'Bản nháp (phiên bản {{version}}): người vận hành Tò He sẽ duyệt trước khi mở cho mọi người.',
   },
   consent: {
     agree: 'Tôi từ 16 tuổi trở lên và đồng ý với',
@@ -709,8 +708,6 @@ const en: typeof vi = {
   legal: {
     terms: 'Terms of use',
     privacy: 'Privacy notice',
-    draft:
-      "Draft (version {{version}}): Tò He's operator reviews it before Tò He opens to everyone. The Vietnamese text applies.",
   },
   consent: {
     agree: 'I am 16 or older and accept the',

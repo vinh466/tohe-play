@@ -1,5 +1,6 @@
-// The terms of use and the privacy notice the hub shows, and asks to accept at sign-up (ADR 0025). The Vietnamese text
-// is the one that counts. DRAFT: written from what the code does, not legal advice — the owner reviews both, and fills
+// The terms of use and the privacy notice, which the hub asks to accept at sign-up (ADR 0025) and which apps/web renders
+// at build time as the static pages /terms/ and /privacy/ — this file is their one source. The Vietnamese text is the
+// one that counts. DRAFT: written from what the code does, not legal advice — the owner reviews both, and fills
 // in how to reach the operator, before Tò He opens to everyone.
 
 /** Change it with any change to either document: signed-in accounts accept the new version once. */

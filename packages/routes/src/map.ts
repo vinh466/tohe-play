@@ -124,6 +124,34 @@ const appPage = (id: string, path: string, note: string, match: Match = 'tree'):
   note,
 });
 
+/** A public page, or a tree of them, built by apps/web: HTML in /srv/web, indexed, listed in the sitemap (`publicPages`). */
+const publicPage = (id: string, path: string, note: string): Namespace => ({
+  id,
+  path,
+  match: 'tree',
+  component: 'public',
+  served: 'static',
+  indexed: true,
+  crawl: true,
+  navigation: 'network',
+  cache: 'revalidate',
+  note,
+});
+
+/** A file of the public pages that is not a page: not in the sitemap, and the page's own CSP applies. */
+const publicFile = (id: string, path: string, note: string): Namespace => ({
+  id,
+  path,
+  match: 'exact',
+  component: 'public',
+  served: 'static',
+  indexed: false,
+  crawl: true,
+  navigation: 'network',
+  cache: 'revalidate',
+  note,
+});
+
 const appFile = (
   id: string,
   path: string,
@@ -174,6 +202,22 @@ export const hubNamespaces: readonly Namespace[] = [
     cache: 'revalidate',
     note: 'The public home page (Vietnamese); a browser that has played here is sent on to /play',
   },
+  publicPage(
+    'game-pages',
+    '/games',
+    'The games (/games/) and one page for each (/games/<gameId>/), made from game.json',
+  ),
+  publicPage('guides', '/guides', 'Guides: /guides/ and how to install the app, /guides/install/'),
+  publicPage('faq', '/faq', 'Short answers to what people ask first'),
+  publicPage('about', '/about', 'What Tò He is, who runs it, how to reach them'),
+  publicPage('terms', '/terms', 'The terms of use, rendered from apps/hub/src/legal/documents.ts'),
+  publicPage('privacy', '/privacy', 'The privacy notice, rendered from apps/hub/src/legal/documents.ts'),
+  publicFile(
+    'og-image',
+    '/og.png',
+    'The 1200×630 picture every link preview shows (the pages’ and the app’s)',
+  ),
+  publicFile('llms', '/llms.txt', 'The public pages as a list for AI readers (llmstxt.org)'),
   {
     id: 'public-assets',
     path: '/_web',
@@ -199,9 +243,6 @@ export const hubNamespaces: readonly Namespace[] = [
     'A person’s pages: /account/sign-in (and /continue), /register (and /confirm), /password/forgot, /password/reset, /profiles, /data; the account itself at /account and /account/email',
   ),
   appPage('room-link', '/r', 'A room’s short link: /r/<code>'),
-  // Rendered by the app for now; the public pages’ pull request serves them as static pages at the same URLs.
-  appPage('terms', '/terms', 'The terms of use', 'exact'),
-  appPage('privacy', '/privacy', 'The privacy notice', 'exact'),
 
   // The app's files (apps/hub/public and what the build adds).
   appFile('assets', '/assets', 'tree', 'immutable', 'Scripts, styles and images with hashed names'),
@@ -350,6 +391,22 @@ export const consoleLinks = {
 } as const satisfies Record<string, { path: string; note: string }>;
 
 /**
+ * The pages of each indexed tree namespace of the hub's host, with the games' pages from the ids in
+ * games/<id>/public/game.json. The sitemap lists them and apps/web's build must write exactly these (its check-build
+ * compares); a tree that is indexed and has no entry here is refused by the sitemap generator.
+ */
+export function publicPages(gameIds: readonly string[]): Record<string, readonly string[]> {
+  return {
+    'game-pages': ['/games/', ...gameIds.map((id) => `/games/${id}/`)],
+    guides: ['/guides/', '/guides/install/'],
+    faq: ['/faq/'],
+    about: ['/about/'],
+    terms: ['/terms/'],
+    privacy: ['/privacy/'],
+  };
+}
+
+/**
  * The hub's pages the API links and redirects to — in emails and after a sign-in with a provider. Queries are added
  * by the API. The C# class HubPaths is generated from these.
  */
@@ -419,8 +476,8 @@ export const hubRedirects: readonly Redirect[] = [
   },
   { id: 'profiles', from: '/profiles', to: '/account/profiles', tree: false, note: 'The profile picker' },
   { id: 'data', from: '/data', to: '/account/data', tree: false, note: 'What telemetry sends' },
-  { id: 'terms', from: '/legal/terms', to: '/terms', tree: false, note: 'The terms of use' },
-  { id: 'privacy', from: '/legal/privacy', to: '/privacy', tree: false, note: 'The privacy notice' },
+  { id: 'terms', from: '/legal/terms', to: '/terms/', tree: false, note: 'The terms of use' },
+  { id: 'privacy', from: '/legal/privacy', to: '/privacy/', tree: false, note: 'The privacy notice' },
   {
     id: 'rooms',
     from: '/rooms/:gameId',

@@ -1,0 +1,110 @@
+---
+import { type Game, gamesPage, loadGames } from '../../content/games.ts';
+import { absolute } from '../../content/site.ts';
+// /games/<gameId>/: one page for each game that has a game.json (../../content/games.ts). The name, what it is, the age
+// and how it is played come from the game's manifest; the how-to and who it suits from the game's copy.
+import Page from '../../layouts/Page.astro';
+
+export function getStaticPaths() {
+  const games = loadGames();
+  return games.map((game) => ({
+    params: { id: game.id },
+    props: { game, others: games.filter((other) => other.id !== game.id) },
+  }));
+}
+
+interface Props {
+  game: Game;
+  others: Game[];
+}
+
+const { game, others } = Astro.props;
+const path = `/games/${game.id}/`;
+const jsonLd = [
+  {
+    '@type': 'VideoGame',
+    name: game.name,
+    description: game.metaDescription,
+    url: absolute(path),
+    image: absolute(game.icon),
+    inLanguage: 'vi',
+    genre: game.genre,
+    gamePlatform: 'Web browser',
+    applicationCategory: 'Game',
+    operatingSystem: 'Any',
+    playMode: game.playMode,
+    ...(game.seats
+      ? {
+          numberOfPlayers: {
+            '@type': 'QuantitativeValue',
+            minValue: game.seats.min,
+            maxValue: game.seats.max,
+          },
+        }
+      : {}),
+    audience: { '@type': 'PeopleAudience', suggestedMinAge: game.minAge },
+    isAccessibleForFree: true,
+    offers: { '@type': 'Offer', price: 0, priceCurrency: 'VND', availability: 'https://schema.org/InStock' },
+    publisher: { '@id': absolute('/#organization') },
+    isPartOf: { '@id': absolute('/#website') },
+  },
+];
+---
+
+<Page title={game.title} description={game.metaDescription} path={path} jsonLd={jsonLd}>
+  <main id="main" class="narrow">
+    <a class="crumb" href="/games/">{gamesPage.back}</a>
+    <div class="game-head">
+      <img src={game.icon} alt="" width="96" height="96" />
+      <div>
+        <h1>{game.name}</h1>
+        <ul class="chips">{game.facts.map((fact) => <li>{fact}</li>)}</ul>
+      </div>
+    </div>
+    <p class="game-intro">{game.description}</p>
+    <div class="actions">
+      <a class="button primary" href={`/play/${game.id}`}>{gamesPage.playNow}</a>
+    </div>
+    <p class="lead">{gamesPage.noAccount}</p>
+
+    {
+      game.copy && (
+        <section>
+          <h2>{gamesPage.howTo}</h2>
+          <ol class="steps panel">{game.copy.howTo.map((line) => <li>{line}</li>)}</ol>
+        </section>
+      )
+    }
+    {
+      game.copy && (
+        <section>
+          <h2>{gamesPage.suits}</h2>
+          <p>{game.copy.suits}</p>
+        </section>
+      )
+    }
+
+    {
+      others.length > 0 && (
+        <section>
+          <h2>{gamesPage.others}</h2>
+          <ul class="cards">
+            {others.map((other) => (
+              <li>
+                <div class="card">
+                  <div class="card-head">
+                    <img class="card-icon" src={other.icon} alt="" width="48" height="48" />
+                    <h3 class="card-title">
+                      <a href={`/games/${other.id}/`}>{other.name}</a>
+                    </h3>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
+    <p><a href="/guides/install/">{gamesPage.install}</a></p>
+  </main>
+</Page>

@@ -13,6 +13,17 @@
 		<?xml version="1.0" encoding="UTF-8"?>
 		<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/hello/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/merge-block/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/tap-merge/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/tien-len/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/guides/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/guides/install/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/faq/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/about/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/terms/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/privacy/</loc></url>
 		</urlset>
 		XML 200
 }

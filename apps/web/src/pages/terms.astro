@@ -1,0 +1,25 @@
+---
+import { TERMS_VERSION, terms } from '../../../hub/src/legal/documents.ts';
+import { legal } from '../content/legal.ts';
+// /terms/: the terms of use, rendered at build time from the app's own text, apps/hub/src/legal/documents.ts (ADR 0025).
+// The text is read, never copied: it has one source, and changing it there bumps TERMS_VERSION.
+import Page from '../layouts/Page.astro';
+---
+
+<Page title={legal.terms.title} description={legal.terms.description} path="/terms/">
+  <main id="main" class="narrow">
+    <h1>{terms.title}</h1>
+    <p class="note" role="note">{legal.draft(TERMS_VERSION)}</p>
+    <article class="legal" lang="vi">
+      {
+        terms.sections.map((section) => (
+          <section>
+            <h2>{section.heading}</h2>
+            {section.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+          </section>
+        ))
+      }
+    </article>
+    <p><a href="/privacy/">{legal.other.privacy}</a></p>
+  </main>
+</Page>

@@ -8,13 +8,18 @@
     "dev": "astro dev",
     "build": "astro build && node scripts/check-build.ts",
     "preview": "astro preview",
-    "test": "vitest run"
+    "test": "vitest run",
+    "generate:og": "node scripts/render-og.ts"
   },
   "dependencies": {
     "@tohe/design-tokens": "workspace:*",
     "astro": "^7.3.0"
   },
   "devDependencies": {
+    "@tohe/contract": "workspace:*",
+    "@tohe/routes": "workspace:*",
+    "@types/node": "^24.0.0",
+    "playwright": "^1.64.0",
     "vitest": "^5.0.0"
   }
 }

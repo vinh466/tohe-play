@@ -40,8 +40,19 @@ const appPages = [
   '/account/password/reset',
   '/account/profiles',
   '/account/data',
-  '/terms',
-  '/privacy',
+];
+
+/** The public pages (apps/web); its build checks that it writes exactly these, and the sitemap lists them. */
+const publicPaths = [
+  '/',
+  '/games/',
+  '/games/merge-block/',
+  '/guides/',
+  '/guides/install/',
+  '/faq/',
+  '/about/',
+  '/terms/',
+  '/privacy/',
 ];
 
 describe('the map', () => {
@@ -76,6 +87,16 @@ describe('the map', () => {
 
   it.each([
     ['/', 'home'],
+    ['/games/', 'game-pages'],
+    ['/games', 'game-pages'],
+    ['/games/merge-block/', 'game-pages'],
+    ['/guides/install/', 'guides'],
+    ['/faq/', 'faq'],
+    ['/about/', 'about'],
+    ['/terms/', 'terms'],
+    ['/privacy', 'privacy'],
+    ['/og.png', 'og-image'],
+    ['/llms.txt', 'llms'],
     ['/_web/index.CkXW_mHm.css', 'public-assets'],
     ['/_web/returning.Dj8LZPoH.js', 'public-assets'],
     ['/api/health', 'api'],
@@ -100,8 +121,10 @@ describe('the map', () => {
     '/room/0b7c',
     '/replay/0b7c/3',
     '/legal/terms',
-    '/terms/x',
-    '/privacy/x',
+    '/termsx',
+    '/gamesx',
+    '/og.png/x',
+    '/llms.txt/x',
     '/admin',
     '/admin/',
     '/admin/setup',
@@ -126,23 +149,46 @@ describe('the map', () => {
     }
   });
 
-  it('indexes public pages only, and lists each of them in the sitemap', () => {
+  it('indexes public pages only — not the files of the public pages', () => {
+    const files = ['public-assets', 'og-image', 'llms'];
     for (const namespace of hubNamespaces) {
       expect(namespace.indexed, namespace.id).toBe(
-        namespace.component === 'public' && namespace.path === '/',
+        namespace.component === 'public' && !files.includes(namespace.id),
       );
     }
-    expect(sitemapPaths()).toEqual(['/']);
     expect(hubNamespaces.find((n) => n.id === 'sitemap')).toMatchObject({
       component: 'platform',
       served: 'generated',
     });
   });
 
-  it('refuses an indexed tree in the sitemap until the public pages list their children', () => {
-    const games: Namespace = {
-      id: 'games',
-      path: '/games',
+  it('lists every public page in the sitemap, the games’ pages from their ids', () => {
+    expect(sitemapPaths(hubNamespaces, ['hello', 'merge-block'])).toEqual([
+      '/',
+      '/games/',
+      '/games/hello/',
+      '/games/merge-block/',
+      '/guides/',
+      '/guides/install/',
+      '/faq/',
+      '/about/',
+      '/terms/',
+      '/privacy/',
+    ]);
+    for (const path of publicPaths) {
+      expect(sitemapPaths(hubNamespaces, ['merge-block']), path).toContain(path);
+      expect(matchHubPath(path), path).toMatchObject({
+        component: 'public',
+        served: 'static',
+        indexed: true,
+      });
+    }
+  });
+
+  it('refuses an indexed tree in the sitemap until the public pages list its children', () => {
+    const tree: Namespace = {
+      id: 'tips',
+      path: '/tips',
       match: 'tree',
       component: 'public',
       served: 'static',
@@ -152,7 +198,9 @@ describe('the map', () => {
       cache: 'revalidate',
       note: 'test',
     };
-    expect(() => sitemapPaths([...hubNamespaces, games])).toThrow(/not listed in the sitemap/);
+    expect(() => sitemapPaths([...hubNamespaces, tree])).toThrow(/not listed in the sitemap/);
+    expect(() => sitemapPaths([tree], [], { tips: ['/other/'] })).toThrow(/outside the namespace/);
+    expect(sitemapPaths([tree], [], { tips: ['/tips/', '/tips/one/'] })).toEqual(['/tips/', '/tips/one/']);
   });
 
   it('links the API only to pages of the app', () => {
@@ -243,17 +291,18 @@ describe('the console’s host', () => {
 });
 
 describe('the old paths', () => {
-  it('lead to a page of the app, and none lies in a namespace', () => {
+  it('lead to a page of the app or a public page, and none lies in a namespace', () => {
     const ids = hubRedirects.map((redirect) => redirect.id);
     expect(new Set(ids).size).toBe(ids.length);
     for (const redirect of hubRedirects) {
       const sample = redirect.from.replace(/:\w+/g, 'x');
       expect(matchHubPath(sample), `${redirect.id}: ${sample} is in a namespace`).toBeUndefined();
       const target = redirectTarget(sample);
-      expect(matchHubPath(target ?? ''), `${redirect.id}: ${target}`).toMatchObject({
-        component: 'app',
-        served: 'page',
-      });
+      const found = matchHubPath(target ?? '');
+      expect(
+        found?.component === 'app' || (found?.component === 'public' && found.indexed),
+        `${redirect.id}: ${target}`,
+      ).toBe(true);
     }
   });
 
@@ -266,8 +315,8 @@ describe('the old paths', () => {
     ['/password/reset', '/account/password/reset'],
     ['/profiles', '/account/profiles'],
     ['/data', '/account/data'],
-    ['/legal/terms', '/terms'],
-    ['/legal/privacy', '/privacy'],
+    ['/legal/terms', '/terms/'],
+    ['/legal/privacy', '/privacy/'],
     ['/rooms/tien-len', '/play/tien-len/rooms'],
   ])('sends %s to %s', (from, to) => {
     expect(redirectTarget(from)).toBe(to);
@@ -327,6 +376,11 @@ describe('the service worker', () => {
     '/playground',
     '/assets/x.js',
     '/welcome',
+    '/terms/',
+    '/privacy/',
+    '/games/merge-block/',
+    '/faq/',
+    '/og.png',
   ])('leaves %s to the network', (url) => {
     expect(allowed(url)).toBe(false);
   });
@@ -344,7 +398,9 @@ describe('what the map generates', () => {
       'platformGenerated',
     ]);
     expect(hubCaddySnippet()).toContain('@apiProxy path /api /api/*\n');
-    expect(hubCaddySnippet()).toContain('@publicStaticRevalidate path /\n');
+    expect(hubCaddySnippet()).toContain(
+      '@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /terms /terms/* /privacy /privacy/* /og.png /llms.txt\n',
+    );
     expect(hubCaddySnippet()).toContain('@publicStaticImmutable path /_web /_web/*\n');
     expect(hubCaddySnippet()).toContain(' /robots.txt /sitemap.xml /.well-known /.well-known/*\n');
     expect(hubCaddySnippet()).toContain('@appPage path /play /play/* /account /account/* ');
@@ -418,7 +474,7 @@ describe('what the map generates', () => {
     const block = (hub: string, matcher: string) =>
       hub.split(`handle @${matcher} {`)[1]?.split(/\n\t\}\n/)[0] ?? '';
 
-    it('lets search engines index the public home page and nothing else of the hub', () => {
+    it('lets search engines index the public pages and nothing else of the hub', () => {
       const hub = site(':8080');
       for (const name of caddyMatchers().keys()) {
         if (name === 'apiProxy' || name === 'platformGenerated') continue;
@@ -428,7 +484,7 @@ describe('what the map generates', () => {
       }
     });
 
-    it('gives the public home page a CSP of its own: no inline script, no inline style, no other origin', () => {
+    it('gives the public pages a CSP of their own: no inline script, no inline style, no other origin', () => {
       const home = block(site(':8080'), 'publicStaticRevalidate');
       const csp = /Content-Security-Policy "([^"]*)"/.exec(home)?.[1] ?? '';
       expect(csp).toContain("script-src 'self';");
@@ -436,6 +492,15 @@ describe('what the map generates', () => {
       expect(csp).toContain("frame-ancestors 'none'");
       expect(csp).not.toMatch(/unsafe-|\*|https?:|\{\$/);
       expect(home).toContain('root * /srv/web');
+      // A folder's index.html, not one file for every path: the pages are real files (check-build lists them).
+      expect(home).not.toContain('rewrite');
+      expect(home).toContain('between [[[ ]]]');
+    });
+
+    it('fills the hub’s URL and the path asked for into the app’s link preview', () => {
+      const app = block(site(':8080'), 'appPage');
+      expect(app).toContain('between [[[ ]]]');
+      expect(app).toContain('rewrite * /index.html');
     });
 
     it('serves the console’s matchers on :8081: a handler for each, and no other', () => {
@@ -446,18 +511,19 @@ describe('what the map generates', () => {
     });
   });
 
-  it('keeps crawlers out of the API, allows the rest, and names the sitemap', () => {
+  it('keeps crawlers out of the API, allows the rest, says what AI may do, and names the sitemap', () => {
     expect(robotsTxt()).toMatch(
-      /\nUser-agent: \*\nAllow: \/\nDisallow: \/api\/\n\nSitemap: \{\{ env "TOHE_HUB_URL" \}\}\/sitemap\.xml\n$/,
+      /\nUser-agent: \*\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: \/\nDisallow: \/api\/\n\nSitemap: \{\{ env "TOHE_HUB_URL" \}\}\/sitemap\.xml\n$/,
     );
   });
 
   it('writes the sitemap from the indexed pages, with the hub’s URL read at run time', () => {
-    const snippet = hubSitemapCaddySnippet();
+    const snippet = hubSitemapCaddySnippet(hubNamespaces, ['merge-block']);
     expect(snippet).toContain('(hubSitemap) {');
     expect(snippet).toContain('@noHubUrl expression `{env.TOHE_HUB_URL} == ""`');
     expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/</loc></url>');
-    expect(snippet.match(/<url>/g)).toHaveLength(1);
+    expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/games/merge-block/</loc></url>');
+    expect(snippet.match(/<url>/g)).toHaveLength(9);
   });
 
   it('gives the API the paths it used to write by hand', () => {

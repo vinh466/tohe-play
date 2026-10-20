@@ -1,7 +1,7 @@
 /// <reference types="vitest/config" />
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
-import { hubNamespaces, navigationAllowlist, redirectTarget } from '@tohe/routes';
+import { covers, hubNamespaces, navigationAllowlist, redirectTarget } from '@tohe/routes';
 import react from '@vitejs/plugin-react';
 import { type Connect, defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
@@ -49,9 +49,33 @@ function redirectsLikeTheHub(): Plugin {
   };
 }
 
+/**
+ * The public pages (apps/web) are the hub's Caddy's in the image; under `pnpm dev` they are their own dev server's,
+ * http://localhost:4711. A link of the app to /terms (the sign-up's consent) would be a page the app does not have, so
+ * this sends the public pages' paths there. The root stays the app's catalog, as before.
+ */
+function publicPagesAreTheirOwnServer(): Plugin {
+  const pages = hubNamespaces.filter(
+    (namespace) => namespace.component === 'public' && namespace.indexed && namespace.path !== '/',
+  );
+  return {
+    name: 'tohe:public-pages-are-their-own-server',
+    configureServer: (server) =>
+      void server.middlewares.use((request, response, next) => {
+        const url = new URL(request.url ?? '/', 'http://localhost');
+        if (!pages.some((namespace) => covers(namespace, url.pathname))) return next();
+        const path = url.pathname.endsWith('/') ? url.pathname : `${url.pathname}/`;
+        response.statusCode = 302;
+        response.setHeader('Location', `http://localhost:4711${path}${url.search}`);
+        response.end();
+      }),
+  };
+}
+
 export default defineConfig({
   plugins: [
     redirectsLikeTheHub(),
+    publicPagesAreTheirOwnServer(),
     react(),
     tailwindcss(),
     VitePWA({

@@ -1,0 +1,27 @@
+---
+import { about } from '../content/about.ts';
+import { docsUrl } from '../content/site.ts';
+// /about/: what Tò He is, who runs it, how to reach them. The words are in ../content/about.ts.
+import Page from '../layouts/Page.astro';
+---
+
+<Page title={about.title} description={about.description} path="/about/">
+  <main id="main" class="narrow">
+    <h1>{about.heading}</h1>
+    {
+      about.sections.map((section) => (
+        <section>
+          <h2>{section.heading}</h2>
+          {section.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+        </section>
+      ))
+    }
+    <p>
+      {about.contact.label}: <a href={`mailto:${about.contact.email}`}>{about.contact.email}</a>
+    </p>
+    <p class="links">
+      <a href="/games/">{about.links.games}</a> · <a href="/faq/">{about.links.faq}</a> ·
+      <a href={`${docsUrl}/`}>{about.links.dev}</a>
+    </p>
+  </main>
+</Page>
