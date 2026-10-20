@@ -172,7 +172,9 @@ try {
   await android.getByRole('link', { name: 'Chơi ngay' }).tap();
   await android.waitForURL(catalogUrl);
   await android.getByRole('link', { name: 'Đăng nhập' }).waitFor(); // the slim strip of a device profile
-  const deviceName = (await android.getByRole('link', { name: 'Đổi người chơi' }).innerText()).trim();
+  // The chip shows the avatar, then the name: the name is its last line.
+  const chip = (await android.getByRole('link', { name: 'Đổi người chơi' }).innerText()).trim();
+  const deviceName = (chip.split('\n').at(-1) ?? '').trim();
   if (!deviceName || deviceName === 'Khách')
     throw new Error(`the catalog names no device profile: "${deviceName}"`);
   await android
