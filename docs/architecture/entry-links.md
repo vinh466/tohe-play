@@ -26,10 +26,10 @@ asking for a share, is step I4 (ADR 0045).
 
 | Code | Shape | Read as |
 | --- | --- | --- |
-| A table's | six digits | digits only; spaces ignored |
+| A table's | six digits | digits only, spaces and hyphens ignored (I, L and O are a share link's reading, not a table's) |
 | A share link's | eight characters of Crockford base32: `0-9 A-Z` without `I L O U` | case-insensitively, ignoring spaces and hyphens, `I` and `L` read as `1`, `O` as `0` |
 
-Six digits are a table, eight characters a share link. The hub's **"Nhập mã"** box takes either (I3b). The API reads a
+Six digits are a table, eight characters a share link. The hub's **"Nhập mã"** box takes either ([below](#the-screens)). The API reads a
 share link's code the same way (`LinkCodes.TryNormalize`) and answers it in its canonical form, eight upper-case
 characters.
 
@@ -138,8 +138,8 @@ flowchart LR
   `Mobile`. The card carries one static script, `location.replace(location.pathname + '?app=1')`, which crawlers do
   not run and a browser runs at once; with scripts off, its link **"Mở Tò He"** leads to the same address. A request
   with `?app=` always gets the app's page, whatever its `User-Agent` (`not query app=*` in the generated matcher); the
-  hub ignores the parameter (`/r/$code` reads no query; I3b's `/s/$code` drops it). The script does nothing once
-  `app=` is in the address, so the card asked for at its API path never reloads itself.
+  hub ignores the parameter: `/r/$code` and `/s/$code` drop it from the address ([step 1](#the-hubs-entry-pipeline)).
+  The script does nothing once `app=` is in the address, so the card asked for at its API path never reloads itself.
 - **The card keeps its own CSP**: `default-src 'none'` and the script allowed by its SHA-256 hash, nothing else. The
   hub's Caddy gives its own CSP to every request but a card's (`@notLinkPreview`, generated with the matcher).
 - **`Vary: User-Agent`** on the card and on the app's page at `/r/*` and `/s/*`, as one address answers both: a cache
@@ -195,26 +195,89 @@ it only bounds how far a link travels.
 A closed table's code is not given out again for a day (`Rooms:ClosedCodeReserved`), so an old table link never opens a
 stranger's table; it resolves as no table — the same as a code never used ([Rooms](rooms.md#a-rooms-life)).
 
-## The hub's entry pipeline (step I3b)
+## The hub's entry pipeline
 
-Not built yet; the API above is ready for it.
+Every way in goes through one pipeline in the hub (`apps/hub/src/entry/`): a table's link `/r/<code>`, a share link
+`/s/<code>`, a game's own address `/play/<gameId>`, and a code typed into "Nhập mã" — which only leads to `/r/` or
+`/s/`. It replaces the room link's own handling.
 
-1. **Resolve**: the address or the typed code becomes a typed intent — a kind and a code, never a free path. A share
-   link resolves at once (`open`, public). A **table's code resolves only after the identity gate** (step 5): looking a
-   table up needs a player's session and is limited per profile; there is no anonymous lookup of a table, which would be
-   the oracle for private tables that ADR 0044 forbids.
-2. **Still good?** An `unknown` code: "Mã này không mở được nữa", with the catalog and the "Nhập mã" box. An `expired`,
-   `revoked` or `used_up` share link: the reason and the game, with the game's menu as the way out.
-3. **Keep the intent** on the device, for an hour, per tab, through signing in, a provider's round trip, an email code
-   and the terms; cleared when reached, or when another profile is chosen on a shared device. Installing the app on
-   iPhone does not carry it: the "Nhập mã" box does.
-4. **In an in-app browser** (Zalo, Messenger): suggest opening in the browser, without blocking.
-5. **The identity gate**: the highest of the game's, the feature's and the link's level.
-6. **The profile is ready**: chosen, a child's switches respected, the terms accepted; the game checked against the
-   profile's age.
-7. **Open**: the table's lobby, or the game's menu (`POST /api/links/{code}/play`); from I4, the place inside the game.
-8. **Afterwards**: the counts, and the nudges at their moment; `entryCode` when an account is made from the entry.
+```mermaid
+flowchart TD
+  A["/r/482913 · /s/7KQ2M9XA · /play/hello · Nhập mã"] --> R{"1. Resolve: a kind and a code<br/>(?app=1 dropped, the code made canonical)"}
+  R -- "not a code" --> U["Mã này không mở được nữa<br/>the catalog and the Nhập mã box"]
+  R -- share --> O["POST /api/links/{code}/open — once per kept intent"]
+  O -- "unknown" --> U
+  O -- "expired · revoked · used_up" --> E["The reason and the game<br/>a way to the game's menu"]
+  O -- ok --> K
+  R -- "room · play" --> K["3. Kept on this tab for an hour"]
+  K --> G{"5. The gate: the highest of the game's,<br/>the feature's and the link's level"}
+  G -- "any" --> P
+  G -- "named, a device profile" --> N["The named screen, the copy on the server"] --> P
+  G -- "account, a device profile" --> S["Link này cần tài khoản: sign in or up"] --> P
+  P{"6. The profile ready: chosen, the terms,<br/>the game in its catalog"} -- "a child's too young" --> Y["Trò chơi này chưa dành cho bạn"]
+  P -- table --> L["GET /api/rooms/code/{code}: the lobby — or no table: Mã này không mở được nữa"]
+  P -- share --> PL["POST /api/links/{code}/play — once — then /play/{gameId}"]
+  P -- play --> M["The game's menu"]
+```
 
-And the screens: the **"Nhập mã"** box (six digits or eight characters), the **"Chia sẻ"** button that makes a `game`
-link with its QR code, **"Link của tôi"** — the profile's links with their counts, a new expiry, revoking — and the dead
-ends with their ways out.
+1. **Resolve.** The address or the typed code becomes a typed intent — a kind (`room`, `share`, `play`) and a code
+   checked against its shape (`entry/codes.ts`): six digits, eight Crockford characters, or a game's id. The hub builds
+   the path back from these two alone, so nothing kept or typed is ever a free path. `/r/$code` and `/s/$code` drop the
+   query (`?app=1` from a preview card) and put the code in its canonical form (`/s/7kq2-m9xa` → `/s/7KQ2M9XA`) with a
+   redirect that replaces the address. A share link resolves at once (`open`); a **table's code resolves only after the
+   gate** (step 5): there is no anonymous lookup of a table, which would be the oracle for private tables that ADR 0044
+   forbids.
+2. **Still good?** An `unknown` code — never made, or a table that closed (`room_not_found`, `room_closed`, or a bare
+   `404` from the rooms) — shows "Mã này không mở được nữa", with "Về danh sách trò chơi" and the "Nhập mã" box: nothing
+   more is said. Any other refusal — a device profile's copy gone (`device_profile_not_found`) — is the device's trouble,
+   and the intent stays. An `expired`, `revoked` or `used_up` share link shows its reason and its game, with "Chơi
+   {game}" to the game's menu when the game is in the catalog of whoever plays here. A request that failed on the way —
+   offline, `429 resolve_limit` — says so in words, with "Thử lại". A dead end ends the intent.
+3. **Keep the intent** (`entry/intent.ts`): `tohe:entry` in `sessionStorage` — per tab, gone with it — as
+   `{kind, code, at, player?}`, with a share link's resolution once `open` answered, so a reload, a sign-in, a provider's
+   round trip, an email code and the terms never open it twice. It lives an **hour** from when it was kept; read back, it
+   is checked again as an address would be, and the resolution for its shape and level. Once the gate lets a player
+   through, the intent is **that player's**: the picker goes on to it only as that player, and another player — on a
+   shared phone — finds it forgotten. Before the gate it is anyone's, so signing in from the `named` screen, or making an
+   account for a link that asks one, goes on to it. The profile picker goes on to the kept intent after signing in or
+   choosing a profile; a page remembered since (`tohe:next`, not an entry's) goes first and the intent is forgotten. It
+   is **cleared** when reached (the lobby shown, the game opened) or at a dead end, and **forgotten** — with the share
+   link it came from and an entry's path waiting after sign-in — when another profile is chosen by hand on a shared
+   device ("Đổi người chơi", not the picker the hub sent someone to), a new device profile is made ("Thêm người chơi"),
+   the profile playing is deleted, a profile arrives with a transfer code, or the account signs out (the profile picker,
+   the sign-in screen, the terms prompt). Installing the app on iPhone does not carry it: "Nhập mã" does.
+4. **In an in-app browser** (Zalo, Messenger, Facebook, Instagram): every screen, the entry's included, opens with the
+   strip "Mở bằng trình duyệt" and its "Chép link" — the address without `?app=1`. It never blocks; "Ẩn" hides it.
+5. **The identity gate**: the highest of the game's level (`any` until step I4), the feature's and the link's
+   (`EntryGate`). A table asks for `named`: a device profile gets the `named` screen the first time, as before. A share
+   link asking `named` shows the same screen with its own words ("Trước khi vào chơi"); asking `account`, a device
+   profile is asked to sign in or make an account ("Link này cần tài khoản"), and comes back to the link.
+6. **The profile is ready**: chosen (the picker), the terms accepted (the terms prompt), its copy on the server when the
+   level asks for a name. A child's switches are the server's: a child whose "Chơi online với người ngoài" is off is
+   refused a seat at a table (`parent_permission`, said in words). The game is checked against the profile's age by its
+   catalog — the API lists a child only the games for its age band (a device profile has none): a game missing from it
+   is "Trò chơi này chưa dành cho bạn" for a child, "Không tìm thấy trò chơi" otherwise.
+7. **Open**: a table's lobby — the preview with "Vào ngồi" — or, for a share link, `POST /api/links/{code}/play` and
+   then the game's menu, `/play/{gameId}`, replacing the link's address. Should `play` answer `403 level_required` — the
+   API's backstop — the player goes back through the gate at the level it names (the `named` screen, or signing in), and
+   `play` is asked again behind it. `play` is called **once per reached intent**: the request is shared by every drawing
+   of the screen for that kept intent, and once reached nothing is kept to reach again, so a reload of the game or going
+   back never calls it. A game's own address that a child's catalog does not list says "Trò chơi này chưa dành cho
+   bạn". From I4, the place inside the game.
+8. **Afterwards**: the counts are the server's; the nudges come at their moment (installing after the first finished
+   game, keeping progress on the catalog's strip). The share link a tab came from is kept apart from the intent, an hour
+   from when it first opened — opening it again does not push the hour (`tohe:entry-source`): an account made on that
+   tab within the hour — by email (`register/confirm`) or with a provider (`external/pending/signup`) — sends it once as
+   `entryCode`, after reaching the game too, since that is when a newcomer decides to keep their progress.
+
+A device profile acts on share links with its device key, as at tables: the hub names it on `/api/links/*`
+(`X-Tohe-Device-Profile`, `X-Tohe-Terms`) exactly while it acts, and an account's session never does.
+
+### The screens
+
+| Screen | Where | What |
+| --- | --- | --- |
+| **"Nhập mã"** | A button beside the catalog's "Trò chơi" heading, and an item of the ⋯ menu | Six digits or eight characters, read as the API reads them, or a pasted link; it says which it found ("Bàn chơi 482 913", "Link mời 7KQ2 M9XA") and opens it. The catalog is the first screen of a newcomer and of the installed app on an iPhone, which cannot follow a link: the button is in sight there, without opening a menu |
+| **"Chia sẻ"** | 🔗 in the top corner of each game card (🏆 has the other) | A sheet: a device profile first gets the `named` screen in it ("Trước khi chia sẻ"); then the link, its QR code, its code, "Chia sẻ" (the system's share, where the browser has one) and "Chép link", how long it lasts, and "Xem link của tôi". The profile's own live `game` link to that game — asking nothing, no maximum of uses, a day or more left — is shown again rather than a new one made: opening the sheet twice is not sharing twice, and a profile makes 30 a day. `link_limit`, `play_with_others_off`, `too_young`, offline: said in words, with "Thử lại" |
+| **"Link của tôi"** | `/account/links`, from the ⋯ menu and the share sheet | The profile's links, newest first: the game, the code, the state, opened, played and new accounts (`—` below three, with a line saying why), until when; "Chép link", "Đổi hạn" (1 hour to 90 days, from now) and "Thu hồi" (confirmed; a revoked link stays revoked). A device profile with no copy on the server has made none, and is not asked for a name to see that |
+| **Dead ends** | `/r/…`, `/s/…` | As in step 2 |

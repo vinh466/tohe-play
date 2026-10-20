@@ -78,6 +78,15 @@ const byCode: Record<string, string> = {
   name_refused: 'errors.nameRefused',
   upload_too_large: 'errors.uploadTooLarge',
   id_taken: 'errors.generic',
+  link_limit: 'share.errors.limit',
+  play_with_others_off: 'share.errors.playWithOthersOff',
+  too_young: 'share.errors.tooYoung',
+  game_not_found: 'share.errors.gameNotFound',
+  kind_not_supported: 'errors.generic',
+  profile_required: 'share.errors.profileRequired',
+  link_revoked: 'links.errors.revoked',
+  resolve_limit: 'entry.errors.resolveLimit',
+  level_required: 'entry.errors.levelRequired',
 };
 
 /** The i18n key to show for a failed request. */

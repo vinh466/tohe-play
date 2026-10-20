@@ -11,6 +11,7 @@ import {
 } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery } from '../api/queries.ts';
+import { entry } from '../entry/intent.ts';
 import { ConsentCheckbox } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
 import { refusedKey } from '../session/bringInChoices.ts';
@@ -295,12 +296,14 @@ function SignUpStep({ step }: { step: PendingSignInView }) {
         sent = await signUpUpload(db, { ...device, name: named }, answer, named);
       }
       const result = await sendingSignUp(db, sent, () =>
-        external.signUp(own, TERMS_VERSION, inviteCode.trim() || null, sent),
+        external.signUp(own, TERMS_VERSION, inviteCode.trim() || null, sent, entry.signUpCode()),
       );
       return { result, sent };
     },
     onSuccess: async ({ result, sent }) => {
       invite.forget();
+      // The share link this tab came from counted the account: never again (ADR 0044).
+      entry.signedUp();
       funnel.accountCreated();
       if (result.me) {
         await afterSignUp(db, result.me, sent);

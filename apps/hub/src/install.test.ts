@@ -31,15 +31,21 @@ const ua = {
     'Mozilla/5.0 (Linux; Android 14; SM-A556E) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0.0.0 Mobile Safari/537.36 [FB_IAB/MESSENGER;FBAV/470.0.0;]',
   facebookAndroid:
     'Mozilla/5.0 (Linux; Android 14; SM-A556E) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0.0.0 Mobile Safari/537.36 [FB_IAB/FB4A;FBAV/470.0.0;]',
+  instagramIos:
+    'Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 Instagram 400.0.0.0.0 (iPhone15,2; iOS 26_0; vi_VN; vi; scale=3.00; 1179x2556; 700000000)',
+  instagramAndroid:
+    'Mozilla/5.0 (Linux; Android 14; SM-A556E Build/UP1A; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/140.0.0.0 Mobile Safari/537.36 Instagram 400.0.0.0.0 Android (34/14; 450dpi; 1080x2340; samsung; SM-A556E; a55x; s5e8845; vi_VN; 700000000)',
 };
 
 describe('what the User-Agent says', () => {
-  it('finds the in-app browsers of Zalo, Messenger and Facebook', () => {
+  it('finds the in-app browsers of Zalo, Messenger, Facebook and Instagram', () => {
     expect(detectInApp(ua.zaloAndroid)).toBe('zalo');
     expect(detectInApp(ua.zaloIos)).toBe('zalo');
     expect(detectInApp(ua.messengerIos)).toBe('messenger');
     expect(detectInApp(ua.messengerAndroid)).toBe('messenger');
     expect(detectInApp(ua.facebookAndroid)).toBe('facebook');
+    expect(detectInApp(ua.instagramIos)).toBe('instagram');
+    expect(detectInApp(ua.instagramAndroid)).toBe('instagram');
   });
 
   it('leaves real browsers alone', () => {

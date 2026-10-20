@@ -42,6 +42,9 @@ export type TransferStatusView = Schemas['TransferStatusView'];
 export type TransferRedemption = Schemas['TransferRedemption'];
 export type TransferView = Schemas['TransferView'];
 export type ProfileMoveView = Schemas['ProfileMoveView'];
+export type LinkIntent = Schemas['LinkIntent'];
+export type ShareLinkView = Schemas['ShareLinkView'];
+export type MakeLinkRequest = Schemas['MakeLinkRequest'];
 
 /** Same origin: the hub serves /api through its reverse proxy (Vite in dev, Caddy in docker/UAT). */
 export const api = createClient<paths>({ baseUrl: '' });
@@ -59,6 +62,8 @@ export class ApiError extends Error {
     readonly triesLeft: number | null = null,
     /** With `name_refused`: the name rule that refused it (`name_reserved`, `name_inappropriate`…). */
     readonly reason: string | null = null,
+    /** With `level_required`: the level a share link asks for (ADR 0044). */
+    readonly level: string | null = null,
   ) {
     super(`API ${status}${code ? ` ${code}` : ''}`);
   }
@@ -85,6 +90,7 @@ export async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
     errors?: unknown;
     triesLeft?: unknown;
     reason?: unknown;
+    level?: unknown;
   };
   throw new ApiError(
     response.status,
@@ -94,6 +100,7 @@ export async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
       : {},
     typeof problem.triesLeft === 'number' ? problem.triesLeft : null,
     typeof problem.reason === 'string' ? problem.reason : null,
+    typeof problem.level === 'string' ? problem.level : null,
   );
 }
 
@@ -116,12 +123,18 @@ export const auth = {
   register: (body: SignUpRequest) => call(api.POST('/api/auth/register', { body })),
   /**
    * `deviceProfile`: the device profile that started the sign-up, sent only from the device that started it (ADR 0043);
-   * the API brings it in when it is the attempt's.
+   * the API brings it in when it is the attempt's. `entryCode`: the share link this tab came from, counted once as an
+   * account made from it (ADR 0044).
    */
-  confirmRegistration: (attemptId: string, code: string, deviceProfile?: DeviceProfileUpload | null) =>
+  confirmRegistration: (
+    attemptId: string,
+    code: string,
+    deviceProfile?: DeviceProfileUpload | null,
+    entryCode: string | null = null,
+  ) =>
     call(
       api.POST('/api/auth/register/confirm', {
-        body: { attemptId, code, deviceProfile: deviceProfile ?? null },
+        body: { attemptId, code, deviceProfile: deviceProfile ?? null, entryCode },
       }),
     ),
   forgotPassword: (email: string, proof: ProofOfWorkSolution | null) =>
@@ -170,17 +183,18 @@ export const external = {
     ),
   /**
    * `inviteCode`: needed when registration is by invite, welcome otherwise (ADR 0028). `deviceProfile`: the device
-   * profile that started the sign-in with `profile` (ADR 0043).
+   * profile that started the sign-in with `profile` (ADR 0043). `entryCode`: the share link this tab came from (ADR 0044).
    */
   signUp: (
     displayName: string,
     termsVersion: string,
     inviteCode: string | null,
     deviceProfile: DeviceProfileUpload | null = null,
+    entryCode: string | null = null,
   ) =>
     call(
       api.POST('/api/auth/external/pending/signup', {
-        body: { displayName, acceptTerms: true, termsVersion, inviteCode, deviceProfile },
+        body: { displayName, acceptTerms: true, termsVersion, inviteCode, deviceProfile, entryCode },
       }),
     ),
   cancel: () => call(api.DELETE('/api/auth/external/pending')),
@@ -349,4 +363,24 @@ export const rooms = {
   invites: () => call(api.GET('/api/rooms/invites')),
   replay: (id: string, hand: number) =>
     call(api.GET('/api/rooms/{id}/hands/{hand}', { params: { path: { id, hand } } })),
+};
+
+/**
+ * Share links (ADR 0044): the acting profile makes, lists, changes and revokes its own — an account's with its session,
+ * a device profile's with its device key (rooms/devicePlayer.ts names it). Anyone resolves one by its code.
+ * docs/architecture/entry-links.md
+ */
+export const links = {
+  /** A `game` link to a game's menu; a `named` feature. */
+  make: (body: MakeLinkRequest) => call(api.POST('/api/links', { body })),
+  /** The acting profile's links, newest first, with their state and counts. */
+  mine: () => call(api.GET('/api/links/mine')),
+  /** A new expiry, from now: 1 to 2160 hours. */
+  change: (code: string, expiresInHours: number) =>
+    call(api.PATCH('/api/links/{code}', { params: { path: { code } }, body: { expiresInHours } })),
+  revoke: (code: string) => call(api.POST('/api/links/{code}/revoke', { params: { path: { code } } })),
+  /** Resolves a code to a typed intent; counts it opened. */
+  open: (code: string) => call(api.POST('/api/links/{code}/open', { params: { path: { code } } })),
+  /** Resolves it to open the game: takes a use and counts it played — once per reached intent. */
+  play: (code: string) => call(api.POST('/api/links/{code}/play', { params: { path: { code } } })),
 };

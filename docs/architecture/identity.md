@@ -628,7 +628,8 @@ key, the `named` screen and its terms line, tables open to `named` device profil
   chooses; "Chơi luôn" on the sign-in screen goes back to the device profiles. The catalog shows the device profile's
   name. A room link, the rooms lobby, a room and a replay play as the device profile too, after the `named` screen the
   first time ([below](#device-profiles-on-the-server)); signing out of an account leads to the sign-in screen, and the
-  device profiles stay.
+  device profiles stay. A link — a table's or a share link — is kept on the tab for an hour through signing in and the
+  picker, and forgotten when another profile is chosen by hand ([Entry links](entry-links.md#the-hubs-entry-pipeline)).
 - **Up to five per device** (`MAX_DEVICE_PROFILES`), in `/account/profiles` while no account is signed in: switch, make
   one (a suggested name, an avatar), rename, delete; the last one stays. Deleting removes its saves and scores from the
   device, and its copy on the server when it has one. Its ✏️ sheet also has **Chuyển sang máy khác**, and the page's
@@ -725,7 +726,10 @@ flowchart TD
 
 [ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md), step I2a. A device profile reaches the server
 **lazily**: the first time its player does something that needs it — sitting at a table, from a room link, the rooms
-lobby or a room, or moving it to another device ([the transfer code](#the-transfer-code)). Until I4 every game asks for `any`; a table asks for at least `named`.
+lobby or a room, opening a share link that asks for a name, making one with "Chia sẻ" ([Entry links](entry-links.md)),
+or moving it to another device ([the transfer code](#the-transfer-code)). Until I4 every game asks for `any`; a table
+asks for at least `named`. Every way in goes through the hub's [entry pipeline](entry-links.md#the-hubs-entry-pipeline),
+whose identity gate is this one: the highest of the game's, the feature's and the link's level.
 
 ```mermaid
 sequenceDiagram
@@ -753,7 +757,9 @@ sequenceDiagram
   will see, an avatar, and one line to tick — "Tôi đồng ý Điều khoản và từ 16 tuổi trở lên, hoặc bố mẹ đã cho phép", with
   the terms and the privacy notice a tap away. **Nhờ bố mẹ** leads to signing in (or up), where a parent makes a child's
   profile instead; **Đã có tài khoản? Đăng nhập** too. The hub keeps on the device that the profile has a copy and which
-  terms its player accepted; a new name or avatar sends the copy again, without asking.
+  terms its player accepted; a new name or avatar sends the copy again, without asking. The same screen, with its own
+  words around the same line, comes before a transfer code ("Trước khi chuyển máy"), a share link that asks for a name
+  ("Trước khi vào chơi") and making a share link — in the "Chia sẻ" sheet ("Trước khi chia sẻ").
 - **The device key**: `POST /api/devices` gives the device one — 32 random bytes in a cookie, `tohe.device` over HTTP
   and `__Host-tohe.device` (`Secure`) behind an HTTPS hub, as for the players' session; `HttpOnly`, `SameSite=Lax`,
   `Path=/`, 90 days, renewed (with the device's `last_seen_at`) at most once an hour while in use. The server keeps

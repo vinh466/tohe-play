@@ -76,7 +76,10 @@ export function InstallNudge() {
   return null;
 }
 
-/** The in-app browsers of Zalo, Messenger and Facebook cannot install: on arrival, a strip says to open the browser. */
+/**
+ * The in-app browsers of Zalo, Messenger, Facebook and Instagram cannot install, and keep nothing a link began (ADR
+ * 0044): on arrival — every screen, a link's entry included — a strip says to open the browser, without blocking.
+ */
 export function InAppStrip() {
   const { t } = useTranslation();
   const variant = useInstallVariant('auto');

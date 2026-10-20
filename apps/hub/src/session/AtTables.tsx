@@ -39,25 +39,33 @@ type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & 
 export function AtTables({
   session,
   children,
+  purpose = 'table',
+  inline = false,
 }: {
   session: PlayingSession;
   children: (player: Player) => ReactNode;
+  /** What the `named` screen says it is for: a table (the default), an entry link, or making a share link. */
+  purpose?: NamedPurpose;
+  /** Drawn inside a sheet rather than as a screen of its own. */
+  inline?: boolean;
 }) {
   if (session.status === 'account') {
     // Said before the first request of the page goes: the account's session acts, no device profile.
     actAsDevice(null);
     return children(session.player);
   }
-  return <DeviceAtTables>{children}</DeviceAtTables>;
+  return (
+    <DeviceAtTables purpose={purpose} inline={inline}>
+      {children}
+    </DeviceAtTables>
+  );
 }
 
-function DeviceAtTables({ children }: { children: (player: Player) => ReactNode }) {
-  const { t } = useTranslation();
-  const device = useQuery(deviceProfileQuery());
-  const changed = useDeviceProfilesChanged();
-
-  // The server said the copy is gone, or the terms changed: a new id and a new copy, or the named screen again. Moved
-  // to another device: what was played here since stays as a new device profile, and the player is told.
+/**
+ * The server said the copy is gone, or the terms changed: a new id and a new copy, or the named screen again. Moved to
+ * another device: what was played here since stays as a new device profile, and the player is told.
+ */
+export function useDeviceTrouble(changed: () => Promise<void>) {
   useEffect(
     () =>
       onDeviceTrouble((trouble, id) => {
@@ -72,18 +80,39 @@ function DeviceAtTables({ children }: { children: (player: Player) => ReactNode 
       }),
     [changed],
   );
+}
+
+function DeviceAtTables({
+  children,
+  purpose,
+  inline,
+}: {
+  children: (player: Player) => ReactNode;
+  purpose: NamedPurpose;
+  inline: boolean;
+}) {
+  const { t } = useTranslation();
+  const device = useQuery(deviceProfileQuery());
+  const changed = useDeviceProfilesChanged();
+  useDeviceTrouble(changed);
 
   const profile = device.data;
-  if (!profile) return <Loading label={t('loading')} />;
+  if (!profile)
+    return inline ? <p className="text-ink-soft">{t('loading')}</p> : <Loading label={t('loading')} />;
   const step = tablesStep(profile, TERMS_VERSION);
   if (step === 'name') {
     actAsDevice(null);
-    return <NamedScreen profile={profile} onDone={changed} />;
+    return <NamedScreen profile={profile} onDone={changed} purpose={purpose} inline={inline} />;
   }
   if (step === 'send') {
     actAsDevice(null);
     return (
-      <SendCopy key={`${profile.id}:${profile.name}:${profile.avatar}`} profile={profile} onDone={changed} />
+      <SendCopy
+        key={`${profile.id}:${profile.name}:${profile.avatar}`}
+        profile={profile}
+        onDone={changed}
+        inline={inline}
+      />
     );
   }
   actAsDevice(profile.id);
@@ -99,10 +128,13 @@ export function useProve(): Prove {
 export function SendCopy({
   profile,
   onDone,
+  inline = false,
 }: {
   profile: LocalProfile;
   /** With the profile as the device keeps it now: its id may be new. */
   onDone(sent: LocalProfile): Promise<void>;
+  /** Inside a sheet. */
+  inline?: boolean;
 }) {
   const { t } = useTranslation();
   const prove = useProve();
@@ -114,16 +146,27 @@ export function SendCopy({
   useEffect(() => {
     if (isIdle) mutate();
   }, [isIdle, mutate]);
-  if (!send.isError) return <Loading label={t('named.sending')} />;
-  return (
-    <Screen narrow>
+  if (!send.isError)
+    return inline ? (
+      <p role="status" className="text-center text-ink-soft">
+        {t('named.sending')}
+      </p>
+    ) : (
+      <Loading label={t('named.sending')} />
+    );
+  const failed = (
+    <>
       <p role="alert" className="rounded-2xl bg-danger-soft px-4 py-3 text-center text-danger">
         {t(errorKey(send.error))}
       </p>
       <Button onClick={() => send.mutate()}>{t('named.retry')}</Button>
-    </Screen>
+    </>
   );
+  return inline ? <div className="flex flex-col gap-4">{failed}</div> : <Screen narrow>{failed}</Screen>;
 }
+
+/** What the `named` screen is for: the words around its one line change, the line does not. */
+export type NamedPurpose = 'table' | 'transfer' | 'entry' | 'share';
 
 /**
  * The `named` screen (ADR 0043): others will see this name, so the player chooses it and an avatar, and ticks one line
@@ -134,23 +177,41 @@ export function NamedScreen({
   profile,
   onDone,
   purpose = 'table',
+  inline = false,
 }: {
   profile: LocalProfile;
   /** With the profile as the device keeps it now: its id may be new. */
   onDone(sent: LocalProfile): Promise<void>;
-  /** At a table (the default), or before a transfer code: the same line, other words around it. */
-  purpose?: 'table' | 'transfer';
+  /**
+   * At a table (the default), before a transfer code, opening a link that asks for a name, or making a share link: the
+   * same line, other words around it.
+   */
+  purpose?: NamedPurpose;
+  /** Inside a sheet: the same form, without a screen around it. */
+  inline?: boolean;
 }) {
   const { t } = useTranslation();
-  const words =
-    purpose === 'transfer'
-      ? {
-          title: t('transfer.namedTitle'),
-          body: t('transfer.namedBody'),
-          kept: t('transfer.namedKept'),
-          go: t('transfer.namedGo'),
-        }
-      : { title: t('named.title'), body: t('named.body'), kept: t('named.kept'), go: t('named.go') };
+  const words = {
+    table: { title: t('named.title'), body: t('named.body'), kept: t('named.kept'), go: t('named.go') },
+    transfer: {
+      title: t('transfer.namedTitle'),
+      body: t('transfer.namedBody'),
+      kept: t('transfer.namedKept'),
+      go: t('transfer.namedGo'),
+    },
+    entry: {
+      title: t('entry.namedTitle'),
+      body: t('entry.namedBody'),
+      kept: t('entry.namedKept'),
+      go: t('entry.namedGo'),
+    },
+    share: {
+      title: t('share.namedTitle'),
+      body: t('share.namedBody'),
+      kept: t('share.namedKept'),
+      go: t('share.namedGo'),
+    },
+  }[purpose];
   const navigate = useNavigate();
   const prove = useProve();
   const [name, setName] = useState(profile.name);
@@ -178,12 +239,13 @@ export function NamedScreen({
     void navigate({ to: '/account/sign-in' });
   };
   const link = 'font-semibold text-accent underline underline-offset-2';
+  const Title = inline ? 'h3' : 'h1';
 
-  return (
-    <Screen narrow>
+  const content = (
+    <>
       <form onSubmit={submit} className="flex flex-col gap-5 rounded-3xl bg-surface p-5 shadow-sm" noValidate>
         <div className="flex flex-col gap-1">
-          <h1 className="font-black text-2xl text-brand-ink">{words.title}</h1>
+          <Title className="font-black text-2xl text-brand-ink">{words.title}</Title>
           <p className="text-ink-soft">{words.body}</p>
         </div>
         <TextField
@@ -242,6 +304,7 @@ export function NamedScreen({
           {t('named.signIn')}
         </Link>
       </p>
-    </Screen>
+    </>
   );
+  return inline ? <div className="flex flex-col gap-4">{content}</div> : <Screen narrow>{content}</Screen>;
 }

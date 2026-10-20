@@ -2,12 +2,12 @@
 // decision is pure (`chooseInstall`); the store below only remembers what the browser told the page.
 
 /** A chat app's own browser: it cannot install anything, so the first thing to offer is the real browser. */
-export type InApp = 'zalo' | 'messenger' | 'facebook';
+export type InApp = 'zalo' | 'messenger' | 'facebook' | 'instagram';
 
 /**
  * - `prompt`: Android, Chrome, Edge — the browser handed over `beforeinstallprompt`; a button calls `prompt()`.
  * - `ios`: Safari on iPhone and iPad has no prompt — the steps of iOS 26.
- * - `open-in-browser`: Zalo, Messenger, Facebook — copy the link and open it in the browser.
+ * - `open-in-browser`: Zalo, Messenger, Facebook, Instagram — copy the link and open it in the browser.
  * - `generic`: only from the menu, when none of the above fits (a desktop browser without a prompt).
  */
 export type InstallVariant = 'prompt' | 'ios' | 'open-in-browser' | 'generic';
@@ -42,10 +42,12 @@ export const SILENT_MS = SILENT_DAYS * 24 * 60 * 60 * 1000;
 export const dismissedRecently = (dismissedAt: number | null, now: number) =>
   dismissedAt !== null && now - dismissedAt < SILENT_MS;
 
-/** The in-app browsers of Zalo, Messenger and Facebook, by the markers they add to the User-Agent. */
+/** The in-app browsers of Zalo, Messenger, Facebook and Instagram, by the markers they add to the User-Agent. */
 export function detectInApp(userAgent: string): InApp | null {
   if (/\bZalo/i.test(userAgent)) return 'zalo';
   if (/FB_IAB\/MESSENGER|FBAN\/Messenger|MessengerLite|Orca-Android/i.test(userAgent)) return 'messenger';
+  // Instagram's says "Instagram 300.0…", and on Android also Facebook's FB_IAB: its own name first.
+  if (/\bInstagram\b/i.test(userAgent)) return 'instagram';
   if (/FBAN|FBAV|FB_IAB|FBIOS/i.test(userAgent)) return 'facebook';
   return null;
 }

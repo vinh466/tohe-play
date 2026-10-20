@@ -122,7 +122,7 @@ describe('playerGate: opening the hub is playing (E-03)', () => {
 
   it('what needs an account (a room link) still asks a signed-out device to sign in', () => {
     expect(playerGate(signedOut, { device: false })).toBe('sign-in');
-    // A device profile reaches the page, which sends it to sign up (JoinPage) or shows the bots (RoomsPage).
+    // A device profile reaches the page, which sends it to sign up (the room link's entry) or shows the bots (RoomsPage).
     expect(playerGate(device, { device: false })).toBe('play');
   });
 });

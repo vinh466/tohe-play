@@ -5,6 +5,8 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, auth, devices, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { deviceProfilesQuery, profileOptionsQuery } from '../api/queries.ts';
+import { intentPath, isEntryPath } from '../entry/codes.ts';
+import { entry } from '../entry/intent.ts';
 import { useLeaveTo } from '../navigation/leave.tsx';
 import { BringIn } from '../session/BringIn.tsx';
 import { withProgress } from '../session/bringInChoices.ts';
@@ -48,13 +50,26 @@ export function ProfilesPage() {
   );
 }
 
-/** Back to a room link that needed a player (session/next.ts), or to the catalog. */
+/**
+ * On, as `player`: to a page that needed a player (session/next.ts) — a table, say — or to the entry this tab keeps
+ * for this player (ADR 0044) — a link, a typed code, a game — or to the catalog. A page remembered since the entry was
+ * kept means the entry was left behind: it goes. An entry the gate let another player through goes too.
+ */
 function useGoOn() {
   const leaveTo = useLeaveTo();
-  return useCallback(async () => {
-    const next = takeNext();
-    leaveTo({ to: next ?? '/play' });
-  }, [leaveTo]);
+  return useCallback(
+    async (player: string) => {
+      const next = takeNext();
+      if (next && !isEntryPath(next)) {
+        entry.forget();
+        leaveTo({ to: next });
+        return;
+      }
+      const kept = entry.current(player);
+      leaveTo({ to: kept ? intentPath(kept) : (next ?? '/play') });
+    },
+    [leaveTo],
+  );
 }
 
 /**
@@ -94,6 +109,7 @@ function useBringInOffer() {
 
 function Picker({ me }: { me: MeView }) {
   const { t } = useTranslation();
+  const { auto } = useSearch({ from: '/account/profiles' });
   const navigate = useNavigate();
   const setMe = useSetMe();
   const goOn = useGoOn();
@@ -110,10 +126,11 @@ function Picker({ me }: { me: MeView }) {
   const select = useMutation({
     mutationFn: ({ profile, pin }: { profile: ProfileView; pin?: string }) =>
       session.selectProfile(profile.id, pin),
-    onSuccess: async (next) => {
+    onSuccess: async (next, { profile }) => {
+      entry.switched({ auto, from: me.activeProfileId, to: profile.id });
       setPinFor(null);
       await setMe(next);
-      await goOn();
+      await goOn(profile.id);
     },
     onError: (error, { profile }) => {
       if (error instanceof ApiError && error.code === 'pin_required') setPinFor(profile);
@@ -124,6 +141,8 @@ function Picker({ me }: { me: MeView }) {
   const signOut = useMutation({
     mutationFn: () => auth.logout(),
     onSettled: async () => {
+      // Whoever signs in next on this device did not come for this tab's entry.
+      entry.forget();
       await setMe(null);
       await navigate({ to: '/account/sign-in', replace: true });
     },
@@ -141,7 +160,6 @@ function Picker({ me }: { me: MeView }) {
   // When the hub sent someone here to pick a player (`auto`), an account that leaves nobody to choose goes straight on
   // (ADR 0023): signing up and signing in already chose its only profile, or it has one profile without a PIN that
   // this device has not chosen yet. Decided once the device's profiles were offered, so the picker never flashes.
-  const { auto } = useSearch({ from: '/account/profiles' });
   const handled = useRef(!auto);
   const [moving, setMoving] = useState(!!auto);
   const play = select.mutate;
@@ -153,7 +171,7 @@ function Picker({ me }: { me: MeView }) {
     if (next && !switched.current) {
       switched.current = true;
       handled.current = true;
-      if (next.id === me.activeProfileId) void goOn();
+      if (next.id === me.activeProfileId) void goOn(next.id);
       else if (next.hasPin) {
         setMoving(false);
         setPinFor(next);
@@ -164,7 +182,7 @@ function Picker({ me }: { me: MeView }) {
     handled.current = true;
     const active = me.profiles.find((profile) => profile.id === me.activeProfileId);
     const only = me.profiles.length === 1 ? me.profiles[0] : undefined;
-    if (active) void goOn();
+    if (active) void goOn(active.id);
     else if (only && !only.hasPin) play({ profile: only });
     else setMoving(false);
   }, [offer, playNext, me, goOn, play]);
@@ -288,6 +306,7 @@ function Picker({ me }: { me: MeView }) {
  */
 function DevicePicker() {
   const { t } = useTranslation();
+  const { auto } = useSearch({ from: '/account/profiles' });
   const goOn = useGoOn();
   const changed = useDeviceProfilesChanged();
   const profiles = useQuery(deviceProfilesQuery);
@@ -296,9 +315,10 @@ function DevicePicker() {
   const list = profiles.data ?? [];
 
   const choose = async (profile: LocalProfile) => {
+    entry.switched({ auto, from: current, to: profile.id });
     currentDeviceProfile.set(profile.id);
     await changed();
-    await goOn();
+    await goOn(profile.id);
   };
 
   if (profiles.isPending) return <Loading label={t('loading')} />;
@@ -423,7 +443,11 @@ function DeviceProfileForm({
   const save = useMutation({
     mutationFn: async () => {
       if (profile) await updateDeviceProfile(db, profile.id, { name: clean, avatar });
-      else await createDeviceProfile(db, { name: clean, avatar, chosen: true });
+      else {
+        await createDeviceProfile(db, { name: clean, avatar, chosen: true });
+        // "Thêm người chơi": someone new plays now, and the entry this tab kept was not theirs (ADR 0044).
+        entry.forget();
+      }
     },
     onSuccess: async () => {
       await changed();

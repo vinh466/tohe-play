@@ -245,7 +245,7 @@ export const hubNamespaces: readonly Namespace[] = [
   appPage(
     'account',
     '/account',
-    'A person’s pages: /account/sign-in (and /continue), /register (and /confirm), /password/forgot, /password/reset, /profiles, /data; the account itself at /account and /account/email',
+    'A person’s pages: /account/sign-in (and /continue), /register (and /confirm), /password/forgot, /password/reset, /profiles, /data, /transfer, the share links a profile made at /links (ADR 0044); the account itself at /account and /account/email',
   ),
   { ...appPage('room-link', '/r', 'A room’s short link: /r/<code>'), linkPreview: true },
   {

@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery } from '../api/queries.ts';
+import { entry } from '../entry/intent.ts';
 import { EmailChange } from '../session/EmailChange.tsx';
 import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -71,6 +72,8 @@ function SignIn() {
   const signOut = useMutation({
     mutationFn: () => auth.logout(),
     onSettled: () => {
+      // Whoever signs in next on this device did not come for this tab's entry (ADR 0044).
+      entry.forget();
       setNeedsEmail(false);
       setPassword('');
     },

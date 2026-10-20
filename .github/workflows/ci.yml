@@ -187,6 +187,8 @@ jobs:
         run: pnpm --filter @tohe/e2e rooms
       - name: A newcomer's first touches (E-03)
         run: pnpm --filter @tohe/e2e journey
+      - name: Every way in — share links, typed codes, dead ends (ADR 0044)
+        run: pnpm --filter @tohe/e2e entries
       - name: Docs are served at the root of their host
         run: curl -fsS http://localhost:4710/ | grep -q "Tò He"
       - name: Stack logs
