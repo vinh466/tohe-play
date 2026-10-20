@@ -538,6 +538,9 @@ sequenceDiagram
 | Results on boards, their decisions, ranked runs (Integrity) | Deleted — the one way past the decisions' append-only trigger ([Integrity](integrity.md#decisions)) |
 | Seats in finished hands and closed tables (Rooms) | Kept for the others who played, with nothing of them: a fresh random id, `Deleted: true`, no account, name or avatar; its results keep place and points, without profile or account |
 | Its public ID, its id | Retired in `identity.retired_profile_ids`: never given to another profile, never adopted from a device — a device profile's id alone, as it has no public ID |
+| The ids merged into it (its aliases) | Retired with it; the aliases go ([Merge aliases](#merge-aliases)) |
+| A transfer code of it (a device profile) | Deleted with it |
+| The notes that it moved away from a device | Deleted with it |
 | An account's sign-in methods, roles, keys, sign-in attempts | Deleted with the account |
 | Sent email records · audit entries | 30 days (ADR 0022) · a year ([Admin console](admin.md#the-audit-log)) |
 
@@ -598,10 +601,13 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | A profile is asked to tables by its ID only as its owner allows — anyone, people it played with, its account — and a child only within its account; a child's ID is not found from outside its account, nor is a profile of a suspended account ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)) | `ProfileEndpoints` (`child_invites_account_only`, `GET /api/profiles/by-id`), `IProfileDirectory`, Rooms |
 | Unsafe `/api` requests from another origin (`Sec-Fetch-Site` ≠ `same-origin`) are rejected | `SameOriginGuard` middleware |
 | A profile is an account's or a device's on the server — exactly one — and has a public ID exactly when it is an account's | Check constraints `ck_profiles_owner`, `ck_profiles_public_id` on `identity.profiles` |
-| The device key acts only for its device's device profiles, and only on `/api/devices/profiles` and at tables; an account's session never acts for a device profile | `DeviceKey`, the `Tohe.Device` and `Tohe.Player` schemes, `DevicePlayers` |
+| The device key acts only for its device's device profiles, and only on `/api/devices/*` and at tables; an account's session never acts for a device profile | `DeviceKey`, the `Tohe.Device` and `Tohe.Player` schemes, `DevicePlayers` |
 | A device keeps at most five device profiles on the server; a new one takes the proof-of-work when the console asks, and the name filter | `DeviceEndpoints` |
 | A device profile acts at a table only with the terms the hub shows accepted (`412 terms_required`) | `DevicePlayers` |
 | Device profiles unused for 90 days, and devices unseen for 90 days, are deleted on the server with everything of them | `DeviceCleanup` |
+| A transfer code moves only its own profile, only while that profile is its device's, once, within ten minutes; six typed digits move it only with the old device's yes | `TransferEndpoints` (the transfer's row locked; its code's hash cleared when used) |
+| Redeeming a transfer code takes the proof-of-work when the console asks, the `auth-code` bucket per address, at most `Identity:TransferCodeMissesPerAddressPerHour` wrong six-digit codes an hour per address, and a proof-of-work for six digits past `Identity:TransferCodeMissesPerHour` wrong ones for the whole server | `TransferEndpoints`, `TransferMisses` |
+| An id merged into a profile, kept as its alias, is never taken again; deleting the profile retires it | `DeviceProfiles.IdTakenAsync`, `AccountDeletion` |
 | Per client IP, 10 requests a minute in each of three buckets: signing in or asking for a code (`auth`), typing a code back (`auth-code`), a PIN or the parent gate (`auth-gate`) | Rate limiter policies; `Identity:AuthRequestsPerMinute` |
 | 10 wrong passwords lock an account for 5 minutes; a password reset ends the lockout | ASP.NET Core Identity lockout |
 
@@ -612,7 +618,8 @@ account. A **device profile** — "Hồ sơ trên máy này" — belongs to one 
 saves and scores, all in IndexedDB. It has no email, no 12-digit ID, no public board and no age (it sees every game).
 Step I1 lives in the hub; step I2a puts a device profile on the server when its player sits at a table — the device
 key, the `named` screen and its terms line, tables open to `named` device profiles, the 90-day cleanup
-([below](#device-profiles-on-the-server)). The transfer code and merge aliases come with I2b.
+([below](#device-profiles-on-the-server)); step I2b moves one to another device with the
+[transfer code](#the-transfer-code) and keeps a merged one's id reachable with a [merge alias](#merge-aliases).
 
 - **Opening the hub is playing.** A device with no session plays as its device profile at once, with no sign-in screen
   first: the first visit makes one silently, with a suggested Vietnamese name and an avatar from the profiles' set
@@ -623,14 +630,17 @@ key, the `named` screen and its terms line, tables open to `named` device profil
   device profiles stay.
 - **Up to five per device** (`MAX_DEVICE_PROFILES`), in `/account/profiles` while no account is signed in: switch, make
   one (a suggested name, an avatar), rename, delete; the last one stays. Deleting removes its saves and scores from the
-  device, and its copy on the server when it has one.
+  device, and its copy on the server when it has one. Its ✏️ sheet also has **Chuyển sang máy khác**, and the page's
+  foot **Tôi có mã chuyển máy** ([the transfer code](#the-transfer-code)). While one of them was never on the server, the
+  page says that such a profile lives only on this device and goes with the browser's data — ADR 0043's warning. On an
+  iPhone, the install steps say that the installed app does not share Safari's data, and how to take a profile along.
 - **From the guest.** The guest of earlier versions — one local profile per device — is the device's first device
   profile: same id, same saves and scores, moved by the IndexedDB upgrade to version 4 without copying anything. The
   device keeps the key `tohe:guest` in `localStorage` for "this device plays without an account" (the public pages
   read it, [Hosts and paths](hosts-and-paths.md)); the device profile playing is `tohe:device-profile`.
 - **Nothing reaches the server** while a device profile stays on the device: it never syncs, and device telemetry
-  names no profile (ADR 0015). It reaches the server only when its player sits at a table, or brings it into an
-  account.
+  names no profile (ADR 0015). It reaches the server only when its player sits at a table, moves it to another device,
+  or brings it into an account.
 
 ### Bringing one into an account
 
@@ -684,7 +694,7 @@ flowchart TD
   profile's id is retired with its public ID (`identity.retired_profile_ids.profile_id`); ids of profiles deleted before
   were not kept and cannot be — otherwise `409 id_taken`, also when two requests bring the same id in at once: the hub
   first looks whether the account has it already (an answer lost), else gives the device profile a new id on the device,
-  moves its saves and scores under it, and asks again. (I2b adds aliases to what an id must not be.)
+  moves its saves and scores under it, and asks again. A [merge alias](#merge-aliases)'s old id is taken too.
 - **A copy on the server** (I2a): when the id is a device profile on the server **of this request's device** — its key
   came with the request — the same row becomes the account's: its account set, its device cleared, a 12-digit ID given
   now, the adult or child template, `device_until` set. It leaves the tables it sits at as a device profile (a bot
@@ -703,8 +713,9 @@ flowchart TD
   costs none of the day's renames, and the console labels it. The request names the device profile
   (`deviceProfileId`): its copy on the server, of this request's device, moves into the target — seats in finished
   hands, results, closed tables it hosted, still marked — and is then deleted through [Deleting](#deleting), its id
-  retired. There is no alias yet (I2b): a link or a replay that names its old id finds nothing. Another device's copy
-  is `409 id_taken`.
+  retired, and a [merge alias](#merge-aliases) keeps its old id reachable: a replay or a link that names it finds the
+  target, and results recorded under it as the merge was being made still count. The same merge sent again — its answer lost — finds the alias to the same target and takes the data again;
+  an alias to another profile is `409 id_taken`. Another device's copy is `409 id_taken`.
 - **After it**, the device drops the device profile from its list; its saves and scores stay under the account
   profile's id, its scores marked as sent — so ordinary sync never sends them again, unmarked. Signing in, the device
   then plays on as the profile it was playing: the one it became, or the one it was merged into.
@@ -712,8 +723,8 @@ flowchart TD
 ### Device profiles on the server
 
 [ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md), step I2a. A device profile reaches the server
-**lazily**: the first time its player does something that needs it — today, sitting at a table, from a room link, the
-rooms lobby or a room. Until I4 every game asks for `any`; a table asks for at least `named`.
+**lazily**: the first time its player does something that needs it — sitting at a table, from a room link, the rooms
+lobby or a room, or moving it to another device ([the transfer code](#the-transfer-code)). Until I4 every game asks for `any`; a table asks for at least `named`.
 
 ```mermaid
 sequenceDiagram
@@ -747,7 +758,7 @@ sequenceDiagram
   `Path=/`, 90 days, renewed (with the device's `last_seen_at`) at most once an hour while in use. The server keeps
   only its SHA-256. A device that has a key keeps it.
 - **Its own scheme, apart from the session's** (`DeviceKey`, `Tohe.Device`): the key authenticates
-  `/api/devices/profiles` and nothing else of the API's own; an account's endpoints read the session alone, so the key
+  `/api/devices/profiles`, `/api/devices/transfers` and `/api/devices/moves` and nothing else of the API's own; an account's endpoints read the session alone, so the key
   never acts for an account's profile. At tables, the players' scheme (`Tohe.Player`) reads the device key **only** when
   the request names a device profile — `X-Tohe-Device-Profile`, or `?deviceProfile=` in the rooms hub's address, where a
   WebSocket cannot carry headers — and the session otherwise, never both; a named profile is found only among the key's
@@ -767,6 +778,9 @@ sequenceDiagram
   gives it a new id on the device, its data moved under it, and sends its copy again without asking — its player
   accepted these terms already, and the copy goes with the same version; new terms ask again as always. Any other new
   id (`id_taken`) starts with no copy and no terms on the device.
+- **Moved**: a device profile [moved to another device](#the-transfer-code) answers its old device
+  `410 device_profile_moved` — at a table, sending its copy, deleting it — and the hub keeps what was played there
+  since as a new device profile.
 - **At tables** ([Online rooms](rooms.md#who-may-sit)): a table "Ai có link cũng vào" (`named`, the default) seats it; a
   table "Chỉ tài khoản" or "Chỉ hồ sơ trong tài khoản tôi" does not. It asks nobody by ID. A child whose "play with
   outsiders" is off never sits with it. Its results are marked as a device profile's and reach no public board
@@ -789,9 +803,114 @@ device profiles in it with E-05):
 | The profile: id, name, avatar, the terms version and when accepted, when made and last used, when a moderator renamed it | `identity.profiles` (no account, no public ID, no email, no age) | deleted on the device, 90 days unused, or brought into an account |
 | Every name it had | `identity.profile_names` | with the profile |
 | Its seats, hands and results at tables | `rooms.*`, `integrity.results` (marked) | with the profile; seats in others' finished hands stay as "Người chơi đã xoá" |
+| A transfer code: the hashes of its six digits and of its secret, which device made it and which redeemed it, and the saves and scores it carries | `identity.profile_transfers` | ten minutes to redeem and confirm, ten more for the new device to fetch the answer; deleted with the profile |
+| That a profile moved away from a device, and when | `identity.profile_moves` | 90 days, or until that device is deleted |
+| An old id that names a profile it was merged into | `identity.profile_aliases` | with the profile it names; then retired |
 
 Nothing else: no address, no device fingerprint, no telemetry naming it (ADR 0015). Saves and scores stay on the device
-until the profile is brought into an account (the transfer code of I2b will carry them between devices).
+until the profile moves to another device — and then only while the transfer code lives — or is brought into an
+account.
+
+### The transfer code
+
+[ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md), step I2b: a device profile on the server moves to
+another device — a new phone, the installed app on an iPhone (whose storage Safari does not share), or before a
+browser's data is cleared — with no account. The old device makes a code; the new one redeems it; the profile, its
+id, saves and scores go with it, and the old device's key stops speaking for it.
+
+```mermaid
+sequenceDiagram
+  autonumber
+  actor P as Player
+  participant O as Old device
+  participant A as API
+  participant N as New device
+  P->>O: Hồ sơ trên máy này → ✏️ → Chuyển sang máy khác
+  O->>O: no copy on the server yet: the named screen and its terms line, then the copy (as for a table)
+  O->>A: POST /api/devices/profiles/{id}/transfer {termsVersion, data: saves and scores}
+  A-->>O: {code: six digits, secret, expiresAt: in 10 minutes}
+  O->>P: the six digits, a QR code of /account/transfer#<secret>, a countdown
+  alt the QR code, or its link
+    N->>A: POST /api/devices/transfers/redeem {secret, proof?}
+    A->>A: the profile is the new device's now
+    A-->>N: {state: done, profile, data}
+  else the six digits, typed
+    N->>A: POST /api/devices/transfers/redeem {code, proof?}
+    A-->>N: {id, state: asked} — the code is used up
+    O->>A: GET /api/devices/profiles/{id}/transfer (every 2 seconds)
+    A-->>O: {state: asked}
+    O->>P: Máy mới muốn nhận "Mèo Cam"?
+    P->>O: Đồng ý (or Không)
+    O->>A: POST /api/devices/profiles/{id}/transfer/confirm {accept}
+    N->>A: GET /api/devices/transfers/{id} (every 2 seconds)
+    A-->>N: {state: done, profile, data} — or declined
+  end
+  N->>N: the device profile, with its id, name, avatar, terms, saves and scores — it plays now
+  O->>A: next request naming it, or GET /api/devices/moves on opening
+  A-->>O: 410 device_profile_moved · [{profileId, movedAt}]
+  O->>P: "Mèo Cam" đã chuyển sang máy khác — what was saved here since the code stays, as a new device profile
+```
+
+- **Only a copy on the server moves.** "Chuyển sang máy khác" on a device profile with no copy, or with terms not yet
+  accepted, shows the `named` screen and its line first and sends the copy, as for a table. The code carries the
+  profile's saves and scores — at most 50 saves and 1 000 scores, as when one is brought into an account, and at most
+  1 MB of them; a device's live codes carry 2 MB together (`400 upload_too_large`) — sent with the request that makes
+  it. The hub sends what fits, the newest saves first, and marks as sent exactly what the last code carried: what stays
+  behind is kept on the old device should the profile move.
+- **The code**: six random digits, and a secret of 32 random bytes for the QR code. Both are stored hashed — the
+  digits as SHA-256 of the transfer's id and the digits, as the one-time codes by email; the secret as its SHA-256 —
+  and the answer that made them is the only time they are seen. Alive **ten minutes**; **one per profile**: a new code
+  replaces the one before. Leaving the screen cancels it (`DELETE …/transfer`).
+- **Used once.** Redeeming locks the transfer's row and finds it open, or not at all: a code typed again, a secret
+  scanned twice, a code expired, declined or cancelled all answer `404 transfer_invalid` — the same answer whatever the
+  reason. The six digits no longer exist once typed (their hash is cleared), whatever the old device answers.
+- **The six digits need the old device's yes.** Six digits can be guessed; the secret cannot. A typed code is only a
+  question to the old device — "Máy mới muốn nhận "Mèo Cam"?" — which it asks while its screen is open (it asks the
+  API every two seconds); "Không" ends it. Only the secret, read from the QR code or opened as its link, moves the
+  profile at once. The link carries the secret after `#`, so it never reaches a server's log.
+- **Against guessing**: redeeming takes the proof-of-work of ADR 0037 when the console turns it on; each address has
+  the `auth-code` bucket (`Identity:AuthRequestsPerMinute`, every redemption counts). Wrong six-digit codes are counted
+  twice — a slot is taken before the code is looked at and given back when it was right: per address,
+  `Identity:TransferCodeMissesPerAddressPerHour` (10) an hour, past which that address hears `429 transfer_limit`; and
+  for the whole server, `Identity:TransferCodeMissesPerHour` (100) an hour, past which six digits take a proof-of-work
+  (`400 proof_of_work_required`, whatever the console's switch says) rather than being refused — so no single source can
+  shut the digits for everyone. The secret works throughout. A hit by chance still needs the old device's yes.
+- **Bound to its profile.** A code moves the profile it was made for and nothing else, and only while that profile is
+  still its device's: brought into an account or deleted meanwhile, the code is gone with it. The new device needs its
+  own key (`POST /api/devices`), room for one more profile (`409 too_many_profiles`; filled up before the old device's
+  yes, the transfer ends as `full`), and is not the old device (`409 transfer_same_device`). Bringing a copy into an
+  account, merging it and moving it all hold its device's row first, so one of them happens and the others find it
+  gone.
+- **The move**, in one transaction holding both devices' rows: the profile leaves the tables it sits at (a bot finishes
+  a hand), its `device_id` becomes the new device's, and the old device is noted as one it moved away from
+  (`identity.profile_moves`). Its id, name, avatar, terms, seats and results stay as they were. The new device gets the
+  profile and the saves and scores in the answer — again, if it asks again with the same secret, polls the same
+  transfer, or lists its transfers (`GET /api/devices/transfers`), for ten minutes after the code ends. The phones that
+  showed it at a table leave the table's groups, so its old device hears nothing of its seat.
+- **Nothing lost on the new device**: the hub keeps the redemption in IndexedDB (`cache`, `transfer:pending`: the
+  secret, then the transfer's id) before the request goes and after each answer, until it settles — done, declined,
+  full, expired, or gone (`404`). On the receive page, and whenever the hub opens, it carries on: the transfer it named,
+  or — the answer lost — this device's transfers, or the secret again. A network error only waits for next time. The
+  field takes the six digits or the transfer link pasted whole ("Chép link" on the old device), the way in for an
+  installed iPhone app that cannot open the QR code's link.
+- **The old device** learns it on its next request naming the profile — `410 device_profile_moved` from the rooms, the
+  copy or the transfer — or from `GET /api/devices/moves` when the hub opens (asked only when a device profile of it
+  has a copy). The hub says "'Mèo Cam' đã chuyển sang máy khác"; what was played there since the code was made — a save
+  written since, a score not sent — stays as a **new** device profile with a new id and no copy; when nothing was, the
+  profile leaves the device. Nothing is dropped.
+- **Moving back** to a device it once left clears that device's note.
+
+### Merge aliases
+
+A device profile's copy merged into an account's profile ([above](#bringing-one-into-an-account)) leaves an alias:
+`identity.profile_aliases (old_id → profile_id)`. Its seats, results and closed tables moved to the target with the
+merge; the alias keeps the old id reachable for what still names it:
+
+- **Replays, statistics and the hands list** of the target count results under its aliases' ids too
+  ([Online rooms](rooms.md#who-sees-what)) — a hand recorded under the old id as the merge was being made still opens.
+- **Asking to a table by id** (`POST /api/rooms/{id}/invite`) finds the target, under its own invitation rules.
+- **Ids**: an alias's old id is taken — adopting, merging, a new copy — like a profile's or a retired one's.
+- **Deleting the target** retires its aliases' ids with its own; the aliases go with it.
 
 ## API
 
@@ -828,6 +947,14 @@ until the profile is brought into an account (the transfer code of I2b will carr
 | `POST /api/devices` | — | The device key's cookie ([Device profiles on the server](#device-profiles-on-the-server)); a device that has one keeps it — 204 |
 | `POST /api/devices/profiles` | device key | Make, or bring up to date, a device profile's copy: `{id, name, avatar, termsVersion, proof?}` → `{id, name, avatar, termsVersion}` — the name the server keeps; `409 id_taken`, `409 too_many_profiles`, `412 terms_required`, `422 name_refused`, `400 proof_of_work_required` |
 | `DELETE /api/devices/profiles/{id}` | device key | Delete the copy for good ([Deleting](#deleting)) — 204, or `404 device_profile_not_found` |
+| `POST /api/devices/profiles/{id}/transfer` | device key | A [transfer code](#the-transfer-code) for this device's profile: `{termsVersion, data?}` → `{code, secret, expiresAt}`, replacing any before; `404 device_profile_not_found`, `410 device_profile_moved`, `412 terms_required`, `400 upload_too_large` |
+| `GET /api/devices/profiles/{id}/transfer` | device key | Its live code: `{state: open \| asked, expiresAt}` — `asked` when a new device typed the six digits; `404 transfer_not_found`, `410 device_profile_moved` once it moved |
+| `POST /api/devices/profiles/{id}/transfer/confirm` | device key | The old device's answer to six typed digits, `{accept}` — 204; `404 transfer_not_found`, `409 too_many_profiles` (the new device filled up meanwhile: the transfer ends as `full`) |
+| `DELETE /api/devices/profiles/{id}/transfer` | device key | Cancel its code — 204 |
+| `POST /api/devices/transfers/redeem` | device key | `{secret}` or `{code}`, with `proof` when the console asks → `{id, state: done \| asked, profile?, data?}`; `400 proof_of_work_required`, `404 transfer_invalid`, `409 too_many_profiles`, `409 transfer_same_device`, `429 transfer_limit` |
+| `GET /api/devices/transfers/{id}` | device key (the device that redeemed) | The transfer as that device sees it: `asked`, `done` (with `profile` and `data`), `declined`, `full`, `expired`; `404 transfer_not_found` |
+| `GET /api/devices/transfers` | device key | The transfers this device redeemed, newest first, while their answer is kept: how a lost answer is found |
+| `GET /api/devices/moves` | device key | This device's profiles that moved away: `[{profileId, movedAt}]` |
 | `GET /api/profiles/by-id/{publicId}` | session | A profile's card — id, ID, name, avatar — to confirm before asking it to a table ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); never a child of another account nor a profile of an account suspended or waiting to be deleted (`profile_not_found`); 20 lookups an hour per account (`lookup_limit`) |
 | `PATCH` / `DELETE /api/profiles/{id}` | parent | Edit (incl. a child's `playWithOthers`, `onPublicBoards` — with `askedChild` to turn a child's on — and an adult's `invites`: `anyone`, `played-with`, `account`) / delete a profile — never the last — with everything of it ([above](#deleting)) |
 
@@ -844,7 +971,8 @@ Errors are problem details; a machine-readable `code` lets the hub show a Vietna
 `name_too_long`, `name_reserved`, `name_inappropriate`, `rename_limit`, `sign_in_expired`, `wrong_step`, `proof_required`, `provider_account_in_use`,
 `last_method`, `account_suspended`, `session_ended`, `method_disabled`, `proof_of_work_required`, `registration_closed`, `invite_required`,
 `invite_invalid`, `asked_child_required`, `id_taken`, `name_refused` (with `reason`, the name rule that refused it),
-`upload_too_large`, `device_profile_not_found`; `terms_required` is also a device profile's `412` at a table.
+`upload_too_large`, `device_profile_not_found`, `device_profile_moved`, `transfer_invalid`, `transfer_not_found`,
+`transfer_limit`, `transfer_same_device`; `terms_required` is also a device profile's `412` at a table.
 Navigations answer with a redirect instead: `/account/sign-in?external=failed` (the provider refused, or was cancelled),
 `/account/sign-in?external=suspended`, `/account/sign-in?external=disabled`, `/account?linked={provider}`, or `/account?link_error=`
 `step_up_required`, `provider_account_in_use`, `cross_origin` or `method_disabled`.

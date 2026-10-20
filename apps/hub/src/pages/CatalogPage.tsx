@@ -5,6 +5,7 @@ import { gamesQuery } from '../api/queries.ts';
 import { InstallNudge } from '../install/InstallNudge.tsx';
 import { hasShell } from '../launcher/manifest.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
+import { MovedNotice } from '../session/MovedNotice.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync.ts';
@@ -46,6 +47,9 @@ function Catalog({ player }: { player: Player }) {
           </Link>
         </div>
       </header>
+
+      {/* A device profile moved to another device with a transfer code (ADR 0043): said once, when the hub opens. */}
+      <MovedNotice />
 
       {/* Opening Tò He is playing: a device profile sees only this slim strip, and signs in when it is worth it. */}
       {onDevice ? (

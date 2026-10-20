@@ -8,7 +8,7 @@ sidebar:
 - **Status:** Accepted — the terms and age line is also asked the first time a device profile's data reaches the server,
   and a player under 16 may then go on with a parent's permission, since [ADR 0043](0043-device-profiles-and-identity-levels.md)
   (its step I2a: the `named` screen before a table; the server keeps the version and time, and asks again with new
-  terms; the transfer code of I2b will ask it too)
+  terms; I2b: before a transfer code too, for a device profile with no copy yet)
 - **Date:** 2026-10-18
 - **Amends:** [ADR 0011](0011-password-sign-in-first.md) — the parent gate opens with a manage PIN instead of the
   password; [ADR 0024](0024-email-identifies-an-account.md) — changing the email needs step-up level 2

@@ -37,9 +37,10 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
     private static string CodeOf(Microsoft.AspNetCore.Http.HttpResults.ProblemHttpResult? problem) =>
         problem?.ProblemDetails.Extensions.TryGetValue("code", out var code) == true && code is string text ? text : "profile_required";
 
-    private HashSet<Guid> Entered()
+    /// <summary>The rooms this connection entered, and as which profile: leaving needs no profile that still acts.</summary>
+    private Dictionary<Guid, Guid> Entered()
     {
-        if (Context.Items["rooms"] is not HashSet<Guid> rooms)
+        if (Context.Items["rooms"] is not Dictionary<Guid, Guid> rooms)
         {
             rooms = [];
             Context.Items["rooms"] = rooms;
@@ -59,7 +60,7 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
 
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomOutbox.RoomGroup(roomId));
         await Groups.AddToGroupAsync(Context.ConnectionId, RoomOutbox.PlayerGroup(roomId, profile.ProfileId));
-        Entered().Add(roomId);
+        Entered()[roomId] = profile.ProfileId;
         return await room.RunAsync(async () =>
         {
             await room.ConnectedAsync(profile.ProfileId, Context.ConnectionId);
@@ -67,15 +68,20 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
         });
     }
 
-    /// <summary>This phone stops showing the table (the seat stays; leaving it is <c>POST /api/rooms/{id}/leave</c>).</summary>
+    /// <summary>
+    /// This phone stops showing the table (the seat stays; leaving it is <c>POST /api/rooms/{id}/leave</c>). It needs no
+    /// profile that still acts — one deleted, or moved to another device, still lets its phone go.
+    /// </summary>
     public async Task Exit(Guid roomId)
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomOutbox.RoomGroup(roomId));
-        var profile = await ProfileAsync();
-        await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomOutbox.PlayerGroup(roomId, profile.ProfileId));
-        if (Entered().Remove(roomId) && registry.Find(roomId) is { } room)
+        if (Entered().Remove(roomId, out var profileId))
         {
-            await room.RunAsync(() => room.DisconnectedAsync(Context.ConnectionId));
+            await Groups.RemoveFromGroupAsync(Context.ConnectionId, RoomOutbox.PlayerGroup(roomId, profileId));
+            if (registry.Find(roomId) is { } room)
+            {
+                await room.RunAsync(() => room.DisconnectedAsync(Context.ConnectionId));
+            }
         }
     }
 
@@ -125,7 +131,7 @@ internal sealed class RoomsHub(RoomRegistry registry, IActiveProfile activeProfi
 
     public override async Task OnDisconnectedAsync(Exception? exception)
     {
-        foreach (var roomId in Entered())
+        foreach (var roomId in Entered().Keys)
         {
             if (registry.Find(roomId) is { } room)
             {

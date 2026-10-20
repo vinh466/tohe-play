@@ -494,6 +494,37 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         Assert.Equal((0, """{"timer":0}"""), (action.Seat, action.Action));
     }
 
+    [Fact]
+    public async Task A_profile_withdrawn_from_a_table_takes_its_phones_out_of_the_tables_groups()
+    {
+        // A profile deleted, or moved to another device (ADR 0043): the phones that showed it receive nothing of the
+        // table any more, should it sit there again from another device.
+        var outbox = new RecordingOutbox();
+        var host = Guid.NewGuid();
+        var other = Guid.NewGuid();
+        var room = new Room
+        {
+            Id = Guid.NewGuid(),
+            Code = "654321",
+            GameId = "test",
+            GameVersion = "1.0.0",
+            RulesPath = "test/1.0.0/rules.js",
+            HostProfileId = host,
+            Seats = 2,
+            Status = RoomStatus.Waiting,
+            SeatList = JsonSerializer.Serialize(new[] { new SeatRecord(host, Guid.NewGuid(), "Bố", "🦊", null), new SeatRecord(other, null, "Mèo", "🐯", null) }),
+        };
+        var actor = new RoomActor(room, outbox, new RoomsOptions(), TimeProvider.System, _ => throw new InvalidOperationException("no rules needed"));
+        await actor.RunAsync(() => actor.ConnectedAsync(other, "old-phone"));
+        await actor.RunAsync(() => actor.ConnectedAsync(other, "old-tab"));
+        await actor.RunAsync(() => actor.ConnectedAsync(host, "host-phone"));
+
+        await actor.RunAsync(() => actor.WithdrawAsync(other));
+
+        Assert.Equal([(other, "old-phone"), (other, "old-tab")], outbox.Forgotten.Order().ToList());
+        Assert.Equal(1, actor.Online);
+    }
+
     /// <summary>The person's cookie jar for a hub connection, which disposes its handler when it closes.</summary>
     private sealed class Borrowed(HttpMessageHandler inner) : DelegatingHandler(inner)
     {
@@ -517,6 +548,14 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         public Task LobbyChangedAsync(string gameId) => Task.CompletedTask;
 
         public Task ClosedAsync(Guid roomId, string reason) => Task.CompletedTask;
+
+        public List<(Guid Profile, string Connection)> Forgotten { get; } = [];
+
+        public Task ForgetAsync(Guid roomId, Guid profileId, IReadOnlyCollection<string> connectionIds)
+        {
+            Forgotten.AddRange(connectionIds.Select(connection => (profileId, connection)));
+            return Task.CompletedTask;
+        }
 
         public Task SaveRoomAsync(Room room) => Task.CompletedTask;
 

@@ -190,6 +190,15 @@ internal sealed class RoomOutbox(IServiceScopeFactory scopes, IHubContext<RoomsH
     public Task ClosedAsync(Guid roomId, string reason) =>
         hub.Clients.Group(RoomGroup(roomId)).SendAsync("Closed", roomId, reason);
 
+    public async Task ForgetAsync(Guid roomId, Guid profileId, IReadOnlyCollection<string> connectionIds)
+    {
+        foreach (var connection in connectionIds)
+        {
+            await hub.Groups.RemoveFromGroupAsync(connection, RoomGroup(roomId));
+            await hub.Groups.RemoveFromGroupAsync(connection, PlayerGroup(roomId, profileId));
+        }
+    }
+
     public async Task SaveRoomAsync(Room room)
     {
         await using var scope = scopes.CreateAsyncScope();

@@ -213,6 +213,7 @@ internal static class RoomsModule
                 IAccountProfiles profiles,
                 IProfileDirectory directory,
                 RoomInvitations invitations,
+                IProfileAliases aliases,
                 IOptions<RoomsOptions> options,
                 ToheDbContext db,
                 CancellationToken ct) =>
@@ -222,6 +223,9 @@ internal static class RoomsModule
                 {
                     return TypedResults.NotFound();
                 }
+
+                // An id merged into another profile asks that profile (ADR 0043's merge aliases).
+                request = request with { ProfileId = await aliases.ResolveAsync(request.ProfileId, ct) };
 
                 // Asking by ID stays an account's (ADR 0043): a device profile asks nobody.
                 if (player.AccountId is not { } accountId)

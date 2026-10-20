@@ -27,6 +27,15 @@ public sealed class IdentityOptions
     /// </summary>
     public int DeviceRequestsPerMinute { get; set; } = 20;
 
+    /// <summary>
+    /// Wrong six-digit transfer codes the whole server takes in an hour (ADR 0043): past it, six digits take a
+    /// proof-of-work until the hour has room, whatever the console's switch says; the QR code's secret works as before.
+    /// </summary>
+    public int TransferCodeMissesPerHour { get; set; } = 100;
+
+    /// <summary>Wrong six-digit transfer codes one client address may type in an hour; past it, it hears <c>transfer_limit</c>.</summary>
+    public int TransferCodeMissesPerAddressPerHour { get; set; } = 10;
+
     /// <summary>Profile IDs one account may look up in an hour (ADR 0033): found or not, every lookup counts.</summary>
     public int ProfileLookupsPerHour { get; set; } = 20;
 
@@ -211,6 +220,9 @@ internal static class IdentityModule
         services.AddScoped<IDevicePlayers, DevicePlayers>();
         services.AddScoped<IKeptProfiles, KeptProfiles>();
         services.AddScoped<DeviceCleanup>();
+        // The transfer code (ADR 0043, I2b): wrong six-digit codes for the whole server; and merge aliases, read by the rooms.
+        services.AddSingleton<TransferMisses>();
+        services.AddScoped<IProfileAliases, ProfileAliases>();
         if (builder.Configuration.GetValue($"{IdentityOptions.Section}:DeviceCleanupEnabled", defaultValue: true)
             && !BuildTime.IsGeneratingOpenApi)
         {
@@ -245,6 +257,7 @@ internal static class IdentityModule
         SessionEndpoints.Map(api);
         ProfileEndpoints.Map(api);
         DeviceEndpoints.Map(api);
+        TransferEndpoints.Map(api);
         return api;
     }
 }

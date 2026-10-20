@@ -37,6 +37,11 @@ export type HandReplay = Schemas['HandReplay'];
 export type RoomInvite = Schemas['RoomInvite'];
 export type DeviceProfileRegistration = Schemas['DeviceProfileRegistration'];
 export type DeviceProfileView = Schemas['DeviceProfileView'];
+export type TransferCodeView = Schemas['TransferCodeView'];
+export type TransferStatusView = Schemas['TransferStatusView'];
+export type TransferRedemption = Schemas['TransferRedemption'];
+export type TransferView = Schemas['TransferView'];
+export type ProfileMoveView = Schemas['ProfileMoveView'];
 
 /** Same origin: the hub serves /api through its reverse proxy (Vite in dev, Caddy in docker/UAT). */
 export const api = createClient<paths>({ baseUrl: '' });
@@ -259,6 +264,34 @@ export const devices = {
   register: (body: DeviceProfileRegistration) => call(api.POST('/api/devices/profiles', { body })),
   /** Deletes a device profile's server copy for good (ADR 0034); its seats read "Người chơi đã xoá". */
   remove: (id: string) => call(api.DELETE('/api/devices/profiles/{id}', { params: { path: { id } } })),
+  /** This device's profiles that moved to another device with a transfer code (ADR 0043, I2b). */
+  moves: () => call(api.GET('/api/devices/moves')),
+};
+
+/**
+ * The transfer code (ADR 0043, I2b): a device profile on the server moves to another device — at once with the QR
+ * code's secret, or with six digits the old device confirms. docs/architecture/identity.md#the-transfer-code
+ */
+export const transfers = {
+  /** A code for this device's profile, carrying its saves and scores; replaces any before. */
+  start: (id: string, body: Schemas['TransferStart']) =>
+    call(api.POST('/api/devices/profiles/{id}/transfer', { params: { path: { id } }, body })),
+  /** The profile's live code, as the old device polls it: `open`, or `asked`. */
+  status: (id: string) => call(api.GET('/api/devices/profiles/{id}/transfer', { params: { path: { id } } })),
+  /** The old device's answer to six typed digits. */
+  confirm: (id: string, accept: boolean) =>
+    call(
+      api.POST('/api/devices/profiles/{id}/transfer/confirm', { params: { path: { id } }, body: { accept } }),
+    ),
+  /** The player left the code's screen. */
+  cancel: (id: string) =>
+    call(api.DELETE('/api/devices/profiles/{id}/transfer', { params: { path: { id } } })),
+  /** The new device redeems the secret, or the six digits. */
+  redeem: (body: TransferRedemption) => call(api.POST('/api/devices/transfers/redeem', { body })),
+  /** A transfer this device redeemed: asked, done, declined, full or expired. */
+  get: (id: string) => call(api.GET('/api/devices/transfers/{id}', { params: { path: { id } } })),
+  /** This device's redeemed transfers, newest first: a lost answer is found here. */
+  list: () => call(api.GET('/api/devices/transfers')),
 };
 
 /** Saves and scores of the active profile (M2); the hub calls these from storage/sync.ts, never from games. */

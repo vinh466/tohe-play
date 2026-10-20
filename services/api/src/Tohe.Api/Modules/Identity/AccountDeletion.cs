@@ -183,7 +183,8 @@ internal sealed partial class AccountDeletion(
 
     /// <summary>
     /// Each module deletes what it keeps of the profiles, then their public IDs and ids are retired for good — a device
-    /// profile's id alone, as it has no public ID (ADR 0043).
+    /// profile's id alone, as it has no public ID — and so are the ids merged into them, their aliases, which go with
+    /// them (ADR 0043).
     /// </summary>
     private async Task PurgeAsync(IReadOnlyCollection<Profile> profiles, CancellationToken ct)
     {
@@ -202,6 +203,17 @@ internal sealed partial class AccountDeletion(
 
         var now = clock.GetUtcNow();
         db.RetiredProfileIds.AddRange(profiles.Select(p => new RetiredProfileId { PublicId = p.PublicId, ProfileId = p.Id, RetiredAt = now }));
+
+        // The notes that it moved away from a device go with it (ADR 0043): nothing of it is kept.
+        await db.ProfileMoves.Where(move => ids.Contains(move.ProfileId)).ExecuteDeleteAsync(ct);
+
+        // A merge retired its copy's id already; an alias whose id is not retired yet is retired now.
+        var aliases = await db.ProfileAliases.Where(alias => ids.Contains(alias.ProfileId)).Select(alias => alias.OldId).ToListAsync(ct);
+        var retired = await db.RetiredProfileIds
+            .Where(r => r.ProfileId != null && aliases.Contains(r.ProfileId.Value))
+            .Select(r => r.ProfileId!.Value)
+            .ToListAsync(ct);
+        db.RetiredProfileIds.AddRange(aliases.Except(retired).Select(old => new RetiredProfileId { ProfileId = old, RetiredAt = now }));
     }
 
     private Uri? Link(string path) => app.Value.PublicUrl is { } hub ? new Uri(hub, path) : null;

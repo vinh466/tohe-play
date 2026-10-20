@@ -51,9 +51,12 @@ export function deviceHeaders(path: string, who: Acting | null = acting): Record
 
 /**
  * What the API said of the device profile acting (ADR 0043): its copy on the server is gone — deleted, or cleaned up
- * after 90 days unused — or the terms changed and its player must accept them again.
+ * after 90 days unused — it moved to another device with a transfer code, or the terms changed and its player must
+ * accept them again.
  */
-export type DeviceTrouble = 'device_profile_not_found' | 'terms_required';
+export type DeviceTrouble = 'device_profile_not_found' | 'device_profile_moved' | 'terms_required';
+
+const TROUBLES: readonly string[] = ['device_profile_not_found', 'device_profile_moved', 'terms_required'];
 
 const troubleListeners = new Set<(trouble: DeviceTrouble, id: string) => void>();
 
@@ -70,8 +73,8 @@ export function hubRefusal(error: unknown): string | null {
 
 /** Tells the listeners; the rooms hub's calls report their refusals here too. */
 export function reportTrouble(code: string | null | undefined, id: string | undefined = acting?.id): void {
-  if (!id || (code !== 'device_profile_not_found' && code !== 'terms_required')) return;
-  for (const listener of troubleListeners) listener(code, id);
+  if (!id || !code || !TROUBLES.includes(code)) return;
+  for (const listener of troubleListeners) listener(code as DeviceTrouble, id);
 }
 
 api.use({
@@ -82,7 +85,8 @@ api.use({
   },
   async onResponse({ request, response }) {
     const id = request.headers.get(PROFILE_HEADER);
-    if (!id || (response.status !== 404 && response.status !== 412)) return undefined;
+    if (!id || (response.status !== 404 && response.status !== 410 && response.status !== 412))
+      return undefined;
     const problem = (await response
       .clone()
       .json()
