@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-21 — agent
+
+- I3a #102, I3b #103 merged; I2 + I3 → `uat-`/`prod-2026-10-21.1` (95fdf6d), owner: prod ok.
+- Owner: I4 một PR; câu chữ agent tự chọn và áp dụng ("cứ yolo"), phase review soát sau; Điều khoản + Quyền riêng tư
+  chốt ở phase review, trước khi mở hẳn — không cập nhật theo từng tính năng.
+- Owner: master xhigh; **mọi worker Opus, effort tối đa high** → `.claude/agents/`, `working-with-agents.md`, delivery.
+- I4 `feat/i4-game-entries`: builder (Opus · high) đang làm; master review → reviewer → PR.
+
 ## 2026-10-20 (tối) — agent
 
 - S4 #93, S1 #94 → `prod-2026-10-20.2`; I1 #96 → `prod-2026-10-20.3`, `check:prod` 23/23.

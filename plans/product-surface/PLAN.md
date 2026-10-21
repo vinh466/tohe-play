@@ -4,8 +4,8 @@
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
 - Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-19); thứ tự xây theo pull
-  request ở **[delivery.md](delivery.md)**; N1–N3, B1–B5, S1–S4, K1, I1 **chạy trên prod** (`prod-2026-10-20.3`);
-  I2 (I2a, I2b) đã merge, chưa deploy; ADR 0044 (I3) và 0045 (I4) đã merge. Còn lại: I3, I4, K2. Còn mở: E-05 (Cổng).
+  request ở **[delivery.md](delivery.md)**; N1–N3, B1–B5, S1–S4, K1, I1–I3 **chạy trên prod** (`prod-2026-10-21.1`);
+  ADR 0045 (I4) đã merge. Còn lại: I4 (đang làm), K2. Còn mở: E-05 (Cổng).
 - Started: 2026-10-19 · Trên `main` từ [#72](https://github.com/vinh466/tohe-play/pull/72) (2026-10-19); mỗi lần cập nhật
   là một pull request nhỏ
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
@@ -17,23 +17,20 @@
 ## Next — one item
 
 **Làm nốt Phase 1, rồi phase review** (owner 2026-10-20: "làm nốt những cái bạn đề xuất cho xong đi, sau đó tôi để đến
-phase review … làm 1 nền tảng hoàn chỉnh về các mặt trước khi launch chính thức"): I3 chia hai — **I3a** (server: module
-`Links`, thẻ xem trước cho crawler, `/s`) đang review, rồi **I3b** (hub: đường ống lối vào, "Nhập mã", "Chia sẻ", "Link
-của tôi") → I4 (code theo ADR 0045) → K2. Sau đó: một plan space mới để review toàn diện nền tảng (UI/UX, luồng, tính
-năng còn thiếu) trước khi launch chính thức.
+phase review … làm 1 nền tảng hoàn chỉnh về các mặt trước khi launch chính thức"): **I4** (code theo ADR 0045) — một PR
+(owner 2026-10-21: "I4 chung 1 PR luôn"), câu chữ agent tự chọn và ghi trong PR → K2. Sau đó: một plan space mới để
+review toàn diện nền tảng (UI/UX, luồng, tính năng còn thiếu, câu chữ, Điều khoản + Quyền riêng tư) trước khi launch
+chính thức.
 
 ## Waiting on the owner
 
-1. **Deploy I2** (hồ sơ máy trên server, bàn mở cho hồ sơ máy, mã chuyển máy) lên UAT rồi prod khi owner nói "deploy".
-   Đề xuất trước đó: Điều khoản + Quyền riêng tư nói tới hồ sơ máy trên server và mã chuyển máy; trước I3 thêm link chia
-   sẻ (E-05; agent không tư vấn pháp lý).
-2. **Alertmanager trên prod** (Telegram): tạo bot ở @BotFather, đưa token vào Infisical `platform/prod` `/monitoring`
+1. **Alertmanager trên prod** (Telegram): tạo bot ở @BotFather, đưa token vào Infisical `platform/prod` `/monitoring`
    khoá `telegram-bot-token`, gửi chat id — agent mở PR `platform-infra` (cả cluster, owner merge).
-3. Cloudflare: AI Crawl Control — Search cho phép; Bot Fight Mode / Under Attack / WAF challenge tắt; chọn dịch vụ `status.`.
-4. Việc tay: thư thử tới `hello@`, `security@`; Resend `notify.` ([guide](../../docs/guides/mail-and-status.md)).
-5. Khi chốt ngày launch chính thức: thử khôi phục bản sao lưu DB prod một lần (owner 2026-10-20: "để tôi thử sau").
-6. *Tuỳ chọn:* Cloudflare Access cho `console.toheplay.io.vn` (owner 2026-10-20: MFA đủ cho lúc này).
-7. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng" — PR draft là chưa sẵn sàng.
+2. Cloudflare: AI Crawl Control — Search cho phép; Bot Fight Mode / Under Attack / WAF challenge tắt; chọn dịch vụ `status.`.
+3. Việc tay: thư thử tới `hello@`, `security@`; Resend `notify.` ([guide](../../docs/guides/mail-and-status.md)).
+4. Khi chốt ngày launch chính thức: thử khôi phục bản sao lưu DB prod một lần (owner 2026-10-20: "để tôi thử sau").
+5. *Tuỳ chọn:* Cloudflare Access cho `console.toheplay.io.vn` (owner 2026-10-20: MFA đủ cho lúc này).
+6. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng" — PR draft là chưa sẵn sàng.
 
 ## Board
 
