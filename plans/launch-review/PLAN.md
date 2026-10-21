@@ -11,10 +11,10 @@
 
 ## Next — one item
 
-**Owner quyết [D-02 bố cục](items/D-02-layout.md)** (đề xuất B — hai vùng, một khung; Q1–Q5) cùng
-[D-01 ngôn ngữ](items/D-01-languages.md) (đề xuất B — URL theo ngôn ngữ cho trang công khai, cài đặt trong app; Q1–Q4)
-và [D-04 mở lại app](items/D-04-coming-back.md) (đề xuất B; Q2: sửa **rủi ro khi cập nhật** ngay, PR riêng) — owner
-(2026-10-22) bảo tập trung vào bố cục trước. Brief vẫn chờ Q2, Q3 và lời xác nhận.
+**Owner quyết [D-05 host và path](items/D-05-hosts-and-paths.md)** (đề xuất A: giữ ADR 0042, game sang domain riêng khi có
+game không do repo viết; Access cho console trước launch) và [D-01 ngôn ngữ](items/D-01-languages.md) (đề xuất B; Q1–Q4).
+D-02 và D-04 đã **decided** (B, 2026-10-22); rủi ro khi cập nhật không tái hiện được, nên không có PR riêng. Sau đó: ADR
+"Hai vùng, một khung" (D-02 + D-01 + D-05). Brief vẫn chờ Q2, Q3 và lời xác nhận.
 
 ## Waiting on the owner
 
