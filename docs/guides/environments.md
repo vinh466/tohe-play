@@ -168,6 +168,9 @@ that can run apart runs apart:
   new job goes into the needs of *CI passed*.
 - A push to `main` is always `all`, and it runs every task without reading a cache (`TURBO_CACHE=local:w`): what gets
   published has passed every check from scratch.
+- Every merge commit on `main` gets a run of its own, side by side with the others: its images and chart carry its
+  commit, so no run waits for another or replaces it, and every commit on `main` can be released. A new push to a pull
+  request cancels the run of the push before.
 - On a pull request, each job reads the Turborepo cache the same job saved on `main`: a task whose inputs did not change
   replays its result. A task's inputs are declared in `turbo.json`; a file a task reads from outside its package (as the
   docs app reads `docs/`) must be listed there, or a change to it will not rebuild the task. Turborepo's `--affected` is not

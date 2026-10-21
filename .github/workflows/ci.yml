@@ -5,8 +5,11 @@ on:
   push:
     branches: [main]
 
+# A pull request: a new push cancels the run of the one before. main: every merge commit gets a run of its own, side by
+# side with the others — its images and chart are tagged with its commit, so no run waits for another or replaces it, and
+# every commit on main can be released.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.event_name == 'push' && github.sha || github.ref }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
