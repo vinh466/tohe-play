@@ -6,7 +6,8 @@ Newest first. One entry per working session: what moved, what is waiting on whom
 
 - Owner: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B" → **D-02, D-04 decided** (B). Sửa cập nhật an toàn: PR riêng
   từ `main`, builder (Opus · high), tái hiện bằng test trước khi sửa.
-- Owner: review lại chia host/subdomain/path đã tối ưu chưa → scout nghiên cứu, rồi R-04.
+- Owner: review lại chia host/subdomain/path đã tối ưu chưa → scout + kiểm code → R-04, **D-05 proposed** (A: giữ;
+  game sang domain riêng khi có game không do repo viết; Access cho console trước launch).
 
 ## 2026-10-22 (tối) — agent
 
