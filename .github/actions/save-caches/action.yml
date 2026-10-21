@@ -1,0 +1,38 @@
+name: Save the caches
+description: >-
+  On main, after a job's checks pass: its Turborepo cache, and the pnpm store when the lockfile has none yet. Pull requests
+  start from these. A pull request saves nothing — no other pull request could read it, and it would only crowd main's
+  caches out of the repository's 10 GB.
+
+inputs:
+  turbo-cache:
+    description: The job's Turborepo cache, as given to ./.github/actions/setup. Empty for none.
+    default: ""
+  pnpm-store:
+    description: Save the pnpm store as well. One job per run does.
+    default: "false"
+
+runs:
+  using: composite
+  steps:
+    - if: inputs.turbo-cache != ''
+      uses: actions/cache/save@v6
+      with:
+        path: .turbo/cache
+        key: turbo-${{ runner.os }}-${{ inputs.turbo-cache }}-${{ github.sha }}
+    - if: inputs.pnpm-store == 'true'
+      id: pnpm-store
+      shell: bash
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+    - if: inputs.pnpm-store == 'true'
+      id: saved
+      uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.pnpm-store.outputs.path }}
+        key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        lookup-only: true
+    - if: inputs.pnpm-store == 'true' && steps.saved.outputs.cache-hit != 'true'
+      uses: actions/cache/save@v6
+      with:
+        path: ${{ steps.pnpm-store.outputs.path }}
+        key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
