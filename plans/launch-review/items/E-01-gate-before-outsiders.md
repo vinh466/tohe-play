@@ -1,8 +1,9 @@
-# E-05 — Cổng trước khi mời người ngoài vào production
+# E-01 — Cổng trước khi mời người ngoài vào production
 
-- Status: **open** — danh sách, chi tiết hoá khi P1 gần xong
-- Kind: enhancement — tiếp nhận E-10 ("Checklist ra mắt") của `plans/public-launch`
-- Blocks: việc mời người ngoài đầu tiên · Blocked by: D-05 (và P1 nên xong trước, không bắt buộc)
+- Status: **open** — danh sách, chi tiết hoá ở phase Map
+- Kind: enhancement — chuyển từ `plans/product-surface` E-05 (2026-10-21, Phase 1 đóng), vốn tiếp nhận E-10 ("Checklist
+  ra mắt") của `plans/public-launch`
+- Blocks: việc mời người ngoài đầu tiên, launch chính thức · Blocked by: — (Phase 1 đã xong)
 - Decided: —
 
 ## Vì sao
