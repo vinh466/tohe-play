@@ -1,7 +1,7 @@
 ---
 name: chore
 description: Mechanical changes for the Tò He master — renames, regenerating generated files, CI fixes, dependency bumps from docs/roadmap/upgrade-watchlist.md. Edits files in its worktree, never commits.
-model: claude-sonnet-5-5
+model: claude-opus-5-5
 effort: medium
 maxTurns: 80
 ---

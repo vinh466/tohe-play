@@ -1,7 +1,7 @@
 ---
 name: scout
 description: Read-only search of code, logs, docs and the web for the Tò He master. Returns facts with path:line and sources. Use for "where is X", "what does Y do", "what does this library or service say".
-model: claude-haiku-5-5
+model: claude-opus-5-5
 effort: low
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 disallowedTools: Write, Edit, NotebookEdit
