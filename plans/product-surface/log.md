@@ -2,6 +2,12 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-21 (chiều) — agent
+
+- I4 #104 merged (owner) → owner "lên prod": `uat-2026-10-21.2` (ddd93c9, `check:uat` 20/20, migration
+  `GameIdentityAndEntries`) → `prod-2026-10-21.2`, GitHub Release, platform-infra#245 (agent merge) → `check:prod` 23/23.
+- Phase 1 chỉ còn K2 (owner thử thiết bị). Builder chạm trần 150 lượt một lần — gửi tiếp, xong.
+
 ## 2026-10-21 — agent
 
 - I3a #102, I3b #103 merged; I2 + I3 → `uat-`/`prod-2026-10-21.1` (95fdf6d), owner: prod ok.

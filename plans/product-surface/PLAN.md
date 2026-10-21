@@ -4,8 +4,8 @@
   link, rồi được dẫn cài app và giữ tiến độ vào account đúng lúc — trên một domain ổn định và một luồng phát triển · kiểm
   thử · môi trường đã viết thành spec.
 - Phase: **Graduate** ([process](../README.md#phases)) — mọi item quyết định đã decided (2026-10-19); thứ tự xây theo pull
-  request ở **[delivery.md](delivery.md)**; N1–N3, B1–B5, S1–S4, K1, I1–I3 **chạy trên prod** (`prod-2026-10-21.1`);
-  ADR 0045 (I4) đã merge. Còn lại: I4 (đang làm), K2. Còn mở: E-05 (Cổng).
+  request ở **[delivery.md](delivery.md)**; N1–N3, B1–B5, S1–S4, K1, I1–I4 **chạy trên prod** (`prod-2026-10-21.2`).
+  Còn lại: K2. Còn mở: E-05 (Cổng).
 - Started: 2026-10-19 · Trên `main` từ [#72](https://github.com/vinh466/tohe-play/pull/72) (2026-10-19); mỗi lần cập nhật
   là một pull request nhỏ
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (vòng đời một user ở §6) ·
@@ -17,8 +17,9 @@
 ## Next — one item
 
 **Làm nốt Phase 1, rồi phase review** (owner 2026-10-20: "làm nốt những cái bạn đề xuất cho xong đi, sau đó tôi để đến
-phase review … làm 1 nền tảng hoàn chỉnh về các mặt trước khi launch chính thức"): **I4** (code theo ADR 0045) — một PR
-(owner 2026-10-21: "I4 chung 1 PR luôn"), câu chữ agent tự chọn và ghi trong PR → K2. Sau đó: một plan space mới để
+phase review … làm 1 nền tảng hoàn chỉnh về các mặt trước khi launch chính thức"): **K2** — vòng thử thiết bị của owner
+trên prod (E-03 §14), gồm link "Thách bạn" của Ghép Khối qua Zalo/Messenger, nút "Gửi" trên Safari, đăng nhập từ sheet
+của game rồi game mở lại. Sau đó: một plan space mới để
 review toàn diện nền tảng (UI/UX, luồng, tính năng còn thiếu, câu chữ, Điều khoản + Quyền riêng tư) trước khi launch
 chính thức.
 
