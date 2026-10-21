@@ -16,10 +16,19 @@ env:
   TURBO_TELEMETRY_DISABLED: 1
   DOTNET_CLI_TELEMETRY_OPTOUT: 1
   ASTRO_TELEMETRY_DISABLED: 1
+  # main runs every task without reading a cache, and only writes it: what gets published has passed every check from
+  # scratch. A pull request replays a task whose inputs did not change from the cache main saved.
+  TURBO_CACHE: ${{ github.event_name == 'push' && 'local:w' || 'local:rw' }}
+  # The images of the run: built once by the images job (deploy/docker/docker-bake.hcl), tested by the chart and e2e
+  # jobs, and on main pushed as they are.
+  IMAGES: ghcr.io/${{ github.repository }}
+  TOHE_IMAGE_TAG: sha-${{ github.sha }}
 
 # A pull request runs what it touches (docs/guides/environments.md#continuous-integration): nothing for notes only, the
 # docs app and its link check for docs, every job otherwise. A push to main runs every job, every task without reading a
-# cache, before anything is published. The jobs run side by side; none waits for another but publish.
+# cache, before anything is published. The jobs run side by side — the runners of a public repository cost nothing — with
+# one game's conformance and one e2e suite per runner. "CI passed" waits for every job: it is the one check to require,
+# and the one publish waits for. A new job goes into its needs.
 jobs:
   changes:
     name: What the change touches
@@ -27,6 +36,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       scope: ${{ steps.scope.outputs.scope }}
+      games: ${{ steps.scope.outputs.games }}
     steps:
       - uses: actions/checkout@v7
         with:
@@ -37,71 +47,128 @@ jobs:
           BASE: ${{ github.event.pull_request.base.sha }}
           HEAD: ${{ github.event.pull_request.head.sha }}
         run: |
-          scope="$(scripts/ci-scope.sh)"
-          echo "$scope" >> "$GITHUB_OUTPUT"
-          echo "$scope"
+          outputs="$(scripts/ci-scope.sh)"
+          echo "$outputs" >> "$GITHUB_OUTPUT"
+          echo "$outputs"
 
+  # pnpm verify, the Definition of Done, is this job, the api job and the conformance jobs together.
   verify:
-    name: Verify (lint, typecheck, test, build, conformance)
+    name: Verify (Biome, typecheck, test, build)
     needs: changes
     if: needs.changes.outputs.scope != 'notes'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
-    env:
-      ALL: ${{ needs.changes.outputs.scope == 'all' }}
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: ./.github/actions/setup
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - uses: actions/setup-dotnet@v6
-        if: env.ALL == 'true'
-        with:
-          global-json-file: global.json
-      - run: pnpm install --frozen-lockfile
-      - run: dotnet tool restore
-        if: env.ALL == 'true'
-      # Turborepo's cache from earlier runs: a task whose inputs did not change replays its result. A pull request reads
-      # the newest one its base branch saved; main never reads it (--cache=local:w below), it only saves a fresh one.
-      - name: Turborepo cache
-        uses: actions/cache@v6
-        with:
-          path: .turbo/cache
-          key: turbo-${{ runner.os }}-${{ github.sha }}
-          restore-keys: turbo-${{ runner.os }}-
-      - name: Install Chromium for the conformance kit
-        if: env.ALL == 'true'
-        run: pnpm --filter @tohe/conformance exec playwright install --with-deps chromium
+          turbo-cache: verify
       - name: Docs only — Biome, and the docs app with its link check
-        if: env.ALL != 'true'
+        if: needs.changes.outputs.scope == 'docs'
         run: pnpm exec biome check . && pnpm exec turbo run build --filter=@tohe/docs
-      - name: pnpm verify
-        if: env.ALL == 'true'
-        run: pnpm verify ${{ github.event_name == 'push' && '--cache=local:w' || '' }}
+      - name: Biome, then typecheck, test and build every package but the API's
+        if: needs.changes.outputs.scope == 'all'
+        run: pnpm exec biome check . && pnpm exec turbo run typecheck test build --filter='!@tohe/api'
+      - if: github.event_name == 'push'
+        uses: ./.github/actions/save-caches
+        with:
+          turbo-cache: verify
+          pnpm-store: true
+
+  api:
+    name: API (build, test on PostgreSQL, generated files)
+    needs: changes
+    if: needs.changes.outputs.scope == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+        with:
+          dotnet: true
+          turbo-cache: api
+      # The tests run on PostgreSQL in Testcontainers, on the runner's Docker.
+      - name: Build and test the API
+        run: pnpm exec turbo run build test --filter=@tohe/api
       - name: Generated files are up to date
-        if: env.ALL == 'true'
         # The API's types, and what the map in @tohe/routes generates (ADR 0042), regenerated outside Turborepo's cache.
         run: |
           pnpm --filter @tohe/hub generate:api
           pnpm --filter @tohe/routes build
           git status --porcelain
           test -z "$(git status --porcelain)" || { echo "::error::Generated files are stale. Run pnpm --filter @tohe/routes build and pnpm --filter @tohe/hub generate:api, then commit."; git diff --stat; exit 1; }
-      - name: Upload conformance screenshots
-        if: always() && env.ALL == 'true'
-        uses: actions/upload-artifact@v7
+      - if: github.event_name == 'push'
+        uses: ./.github/actions/save-caches
         with:
-          name: conformance
-          path: games/*/test-results/conformance/
-          if-no-files-found: ignore
+          turbo-cache: api
 
-  chart:
-    name: Helm chart (lint, guards, install on kind)
+  # One game per runner, for every game the changes job found: the kit times its checks, and a browser of another game
+  # on the same small runner made them miss.
+  conformance:
+    name: Conformance (${{ matrix.game }})
     needs: changes
     if: needs.changes.outputs.scope == 'all'
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        game: ${{ fromJSON(needs.changes.outputs.games) }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+        with:
+          turbo-cache: conformance-${{ matrix.game }}
+      - name: Install Chromium for the conformance kit
+        run: pnpm --filter @tohe/conformance exec playwright install --with-deps chromium
+      - name: The conformance kit
+        run: pnpm exec turbo run conformance --filter=./games/${{ matrix.game }}
+      - name: Upload conformance screenshots
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: conformance-${{ matrix.game }}
+          path: games/${{ matrix.game }}/test-results/conformance/
+          if-no-files-found: ignore
+      - if: github.event_name == 'push'
+        uses: ./.github/actions/save-caches
+        with:
+          turbo-cache: conformance-${{ matrix.game }}
+
+  # What passed every check on main becomes the release (ADR 0021): the images are built here once, in parallel, and every
+  # later job uses these very images — the chart on kind, the e2e suites, and publish, which pushes them as they are.
+  images:
+    name: Images (built once for the run)
+    needs: changes
+    if: needs.changes.outputs.scope == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+      - name: Build the images (deploy/docker/docker-bake.hcl)
+        env:
+          TAG: ${{ env.TOHE_IMAGE_TAG }}
+          REVISION: ${{ github.sha }}
+        run: |
+          set -o pipefail
+          docker buildx bake -f deploy/docker/docker-bake.hcl --print | jq -r '.target[].tags[]' | sort >images.txt
+          docker buildx bake -f deploy/docker/docker-bake.hcl --pull
+          docker save --output images.tar $(cat images.txt)
+          ls -l images.tar && cat images.txt
+      - uses: actions/upload-artifact@v7
+        with:
+          name: images
+          path: |
+            images.tar
+            images.txt
+          if-no-files-found: error
+          retention-days: 1
+
+  chart:
+    name: Helm chart (lint, guards, install on kind)
+    needs: images
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v7
       # Helm 3, as ArgoCD renders charts with it (ADR 0021).
@@ -110,29 +177,28 @@ jobs:
           version: v3.16.3
       - name: Lint, render every profile, check every guard
         run: deploy/helm/tohe/ci/check.sh
-      - name: Build the images
-        run: |
-          docker build -f deploy/docker/api.Dockerfile -t tohe-api:ci .
-          for target in hub games docs; do
-            docker build -f deploy/docker/web.Dockerfile --target "$target" -t "tohe-$target:ci" .
-          done
+      - uses: actions/download-artifact@v8
+        with:
+          name: images
       - uses: helm/kind-action@v1
         with:
           cluster_name: tohe
-      - name: Load the images into kind
-        run: kind load docker-image tohe-api:ci tohe-hub:ci tohe-games:ci tohe-docs:ci --name tohe
+      - name: Load the run's images into kind
+        run: |
+          docker load --input images.tar
+          kind load docker-image $(cat images.txt) --name tohe
       - name: Install from scratch (builtin PostgreSQL, the chart's own Secret)
         run: |
           helm install tohe deploy/helm/tohe \
             -f deploy/helm/tohe/ci/standalone.yaml -f deploy/helm/tohe/ci/kind/images.yaml \
-            --wait --timeout 10m
+            --set global.image.tag="$TOHE_IMAGE_TAG" --wait --timeout 10m
       - name: helm test
         run: helm test tohe --logs
       - name: Upgrade in place
         run: |
           helm upgrade tohe deploy/helm/tohe \
             -f deploy/helm/tohe/ci/standalone.yaml -f deploy/helm/tohe/ci/kind/images.yaml \
-            --set api.config.Rooms__GraceSeconds=45 --wait --timeout 10m
+            --set global.image.tag="$TOHE_IMAGE_TAG" --set api.config.Rooms__GraceSeconds=45 --wait --timeout 10m
           helm test tohe --logs
       - name: Cluster state
         if: failure()
@@ -143,13 +209,21 @@ jobs:
             kubectl logs -l app.kubernetes.io/component=$component --tail=80 --all-containers || true
           done
 
-  stack:
-    name: Docker stack + e2e smoke and rooms
-    needs: changes
-    if: needs.changes.outputs.scope == 'all'
+  # Each suite on a compose stack of its own, from the run's images, as Mode C runs the published ones
+  # (compose.image.yaml): a suite neither waits for another nor shares its sign-in rate limit or its CPU.
+  e2e:
+    name: E2E (${{ matrix.suite }})
+    needs: images
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        # The suites in tools/e2e: a new suite is a new entry.
+        suite: [smoke, rooms, journey, entries]
     env:
+      COMPOSE_FILE: ${{ github.workspace }}/compose.yaml:${{ github.workspace }}/compose.image.yaml
+      TOHE_VERSION: ${{ github.sha }}
       # The hub then serves /.well-known/security.txt, and the routes check reads it (ADR 0042).
       TOHE_SECURITY_CONTACT: security@example.test
       # The hub image's second site, the console's own host, published by compose.yaml (ADR 0042).
@@ -157,16 +231,15 @@ jobs:
       CONSOLE_URL: http://localhost:4721
     steps:
       - uses: actions/checkout@v7
-      - uses: pnpm/action-setup@v6
-      - uses: actions/setup-node@v7
+      - uses: ./.github/actions/setup
+      - uses: actions/download-artifact@v8
         with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      - name: Build images
-        run: docker compose build
-      - name: Start stack
-        run: docker compose up -d --wait postgres && docker compose up -d
+          name: images
+      - name: Start the stack on the run's images
+        run: |
+          docker load --input images.tar
+          docker compose up -d --wait postgres
+          docker compose up -d --no-build
       - name: Wait for the API
         run: |
           for _ in $(seq 1 60); do
@@ -174,23 +247,19 @@ jobs:
             sleep 2
           done
           exit 1
-      - name: The hub and the console serve the map of their paths (ADR 0042)
-        run: pnpm --filter @tohe/e2e routes
+      - name: The hub and the console serve the map of their paths (ADR 0042), the docs the root of their host
+        run: |
+          pnpm --filter @tohe/e2e routes
+          curl -fsS http://localhost:4710/ | grep -q "Tò He"
       - run: pnpm --filter @tohe/e2e exec playwright install --with-deps chromium
-      - run: pnpm --filter @tohe/e2e smoke
+      - name: The ${{ matrix.suite }} suite
+        run: pnpm --filter @tohe/e2e "$SUITE"
         env:
+          SUITE: ${{ matrix.suite }}
           # The smoke test claims the new deployment with the setup token the API logs; the API container's command is
           # the way when it is owned already (ADR 0027).
           ADMIN_LOGS_COMMAND: docker compose --project-directory ${{ github.workspace }} logs api
           ADMIN_GRANT_COMMAND: docker compose --project-directory ${{ github.workspace }} exec -T api dotnet Tohe.Api.dll admin grant
-      - name: Online rooms, three phones (ADR 0016, 0017)
-        run: pnpm --filter @tohe/e2e rooms
-      - name: A newcomer's first touches (E-03)
-        run: pnpm --filter @tohe/e2e journey
-      - name: Every way in — share links, typed codes, dead ends (ADR 0044)
-        run: pnpm --filter @tohe/e2e entries
-      - name: Docs are served at the root of their host
-        run: curl -fsS http://localhost:4710/ | grep -q "Tò He"
       - name: Stack logs
         if: failure()
         run: docker compose logs --no-color
@@ -198,29 +267,45 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7
         with:
-          name: e2e
+          name: e2e-${{ matrix.suite }}
           path: tools/e2e/test-results/
           if-no-files-found: ignore
 
-  # What passed every check on main becomes the release (ADR 0021): four images tagged with the commit, and the chart
-  # whose appVersion is that tag. UAT deploys these images; production pins a chart version and a tag.
+  passed:
+    name: CI passed
+    needs: [changes, verify, api, conformance, images, chart, e2e]
+    if: ${{ !cancelled() }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Every job passed, or was not needed for this change
+        env:
+          NEEDS: ${{ toJSON(needs) }}
+        run: |
+          jq -r 'to_entries[] | "\(.value.result)\t\(.key)"' <<<"$NEEDS"
+          jq -e 'all(.[]; .result == "success" or .result == "skipped")' <<<"$NEEDS" >/dev/null
+
+  # What passed every check on main becomes the release (ADR 0021): the run's four images, tagged with the commit, and the
+  # chart whose appVersion is that tag. UAT deploys these images; production pins a chart version and a tag.
   publish:
     name: Publish images and chart to GHCR
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [verify, chart, stack]
+    needs: passed
     runs-on: ubuntu-latest
-    timeout-minutes: 30
+    timeout-minutes: 20
     permissions:
       contents: read
       packages: write
     env:
-      IMAGES: ghcr.io/${{ github.repository }}
       CHARTS: oci://ghcr.io/${{ github.repository_owner }}/charts
     steps:
       - uses: actions/checkout@v7
       - uses: azure/setup-helm@v5
         with:
           version: v3.16.3
+      - uses: actions/download-artifact@v8
+        with:
+          name: images
       - name: Sign in to ghcr.io
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -228,26 +313,18 @@ jobs:
         run: |
           echo "$TOKEN" | docker login ghcr.io --username "$ACTOR" --password-stdin
           echo "$TOKEN" | helm registry login ghcr.io --username "$ACTOR" --password-stdin
-      - name: Build and push the images (sha-<commit>)
+      - name: Push the images the run tested (sha-<commit>)
         run: |
-          tag="sha-$GITHUB_SHA"
-          labels=(--label "org.opencontainers.image.source=https://github.com/$GITHUB_REPOSITORY"
-            --label "org.opencontainers.image.revision=$GITHUB_SHA")
-          docker build --pull -f deploy/docker/api.Dockerfile "${labels[@]}" -t "$IMAGES/api:$tag" .
-          for target in hub games docs; do
-            docker build --pull -f deploy/docker/web.Dockerfile --target "$target" "${labels[@]}" -t "$IMAGES/$target:$tag" .
-          done
-          for component in api hub games docs; do
-            docker push --quiet "$IMAGES/$component:$tag"
-          done
+          docker load --input images.tar
+          while read -r image; do docker push --quiet "$image"; done <images.txt
       - name: Package and push the chart (<version>-g<short sha>)
         run: |
           version="$(sed -n 's/^version: *//p' deploy/helm/tohe/Chart.yaml)-g${GITHUB_SHA::7}"
-          helm package deploy/helm/tohe --version "$version" --app-version "sha-$GITHUB_SHA" --destination dist
+          helm package deploy/helm/tohe --version "$version" --app-version "$TOHE_IMAGE_TAG" --destination dist
           helm push "dist/tohe-$version.tgz" "$CHARTS"
           {
             echo "### Published $GITHUB_SHA"
             echo
-            echo "- Images: \`$IMAGES/{api,hub,games,docs}:sha-$GITHUB_SHA\`"
+            sed 's/.*/- Image: `&`/' images.txt
             echo "- Chart: \`helm install tohe $CHARTS/tohe --version $version\`"
           } >>"$GITHUB_STEP_SUMMARY"

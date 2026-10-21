@@ -1,0 +1,48 @@
+name: Set up the workspace
+description: >-
+  Node and pnpm as the repository pins them, the dependencies installed from the pnpm store main saved, .NET when the job
+  needs it, and on a pull request the Turborepo cache main saved for the same job. It only reads caches: a job on main
+  saves them with ./.github/actions/save-caches (docs/guides/environments.md#continuous-integration).
+
+inputs:
+  dotnet:
+    description: Set up .NET as global.json pins it, and the repository's .NET tools.
+    default: "false"
+  turbo-cache:
+    description: The job's Turborepo cache, e.g. `verify`; the same name goes to save-caches. Empty for none.
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - uses: pnpm/action-setup@v6
+    - uses: actions/setup-node@v7
+      with:
+        node-version-file: .nvmrc
+        # The pnpm store is cached below, saved on main only.
+        package-manager-cache: false
+    - id: pnpm-store
+      shell: bash
+      run: echo "path=$(pnpm store path --silent)" >> "$GITHUB_OUTPUT"
+    - uses: actions/cache/restore@v6
+      with:
+        path: ${{ steps.pnpm-store.outputs.path }}
+        key: pnpm-store-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}
+        restore-keys: pnpm-store-${{ runner.os }}-
+    - if: inputs.dotnet == 'true'
+      uses: actions/setup-dotnet@v6
+      with:
+        global-json-file: global.json
+    - shell: bash
+      run: pnpm install --frozen-lockfile
+    - if: inputs.dotnet == 'true'
+      shell: bash
+      run: dotnet tool restore
+    # A pull request replays a task whose inputs did not change. main reads nothing: it runs every task from scratch
+    # (TURBO_CACHE in the workflow), and what it saves holds only its own commit's results.
+    - if: inputs.turbo-cache != '' && github.event_name != 'push'
+      uses: actions/cache/restore@v6
+      with:
+        path: .turbo/cache
+        key: turbo-${{ runner.os }}-${{ inputs.turbo-cache }}-${{ github.sha }}
+        restore-keys: turbo-${{ runner.os }}-${{ inputs.turbo-cache }}-

@@ -129,7 +129,7 @@ If a check fails, say so and stop. Rolling back is the owner's call ([below](#ro
 | Unit | Vitest: the game logic, the SDK, the hub | `pnpm test`, in `pnpm verify` and CI ([what runs when](#continuous-integration)) |
 | API | xUnit against PostgreSQL through Testcontainers, never a shared database | `pnpm test`, in `pnpm verify` and CI (needs Docker) |
 | Games | The conformance kit: the Game Contract, the CSP, both themes | `pnpm conformance`, in `pnpm verify` and CI |
-| The stack | The e2e smoke test, `routes` (the hub serves the map of its paths, [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)), and `rooms`: three phones play a Tiến Lên table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)) | CI against the compose stack; locally `pnpm --filter @tohe/e2e smoke` and `rooms` against a running stack |
+| The stack | `routes` (the hub serves the map of its paths, [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)), then the e2e suites: `smoke`; `rooms`, three phones play a Tiến Lên table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); `journey`, a newcomer's first touches; `entries`, every way in ([ADR 0044](../decisions/0044-entry-links.md)) | CI, one job per suite, each on a compose stack of its own; locally `pnpm --filter @tohe/e2e <suite>` against a running stack |
 | The chart | Lint, every profile rendered, every guard, an install and an upgrade on kind, `helm test` | CI, job `chart`; locally `deploy/helm/tohe/ci/check.sh` for the first part |
 | After a deploy | The [checks](#checks-after-a-deploy) above | `pnpm check:uat` and `pnpm check:prod`, run by the agent after a deploy |
 | Real devices | Phones: touch, sound, install, the installed PWA | The owner; [below](#local-development) for how to get a build on a phone |
@@ -145,15 +145,38 @@ If a check fails, say so and stop. Rolling back is the owner's call ([below](#ro
 | --- | --- | --- |
 | `notes` | plan notes (`plans/`), agent and skill definitions (`.claude/`), `AGENTS.md`, `CLAUDE.md`, `README.md` | nothing: none of it is built or shipped |
 | `docs` | the above and the spec under `docs/` | Biome, and the docs app's build, which checks every internal link |
-| `all` | anything else | every job: verify, chart, stack |
+| `all` | anything else | every job below |
 
-- A push to `main` is always `all`, and its `pnpm verify` runs every task without reading a cache
-  (`--cache=local:w`): what gets published has passed every check from scratch.
-- On a pull request, `pnpm verify` reads the Turborepo cache the base branch saved: a task whose inputs did not change
+The jobs run side by side, each on a runner of its own; the runners of a public repository cost nothing, so a check
+that can run apart runs apart:
+
+| Job | What | Waits for |
+| --- | --- | --- |
+| Verify | Biome, then typecheck, test and build every package but the API's | — |
+| API | The API's build and its tests on PostgreSQL (Testcontainers), then the generated files are up to date | — |
+| Conformance (*game*) | The conformance kit for one game. The games are the folders in `games/` with a `conformance` script, found by `scripts/ci-scope.sh`: a new game gets its job without a change to the workflow | — |
+| Images | The release's images (`deploy/docker/docker-bake.hcl`), built once for the run, tagged `sha-<commit>` | — |
+| Helm chart | Lint, every profile, every guard; then an install and an upgrade on kind, with the run's images | Images |
+| E2E (*suite*) | `routes`, then one e2e suite, on a compose stack of its own with the run's images (`compose.image.yaml`, as Mode C) | Images |
+| CI passed | Every job passed, or was not needed for the change: the one check to require on `main` | all of them |
+| Publish | On `main` only: pushes the run's images to ghcr.io as they are, then the chart | CI passed |
+
+- Verify, API and the conformance jobs together are `pnpm verify`, the Definition of Done; a check added to
+  `scripts/verify.sh` goes into the workflow too.
+- The chart, the e2e suites and publish all use the images the Images job built: what is published is the very images
+  the checks ran. A new image is a target in `docker-bake.hcl`; a new suite is an entry in the e2e job's matrix; a
+  new job goes into the needs of *CI passed*.
+- A push to `main` is always `all`, and it runs every task without reading a cache (`TURBO_CACHE=local:w`): what gets
+  published has passed every check from scratch.
+- On a pull request, each job reads the Turborepo cache the same job saved on `main`: a task whose inputs did not change
   replays its result. A task's inputs are declared in `turbo.json`; a file a task reads from outside its package (as the
   docs app reads `docs/`) must be listed there, or a change to it will not rebuild the task. Turborepo's `--affected` is not
   used for the same reason: it looks only at which package folders changed.
-- Verify, chart and stack run side by side; publish waits for all three, on `main` only.
+- Only `main` saves caches — each job its Turborepo cache, and one job the pnpm store when the lockfile changed
+  (`.github/actions/save-caches`). A pull request's cache could be read by no other pull request, and would only crowd
+  `main`'s out of the repository's 10 GB.
+- A job that needs Node starts from `.github/actions/setup`: Node and pnpm as pinned, the dependencies, .NET when asked,
+  the job's Turborepo cache.
 
 ## Local development
 

@@ -2,6 +2,8 @@
 # `pnpm stack:image <tag|commit>` (scripts/stack-image.sh); do not use it by hand. The same images run on UAT and on
 # production (ADR 0041); this runs them here, on the development ports (47xx), to reproduce a problem seen there.
 #   docker compose -p tohe-image -f compose.yaml -f compose.image.yaml ...
+# CI's e2e jobs use it too, on the images their run built and loaded (.github/workflows/ci.yml): the suites test the
+# very images main publishes.
 # postgres and mailpit are as in compose.yaml. Nothing is built.
 services:
   api:
