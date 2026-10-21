@@ -116,6 +116,7 @@ flowchart LR
    - **Đang chơi**: không có khung. Game toàn màn hình như hôm nay (ADR 0020). Mỗi tầng (đang chơi, bàn, app) là một mục
      lịch sử, để nút back của Android lùi đúng một tầng.
    - Menu bottom sheet bỏ đi; bốn mục của nó về đúng chỗ (Nhập mã, Link → Chơi cùng; Cài app, Góp ý → Tôi).
+   - Người quay lại thấy gì ở mục Trò chơi, máy dùng chung, cập nhật, link khi đã cài: [D-04](D-04-coming-back.md).
 2. **`/` là danh mục trước, giới thiệu sau** (như Poki, CrazyGames):
    - ngay đầu trang là lưới game ô to, một dòng "Tò He là gì" và nút "Chơi ngay";
    - dưới đó là chơi cùng bạn bè, cài app, hỏi đáp, câu chuyện.

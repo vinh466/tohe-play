@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (tối) — agent
+
+- Owner hỏi đã khảo sát việc quay lại / app đã cài chưa → chưa (chỉ lần mở đầu ở Phase 1). Hai scout → R-03, **D-04 proposed**.
+- Phát hiện: `autoUpdate` + `skipWaiting` + xoá cache cũ, không bắt lỗi nạp lười → **rủi ro màn lỗi sau mỗi deploy**
+  (chưa tái hiện); đề xuất PR riêng làm ngay. `rooms.mine()` có mà không màn nào dùng; lời mời chỉ cho account.
+
 ## 2026-10-22 (chiều) — agent
 
 - Owner: nghiên cứu sâu bố cục, "1 giai phap hien dai … gia rat re" → hai scout (Opus): kiểm kê màn trong code, tiền lệ

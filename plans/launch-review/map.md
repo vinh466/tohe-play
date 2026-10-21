@@ -10,6 +10,9 @@ xác nhận brief; Q2 có thể sinh thêm item tính năng.
 flowchart TD
   D02[D-02 Bố cục trang và lối vào] --> D01[D-01 Hai ngôn ngữ vi + en: URL, SEO, chọn ngôn ngữ]
   D01 --> E02[E-02 Rà từng màn]
+  D02 --> D04[D-04 Mở lại app: màn đầu, ai đang chơi, cập nhật]
+  D04 --> E02
+  D04 --> E03
   D02 --> E02
   E02 --> D03[D-03 Tính năng thiếu trước launch — Q2]
   E03[E-03 Luồng đầu–cuối, e2e] --> D03
@@ -28,6 +31,7 @@ flowchart TD
 |---|---|---|---|
 | [D-02](items/D-02-layout.md) | Bố cục: trang giới thiệu dành cho ai, người ta tới nó từ đâu, app có đường ra các trang công khai không (menu hub hôm nay không có), `/` làm gì với người quay lại ([R-01](research/R-01-pages-and-ways-in.md)) | Owner: "toi chua hinh dung dc trang gioi thieu vao tu dau" | D-01, E-02 |
 | [D-01](items/D-01-languages.md) | Hai ngôn ngữ: URL cho trang công khai tiếng Anh (namespace mới trong `@tohe/routes`, ADR 0042), `hreflang`, sitemap, `og:locale`; hub chọn ngôn ngữ thế nào (trình duyệt, nút đổi, nhớ theo hồ sơ hay máy); game nhận `init.locale` như hôm nay. **ADR** — URL đã được index thì đắt để đổi | Owner: vi + en, trang giới thiệu có SEO | E-02, E-04, E-06 |
+| [D-04](items/D-04-coming-back.md) | Mở lại app: màn đầu "đang dở" (bàn, lời mời, chơi tiếp), "Ai đang chơi?" trên máy dùng chung, phiên hết hạn, cập nhật không làm hỏng phiên đang mở, link khi đã cài ([R-03](research/R-03-coming-back.md)) | Owner: "flow khi app intalled hay user enter lai app" | E-02, E-03 |
 | E-02 | Rà từng màn: hub, console, trang công khai, game; điện thoại + máy tính, sáng + tối, vi + en; ảnh chụp vào `research/` (cách làm: brief Q3) | "review lai toan bo cai dang co" | D-03, E-04 |
 | E-03 | Luồng đầu–cuối: người mới → chơi → cài app → account; link mời, mã bàn, "Thách bạn", chuyển máy, hồ sơ trẻ em; e2e cho từng luồng | "xem xet o cac goc do"; không ngõ cụt | D-03 |
 | D-03 | Tính năng thiếu trước launch — owner chọn (brief Q2) | Owner chọn, agent không bịa | E-01, E-05 |
