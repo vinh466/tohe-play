@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (chiều) — agent
+
+- Owner: nghiên cứu sâu bố cục, "1 giai phap hien dai … gia rat re" → hai scout (Opus): kiểm kê màn trong code, tiền lệ
+  trên web → R-02; **D-02 proposed** (B: hai vùng Khám phá/Chơi, khung app ba mục, `/` danh mục trước, bỏ redirect).
+- **D-01 proposed** (B: `/en/` + hreflang trong sitemap cho trang công khai; ngôn ngữ là cài đặt trong app; link không
+  mang ngôn ngữ). Chờ owner: D-02 Q1–Q5, D-01 Q1–Q4.
+
 ## 2026-10-22 — agent
 
 - Owner trả lời Q1 (rà toàn bộ cái đang có), Q4 (vi + en mọi chỗ của người chơi, trang giới thiệu có SEO, console chỉ

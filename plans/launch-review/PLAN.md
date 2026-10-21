@@ -6,14 +6,14 @@
   nháp; owner đã trả lời Q1, Q4, Q5 (2026-10-22), còn Q2, Q3 và lời xác nhận.
 - Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
-- Research: [R-01 bản đồ trang và lối vào](research/R-01-pages-and-ways-in.md)
+- Research: [R-01 bản đồ trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại, SEO hai ngôn ngữ](research/R-02-layout-prior-art.md)
 - Trước đó: [`product-surface`](../product-surface/PLAN.md) (Phase 1, Close 2026-10-21)
 
 ## Next — one item
 
-**Owner chốt brief** ([brief.md](brief.md)): Q2 (tính năng thiếu), Q3 (cách rà màn), xem *Xong khi* 7–8 mới (hai ngôn
-ngữ, bố cục), rồi xác nhận. Sau đó là **Map** ([map.md](map.md), 9 item nháp); item đầu tiên là **D-02 bố cục** — câu
-hỏi "trang giới thiệu vào từ đâu" đã có câu trả lời bằng sự thật ở [R-01](research/R-01-pages-and-ways-in.md).
+**Owner quyết [D-02 bố cục](items/D-02-layout.md)** (đề xuất B — hai vùng, một khung; Q1–Q5) cùng
+[D-01 ngôn ngữ](items/D-01-languages.md) (đề xuất B — URL theo ngôn ngữ cho trang công khai, cài đặt trong app; Q1–Q4)
+— owner (2026-10-22) bảo tập trung vào bố cục trước. Brief vẫn chờ Q2, Q3 và lời xác nhận.
 
 ## Waiting on the owner
 
@@ -32,9 +32,11 @@ hỏi "trang giới thiệu vào từ đâu" đã có câu trả lời bằng s�
 
 | ID | Item | Kind | Status | Blocked by |
 |---|---|---|---|---|
+| D-02 | [Bố cục các trang và app](items/D-02-layout.md) | decision | **proposed** — B, hai vùng một khung | — |
+| D-01 | [Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ](items/D-01-languages.md) | decision | **proposed** — B | D-02 |
 | E-01 | [Cổng trước khi mời người ngoài](items/E-01-gate-before-outsiders.md) (từ `product-surface` E-05) | enhancement | open | — |
 
-Các item khác nằm ở [map.md](map.md) dưới dạng nháp; lên board khi owner đồng ý map.
+Các item khác nằm ở [map.md](map.md) dưới dạng nháp; lên board khi owner đồng ý map. D-01, D-02 lên trước theo lời owner.
 
 ## Graduation list
 
