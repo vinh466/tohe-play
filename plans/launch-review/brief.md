@@ -1,6 +1,6 @@
 # Brief — Review trước launch: nền tảng hoàn chỉnh trước khi mở cho mọi người
 
-Status: **draft** — owner đọc, trả lời [câu hỏi](#câu-hỏi-cho-owner-trước-khi-chốt) và xác nhận; plan rời *Frame* khi owner
+Status: **draft** — owner đã trả lời Q1, Q4, Q5 (2026-10-22); còn Q2, Q3 và lời xác nhận; plan rời *Frame* khi owner
 xác nhận. Trích dẫn là lời owner trong chat (giữ nguyên văn, chỉ cắt bớt; "…" ở câu 2026-10-20 là chỗ bản ghi đã cắt từ
 trước). Phần *(agent đề xuất)* là của agent, owner sửa hay bỏ.
 
@@ -19,13 +19,24 @@ Trong lúc làm Phase 1, owner dời hai việc sang phase này:
 > "Điều khoản và Quyền riêng tư tôi có đọc chi tiết r, cứ tập trung impl tính năng đi, ta sẽ có 1 phase review và sync
 > nó, cái này chốt trước khi mở hẳn, yên tâm" (2026-10-21)
 
-Bốn hướng, từ những lời trên:
+Khi trả lời câu hỏi của brief:
+
+> "chua chot ngay launch, khi nao on thi launch ne  thoai mai nhe. review lai toan bo cai dang co, xem xet o cac goc
+> do, san tien ket hop check ve i18n mong muon cua toi la duy tri tieng anh va tieng viet th (game sau nay muon them van
+> dc) trang gioi thieu cung 2 ngon ngu nha (nho toi uu ve SEO) trang console thi chot la chi dung english nha (console se
+> do admin co chuyen mon r nen english toan bo) dieu khoan va quyen cung 2 ngin ngu luon, ngoai ra rrview xem viec cac
+> trang dang bo cuc hop ly chua (toi chua hinh dung dc trang gioi thieu vao tu dau)" (2026-10-22, gõ không dấu)
+
+Sáu hướng, từ những lời trên:
 
 1. **Rà toàn diện "về các mặt"** — agent ghi lại hôm 2026-10-20 là UI/UX, luồng, tính năng còn thiếu.
 2. **Câu chữ "review all"** — gồm câu chữ agent tự chọn ở Phase 1 (I4 liệt kê trong
    [#104](https://github.com/vinh466/tohe-play/pull/104)).
 3. **Điều khoản + Quyền riêng tư** — sync với những gì Tò He làm hôm nay, "chốt trước khi mở hẳn".
 4. **Cổng trước khi mời người ngoài** — danh sách từ Phase 1, nay là [E-01](items/E-01-gate-before-outsiders.md).
+5. **Hai ngôn ngữ, vi và en** — hub, game, trang giới thiệu (tối ưu SEO), Điều khoản + Quyền riêng tư; **console chỉ tiếng
+   Anh**. Game sau này thêm ngôn ngữ khác vẫn được.
+6. **Bố cục các trang** — hợp lý chưa, và người ta vào trang giới thiệu từ đâu ([R-01](research/R-01-pages-and-ways-in.md)).
 
 ## Ràng buộc đang có hiệu lực
 
@@ -52,19 +63,24 @@ Bốn hướng, từ những lời trên:
    chia sẻ và payload của game, đăng nhập Google, câu tuổi/đồng ý); owner duyệt; `TERMS_VERSION` mới.
 5. Danh sách "tính năng còn thiếu trước launch" do owner chốt — mỗi mục xong, hoặc hoãn có lý do.
 6. Cổng ([E-01](items/E-01-gate-before-outsiders.md)) xong từng dòng — để owner quyết ngày launch chính thức.
+7. Người chơi dùng được Tò He bằng vi hoặc en ở mọi chỗ của người chơi — hub, game có sẵn, trang công khai (mỗi ngôn ngữ
+   có URL riêng, `hreflang`, sitemap, kiểm SEO trong build), Điều khoản + Quyền riêng tư; console toàn tiếng Anh.
+8. Bố cục các trang và đường giữa chúng (trang giới thiệu ↔ app ↔ link mời ↔ docs) có sơ đồ trong spec; owner hình dung
+   được và đã duyệt.
 
 ## Không thuộc plan này *(agent đề xuất)*
 
 - Ngày launch, mời cộng đồng đầu tiên — quyết định riêng của owner; plan chỉ làm cho Cổng qua được.
 - Quảng cáo, marketing trả tiền; app trên store, app native.
-- Phase 2 (hub) và Phase 3 (luồng game) ngoài phần owner chọn ở Q1 và Q2.
+- Phase 2 (hub) và Phase 3 (luồng game) như tính năng mới — trừ những gì owner chọn ở Q2.
+- Ngôn ngữ thứ ba cho hub và trang công khai (owner: "duy tri tieng anh va tieng viet th").
 
 ## Câu hỏi cho owner (trước khi chốt)
 
 | Q | Câu hỏi | Agent đề xuất |
 |---|---|---|
-| Q1 | **Phạm vi.** Phase 1 đã hoãn Phase 2 (hub: quản lý account/hồ sơ, sảnh phòng, bảng xếp hạng, cài đặt) và Phase 3 (luồng game: shell, menu, game mới như Lấp Ô). Phase review có gộp chúng vào không, hay chỉ rà và sửa cái đang có rồi launch? | Rà và sửa cái đang có, cộng những gì owner coi là **thiếu để launch** (Q2); phần còn lại của Phase 2/3 làm sau launch |
+| Q1 | ~~Phạm vi so với Phase 2/3~~ | **Owner 2026-10-22:** "review lai toan bo cai dang co, xem xet o cac goc do" — rà mọi thứ đang có; tính năng mới chỉ khi owner chọn ở Q2 |
 | Q2 | **Tính năng còn thiếu.** Owner đã có danh sách chưa? | Nếu chưa, agent liệt kê ứng viên từ backlog (đăng nhập Zalo, telemetry crash/CSP, Lấp Ô, service worker cho origin của game…) và từ phần rà màn, owner chọn |
 | Q3 | **Cách rà UI/UX.** Agent chụp từng màn rồi owner xem, hay owner tự đi và ghi lại? | Agent chụp mọi màn bằng Playwright (điện thoại + máy tính, sáng + tối, vi), gom vào `research/`, ghi lỗi thấy được; owner xem và thêm cảm nhận |
-| Q4 | **Ngôn ngữ.** Hub có cả vi và en; trang công khai chỉ có vi. Soát câu chữ cả en hay chỉ vi? | Soát vi kỹ; en chỉ sửa chỗ sai nghĩa |
-| Q5 | **Mốc thời gian.** Có ngày launch dự kiến không? | Không đặt ngày trong plan; thứ tự làm theo map, owner chốt ngày khi Cổng gần xong |
+| Q4 | ~~Ngôn ngữ~~ | **Owner 2026-10-22:** vi + en cho hub, game, trang giới thiệu (SEO), Điều khoản + Quyền riêng tư; console chỉ tiếng Anh — soát câu chữ cả hai ngôn ngữ |
+| Q5 | ~~Mốc thời gian~~ | **Owner 2026-10-22:** "chua chot ngay launch, khi nao on thi launch ne  thoai mai nhe" |
