@@ -4,7 +4,7 @@
   riêng tư đã chốt, những tính năng owner coi là thiếu đã có, và Cổng trước người ngoài đã qua.
 - Phase: **Frame** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)) — brief là bản
   nháp, chờ owner.
-- Started: 2026-10-21 · Branch: `plan/launch-review` · PR: (draft, mở cùng phiên này)
+- Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
 - Trước đó: [`product-surface`](../product-surface/PLAN.md) (Phase 1, Close 2026-10-21)
 
