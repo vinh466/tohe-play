@@ -727,7 +727,9 @@ flowchart TD
 [ADR 0043](../decisions/0043-device-profiles-and-identity-levels.md), step I2a. A device profile reaches the server
 **lazily**: the first time its player does something that needs it — sitting at a table, from a room link, the rooms
 lobby or a room, opening a share link that asks for a name, making one with "Chia sẻ" ([Entry links](entry-links.md)),
-or moving it to another device ([the transfer code](#the-transfer-code)). Until I4 every game asks for `any`; a table
+or moving it to another device ([the transfer code](#the-transfer-code)). A game asks for what its `identity.play` says — `any` unless it
+declares more ([ADR 0045](../decisions/0045-games-declare-identity-and-entries.md)) — and may ask for `named` or
+`account` in the middle of play (`identity.require`, answered by the hub's own sheets); a table
 asks for at least `named`. Every way in goes through the hub's [entry pipeline](entry-links.md#the-hubs-entry-pipeline),
 whose identity gate is this one: the highest of the game's, the feature's and the link's level.
 

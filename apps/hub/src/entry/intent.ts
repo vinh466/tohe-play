@@ -13,6 +13,8 @@ const INTENT_KEY = 'tohe:entry';
 const SOURCE_KEY = 'tohe:entry-source';
 /** Where to go after signing in (session/next.ts): an entry's path there goes with the entry. */
 const NEXT_KEY = 'tohe:next';
+/** The entry a game opens with next (gameEntry.ts, ADR 0045): it goes with the intent. */
+export const GAME_ENTRY_KEY = 'tohe:game-entry';
 
 export interface KeptEntry extends EntryIntent {
   /** When it was first kept (ms since the epoch). */
@@ -155,11 +157,13 @@ export function createEntryStore(storage: EntryStorage | null, now: () => number
 
     /**
      * Another profile was chosen on a shared device, a new one made, or the account signed out: what this tab came for
-     * is someone else's. The intent, the share link it came from, and an entry's path waiting after sign-in all go.
+     * is someone else's. The intent, the share link it came from, an entry's path waiting after sign-in and the entry a
+     * game was to open with all go.
      */
     forget(): void {
       remove(storage, INTENT_KEY);
       remove(storage, SOURCE_KEY);
+      remove(storage, GAME_ENTRY_KEY);
       const next = (() => {
         try {
           return storage?.getItem(NEXT_KEY) ?? null;

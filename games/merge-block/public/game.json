@@ -2,7 +2,7 @@
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "merge-block",
   "name": "Ghép Khối",
-  "version": "1.10.0",
+  "version": "1.11.0",
   "protocol": 1,
   "description": "Thả khối số vào cột, hai khối giống nhau sẽ gộp lại. Gộp liên tiếp để nhân điểm!",
   "icon": "icon.svg",
@@ -12,5 +12,6 @@
   "minAge": 3,
   "tags": ["puzzle", "numbers"],
   "sizeBudgetKb": 2500,
-  "ranked": { "verify": "verify.js", "board": "default", "minMsPerMove": 150, "maxMoves": 20000 }
+  "ranked": { "verify": "verify.js", "board": "default", "minMsPerMove": 150, "maxMoves": 20000 },
+  "entries": ["share"]
 }

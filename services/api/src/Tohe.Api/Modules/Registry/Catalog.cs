@@ -23,7 +23,9 @@ internal sealed record GameManifestDocument(
     int? MinAge,
     IReadOnlyList<string>? Tags,
     JsonElement? Rooms = null,
-    JsonElement? Ranked = null);
+    JsonElement? Ranked = null,
+    JsonElement? Identity = null,
+    IReadOnlyList<string>? Entries = null);
 
 internal static partial class CatalogRules
 {

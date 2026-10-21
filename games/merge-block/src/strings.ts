@@ -23,6 +23,21 @@ export const strings = {
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
     bestLine: (score: string) => `👑 Kỷ lục ${score}`,
+    // "Thách bạn" (ADR 0045): a challenge on the same blocks, by a share link. The score is the sender's claim.
+    challenge: {
+      button: 'Thách bạn',
+      again: 'Thách lại',
+      back: 'Về ván thường',
+      text: (score: string) => `Mình được ${score} điểm Ghép Khối. Bạn vượt được không?`,
+      target: (score: string, name: string | null) => (name ? `Vượt ${score} của ${name}` : `Vượt ${score}`),
+      intro: (score: string, name: string | null) =>
+        name
+          ? `Cùng bộ khối với ${name}. ${score} là điểm ${name} gửi kèm link.`
+          : `Cùng bộ khối với người gửi. ${score} là điểm gửi kèm link.`,
+      beaten: (score: string, name: string | null) =>
+        name ? `Bạn đã vượt ${name}! 🎉` : `Bạn đã vượt ${score}! 🎉`,
+      short: (diff: string) => `Còn thiếu ${diff} điểm nữa thôi!`,
+    },
     // Watching a ranked run (ADR 0032), in the admin console.
     replay: {
       title: 'Xem lại run',
@@ -63,6 +78,20 @@ export const strings = {
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     inProgress: (score: string) => `A game in progress: ${score} points.`,
     bestLine: (score: string) => `👑 Best ${score}`,
+    challenge: {
+      button: 'Challenge a friend',
+      again: 'Challenge back',
+      back: 'Back to my game',
+      text: (score: string) => `I scored ${score} in Merge Blocks. Can you beat it?`,
+      target: (score: string, name: string | null) => (name ? `Beat ${name}’s ${score}` : `Beat ${score}`),
+      intro: (score: string, name: string | null) =>
+        name
+          ? `Same blocks as ${name}. ${score} is the score ${name} sent with the link.`
+          : `Same blocks as the sender. ${score} is the score sent with the link.`,
+      beaten: (score: string, name: string | null) =>
+        name ? `You beat ${name}! 🎉` : `You beat ${score}! 🎉`,
+      short: (diff: string) => `Just ${diff} points short!`,
+    },
     replay: {
       title: 'Watch the run',
       leave: 'Stop watching',

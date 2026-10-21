@@ -1,5 +1,14 @@
 import { z } from 'zod';
-import { GameId, PROTOCOL_VERSION, Theme } from './manifest.ts';
+import {
+  EntryKind,
+  GameId,
+  IdentityLevel,
+  jsonBytes,
+  MAX_ENTRY_PAYLOAD_BYTES,
+  PROTOCOL_VERSION,
+  SemVer,
+  Theme,
+} from './manifest.ts';
 import { MAX_TELEMETRY_EVENTS, TelemetryEvent } from './telemetry.ts';
 
 /** Max size of a serialized save, in bytes. Larger saves are rejected by the host. */
@@ -15,6 +24,14 @@ export const Profile = z.object({
   avatar: z.string().optional(),
 });
 export type Profile = z.infer<typeof Profile>;
+
+/** Of this device or of an account (ADR 0043; a child's profile is an account's). */
+export const ProfileKind = z.enum(['device', 'account']);
+export type ProfileKind = z.infer<typeof ProfileKind>;
+
+/** The profile playing, in `init`: with its kind (ADR 0045), which older hubs leave out. Not on a table's seats. */
+export const InitProfile = Profile.extend({ kind: ProfileKind.optional() });
+export type InitProfile = z.infer<typeof InitProfile>;
 
 export const Settings = z.object({
   muted: z.boolean(),
@@ -109,6 +126,60 @@ export const RankedReplay = z
   .strict();
 export type RankedReplay = z.infer<typeof RankedReplay>;
 
+// ---------------------------------------------------------------- entries and identity (ADR 0045)
+
+/** An entry's payload: JSON the game alone reads, at most 2 KB as UTF-8. Untrusted: anyone can make a share link. */
+export const EntryPayload = z.json().refine((value) => jsonBytes(value) <= MAX_ENTRY_PAYLOAD_BYTES, {
+  message: `at most ${MAX_ENTRY_PAYLOAD_BYTES} bytes as UTF-8 JSON`,
+});
+
+/** Who made the link an entry came by, when they may be shown (ADR 0044's rule for a child's profile). */
+export const EntryFrom = z
+  .object({ name: z.string().min(1).max(64), avatar: z.string().max(16).optional() })
+  .strict();
+export type EntryFrom = z.infer<typeof EntryFrom>;
+
+/**
+ * The entry the game was opened by (ADR 0045): a share link's payload, the game's version when the link was made, and
+ * its maker. Sent only to a build that declares the kind in `entries`; never with `room`, `replay` or `rankedReplay`.
+ */
+export const GameEntry = z
+  .object({ kind: EntryKind, payload: EntryPayload, version: SemVer, from: EntryFrom.optional() })
+  .strict();
+export type GameEntry = z.infer<typeof GameEntry>;
+
+/**
+ * What the hub answers in this session (ADR 0045): `identity.require` and `share`. Both false at a table, in a replay
+ * and in a ranked replay; `share` also for a child kept to its account, and for a game without `entries`.
+ */
+export const HostCan = z.object({ require: z.boolean(), share: z.boolean() }).strict();
+export type HostCan = z.infer<typeof HostCan>;
+
+/** The game's answer to `init.entry`: it opened at the place, it does not open this kind or version, or the payload. */
+export const ENTRY_RESULTS = ['handled', 'unsupported', 'invalid'] as const;
+export const EntryResult = z.enum(ENTRY_RESULTS);
+export type EntryResult = z.infer<typeof EntryResult>;
+
+/** Why a game asks for more (ADR 0045): the hub words each itself, never in the game's words. */
+export const REQUIRE_REASONS = ['others', 'ranked', 'sync', 'friends'] as const;
+export const RequireReason = z.enum(REQUIRE_REASONS);
+export type RequireReason = z.infer<typeof RequireReason>;
+
+/** The levels a game may ask for in the middle of play: every profile is at least `any`. */
+export const RequiredLevel = z.enum(['named', 'account']);
+export type RequiredLevel = z.infer<typeof RequiredLevel>;
+
+/** Why `identity.require` is not ok, in `result.error`. */
+export const REQUIRE_ERRORS = ['declined', 'busy', 'unavailable'] as const;
+export type RequireError = (typeof REQUIRE_ERRORS)[number];
+
+/** Why `share` is not ok, in `result.error`. */
+export const SHARE_ERRORS = ['cancelled', 'busy', 'limit', 'offline', 'not_allowed', 'unavailable'] as const;
+export type ShareError = (typeof SHARE_ERRORS)[number];
+
+/** Longest share text a game may send; the hub keeps one line of at most 120 characters, else uses its own words. */
+export const MAX_SHARE_TEXT = 500;
+
 // ---------------------------------------------------------------- game -> host
 
 export const ReadyMessage = z.object({
@@ -194,6 +265,35 @@ export const RankedFinishMessage = z.object({
   score: z.number().finite(),
 });
 
+/** The game's answer to `init.entry`, once, within 3 s of `init` (ADR 0045). */
+export const EntryMessage = z.object({ ...envelope, type: z.literal('entry'), result: EntryResult });
+
+/**
+ * The game asks the hub for a higher identity level (ADR 0045): the hub's own sheet, with its own words for `reason`.
+ * `result`: ok (for `named`, `value` is the profile now); not ok with `declined`, `busy` or `unavailable`. For
+ * `account`, once the player signed in the game is opened again and the request never settles.
+ */
+export const IdentityRequireMessage = z.object({
+  ...envelope,
+  type: z.literal('identity.require'),
+  id: requestId,
+  level: RequiredLevel,
+  reason: RequireReason,
+});
+
+/**
+ * The game asks the hub to share an `entry` link to it (ADR 0045): the hub's sheet, the link made only when the player
+ * sends or copies it. `text` goes with the link when it passes the hub's checks; `level` is raised to the game's.
+ */
+export const ShareMessage = z.object({
+  ...envelope,
+  type: z.literal('share'),
+  id: requestId,
+  payload: z.json(),
+  text: z.string().max(MAX_SHARE_TEXT).optional(),
+  level: IdentityLevel.optional(),
+});
+
 export const GameMessage = z.discriminatedUnion('type', [
   ReadyMessage,
   SaveMessage,
@@ -209,6 +309,9 @@ export const GameMessage = z.discriminatedUnion('type', [
   GameSettingsMessage,
   RankedStartMessage,
   RankedFinishMessage,
+  EntryMessage,
+  IdentityRequireMessage,
+  ShareMessage,
 ]);
 export type GameMessage = z.infer<typeof GameMessage>;
 export type GameMessageInput = z.input<typeof GameMessage>;
@@ -218,7 +321,7 @@ export type GameMessageInput = z.input<typeof GameMessage>;
 export const InitMessage = z.object({
   ...envelope,
   type: z.literal('init'),
-  profile: Profile,
+  profile: InitProfile,
   locale: z.string(),
   settings: Settings,
   /** Last saved state for this profile and game, or null. */
@@ -235,6 +338,10 @@ export const InitMessage = z.object({
   rankedReplay: RankedReplay.optional(),
   /** For a `shell` game (ADR 0018): what the hub can open for this player. */
   shell: ShellInfo.optional(),
+  /** The entry the game was opened by (ADR 0045), only to a build that declares its kind. */
+  entry: GameEntry.optional(),
+  /** What the hub answers in this session (ADR 0045); absent from older hubs: neither. */
+  can: HostCan.optional(),
 });
 
 export const PauseMessage = z.object({ ...envelope, type: z.literal('pause') });

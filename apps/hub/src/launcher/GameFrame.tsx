@@ -1,11 +1,25 @@
 import { useBlocker, useNavigate } from '@tanstack/react-router';
-import type { Reaction, Replay, RoomSeat, ShellTarget } from '@tohe/contract';
+import type {
+  EntryResult,
+  GameEntry,
+  InitProfile,
+  Reaction,
+  Replay,
+  RequiredLevel,
+  RequireReason,
+  RoomSeat,
+  ShellTarget,
+} from '@tohe/contract';
 import type { JsonValue } from '@tohe/game-sdk';
 import { createHost, type HostHandle, iframeTransport } from '@tohe/game-sdk/host';
 import { useEffect, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type GameSummary, runs } from '../api/client.ts';
+import { gameEntry } from '../entry/gameEntry.ts';
+import { entry as entryIntent } from '../entry/intent.ts';
 import { installStore } from '../install/install.ts';
+import { TERMS_VERSION } from '../legal/documents.ts';
+import { tablesStep } from '../session/serverCopy.ts';
 import type { Player } from '../session/session.ts';
 import { syncer, syncsWithServer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
@@ -15,7 +29,18 @@ import { funnel, telemetry, telemetryOn } from '../telemetry/telemetry.ts';
 import { useTheme } from '../theme/useTheme.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
+import { EntryNotice, type GameAsk, GameAsks, type PlayingSession, Reopening } from './GameAsks.tsx';
 import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './manifest.ts';
+import {
+  declines,
+  ENTRY_ANSWER_MS,
+  hostCan,
+  LEAVE_WAIT_MS,
+  meets,
+  profileKind,
+  profileLevel,
+  takesEntry,
+} from './requests.ts';
 
 /** `starting`: the game answered, but a shell game has not shown its first screen yet (ADR 0019). */
 type Status = 'loading' | 'starting' | 'ready' | 'failed' | 'untrusted';
@@ -63,6 +88,12 @@ export interface RoomBridge {
   }): () => void;
 }
 
+/** Whether a device profile has its copy on the server with the terms the hub shows: the `named` level (ADR 0043). */
+async function deviceNamed(id: string): Promise<boolean> {
+  const profile = await db.profiles.get(id);
+  return profile !== undefined && tablesStep(profile, TERMS_VERSION) === 'play';
+}
+
 /** A game reported a final score: the moment the install card may show, and the newcomer funnel's first game. */
 function gameFinished() {
   installStore.gameFinished();
@@ -84,6 +115,9 @@ export function GameFrame({
   onExit,
   exitLabel,
   topRight,
+  entry,
+  reopened = false,
+  session: playing,
 }: {
   game: GameSummary;
   gamesOrigin: string;
@@ -91,6 +125,15 @@ export function GameFrame({
   room?: RoomBridge;
   /** A finished hand for the game to replay with its own rules module (ADR 0016). */
   replay?: Replay;
+  /** The entry the game is opened with (ADR 0045): sent only to a build that declares its kind. */
+  entry?: GameEntry | null;
+  /** The game opens again after the player signed in at its request (ADR 0045). */
+  reopened?: boolean;
+  /**
+   * The player's session, so the game may ask for a name, an account or a share (ADR 0045). Without it — a table, a
+   * replay — it may ask for neither.
+   */
+  session?: PlayingSession;
   /** The player asked to leave (exit button or the game's `exit()`); the game is paused meanwhile. */
   onExit(host: HostHandle | null): void;
   exitLabel?: string;
@@ -106,6 +149,16 @@ export function GameFrame({
   const shell = hasShell(game);
   const [board, setBoard] = useState(false);
   const [stuck, setStuck] = useState(false);
+  /** The sheet a game asked for (ADR 0045): one at a time. */
+  const [ask, setAsk] = useState<GameAsk | null>(null);
+  /** The link's place did not open in this build: the hub says so over the game's menu (ADR 0045). */
+  const [notice, setNotice] = useState(false);
+  /** A sheet is open, or one is being opened: the game's next request is `busy`. */
+  const asking = useRef(false);
+  /** The game showed its first screen: before it, a request is `busy`. */
+  const shownFirst = useRef(false);
+  /** Who waits for the game's next save: leaving to sign in waits for it, at most a second. */
+  const saveWaiters = useRef<(() => void)[]>([]);
   /** When the game last answered Back (a menu state, or leaving). */
   const answered = useRef(0);
   /**
@@ -150,15 +203,149 @@ export function GameFrame({
 
   // The session restarts only for a different game build, origin, profile or room. Everything else is read from
   // `latest` at start; later mute and theme changes are sent as `settings` messages.
+  // What the hub answers in this session (ADR 0045). A child kept to its account shares nothing with outsiders.
+  const mayPlayWithOthers =
+    player.kind !== 'child' ||
+    (playing?.status === 'account' &&
+      playing.me.profiles.find((profile) => profile.id === player.id)?.playWithOthers === true);
+  const can = hostCan({
+    asking: playing !== undefined,
+    elsewhere: Boolean(room || replay),
+    entries: game.entries,
+    mayPlayWithOthers,
+  });
+  const canKey = `${can.require}:${can.share}`;
+
   const buildKey = `${game.id}@${game.version}`;
-  const latest = useRef({ game, player, muted, theme, locale: i18n.language, onExit, room, replay });
-  latest.current = { game, player, muted, theme, locale: i18n.language, onExit, room, replay };
+  const latest = useRef({
+    game,
+    player,
+    muted,
+    theme,
+    locale: i18n.language,
+    onExit,
+    room,
+    replay,
+    entry,
+    can,
+  });
+  latest.current = { game, player, muted, theme, locale: i18n.language, onExit, room, replay, entry, can };
   const roomId = room?.id;
+
+  /** Opens a sheet over the paused game; `busy` while another is open or before the game's first screen. */
+  const openAsk = (make: (close: () => void) => GameAsk) => {
+    const close = () => {
+      asking.current = false;
+      setAsk(null);
+      host.current?.resume();
+    };
+    host.current?.pause();
+    setAsk(make(close));
+  };
+  const busy = () => asking.current || !shownFirst.current;
+
+  /**
+   * `identity.require` (ADR 0045): ok at once for a level the profile has; `declined` without asking for ten minutes
+   * after "Để sau"; else the hub's sheet — the name screen, or signing in, after which the game opens again.
+   */
+  const require = async (level: RequiredLevel, reason: RequireReason): Promise<InitProfile> => {
+    if (busy()) throw new Error('busy');
+    asking.current = true;
+    const profile: InitProfile = {
+      id: player.id,
+      name: player.name,
+      avatar: player.avatar,
+      kind: profileKind(player),
+    };
+    const named = player.kind === 'device' ? await deviceNamed(player.id).catch(() => false) : true;
+    if (meets(profileLevel(player, named), level)) {
+      asking.current = false;
+      return profile;
+    }
+    if (declines.declined(game.id, player.id)) {
+      asking.current = false;
+      throw new Error('declined');
+    }
+    return new Promise<InitProfile>((resolve, reject) => {
+      openAsk((close) => {
+        const decline = () => {
+          declines.decline(game.id, player.id);
+          close();
+          reject(new Error('declined'));
+        };
+        return level === 'named'
+          ? {
+              kind: 'named',
+              reason,
+              done: (now) => {
+                close();
+                resolve(now);
+              },
+              decline,
+              signIn: () => void leaveToSignIn('sign-in'),
+            }
+          : { kind: 'account', reason, go: (to) => void leaveToSignIn(to), decline };
+      });
+    });
+  };
+
+  /**
+   * Becoming an account opens the game again (ADR 0045): the game paused and given a second to save, the game and its
+   * entry kept for after signing in — the link is not resolved again — then the sign-in. The request never settles.
+   */
+  const leaveToSignIn = async (to: 'sign-in' | 'register') => {
+    setAsk(null);
+    host.current?.pause();
+    await new Promise<void>((resolve) => {
+      saveWaiters.current.push(resolve);
+      setTimeout(resolve, LEAVE_WAIT_MS);
+    });
+    entryIntent.keep({ kind: 'play', code: game.id });
+    gameEntry.keep(game.id, sent.current, true);
+    void navigate({ to: to === 'register' ? '/account/register' : '/account/sign-in' });
+  };
+
+  /** `share` (ADR 0045): the hub's sheet; ok once the player sent, copied or showed the link. */
+  const share = async (request: { payload: JsonValue; text?: string; level?: string }) => {
+    if (busy()) throw new Error('busy');
+    asking.current = true;
+    return new Promise<void>((resolve, reject) => {
+      openAsk((close) => {
+        let settled = false;
+        return {
+          kind: 'share',
+          payload: request.payload,
+          text: request.text,
+          level:
+            request.level === 'any' || request.level === 'named' || request.level === 'account'
+              ? request.level
+              : undefined,
+          sent: () => {
+            if (settled) return;
+            settled = true;
+            resolve();
+          },
+          close: (error) => {
+            close();
+            if (settled) return;
+            settled = true;
+            reject(new Error(error ?? 'cancelled'));
+          },
+          // Leaving to sign in: the game opens again afterwards, so the request never settles (as `account`'s).
+          signIn: () => void leaveToSignIn('sign-in'),
+        };
+      });
+    });
+  };
+  const asks = useRef({ require, share });
+  asks.current = { require, share };
+  /** The entry this session sent the game, kept to open it with again after signing in. */
+  const sent = useRef<GameEntry | null>(null);
 
   // biome-ignore lint/correctness/useExhaustiveDependencies: restarts only for the keys above, on purpose.
   useEffect(() => {
     const frame = iframe.current;
-    const { game, player, muted, theme, locale, room, replay } = latest.current;
+    const { game, player, muted, theme, locale, room, replay, entry } = latest.current;
     if (!frame) return;
     if (!isTrustedEntry(game.entryUrl, gamesOrigin)) {
       setStatus('untrusted');
@@ -166,7 +353,22 @@ export function GameFrame({
     }
 
     setStatus('loading');
+    shownFirst.current = false;
+    asking.current = false;
+    setAsk(null);
+    setNotice(false);
     const synced = syncsWithServer(player);
+    // The entry goes only to a build that declares its kind, never at a table or in a replay (ADR 0045).
+    const given = entry && !room && !replay ? entry : null;
+    const sending = given && takesEntry(game, given.kind) ? given : null;
+    sent.current = given;
+    let entryTimer: ReturnType<typeof setTimeout> | undefined;
+    const entryAnswered = (answer: EntryResult | 'late' | 'undeclared') => {
+      clearTimeout(entryTimer);
+      telemetry.count(`hub.entry.${answer}`, scope);
+      // A `handled` that comes after the five seconds takes the notice back: the game did open at its place.
+      setNotice(answer !== 'handled');
+    };
     // Telemetry (ADR 0015): a play, how long the game took to answer, its reports, and how long it was played.
     const scope = { gameId: game.id, gameVersion: game.version };
     const started = performance.now();
@@ -178,6 +380,7 @@ export function GameFrame({
     const firstScreen = () => {
       if (shown) return;
       shown = true;
+      shownFirst.current = true;
       clearTimeout(late);
       setStatus('ready');
       telemetry.metric('hub.game.first-screen-ms', Math.round(performance.now() - started), scope);
@@ -189,7 +392,8 @@ export function GameFrame({
         if (synced) await catchUp(player.id);
         const table = room?.info();
         return {
-          profile: { id: player.id, name: player.name, avatar: player.avatar },
+          // A device profile, or an account's (a child's profile is an account's): ADR 0043, 0045.
+          profile: { id: player.id, name: player.name, avatar: player.avatar, kind: profileKind(player) },
           locale,
           // The theme the hub shows; games that declare both themes follow it (ADR 0013).
           settings: { muted, theme },
@@ -205,12 +409,19 @@ export function GameFrame({
                 rooms: synced && game.rooms !== null && game.rooms !== undefined,
               }
             : undefined,
+          entry: sending ?? undefined,
+          // What the hub answers in this session: changing it opens the game again (ADR 0045).
+          can: latest.current.can,
         };
       },
       onSave: async (data) => {
         await storeSave(db, player.id, game.id, data);
         if (synced) syncer.syncSoon(player.id);
+        for (const waiting of saveWaiters.current.splice(0)) waiting();
       },
+      onEntry: (result) => entryAnswered(result),
+      onIdentityRequire: ({ level, reason }) => asks.current.require(level, reason),
+      onShare: (request) => asks.current.share(request),
       onScore: async ({ value, board, run, final }) => {
         await recordScore(db, { profileId: player.id, gameId: game.id, board, value, run, final });
         // A final score is a finished round: the moment Tò He may offer to be installed (install/install.ts).
@@ -267,6 +478,9 @@ export function GameFrame({
     session.ready.then(
       () => {
         telemetry.metric('hub.game.ready-ms', Math.round(performance.now() - started), scope);
+        // The game has five seconds to answer its entry; a build that does not take it gets the notice at once.
+        if (sending) entryTimer = setTimeout(() => entryAnswered('late'), ENTRY_ANSWER_MS);
+        else if (given) entryAnswered('undeclared');
         if (hasShell(game) && !shown) {
           setStatus('starting');
           late = setTimeout(() => {
@@ -293,10 +507,15 @@ export function GameFrame({
     const perf = new URLSearchParams(window.location.search).has('perf');
     frame.src = perf ? `${game.entryUrl}#perf` : game.entryUrl;
 
-    const onVisibility = () => (document.hidden ? session.pause() : session.resume());
+    // A sheet over the game keeps it paused: it resumes when the sheet closes (ADR 0045).
+    const onVisibility = () => {
+      if (document.hidden) session.pause();
+      else if (!asking.current) session.resume();
+    };
     document.addEventListener('visibilitychange', onVisibility);
     return () => {
       clearTimeout(late);
+      clearTimeout(entryTimer);
       telemetry.count(`hub.play.duration.${durationBucket(performance.now() - started)}`, scope);
       document.removeEventListener('visibilitychange', onVisibility);
       unsubscribe();
@@ -304,7 +523,7 @@ export function GameFrame({
       host.current = null;
       frame.src = 'about:blank';
     };
-  }, [buildKey, gamesOrigin, player.id, roomId]);
+  }, [buildKey, gamesOrigin, player.id, roomId, canKey]);
 
   // Mute and theme changes reach a running game as `settings` (e.g. "Theo máy" turning dark mid-round).
   useEffect(() => {
@@ -366,6 +585,7 @@ export function GameFrame({
                 <span className="grid size-24 place-items-center rounded-3xl bg-soft text-5xl">🎲</span>
               )}
               <span className="font-black text-2xl text-brand-ink">{game.name}</span>
+              {reopened ? <Reopening game={game} /> : null}
               <span role="status" className="flex h-6 items-end gap-1.5">
                 <span className="sr-only">{t('loading')}</span>
                 {[0, 1, 2].map((dot) => (
@@ -398,6 +618,8 @@ export function GameFrame({
           </div>
         ) : null}
       </div>
+      <GameAsks ask={ask} game={game} session={playing} />
+      <EntryNotice open={notice && status === 'ready' && !ask} game={game} onClose={() => setNotice(false)} />
       {shell ? (
         <>
           <LeaderboardSheet game={game} player={player} open={board} onClose={() => setBoard(false)} />

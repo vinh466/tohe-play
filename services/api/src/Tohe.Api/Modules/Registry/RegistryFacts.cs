@@ -8,6 +8,9 @@ namespace Tohe.Api.Modules.Registry;
 /// <summary>A game in the registry, listed or not, as the admin console shows it.</summary>
 /// <param name="Listed">In the catalog the games origin serves now; unlisted games stay for their saves and scores.</param>
 /// <param name="Online">Played at tables, refereed by the API (ADR 0016).</param>
+/// <param name="IdentityPlay">What opening the current build asks for (ADR 0045): <c>any</c>, <c>named</c> or <c>account</c>.</param>
+/// <param name="IdentityRooms">The least a table of it asks for, for a game with rooms; else null.</param>
+/// <param name="Entries">The kinds of entry the current build opens itself (ADR 0045).</param>
 public sealed record RegistryEntry(
     string Id,
     string Name,
@@ -19,7 +22,10 @@ public sealed record RegistryEntry(
     bool Online,
     int SizeKb,
     DateTimeOffset FirstSeenAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    string IdentityPlay,
+    string? IdentityRooms,
+    IReadOnlyList<string> Entries);
 
 /// <summary>A build the games origin serves, to open in the console (ADR 0032).</summary>
 /// <param name="EntryUrl">Absolute URL to load in the game iframe.</param>
@@ -59,5 +65,8 @@ internal sealed class RegistryFacts(ToheDbContext db, IOptions<GamesOptions> gam
                 game.Rooms is not null,
                 game.SizeKb,
                 game.FirstSeenAt,
-                game.UpdatedAt))];
+                game.UpdatedAt,
+                game.IdentityPlay,
+                game.IdentityRooms,
+                game.Entries))];
 }

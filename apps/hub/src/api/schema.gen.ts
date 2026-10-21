@@ -1161,7 +1161,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Make a share link to a game, as the acting profile: a `named` feature — a device profile with its terms accepted, a child only with "play with others" on; 30 a day per profile, 60 per device key. */
+        /** Make a share link to a game, as the acting profile: a `named` feature — a device profile with its terms accepted, a child only with "play with others" on; 30 a day per profile, 60 per device key. An `entry` link carries the game's payload (at most 2 KB), only for a game that takes share entries; its level is raised to the game's. */
         post: operations["MakeShareLink"];
         delete?: never;
         options?: never;
@@ -1246,7 +1246,7 @@ export interface paths {
         };
         get?: never;
         put?: never;
-        /** Resolve a share link to open its game: takes one use and counts it played. A link asking `named` or `account` needs such a player (403 level_required). Limited as opening. */
+        /** Resolve a share link to open its game: takes one use and counts it played; an `entry` link answers with its payload and version (ADR 0045). A link asking `named` or `account` needs such a player (403 level_required). Limited as opening. */
         post: operations["PlayShareLink"];
         delete?: never;
         options?: never;
@@ -1586,6 +1586,10 @@ export interface components {
             metrics: components["schemas"]["MetricSummary"][];
             counts: components["schemas"]["CountSummary"][];
         };
+        GameIdentityView: {
+            play: string;
+            rooms: null | string;
+        };
         GameRoomsView: {
             /** Format: int32 */
             minSeats: number;
@@ -1609,6 +1613,8 @@ export interface components {
             /** Format: int32 */
             sizeKb: number;
             rooms: null | components["schemas"]["GameRoomsView"];
+            identity: components["schemas"]["GameIdentityView"];
+            entries: string[];
         };
         HandReplay: {
             /** Format: uuid */
@@ -1681,6 +1687,11 @@ export interface components {
             /** Format: int32 */
             accountsMade: null | number;
         };
+        LinkEntry: {
+            payload: components["schemas"]["JsonElement"];
+            version: string;
+            makerAvatar: null | string;
+        };
         LinkIntent: {
             code: string;
             state: string;
@@ -1689,6 +1700,7 @@ export interface components {
             gameName?: null | string;
             level?: null | string;
             makerName?: null | string;
+            entry?: null | components["schemas"]["LinkEntry"];
         };
         LinkProofRequest: {
             code?: null | string;
@@ -1706,6 +1718,8 @@ export interface components {
             expiresInHours?: null | number;
             /** Format: int32 */
             maxUses?: null | number;
+            payload?: unknown;
+            text?: null | string;
         };
         ManagePinRequest: {
             pin: string;
@@ -2004,6 +2018,7 @@ export interface components {
             /** Format: date-time */
             revokedAt: null | string;
             counts: components["schemas"]["LinkCounts"];
+            message?: null | string;
         };
         SignUpRequest: {
             email: string;

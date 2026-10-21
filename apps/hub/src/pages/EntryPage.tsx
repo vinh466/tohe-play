@@ -16,7 +16,9 @@ import {
 import { DeadEnd, EntryTrouble } from '../entry/DeadEnd.tsx';
 import { linkDeadEnds } from '../entry/deadEnds.ts';
 import { EntryGate } from '../entry/EntryGate.tsx';
+import { entryOfLink, gameEntry } from '../entry/gameEntry.ts';
 import { entry, once } from '../entry/intent.ts';
+import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { rememberNext } from '../session/next.ts';
 import type { Player } from '../session/session.ts';
@@ -28,7 +30,10 @@ import { Loading, Screen } from '../ui/Screen.tsx';
 // comes here too, and a game's own address /play/<gameId> goes through the same gate (PlayPage).
 // docs/architecture/entry-links.md#the-hubs-entry-pipeline
 
-/** Until a game declares its own level (ADR 0045, step I4), every game asks for `any`. */
+/**
+ * Before the game is known, the gate asks for what the link or the table asks; the game's own level (ADR 0045) is asked
+ * again where the game opens — its menu (PlayPage) or its table's preview below.
+ */
 const GAME_LEVEL = 'any';
 
 /**
@@ -137,7 +142,7 @@ function RoomPreview({ intent, player, device }: { intent: EntryIntent; player: 
               {t(errorKey(watch.error ?? join.error))}
             </p>
           ) : null}
-          {device && view.entry === 'account' ? (
+          {device && (view.entry === 'account' || (game && tableLevel(game) === 'account')) ? (
             <Link
               to="/account/sign-in"
               onClick={() => {
@@ -270,8 +275,12 @@ function OpenShare({
   useEffect(() => {
     if (!settled) return;
     entry.reached(intent);
-    if (result?.state === 'ok' && result.gameId)
+    if (result?.state === 'ok' && result.gameId) {
+      // An `entry` link (ADR 0045): the game opens at its place, with the payload `play` answered — once.
+      const place = entryOfLink(result);
+      if (place) gameEntry.keep(result.gameId, place);
       void navigate({ to: '/play/$gameId', params: { gameId: result.gameId }, replace: true });
+    }
   }, [settled, result, intent, navigate]);
   // `level_required`: the link asks more than this player has — the gate again, at the level the API names.
   const required =

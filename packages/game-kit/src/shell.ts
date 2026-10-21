@@ -12,8 +12,11 @@
 //     ◀──────────── 🏠 Menu chính / the end of a game ───┘
 //     └─ Back / ← Về Tò He ─▶ Tò He
 //
+// Opened by an entry the game handles (a share link's payload, ADR 0045), play opens at once with the title screen
+// behind it, reached from the panel's 🏠 as usual; any other answer opens the title screen.
+//
 // A game brings its content; the kit owns the stages, their screens, words and look.
-import type { GameSession } from '@tohe/game-sdk';
+import type { EntryResult, GameSession, SessionEntry } from '@tohe/game-sdk';
 import {
   createOverlay,
   type Overlay,
@@ -139,12 +142,20 @@ export interface StageContext {
   readonly fresh: boolean;
   /** The how-to was just shown: point at a first move. */
   readonly firstTime: boolean;
+  /**
+   * The entry this play was opened for (ADR 0045): the one the game's `entry` handler answered `handled`, for the
+   * play the shell opens at once (after the how-to, the first time). Null for every other play, a later one included.
+   */
+  readonly entry: SessionEntry | null;
   /** ☰ for the HUD (`createHud` puts it first). */
   menuButton(): HTMLButtonElement;
   /** The game's own cards over play (hints, a hand's results): they come back after the panel closes. */
   readonly overlay: Overlay;
-  /** A finished game: its card with ▶ Chơi lại (or `again`) and 🏠 Menu chính; Back goes to the menu. */
-  gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction): void;
+  /**
+   * A finished game: its card with ▶ Chơi lại (or `again`), the game's `more` actions — which keep the card up, e.g. a
+   * share — and 🏠 Menu chính; Back goes to the menu.
+   */
+  gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction, more?: OverlayAction[]): void;
   /** The board is drawn: the loading view lifts. Call it once, after the first frame's state is set. */
   ready(): void;
 }
@@ -179,7 +190,8 @@ export interface StageModule {
 export type ShellSessionLike = Pick<
   GameSession<never>,
   'mode' | 'locale' | 'settings' | 'shell' | 'exit' | 'on' | 'log'
->;
+> &
+  Partial<Pick<GameSession<never>, 'entry'>>;
 
 export interface ShellOptions {
   session: ShellSessionLike;
@@ -213,6 +225,12 @@ export interface ShellOptions {
    * panel (a table); `exitLabel` names the way out, which the panel keeps (the hub asks before giving a seat up).
    */
   direct?: { exitLabel: string; goesOn: boolean };
+  /**
+   * The game's entry handler (ADR 0045): whether it opens the entry it was opened by — `handled` (play opens at once,
+   * the title screen behind it; the stage gets it as `ctx.entry`), `unsupported` or `invalid` (the title screen). The
+   * shell answers the hub with it when `start()` runs. Without one, every entry is answered `unsupported`.
+   */
+  entry?(entry: SessionEntry): EntryResult;
   /** Tests: the two layers and the play stage's element, instead of real ones in `root`. */
   layers?: { menu: Overlay; play: Overlay; stage: HTMLElement };
 }
@@ -407,8 +425,8 @@ export function createShell(options: ShellOptions): Shell {
       titleScreen,
     );
 
-  /** Play from the title screen: the how-to first, the first time. */
-  function begin(fresh: boolean) {
+  /** Play from the title screen — or for an entry the game handles — the how-to first, the first time. */
+  function begin(fresh: boolean, opened: SessionEntry | null = null) {
     const tutorial = options.tutorial;
     if (tutorial && !tutorial.seen()) {
       menuScreen(
@@ -420,7 +438,7 @@ export function createShell(options: ShellOptions): Shell {
               attributes: { 'data-tohe-play': '' },
               onClick: () => {
                 tutorial.done();
-                void enterPlay(fresh, true);
+                void enterPlay(fresh, true, opened);
               },
             },
           ],
@@ -429,7 +447,7 @@ export function createShell(options: ShellOptions): Shell {
       );
       return;
     }
-    void enterPlay(fresh, false);
+    void enterPlay(fresh, false, opened);
   }
 
   // ------------------------------------------------------------------ play stage
@@ -459,7 +477,7 @@ export function createShell(options: ShellOptions): Shell {
     return button;
   };
 
-  async function enterPlay(fresh: boolean, firstTime: boolean) {
+  async function enterPlay(fresh: boolean, firstTime: boolean, opened: SessionEntry | null = null) {
     const mine = ++entry;
     screen = 'loading';
     menuLayer.hide();
@@ -481,6 +499,7 @@ export function createShell(options: ShellOptions): Shell {
         root: stageRoot,
         fresh,
         firstTime,
+        entry: opened,
         menuButton,
         overlay: gameOverlay,
         gameOver,
@@ -663,7 +682,7 @@ export function createShell(options: ShellOptions): Shell {
     report(true);
   }
 
-  function gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction) {
+  function gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction, more: OverlayAction[] = []) {
     gameCard = null;
     const over: OverlayCard = {
       ...card,
@@ -683,6 +702,8 @@ export function createShell(options: ShellOptions): Shell {
                 stage?.newGame();
               },
             },
+        // The game's own: a share, a challenge back. The card stays while they run.
+        ...more.map((action) => ({ variant: 'secondary' as const, ...action })),
         direct
           ? { ...exitAction(), variant: 'secondary' }
           : {
@@ -739,10 +760,30 @@ export function createShell(options: ShellOptions): Shell {
     });
   }
 
+  /** The answer to the entry the game was opened by (ADR 0045), sent once; `handled` opens play. */
+  const answerEntry = (): SessionEntry | null => {
+    const opened = session.entry;
+    if (!opened) return null;
+    let result: EntryResult = 'unsupported';
+    if (options.entry && !direct) {
+      try {
+        result = options.entry(opened);
+      } catch (error) {
+        session.log('warn', `entry handler failed: ${String(error)}`);
+        result = 'invalid';
+      }
+    }
+    opened.answer(result);
+    return result === 'handled' ? opened : null;
+  };
+
   return {
     start() {
       if (screen !== 'boot') return;
+      const opened = answerEntry();
       if (direct) void enterPlay(false, false);
+      // Opened by an entry the game handles: play at once — after the how-to, the first time — the title screen behind.
+      else if (opened) begin(false, opened);
       else titleScreen();
     },
     get playing() {

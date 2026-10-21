@@ -46,6 +46,8 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `sizeBudgetKb` | integer | `3000` | Upper bound for the build size (source maps excluded). Conformance fails above it. |
 | `rooms` | object | — | A game played online at a table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); required with the `rooms` capability, and only with it. See [Online rooms](#online-rooms). |
 | `ranked` | object | — | A one-player game whose runs the server replays ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)); required with the `ranked` capability, which needs `scores` too. See [Ranked runs](#ranked-runs). |
+| `identity` | object | — | What the game asks of its player ([ADR 0045](../decisions/0045-games-declare-identity-and-entries.md)): `play` — `any` (default), `named` or `account`, what opening it asks for, at a table too; `rooms` — `named` (default) or `account`, the least a table of it asks for, only with `rooms`. See [Entries and identity](#entries-and-identity). |
+| `entries` | `["share"]` | — | The kinds of entry the game opens itself ("entry" as in ADR 0044, not the `entry` file above). With `share`, the build ships `entries/share.json`. See [Entries and identity](#entries-and-identity). |
 
 ### Online rooms
 
@@ -148,6 +150,43 @@ it (every game uses the kit, ADR 0012); what it does, and what any `shell` game 
 - offer sound (`session.shell.setMuted`), and the leaderboard or online play only when `session.shell.can` says the
   hub can open them (`session.shell.open('leaderboard' | 'rooms')`).
 
+### Entries and identity
+
+[ADR 0045](../decisions/0045-games-declare-identity-and-entries.md). A game says in `game.json` what opening it asks
+for (`identity`) and which links it opens itself (`entries`); in play it may ask the hub for more — never signing anyone
+in or making a link itself.
+
+- **Opened by an entry**: `init.entry` is `{ kind: "share", payload, version, from? }` — the payload of the share link
+  it was opened by (JSON, at most 2 KB as UTF-8), the game's version when the link was made, and its maker's name and
+  avatar when they may be shown. Sent only to a build that declares the kind; never with `room`, `replay` or
+  `rankedReplay`. The game answers once, within **3 s**: `handled` (it opened at the place), `unsupported` (not a kind
+  or a version it opens) or `invalid`. The hub shows its own notice for anything but `handled`.
+- **The payload is untrusted**: anyone can make a share link for a game that takes them, through the API. Check
+  everything and answer `invalid` otherwise; put a version of your own in the payload.
+- **Never lose the game in progress**: an entry opens beside it — a slot of its own in the save — or asks first. A game
+  played from an entry is **not a ranked run** (its seed is not the server's); its score is a normal score.
+- **Asking for more** (`identity.require`): `named` (with `ok`, the profile as it is now) or `account` — for which a
+  player who signs in gets the game **opened again**, so save first; the request then never settles. The reason is one
+  of `others`, `ranked`, `sync`, `friends`: the hub words it, never the game.
+- **Sharing** (`share`): the hub's sheet for an `entry` link of the game, with `payload` (at most 2 KB), `text` (the
+  message, used when it passes the hub's checks — one line, 120 characters, no address, no phone number, the name
+  filter) and `level` (raised to the game's `identity.play`). The link is made only when the player sends, copies or
+  shows it.
+- **`init.can`** says whether the hub answers either request in this session: both false at a table, in a replay and in
+  a ranked replay; `share` also for a child kept to its account and for a game without `entries`. Absent from older
+  hubs: the SDK refuses with `unavailable` at once.
+- **The kit** answers for a game: `createShell({ entry })` takes the game's handler; `handled` opens play at once with
+  the title screen behind it (the stage gets it as `ctx.entry`), anything else the title screen; without a handler it
+  answers `unsupported`. `ctx.gameOver(card, again, more)` takes extra actions (a share) that keep the card up.
+
+```ts
+const shell = createShell({ /* … */ entry: (entry) => (readChallenge(entry.payload) ? 'handled' : 'invalid') });
+// on the end card
+if (session.canShare) await session.share({ payload: { v: 1, seed, score }, text: t.shareText(score), level: 'any' });
+// before others see the name
+await session.identity.require('named', 'others'); // session.profile is up to date when it resolves
+```
+
 ## 3. Runtime rules
 
 A game **must**:
@@ -203,7 +242,7 @@ run.finish(score);                               // at game over, or when the pl
 | Member | Description |
 | --- | --- |
 | `mode` | `embedded` in the hub; `standalone` when the page is opened directly (local dev). |
-| `profile` | `{ id, name, avatar? }` of the current player. |
+| `profile` | `{ id, name, avatar?, kind? }` of the current player; `kind` (SDK 0.10.0) is `device` or `account` (a child's profile is an account's), absent from older hubs. |
 | `locale` | `vi` or `en`. |
 | `seed` | Integer; same for everybody on the same day. |
 | `saved` | Last saved state or `null`. |
@@ -220,6 +259,9 @@ run.finish(score);                               // at game over, or when the pl
 | `room` | At an online table (ADR 0016, SDK 0.5.0), else `null`: `id`, `seat` (-1: spectator; may move between hands), `seats` (`{ profile, bot, connected, score }` in the rules module's order), `options`, `latest` (the newest view, which may arrive before the game listens), `onView(fn)` (`{ view, events, seq, turnMs }`; empty `events` after a reconnection: redraw), `onSeats(fn)`, `onReaction(fn)`, `act(action)` (rejects with the rules' error code), `next()` (ready for the next hand), `react(reaction)` (`wave`, `laugh`, `wow`, `clap`, `hurry`, `gg`, `sad`, `heart`; `REACTIONS` maps each to its emoji). |
 | `replay` | A finished hand to replay (ADR 0017, SDK 0.6.0), else `null`: `seats` (as in `room`), `seat` (whose view to show), `seed`, `options`, `carry`, `actions` (`{ seat, action }` in order). Never together with `room`. |
 | `rankedReplay` | A ranked run to watch ([ADR 0032](../decisions/0032-watch-a-ranked-run-in-the-game-itself.md), SDK 0.9.0), else `null`: `seed`, `moves` — play them back from the seed, and save, score and hand in nothing. Never together with `room` or `replay`. |
+| `entry` | The entry it was opened by ([ADR 0045](../decisions/0045-games-declare-identity-and-entries.md), SDK 0.10.0), else `null`: `kind`, `payload`, `version`, `from` (`{ name, avatar? }` or `null`), and `answer(result)` — once; the kit's `createShell` answers for a game with an entry handler. |
+| `identity` | SDK 0.10.0: `canRequire`, and `require(level, reason)` — `named` or `account`, with `others`, `ranked`, `sync` or `friends` — resolving with the profile (`session.profile` updated first) or rejecting with `declined`, `busy` or `unavailable`. No timeout. |
+| `canShare` · `share({ payload, text?, level? })` | SDK 0.10.0: the hub's share sheet for a link that opens the game with `payload` (at most 2 KB, checked before sending: `too_large`). Resolves once the player sent or copied the link; rejects with `cancelled`, `busy`, `limit`, `offline`, `not_allowed` or `unavailable`. No timeout. |
 | `telemetry` | Technical telemetry (ADR 0015, SDK 0.4.0): `count(name, n?)`, `metric(name, value)`, `error(error)`, `frames(summary)`, `flush()`, `enabled`. Uncaught errors are reported without calling it; pass it to the kit (`createGame({ telemetry })`, `createSfx({ telemetry })`) for frame times and renderer events. A no-op when the hub does not collect telemetry, and in standalone mode. |
 
 In **standalone** mode (opening the game's dev server directly) the SDK fakes the host with `localStorage`, so a
@@ -237,7 +279,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | Direction | `type` | Fields | Notes |
 | --- | --- | --- | --- |
 | game → host | `ready` | `gameId`, `sdkVersion` | First message. Sent to `*` because the host is not known yet; carries no data. |
-| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?`, `replay?`, `rankedReplay?`, `shell?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table; `replay` (`seats`, `seat`, `seed`, `options`, `carry`, `actions` ≤ 5000) when opened to replay a finished hand; `rankedReplay` (`seed`, `moves` ≤ 100000) when opened to watch a ranked run. `shell` (`leaderboard`, `rooms`) for `shell` games: what the hub can open now. |
+| host → game | `init` | `profile`, `locale`, `settings`, `save`, `seed`, `telemetry?`, `room?`, `replay?`, `rankedReplay?`, `shell?`, `entry?`, `can?` | The game records `event.origin` and from now on only talks to it. `telemetry: true` asks for `telemetry` messages; absent (older hubs) means none. `room` (`id`, `seat`, `seats`, `options`) when opened at a table; `replay` (`seats`, `seat`, `seed`, `options`, `carry`, `actions` ≤ 5000) when opened to replay a finished hand; `rankedReplay` (`seed`, `moves` ≤ 100000) when opened to watch a ranked run. `shell` (`leaderboard`, `rooms`) for `shell` games: what the hub can open now. `profile.kind` (`device`, `account`); `entry` (`kind`, `payload` ≤ 2 KB, `version`, `from?`) for a build that declares the kind; `can` (`require`, `share`): what the hub answers (ADR 0045). |
 | game → host | `save` | `id`, `data` | Request; answered by `result`. |
 | game → host | `score` | `id`, `value`, `board`, `run?`, `final` | Request; answered by `result`. `run` groups the reports of one run; `final` (default `true`) is `false` while it goes on. |
 | host → game | `result` | `replyTo`, `ok`, `error?`, `value?` | Answer to a request; `value` is what it answers with — the run of `ranked.start`. |
@@ -250,6 +292,9 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | game → host | `settings` | `muted` | Shell: the player switched sound in the game; the hub remembers it for the device. |
 | game → host | `ranked.start` | `id` | Ranked: request a ranked run as a new game starts; `result.value` is `{ run, seed }`, or the result is not ok and the game plays unranked. |
 | game → host | `ranked.finish` | `id`, `run`, `moves` (≤ 100000, ≤ `ranked.maxMoves`), `score` | Ranked: request; the run ended, with its moves in order and the score reached. |
+| game → host | `entry` | `result` | The answer to `init.entry`, once, within 3 s: `handled`, `unsupported` or `invalid` (ADR 0045). |
+| game → host | `identity.require` | `id`, `level`, `reason` | Request: `named` or `account`, for `others`, `ranked`, `sync` or `friends`. `result`: ok (for `named`, `value` is the profile), or `declined`, `busy`, `unavailable`; for `account`, after signing in the game is opened again and it never settles. |
+| game → host | `share` | `id`, `payload`, `text?`, `level?` | Request: the hub's share sheet for an `entry` link of the game. `result`: ok once sent or copied, or `cancelled`, `busy`, `limit`, `offline`, `not_allowed`, `unavailable`. |
 | game → host | `log` | `level`, `message` | Diagnostics. |
 | host → game | `room.view` | `view`, `events` (≤ 200), `seq`, `turnMs` | Rooms: the seat's view after a change and the events since the last one; drop a `seq` lower than the newest. |
 | host → game | `room.seats` | `seats`, `seat` | Rooms: the players changed; `seat` is this phone's. |
@@ -299,9 +344,16 @@ origin, and checks:
    then it is opened with `init.rankedReplay` to watch a run its bot played (at most 400 moves), and plays it back
    without errors, sending no `save`, `score`, `ranked.start` or `ranked.finish`.
 
+10. **entries** (ADR 0045): every game is opened with an `init.entry` of kind `share` it does not take and shows its
+   title screen (a `shell` game answers `unsupported`). With `entries`, `entries/share.json` holds one to five payloads,
+   each at most 2 KB; opened with each, the game answers `handled` within 3 s and opens play (no title screen over it);
+   opened with hostile payloads (`null`, a string, wrong types, deep nesting, close to 2 KB) it answers `invalid` or
+   `unsupported` within 3 s and shows its title screen. Under the random input of check 3 the fake hub answers
+   `identity.require` with `declined` and `share` with `cancelled`, and the game plays on. No errors anywhere.
+
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
 `<id>-<theme>.png` per theme, `<id>-room.png` at a table, `<id>-replay.png` replaying a hand and
-`<id>-ranked-replay.png` watching a run — look at them.
+`<id>-ranked-replay.png` watching a run, `<id>-entry.png` opened by its first share payload — look at them.
 
 Some checks are timed (a menu within 1.5 s of Back or `pause`), so `pnpm verify` runs the kit on its own after
 everything else, one game at a time: on a busy machine — CI's four cores also running the API's tests and every
@@ -316,7 +368,9 @@ build — a game that answers at once would otherwise miss them.
   to games that declare `rooms`; `shell` (ADR 0018), its messages and `init.shell`, which only `shell` games send or
   get; `ranked` (ADR 0030), its block and messages, and `result.value` — an older hub refuses `ranked.start`, so the
   game plays unranked; and `init.rankedReplay` (ADR 0032), which only `ranked` games get, from the console, in the
-  build that played the run.
+  build that played the run; `identity`, `entries`, `init.entry`, `init.can`, `profile.kind` and the messages `entry`,
+  `identity.require` and `share` (ADR 0045) — older hubs send no entry and answer neither request (the game sees `can`
+  absent), and games that do not declare `entries` are opened as before.
 - The CSP is not the protocol: tightening it keeps the number when no game relies on what it takes away — the
   conformance kit serves every game with the current one. Example: `form-action 'none'` (ADR 0040).
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;

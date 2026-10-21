@@ -93,7 +93,7 @@ public interface IProfileNames
 /// </summary>
 /// <param name="AccountId">Its account; null for a device profile on the server (ADR 0043).</param>
 /// <param name="Kept">A child its account's owner keeps to the account now: "Chơi online với người ngoài" is off.</param>
-public sealed record ProfileStanding(Guid Id, Guid? AccountId, Guid? DeviceId, string Name, bool Child, bool Stopped, bool Kept)
+public sealed record ProfileStanding(Guid Id, Guid? AccountId, Guid? DeviceId, string Name, bool Child, bool Stopped, bool Kept, string? Avatar = null)
 {
     /// <summary>What it shares with strangers stops meanwhile: its account stopped, or it is a child kept to its account.</summary>
     public bool Silenced => Stopped || Kept;
@@ -119,7 +119,8 @@ internal sealed class ProfileStandings(ToheDbContext db) : IProfileStandings
                 profile.Kind == ProfileKind.Child,
                 profile.AccountId != null && db.Users.Any(account =>
                     account.Id == profile.AccountId && (account.SuspendedAt != null || account.DeleteAfter != null)),
-                profile.Kind == ProfileKind.Child && !profile.PlayWithOthers))
+                profile.Kind == ProfileKind.Child && !profile.PlayWithOthers,
+                profile.Avatar))
             .FirstOrDefaultAsync(ct);
 }
 

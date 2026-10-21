@@ -54,8 +54,8 @@ brings its content:
 4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**; 🔊 Âm thanh as a switch;
    **🎨 Màu khối · (the preset) ›**, which opens the presets with their sample blocks over the panel — a tap repaints
    the board, the current block and the next block behind it at once, **Quay lại** returns to the panel; 🔄 Ván mới (asks) · ❓ Cách chơi · 🏠 Menu chính (saves; the title then offers Chơi tiếp).
-5. **Game over:** board dims and settles, card with score/best, confetti for a record, **▶ Chơi lại**, **🏠 Menu
-   chính**; Back goes to the title screen.
+5. **Game over:** board dims and settles, card with score/best, confetti for a record, **▶ Chơi lại**, **Thách bạn**
+   (when the hub can share and the game knows its seed), **🏠 Menu chính**; Back goes to the title screen.
 6. **Watching a ranked run** (the admin console, ADR 0032): no title screen. The board starts from the run's seed and
    plays at once, like a video, with the kit's HUD — ☰, score, the next block, **Nước n/m** — and a bar under it: a
    slider to any move, **◀** one back, **▶ Phát / ⏸ Dừng**, **▶** one on (stepping and the slider wait for ⏸), and
@@ -64,6 +64,30 @@ brings its content:
    the run ended — "Hết ván: n điểm.", "Run dừng ở đây, ván chưa hết.", or for a run with a move that is not legal
    "Nước k không hợp lệ: chiếu đến trước nó." (it plays up to that move). The panel: ▶ Tiếp tục (playing stops when
    it opens), 🔊, 🎨 Màu khối (not saved), ❓, **Thoát xem lại**. Nothing is saved, scored or handed in.
+
+## Challenge a friend ("Thách bạn")
+
+[ADR 0045](../../docs/decisions/0045-games-declare-identity-and-entries.md). A game remembers the seed it started from
+(`seed` in its state; a game saved before 1.11.0 has none and offers no challenge).
+
+- **Sending**: the end-of-game card of a regular game shows **Thách bạn** when the hub can share
+  (`session.canShare`): it shares `{ v: 1, seed, score }` with the text "Mình được {score} điểm Ghép Khối. Bạn vượt
+  được không?" and the level `any`, so a newcomer plays at once. The hub's sheet makes the link only when the player
+  sends, copies or shows it.
+- **Opening**: `game.json` declares `"entries": ["share"]` and ships `entries/share.json`. The shell's entry handler
+  answers `handled` only for exactly `{ v: 1, seed, score }` (a 32-bit seed, a whole score from 0 to 10¹²),
+  `unsupported` for another `v` or kind, `invalid` for anything else. Handled, play opens at once, the title screen
+  behind it.
+- **The challenge game**: the same blocks from the link's seed, in a slot of its own in the save (`challenge`: seed,
+  target, sender, game, run) with its own score run on the account's board — a normal score, **never a ranked run**.
+  The regular game and its ranked run stay untouched. Opened again by the same challenge while it is in progress (after
+  signing in, or the same link), it continues; another challenge replaces the slot. First a card: "Vượt {score} của
+  {name}" and "Cùng bộ khối với {name}. {score} là điểm {name} gửi kèm link." (without a sender: "Vượt {score}", "Cùng
+  bộ khối với người gửi…"): the score is the sender's claim, shown as such. Under the HUD, the target line.
+  🔄 Ván mới in the panel starts the challenge again on the same blocks.
+- **Its end**: "Bạn đã vượt {name}! 🎉" or "Còn thiếu {diff} điểm nữa thôi!", then **Về ván thường** (the regular game
+  in place: the one in progress, or a new one, ranked when the hub deals a run), **Thách lại** (shares this score on
+  the same seed) and 🏠 Menu chính.
 
 ## Feel (juice), in tiers
 
@@ -113,9 +137,10 @@ with **Hoàng hôn**. Each game keeps its own choice (games do not share saves).
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game, tutorialSeen, run, palette, ranked? }` where `game` is the full state (board, current, next, score, PRNG), `run` its leaderboard id, `palette` the player's colour preset (also saved when it changes) and `ranked` the ranked run in progress — its id, seed and every column dropped. Opening the game resumes it. |
+| `save` | After every move: `{ best, game, tutorialSeen, run, palette, ranked?, challenge? }` where `game` is the full state (board, current, next, score, PRNG), `run` its leaderboard id, `palette` the player's colour preset (also saved when it changes) and `ranked` the ranked run in progress — its id, seed and every column dropped. Opening the game resumes it. |
 | `scores` | A live run (ADR 0014): `session.run(id).update(score)` after each move that scores, so the account's board shows the game in progress; `finish(score)` at game over, or when the player starts a new game (an unfinished game keeps the best score it reached). One run id per game, kept in the save. |
 | `ranked` | Every new game asks for a ranked run (ADR 0030) and waits up to 2.5 s: with one, the game plays from the server's seed and records each column dropped; at game over, or when the player starts a new game, it hands the columns and the score in. Without one — offline, a guest — it plays unranked, as before. The verify module (`src/verify.ts` → `verify.js`) replays a run with `logic.ts` itself (`replayMoves`); its `bot` drops into a column the run's own PRNG picks. With `init.rankedReplay` (ADR 0032) the game plays a run back instead of a game (`src/replay.ts`), with the same `replayMoves`, so it shows the game the server judged. |
+| entries | `share` (ADR 0045): a challenge link opens a challenge game; "Thách bạn" and "Thách lại" ask the hub to share one (above). |
 | settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of an unranked new game; a ranked one plays from the server's seed. |
 

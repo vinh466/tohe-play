@@ -1272,6 +1272,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("max_uses");
 
+                    b.Property<string>("Payload")
+                        .HasColumnType("text")
+                        .HasColumnName("payload");
+
                     b.Property<DateTimeOffset?>("RevokedAt")
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("revoked_at");
@@ -1437,6 +1441,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("description");
 
+                    b.PrimitiveCollection<string[]>("Entries")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("text[]")
+                        .HasColumnName("entries")
+                        .HasDefaultValueSql("'{}'::text[]");
+
                     b.Property<string>("Entry")
                         .IsRequired()
                         .HasMaxLength(200)
@@ -1451,6 +1462,19 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("character varying(200)")
                         .HasColumnName("icon");
+
+                    b.Property<string>("IdentityPlay")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasDefaultValue("any")
+                        .HasColumnName("identity_play");
+
+                    b.Property<string>("IdentityRooms")
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("identity_rooms");
 
                     b.Property<bool>("Listed")
                         .HasColumnType("boolean")

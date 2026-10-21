@@ -41,6 +41,8 @@ export function AtTables({
   children,
   purpose = 'table',
   inline = false,
+  words,
+  onSignIn,
 }: {
   session: PlayingSession;
   children: (player: Player) => ReactNode;
@@ -48,6 +50,10 @@ export function AtTables({
   purpose?: NamedPurpose;
   /** Drawn inside a sheet rather than as a screen of its own. */
   inline?: boolean;
+  /** Other words around the same line: a game asking for a name says why, in the hub's words (ADR 0045). */
+  words?: Partial<NamedWords>;
+  /** Over a game: the way to signing in, which first lets the game save and keeps it to open again (ADR 0045). */
+  onSignIn?: () => void;
 }) {
   if (session.status === 'account') {
     // Said before the first request of the page goes: the account's session acts, no device profile.
@@ -55,7 +61,7 @@ export function AtTables({
     return children(session.player);
   }
   return (
-    <DeviceAtTables purpose={purpose} inline={inline}>
+    <DeviceAtTables purpose={purpose} inline={inline} words={words} onSignIn={onSignIn}>
       {children}
     </DeviceAtTables>
   );
@@ -86,10 +92,14 @@ function DeviceAtTables({
   children,
   purpose,
   inline,
+  words,
+  onSignIn,
 }: {
   children: (player: Player) => ReactNode;
   purpose: NamedPurpose;
   inline: boolean;
+  words?: Partial<NamedWords>;
+  onSignIn?: () => void;
 }) {
   const { t } = useTranslation();
   const device = useQuery(deviceProfileQuery());
@@ -102,7 +112,16 @@ function DeviceAtTables({
   const step = tablesStep(profile, TERMS_VERSION);
   if (step === 'name') {
     actAsDevice(null);
-    return <NamedScreen profile={profile} onDone={changed} purpose={purpose} inline={inline} />;
+    return (
+      <NamedScreen
+        profile={profile}
+        onDone={changed}
+        purpose={purpose}
+        inline={inline}
+        words={words}
+        onSignIn={onSignIn}
+      />
+    );
   }
   if (step === 'send') {
     actAsDevice(null);
@@ -168,6 +187,14 @@ export function SendCopy({
 /** What the `named` screen is for: the words around its one line change, the line does not. */
 export type NamedPurpose = 'table' | 'transfer' | 'entry' | 'share';
 
+/** The words around the `named` screen's one line. */
+export interface NamedWords {
+  title: string;
+  body: string;
+  kept: string;
+  go: string;
+}
+
 /**
  * The `named` screen (ADR 0043): others will see this name, so the player chooses it and an avatar, and ticks one line
  * — the terms, and 16 or older or a parent's permission — before anything of the profile reaches the server. Under 16
@@ -178,6 +205,8 @@ export function NamedScreen({
   onDone,
   purpose = 'table',
   inline = false,
+  words: own,
+  onSignIn,
 }: {
   profile: LocalProfile;
   /** With the profile as the device keeps it now: its id may be new. */
@@ -189,9 +218,13 @@ export function NamedScreen({
   purpose?: NamedPurpose;
   /** Inside a sheet: the same form, without a screen around it. */
   inline?: boolean;
+  /** Words of the caller's over the purpose's: a game's request (ADR 0045). */
+  words?: Partial<NamedWords>;
+  /** Instead of going to sign in at once: over a game, which first saves and is kept to open again (ADR 0045). */
+  onSignIn?: () => void;
 }) {
   const { t } = useTranslation();
-  const words = {
+  const purposes: Record<NamedPurpose, NamedWords> = {
     table: { title: t('named.title'), body: t('named.body'), kept: t('named.kept'), go: t('named.go') },
     transfer: {
       title: t('transfer.namedTitle'),
@@ -211,7 +244,8 @@ export function NamedScreen({
       kept: t('share.namedKept'),
       go: t('share.namedGo'),
     },
-  }[purpose];
+  };
+  const words: NamedWords = { ...purposes[purpose], ...own };
   const navigate = useNavigate();
   const prove = useProve();
   const [name, setName] = useState(profile.name);
@@ -235,6 +269,7 @@ export function NamedScreen({
   };
   // Signing in comes back here: a parent's account, then the profile picker, then this table.
   const toSignIn = () => {
+    if (onSignIn) return onSignIn();
     rememberNext(window.location.pathname);
     void navigate({ to: '/account/sign-in' });
   };
@@ -298,7 +333,12 @@ export function NamedScreen({
         {t('named.haveAccount')}{' '}
         <Link
           to="/account/sign-in"
-          onClick={() => rememberNext(window.location.pathname)}
+          onClick={(event) => {
+            if (onSignIn) {
+              event.preventDefault();
+              onSignIn();
+            } else rememberNext(window.location.pathname);
+          }}
           className="font-bold text-accent underline underline-offset-4"
         >
           {t('named.signIn')}

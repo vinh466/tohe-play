@@ -420,6 +420,45 @@
                   "maxMoves"
                 ],
                 "additionalProperties": false
+              },
+              "identity": {
+                "description": "What the game asks of its player (ADR 0045); without it, any profile opens it and a table asks for a name",
+                "type": "object",
+                "properties": {
+                  "play": {
+                    "default": "any",
+                    "description": "What opening the game asks for (ADR 0043): any, named or account",
+                    "type": "string",
+                    "enum": [
+                      "any",
+                      "named",
+                      "account"
+                    ]
+                  },
+                  "rooms": {
+                    "description": "The least a table of this game asks for; only with the \"rooms\" capability (default named)",
+                    "type": "string",
+                    "enum": [
+                      "named",
+                      "account"
+                    ]
+                  }
+                },
+                "required": [
+                  "play"
+                ],
+                "additionalProperties": false
+              },
+              "entries": {
+                "description": "Kinds of entry the game opens itself (ADR 0045); with \"share\", the build ships entries/share.json",
+                "maxItems": 1,
+                "type": "array",
+                "items": {
+                  "type": "string",
+                  "enum": [
+                    "share"
+                  ]
+                }
               }
             },
             "required": [

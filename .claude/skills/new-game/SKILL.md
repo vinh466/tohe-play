@@ -52,7 +52,15 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
    No exit button, no HUD layout, no Esc handler and no menu of its own; save after every move; `submitScore` at the
    end; Vietnamese strings first, English second. Runs that outlast one sitting (saved mid-run): live scores instead of `submitScore` — `session.run(id).update(score)` after scoring moves,
    `finish(score)` at game over and when a new game replaces an unfinished one (id kept in the save, ADR 0014).
-7. Themes (with both): `followTheme(session, theme => { scene.setTheme(theme); kit.setBackground(...) })`; art
+7. Links that open the game at a place (optional, [ADR 0045](../../../docs/decisions/0045-games-declare-identity-and-entries.md)):
+   `"entries": ["share"]` in game.json, `entry: (e) => …` in `createShell` answering `handled` only for a payload it
+   checked (untrusted: anyone can make one) and `invalid`/`unsupported` otherwise, the stage opening it from `ctx.entry`
+   in a save slot of its own (never a ranked run), `session.share({ payload, text, level })` on the end card
+   (`ctx.gameOver(card, again, [action])`), and `public/entries/share.json` with one to five payloads its share makes.
+   **Its tests check** that the share makes payloads like those in `entries/share.json` and that each one opens
+   (`handled`), and that hostile ones do not. Ask for more only through `session.identity.require(level, reason)` —
+   save first when asking for `account`.
+8. Themes (with both): `followTheme(session, theme => { scene.setTheme(theme); kit.setBackground(...) })`; art
    colours in a per-theme palette (`palette.ts`), DOM colours from the design tokens (`var(--tohe-*)`); every text
    at least 4.5:1 on its background (3:1 if large and bold).
 

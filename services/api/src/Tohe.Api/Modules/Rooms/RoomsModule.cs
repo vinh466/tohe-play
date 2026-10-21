@@ -112,7 +112,7 @@ internal static class RoomsModule
             {
                 var player = PlayerOf(http);
                 var known = await games.GetAsync(game, ct);
-                if (known?.Rooms is null || known.MinAge > player.MaxGameMinAge)
+                if (known?.Rooms is null || known.MinAge > player.MaxGameMinAge || NeedsAccount(known, player))
                 {
                     return new List<RoomSummary>();
                 }
@@ -180,6 +180,11 @@ internal static class RoomsModule
                     return Refused(RoomErrors.TooYoung);
                 }
 
+                if (NeedsAccount(game, player))
+                {
+                    return Refused(RoomErrors.AccountRequired);
+                }
+
                 var problem = await room.RunAsync(async () => await room.JoinAsync(player, await KeptNowAsync(room, player, kept, ct)));
                 return problem is null ? TypedResults.Ok(room.View(player.ProfileId)) : Refused(problem);
             })
@@ -199,6 +204,11 @@ internal static class RoomsModule
                 if (game is not null && game.MinAge > player.MaxGameMinAge)
                 {
                     return Refused(RoomErrors.TooYoung);
+                }
+
+                if (NeedsAccount(game, player))
+                {
+                    return Refused(RoomErrors.AccountRequired);
                 }
 
                 var problem = await room.RunAsync(async () => await room.WatchAsync(player, await KeptNowAsync(room, player, kept, ct)));
@@ -445,6 +455,13 @@ internal static class RoomsModule
         return invitations.TryTake(accountId, options.InvitationsPerHour) ? null : Refused(RoomErrors.InviteLimit);
     }
 
+    /// <summary>
+    /// A table admits by the highest of the game's <c>play</c>, its <c>rooms</c> and the table's door (ADR 0045): a game
+    /// whose tables ask for an account seats no device profile, whatever the door says.
+    /// </summary>
+    private static bool NeedsAccount(RegistryGame? game, Player player) =>
+        player.IsDevice && game?.TableLevel == GameLevels.Account;
+
     /// <summary>Shown in the lobby to this player: public, and a table it may join (its door, ADR 0043).</summary>
     private static bool Listed(RoomActor room, Player player)
     {
@@ -477,6 +494,11 @@ internal static class RoomsModule
         if (game.MinAge > player.MaxGameMinAge)
         {
             return Refused(RoomErrors.TooYoung);
+        }
+
+        if (NeedsAccount(game, player))
+        {
+            return Refused(RoomErrors.AccountRequired);
         }
 
         if (request.Seats < spec.MinSeats || request.Seats > spec.MaxSeats)

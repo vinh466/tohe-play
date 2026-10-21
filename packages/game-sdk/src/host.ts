@@ -1,15 +1,22 @@
 // Host side of the contract, used by the hub (and by the conformance kit's fake hub).
 // Unlike the game side this validates every message with the Zod schemas from @tohe/contract.
 import {
+  type EntryResult,
   type GameManifest,
   GameMessage,
   type HostMessage,
+  type IdentityLevel,
   type InitPayload,
+  type InitProfile,
+  jsonBytes,
+  MAX_ENTRY_PAYLOAD_BYTES,
   MAX_RANKED_MOVES,
   MAX_SAVE_BYTES,
   PROTOCOL_VERSION,
   type RankedRun,
   type Reaction,
+  type RequiredLevel,
+  type RequireReason,
   type RoomSeat,
   type Settings,
   type ShellTarget,
@@ -53,6 +60,23 @@ export interface HostOptions {
   onRankedStart?(): RankedRun | Promise<RankedRun>;
   /** A ranked run ended: its moves and the score the game reached, for the server to replay. */
   onRankedFinish?(finish: { run: string; moves: JsonValue[]; score: number }): void | Promise<void>;
+  /** The game's answer to `init.entry` (ADR 0045), once. */
+  onEntry?(result: EntryResult): void;
+  /**
+   * The game asks for a higher identity level (ADR 0045): resolve with the profile once it has it (sent to the game as
+   * the result's value), throw an Error whose message is `declined`, `busy` or `unavailable` to refuse, or never settle
+   * (the game is opened again after signing in). Only when `init.can.require` was true; otherwise `unavailable`.
+   */
+  onIdentityRequire?(request: {
+    level: RequiredLevel;
+    reason: RequireReason;
+  }): InitProfile | Promise<InitProfile>;
+  /**
+   * The game asks to share an `entry` link (ADR 0045): resolve once the player sent or copied it, throw an Error whose
+   * message is `cancelled`, `busy`, `limit`, `offline`, `not_allowed` or `unavailable` otherwise. Only when
+   * `init.can.share` was true, with a payload of at most 2 KB.
+   */
+  onShare?(request: { payload: JsonValue; text?: string; level?: IdentityLevel }): void | Promise<void>;
   /** A message that failed validation or broke the protocol. */
   onProtocolError?(error: string, raw: unknown): void;
   /** Rejects `ready` if the game does not say ready in time. Default 10000 ms. */
@@ -87,6 +111,9 @@ export function createHost(options: HostOptions): HostHandle {
   const fail = (error: string, raw: unknown) => options.onProtocolError?.(error, raw);
 
   let handshaken = false;
+  /** What this session's `init` carried (ADR 0045): an entry to answer, and what the hub answers. */
+  let awaitingEntry = false;
+  let answers = { require: false, share: false };
   let resolveReady!: () => void;
   let rejectReady!: (error: Error) => void;
   const ready = new Promise<void>((resolve, reject) => {
@@ -113,7 +140,10 @@ export function createHost(options: HostOptions): HostHandle {
       handshaken = true;
       clearTimeout(timer);
       try {
-        send({ tohe: PROTOCOL_VERSION, type: 'init', ...(await options.init()) });
+        const init = admitted(await options.init());
+        awaitingEntry = init.entry !== undefined;
+        answers = init.can ?? answers;
+        send({ tohe: PROTOCOL_VERSION, type: 'init', ...init });
         resolveReady();
       } catch (error) {
         rejectReady(error instanceof Error ? error : new Error(String(error)));
@@ -186,7 +216,58 @@ export function createHost(options: HostOptions): HostHandle {
           }),
         );
       }
+      case 'entry':
+        if (!awaitingEntry) return fail('an entry answered without one, or twice', raw);
+        awaitingEntry = false;
+        return options.onEntry?.(message.result);
+      case 'identity.require': {
+        const ask = options.onIdentityRequire;
+        if (!answers.require || !ask) return reply(message.id, 'unavailable');
+        try {
+          return reply(
+            message.id,
+            undefined,
+            (await ask({ level: message.level, reason: message.reason })) as JsonValue,
+          );
+        } catch (error) {
+          return reply(message.id, error instanceof Error ? error.message : String(error));
+        }
+      }
+      case 'share': {
+        const share = options.onShare;
+        if (!answers.share || !share) return reply(message.id, 'unavailable');
+        if (jsonBytes(message.payload) > MAX_ENTRY_PAYLOAD_BYTES) {
+          fail(`a share payload over ${MAX_ENTRY_PAYLOAD_BYTES} bytes`, raw);
+          return reply(message.id, 'not_allowed');
+        }
+        return settle(message.id, () =>
+          share({
+            payload: message.payload as JsonValue,
+            ...(message.text === undefined ? {} : { text: message.text }),
+            ...(message.level === undefined ? {} : { level: message.level }),
+          }),
+        );
+      }
     }
+  };
+
+  /**
+   * What `init` may carry (ADR 0045): an entry only to a build that declares its kind, never with a table, a replay or
+   * a ranked replay, and within 2 KB; `can` all false where the hub answers neither request.
+   */
+  const admitted = (init: InitPayload): InitPayload => {
+    const elsewhere = Boolean(init.room || init.replay || init.rankedReplay);
+    const { entry, ...rest } = init;
+    const keep =
+      entry !== undefined &&
+      !elsewhere &&
+      (manifest.entries ?? []).includes(entry.kind) &&
+      jsonBytes(entry.payload) <= MAX_ENTRY_PAYLOAD_BYTES;
+    return {
+      ...rest,
+      ...(keep ? { entry } : {}),
+      ...(init.can ? { can: elsewhere ? { require: false, share: false } : init.can } : {}),
+    };
   };
 
   const settle = async (id: string, action: () => void | Promise<void>) => {

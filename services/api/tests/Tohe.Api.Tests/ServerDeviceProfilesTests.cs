@@ -271,6 +271,53 @@ public sealed class ServerDeviceProfilesTests(ApiFactory factory) : IClassFixtur
     }
 
     [Fact]
+    public async Task A_game_whose_tables_ask_for_an_account_seats_no_device_profile_whatever_the_door()
+    {
+        // A copy of Tiến Lên whose manifest asks for an account at its tables (ADR 0045): the highest of the game's
+        // `play`, its `rooms` and the table's door.
+        await using (var scope = factory.Services.CreateAsyncScope())
+        {
+            var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
+            if (!await db.Games.AnyAsync(game => game.Id == "tien-len-tk", Ct))
+            {
+                var source = await db.Games.AsNoTracking().SingleAsync(game => game.Id == "tien-len", Ct);
+                db.Games.Add(new Game
+                {
+                    Id = "tien-len-tk",
+                    Version = source.Version,
+                    Name = "Tiến Lên (tài khoản)",
+                    Path = source.Path,
+                    Entry = source.Entry,
+                    Orientation = source.Orientation,
+                    Capabilities = source.Capabilities,
+                    Rooms = source.Rooms,
+                    IdentityRooms = GameLevels.Account,
+                    FirstSeenAt = DateTimeOffset.UtcNow,
+                    UpdatedAt = DateTimeOffset.UtcNow,
+                });
+                await db.SaveChangesAsync(Ct);
+            }
+        }
+
+        var bo = await PersonAsync("Bố");
+        var table = await CreateAsync(bo, new { gameId = "tien-len-tk", seats = 3 });
+        Assert.Equal("named", table.Entry);
+        var phone = await DevicePhoneAsync("Mèo Cam");
+
+        Assert.Empty((await phone.Client.GetFromJsonAsync<List<RoomSummary>>(Url("/api/rooms?game=tien-len-tk"), Ct))!);
+        var sit = await phone.Client.PostAsync(Url($"/api/rooms/{table.Id}/join"), null, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "account_required"), (sit.StatusCode, await CodeAsync(sit)));
+        var watch = await phone.Client.PostAsync(Url($"/api/rooms/{table.Id}/watch"), null, Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "account_required"), (watch.StatusCode, await CodeAsync(watch)));
+        var open = await phone.Client.PostAsJsonAsync(Url("/api/rooms"), new { gameId = "tien-len-tk", seats = 2 }, Ct);
+        Assert.Equal("account_required", await CodeAsync(open));
+
+        // An account's profile sits as usual.
+        var co = await PersonAsync("Cô");
+        Assert.Equal(HttpStatusCode.OK, (await co.Client.PostAsync(Url($"/api/rooms/{table.Id}/join"), null, Ct)).StatusCode);
+    }
+
+    [Fact]
     public async Task A_child_kept_to_its_account_never_sits_with_a_device_profile()
     {
         var bo = await PersonAsync("Bố");

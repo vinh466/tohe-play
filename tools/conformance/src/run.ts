@@ -2,7 +2,8 @@
 // It serves the build on its own origin with the production CSP, embeds it in a fake hub on a second
 // origin, drives the protocol from Node through @tohe/game-sdk/host, and throws random input at it.
 // Then it shows the game in every theme it declares and checks its text contrast (ADR 0013). A game with the
-// `shell` capability (ADR 0018) is checked for its main menu, its answer to Back and its way out.
+// `shell` capability (ADR 0018) is checked for its main menu, its answer to Back and its way out. Every game is opened
+// with an entry (ADR 0045); a game that declares `entries` is opened with each payload it ships, and with hostile ones.
 
 import {
   existsSync,
@@ -17,9 +18,14 @@ import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 import { AxeBuilder } from '@axe-core/playwright';
 import {
+  ENTRY_SAMPLES,
+  type EntryResult,
+  entrySamplesPath,
   type GameManifest,
   GameManifest as GameManifestSchema,
   gameContentSecurityPolicy,
+  jsonBytes,
+  MAX_ENTRY_PAYLOAD_BYTES,
   type Theme,
 } from '@tohe/contract';
 import type { JsonValue } from '@tohe/game-sdk';
@@ -95,6 +101,11 @@ export async function runConformance(
       check(result.name, result.ok, result.detail);
   }
 
+  // A game that opens share links itself (ADR 0045) ships the payloads its share makes.
+  const samples = manifest.entries?.includes('share') ? readSamples(dist) : null;
+  if (samples)
+    check(`${entrySamplesPath('share')} holds the payloads its share makes`, samples.ok, samples.detail);
+
   // ---------------------------------------------------------------- runtime checks
   const hostDir = mkdtempSync(join(tmpdir(), 'tohe-conformance-'));
   const hostServer = await serveStatic({ root: hostDir });
@@ -111,7 +122,7 @@ export async function runConformance(
   const foreignRequests: string[] = [];
   const errors: string[] = [];
   const protocolErrors: string[] = [];
-  const traffic = { saves: 0, scores: 0, logs: 0 };
+  const traffic = { saves: 0, scores: 0, logs: 0, requires: 0, shares: 0 };
   const ranked = {
     seeds: new Map<string, number>(),
     finished: [] as { run: string; moves: JsonValue[]; score: number }[],
@@ -165,14 +176,24 @@ export async function runConformance(
       manifest,
       readyTimeoutMs: 10_000,
       init: () => ({
-        profile: { id: 'conformance', name: 'Tester' },
+        profile: { id: 'conformance', name: 'Tester', kind: 'device' },
         locale: 'vi',
         settings: { muted: true, theme: startTheme },
         save: null,
         seed: 20261013,
         telemetry: true,
         shell: shellOf(manifest),
+        can: canOf(manifest),
       }),
+      // Under random input the hub's sheets are refused, and the game plays on (ADR 0045).
+      onIdentityRequire: () => {
+        traffic.requires++;
+        throw new Error('declined');
+      },
+      onShare: () => {
+        traffic.shares++;
+        throw new Error('cancelled');
+      },
       onSave: () => void traffic.saves++,
       onScore: () => void traffic.scores++,
       // Ranked runs as the API deals them: a seed of the hub's own, and the moves handed back to replay.
@@ -315,6 +336,21 @@ export async function runConformance(
       if (replayed.ok) screenshots.push(join(outDir, `${manifest.id}-replay.png`));
     }
 
+    if (handshake === null) {
+      for (const result of await entryChecks({
+        context,
+        manifest,
+        hostUrl: hostServer.url,
+        gameUrl: gameServer.url,
+        errors,
+        protocolErrors,
+        samples: samples?.ok ? samples.payloads : [],
+        screenshot: join(resolve(options.outDir ?? 'test-results/conformance'), `${manifest.id}-entry.png`),
+      }).catch((error: Error) => [{ name: 'opens entries', ok: false, detail: error.message }])) {
+        check(result.name, result.ok, result.detail);
+      }
+    }
+
     if (manifest.ranked && handshake === null) {
       const outDir = resolve(options.outDir ?? 'test-results/conformance');
       const watched = await rankedReplayRun({
@@ -349,7 +385,7 @@ export async function runConformance(
     checks.push({
       name: 'traffic (informational)',
       ok: true,
-      detail: `${traffic.saves} saves, ${traffic.scores} scores, ${traffic.logs} logs, ${telemetry.length} telemetry messages (${telemetry.reduce((sum, m) => sum + m.events, 0)} events)`,
+      detail: `${traffic.saves} saves, ${traffic.scores} scores, ${traffic.logs} logs, ${traffic.requires} identity requests, ${traffic.shares} shares, ${telemetry.length} telemetry messages (${telemetry.reduce((sum, m) => sum + m.events, 0)} events)`,
     });
   } finally {
     await browser?.close();
@@ -486,6 +522,259 @@ async function roomRun(run: {
 }
 
 const hasShell = (manifest: GameManifest) => manifest.capabilities.includes('shell');
+
+/** What a hub answers for a player playing alone (ADR 0045): identity requests, and shares for a game with entries. */
+const canOf = (manifest: GameManifest) => ({
+  require: true,
+  share: (manifest.entries ?? []).length > 0,
+});
+
+/** `entries/share.json`: one to five payloads, each at most 2 KB as UTF-8 JSON (ADR 0045). */
+function readSamples(dist: string): { ok: boolean; detail?: string; payloads: JsonValue[] } {
+  const path = join(dist, entrySamplesPath('share'));
+  if (!existsSync(path)) return { ok: false, detail: `missing ${path} (put it in public/)`, payloads: [] };
+  let payloads: unknown;
+  try {
+    payloads = JSON.parse(readFileSync(path, 'utf8'));
+  } catch (error) {
+    return { ok: false, detail: `not JSON: ${(error as Error).message}`, payloads: [] };
+  }
+  if (
+    !Array.isArray(payloads) ||
+    payloads.length < ENTRY_SAMPLES.min ||
+    payloads.length > ENTRY_SAMPLES.max
+  ) {
+    return {
+      ok: false,
+      detail: `an array of ${ENTRY_SAMPLES.min} to ${ENTRY_SAMPLES.max} payloads`,
+      payloads: [],
+    };
+  }
+  const big = payloads.findIndex((payload) => jsonBytes(payload) > MAX_ENTRY_PAYLOAD_BYTES);
+  return big >= 0
+    ? { ok: false, detail: `payload ${big} is over ${MAX_ENTRY_PAYLOAD_BYTES} bytes`, payloads: [] }
+    : { ok: true, detail: `${payloads.length} payloads`, payloads: payloads as JsonValue[] };
+}
+
+/** Payloads anyone could put in a share link through the API: the game must refuse them calmly. */
+function hostilePayloads(): { label: string; payload: JsonValue }[] {
+  let deep: JsonValue = 0;
+  for (let depth = 0; depth < 600; depth++) deep = [deep];
+  const filler = 'x'.repeat(MAX_ENTRY_PAYLOAD_BYTES - 40);
+  return [
+    { label: 'null', payload: null },
+    { label: 'a string', payload: 'Thách bạn!' },
+    { label: 'wrong types', payload: { v: '1', seed: 'abc', score: [1, 2], from: { name: 7 } } },
+    { label: 'deep nesting', payload: deep },
+    { label: 'close to 2 KB', payload: { v: 1, seed: 1, score: 1, pad: filler } },
+  ];
+}
+
+/** How long a game has to answer an entry (ADR 0045). */
+const ENTRY_ANSWER_MS = 3000;
+
+/**
+ * Entries (ADR 0045): every game, opened with a share entry it does not declare — as an older build may be — shows its
+ * title screen. A game that declares `entries` opens play for each payload it ships, answering `handled` within 3 s,
+ * and refuses hostile ones with `invalid` or `unsupported` within 3 s, showing its title screen. No errors anywhere.
+ */
+async function entryChecks(run: {
+  context: BrowserContext;
+  manifest: GameManifest;
+  hostUrl: string;
+  gameUrl: string;
+  errors: string[];
+  protocolErrors: string[];
+  samples: JsonValue[];
+  /** The game opened by its first payload, to look at. */
+  screenshot: string;
+}): Promise<Check[]> {
+  const shell = hasShell(run.manifest);
+  const declares = run.manifest.entries?.includes('share') ?? false;
+  const checks: Check[] = [];
+  if (!declares) {
+    const opened = await openWithEntry(run, { v: 1, conformance: true });
+    checks.push({
+      name: 'entries: opened with a share entry it does not take, it shows its title screen',
+      ok: shell ? opened.answer === 'unsupported' && opened.title : true,
+      detail: describeOpening(opened),
+    });
+    return checks;
+  }
+  const handled = [];
+  for (const [index, payload] of run.samples.entries()) {
+    const opened = await openWithEntry(run, payload, index === 0 ? run.screenshot : undefined);
+    handled.push(
+      opened.answer === 'handled' && opened.answeredMs <= ENTRY_ANSWER_MS && (!shell || opened.playing)
+        ? null
+        : `payload ${index}: ${describeOpening(opened)}`,
+    );
+  }
+  const wrong = handled.filter(Boolean);
+  checks.push({
+    name: `entries: opens play for each payload of ${entrySamplesPath('share')}, answering handled within 3 s`,
+    ok: run.samples.length > 0 && wrong.length === 0,
+    detail: wrong.join('\n') || `${run.samples.length} payloads`,
+  });
+  const refused = [];
+  for (const { label, payload } of hostilePayloads()) {
+    const opened = await openWithEntry(run, payload);
+    const answered =
+      (opened.answer === 'invalid' || opened.answer === 'unsupported') &&
+      opened.answeredMs <= ENTRY_ANSWER_MS;
+    refused.push(answered && (!shell || opened.title) ? null : `${label}: ${describeOpening(opened)}`);
+  }
+  const unsafe = refused.filter(Boolean);
+  checks.push({
+    name: 'entries: refuses hostile payloads within 3 s and shows its title screen',
+    ok: unsafe.length === 0,
+    detail: unsafe.join('\n') || undefined,
+  });
+  return checks;
+}
+
+interface Opening {
+  answer: EntryResult | null;
+  answeredMs: number;
+  /** The title screen showed. */
+  title: boolean;
+  /** Play opened, with no title screen over it. */
+  playing: boolean;
+}
+
+const describeOpening = (opened: Opening) =>
+  `answered ${opened.answer ?? 'nothing'}${opened.answer ? ` in ${opened.answeredMs} ms` : ''}, ${
+    opened.playing
+      ? 'playing'
+      : opened.title
+        ? 'on its title screen'
+        : 'neither playing nor on its title screen'
+  }`;
+
+/** The game opened in a fresh session with a share entry carrying `payload`, as the hub opens it from a link. */
+async function openWithEntry(
+  run: {
+    context: BrowserContext;
+    manifest: GameManifest;
+    hostUrl: string;
+    gameUrl: string;
+    errors: string[];
+    protocolErrors: string[];
+  },
+  payload: JsonValue,
+  screenshot?: string,
+): Promise<Opening> {
+  const page = await run.context.newPage();
+  page.on('console', (message) => {
+    if (message.type() === 'error') run.errors.push(`console (entry): ${message.text()}`);
+  });
+  page.on('pageerror', (error) => run.errors.push(`uncaught (entry): ${error.message}`));
+  page.on('crash', () => run.errors.push('the page crashed (entry)'));
+  const listeners = new Set<(message: unknown) => void>();
+  await page.exposeFunction('__toNode', (message: unknown) => {
+    for (const listener of listeners) listener(message);
+  });
+  const menus: boolean[] = [];
+  let answer: EntryResult | null = null;
+  let answeredAt = 0;
+  let initAt = 0;
+  // The fake hub sends the entry whatever the build declares, as an older build could be opened by a newer link. As
+  // JSON text: Playwright does not carry a deeply nested argument, and postMessage does.
+  const host = createHost({
+    transport: {
+      post: (message) =>
+        void page
+          .evaluate((m) => (window as unknown as Bridge).__toGame(JSON.parse(m)), JSON.stringify(message))
+          .catch(() => {}),
+      subscribe: (listener) => {
+        listeners.add(listener);
+        return () => listeners.delete(listener);
+      },
+    },
+    manifest: { ...run.manifest, entries: ['share'] },
+    readyTimeoutMs: 10_000,
+    init: () => {
+      initAt = Date.now();
+      return {
+        profile: { id: 'conformance', name: 'Tester', kind: 'device' },
+        locale: 'vi',
+        settings: { muted: true, theme: run.manifest.themes[0] ?? 'light' },
+        save: null,
+        seed: 20261016,
+        shell: shellOf(run.manifest),
+        entry: {
+          kind: 'share',
+          payload,
+          version: run.manifest.version,
+          from: { name: 'Bạn của Tester', avatar: '🐱' },
+        },
+        can: canOf(run.manifest),
+      };
+    },
+    onEntry: (result) => {
+      answer = result;
+      answeredAt = Date.now();
+    },
+    onMenu: (open) => void menus.push(open),
+    onIdentityRequire: () => {
+      throw new Error('declined');
+    },
+    onShare: () => {
+      throw new Error('cancelled');
+    },
+    onProtocolError: (error) => run.protocolErrors.push(`entry: ${error}`),
+  });
+  try {
+    await page.goto(run.hostUrl);
+    await host.ready;
+    await until(() => answer !== null, ENTRY_ANSWER_MS + 500);
+    const frame = await gameFrame(page, run.gameUrl);
+    const shown = (selector: string, timeout: number) =>
+      frame
+        .locator(selector)
+        .first()
+        .waitFor({ state: 'visible', timeout })
+        .then(
+          () => true,
+          () => false,
+        );
+    let playing = false;
+    let title = false;
+    if (answer === 'handled') {
+      // A first-time how-to may come first (ADR 0019) — never the title screen, whose way out it would show.
+      const howTo =
+        !(await until(() => menus.includes(false), 1500)) &&
+        (await frame
+          .locator('[data-tohe-exit]:visible')
+          .count()
+          .catch(() => -1)) === 0 &&
+        (await frame
+          .locator('[data-tohe-play]:visible')
+          .count()
+          .catch(() => 0)) > 0;
+      if (howTo) await press(frame, '[data-tohe-play]:visible');
+      // Play opened: the shell reports a closed menu once the board is up, and no title screen shows over it.
+      playing =
+        (await until(() => menus.includes(false), FIRST_SCREEN_MS)) &&
+        (await frame
+          .locator('[data-tohe-play]:visible')
+          .count()
+          .catch(() => -1)) === 0;
+    } else {
+      title = await shown('[data-tohe-play]', 5000);
+    }
+    await page.waitForTimeout(300);
+    if (screenshot) {
+      mkdirSync(resolve(screenshot, '..'), { recursive: true });
+      await page.screenshot({ path: screenshot }).catch(() => {});
+    }
+    const settled = answer as EntryResult | null;
+    return { answer: settled, answeredMs: settled ? answeredAt - initAt : -1, title, playing };
+  } finally {
+    host.dispose();
+    await page.close();
+  }
+}
 
 /** What a hub would offer this game's player (ADR 0018): everything the game has, so every entry shows. */
 const shellOf = (manifest: GameManifest) =>

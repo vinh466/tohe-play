@@ -23,6 +23,13 @@
             },
             "avatar": {
               "type": "string"
+            },
+            "kind": {
+              "type": "string",
+              "enum": [
+                "device",
+                "account"
+              ]
             }
           },
           "required": [
@@ -327,6 +334,64 @@
             "rooms"
           ],
           "additionalProperties": false
+        },
+        "entry": {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": [
+                "share"
+              ]
+            },
+            "payload": {
+              "$ref": "#/$defs/__schema6"
+            },
+            "version": {
+              "type": "string",
+              "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$"
+            },
+            "from": {
+              "type": "object",
+              "properties": {
+                "name": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 64
+                },
+                "avatar": {
+                  "type": "string",
+                  "maxLength": 16
+                }
+              },
+              "required": [
+                "name"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "required": [
+            "kind",
+            "payload",
+            "version"
+          ],
+          "additionalProperties": false
+        },
+        "can": {
+          "type": "object",
+          "properties": {
+            "require": {
+              "type": "boolean"
+            },
+            "share": {
+              "type": "boolean"
+            }
+          },
+          "required": [
+            "require",
+            "share"
+          ],
+          "additionalProperties": false
         }
       },
       "required": [
@@ -456,7 +521,7 @@
           "type": "string"
         },
         "value": {
-          "$ref": "#/$defs/__schema6"
+          "$ref": "#/$defs/__schema7"
         }
       },
       "required": [
@@ -479,13 +544,13 @@
           "const": "room.view"
         },
         "view": {
-          "$ref": "#/$defs/__schema7"
+          "$ref": "#/$defs/__schema8"
         },
         "events": {
           "maxItems": 200,
           "type": "array",
           "items": {
-            "$ref": "#/$defs/__schema8"
+            "$ref": "#/$defs/__schema9"
           }
         },
         "seq": {
@@ -916,6 +981,37 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/__schema8"
+          }
+        }
+      ]
+    },
+    "__schema9": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema9"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema9"
           }
         }
       ]

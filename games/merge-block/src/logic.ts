@@ -27,6 +27,11 @@ export interface State {
   over: boolean;
   /** PRNG (mulberry32) state. */
   rng: number;
+  /**
+   * The seed the game started from, so the same blocks can be dealt again ("Thách bạn", ADR 0045). Games saved before
+   * 1.11.0 have none, and offer no challenge.
+   */
+  seed?: number;
 }
 
 export type GameEvent =
@@ -71,9 +76,10 @@ export function spawn(grid: readonly Exponent[], rng: number): [Exponent, number
 
 export function newGame(seed: number, best = 0): State {
   const grid = new Array<Exponent>(COLS * ROWS).fill(0);
-  const [current, rng1] = spawn(grid, seed >>> 0);
+  const start = seed >>> 0;
+  const [current, rng1] = spawn(grid, start);
   const [next, rng2] = spawn(grid, rng1);
-  return { version: 1, grid, current, next, score: 0, best, moves: 0, over: false, rng: rng2 };
+  return { version: 1, grid, current, next, score: 0, best, moves: 0, over: false, rng: rng2, seed: start };
 }
 
 /** The row a block dropped in `col` would land on, or null if the column is full. */
@@ -224,6 +230,11 @@ export function restore(saved: unknown): State | null {
     typeof s.over !== 'boolean'
   ) {
     return null;
+  }
+  // A start seed that is not one is dropped: the game plays on, without a challenge to offer.
+  if (s.seed !== undefined && !(ints(s.seed) && (s.seed as number) <= 0xffffffff)) {
+    const { seed: _dropped, ...rest } = s;
+    return rest as State;
   }
   return s as State;
 }

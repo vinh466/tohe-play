@@ -66,6 +66,9 @@ public sealed record AdminCatalog(int Listed, int Unlisted, DateTimeOffset? Last
 /// <summary>A game in the registry, with how much it is played.</summary>
 /// <param name="PlayersLastWeek">Profiles that saved it or recorded a score in it during the last week.</param>
 /// <param name="OpenRooms">Its open tables right now.</param>
+/// <param name="IdentityPlay">What opening its current build asks for (ADR 0045): <c>any</c>, <c>named</c> or <c>account</c>.</param>
+/// <param name="IdentityRooms">The least a table of it asks for, for a game with rooms; else null.</param>
+/// <param name="Entries">The kinds of entry its current build opens itself: <c>share</c>, or none.</param>
 public sealed record AdminGame(
     string Id,
     string Name,
@@ -79,7 +82,10 @@ public sealed record AdminGame(
     DateTimeOffset FirstSeenAt,
     DateTimeOffset UpdatedAt,
     int PlayersLastWeek,
-    int OpenRooms);
+    int OpenRooms,
+    string IdentityPlay,
+    string? IdentityRooms,
+    IReadOnlyList<string> Entries);
 
 /// <summary>The running deployment.</summary>
 /// <param name="Environment">ASP.NET Core's environment name, e.g. <c>Production</c>.</param>
@@ -266,7 +272,10 @@ internal static class AdminEndpoints
             game.FirstSeenAt,
             game.UpdatedAt,
             players.GetValueOrDefault(game.Id),
-            open.GetValueOrDefault(game.Id)))]);
+            open.GetValueOrDefault(game.Id),
+            game.IdentityPlay,
+            game.IdentityRooms,
+            game.Entries))]);
     }
 
     private static async Task<Ok<TelemetryReport>> HealthAsync(TelemetryReports reports, CancellationToken ct, int days = 7) =>

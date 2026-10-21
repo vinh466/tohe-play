@@ -11,7 +11,10 @@ public enum ShareLinkKind
     /// <summary>The game's menu: the only kind made in step I3.</summary>
     Game,
 
-    /// <summary>A place inside the game, with a payload the game alone reads: from step I4 (ADR 0045), refused until then.</summary>
+    /// <summary>
+    /// A place inside the game, with a payload the game alone reads (ADR 0045): made on the game's request, only for a
+    /// game whose current build takes share entries.
+    /// </summary>
     Entry,
 }
 
@@ -43,6 +46,12 @@ public sealed class ShareLink
     public required string GameVersion { get; set; }
 
     public LinkLevel Level { get; set; }
+
+    /// <summary>
+    /// For an <see cref="ShareLinkKind.Entry"/> link, the game's payload as JSON (at most 2 KB as UTF-8, ADR 0045):
+    /// untrusted, given to the game in <c>init.entry</c> and to nobody else — never in a preview nor in the console.
+    /// </summary>
+    public string? Payload { get; set; }
 
     /// <summary>
     /// The profile that made it: an account's or a device's on the server (ADR 0043). Merged into another profile, its
@@ -139,6 +148,9 @@ public static class LinkCodes
 /// <summary>The names of the link's enums in the API: lower case, as the hub sends them.</summary>
 public static class LinkNames
 {
+    /// <summary>The level of the API's name (<c>any</c>, <c>named</c>, <c>account</c>), as a game's manifest names it.</summary>
+    public static LinkLevel LevelOf(string? name) => TryParseLevel(name, out var level) ? level : LinkLevel.Any;
+
     public static string Of(ShareLinkKind kind) => kind == ShareLinkKind.Game ? "game" : "entry";
 
     public static string Of(LinkLevel level) => level switch
@@ -183,6 +195,8 @@ internal sealed class ShareLinkConfiguration : IEntityTypeConfiguration<ShareLin
         builder.Property(link => link.Level).HasConversion<string>().HasMaxLength(8);
         builder.Property(link => link.GameId).HasMaxLength(40);
         builder.Property(link => link.GameVersion).HasMaxLength(64);
+        // Text, exactly as measured: jsonb would rewrite numbers (1e131071 grows to 131,072 digits) and refuse \u0000.
+        builder.Property(link => link.Payload).HasColumnType("text");
         // A maker's links, newest first, and its count of the day.
         builder.HasIndex(link => new { link.MakerProfileId, link.CreatedAt });
     }

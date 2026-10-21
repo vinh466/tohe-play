@@ -1,7 +1,8 @@
 // What both stages share (ADR 0020): the session, the words, the sounds and the player's save. The menu stage
 // (main.ts) reads the save for its summary and settings; the play stage (stage.ts) plays from it and writes it back.
-import { createSfx } from '@tohe/game-kit';
+import { createSfx, formatScore } from '@tohe/game-kit';
 import { connect, type RankedRun } from '@tohe/game-sdk';
+import { type ChallengeSlot, challengePayload, restoreChallenge } from './challenge.ts';
 import { restore, type State } from './logic.ts';
 import { DEFAULT_PALETTE, isPalette, type PaletteId } from './palette.ts';
 import { stringsFor } from './strings.ts';
@@ -17,6 +18,8 @@ export interface Saved {
   palette?: PaletteId;
   /** The game in progress is a ranked run (ADR 0030): kept here, so it continues on any device. */
   ranked?: RankedProgress;
+  /** The last challenge opened by a link ("Thách bạn", ADR 0045), beside the regular game; absent before 1.11.0. */
+  challenge?: ChallengeSlot;
 }
 
 /** A ranked run as it goes: the run the server opened, its seed, and every column dropped so far. */
@@ -57,6 +60,7 @@ export const store: {
   run: string | null;
   palette: PaletteId;
   ranked: RankedProgress | null;
+  challenge: ChallengeSlot | null;
 } = {
   best: saved?.best ?? 0,
   game: resumed && !resumed.over ? resumed : null,
@@ -64,6 +68,7 @@ export const store: {
   run: (resumed && !resumed.over && saved?.run) || null,
   palette: isPalette(saved?.palette) ? saved.palette : DEFAULT_PALETTE,
   ranked: resumed && !resumed.over && isRanked(saved?.ranked) ? saved.ranked : null,
+  challenge: restoreChallenge(saved?.challenge),
 };
 
 /** How long a new game waits for a ranked run before it starts unranked. */
@@ -99,5 +104,23 @@ export function persist(): Promise<void> {
   // JSON has no undefined: the run id is only there with a game in progress.
   if (game && store.run) data.run = store.run;
   if (game && store.ranked) data.ranked = store.ranked;
+  if (store.challenge) {
+    const played = store.challenge.game;
+    data.challenge = { ...store.challenge, game: played && !played.over ? played : null };
+  }
   return session.save(data).catch((error) => session.log('warn', `save failed: ${String(error)}`));
+}
+
+/**
+ * "Thách bạn" (ADR 0045): asks the hub to share a challenge on `seed` claiming `score` — its sheet; the link is made only
+ * if the player sends or copies it. Any answer is fine: cancelled, busy or offline leaves the card as it was.
+ */
+export function shareChallenge(seed: number, score: number): void {
+  void session
+    .share({
+      payload: challengePayload(seed, score),
+      text: t.challenge.text(formatScore(score, session.locale)),
+      level: 'any',
+    })
+    .catch((error) => session.log('info', `challenge not shared: ${String(error)}`));
 }

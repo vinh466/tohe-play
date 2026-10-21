@@ -1,11 +1,13 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate, useParams } from '@tanstack/react-router';
-import { type FormEvent, useEffect, useState } from 'react';
+import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { ApiError, type GameSummary, type RoomSummary, rooms } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
+import { AccountNeeded } from '../entry/EntryGate.tsx';
 import { hasShell } from '../launcher/manifest.ts';
+import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected } from '../rooms/connection.ts';
 import { formatCode, normalizeCode, quickPick } from '../rooms/model.ts';
@@ -30,19 +32,42 @@ export function RoomsPage() {
       {(session) => (
         <AtTables session={session}>
           {(player) => (
-            <Lobby
-              player={player}
-              device={session.status === 'device'}
-              mayPlayWithOthers={
-                session.status === 'device' ||
-                (session.me.profiles.find((p) => p.id === player.id)?.playWithOthers ?? false)
-              }
-            />
+            <TablesOfGame player={player} device={session.status === 'device'}>
+              <Lobby
+                player={player}
+                device={session.status === 'device'}
+                mayPlayWithOthers={
+                  session.status === 'device' ||
+                  (session.me.profiles.find((p) => p.id === player.id)?.playWithOthers ?? false)
+                }
+              />
+            </TablesOfGame>
           )}
         </AtTables>
       )}
     </RequireSession>
   );
+}
+
+/**
+ * A table asks for the highest of the game's `play`, its `rooms` and the table's door (ADR 0045): a game whose tables
+ * ask for an account sends a device profile to sign in first, and back here.
+ */
+function TablesOfGame({
+  player,
+  device,
+  children,
+}: {
+  player: Player;
+  device: boolean;
+  children: ReactNode;
+}) {
+  const { gameId } = useParams({ from: '/play/$gameId/rooms' });
+  const games = useQuery(gamesQuery(player.id));
+  const game = games.data?.find((g) => g.id === gameId);
+  if (device && game && tableLevel(game) === 'account')
+    return <AccountNeeded path={`/play/${gameId}/rooms`} />;
+  return children;
 }
 
 function Lobby({

@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.Text;
+using System.Text.Json;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -9,18 +11,25 @@ using Tohe.Api.Modules.Registry;
 namespace Tohe.Api.Modules.Links;
 
 /// <summary>A share link to make (ADR 0044).</summary>
-/// <param name="Kind"><c>game</c>: the game's menu. <c>entry</c> arrives with step I4 and is refused until then
-/// (<c>400 kind_not_supported</c>).</param>
+/// <param name="Kind"><c>game</c>: the game's menu. <c>entry</c>: a place inside the game, with
+/// <paramref name="Payload"/>, for a game whose current build takes share entries (ADR 0045; else
+/// <c>400 entry_not_supported</c>).</param>
 /// <param name="GameId">A game the registry lists, which the maker may see; its version is the registry's.</param>
-/// <param name="Level"><c>any</c> (the default), <c>named</c> or <c>account</c>: the least level asked of whoever opens it.</param>
+/// <param name="Level"><c>any</c> (the default), <c>named</c> or <c>account</c>: the least level asked of whoever opens
+/// it — raised to the game's own (ADR 0045).</param>
 /// <param name="ExpiresInHours">From 1 to 2160 (90 days); 720 (30 days) when not given.</param>
 /// <param name="MaxUses">From 1 to 1000; no limit when not given.</param>
+/// <param name="Payload">For an <c>entry</c> link only, and required with it: the game's JSON, at most 2 KB as UTF-8.</param>
+/// <param name="Text">The message the player would send with the link (ADR 0045), to be checked — never stored: the
+/// answer's <c>message</c> is it when it may be sent.</param>
 public sealed record MakeLinkRequest(
     [Required(AllowEmptyStrings = true)] string Kind,
     [Required(AllowEmptyStrings = true), StringLength(40)] string GameId,
     string? Level = null,
     int? ExpiresInHours = null,
-    int? MaxUses = null);
+    int? MaxUses = null,
+    JsonElement? Payload = null,
+    [StringLength(ShareTexts.MaxRequestLength)] string? Text = null);
 
 /// <param name="ExpiresInHours">The new expiry, from now: 1 to 2160 hours (90 days).</param>
 public sealed record ChangeLinkRequest(int ExpiresInHours);
@@ -47,7 +56,7 @@ internal static class LinkEndpoints
 
         mine.MapPost("/", MakeAsync)
             .WithName("MakeShareLink")
-            .WithSummary("Make a share link to a game, as the acting profile: a `named` feature — a device profile with its terms accepted, a child only with \"play with others\" on; 30 a day per profile, 60 per device key.");
+            .WithSummary("Make a share link to a game, as the acting profile: a `named` feature — a device profile with its terms accepted, a child only with \"play with others\" on; 30 a day per profile, 60 per device key. An `entry` link carries the game's payload (at most 2 KB), only for a game that takes share entries; its level is raised to the game's.");
 
         mine.MapGet("/mine", ListAsync)
             .WithName("ListMyShareLinks")
@@ -72,7 +81,7 @@ internal static class LinkEndpoints
             .ProducesProblem(StatusCodes.Status403Forbidden)
             .ProducesProblem(StatusCodes.Status429TooManyRequests)
             .WithName("PlayShareLink")
-            .WithSummary("Resolve a share link to open its game: takes one use and counts it played. A link asking `named` or `account` needs such a player (403 level_required). Limited as opening.");
+            .WithSummary("Resolve a share link to open its game: takes one use and counts it played; an `entry` link answers with its payload and version (ADR 0045). A link asking `named` or `account` needs such a player (403 level_required). Limited as opening.");
     }
 
     /// <summary>A profile making or managing links: who it is, and what it may.</summary>
@@ -109,9 +118,24 @@ internal static class LinkEndpoints
             return Problems.Field("kind", "invalid_options");
         }
 
+        // A game link carries nothing for the game; an entry link carries the game's payload (ADR 0045), compact.
+        string? payload = null;
         if (kind == ShareLinkKind.Entry)
         {
-            return Problems.Of(StatusCodes.Status400BadRequest, "kind_not_supported", "Entry links arrive with step I4");
+            if (request.Payload is not { } given || given.ValueKind == JsonValueKind.Undefined)
+            {
+                return Problems.Field("payload", "invalid_options");
+            }
+
+            payload = Compact(given);
+            if (Encoding.UTF8.GetByteCount(payload) > ShareLinks.MaxPayloadBytes)
+            {
+                return Problems.Of(StatusCodes.Status400BadRequest, "payload_too_large", "An entry's payload is at most 2 KB");
+            }
+        }
+        else if (request.Payload is { ValueKind: not JsonValueKind.Undefined })
+        {
+            return Problems.Field("payload", "invalid_options");
         }
 
         var level = LinkLevel.Any;
@@ -141,6 +165,15 @@ internal static class LinkEndpoints
             return Problems.Of(StatusCodes.Status403Forbidden, "too_young", "This game is not for this profile's age");
         }
 
+        // Only a game whose current build opens share entries itself gets one (ADR 0045).
+        if (kind == ShareLinkKind.Entry && !game.Takes(GameLevels.ShareEntry))
+        {
+            return Problems.Of(StatusCodes.Status400BadRequest, "entry_not_supported", "This game does not take share entries");
+        }
+
+        // Opening the link asks at least what opening the game does (ADR 0045).
+        level = (LinkLevel)Math.Max((int)level, (int)LinkNames.LevelOf(game.IdentityPlay));
+
         // The device key, whichever profile acts — or the account, when its session carries no device key.
         var key = maker.DeviceId ?? await DeviceOfRequestAsync(http) ?? maker.AccountId!.Value;
 
@@ -166,6 +199,7 @@ internal static class LinkEndpoints
             GameId = game.Id,
             GameVersion = game.Version,
             Level = level,
+            Payload = payload,
             MakerProfileId = maker.ProfileId,
             CreatedAt = now,
             ExpiresAt = now.AddHours(hours),
@@ -182,7 +216,8 @@ internal static class LinkEndpoints
             throw;
         }
 
-        return TypedResults.Ok(await links.ViewAsync(link, !maker.MayPlayWithOthers, ct));
+        // The message goes back to the hub only when it may be sent; it is kept nowhere.
+        return TypedResults.Ok(await links.ViewAsync(link, !maker.MayPlayWithOthers, ct) with { Message = ShareTexts.Accept(request.Text) });
     }
 
     private static async Task<Results<Ok<IReadOnlyList<ShareLinkView>>, ProblemHttpResult>> ListAsync(
@@ -309,7 +344,21 @@ internal static class LinkEndpoints
         }
 
         await links.CountAsync(resolved.Link.Id, opened: 0, played: 1, accountsMade: 0, ct);
-        return TypedResults.Ok(await links.IntentAsync(resolved, code, ct));
+        return TypedResults.Ok(await links.IntentAsync(resolved, code, ct, opening: true));
+    }
+
+    /// <summary>A JSON value without whitespace: what the payload's size is measured on, and what is kept.</summary>
+    private static string Compact(JsonElement value)
+    {
+        using var stream = new MemoryStream();
+        // Numbers kept as written, text as UTF-8 (not \uXXXX), as the game's JSON.stringify measured it.
+        var options = new JsonWriterOptions { Indented = false, Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping };
+        using (var writer = new Utf8JsonWriter(stream, options))
+        {
+            value.WriteTo(writer);
+        }
+
+        return Encoding.UTF8.GetString(stream.ToArray());
     }
 
     /// <summary>

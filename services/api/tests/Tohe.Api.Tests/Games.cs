@@ -10,6 +10,10 @@ internal static class Games
 {
     public static Task KnowAsync(ApiFactory factory, params string[] ids) => AddAsync(factory, rooms: null, ranked: null, ids);
 
+    /// <summary>A game whose build opens share entries itself (ADR 0045), asking <paramref name="play"/> to open.</summary>
+    public static Task KnowEntryGameAsync(ApiFactory factory, string id, string play = GameLevels.Any) =>
+        AddAsync(factory, rooms: null, ranked: null, [id], play, [GameLevels.ShareEntry]);
+
     /// <summary>A game played at tables (ADR 0016): its boards are hands.</summary>
     public static Task KnowRoomGameAsync(ApiFactory factory, string id) =>
         AddAsync(factory, """{ "seats": { "min": 2, "max": 4 } }""", ranked: null, id);
@@ -25,7 +29,11 @@ internal static class Games
             id);
     }
 
-    private static async Task AddAsync(ApiFactory factory, string? rooms, string? ranked, params string[] ids)
+    private static Task AddAsync(ApiFactory factory, string? rooms, string? ranked, params string[] ids) =>
+        AddAsync(factory, rooms, ranked, ids, GameLevels.Any, []);
+
+    private static async Task AddAsync(
+        ApiFactory factory, string? rooms, string? ranked, string[] ids, string play, string[] entries)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
@@ -46,6 +54,9 @@ internal static class Games
                 Orientation = "portrait",
                 Rooms = rooms,
                 Ranked = ranked,
+                IdentityPlay = play,
+                IdentityRooms = rooms is null ? null : GameLevels.Named,
+                Entries = entries,
                 FirstSeenAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             });
