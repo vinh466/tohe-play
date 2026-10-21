@@ -1,6 +1,7 @@
 // The play stage (ADR 0020): the board, the HUD and the moves. The shell creates it when the player presses play and
 // destroys it when they go back to the menu; leave() saves and stops everything start() started. Rules live in
-// logic.ts, drawing in view.ts, the save in app.ts.
+// logic.ts, drawing in view.ts, the save in app.ts. Opened by a challenge link (ADR 0045), it plays the challenge in a
+// slot of its own — the regular game, and its ranked run, stay as they were — until "Về ván thường".
 import {
   choiceList,
   createHud,
@@ -8,10 +9,12 @@ import {
   newRunId,
   type PlayStage,
   type StageContext,
+  shellStrings,
   type Theme,
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
-import { finishRanked, persist, session, sfx, startRanked, store, t } from './app.ts';
+import { finishRanked, persist, session, sfx, shareChallenge, startRanked, store, t } from './app.ts';
+import { type ChallengeSlot, openChallenge, outcome, readEntry } from './challenge.ts';
 import { drop, newGame, type State } from './logic.ts';
 import { createNextBlock } from './next.ts';
 import { BOARD, PALETTE_IDS, type PaletteId } from './palette.ts';
@@ -26,15 +29,17 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   ctx.root.append(template.content.cloneNode(true));
   const stage = ctx.root.querySelector<HTMLElement>('#stage') as HTMLElement;
   const scoreFailed = (error: unknown) => session.log('warn', `score not stored: ${String(error)}`);
+  const score = (value: number) => formatScore(value, session.locale);
 
-  // ------------------------------------------------------------------ the game: continue, or a fresh one
+  // ------------------------------------------------------------------ the game: a challenge, continue, or a fresh one
 
-  let state: State;
-  let runId: string;
-  if (!ctx.fresh && store.game && !store.game.over) {
-    state = store.game;
-    runId = store.run ?? newRunId();
-  } else {
+  /** The challenge being played, or null for the regular game. Its slot is in the save beside the regular game. */
+  let challenge: ChallengeSlot | null = null;
+
+  /** The regular game: the one in progress, or a fresh one (ranked when the hub deals a run). */
+  async function regularGame(fresh: boolean): Promise<{ state: State; runId: string }> {
+    if (!fresh && store.game && !store.game.over)
+      return { state: store.game, runId: store.run ?? newRunId() };
     // A game left unfinished ends here and keeps the best score it reached on the leaderboard.
     const previous = store.game;
     if (previous && !previous.over && previous.score > 0 && store.run) {
@@ -44,17 +49,40 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     // A ranked run plays from the server's seed (ADR 0030); otherwise the next game continues the PRNG sequence, so
     // every new game differs but stays reproducible.
     const ranked = await startRanked();
-    state = newGame(ranked?.seed ?? previous?.rng ?? session.seed, store.best);
     store.ranked = ranked ? { run: ranked.run, seed: ranked.seed, moves: [] } : null;
-    runId = ranked?.run ?? newRunId();
+    return {
+      state: newGame(ranked?.seed ?? previous?.rng ?? session.seed, store.best),
+      runId: ranked?.run ?? newRunId(),
+    };
   }
+
+  /** The challenge a link opened, from its slot or fresh — never a ranked run: its seed is the link's (ADR 0030). */
+  const firstGame = async (): Promise<{ state: State; runId: string }> => {
+    const opened = ctx.entry ? readEntry(ctx.entry.kind, ctx.entry.payload) : null;
+    if (opened?.result !== 'handled') return regularGame(ctx.fresh);
+    challenge = openChallenge(
+      store.challenge,
+      opened.challenge,
+      ctx.entry?.from ?? null,
+      store.best,
+      newRunId,
+    );
+    store.challenge = challenge;
+    return { state: challenge.game ?? newGame(challenge.seed, store.best), runId: challenge.run };
+  };
+  let { state, runId } = await firstGame();
   // The leaderboard shows the game in progress as it grows, and its best score stays when it ends.
   let run = session.run(runId);
 
   const save = () => {
-    store.game = state;
     store.best = Math.max(store.best, state.best);
-    store.run = runId;
+    if (challenge) {
+      challenge.game = state;
+      challenge.run = runId;
+    } else {
+      store.game = state;
+      store.run = runId;
+    }
     return persist();
   };
 
@@ -65,7 +93,18 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   scores.setBest(store.best);
   let theme: Theme = session.settings.theme;
   const nextBlock = createNextBlock(hud.center, theme);
-  const showScore = (score: number, animate = true) => scores.set(score, animate);
+  const showScore = (value: number, animate = true) => scores.set(value, animate);
+  // A challenge's target, under the HUD: the score the link claimed, and whose it is when the hub may say.
+  const target = document.createElement('p');
+  target.className = 'challenge-target';
+  hud.element.after(target);
+  const showTarget = () => {
+    target.hidden = challenge === null;
+    target.textContent = challenge
+      ? t.challenge.target(score(challenge.target), challenge.from?.name ?? null)
+      : '';
+  };
+  showTarget();
 
   // ------------------------------------------------------------------ the board
 
@@ -86,7 +125,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         t,
         {
           onDrop: (col) => requestMove(col),
-          onScore: (score) => showScore(score),
+          onScore: (value) => showScore(value),
           onUpcoming: (next, animate) => nextBlock.show(next, animate),
         },
         theme,
@@ -141,7 +180,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     moving = true;
     const before = state.score;
     state = result.state;
-    store.ranked?.moves.push(col);
+    // A challenge is never ranked: the regular game's ranked run, if any, waits untouched.
+    if (!challenge) store.ranked?.moves.push(col);
     await board.play(result.events, state, before);
     if (left) return;
     showScore(state.score);
@@ -160,33 +200,90 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       const record = state.score > store.best;
       void save();
       void run.finish(state.score).catch(scoreFailed);
-      finishRanked(state.score);
-      ctx.gameOver({
-        icon: record ? '🏆' : '🧱',
-        title: record ? t.record : t.over,
-        body: t.result(formatScore(state.score, session.locale), formatScore(store.best, session.locale)),
-      });
+      if (challenge) challengeOver(challenge);
+      else regularOver(record);
     } else {
       void save();
     }
   }
 
+  /** The regular game's end: its card, with "Thách bạn" when the game knows its seed and the hub can share. */
+  function regularOver(record: boolean) {
+    finishRanked(state.score);
+    const seed = state.seed;
+    const final = state.score;
+    ctx.gameOver(
+      {
+        icon: record ? '🏆' : '🧱',
+        title: record ? t.record : t.over,
+        body: t.result(score(final), score(store.best)),
+      },
+      undefined,
+      seed !== undefined && session.canShare
+        ? [{ label: t.challenge.button, onClick: () => shareChallenge(seed, final) }]
+        : [],
+    );
+  }
+
+  /** A challenge's end: beaten or not, "Thách lại" on the same blocks, and back to the regular game. */
+  function challengeOver(played: ChallengeSlot) {
+    const final = state.score;
+    const { beaten, short } = outcome(final, played.target);
+    const name = played.from?.name ?? null;
+    ctx.gameOver(
+      {
+        icon: beaten ? '🏆' : '🎯',
+        title: beaten ? t.challenge.beaten(score(played.target), name) : t.challenge.short(score(short)),
+        body: t.result(score(final), score(store.best)),
+      },
+      { label: t.challenge.back, onClick: () => void toRegular() },
+      session.canShare
+        ? [{ label: t.challenge.again, onClick: () => shareChallenge(played.seed, final) }]
+        : [],
+    );
+  }
+
+  /** Shows a game on the board from its first frame. */
+  function show(next: State) {
+    state = next;
+    run = session.run(runId);
+    board.setBoard(state);
+    scores.setBest(store.best);
+    showScore(state.score, false);
+    showTarget();
+    moving = false;
+    queued = null;
+  }
+
+  /** "Về ván thường": the regular game in place — the one in progress, or a fresh one. */
+  async function toRegular() {
+    moving = true;
+    challenge = null;
+    const regular = await regularGame(false);
+    if (left) return;
+    runId = regular.runId;
+    show(regular.state);
+    void save();
+  }
+
   async function startNewGame() {
     if (!state.over && state.score > 0) void run.finish(state.score).catch(scoreFailed);
-    if (!state.over) finishRanked(state.score);
     // No drop on the old board while the new one waits for its seed.
     moving = true;
+    if (challenge) {
+      // A new game of a challenge starts it again on the same blocks, with a run of its own.
+      challenge.game = newGame(challenge.seed, store.best);
+      runId = newRunId();
+      show(challenge.game);
+      void save();
+      return;
+    }
+    if (!state.over) finishRanked(state.score);
     const ranked = await startRanked();
     if (left) return;
     store.ranked = ranked ? { run: ranked.run, seed: ranked.seed, moves: [] } : null;
     runId = ranked?.run ?? newRunId();
-    run = session.run(runId);
-    state = newGame(ranked?.seed ?? state.rng, store.best);
-    board.setBoard(state);
-    scores.setBest(store.best);
-    showScore(0, false);
-    moving = false;
-    queued = null;
+    show(newGame(ranked?.seed ?? state.rng, store.best));
     void save();
   }
 
@@ -206,6 +303,18 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   board.setBoard(state);
   showScore(state.score, false);
   if (ctx.firstTime) board.showHint(true);
+  // A challenge that starts: whose blocks these are, and that the score is the sender's claim.
+  // (Set inside firstGame(), which the compiler does not follow.)
+  const opening = challenge as ChallengeSlot | null;
+  if (opening && state.moves === 0) {
+    const name = opening.from?.name ?? null;
+    ctx.overlay.show({
+      icon: '🎯',
+      title: t.challenge.target(score(opening.target), name),
+      body: t.challenge.intro(score(opening.target), name),
+      actions: [{ label: shellStrings(session.locale).start, onClick: () => ctx.overlay.hide() }],
+    });
+  }
   void save();
   ctx.ready();
 

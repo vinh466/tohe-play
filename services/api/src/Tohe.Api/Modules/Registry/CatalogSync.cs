@@ -76,6 +76,8 @@ internal sealed partial class CatalogSync(
                 && (manifest.Capabilities ?? []).Contains("ranked")
                 ? ranked.GetRawText()
                 : null;
+            (game.IdentityPlay, game.IdentityRooms) = IdentityOf(manifest);
+            game.Entries = [.. (manifest.Entries ?? []).Where(kind => kind == GameLevels.ShareEntry).Distinct(StringComparer.Ordinal)];
             game.Listed = true;
             game.UpdatedAt = now;
         }
@@ -96,6 +98,30 @@ internal sealed partial class CatalogSync(
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// The manifest's <c>identity</c> (ADR 0045): <c>play</c> (<c>any</c> by default) and, for a game with rooms,
+    /// <c>rooms</c> (<c>named</c> by default). The catalog passed the contract's validation; anything else reads as the
+    /// defaults.
+    /// </summary>
+    private static (string Play, string? Rooms) IdentityOf(GameManifestDocument manifest)
+    {
+        var identity = manifest.Identity is { ValueKind: System.Text.Json.JsonValueKind.Object } given ? given : default;
+        string? Read(string name) =>
+            identity.ValueKind == System.Text.Json.JsonValueKind.Object
+            && identity.TryGetProperty(name, out var value)
+            && value.ValueKind == System.Text.Json.JsonValueKind.String
+                ? value.GetString()
+                : null;
+        var play = Read("play") is { } level && GameLevels.IsLevel(level) ? level : GameLevels.Any;
+        string? rooms = null;
+        if ((manifest.Capabilities ?? []).Contains("rooms"))
+        {
+            rooms = Read("rooms") is GameLevels.Account ? GameLevels.Account : GameLevels.Named;
+        }
+
+        return (play, rooms);
     }
 
     [LoggerMessage(Level = LogLevel.Warning, Message = "Catalog entry {GameId} skipped: {Problem}")]

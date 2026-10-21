@@ -103,8 +103,27 @@ public sealed record GameRanked(string Verify, string Board, int MinMsPerMove, i
 /// <summary>A game as other modules may see it, by id.</summary>
 /// <param name="Path">The immutable build's path on the games origin, e.g. <c>tien-len/0.2.0/</c>.</param>
 /// <param name="Ranked">Set for games whose runs the server replays (ADR 0030).</param>
+/// <param name="IdentityPlay">What opening the game asks for (ADR 0045).</param>
+/// <param name="IdentityRooms">The least a table of it asks for; null without rooms.</param>
+/// <param name="Entries">The kinds of entry the current build opens itself (ADR 0045).</param>
 public sealed record RegistryGame(
-    string Id, string Name, string Version, string Path, int MinAge, GameRooms? Rooms, GameRanked? Ranked = null);
+    string Id,
+    string Name,
+    string Version,
+    string Path,
+    int MinAge,
+    GameRooms? Rooms,
+    GameRanked? Ranked = null,
+    string IdentityPlay = GameLevels.Any,
+    string? IdentityRooms = null,
+    IReadOnlyList<string>? Entries = null)
+{
+    /// <summary>What a table of this game asks for at least (ADR 0045): the highest of <c>play</c> and <c>rooms</c>.</summary>
+    public string TableLevel => GameLevels.Highest(IdentityPlay, IdentityRooms ?? GameLevels.Named);
+
+    /// <summary>The current build opens this kind of entry itself.</summary>
+    public bool Takes(string kind) => Entries?.Contains(kind) == true;
+}
 
 /// <summary>Read access to the registry for other modules (Rooms reads a game's rooms block and build path).</summary>
 public interface IRegistryGames
@@ -130,7 +149,10 @@ internal sealed class RegistryGames(ToheDbContext db) : IRegistryGames
                 game.Path,
                 game.MinAge,
                 game.Rooms is { } rooms ? GameRooms.Parse(rooms) : null,
-                game.Ranked is { } ranked ? GameRanked.Parse(ranked) : null);
+                game.Ranked is { } ranked ? GameRanked.Parse(ranked) : null,
+                game.IdentityPlay,
+                game.IdentityRooms,
+                game.Entries);
     }
 
     public Task<bool> KnowsAsync(string id, CancellationToken cancellationToken) =>

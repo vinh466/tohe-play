@@ -8,8 +8,9 @@ sidebar:
 A link, a QR code or a code typed by hand is an **entry**: the hub resolves it to a typed intent, keeps it through
 signing in and the terms, readies the player and the profile, and opens the table's lobby or the game
 ([ADR 0044](../decisions/0044-entry-links.md)). This page is the spec of the server's part — share links, their
-counts, link previews (step I3a) — and of the hub's part that follows it (step I3b). A game receiving an entry, or
-asking for a share, is step I4 (ADR 0045).
+counts, link previews (step I3a) — and of the hub's part that follows it (step I3b) — and of a game receiving an entry
+and asking for a share (step I4, [ADR 0045](../decisions/0045-games-declare-identity-and-entries.md);
+[Game Contract](../contracts/game-contract-v1.md#entries-and-identity)).
 
 ## Kinds of entry
 
@@ -17,8 +18,8 @@ asking for a share, is step I4 (ADR 0045).
 | --- | --- | --- | --- |
 | `site` | `/`, `/games/<gameId>/` | the public pages | — |
 | `play` | `/play/<gameId>` | the game's menu | the game's |
-| `room` | `/r/<six digits>` | that table's lobby ([Rooms](rooms.md#5-joining-with-a-link)) | the highest of the game's and the table's door — `named` by default |
-| `share` | `/s/<eight characters>` | the game's menu; from I4, a place inside the game | the highest of the game's and the link's |
+| `room` | `/r/<six digits>` | that table's lobby ([Rooms](rooms.md#5-joining-with-a-link)) | the highest of the game's `play`, its `rooms` and the table's door — `named` by default |
+| `share` | `/s/<eight characters>` | the game's menu — or, for an `entry` link, the place inside the game its payload names (ADR 0045) | the highest of the game's and the link's |
 | `community` | `/account/register?invite=` | signing up into a community (not in the pipeline yet) | `account` |
 | `profile` | in the app, by 12-digit ID ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)) | an invitation on the catalog | `account` |
 
@@ -41,9 +42,10 @@ own, never carrying a free path (no open redirect).
 | Field | What |
 | --- | --- |
 | Code | Eight characters, drawn at random (40 bits); unique among every link the server keeps, so a code is never given to a second link while the first exists |
-| Kind | `game` — opens the game's menu, the only kind made in step I3. `entry` — a payload for the game — arrives with step I4 and is refused until then (`400 kind_not_supported`) |
+| Kind | `game` — opens the game's menu. `entry` — a place in the game: a payload the game alone reads (JSON, at most 2 KB as UTF-8, `400 payload_too_large`), made by the hub on the game's request (ADR 0045), only for a game whose current build declares `entries: ["share"]` (`400 entry_not_supported`) |
+| Payload | For an `entry` link only (`links.share_links.payload`, `text`: the compact JSON exactly as measured against the 2 KB — `jsonb` would rewrite numbers and refuse `\u0000`): given to the game in `init.entry` by `play`, and to nobody else — never in a preview, the console's view, nor the maker's list |
 | Game and version | The game's id and the version the registry lists when the link is made — read from the registry, never from the request. Only a listed game, and one the maker's age band may see (`too_young`) |
-| Level | `any`, `named` or `account`: the least level the link asks of whoever opens it; the identity gate takes the highest of the game's, the feature's and the link's |
+| Level | `any`, `named` or `account`: the least level the link asks of whoever opens it, raised to the game's `identity.play` when it is made (ADR 0045); the identity gate takes the highest of the game's, the feature's and the link's |
 | Maker | A profile: an account's or a device's on the server |
 | Expiry | 30 days by default; the maker may choose between one hour and 90 days (`expiresInHours`, 1 to 2160), at making and later |
 | Maximum uses | Optional, 1 to 1000. A use is a resolve that opens the game, never a crawler's fetch |
@@ -153,7 +155,7 @@ flowchart LR
 - **200 every time**: an unknown, expired, revoked or used-up code gets the generic card, and so does a request past the
   preview's limits (per address, `Links:PreviewsPerMinute`, and for the whole server,
   `Links:PreviewsPerMinuteGlobal`), which then reads nothing from the database. `X-Robots-Tag: noindex`.
-- **The payload never appears** (I4), nor anything but what the table below lists.
+- **The payload never appears** (ADR 0045), nor anything but what the table below lists.
 
 | Address | Card |
 | --- | --- |
@@ -171,12 +173,12 @@ cached cannot be called back: revoking or deleting stops new cards only.
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `POST /api/links` | a player (session, or device key naming a device profile) | Make a link: `kind`, `gameId`, `level`, `expiresInHours`, `maxUses` |
+| `POST /api/links` | a player (session, or device key naming a device profile) | Make a link: `kind`, `gameId`, `level`, `expiresInHours`, `maxUses`; for `entry`, `payload` — and `text`, the message the player would send, checked and answered as `message` when it may go (below), never stored |
 | `GET /api/links/mine` | a player | Its links, newest first (100 at most), with their state and totals |
 | `PATCH /api/links/{code}` | its maker | A new expiry, from now (`expiresInHours`) |
 | `POST /api/links/{code}/revoke` | its maker | Revoke it |
 | `POST /api/links/{code}/open` | — | Resolve to a typed intent; counts `opened` |
-| `POST /api/links/{code}/play` | — (the player, when the link asks `named` or `account`) | Resolve to open the game: takes a use and counts `played`; `403 level_required` (with `level`) when the request's player does not meet the link's level |
+| `POST /api/links/{code}/play` | — (the player, when the link asks `named` or `account`) | Resolve to open the game: takes a use and counts `played`; for an `entry` link, the intent carries `entry`: `{ payload, version, makerAvatar }`; `403 level_required` (with `level`) when the request's player does not meet the link's level |
 | `GET`/`HEAD /api/previews/r/{code}` · `GET`/`HEAD /api/previews/s/{code}` | — | The crawler's card, HTML (not in the OpenAPI document) |
 | `GET /api/admin/links/{code}` · `POST /api/admin/links/{code}/revoke` | the console | Find · revoke |
 
@@ -248,8 +250,8 @@ flowchart TD
    the sign-in screen, the terms prompt). Installing the app on iPhone does not carry it: "Nhập mã" does.
 4. **In an in-app browser** (Zalo, Messenger, Facebook, Instagram): every screen, the entry's included, opens with the
    strip "Mở bằng trình duyệt" and its "Chép link" — the address without `?app=1`. It never blocks; "Ẩn" hides it.
-5. **The identity gate**: the highest of the game's level (`any` until step I4), the feature's and the link's
-   (`EntryGate`). A table asks for `named`: a device profile gets the `named` screen the first time, as before. A share
+5. **The identity gate**: the highest of the game's level (its `identity.play`, ADR 0045 — asked where the game opens,
+   once the game is known: its menu, or its table's preview), the feature's and the link's (`EntryGate`). A table asks for `named`: a device profile gets the `named` screen the first time, as before. A share
    link asking `named` shows the same screen with its own words ("Trước khi vào chơi"); asking `account`, a device
    profile is asked to sign in or make an account ("Link này cần tài khoản"), and comes back to the link.
 6. **The profile is ready**: chosen (the picker), the terms accepted (the terms prompt), its copy on the server when the
@@ -263,7 +265,9 @@ flowchart TD
    `play` is asked again behind it. `play` is called **once per reached intent**: the request is shared by every drawing
    of the screen for that kept intent, and once reached nothing is kept to reach again, so a reload of the game or going
    back never calls it. A game's own address that a child's catalog does not list says "Trò chơi này chưa dành cho
-   bạn". From I4, the place inside the game.
+   bạn". An `entry` link opens the game at its place: `play`'s answer — payload, version, and the maker's name and
+   avatar when they may be shown — waits on the tab (`tohe:game-entry`, an hour, taken once, gone with the intent) and
+   becomes the game's `init.entry` ([below](#a-game-opened-by-an-entry)). The link is never resolved again for it.
 8. **Afterwards**: the counts are the server's; the nudges come at their moment (installing after the first finished
    game, keeping progress on the catalog's strip). The share link a tab came from is kept apart from the intent, an hour
    from when it first opened — opening it again does not push the hour (`tohe:entry-source`): an account made on that
@@ -272,6 +276,35 @@ flowchart TD
 
 A device profile acts on share links with its device key, as at tables: the hub names it on `/api/links/*`
 (`X-Tohe-Device-Profile`, `X-Tohe-Terms`) exactly while it acts, and an account's session never does.
+
+### A game opened by an entry
+
+[ADR 0045](../decisions/0045-games-declare-identity-and-entries.md): the hub sends `init.entry` only to a build that
+declares the kind in `entries`, and waits **5 s** for the game's `entry` answer. On `unsupported`, `invalid`, no answer,
+  or a build that does not declare it, it shows its own notice over the game's menu — "Lời mời này không mở được trong bản
+game này" — and the game plays as usual; a `handled` that comes later takes the notice back. A game asking the hub for more in the middle of play:
+
+- **One sheet at a time**: while a sheet is open, or before the game showed its first screen, a request is `busy`. The
+  game gets `pause` when a sheet opens and `resume` when it closes.
+- **`identity.require`**: `ok` at once for a level the profile has (an account's profile has them all; a device profile
+  is `named` once its copy is on the server with the terms). Otherwise the hub's sheet, in its own words for the reason
+  (`others`, `ranked`, `sync`, `friends`): the `named` screen ("Đặt tên cho hồ sơ"), or "Cần tài khoản Tò He" with
+  "Đăng nhập", "Tạo tài khoản" and "Để sau". "Để sau" answers `declined`, and every request of that game for that
+  profile is `declined` without asking for ten minutes. Signing in pauses the game, waits up to a second for its save,
+  keeps the game's intent and its entry on the tab, and the game **opens again** after signing in, for the profile the
+  player ends up on ("Đã đăng nhập — đang mở lại {game}…"); the request never settles.
+- **`share`**: a `named` feature — a device profile gets the `named` screen first, in the sheet. Then "Gửi" (the
+  system's share, where there is one), "Chép link" and "Mã QR": **the link is made on the first tap**, an `entry` link
+  with the game's payload and level, so closing the sheet leaves nothing behind. The message is the game's text when the
+  API accepts it — one line, at most 120 characters, no invisible formatting characters, no address, domain or email
+  (in any script, with full-width and ideographic dots too), no seven digits or more — counted across single spaces,
+  dots and dashes, so `0901 234 567` is one, stricter than ADR 0045's "run of seven digits": a refusal only means the
+  hub's words go instead — and through the name filter
+  ([ADR 0035](../decisions/0035-filter-offensive-names-and-limit-renames.md)); else the hub's "Chơi {game} với mình trên
+  Tò He nhé!", shown in the sheet once the link is made. `ok` once sent, copied or shown; otherwise `cancelled`, or why
+  the link could not be made (`limit`, `offline`, `not_allowed`, `unavailable`).
+- **`can`**: both false at a table and in a replay; `share` also for a game without `entries` and for a child kept to
+  its account.
 
 ### The screens
 

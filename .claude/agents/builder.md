@@ -1,7 +1,7 @@
 ---
 name: builder
 description: Builds exactly one Tò He pull request from the master's work packet, in the worktree it is given. Edits files, runs pnpm verify, never commits. The master reviews the diff and opens the pull request.
-model: claude-sonnet-5-5
+model: claude-opus-5-5
 effort: high
 maxTurns: 150
 ---

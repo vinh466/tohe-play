@@ -125,3 +125,23 @@ body {
   font-size: 0.95rem;
   text-align: center;
 }
+
+/* A challenge's target under the HUD ("Thách bạn", ADR 0045): the score the link claimed, and whose it is. */
+.challenge-target {
+  margin: 0.15rem auto 0;
+  padding: 0.2rem 0.8rem;
+  border-radius: 999px;
+  background: var(--tohe-soft);
+  color: var(--tohe-ink);
+  font-size: 0.95rem;
+  font-weight: 700;
+  text-align: center;
+  max-width: calc(100% - 1.5rem);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.challenge-target[hidden] {
+  display: none;
+}

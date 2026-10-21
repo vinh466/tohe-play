@@ -1769,7 +1769,10 @@
           "firstSeenAt",
           "updatedAt",
           "playersLastWeek",
-          "openRooms"
+          "openRooms",
+          "identityPlay",
+          "identityRooms",
+          "entries"
         ],
         "type": "object",
         "properties": {
@@ -1823,6 +1826,21 @@
           "openRooms": {
             "type": "integer",
             "format": "int32"
+          },
+          "identityPlay": {
+            "type": "string"
+          },
+          "identityRooms": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "entries": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
           }
         }
       },

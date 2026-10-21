@@ -722,6 +722,9 @@ export interface components {
             playersLastWeek: number;
             /** Format: int32 */
             openRooms: number;
+            identityPlay: string;
+            identityRooms: null | string;
+            entries: string[];
         };
         AdminLinkDay: {
             /** Format: date */

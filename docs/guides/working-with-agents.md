@@ -66,17 +66,16 @@ requests, and tags and deploys on the owner's word.
 
 | Worker | Model | Effort | Does | May |
 | --- | --- | --- | --- | --- |
-| `scout` | Claude Haiku 5.5 | low | Searches code, logs, docs and the web | Read only |
-| `builder` | Claude Sonnet 5.5, or Claude Opus 5.5 for pull requests that change security, identity or the Game Contract (the master spawns it with the `opus` model override, never `fable`) | high | Builds one pull request from a work packet | Edit files in its worktree; never commits |
-| `chore` | Claude Sonnet 5.5 | medium | Mechanical changes: renames, regenerating files, CI fixes, dependency bumps | Edit files in its worktree; never commits |
+| `scout` | Claude Opus 5.5 | low | Searches code, logs, docs and the web | Read only |
+| `builder` | Claude Opus 5.5 | high | Builds one pull request from a work packet | Edit files in its worktree; never commits |
+| `chore` | Claude Opus 5.5 | medium | Mechanical changes: renames, regenerating files, CI fixes, dependency bumps | Edit files in its worktree; never commits |
 | `reviewer` | Claude Opus 5.5 | high | Reviews ADRs, specs and diffs against the accepted decisions | Read only |
 
-The definitions name full model IDs (`claude-haiku-5-5`, `claude-sonnet-5-5`, `claude-opus-5-5`), so an alias cannot
-drift to a costlier model. Workers do not commit: the master reviews the uncommitted diff and commits it, so every
+The definitions name the full model ID (`claude-opus-5-5`), so an alias cannot drift to another model. Workers do not commit: the master reviews the uncommitted diff and commits it, so every
 commit has passed the master's review.
 
-**Cost ceiling** (the owner's): nothing above Claude Opus 5.5, no effort above `xhigh`, and only the main session runs
-at `xhigh`. No Claude Fable, no `max`, no fast mode.
+**Cost ceiling** (the owner's): every worker runs Claude Opus 5.5 at an effort of `high` or less; only the main session
+runs at `xhigh`. Nothing above Claude Opus 5.5, no Claude Fable, no `max`, no fast mode.
 
 **Rules:**
 

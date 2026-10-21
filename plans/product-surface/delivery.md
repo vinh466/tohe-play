@@ -59,7 +59,8 @@ phù hợp làm riêng xong sau đó phối hợp trên 1 luồng master".
 
 **Trần chi phí** (owner, 2026-10-19: "tối đa chỉ được dùng Opus 5.5 và effort tối đa là xhigh th nha (tối đa là master, k
 đc hơn, tôi k có nhìu chi phí)"): **không model nào trên Opus 5.5, không effort nào trên xhigh**; chỉ master được xhigh;
-không Fable, không `max`, không `/fast` (giá gấp đôi).
+không Fable, không `max`, không `/fast` (giá gấp đôi). **Cập nhật** (owner, 2026-10-21: "các agent worker bạn spawn chỉ
+khi nó có trần là high và model Opus th"): **mọi worker chạy Opus 5.5, effort tối đa high**; master xhigh.
 
 **Master** = phiên chính (Opus 5.5 · xhigh — trần). Chỉ master: nói chuyện và chốt với owner; viết *gói việc*; viết và giữ
 `plans/`, memory, bảng *Trạng thái*; review diff; chạy lại `pnpm verify`; mở PR; gắn tag, deploy theo lời khoá (E-01).
@@ -67,9 +68,9 @@ Worker không quyết thiết kế, không push, không mở PR, không merge, k
 
 | Worker | Model · effort | Làm gì | Quyền | Cách ly |
 |---|---|---|---|---|
-| `scout` | Haiku 5.5 · low | tìm trong code, log, docs, web; trả về sự thật + đường dẫn | chỉ đọc | — |
-| `builder` | **Sonnet 5.5 · high** cho PR đã rõ (N2, N3, B2, B3, B5, S2, S4) · **Opus 5.5 · high** cho PR khó (B1, B4, I1–I4) | làm **một PR** theo gói việc: code + test + docs, `pnpm verify`; **không commit** — master review diff rồi commit | sửa trong worktree của nó | worktree riêng |
-| `chore` | Sonnet 5.5 · medium | việc cơ học: đổi tên, sinh lại file, sửa CI, nâng phụ thuộc | sửa trong worktree của nó | worktree riêng |
+| `scout` | Opus 5.5 · low | tìm trong code, log, docs, web; trả về sự thật + đường dẫn | chỉ đọc | — |
+| `builder` | **Opus 5.5 · high** (trước 2026-10-21: Sonnet cho PR đã rõ) | làm **một PR** theo gói việc: code + test + docs, `pnpm verify`; **không commit** — master review diff rồi commit | sửa trong worktree của nó | worktree riêng |
+| `chore` | Opus 5.5 · medium | việc cơ học: đổi tên, sinh lại file, sửa CI, nâng phụ thuộc | sửa trong worktree của nó | worktree riêng |
 | `reviewer` | Opus 5.5 · high | đọc ADR/spec/diff đối chiếu item của plan, tìm lỗ hổng; không sửa — mắt mới vì ngữ cảnh mới, không vì model mạnh hơn | chỉ đọc | — |
 
 **Tiết kiệm**: mở agent chỉ khi nó giữ được ngữ cảnh của master gọn hoặc làm song song được; việc nhỏ master tự làm;
@@ -136,7 +137,7 @@ worktree · báo cáo trả về: đã đổi gì, kết quả kiểm (dán outp
 | S4 | `feat/s4-newcomer-funnel` | [#93](https://github.com/vinh466/tohe-play/pull/93) **merged** (2026-10-20, `3b8726b`) — luồng người mới đếm theo số tổng, không theo dõi ai (D-04) |
 | S1 | `feat/s1-public-content` | [#94](https://github.com/vinh466/tohe-play/pull/94) **merged** (2026-10-20, `7733e29`) — trang game, hướng dẫn cài, FAQ, giới thiệu, điều khoản và quyền riêng tư tĩnh; [#95](https://github.com/vinh466/tohe-play/pull/95) sửa `check:uat` theo nhãn nút mới |
 | I1 | `feat/i1-device-profiles` | ADR 0043 [#91](https://github.com/vinh466/tohe-play/pull/91) (`049d775`); [#96](https://github.com/vinh466/tohe-play/pull/96) **merged** (2026-10-20, `09c3958`) — builder (Opus · high): khách → hồ sơ máy, đưa vào account giữ id; reviewer (Opus · high), đã sửa |
-| I2 | `feat/i2a-…`, `feat/i2b-…` | chia hai: [#97](https://github.com/vinh466/tohe-play/pull/97) I2a **merged** (`3fd26f8`) — hồ sơ máy trên server, khoá thiết bị, bàn mở cho `named`; [#99](https://github.com/vinh466/tohe-play/pull/99) I2b **merged** (`971aaca`) — mã chuyển máy (QR hoặc 6 số máy cũ xác nhận), alias khi gộp. Builder (Opus · high) + reviewer (Opus · high) mỗi phần. **Chưa deploy** |
-| I3 | `feat/i3a-share-links` | ADR 0044 [#98](https://github.com/vinh466/tohe-play/pull/98) **merged** (`66816ed`; owner chốt các điểm agent thêm). Chia hai: **I3a** (server: module `Links`, thẻ xem trước cho crawler qua Caddy, `/s`, mã bàn giữ một ngày, console) — builder xong, đang review; **I3b** (hub) sau |
-| I4 | — | ADR 0045 [#100](https://github.com/vinh466/tohe-play/pull/100) **merged** (`abd82cc`; owner chốt); code sau I3 |
-| Phát hành | — | UAT `uat-2026-10-19.1` (d23baab), `uat-2026-10-19.2` (b787005), `uat-2026-10-20.1` (78b7a60, `check:uat` 20/20); **prod `prod-2026-10-20.1`** (78b7a60) qua [platform-infra#240](https://github.com/vinetic-spaces/platform-infra/pull/240) (owner merge 2026-10-20 08:38: chart + `publicUrls.docs`, `console`, `hub.securityContact`), `check:prod` 23/23; `uat-`/`prod-2026-10-20.2` (7733e29: S1, S4); `uat-`/`prod-2026-10-20.3` (09c3958: I1), `check:prod` 23/23 |
+| I2 | `feat/i2a-…`, `feat/i2b-…` | chia hai: [#97](https://github.com/vinh466/tohe-play/pull/97) I2a **merged** (`3fd26f8`) — hồ sơ máy trên server, khoá thiết bị, bàn mở cho `named`; [#99](https://github.com/vinh466/tohe-play/pull/99) I2b **merged** (`971aaca`) — mã chuyển máy (QR hoặc 6 số máy cũ xác nhận), alias khi gộp. Builder (Opus · high) + reviewer (Opus · high) mỗi phần. Prod `prod-2026-10-21.1` |
+| I3 | `feat/i3a-…`, `feat/i3b-…` | ADR 0044 [#98](https://github.com/vinh466/tohe-play/pull/98) **merged** (`66816ed`). Chia hai: [#102](https://github.com/vinh466/tohe-play/pull/102) I3a **merged** (`5fda0a1`) — module `Links`, thẻ xem trước cho crawler qua Caddy, `/s`, console; [#103](https://github.com/vinh466/tohe-play/pull/103) I3b **merged** (`8b15f68`) — đường ống lối vào ở hub, "Nhập mã", "Chia sẻ", "Link của tôi". Prod `prod-2026-10-21.1` |
+| I4 | `feat/i4-game-entries` | ADR 0045 [#100](https://github.com/vinh466/tohe-play/pull/100) **merged** (`abd82cc`; owner chốt). Một PR (owner 2026-10-21): [#104](https://github.com/vinh466/tohe-play/pull/104) — builder (Opus · high); reviewer (Opus · high): 0 blocker, 2 major, 5 minor, đã sửa; master sửa đường đăng nhập từ sheet tên; `pnpm verify` xanh (433 test API); câu chữ agent chọn, liệt kê trong PR cho phase review |
+| Phát hành | — | UAT `uat-2026-10-19.1` (d23baab), `uat-2026-10-19.2` (b787005), `uat-2026-10-20.1` (78b7a60, `check:uat` 20/20); **prod `prod-2026-10-20.1`** (78b7a60) qua [platform-infra#240](https://github.com/vinetic-spaces/platform-infra/pull/240) (owner merge 2026-10-20 08:38: chart + `publicUrls.docs`, `console`, `hub.securityContact`), `check:prod` 23/23; `uat-`/`prod-2026-10-20.2` (7733e29: S1, S4); `uat-`/`prod-2026-10-20.3` (09c3958: I1), `check:prod` 23/23; `uat-`/`prod-2026-10-21.1` (95fdf6d: I2, I3) |

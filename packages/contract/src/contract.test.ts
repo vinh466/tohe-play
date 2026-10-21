@@ -1,5 +1,13 @@
 import { describe, expect, it } from 'vitest';
-import { GameManifest, GameMessage, gameContentSecurityPolicy, HostMessage } from './index.ts';
+import {
+  GameManifest,
+  GameMessage,
+  gameContentSecurityPolicy,
+  gameLevels,
+  HostMessage,
+  highestIdentityLevel,
+  jsonBytes,
+} from './index.ts';
 
 describe('GameManifest', () => {
   it('applies defaults to a minimal manifest', () => {
@@ -282,6 +290,101 @@ describe('ranked runs (ADR 0030)', () => {
     expect(HostMessage.safeParse({ ...init, rankedReplay: { seed: 1, moves: [], run: 'x' } }).success).toBe(
       false,
     );
+  });
+});
+
+describe('identity and entries (ADR 0045)', () => {
+  const base = { id: 'merge-block', name: 'Ghép Khối', version: '1.11.0', protocol: 1 };
+  const rooms = { seats: { min: 2, max: 4 } };
+
+  it('leaves both out by default: any profile opens the game, and a table asks for a name', () => {
+    const manifest = GameManifest.parse(base);
+    expect(manifest.identity).toBeUndefined();
+    expect(manifest.entries).toBeUndefined();
+    expect(gameLevels(manifest)).toEqual({ play: 'any', table: null });
+    const online = GameManifest.parse({ ...base, capabilities: ['rooms'], rooms });
+    expect(gameLevels(online)).toEqual({ play: 'any', table: 'named' });
+  });
+
+  it('takes the levels and the share entry, defaulting play to any', () => {
+    const manifest = GameManifest.parse({ ...base, identity: {}, entries: ['share'] });
+    expect(manifest.identity).toEqual({ play: 'any' });
+    expect(manifest.entries).toEqual(['share']);
+    const online = GameManifest.parse({
+      ...base,
+      capabilities: ['rooms'],
+      rooms,
+      identity: { play: 'named', rooms: 'account' },
+    });
+    expect(gameLevels(online)).toEqual({ play: 'named', table: 'account' });
+    expect(gameLevels({ capabilities: ['rooms'], identity: { play: 'account' } })).toEqual({
+      play: 'account',
+      table: 'account',
+    });
+  });
+
+  it.each([
+    ['identity.rooms without the rooms capability', { identity: { rooms: 'named' } }],
+    ['an unknown level', { identity: { play: 'guest' } }],
+    ['any as the rooms level', { capabilities: ['rooms'], rooms, identity: { rooms: 'any' } }],
+    ['an unknown entry kind', { entries: ['notification'] }],
+    ['a repeated entry kind', { entries: ['share', 'share'] }],
+    ['an unknown identity field', { identity: { play: 'any', extra: 1 } }],
+  ])('rejects %s', (_label, extra) => {
+    expect(GameManifest.safeParse({ ...base, ...extra }).success).toBe(false);
+  });
+
+  it('orders the levels any < named < account', () => {
+    expect(highestIdentityLevel()).toBe('any');
+    expect(highestIdentityLevel('named', 'any', undefined)).toBe('named');
+    expect(highestIdentityLevel('named', 'account', null)).toBe('account');
+  });
+
+  const init = (extra: object) =>
+    HostMessage.safeParse({
+      tohe: 1,
+      type: 'init',
+      profile: { id: 'p1', name: 'Na' },
+      locale: 'vi',
+      settings: { muted: false, theme: 'light' },
+      save: null,
+      seed: 1,
+      ...extra,
+    });
+
+  it('carries the profile kind, an entry and what the hub answers in init, all optional', () => {
+    const entry = { kind: 'share', payload: { v: 1, seed: 7, score: 12340 }, version: '1.11.0' };
+    expect(init({}).success).toBe(true);
+    expect(init({ profile: { id: 'p1', name: 'Na', kind: 'device' } }).success).toBe(true);
+    expect(init({ profile: { id: 'p1', name: 'Na', kind: 'guest' } }).success).toBe(false);
+    expect(init({ entry, can: { require: true, share: true } }).success).toBe(true);
+    expect(init({ entry: { ...entry, from: { name: 'Na', avatar: '🐱' } } }).success).toBe(true);
+    expect(init({ entry: { ...entry, kind: 'daily' } }).success).toBe(false);
+    expect(init({ entry: { ...entry, version: 'latest' } }).success).toBe(false);
+    expect(init({ can: { require: true } }).success).toBe(false);
+  });
+
+  it('keeps an entry payload to 2 KB as UTF-8, whatever it holds', () => {
+    const entry = (payload: unknown) => init({ entry: { kind: 'share', payload, version: '1.0.0' } }).success;
+    expect(entry(null)).toBe(true);
+    expect(entry('a'.repeat(2046))).toBe(true);
+    expect(jsonBytes('a'.repeat(2046))).toBe(2048);
+    expect(entry('a'.repeat(2047))).toBe(false);
+    // Vietnamese takes more than one byte a character.
+    expect(entry('ế'.repeat(700))).toBe(false);
+  });
+
+  it('answers an entry, asks for a level with a reason, and asks to share', () => {
+    expect(GameMessage.safeParse({ tohe: 1, type: 'entry', result: 'handled' }).success).toBe(true);
+    expect(GameMessage.safeParse({ tohe: 1, type: 'entry', result: 'maybe' }).success).toBe(false);
+    const require = { tohe: 1, type: 'identity.require', id: 'r1', level: 'account', reason: 'ranked' };
+    expect(GameMessage.safeParse(require).success).toBe(true);
+    expect(GameMessage.safeParse({ ...require, level: 'any' }).success).toBe(false);
+    expect(GameMessage.safeParse({ ...require, reason: 'Sign in to win a prize!' }).success).toBe(false);
+    const share = { tohe: 1, type: 'share', id: 'r2', payload: { v: 1 }, text: 'Hi', level: 'any' };
+    expect(GameMessage.safeParse(share).success).toBe(true);
+    expect(GameMessage.safeParse({ ...share, level: 'guest' }).success).toBe(false);
+    expect(GameMessage.safeParse({ ...share, text: 'x'.repeat(501) }).success).toBe(false);
   });
 });
 

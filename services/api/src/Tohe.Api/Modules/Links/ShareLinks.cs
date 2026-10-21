@@ -1,3 +1,4 @@
+using System.Text.Json;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
 using Tohe.Api.Infrastructure.Database;
@@ -22,9 +23,11 @@ public static class LinkStates
 public sealed record LinkCounts(int Opened, int Played, int? AccountsMade);
 
 /// <summary>A share link as its maker sees it (ADR 0044).</summary>
-/// <param name="Kind"><c>game</c> (or <c>entry</c>, from step I4).</param>
+/// <param name="Kind"><c>game</c>, or <c>entry</c>: a place in the game (ADR 0045).</param>
 /// <param name="Level"><c>any</c>, <c>named</c> or <c>account</c>.</param>
 /// <param name="State">What it resolves to now: <c>ok</c>, <c>expired</c>, <c>revoked</c> or <c>used_up</c>.</param>
+/// <param name="Message">Only in the answer to making a link with a <c>text</c>: that text, when it passed the checks
+/// of ADR 0045 (one line, 120 characters, no address, no phone number, the name filter); otherwise null.</param>
 public sealed record ShareLinkView(
     string Code,
     string Kind,
@@ -37,7 +40,15 @@ public sealed record ShareLinkView(
     int? MaxUses,
     int Uses,
     DateTimeOffset? RevokedAt,
-    LinkCounts Counts);
+    LinkCounts Counts,
+    string? Message = null);
+
+/// <summary>
+/// An <c>entry</c> link's place in the game (ADR 0045), given only when the link opens the game: the game's payload,
+/// the game's version when the link was made, and its maker's avatar when the maker may be named.
+/// </summary>
+/// <param name="Payload">The game's JSON, untrusted: the game checks it.</param>
+public sealed record LinkEntry(JsonElement Payload, string Version, string? MakerAvatar);
 
 /// <summary>
 /// A share link resolved to a typed intent (ADR 0044): never a free path. For <c>unknown</c>, the state alone; for
@@ -46,6 +57,7 @@ public sealed record ShareLinkView(
 /// </summary>
 /// <param name="Code">The code in its canonical form; empty when what was asked is no code.</param>
 /// <param name="GameName">The game's name as the registry lists it now; null when it is not listed.</param>
+/// <param name="Entry">For an <c>entry</c> link that <c>play</c> opened: its payload and version (ADR 0045).</param>
 public sealed record LinkIntent(
     string Code,
     string State,
@@ -53,7 +65,8 @@ public sealed record LinkIntent(
     string? GameId = null,
     string? GameName = null,
     string? Level = null,
-    string? MakerName = null);
+    string? MakerName = null,
+    LinkEntry? Entry = null);
 
 /// <summary>A share link found by its code, with its maker as strangers may see it (null: the maker is gone).</summary>
 internal sealed record ResolvedLink(ShareLink Link, ProfileStanding? Maker, string State);
@@ -75,6 +88,9 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
 
     /// <summary>The links its maker sees at most, newest first.</summary>
     public const int MineLimit = 100;
+
+    /// <summary>The largest payload of an entry link, as UTF-8 JSON (ADR 0045).</summary>
+    public const int MaxPayloadBytes = 2048;
 
     /// <summary>The link with this code — typed any way the codes are read — with its maker and its state; or null.</summary>
     public async Task<ResolvedLink?> ResolveAsync(string? input, CancellationToken ct)
@@ -99,8 +115,11 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
         : link.MaxUses is { } max && link.Uses >= max ? LinkStates.UsedUp
         : LinkStates.Ok;
 
-    /// <summary>The intent the hub reads (<see cref="LinkIntent"/>).</summary>
-    public async Task<LinkIntent> IntentAsync(ResolvedLink? resolved, string? input, CancellationToken ct)
+    /// <summary>
+    /// The intent the hub reads (<see cref="LinkIntent"/>); with <paramref name="opening"/> — <c>play</c> took a use — an
+    /// <c>entry</c> link's payload and version too (ADR 0045).
+    /// </summary>
+    public async Task<LinkIntent> IntentAsync(ResolvedLink? resolved, string? input, CancellationToken ct, bool opening = false)
     {
         if (resolved is null)
         {
@@ -109,8 +128,12 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
 
         var (link, maker, state) = resolved;
         var game = await games.GetAsync(link.GameId, ct);
-        var name = state == LinkStates.Ok && maker is { Child: false } ? maker.Name : null;
-        return new LinkIntent(link.Code, state, LinkNames.Of(link.Kind), link.GameId, game?.Name, LinkNames.Of(link.Level), name);
+        var named = state == LinkStates.Ok && maker is { Child: false };
+        var entry = opening && state == LinkStates.Ok && link is { Kind: ShareLinkKind.Entry, Payload: { } payload }
+            ? new LinkEntry(JsonSerializer.Deserialize<JsonElement>(payload), link.GameVersion, named ? maker!.Avatar : null)
+            : null;
+        return new LinkIntent(
+            link.Code, state, LinkNames.Of(link.Kind), link.GameId, game?.Name, LinkNames.Of(link.Level), named ? maker!.Name : null, entry);
     }
 
     /// <summary>

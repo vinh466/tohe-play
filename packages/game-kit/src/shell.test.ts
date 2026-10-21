@@ -541,3 +541,104 @@ describe('a table and a replay: no menu stage', () => {
     expect(shell.playing).toBe(true);
   });
 });
+
+describe('opened by an entry (ADR 0045)', () => {
+  const entryOf = () => ({
+    kind: 'share' as const,
+    payload: { v: 1, seed: 7, score: 120 },
+    version: '1.11.0',
+    from: { name: 'Na' },
+    answer: vi.fn(),
+  });
+
+  it('answers unsupported for a game without a handler, and opens the title screen', () => {
+    const test = setup();
+    const entry = entryOf();
+    Object.assign(test.session, { entry });
+    test.shell.start();
+    expect(entry.answer).toHaveBeenCalledWith('unsupported');
+    expect(test.menu()?.layout).toBe('title');
+  });
+
+  it('opens play at once for an entry the game handles, the title screen behind it', async () => {
+    const handler = vi.fn(() => 'handled' as const);
+    const test = setup({ entry: handler });
+    const entry = entryOf();
+    Object.assign(test.session, { entry });
+    test.shell.start();
+    expect(handler).toHaveBeenCalledWith(entry);
+    expect(entry.answer).toHaveBeenCalledWith('handled');
+    expect(test.menu()).toBeNull();
+    await settle();
+    expect(test.ctx().entry).toBe(entry);
+    expect(test.shell.playing).toBe(true);
+    // The title screen is behind it, reached from the panel as usual — and the next play is a regular one.
+    test.back();
+    test.tap('Menu chính');
+    expect(test.menu()?.layout).toBe('title');
+    test.tap('▶ Chơi');
+    await settle();
+    expect(test.ctx().entry).toBeNull();
+  });
+
+  it('shows the how-to first to a player who never saw it, then play opens at the entry', async () => {
+    let seen = false;
+    const test = setup({ entry: () => 'handled', tutorial: { seen: () => seen, done: () => (seen = true) } });
+    const entry = entryOf();
+    Object.assign(test.session, { entry });
+    test.shell.start();
+    // Not the title screen: the first-time how-to, whose start plays.
+    expect(test.menu()?.layout).toBe('screen');
+    expect(test.menu()?.footer).toBeUndefined();
+    test.tap('▶ Bắt đầu');
+    await settle();
+    expect(seen).toBe(true);
+    expect(test.ctx().entry).toBe(entry);
+    expect(test.ctx().firstTime).toBe(true);
+    expect(test.shell.playing).toBe(true);
+  });
+
+  it.each(['invalid', 'unsupported'] as const)(
+    'opens the title screen when the game answers %s',
+    (result) => {
+      const test = setup({ entry: () => result });
+      const entry = entryOf();
+      Object.assign(test.session, { entry });
+      test.shell.start();
+      expect(entry.answer).toHaveBeenCalledWith(result);
+      expect(test.menu()?.layout).toBe('title');
+    },
+  );
+
+  it('answers invalid when the handler throws on a hostile payload', () => {
+    const test = setup({
+      entry: () => {
+        throw new TypeError('payload.seed is undefined');
+      },
+    });
+    const entry = entryOf();
+    Object.assign(test.session, { entry });
+    test.shell.start();
+    expect(entry.answer).toHaveBeenCalledWith('invalid');
+    expect(test.menu()?.layout).toBe('title');
+  });
+
+  it('puts the game’s extra actions on the end card, which stays up while they run', async () => {
+    const share = vi.fn();
+    const again = vi.fn();
+    const test = setup();
+    test.shell.start();
+    test.tap('▶ Chơi');
+    await settle();
+    test.ctx().gameOver({ title: 'Hết ván' }, undefined, [
+      { label: 'Thách bạn', onClick: share },
+      { label: 'Thách lại', onClick: again },
+    ]);
+    expect(test.labels()).toEqual(['▶ Chơi lại', 'Thách bạn', 'Thách lại', '🏠 Menu chính']);
+    expect(test.play()?.actions[1]?.variant).toBe('secondary');
+    test.tap('Thách bạn');
+    expect(share).toHaveBeenCalled();
+    expect(test.play()?.title).toBe('Hết ván');
+    expect(test.shell.playing).toBe(false);
+  });
+});

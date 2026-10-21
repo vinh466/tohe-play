@@ -59,8 +59,11 @@ export function EntryGate({
   );
 }
 
-/** A link that asks for an account, opened by a device profile: signing in or up comes back to the link. */
-function AccountNeeded({ path }: { path: string }) {
+/**
+ * A link — or a game, or its tables (ADR 0045) — that asks for an account, opened by a device profile: signing in or up
+ * comes back to it.
+ */
+export function AccountNeeded({ path }: { path: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const go = (to: '/account/sign-in' | '/account/register') => {

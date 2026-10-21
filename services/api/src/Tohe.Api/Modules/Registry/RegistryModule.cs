@@ -24,10 +24,18 @@ public sealed class RegistryOptions
 /// <param name="Options">The manifest's <c>rooms.options</c> (see RoomOption in packages/contract).</param>
 public sealed record GameRoomsView(int MinSeats, int MaxSeats, IReadOnlyList<string> Bots, JsonElement Options);
 
+/// <summary>What a game asks of its player (ADR 0045).</summary>
+/// <param name="Play">What opening the game asks for: <c>any</c>, <c>named</c> or <c>account</c>.</param>
+/// <param name="Rooms">The least a table of it asks for — <c>named</c> or <c>account</c> — for a game with rooms; else
+/// null. A table asks for the highest of <paramref name="Play"/>, this and its door.</param>
+public sealed record GameIdentityView(string Play, string? Rooms);
+
 /// <summary>A playable game as shown in the hub.</summary>
 /// <param name="EntryUrl">Absolute URL to load in the game iframe.</param>
 /// <param name="IconUrl">Absolute icon URL, if the game ships one.</param>
 /// <param name="Rooms">Set for games played online at a table.</param>
+/// <param name="Identity">What the game asks of its player (ADR 0045).</param>
+/// <param name="Entries">The kinds of entry the build opens itself: <c>share</c>, or none (ADR 0045).</param>
 public sealed record GameSummary(
     string Id,
     string Name,
@@ -40,7 +48,9 @@ public sealed record GameSummary(
     IReadOnlyList<string> Tags,
     int MinAge,
     int SizeKb,
-    GameRoomsView? Rooms);
+    GameRoomsView? Rooms,
+    GameIdentityView Identity,
+    IReadOnlyList<string> Entries);
 
 internal static class RegistryModule
 {
@@ -111,6 +121,8 @@ internal static class RegistryModule
             game.Tags,
             game.MinAge,
             game.SizeKb,
-            game.Rooms is { } rooms ? GameRooms.Parse(rooms).ToView() : null);
+            game.Rooms is { } rooms ? GameRooms.Parse(rooms).ToView() : null,
+            new GameIdentityView(game.IdentityPlay, game.IdentityRooms),
+            game.Entries);
     }
 }

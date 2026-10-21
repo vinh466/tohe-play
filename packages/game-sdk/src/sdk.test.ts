@@ -1,4 +1,10 @@
-import { REACTIONS as CONTRACT_REACTIONS, type GameManifest, PROTOCOL_VERSION } from '@tohe/contract';
+import {
+  REACTIONS as CONTRACT_REACTIONS,
+  type GameManifest,
+  type InitPayload,
+  type InitProfile,
+  PROTOCOL_VERSION,
+} from '@tohe/contract';
 import { describe, expect, it, vi } from 'vitest';
 import { createHost, type HostOptions } from './host.ts';
 import { connect, createRng, memoryTransportPair, normalizeSettings, PROTOCOL, REACTIONS } from './index.ts';
@@ -366,6 +372,155 @@ describe('ranked runs (ADR 0030)', () => {
     const [plainGame, plainHost] = memoryTransportPair();
     createHost({ transport: plainHost, manifest: rankedManifest, init });
     expect((await connect({ gameId: 'hello', transport: plainGame })).rankedReplay).toBeNull();
+  });
+});
+
+describe('entries, identity and sharing (ADR 0045)', () => {
+  const entryManifest: GameManifest = { ...manifest, entries: ['share'] };
+  const payload = { v: 1, seed: 913, score: 12340 };
+  const init =
+    (extra: Partial<InitPayload> = {}) =>
+    (): InitPayload => ({
+      profile: { id: 'p1', name: 'Mèo Cam', kind: 'device' },
+      locale: 'vi',
+      settings: { muted: false, theme: 'light' },
+      save: null,
+      seed: 42,
+      ...extra,
+    });
+  const open = (options: Partial<HostOptions>, gameManifest: GameManifest = entryManifest) => {
+    const [gameSide, hostSide] = memoryTransportPair();
+    const host = createHost({ transport: hostSide, manifest: gameManifest, init: init(), ...options });
+    return { host, session: connect({ gameId: 'hello', transport: gameSide }) };
+  };
+
+  it('gives the game its entry and the profile kind, and takes its answer once', async () => {
+    const onEntry = vi.fn();
+    const onProtocolError = vi.fn();
+    const { session: connecting } = open({
+      init: init({
+        entry: { kind: 'share', payload, version: '1.10.0', from: { name: 'Na', avatar: '🐱' } },
+      }),
+      onEntry,
+      onProtocolError,
+    });
+    const session = await connecting;
+    expect(session.profile.kind).toBe('device');
+    expect(session.entry).toMatchObject({ kind: 'share', payload, version: '1.10.0', from: { name: 'Na' } });
+    session.entry?.answer('handled');
+    session.entry?.answer('invalid');
+    await vi.waitFor(() => expect(onEntry).toHaveBeenCalledWith('handled'));
+    expect(onEntry).toHaveBeenCalledTimes(1);
+    expect(onProtocolError).not.toHaveBeenCalled();
+  });
+
+  it('sends an entry only to a build that declares its kind, never at a table, and within 2 KB', async () => {
+    const entry = { kind: 'share' as const, payload, version: '1.0.0' };
+    const undeclared = open({ init: init({ entry }) }, manifest);
+    expect((await undeclared.session).entry).toBeNull();
+    const replay = { seats: [], seat: 0, seed: 1, options: {}, carry: null, actions: [] };
+    const atReplay = open({
+      init: init({ entry, replay: replay as never, can: { require: true, share: true } }),
+    });
+    const watching = await atReplay.session;
+    expect(watching.entry).toBeNull();
+    expect(watching.canShare).toBe(false);
+    expect(watching.identity.canRequire).toBe(false);
+    const big = open({ init: init({ entry: { ...entry, payload: 'x'.repeat(3000) } }) });
+    expect((await big.session).entry).toBeNull();
+  });
+
+  it('refuses at once, without asking, when the hub answers neither — standalone or an older hub', async () => {
+    const onIdentityRequire = vi.fn();
+    const onShare = vi.fn();
+    const { session: connecting } = open({ onIdentityRequire, onShare });
+    const session = await connecting;
+    expect(session.identity.canRequire).toBe(false);
+    expect(session.canShare).toBe(false);
+    await expect(session.identity.require('named', 'others')).rejects.toThrow('unavailable');
+    await expect(session.share({ payload })).rejects.toThrow('unavailable');
+    expect(onIdentityRequire).not.toHaveBeenCalled();
+    expect(onShare).not.toHaveBeenCalled();
+  });
+
+  it('updates the profile before a named request resolves', async () => {
+    const { session: connecting } = open({
+      init: init({ can: { require: true, share: true } }),
+      onIdentityRequire: ({ level, reason }) => {
+        expect([level, reason]).toEqual(['named', 'others']);
+        return { id: 'p1', name: 'Na', avatar: '🐱' };
+      },
+    });
+    const session = await connecting;
+    const profile = await session.identity.require('named', 'others');
+    expect(profile).toEqual({ id: 'p1', name: 'Na', avatar: '🐱', kind: 'device' });
+    expect(session.profile.name).toBe('Na');
+  });
+
+  it('waits as long as the player does: no timeout on a sheet', async () => {
+    vi.useFakeTimers();
+    try {
+      let answer: (profile: InitProfile) => void = () => {};
+      const { session: connecting } = open({
+        init: init({ can: { require: true, share: true } }),
+        onIdentityRequire: () => new Promise<InitProfile>((resolve) => (answer = resolve)),
+      });
+      const session = await connecting;
+      const asked = session.identity.require('account', 'ranked');
+      await vi.advanceTimersByTimeAsync(60_000);
+      answer({ id: 'p1', name: 'Na', kind: 'account' });
+      await expect(asked).resolves.toMatchObject({ kind: 'account' });
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('passes the hub refusals on, and checks the payload before sending', async () => {
+    const onShare = vi.fn(() => {
+      throw new Error('cancelled');
+    });
+    const { session: connecting } = open({
+      init: init({ can: { require: true, share: true } }),
+      onIdentityRequire: () => {
+        throw new Error('declined');
+      },
+      onShare,
+    });
+    const session = await connecting;
+    await expect(session.identity.require('account', 'sync')).rejects.toThrow('declined');
+    await expect(session.share({ payload, text: 'Bạn vượt được không?', level: 'any' })).rejects.toThrow(
+      'cancelled',
+    );
+    expect(onShare).toHaveBeenCalledWith({ payload, text: 'Bạn vượt được không?', level: 'any' });
+    await expect(session.share({ payload: 'ế'.repeat(700) })).rejects.toThrow('too_large');
+    expect(onShare).toHaveBeenCalledTimes(1);
+  });
+
+  it('answers a hand-written oversized share with not_allowed, and flags it', async () => {
+    const [gameSide, hostSide] = memoryTransportPair();
+    const onProtocolError = vi.fn();
+    const onShare = vi.fn();
+    createHost({
+      transport: hostSide,
+      manifest: entryManifest,
+      init: init({ can: { require: false, share: true } }),
+      onShare,
+      onProtocolError,
+    });
+    const replies: unknown[] = [];
+    gameSide.subscribe((message) => replies.push(message));
+    gameSide.post({ tohe: 1, type: 'ready', gameId: 'hello', sdkVersion: 'x' });
+    await vi.waitFor(() => expect(replies).toHaveLength(1));
+    gameSide.post({ tohe: 1, type: 'share', id: 's1', payload: 'x'.repeat(3000) });
+    gameSide.post({ tohe: 1, type: 'entry', result: 'handled' });
+    await vi.waitFor(() =>
+      expect(replies).toContainEqual(
+        expect.objectContaining({ replyTo: 's1', ok: false, error: 'not_allowed' }),
+      ),
+    );
+    expect(onShare).not.toHaveBeenCalled();
+    // An answer to an entry that never came is a protocol error too.
+    await vi.waitFor(() => expect(onProtocolError).toHaveBeenCalledTimes(2));
   });
 });
 

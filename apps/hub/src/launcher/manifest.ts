@@ -1,4 +1,12 @@
-import { Capability, type GameManifest, PROTOCOL_VERSION, type RoomOption } from '@tohe/contract';
+import {
+  Capability,
+  EntryKind,
+  type GameManifest,
+  IdentityLevel,
+  PROTOCOL_VERSION,
+  type RoomOption,
+  RoomsLevel,
+} from '@tohe/contract';
 import type { GameSummary } from '../api/client.ts';
 
 /** The host bridge enforces capabilities from the manifest; rebuild the parts it needs from the API view. */
@@ -22,6 +30,15 @@ export function manifestFrom(game: GameSummary): GameManifest {
           options: game.rooms.options as unknown as RoomOption[],
         }
       : undefined,
+    // What the game asks of its player and the entries it opens itself (ADR 0045): the host sends an entry only to a
+    // build that declares its kind.
+    identity: {
+      play: IdentityLevel.safeParse(game.identity?.play).data ?? 'any',
+      ...(game.rooms && RoomsLevel.safeParse(game.identity?.rooms).success
+        ? { rooms: game.identity?.rooms as RoomsLevel }
+        : {}),
+    },
+    entries: (game.entries ?? []).filter((kind): kind is EntryKind => EntryKind.safeParse(kind).success),
     // Not read by the host: the hub always sends the theme it shows, and the API does not list `themes`.
     themes: ['light'],
     minAge: game.minAge,

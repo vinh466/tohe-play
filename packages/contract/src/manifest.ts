@@ -16,6 +16,52 @@ export const SemVer = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 's
 export const Capability = z.enum(['save', 'scores', 'rooms', 'shell', 'ranked']);
 export type Capability = z.infer<typeof Capability>;
 
+/**
+ * The identity levels of ADR 0043: `any` — any profile, a device's made silently; `named` — others see the name;
+ * `account` — an account's profile (sync, an ID, public boards).
+ */
+export const IDENTITY_LEVELS = ['any', 'named', 'account'] as const;
+export const IdentityLevel = z.enum(IDENTITY_LEVELS);
+export type IdentityLevel = z.infer<typeof IdentityLevel>;
+
+/** The least a table asks for (ADR 0043): a name others see, or an account. */
+export const RoomsLevel = z.enum(['named', 'account']);
+export type RoomsLevel = z.infer<typeof RoomsLevel>;
+
+/**
+ * What a game asks of its player (ADR 0045): `play` — what opening it asks for, at a table too; `rooms` — the least a
+ * table of it asks for, only with the `rooms` capability. A table asks for the highest of `play`, `rooms` and its
+ * creator's door.
+ */
+export const GameIdentity = z
+  .object({
+    play: IdentityLevel.default('any').describe(
+      'What opening the game asks for (ADR 0043): any, named or account',
+    ),
+    rooms: RoomsLevel.optional().describe(
+      'The least a table of this game asks for; only with the "rooms" capability (default named)',
+    ),
+  })
+  .strict();
+export type GameIdentity = z.infer<typeof GameIdentity>;
+
+/**
+ * The kinds of entry a game opens itself (ADR 0044, 0045): `share` — a share link's payload. "Entry" is ADR 0044's way
+ * in, not the manifest's `entry` (the game's HTML file).
+ */
+export const ENTRY_KINDS = ['share'] as const;
+export const EntryKind = z.enum(ENTRY_KINDS);
+export type EntryKind = z.infer<typeof EntryKind>;
+
+/** Most bytes of an entry's payload, as UTF-8 JSON (ADR 0045). */
+export const MAX_ENTRY_PAYLOAD_BYTES = 2048;
+
+/** How many payloads `entries/share.json` holds for conformance (ADR 0045). */
+export const ENTRY_SAMPLES = { min: 1, max: 5 } as const;
+
+/** Where a build ships the payloads its share makes, for conformance: `entries/share.json`. */
+export const entrySamplesPath = (kind: EntryKind) => `entries/${kind}.json`;
+
 /** Light or dark (ADR 0013). */
 export const Theme = z.enum(['light', 'dark']);
 export type Theme = z.infer<typeof Theme>;
@@ -132,9 +178,29 @@ export const GameManifest = z
     ranked: RankedManifest.optional().describe(
       'Ranked runs (ADR 0030); required with the "ranked" capability',
     ),
+    identity: GameIdentity.optional().describe(
+      'What the game asks of its player (ADR 0045); without it, any profile opens it and a table asks for a name',
+    ),
+    entries: z
+      .array(EntryKind)
+      .max(ENTRY_KINDS.length)
+      .optional()
+      .describe(
+        'Kinds of entry the game opens itself (ADR 0045); with "share", the build ships entries/share.json',
+      ),
   })
   .strict()
   .superRefine((manifest, context) => {
+    if (manifest.identity?.rooms !== undefined && !manifest.capabilities.includes('rooms')) {
+      context.addIssue({
+        code: 'custom',
+        path: ['identity', 'rooms'],
+        message: 'identity.rooms goes with the "rooms" capability',
+      });
+    }
+    if (manifest.entries && new Set(manifest.entries).size !== manifest.entries.length) {
+      context.addIssue({ code: 'custom', path: ['entries'], message: 'repeated entry kind' });
+    }
     if (manifest.capabilities.includes('ranked') !== (manifest.ranked !== undefined)) {
       context.addIssue({
         code: 'custom',
@@ -181,6 +247,38 @@ export const GameManifest = z
   });
 export type GameManifest = z.infer<typeof GameManifest>;
 export type GameManifestInput = z.input<typeof GameManifest>;
+
+const LEVEL_ORDER: readonly IdentityLevel[] = IDENTITY_LEVELS;
+
+/** The highest of identity levels (ADR 0043): what the hub asks for. */
+export function highestIdentityLevel(...levels: (IdentityLevel | null | undefined)[]): IdentityLevel {
+  return levels.reduce<IdentityLevel>(
+    (high, level) => (level && LEVEL_ORDER.indexOf(level) > LEVEL_ORDER.indexOf(high) ? level : high),
+    'any',
+  );
+}
+
+/**
+ * A game's levels with their defaults (ADR 0045): `play` (`any`), and for a game with rooms what a table of it asks
+ * for at least — the highest of `play` and `rooms` (`named`); null without rooms.
+ */
+export function gameLevels(manifest: Pick<GameManifest, 'identity' | 'capabilities'>): {
+  play: IdentityLevel;
+  table: IdentityLevel | null;
+} {
+  const play = manifest.identity?.play ?? 'any';
+  return {
+    play,
+    table: manifest.capabilities.includes('rooms')
+      ? highestIdentityLevel(play, manifest.identity?.rooms ?? 'named')
+      : null,
+  };
+}
+
+/** The bytes of a JSON value as the hub sends it: UTF-8 of `JSON.stringify`. */
+export function jsonBytes(value: unknown): number {
+  return new TextEncoder().encode(JSON.stringify(value) ?? '').byteLength;
+}
 
 /** `catalog.json` — produced by the games assembler at the root of the games origin. */
 export const CatalogEntry = z

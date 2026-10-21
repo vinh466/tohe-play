@@ -22,12 +22,20 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
 {
     private const string Terms = "2026-10-20";
     private const string Game = "merge-block";
+
+    /// <summary>A game whose build opens share entries itself (ADR 0045).</summary>
+    private const string EntryGame = "thach-ban";
+
+    /// <summary>One that also asks for a name to open (ADR 0045).</summary>
+    private const string NamedEntryGame = "thach-ten";
     private static readonly CancellationToken Ct = TestContext.Current.CancellationToken;
 
     public async ValueTask InitializeAsync()
     {
         await Games.KnowAsync(factory, Game);
         await Games.KnowRoomGameAsync(factory, "co-tuong");
+        await Games.KnowEntryGameAsync(factory, EntryGame);
+        await Games.KnowEntryGameAsync(factory, NamedEntryGame, "named");
     }
 
     public ValueTask DisposeAsync() => ValueTask.CompletedTask;
@@ -113,14 +121,17 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     [Fact]
-    public async Task An_entry_link_is_refused_until_step_I4_and_options_are_checked()
+    public async Task An_entry_link_is_made_only_for_a_game_that_takes_entries_and_options_are_checked()
     {
         var phone = await DevicePhoneAsync("Mèo Cam");
-        var entry = await phone.Client.PostAsJsonAsync(Url("/api/links"), new { kind = "entry", gameId = Game }, Ct);
-        Assert.Equal((HttpStatusCode.BadRequest, "kind_not_supported"), (entry.StatusCode, await CodeAsync(entry)));
+        var payload = new { v = 1, seed = 913, score = 12340 };
+        var notTaken = await phone.Client.PostAsJsonAsync(Url("/api/links"), new { kind = "entry", gameId = Game, payload }, Ct);
+        Assert.Equal((HttpStatusCode.BadRequest, "entry_not_supported"), (notTaken.StatusCode, await CodeAsync(notTaken)));
 
         foreach (var bad in new object[]
         {
+            new { kind = "entry", gameId = EntryGame },
+            new { kind = "game", gameId = Game, payload },
             new { kind = "page", gameId = Game },
             new { kind = "game", gameId = Game, level = "admin" },
             new { kind = "game", gameId = Game, expiresInHours = 0 },
@@ -137,6 +148,145 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
 
         var ninety = await MakeAsync(phone.Client, new { kind = "game", gameId = Game, expiresInHours = 2160, maxUses = 1000 });
         Assert.Equal((TimeSpan.FromDays(90), 1000), (ninety.ExpiresAt - ninety.CreatedAt, ninety.MaxUses));
+
+        // At most 2 KB as UTF-8: Vietnamese takes more than a byte a letter.
+        var big = await phone.Client.PostAsJsonAsync(Url("/api/links"), new { kind = "entry", gameId = EntryGame, payload = new string('ế', 700) }, Ct);
+        Assert.Equal((HttpStatusCode.BadRequest, "payload_too_large"), (big.StatusCode, await CodeAsync(big)));
+        var fits = await MakeAsync(phone.Client, new { kind = "entry", gameId = EntryGame, payload = new string('a', 2046) });
+        Assert.Equal("entry", fits.Kind);
+    }
+
+    [Theory]
+    [InlineData("Mình được 12.340 điểm Ghép Khối. Bạn vượt được không?", true)]
+    [InlineData("  I scored 1,234,567 in Merge Blocks. Can you beat it?  ", true)]
+    [InlineData("Hai dòng\nđây", false)]
+    [InlineData("Vào toheplay.io.vn chơi nhé", false)]
+    [InlineData("Xem https://example.com", false)]
+    [InlineData("Xem www.example nhé", false)]
+    [InlineData("Gọi mình 0901234567", false)]
+    [InlineData("Thư cho mình: na@example.vn", false)]
+    [InlineData("đồ khốn nạn", false)]
+    [InlineData("Gọi 0901 234 567", false)]
+    [InlineData("Gọi 090-123-4567", false)]
+    [InlineData("Gọi 0901.234.567", false)]
+    [InlineData("Được 12.340 điểm", true)]
+    [InlineData("Vào tròchơi.vn nhé", false)]
+    [InlineData("Vào toheplay．io nhé", false)]
+    [InlineData("Vào toheplay。vn nhé", false)]
+    [InlineData("Vào toheplay｡vn nhé", false)]
+    [InlineData("Vào tоhеplay.іо nhé", false)]
+    [InlineData("Vào toheplay\u200B.vn nhé", false)]
+    [InlineData("Vượt\u2060 nhé", false)]
+    [InlineData("   ", false)]
+    public void A_share_message_goes_out_only_when_it_passes_the_checks(string text, bool sent) =>
+        Assert.Equal(sent ? text.Trim() : null, ShareTexts.Accept(text));
+
+    [Fact]
+    public void A_share_message_is_one_line_of_120_characters_at_most()
+    {
+        Assert.NotNull(ShareTexts.Accept(new string('a', 120)));
+        Assert.Null(ShareTexts.Accept(new string('a', 121)));
+        // Characters as people count them: a letter typed with its marks apart is one.
+        Assert.NotNull(ShareTexts.Accept(string.Concat(Enumerable.Repeat("e\u0302\u0301", 120))));
+    }
+
+    [Fact]
+    public async Task An_entry_link_takes_the_registrys_version_and_at_least_the_games_level()
+    {
+        var phone = await DevicePhoneAsync("Mèo Cam");
+        var payload = new { v = 1, seed = 913, score = 12340 };
+        // What the request says of the version is not read.
+        var made = await MakeAsync(phone.Client, new { kind = "entry", gameId = EntryGame, payload, gameVersion = "9.9.9", level = "any" });
+        Assert.Equal(("entry", "1.0.0", "any"), (made.Kind, made.GameVersion, made.Level));
+        var stored = await QueryAsync(db => db.ShareLinks.Where(l => l.Code == made.Code).Select(l => l.Payload).SingleAsync(Ct));
+        using (var kept = JsonDocument.Parse(stored!))
+        {
+            Assert.Equal((1, 913, 12340), (kept.RootElement.GetProperty("v").GetInt32(), kept.RootElement.GetProperty("seed").GetInt32(), kept.RootElement.GetProperty("score").GetInt32()));
+        }
+
+        // The message is checked and given back when it may be sent; kept nowhere.
+        var text = "Mình được 12.340 điểm. Bạn vượt được không?";
+        Assert.Equal(text, (await MakeAsync(phone.Client, new { kind = "entry", gameId = EntryGame, payload, text })).Message);
+        Assert.Null((await MakeAsync(phone.Client, new { kind = "entry", gameId = EntryGame, payload, text = "Gọi 0901234567" })).Message);
+        Assert.All(await MineAsync(phone), view => Assert.Null(view.Message));
+
+        // A game that asks for a name to open raises the link to it, whatever was asked; a higher level stays.
+        var raised = await MakeAsync(phone.Client, new { kind = "entry", gameId = NamedEntryGame, payload, level = "any" });
+        Assert.Equal("named", raised.Level);
+        var game = await MakeAsync(phone.Client, new { kind = "game", gameId = NamedEntryGame });
+        Assert.Equal("named", game.Level);
+        var bo = await PersonAsync("Bố");
+        Assert.Equal("account", (await MakeAsync(bo.Client, new { kind = "entry", gameId = NamedEntryGame, payload, level = "account" })).Level);
+    }
+
+    [Fact]
+    public async Task Playing_an_entry_link_gives_its_payload_version_and_maker_and_nothing_else_does()
+    {
+        var maker = await DevicePhoneAsync("Mèo Cam");
+        var payload = new { v = 1, seed = 913, score = 12340, note = "PAYLOAD-MARK" };
+        var link = await MakeAsync(maker.Client, new { kind = "entry", gameId = EntryGame, payload });
+        var anyone = factory.CreateClient();
+
+        var opened = await OpenAsync(anyone, link.Code);
+        Assert.Equal(("ok", "entry", "Mèo Cam"), (opened.State, opened.Kind, opened.MakerName));
+        Assert.Null(opened.Entry);
+
+        var played = await PlayAsync(anyone, link.Code);
+        Assert.NotNull(played.Entry);
+        Assert.Equal(("1.0.0", ProfileOptions.Avatars[2]), (played.Entry.Version, played.Entry.MakerAvatar));
+        Assert.Equal(913, played.Entry.Payload.GetProperty("seed").GetInt32());
+        Assert.Equal("PAYLOAD-MARK", played.Entry.Payload.GetProperty("note").GetString());
+
+        // Never in a preview, nor in the console's view of the link, nor in the maker's own list.
+        Assert.DoesNotContain("PAYLOAD-MARK", await PreviewAsync($"/api/previews/s/{link.Code}"), StringComparison.Ordinal);
+        var moderator = await Admins.NewAsync(factory, "moderator");
+        var console = await moderator.Client.GetStringAsync(Url($"/api/admin/links/{link.Code}"), Ct);
+        Assert.DoesNotContain("PAYLOAD-MARK", console, StringComparison.Ordinal);
+        Assert.DoesNotContain("payload", console, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("PAYLOAD-MARK", await maker.Client.GetStringAsync(Url("/api/links/mine"), Ct), StringComparison.Ordinal);
+
+        // A game link has none; a link that no longer opens gives none.
+        var plain = await MakeAsync(maker.Client, new { kind = "game", gameId = EntryGame });
+        Assert.Null((await PlayAsync(anyone, plain.Code)).Entry);
+        await maker.Client.PostAsync(Url($"/api/links/{link.Code}/revoke"), null, Ct);
+        Assert.Null((await PlayAsync(anyone, link.Code)).Entry);
+    }
+
+    [Theory]
+    [InlineData("""{"n":1e131071}""", "1e131071")]
+    [InlineData("""{"s":"a\u0000b"}""", "a\\u0000b")]
+    [InlineData("""{"s":"Vượt 12.340 của Na"}""", "12.340")]
+    public async Task An_entry_payload_comes_back_as_it_was_written(string payload, string kept)
+    {
+        var maker = await DevicePhoneAsync("Mèo Cam");
+        var body = $$"""{"kind":"entry","gameId":"{{EntryGame}}","payload":{{payload}}}""";
+        var made = await maker.Client.PostAsync(Url("/api/links"), new StringContent(body, System.Text.Encoding.UTF8, "application/json"), Ct);
+        var link = await ReadAsync<ShareLinkView>(made);
+
+        var played = await factory.CreateClient().PostAsync(Url($"/api/links/{link.Code}/play"), null, Ct);
+        var text = await played.Content.ReadAsStringAsync(Ct);
+        Assert.Equal(HttpStatusCode.OK, played.StatusCode);
+        // Byte for byte as the game wrote it, and as small: a number is not spelled out, a NUL stays escaped.
+        Assert.Contains(kept, text, StringComparison.Ordinal);
+        Assert.InRange(text.Length, 1, 4096);
+        Assert.Equal(payload, await QueryAsync(db => db.ShareLinks.Where(l => l.Code == link.Code).Select(l => l.Payload).SingleAsync(Ct)));
+    }
+
+    [Fact]
+    public async Task An_entry_link_from_a_child_names_no_maker()
+    {
+        var parent = await PersonAsync("Mẹ");
+        var child = await ChildAsync(parent, "Bin");
+        await Accounts.StepUpAsync(parent.Client);
+        var allowed = await parent.Client.PatchAsJsonAsync(Url($"/api/profiles/{child.ProfileId}"), new { playWithOthers = true }, Ct);
+        Assert.Equal(HttpStatusCode.OK, allowed.StatusCode);
+        var link = await MakeAsync(child.Client, new { kind = "entry", gameId = EntryGame, payload = new { v = 1 } });
+
+        var played = await PlayAsync(factory.CreateClient(), link.Code);
+        Assert.Equal("ok", played.State);
+        Assert.Null(played.MakerName);
+        Assert.Null(played.Entry?.MakerAvatar);
+        Assert.Equal(1, played.Entry?.Payload.GetProperty("v").GetInt32());
     }
 
     [Fact]

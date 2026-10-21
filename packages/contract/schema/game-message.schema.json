@@ -503,6 +503,112 @@
         "moves",
         "score"
       ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "entry"
+        },
+        "result": {
+          "type": "string",
+          "enum": [
+            "handled",
+            "unsupported",
+            "invalid"
+          ]
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "result"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "identity.require"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "named",
+            "account"
+          ]
+        },
+        "reason": {
+          "type": "string",
+          "enum": [
+            "others",
+            "ranked",
+            "sync",
+            "friends"
+          ]
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "id",
+        "level",
+        "reason"
+      ]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "tohe": {
+          "type": "number",
+          "const": 1
+        },
+        "type": {
+          "type": "string",
+          "const": "share"
+        },
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "payload": {
+          "$ref": "#/$defs/__schema3"
+        },
+        "text": {
+          "type": "string",
+          "maxLength": 500
+        },
+        "level": {
+          "type": "string",
+          "enum": [
+            "any",
+            "named",
+            "account"
+          ]
+        }
+      },
+      "required": [
+        "tohe",
+        "type",
+        "id",
+        "payload"
+      ]
     }
   ],
   "$defs": {
@@ -595,6 +701,37 @@
           },
           "additionalProperties": {
             "$ref": "#/$defs/__schema2"
+          }
+        }
+      ]
+    },
+    "__schema3": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "null"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/__schema3"
+          }
+        },
+        {
+          "type": "object",
+          "propertyNames": {
+            "type": "string"
+          },
+          "additionalProperties": {
+            "$ref": "#/$defs/__schema3"
           }
         }
       ]

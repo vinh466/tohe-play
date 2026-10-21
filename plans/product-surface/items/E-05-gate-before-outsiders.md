@@ -18,7 +18,7 @@ Owner đang tự dùng prod ("tôi sẽ test 1 mình chứ chưa mời ai 1 th�
 | 2 | Load test phòng chơi (một API instance, ADR 0016) | agent, owner cho phép |
 | 3 | `/security-review` toàn bộ bề mặt công khai (gồm trang mới của P1) | agent |
 | 4 | Thư tới Gmail / Outlook / Yahoo vào hộp chính (sau khi sửa DMARC) | agent + owner |
-| 5 | Điều khoản + Quyền riêng tư đã duyệt — **cập nhật cho** hồ sơ máy trên server, link chia sẻ, đăng nhập Google, câu tuổi/đồng ý (D-06 Q6); liên hệ người vận hành (`hello@`, D-01 Q4) | owner (agent soạn) |
+| 5 | Điều khoản + Quyền riêng tư đã duyệt — **cập nhật cho** hồ sơ máy trên server, link chia sẻ, đăng nhập Google, câu tuổi/đồng ý (D-06 Q6); liên hệ người vận hành (`hello@`, D-01 Q4). Owner 2026-10-21: chốt trong phase review, trước khi mở hẳn — không cập nhật theo từng tính năng | owner (agent soạn) |
 | 6 | Alertmanager của prod có người nhận (E-08 Q2 của `public-launch`) | owner, `platform-infra` |
 | 7 | Thời hạn xoá theo văn bản (E-07 Q7) | owner |
 | 8 | Chế độ đăng ký + đường vào nhanh (D-05); proof-of-work bật | owner |

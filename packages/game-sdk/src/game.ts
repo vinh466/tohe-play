@@ -1,12 +1,19 @@
 // Game side of the contract. Must stay dependency-free at runtime: only `import type` from @tohe/contract,
 // so that a game bundle never pulls in Zod.
 import type {
+  EntryFrom,
+  EntryKind,
+  EntryResult,
   GameMessageInput,
+  HostCan,
   HostMessage,
-  Profile,
+  IdentityLevel,
+  InitProfile,
   RankedReplay,
   Reaction,
   Replay,
+  RequiredLevel,
+  RequireReason,
   RoomInfo,
   RoomSeat,
   Settings,
@@ -16,11 +23,16 @@ import type {
 import { createTelemetry, disabledTelemetry, type Telemetry } from './telemetry.ts';
 import { parentWindowTransport, type Transport } from './transport.ts';
 
-export const SDK_VERSION = '0.9.0';
+export const SDK_VERSION = '0.10.0';
 /** Mirrors PROTOCOL_VERSION in @tohe/contract (asserted by a test). */
 export const PROTOCOL = 1;
 
 export type JsonValue = string | number | boolean | null | JsonValue[] | { [key: string]: JsonValue };
+
+/** Mirrors MAX_ENTRY_PAYLOAD_BYTES in @tohe/contract: an entry's payload, as UTF-8 JSON (ADR 0045). */
+export const MAX_ENTRY_PAYLOAD_BYTES = 2048;
+/** Mirrors MAX_SHARE_TEXT in @tohe/contract. */
+const MAX_SHARE_TEXT = 500;
 
 export interface ConnectOptions {
   /** Must equal `id` in game.json. */
@@ -36,7 +48,11 @@ export type SessionEvent = 'pause' | 'resume' | 'menu' | 'settings';
 export interface GameSession<TSave = JsonValue> {
   /** `embedded` inside the hub, `standalone` when the game page is opened directly (local dev). */
   readonly mode: 'embedded' | 'standalone';
-  readonly profile: Profile;
+  /**
+   * The player: `kind` (SDK 0.10.0) is `device` or `account` (ADR 0043, a child's profile is an account's); absent from
+   * older hubs. Updated before a `named` request resolves.
+   */
+  readonly profile: InitProfile;
   readonly locale: string;
   readonly seed: number;
   /** State from the last `save()` for this profile, or null on first play. */
@@ -83,6 +99,51 @@ export interface GameSession<TSave = JsonValue> {
   readonly shell: ShellSession;
   /** Ranked runs (ADR 0030), for games that declare `ranked`: the server deals the seed and replays the moves. */
   readonly ranked: RankedSession;
+  /**
+   * The entry the game was opened by (ADR 0045), or null: a share link's `payload` — untrusted, anyone can make one —
+   * the game's `version` when it was made, and its maker (`from`) when they may be shown. Answer it once, within 3 s.
+   * The kit's `createShell` answers for a game that gives it an entry handler.
+   */
+  readonly entry: SessionEntry | null;
+  /** Asking the hub for a higher identity level in the middle of play (ADR 0045). */
+  readonly identity: IdentitySession;
+  /** The hub answers `share()` in this session: false at a table, in a replay, for a child kept to its account. */
+  readonly canShare: boolean;
+  /**
+   * Asks the hub to share a link that opens this game with `payload` (at most 2 KB as UTF-8 JSON) — its sheet, with
+   * `text` as the message when it passes the hub's checks. Resolves once the player sent or copied the link; rejects
+   * with `cancelled`, `busy`, `limit`, `offline`, `not_allowed` or `unavailable` (at once when `canShare` is false),
+   * or `too_large` before sending. No timeout: a sheet takes as long as the player does.
+   */
+  share(request: { payload: JsonValue; text?: string; level?: IdentityLevel }): Promise<void>;
+}
+
+/** An entry the game was opened by (ADR 0045). */
+export interface SessionEntry {
+  readonly kind: EntryKind;
+  readonly payload: JsonValue;
+  /** The game's version when the link was made. */
+  readonly version: string;
+  /** Who made the link, when the hub may show them; null otherwise. */
+  readonly from: EntryFrom | null;
+  /**
+   * The game's answer, once: `handled` (it opened at the place), `unsupported` (not a kind or a version it opens) or
+   * `invalid` (not a payload it accepts). Later calls are ignored.
+   */
+  answer(result: EntryResult): void;
+}
+
+/** A higher identity level, asked of the hub in the middle of play (ADR 0045). */
+export interface IdentitySession {
+  /** The hub answers `require()` in this session: false at a table, in a replay, and for older hubs. */
+  readonly canRequire: boolean;
+  /**
+   * Shows the hub's own sheet, with its own words for `reason`: the name screen for `named`, the sign-in for
+   * `account`. Resolves with the profile once it has the level (`session.profile` is updated first). For `account`, a
+   * player who signs in gets the game opened again: this never settles then — save before asking. Rejects with
+   * `declined`, `busy` or `unavailable` (at once when `canRequire` is false). No timeout.
+   */
+  require(level: RequiredLevel, reason: RequireReason): Promise<InitProfile>;
 }
 
 /** A ranked run the server opened: its id, and the seed to play it from (ADR 0030). */
@@ -162,6 +223,25 @@ function isRankedRun(value: unknown): value is RankedRun {
   return typeof run?.run === 'string' && run.run.length > 0 && Number.isInteger(run.seed);
 }
 
+/** A profile, as the hub answers a `named` request with it. */
+function isProfile(value: unknown): value is InitProfile {
+  const profile = value as Partial<InitProfile> | null;
+  return typeof profile?.id === 'string' && typeof profile.name === 'string';
+}
+
+/** The bytes of a JSON value as it is sent, UTF-8; Infinity for what is not JSON. */
+export function jsonBytes(value: unknown): number {
+  try {
+    const text = JSON.stringify(value);
+    return text === undefined ? Number.POSITIVE_INFINITY : new TextEncoder().encode(text).byteLength;
+  } catch {
+    return Number.POSITIVE_INFINITY;
+  }
+}
+
+/** A request the hub cannot answer here: refused at once, as the hub would. */
+const refused = (code: string) => Promise.reject(new Error(code));
+
 export function normalizeSettings(raw: Partial<Settings> | undefined): Settings {
   return { muted: raw?.muted === true, theme: raw?.theme === 'dark' ? 'dark' : 'light' };
 }
@@ -204,14 +284,21 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
       | { type: 'room.act'; action: JsonValue }
       | { type: 'room.next' }
       | { type: 'ranked.start' }
-      | { type: 'ranked.finish'; run: string; moves: JsonValue[]; score: number },
+      | { type: 'ranked.finish'; run: string; moves: JsonValue[]; score: number }
+      | { type: 'identity.require'; level: RequiredLevel; reason: RequireReason }
+      | { type: 'share'; payload: JsonValue; text?: string; level?: IdentityLevel },
+    // A sheet of the hub takes as long as the player does (ADR 0045): no timeout for those.
+    timeoutMs: number | null = 10_000,
   ) =>
     new Promise<unknown>((resolve, reject) => {
       const id = `r${++nextId}`;
-      const timer = setTimeout(() => {
-        pending.delete(id);
-        reject(new Error(`${message.type} timed out`));
-      }, 10_000);
+      const timer =
+        timeoutMs === null
+          ? undefined
+          : setTimeout(() => {
+              pending.delete(id);
+              reject(new Error(`${message.type} timed out`));
+            }, timeoutMs);
       pending.set(id, {
         resolve: (value) => {
           clearTimeout(timer);
@@ -247,9 +334,13 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
           telemetry = message.telemetry
             ? createTelemetry({ send: (events) => send({ tohe: PROTOCOL, type: 'telemetry', events }) })
             : disabledTelemetry;
+          let profile: InitProfile = message.profile;
+          const can: HostCan = message.can ?? { require: false, share: false };
           const created: GameSession<TSave> = {
             mode: 'embedded',
-            profile: message.profile,
+            get profile() {
+              return profile;
+            },
             locale: message.locale,
             seed: message.seed,
             saved: message.save as TSave | null,
@@ -294,6 +385,35 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
                 ),
               finish: (run, moves, score) =>
                 request({ type: 'ranked.finish', run, moves, score }).then(() => undefined),
+            },
+            entry: message.entry
+              ? sessionEntry(message.entry, (result) => send({ tohe: PROTOCOL, type: 'entry', result }))
+              : null,
+            identity: {
+              canRequire: can.require,
+              require: (level, reason) => {
+                if (!can.require) return refused('unavailable');
+                return request({ type: 'identity.require', level, reason }, null).then((value) => {
+                  // A `named` request answers with the profile as it is now: the game sees it before it goes on.
+                  if (isProfile(value)) profile = { ...value, kind: value.kind ?? profile.kind };
+                  return profile;
+                });
+              },
+            },
+            canShare: can.share,
+            share: ({ payload, text, level }) => {
+              if (!can.share) return refused('unavailable');
+              if (jsonBytes(payload) > MAX_ENTRY_PAYLOAD_BYTES) return refused('too_large');
+              return request(
+                {
+                  type: 'share',
+                  payload,
+                  // An over-long text is left out, not cut (a cut could split a character): the hub uses its words.
+                  ...(text === undefined || text.length > MAX_SHARE_TEXT ? {} : { text }),
+                  ...(level === undefined ? {} : { level }),
+                },
+                null,
+              ).then(() => undefined);
             },
           };
           if (message.room) {
@@ -348,6 +468,25 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
 
     send({ tohe: PROTOCOL, type: 'ready', gameId: options.gameId, sdkVersion: SDK_VERSION });
   });
+}
+
+/** The entry the game was opened by, answered once. */
+function sessionEntry(
+  entry: { kind: EntryKind; payload: unknown; version: string; from?: EntryFrom },
+  send: (result: EntryResult) => void,
+): SessionEntry {
+  let answered = false;
+  return {
+    kind: entry.kind,
+    payload: entry.payload as JsonValue,
+    version: entry.version,
+    from: entry.from ?? null,
+    answer: (result) => {
+      if (answered) return;
+      answered = true;
+      send(result);
+    },
+  };
 }
 
 /** The game's side of a table: keeps the newest view (it may arrive before the game listens) and the seats. */
@@ -462,5 +601,10 @@ function standaloneSession<TSave>(gameId: string): GameSession<TSave> {
       start: async () => null,
       finish: async () => {},
     },
+    // Standalone, no hub opens the game by a link, signs anyone in or makes a link.
+    entry: null,
+    identity: { canRequire: false, require: () => refused('unavailable') },
+    canShare: false,
+    share: () => refused('unavailable'),
   };
 }
