@@ -70,7 +70,7 @@ flowchart TD
 13. **E2E hành trình** (Playwright, CI `stack`): người mới → landing → chơi → xong ván → nhắc; link bàn khi chưa có gì →
     màn tên → ngồi bàn; link chia sẻ → game đúng seed; hồ sơ máy → Google giả (`mock-oauth2-server`, đã có từ #50) → cùng id;
     giả `beforeinstallprompt`; User-Agent iPhone / Zalo.
-14. **Vòng thử thiết bị** (owner, trên prod — E-01 §4): Android Chrome (A55), iPhone iOS 26 Safari + app đã cài, Zalo và
+14. **Vòng thử thiết bị** — **xong** (owner 2026-10-21, trên `prod-2026-10-21.2`: "K2 ok r nha") (owner, trên prod — E-01 §4): Android Chrome (A55), iPhone iOS 26 Safari + app đã cài, Zalo và
     Messenger trên cả hai, Chrome máy tính; gộp các việc iPhone còn treo: âm thanh (#30), phòng chơi (S5), polish #41.
 
 ## Câu hỏi cho owner

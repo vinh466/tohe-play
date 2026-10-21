@@ -2,6 +2,11 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-21 (tối) — agent
+
+- Owner: "K2 ok r nha" → K2 xong; mọi PR của delivery.md trên prod (`prod-2026-10-21.2`) → plan sang **Close**.
+- Tiếp: plan space của phase review (chờ owner mở); E-05 và *Waiting on the owner* chuyển sang đó.
+
 ## 2026-10-21 (chiều) — agent
 
 - I4 #104 merged (owner) → owner "lên prod": `uat-2026-10-21.2` (ddd93c9, `check:uat` 20/20, migration
