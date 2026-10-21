@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (khuya) — agent
+
+- Owner: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B" → **D-02, D-04 decided** (B). Sửa cập nhật an toàn: PR riêng
+  từ `main`, builder (Opus · high), tái hiện bằng test trước khi sửa.
+- Owner: review lại chia host/subdomain/path đã tối ưu chưa → scout nghiên cứu, rồi R-04.
+
 ## 2026-10-22 (tối) — agent
 
 - Owner hỏi đã khảo sát việc quay lại / app đã cài chưa → chưa (chỉ lần mở đầu ở Phase 1). Hai scout → R-03, **D-04 proposed**.

@@ -33,9 +33,9 @@ và [D-04 mở lại app](items/D-04-coming-back.md) (đề xuất B; Q2: sửa 
 
 | ID | Item | Kind | Status | Blocked by |
 |---|---|---|---|---|
-| D-02 | [Bố cục các trang và app](items/D-02-layout.md) | decision | **proposed** — B, hai vùng một khung | — |
+| D-02 | [Bố cục các trang và app](items/D-02-layout.md) | decision | **decided** — B, hai vùng một khung (2026-10-22) | — |
 | D-01 | [Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ](items/D-01-languages.md) | decision | **proposed** — B | D-02 |
-| D-04 | [Mở lại app](items/D-04-coming-back.md) | decision | **proposed** — B; cập nhật an toàn làm sớm | D-02 |
+| D-04 | [Mở lại app](items/D-04-coming-back.md) | decision | **decided** — B (2026-10-22); cập nhật an toàn đang làm, PR riêng | — |
 | E-01 | [Cổng trước khi mời người ngoài](items/E-01-gate-before-outsiders.md) (từ `product-surface` E-05) | enhancement | open | — |
 
 Các item khác nằm ở [map.md](map.md) dưới dạng nháp; lên board khi owner đồng ý map. D-01, D-02 lên trước theo lời owner.

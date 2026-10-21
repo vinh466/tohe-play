@@ -1,9 +1,9 @@
 # D-04 — Mở lại app: người quay lại thấy gì, và máy dùng chung, cập nhật, link xử lý thế nào?
 
-- Status: **proposed** (agent, 2026-10-22)
+- Status: **decided** — B (owner, 2026-10-22, chat)
 - Kind: decision
 - Blocks: E-02 (rà màn), E-03 (luồng) · Blocked by: D-02 (khung app) · Đi cùng: [D-02](D-02-layout.md)
-- Decided: —
+- Decided: owner, 2026-10-22, chat: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B"
 
 ## Why it matters
 
@@ -94,7 +94,7 @@ Lời mời cho hồ sơ máy có thể cần API cho hồ sơ máy gọi `rooms
 
 ## Decision
 
-—
+**B** — owner, 2026-10-22, chat: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B". Q2 = có: sửa rủi ro cập nhật trước, PR riêng, tái hiện trước khi sửa. Q3 (30 phút), Q4 (thông báo đẩy để sau) chưa trả lời riêng — agent theo đề xuất, ghi trong PR để owner duyệt.
 
 ## Discussion
 

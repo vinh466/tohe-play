@@ -1,9 +1,9 @@
 # D-02 — Bố cục các trang và app: Tò He nên được sắp thế nào?
 
-- Status: **proposed** (agent, 2026-10-22)
+- Status: **decided** — B (owner, 2026-10-22, chat)
 - Kind: decision
 - Blocks: E-02 (rà màn), D-01 (namespace `/en/`) · Blocked by: — · Đi cùng: [D-01](D-01-languages.md)
-- Decided: —
+- Decided: owner, 2026-10-22, chat: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B"
 
 ## Why it matters
 
@@ -202,7 +202,7 @@ này cần thiết kế trong PR 2.
 
 ## Decision
 
-—
+**B** — owner, 2026-10-22, chat: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B". Q2–Q5 (tên ba mục, bỏ redirect ở `/`, PIN cho link ra ngoài của hồ sơ trẻ, bỏ khoá màn dọc) chưa trả lời riêng — agent theo đề xuất cho tới khi owner nói khác, và ghi rõ trong ADR để owner duyệt.
 
 ## Discussion
 
