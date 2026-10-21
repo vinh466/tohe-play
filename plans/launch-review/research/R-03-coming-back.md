@@ -18,7 +18,7 @@ lần mở sau thì app hôm nay làm gì, và nên làm gì?
 | **Chơi tiếp ván dở** | lưu ván ở máy trước (IndexedDB), account đồng bộ lên server; màn tiêu đề của game có "Chơi tiếp" | `session/useBackgroundSync.ts:37-40`, `packages/game-kit/src/shell.ts:206-207` | danh mục không có "chơi tiếp", không có "gần đây" — phải mở đúng game mới biết có ván dở |
 | **Quay lại bàn đang chơi** | API giữ ghế 30 giây rồi cho bot đánh thay; bàn không ai nối thì đóng sau 30 phút; SignalR tự nối lại khi app hiện lại | `RoomRegistry.cs:19,22`, `RoomActor.cs:1049`, `apps/hub/src/rooms/connection.ts:21-31` | hub có `rooms.mine()` (`api/client.ts:338`) nhưng **không màn nào gọi** — không có "bạn đang ở bàn…", muốn quay lại phải có link hay mã |
 | **Chuyện xảy ra lúc vắng** | lời mời vào bàn được hỏi 20 giây một lần khi app đang hiện, chỉ cho account, hiện trên danh mục | `rooms/RoomInvites.tsx:18-20`, `CatalogPage.tsx:75` | hồ sơ máy (`named`) không thấy lời mời; không có thông báo đẩy, không có badge |
-| **Cập nhật app** | `registerType: 'autoUpdate'`; `sw.js` có `skipWaiting`, `clientsClaim`, `cleanupOutdatedCaches`; `registerSW.js` chỉ đăng ký, không hỏi, không nạp lại; nhiều màn nạp lười (PlayPage, RoomPage, EntryPage…); **không bắt lỗi nạp lười** (không `vite:preloadError`, router không `errorComponent`) | `apps/hub/vite.config.ts:82`, `dist/sw.js`, `dist/registerSW.js`, `router.tsx:125-197` | **rủi ro, chưa tái hiện**: sau một lần deploy, trang đang mở chạy bản cũ trong khi cache cũ đã bị xoá — chạm vào một game hay bàn là đi tìm file của bản cũ không còn nữa → màn lỗi. Đúng lúc "mở lại app sau khi có bản mới" |
+| **Cập nhật app** | `registerType: 'autoUpdate'`; `sw.js` có `skipWaiting`, `clientsClaim`, `cleanupOutdatedCaches`; nhiều màn nạp lười; `lazyRouteComponent` của TanStack Router **tự nạp lại trang một lần** khi thiếu file màn (`apps/hub/node_modules/@tanstack/react-router/dist/esm/lazyRouteComponent.js:37-41`) | `apps/hub/vite.config.ts:82`, `router.tsx:125-197` | **đã thử, không có màn lỗi** (2026-10-22, test hai bản build trên Chromium): file cũ thường còn trong HTTP cache (`/assets/` immutable một năm) nên không có gì xảy ra; khi cache bị xoá thì trang tự nạp lại **một lần, không báo**, lúc chuyển màn — không cắt ngang game đang chơi; mất trạng thái chỉ có trong bộ nhớ. Safari/iOS chưa thử |
 | **Mất mạng** | danh mục từ cache, có dòng "Đang ngoại tuyến"; game mở bằng những gì máy có | `CatalogPage.tsx:77-78`, `GameFrame.tsx:648` | game chưa mở gần đây có thể không chạy offline (suy luận) |
 | **Link khi đã cài app** | manifest không có `launch_handler`, `share_target`; có một shortcut (Ghép Khối); ô "Nhập mã" cho iPhone | `vite.config.ts:91-113` | link mở trong trình duyệt; cửa sổ app đang mở không được đưa lên |
 | **Đo** | `funnel.standaloneOpen()` một lần mỗi ngày | `telemetry/funnel.ts:24,54-55` | không đếm lần quay lại trong trình duyệt |
@@ -54,12 +54,13 @@ lần mở sau thì app hôm nay làm gì, và nên làm gì?
 
 - Máy cả nhà dùng chung là chuyện thường ở các gia đình dùng Tò He — từ D-03 Phase 1 (bố mẹ + con), chưa đo.
 - iPhone giết app nền sớm, nên gần như mỗi lần quay lại trên iPhone là một lần mở lạnh **[chưa kiểm]**.
-- Rủi ro sau deploy ở dòng *Cập nhật app* cần tái hiện trên UAT: mở app, deploy bản mới, chạm vào một game.
+- ~~Rủi ro sau deploy cần tái hiện~~ — đã thử 2026-10-22 (Chromium, hai bản build): không có màn lỗi; Safari/iOS chưa thử.
 
 ## So what
 
 - Màn đầu của người quay lại phải là **việc họ đang làm dở**, không phải danh mục từ đầu: chơi tiếp, bàn đang ngồi, lời mời.
 - Máy dùng chung cần **"Ai đang chơi?" nhẹ**, và cổng khi trẻ chuyển sang hồ sơ người lớn.
-- **Cập nhật phải không làm hỏng phiên đang mở**: đây là rủi ro đang có trên prod, đáng sửa sớm, không cần chờ bố cục mới.
+- **Cập nhật**: không có màn lỗi (đã thử); chỉ có một lần tự nạp lại không báo khi file cũ không còn trong cache. Báo "có bản
+  mới" và cập nhật ở lần mở lạnh là cải thiện trải nghiệm, không phải sửa lỗi gấp.
 - Phiên hết hạn phải được **nói ra**, không lặng lẽ đổi người chơi.
 - Không thêm vòng níu kéo cho trẻ; thông báo đẩy (nếu có) chỉ khi người chơi tự bật, cho việc thật như "đến lượt bạn".

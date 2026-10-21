@@ -20,8 +20,8 @@ Chi tiết ở [R-03](../research/R-03-coming-back.md).
 - Lời mời chỉ hiện cho account; hồ sơ máy không thấy.
 - Máy dùng chung: lần sau vẫn là người lần trước, không hỏi ai đang chơi.
 - Phiên account hết hạn thì app lặng lẽ chuyển sang hồ sơ máy.
-- Cập nhật: service worker mới chiếm quyền ngay, xoá cache cũ, và app không bắt lỗi nạp lười. Khả năng cao là màn lỗi khi
-  chạm vào game ngay sau một lần deploy (**chưa tái hiện**).
+- Cập nhật: service worker mới chiếm quyền ngay và xoá cache cũ, nhưng TanStack Router tự nạp lại trang một lần khi thiếu
+  file màn. **Đã thử (2026-10-22, Chromium): không có màn lỗi**; tệ nhất là một lần tự nạp lại không báo lúc chuyển màn.
 - Bàn chơi tự nối lại khi app hiện lại (SignalR); giữ ghế 30 giây.
 
 ## Options
@@ -54,12 +54,11 @@ Chi tiết ở dưới.
      Cần kiểm xem hôm nay picker đã đòi PIN chưa.
 3. **Phiên hết hạn thì nói ra**: "Phiên đăng nhập đã hết — đăng nhập lại để chơi tiếp bằng tài khoản", và không lặng lẽ
    chuyển sang hồ sơ máy.
-4. **Cập nhật an toàn** (sửa rủi ro đang có trên prod; nên làm **sớm, PR riêng**, không chờ bố cục):
-   - Bỏ việc tự `skipWaiting`. Service worker mới **chờ**, rồi áp dụng ở lần mở lạnh sau. Trên iPhone gần như lần quay lại
-     nào cũng là mở lạnh.
-   - Nếu phiên dài: hiện "Có bản mới — Tải lại" chỉ ở các mục của khung, **không bao giờ** khi đang chơi hay đang ngồi bàn.
-   - Bắt lỗi nạp lười (`vite:preloadError`): nạp lại trang một lần, sau khi game đã lưu.
-   - Thêm một e2e: mở app, đổi bản build, chạm vào game, không có màn lỗi.
+4. **Cập nhật êm** (không còn là sửa lỗi — xem *Discussion* 2026-10-22; làm trong PR 2 của D-02):
+   - Service worker mới **chờ** và áp dụng ở lần mở lạnh sau, thay vì tự nạp lại trang lúc chuyển màn.
+   - Phiên dài thì hiện "Có bản mới — Tải lại" ở các mục của khung, **không bao giờ** khi đang chơi hay đang ngồi bàn.
+   - Giữ test hai bản build (`apps/hub/e2e/updates.ts`, builder viết 2026-10-22) làm hàng rào chống hồi quy; nâng nó lên
+     "0 lần tự nạp lại" khi làm mục này.
 5. **Link khi đã cài app**:
    - Thêm `launch_handler: { client_mode: ["focus-existing", "auto"] }`. Chỉ Chrome và Edge có, nên cần kiểm tính năng.
    - Trên iPhone, link mở Safari, và Safari không chung lưu trữ với app. Trang lối vào hiện thêm một dòng: "Đã cài app Tò He?
@@ -77,7 +76,7 @@ Chi tiết ở dưới.
 
 | PR | Nội dung |
 |---|---|
-| sớm | Cập nhật an toàn (mục 4) cùng e2e, có thể làm ngay trước mọi thứ khác |
+| trong PR 2 của D-02 | Cập nhật êm (mục 4), cùng test hai bản build |
 | trong PR 2 của D-02 | Màn đầu "đang dở", "Ai đang chơi?", lời mời cho hồ sơ máy, phiên hết hạn |
 | nhỏ | `launch_handler`, dòng "Đã cài app?" trên trang lối vào, `persist()`, đếm lần quay lại |
 
@@ -88,7 +87,7 @@ Lời mời cho hồ sơ máy có thể cần API cho hồ sơ máy gọi `rooms
 | Q | Câu hỏi | Agent đề xuất |
 |---|---|---|
 | Q1 | Chọn A hay B? | B |
-| Q2 | Sửa rủi ro cập nhật (mục 4) ngay bây giờ, trước cả bố cục? | Có — rủi ro đang có trên prod với người dùng thật |
+| Q2 | ~~Sửa rủi ro cập nhật ngay?~~ | Owner nói có (2026-10-22), nhưng thử lại thì rủi ro không có thật — mục 4 về lại *proposed*, làm trong PR 2 của D-02 |
 | Q3 | "Ai đang chơi?" hỏi sau bao lâu không dùng? | 30 phút |
 | Q4 | Thông báo đẩy "đến lượt bạn" cho bàn chơi: để sau launch? | Để sau |
 
@@ -100,3 +99,8 @@ Lời mời cho hồ sơ máy có thể cần API cho hồ sơ máy gọi `rooms
 
 **agent** (2026-10-22): owner hỏi đã khảo sát nhu cầu quay lại chưa — chưa, ở lần đề xuất D-02. Lần này kiểm code (R-03)
 và tiền lệ. Phát hiện quan trọng nhất là rủi ro khi cập nhật, không phải chuyện bố cục.
+
+**agent** (2026-10-22, sau): **rủi ro khi cập nhật không có thật.** Builder viết test hai bản build (Chromium) trước khi sửa:
+không có màn lỗi, vì file cũ còn trong HTTP cache, và khi cache bị xoá thì `lazyRouteComponent` của TanStack Router tự nạp
+lại trang một lần. Agent đã nói "khả năng cao là màn lỗi" khi chưa đọc code của thư viện — sai. Owner quyết "sửa trước"
+dựa trên tiền đề đó, nên mục 4 về lại *proposed* (chỉ còn lý do trải nghiệm) và không làm PR riêng. Safari/iOS chưa thử.

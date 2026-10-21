@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (khuya, sau) — agent
+
+- Builder tái hiện rủi ro cập nhật bằng test hai bản build (Chromium) → **không có màn lỗi**: HTTP cache giữ file cũ; khi
+  mất cache, TanStack Router tự nạp lại một lần. Agent đã đánh giá sai (chưa đọc code thư viện). D-04 §4 về *proposed*,
+  không PR riêng; test giữ ở worktree `agent-a8048e1129181a666` (chưa commit). Safari/iOS chưa thử.
+
 ## 2026-10-22 (khuya) — agent
 
 - Owner: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B" → **D-02, D-04 decided** (B). Sửa cập nhật an toàn: PR riêng
