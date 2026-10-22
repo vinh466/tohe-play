@@ -1,4 +1,4 @@
-# Bản đồ route đầy đủ — để owner duyệt (điểm 2: bỏ redirect ở `/`)
+# Bản đồ route đầy đủ (điểm 2 đã chốt 2026-10-22: bỏ hẳn)
 
 Viết 2026-10-22 từ `packages/routes/src/map.ts` (sau G1, `main` 6828358), ADR 0042, 0046, 0047. **Hôm nay** là cái đang
 chạy; **sau đợt 1** là cái các PR G2a…G6 đã quyết sẽ làm. Chưa có trang nào bị đổi URL: URL tiếng Việt đã index giữ nguyên.
@@ -50,7 +50,7 @@ Tệp của vùng này: `/og.png`, `/llms.txt` (một tệp, hai ngôn ngữ), `
 Tệp của app: `/assets/…`, `/index.html`, `/manifest.webmanifest`, `/sw.js`, `/registerSW.js`, `/workbox-…`,
 `/theme-init.js`, icon, `/screenshots/…`. API: `/api/…` (không cho bot vào).
 
-**Đường cũ, trả 301** (giữ cho link trong mail và bookmark): `/welcome`, `/sign-in…`, `/register…`, `/password…`,
+**Đường cũ** — từng trả 301, **bỏ từ 2026-10-22** (#118, owner: "làm như mới"), giờ là 404: `/welcome`, `/sign-in…`, `/register…`, `/password…`,
 `/profiles`, `/data`, `/legal/terms`, `/legal/privacy`, `/rooms/<gameId>`.
 
 ## `console.toheplay.io.vn`
@@ -59,7 +59,7 @@ Tệp của app: `/assets/…`, `/index.html`, `/manifest.webmanifest`, `/sw.js`
 `/links` · `/settings` · `/audit` · `/security` · `/setup` · `/api/admin/…`. Mọi path khác 404. Không đổi trong đợt 1
 (chữ tiếng Anh là PB-12).
 
-## Điểm 2 — bỏ redirect ở `/`: owner cần quyết
+## Điểm 2 — bỏ redirect ở `/`: **đã chốt — bỏ hẳn** (owner 2026-10-22: "triệt để bỏ đi, làm như mới, prod hiện chỉ có tôi dùng thôi")
 
 | | Giữ redirect (hôm nay) | **Bỏ redirect, thêm *Chơi tiếp*** (đề xuất) |
 |---|---|---|

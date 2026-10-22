@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (merge, UAT, G2b ∥ G4) — agent
+
+- Owner: ADR 0048 "bạn đề xuất và xử đi" → giữ đề xuất, status Accepted; điểm 2 "triệt để bỏ đi, làm như mới, prod hiện
+  chỉ có tôi dùng thôi" → bỏ cả 301 của đường cũ; "ổn thì merge … deploy giúp t … tiếp tục" → agent merge + deploy UAT.
+- **#114, #115, #116, #117 merged**; **#118** (master): `/together` vào map trước trang của nó, bỏ `hubRedirects` và kiểu
+  `redirect` → merged. UAT `uat-2026-10-22.1` trên 949ccae (G0–G3, không kèm #118). Builder G2b ∥ G4 (Opus · high) từ c56758c.
+
 ## 2026-10-22 (G2a, G3 PR) — agent
 
 - **G2a** #116: `/en/…`, `hreflang` trong sitemap, VI | EN, khoá `tohe:language`, `?lang=en`; điều khoản chỉ vi tới E-05.
