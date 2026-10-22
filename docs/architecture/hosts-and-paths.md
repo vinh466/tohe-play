@@ -117,7 +117,12 @@ privacy notice are not copy of this app: change them in `documents.ts`, with `TE
   in a public namespace of the map, and every link on a page leads somewhere the map knows (a public page is checked
   to exist);
 - `robots.txt` carries Cloudflare's content signals, `Content-Signal: search=yes, ai-input=yes, ai-train=no`: search
-  engines and AI answers may use the pages, training may not (the owner's choice for now, 2026-10-20).
+  engines and AI answers may use the pages, training may not (the owner's choice, 2026-10-20). It also names crawlers
+  ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)): the ones that fetch for search
+  and answers (`searchCrawlers` in the map — Googlebot, Bingbot, `OAI-SearchBot`, `Claude-SearchBot`, `PerplexityBot`,
+  Applebot, `coccocbot-web`) in a group with the same rules as every crawler, since a crawler follows only the group that
+  names it (RFC 9309); the ones that fetch only to train models (`trainingCrawlers` — `GPTBot`, `ClaudeBot`,
+  `Google-Extended`, `Applebot-Extended`, `CCBot`) with `Disallow: /`.
 
 - **Indexed**: no `X-Robots-Tag: noindex`, canonical and Open Graph links with the hub's own URL.
 - **Its own CSP**: no third-party script, no inline script and no inline style, no frame, no form, no connection. Every
@@ -135,8 +140,8 @@ privacy notice are not copy of this app: change them in `documents.ts`, with `TE
 - **`/sitemap.xml` and `robots.txt`** are generated from the map: the sitemap lists every indexed namespace (a tree
   such as `/games/` needs its pages listed first — the generator refuses it until then; the games' pages come from
   `games/*/public/game.json`, so a new game is a change of the generated sitemap, which the drift check shows), with
-  absolute URLs from `TOHE_HUB_URL`; `robots.txt` allows `/`, keeps crawlers out of `/api/`, gives the content signals
-  and names the sitemap.
+  absolute URLs from `TOHE_HUB_URL`; `robots.txt` allows `/`, keeps crawlers out of `/api/`, gives the content signals,
+  names the search and the training crawlers (above) and names the sitemap.
 - **The docs host** serves the docs at its root: an old `/docs/<page>` answers `301` to `/<page>`, the query kept, and
   `/play` leads to the hub's `/play`.
 
@@ -226,4 +231,5 @@ stays in force for its part.
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | in place: `apps/web` is built into the hub image and serves the home page, the games' pages, the install guide, the FAQ, about, and the terms and privacy notice at the root (indexed, its own CSP; a script on `/` sends a returning player to `/play`), with `/sitemap.xml`, `robots.txt`, `llms.txt` and the link-preview picture; `apps/docs` serves the docs at the root of `docs.toheplay.io.vn` (`/docs/<page>` answers `301`); the chart's `site` values are `docs` | the public pages' pull request |
 | The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup, optional for now (2026-10-20) and required before the launch ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)); the API does not check Access's token yet | the console's pull request |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |
-| `/together`, `/en/…`, `/promise/`; crawlers by name in `robots.txt`; `Origin-Agent-Cluster` on the games origin | not yet ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md), [0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | the routes' pull request |
+| Crawlers by name in `robots.txt`; `Origin-Agent-Cluster: ?1` on the games origin ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md), [0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: `searchCrawlers` and `trainingCrawlers` in the map; the header in `Caddyfile.games` | the routes' pull request |
+| The namespaces `/together`, `/en/…`, `/promise/` | not yet: each arrives with the pages that use it, so the build's check — the pages written are the sitemap's — and the app's router stay whole | the app frame's, the languages' and the introduction surface's pull requests |

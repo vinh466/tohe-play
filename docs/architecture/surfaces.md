@@ -162,8 +162,9 @@ language and IndexNow.
 
 | Part | Today | In place when |
 | --- | --- | --- |
-| Planes, L1, the escalation rule | L1 in place; Access on `console.` optional | `Origin-Agent-Cluster` with the routes' pull request; Access before the launch |
-| Namespaces `/together`, `/en/…`, `/promise/`; crawlers by name | not yet | the routes' pull request |
+| Planes, L1, the escalation rule | L1 in place; `Origin-Agent-Cluster: ?1` on the games origin; Access on `console.` optional | Access before the launch |
+| Crawlers by name in `robots.txt` | in place | — |
+| Namespaces `/together`, `/en/…`, `/promise/` | not yet — each arrives with the pages that use it | the app frame's, the languages' and the introduction surface's pull requests |
 | Public pages in two languages | Vietnamese only | the public pages' languages pull request |
 | Game names per language | one `name`, Vietnamese | the Game Contract's names pull request, with its own ADR |
 | One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | how-to in `apps/web/src/content/games.ts`; one picture; `/` redirects a returning device | the introduction surface's pull request |

@@ -19,6 +19,8 @@ import {
   hubNamespaces,
   hubRedirects,
   type Namespace,
+  searchCrawlers,
+  trainingCrawlers,
 } from './map.ts';
 import {
   isLinkPreview,
@@ -592,8 +594,31 @@ describe('what the map generates', () => {
 
   it('keeps crawlers out of the API, allows the rest, says what AI may do, and names the sitemap', () => {
     expect(robotsTxt()).toMatch(
-      /\nUser-agent: \*\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: \/\nDisallow: \/api\/\n\nSitemap: \{\{ env "TOHE_HUB_URL" \}\}\/sitemap\.xml\n$/,
+      /\nUser-agent: \*\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: \/\nDisallow: \/api\/\n\n/,
     );
+    expect(robotsTxt()).toMatch(/\n\nSitemap: \{\{ env "TOHE_HUB_URL" \}\}\/sitemap\.xml\n$/);
+  });
+
+  // A crawler follows only the most specific group that names it (RFC 9309), so every group repeats the rules (ADR 0047).
+  it('names the search and answer crawlers in a group with the same rules as every crawler', () => {
+    const groups = robotsTxt().split('\n\n');
+    const everyone = groups.find((group) => group.startsWith('User-agent: *\n')) ?? '';
+    const rules = everyone.split('\n').slice(1);
+    const search = groups.find((group) => group.includes('User-agent: OAI-SearchBot')) ?? '';
+    for (const name of searchCrawlers) expect(search).toContain(`User-agent: ${name}\n`);
+    expect(
+      search.split('\n').filter((line) => !line.startsWith('User-agent:') && !line.startsWith('#')),
+    ).toEqual(rules);
+    expect(rules).toContain('Disallow: /api/');
+  });
+
+  it('keeps the crawlers that only train models out of everything', () => {
+    const training = robotsTxt()
+      .split('\n\n')
+      .find((group) => group.includes('User-agent: GPTBot'));
+    for (const name of trainingCrawlers) expect(training).toContain(`User-agent: ${name}\n`);
+    expect(training?.endsWith('\nDisallow: /')).toBe(true);
+    expect(trainingCrawlers.some((name) => searchCrawlers.includes(name))).toBe(false);
   });
 
   it('writes the sitemap from the indexed pages, with the hub’s URL read at run time', () => {

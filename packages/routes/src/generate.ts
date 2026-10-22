@@ -11,6 +11,8 @@ import {
   type Namespace,
   publicPages,
   type Redirect,
+  searchCrawlers,
+  trainingCrawlers,
 } from './map.ts';
 import { alternation, covers, linkPreviewPattern, redirectPattern, redirectTemplate } from './match.ts';
 
@@ -174,22 +176,38 @@ export const HUB_URL_ENV = 'TOHE_HUB_URL';
 export const CONTENT_SIGNAL = 'search=yes, ai-input=yes, ai-train=no';
 
 /**
- * apps/hub/public/robots.txt: everything may be crawled but what the map keeps out, the content signals, and where the
- * sitemap is. A Caddy template (the hub's Caddy fills in the sitemap's absolute URL), served as it is by `pnpm dev`,
- * where the line is ignored.
+ * apps/hub/public/robots.txt (ADR 0047): everything may be crawled but what the map keeps out, the content signals, and
+ * where the sitemap is. The crawlers that fetch for search and answers get a group of their own with the same rules —
+ * a crawler follows only the most specific group that names it (RFC 9309), so the group repeats what every crawler may
+ * not fetch — and the crawlers that fetch only to train models are kept out of everything. A Caddy template (the hub's
+ * Caddy fills in the sitemap's absolute URL), served as it is by `pnpm dev`, where the line is ignored.
  */
-export function robotsTxt(namespaces: readonly Namespace[] = hubNamespaces): string {
+export function robotsTxt(
+  namespaces: readonly Namespace[] = hubNamespaces,
+  search: readonly string[] = searchCrawlers,
+  training: readonly string[] = trainingCrawlers,
+): string {
   const disallowed = namespaces
     .filter((namespace) => !namespace.crawl)
     .map((namespace) => `Disallow: ${namespace.match === 'tree' ? `${namespace.path}/` : namespace.path}`);
+  const rules = [`Content-Signal: ${CONTENT_SIGNAL}`, 'Allow: /', ...disallowed];
   const sitemap = namespaces.find((namespace) => namespace.id === 'sitemap');
   return `${[
     header('#'),
     '',
     'User-agent: *',
-    `Content-Signal: ${CONTENT_SIGNAL}`,
-    'Allow: /',
-    ...disallowed,
+    ...rules,
+    ...(search.length > 0
+      ? [
+          '',
+          '# Search and answers that cite the page.',
+          ...search.map((name) => `User-agent: ${name}`),
+          ...rules,
+        ]
+      : []),
+    ...(training.length > 0
+      ? ['', '# Training models only.', ...training.map((name) => `User-agent: ${name}`), 'Disallow: /']
+      : []),
     ...(sitemap ? ['', `Sitemap: {{ env "${HUB_URL_ENV}" }}${sitemap.path}`] : []),
   ].join('\n')}\n`;
 }
