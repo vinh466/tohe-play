@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (G1, CI) — agent
+
+- CI của #112 đỏ ở E2E (smoke), bước "bảng xếp hạng trên game", hai lần liên tiếp; `main` xanh. Bỏ header
+  `Origin-Agent-Cluster` khỏi origin game → CI xanh hết → header là nguyên nhân. ADR 0046 ghi "để sau, cần hiểu trước";
+  PB-13 ghi phát hiện. G0 merge vào G1 (không force-push); nhánh cũ `feat/g1-routes` đã xoá (chưa có PR).
+
 ## 2026-10-22 (G0, G1) — agent
 
 - Owner: "ok làm G0 G1 đi". **G0** #111: ADR 0046, 0047, `surfaces.md`; reviewer (Opus · high) 0 blocker, 4 major, 17 minor
