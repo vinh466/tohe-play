@@ -29,11 +29,11 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
    "name": "Merge Blocks",
    "names": { "vi": "Ghép Khối" },
    "description": "Drop number blocks into the columns: two matching blocks merge into one. …",
-   "descriptions": { "vi": "Thả khối số vào cột, …", "en": "Drop number blocks into the columns: …" },
+   "descriptions": { "vi": "Thả khối số vào cột, …" },
    ```
 
-   `pnpm --filter @tohe/games-host test` fails without `descriptions.vi`, `descriptions.en` (equal to `description`)
-   or, for a name that is not Vietnamese, `names.vi`. The game's own title in each language is the same name.
+   `description` is the English one; `pnpm --filter @tohe/games-host test` fails without `descriptions.vi`. Add
+   `names.vi` when the game has a Vietnamese name. The game's own title in each language is the same name.
 2. Add `"@tohe/game-<id>": "workspace:*"` to `devDependencies` in `tools/games-host/package.json`; `pnpm install`.
 3. `src/logic.ts`: pure functions returning **the new state and events**; no DOM/timers/`Math.random`; the PRNG
    state lives in the game state (see `random`/`spawn` in merge-block).

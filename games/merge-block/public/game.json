@@ -7,8 +7,7 @@
   "protocol": 1,
   "description": "Drop number blocks into the columns: two matching blocks merge into one. Chain merges to multiply your score!",
   "descriptions": {
-    "vi": "Thả khối số vào cột, hai khối giống nhau sẽ gộp lại. Gộp liên tiếp để nhân điểm!",
-    "en": "Drop number blocks into the columns: two matching blocks merge into one. Chain merges to multiply your score!"
+    "vi": "Thả khối số vào cột, hai khối giống nhau sẽ gộp lại. Gộp liên tiếp để nhân điểm!"
   },
   "icon": "icon.svg",
   "orientation": "portrait",

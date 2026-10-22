@@ -41,7 +41,7 @@ All of it is **additive in protocol 1**: a manifest without the new fields means
 | `name` | string, 1–40 | The **standard name**: English, or a proper name such as *Tiến Lên*. Required. Shown when the reader's language has no name of its own. |
 | `names` | map: language tag → string, 1–40 each, at most 10 | *Optional.* The name in a language, when it differs from the standard one: `{ "vi": "Ghép Khối" }`. |
 | `description` | string, ≤ 200 | The **standard description**, shown when the reader's language has none. |
-| `descriptions` | map: language tag → string, 1–200 each, at most 10 | *(agent)* *Optional.* The description in a language: `{ "vi": "…", "en": "…" }`. |
+| `descriptions` | map: language tag → string, 1–200 each, at most 10 | *(agent)* *Optional.* The description in a language, when it differs from the standard one: `{ "vi": "…" }`. |
 
 **Language tags** *(agent)* are the BCP 47 tags `init.locale` carries, limited to a language, an optional script and an
 optional region, in their canonical case: `vi`, `en`, `en-GB`, `zh-Hant`, `es-419` — two or three lower-case letters,
@@ -67,10 +67,9 @@ anyone outside Tò He reads it in.
 ### The games in this repository *(agent)*
 
 Not a contract rule — a game made elsewhere may speak one language — but a rule of this repository, where the hub and
-the public pages speak Vietnamese and English: every game under `games/` has `descriptions.vi` and `descriptions.en`, its
-`description` is its `descriptions.en`, and a game whose standard name is not Vietnamese has `names.vi`. A name is taken
-for Vietnamese when it has đ or a mark Vietnamese letters carry — the circumflex, breve and horn of â, ă, ê, ô, ơ, ư, or a
-tone mark; a Vietnamese name written without them still gets a `names.vi`, which costs nothing. **Where it is tested**: in the games assembler,
+the public pages speak Vietnamese and English: every game under `games/` has `descriptions.vi`, its `description` being
+the English one, so both languages are written once each. A Vietnamese name stays optional, as the owner decided for
+names: `names.vi` when the game has one. **Where it is tested**: in the games assembler,
 `tools/games-host` (`src/games.test.ts`), the package that already gathers every game of the repository and refuses one
 it does not know — the lowest level that sees all of them; the contract and the conformance kit stay free of it.
 
@@ -81,7 +80,7 @@ it does not know — the lowest level that sees all of them; the contract and th
 | `tien-len` | Tiến Lên | — |
 | `hello` | Tap Dot | Chạm Chấm |
 
-Their Vietnamese descriptions move to `descriptions.vi`; the English ones are new, and also go in `description`. Each
+Their Vietnamese descriptions move to `descriptions.vi`; the English ones are new and go in `description`. Each
 game takes a new patch version, since a published change is a new build. The games' own titles already read these
 names in each language, but the sample's English title, "Tap the Dot", becomes "Tap Dot", so a name is the same
 everywhere (ADR 0047).
@@ -138,7 +137,9 @@ everywhere (ADR 0047).
   *(agent)*.
 - **The repository's rule in the contract or the conformance kit.** It would force two languages on every game made
   anywhere. Lost to a test in the assembler *(agent)*.
-- **A flag in the manifest saying the name is Vietnamese** (to know when `names.vi` is needed). A field for one
-  repository's test; lost to reading the name's letters *(agent)*.
+- **Requiring `names.vi` when the standard name is not Vietnamese.** Telling a Vietnamese name from another needs a
+  flag in the manifest or a guess from its letters, and the owner made names per language optional; lost *(agent)*.
+- **`descriptions.en` beside an English `description`.** The same words twice in one file; lost to `description` as the
+  English one *(agent)*.
 - **Free-form language keys.** Typos (`VI`, `vn`) would never be found by the lookup and nobody would notice; lost to
   tags checked by the schema.

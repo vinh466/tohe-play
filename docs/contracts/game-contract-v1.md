@@ -71,9 +71,9 @@ description per language ([ADR 0048](../decisions/0048-a-standard-name-and-words
   and `gameDescription(manifest, language)`.
 - The hub shows a game in its own language through the lookup; the console shows the standard `name`; link previews
   speak Vietnamese for now. A game is not sent its names: its title is in its own strings, in `init.locale`'s language.
-- Write a name per language only when it differs from the standard one. The games in this repository carry
-  `descriptions.vi` and `descriptions.en`, `description` equal to `descriptions.en`, and `names.vi` when the standard
-  name is not Vietnamese — a test of `tools/games-host` checks it; it is the repository's rule, not the contract's.
+- Write a name or a description per language only when it differs from the standard one. The games in this repository
+  carry `descriptions.vi`, their `description` being the English one — a test of `tools/games-host` checks it; it is
+  the repository's rule, not the contract's.
 
 ### Online rooms
 

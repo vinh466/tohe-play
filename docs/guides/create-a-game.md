@@ -16,10 +16,10 @@ sidebar:
 2. **Scaffold** from `games/hello`:
    - `package.json` — name `@tohe/game-<id>`, same scripts;
    - `public/game.json` — new `id` (= folder name), `name`, `version: 0.1.0`, capabilities, `themes`, size budget.
-     `name` is the **standard name** — English, or a proper name such as *Tiến Lên*; add `names.vi` when the
-     Vietnamese name differs, and `descriptions.vi` and `descriptions.en`, with `description` the English one
+     `name` is the **standard name** — English, or a proper name such as *Tiến Lên*; `description` is the English
+     one, `descriptions.vi` the Vietnamese one, and `names.vi` the Vietnamese name if the game has one
      ([names per language](../contracts/game-contract-v1.md#names-and-descriptions-per-language)); a test of
-     `@tohe/games-host` fails without them;
+     `@tohe/games-host` fails without `descriptions.vi`;
    - `public/icon.svg` — square, with a `<title>`;
    - `vite.config.ts` — keep `base: './'`.
 3. **Register** the game: add `"@tohe/game-<id>": "workspace:*"` to `devDependencies` of

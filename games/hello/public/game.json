@@ -7,8 +7,7 @@
   "protocol": 1,
   "description": "Tap the dot as fast as you can for 20 seconds. The platform's sample game.",
   "descriptions": {
-    "vi": "Chạm thật nhanh vào chấm tròn trong 20 giây. Game mẫu của nền tảng.",
-    "en": "Tap the dot as fast as you can for 20 seconds. The platform's sample game."
+    "vi": "Chạm thật nhanh vào chấm tròn trong 20 giây. Game mẫu của nền tảng."
   },
   "icon": "icon.svg",
   "orientation": "portrait",
