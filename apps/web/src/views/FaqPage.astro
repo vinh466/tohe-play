@@ -1,0 +1,47 @@
+---
+// /faq/ and /en/faq/: short questions and answers. The words are in ../content/faq.ts; the same list is the page's
+// FAQPage data.
+import { faq } from '../content/faq.ts';
+import { absolute } from '../content/site.ts';
+import { localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = faq[lang];
+const path = localPath(lang, '/faq/');
+// The terms and the privacy notice are in Vietnamese only (ADR 0047): an English page's links say so.
+const legalHreflang = lang === 'vi' ? undefined : 'vi';
+const jsonLd = [
+  {
+    '@type': 'FAQPage',
+    url: absolute(path),
+    inLanguage: lang,
+    mainEntity: words.questions.map(({ q, a }) => ({
+      '@type': 'Question',
+      name: q,
+      acceptedAnswer: { '@type': 'Answer', text: a },
+    })),
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
+  <main id="main" class="narrow">
+    <h1>{words.heading}</h1>
+    <p class="lead">{words.lead}</p>
+    {
+      words.questions.map(({ q, a }) => (
+        <details class="qa">
+          <summary>{q}</summary>
+          <p>{a}</p>
+        </details>
+      ))
+    }
+    <p>{words.more.text}</p>
+    <p class="links">
+      <a href="/privacy/" hreflang={legalHreflang}>{words.more.privacy}</a> ·
+      <a href="/terms/" hreflang={legalHreflang}>{words.more.terms}</a> ·
+      <a href={localPath(lang, '/guides/install/')}>{words.more.install}</a>
+    </p>
+  </main>
+</Page>

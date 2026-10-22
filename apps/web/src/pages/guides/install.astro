@@ -1,39 +1,6 @@
 ---
-import { install } from '../../content/install.ts';
-// /guides/install/: putting Tò He on the home screen, on each kind of device. The words are in
-// ../../content/install.ts.
-import Page from '../../layouts/Page.astro';
+// /guides/install/: putting Tò He on the home screen — ../../views/InstallPage.astro.
+import InstallPage from '../../views/InstallPage.astro';
 ---
 
-<Page title={install.title} description={install.description} path="/guides/install/">
-  <main id="main" class="narrow">
-    <a class="crumb" href="/guides/">{install.back}</a>
-    <h1>{install.heading}</h1>
-    <p class="lead">{install.lead}</p>
-    <ul class="jump" aria-label={install.jump}>
-      {install.platforms.map((platform) => <li><a href={`#${platform.id}`}>{platform.title}</a></li>)}
-    </ul>
-
-    {
-      install.platforms.map((platform) => (
-        <section id={platform.id}>
-          <h2>{platform.title}</h2>
-          <div class="panel">
-            {platform.intro && <p>{platform.intro}</p>}
-            <ol class="steps">{platform.steps.map((step) => <li>{step}</li>)}</ol>
-            {platform.note && <p class="note">{platform.note}</p>}
-          </div>
-        </section>
-      ))
-    }
-
-    <section>
-      <h2>{install.done.heading}</h2>
-      <p>{install.done.text}</p>
-      <div class="actions">
-        <a class="button primary" href="/play">{install.done.play}</a>
-        <a class="button secondary" href="/faq/">{install.done.faq}</a>
-      </div>
-    </section>
-  </main>
-</Page>
+<InstallPage />

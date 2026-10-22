@@ -1,0 +1,42 @@
+---
+// /guides/ and /en/guides/: the list of guides. The words are in ../content/install.ts.
+import { guides } from '../content/install.ts';
+import { absolute } from '../content/site.ts';
+import { localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = guides[lang];
+const path = localPath(lang, '/guides/');
+const jsonLd = [
+  {
+    '@type': 'CollectionPage',
+    name: words.heading,
+    description: words.description,
+    url: absolute(path),
+    inLanguage: lang,
+    isPartOf: { '@id': absolute(`${localPath(lang, '/')}#website`) },
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
+  <main id="main" class="narrow">
+    <h1>{words.heading}</h1>
+    <p class="lead">{words.lead}</p>
+    <ul class="cards">
+      {
+        words.items.map((item) => (
+          <li>
+            <div class="card">
+              <h2 class="card-title">
+                <a href={localPath(lang, item.path)}>{item.title}</a>
+              </h2>
+              <p>{item.text}</p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+  </main>
+</Page>

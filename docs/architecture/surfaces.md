@@ -127,6 +127,17 @@ flowchart LR
 - Proper names and established terms stay in English inside the Vietnamese interface. A game's `name` is its standard
   name; names per language are optional; descriptions are decided with them in the Game Contract's ADR.
 
+**What the public pages hand to the app** — two things, both read by the app once it has its language setting (the app
+frame's pull request); until then the hub ignores them:
+
+| | What | Written by |
+| --- | --- | --- |
+| The remembered choice | `localStorage` key **`tohe:language`** on the players' origin, `vi` or `en`. Written when a reader uses the VI \| EN switch, follows the suggestion (`en`) or turns it down with *Stay in Vietnamese* (`vi`); a Vietnamese page shows the suggestion when the key says `en`, or when there is no key and the browser's first language is not `vi*`, and not when it says `vi` | `apps/web/src/scripts/language.ts` |
+| The page's language | **`?lang=en`** on every link from an English page into the app (`/play`, `/play/<id>`), and on the redirect of a returning device from `/en/` to `/play`; a Vietnamese page's links carry nothing, Vietnamese being the default | `appPath` in `apps/web/src/i18n.ts`, `returning.js` |
+
+The app's order stays as above: its own setting, which a choice on the public pages' switch fills in (the key), then
+the page the player came from (`?lang=`), then the browser, then Vietnamese.
+
 ## The introduction surface
 
 ```mermaid
@@ -165,10 +176,10 @@ language and IndexNow.
 | --- | --- | --- |
 | Planes, L1, the escalation rule | L1 in place; Cloudflare Access on `console.` | — |
 | Crawlers by name in `robots.txt` | in place | — |
-| Namespaces `/together`, `/en/…`, `/promise/` | not yet — each arrives with the pages that use it | the app frame's, the languages' and the introduction surface's pull requests |
-| Public pages in two languages | Vietnamese only | the public pages' languages pull request |
+| Namespaces `/together`, `/promise/` | not yet — each arrives with the pages that use it | the app frame's and the introduction surface's pull requests |
+| Public pages in two languages | in place: Vietnamese at `/…`, English at `/en/…`, `hreflang` in the sitemap, the VI \| EN switch and the suggestion, the choice kept under `tohe:language`, `?lang=en` into the app (which ignores both for now); the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages` in `@tohe/routes`) | the public pages' languages pull request |
 | Game names per language | one `name`, Vietnamese | the Game Contract's names pull request, with its own ADR |
-| One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | how-to in `apps/web/src/content/games.ts`; one picture; `/` redirects a returning device | the introduction surface's pull request |
+| One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | how-to in `apps/web/src/content/games.ts`, in both languages; one picture; `/` redirects a returning device | the introduction surface's pull request |
 | The app's frame and tabs, the language setting | no frame; a bottom-sheet menu; the browser's language | the app frame's pull request |
 | Coming back | the catalog first; no "who is playing"; silent fallback; updates take over at once | the coming-back pull request |
 | Link previews in the maker's language | Vietnamese only | the link languages' pull request |

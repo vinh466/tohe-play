@@ -17,9 +17,9 @@ A change is done when **all** of these are true:
 - [ ] An ADR exists for any decision that is expensive to reverse.
 - [ ] For games: `SPEC.md` matches the game, the conformance screenshot was looked at, and it was played on a
       phone-sized viewport. Its public page (`/games/<id>/`) comes from `game.json` and its icon by itself: the
-      `description` is written for a stranger, the how-to is added to `apps/web/src/content/games.ts` (a test fails
-      without it), `pnpm --filter @tohe/routes build` regenerated the sitemap, and the page was looked at
-      (`pnpm --filter @tohe/web build`).
+      `description` is written for a stranger, the how-to is added to `apps/web/src/content/games.ts` in Vietnamese
+      and in English, for `/en/games/<id>/` (a test fails without either), `pnpm --filter @tohe/routes build`
+      regenerated the sitemap, and the pages were looked at (`pnpm --filter @tohe/web build`).
 - [ ] For hub changes: the e2e smoke test passes against `pnpm dev` or `docker compose up`.
 - [ ] No secrets, no personal data, no new third-party network calls.
 - [ ] CI is green on the pull request.
