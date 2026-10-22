@@ -38,7 +38,8 @@ flowchart LR
 whose review covers the game's dependencies too. **Before the first game the owner did not add**, the owner chooses
 **L2** (a registrable domain of its own) or **L3** (a site per game). The games origin is configuration, so L2 is a
 change of configuration and DNS; L3 also needs a URL per game from the API, the hub's CSP to allow each game's host, and a
-games host that serves many names. The games origin sends `Origin-Agent-Cluster: ?1`.
+games host that serves many names. Keeping the games origin apart by origin (`Origin-Agent-Cluster: ?1`) waits: it broke
+an end-to-end test when tried (2026-10-22).
 
 ## The players' host: two zones
 

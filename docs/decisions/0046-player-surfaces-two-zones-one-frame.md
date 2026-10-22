@@ -7,8 +7,8 @@ sidebar:
 
 - **Status:** Accepted
 - **Date:** 2026-10-22
-- **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespace `/together` for the app; the games
-  origin asks for an origin-keyed agent cluster; Cloudflare Access in front of `console.` before the launch is proposed.
+- **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespace `/together` for the app; Cloudflare
+  Access in front of `console.` before the launch is proposed.
   The public pages' redirect of a returning player ([Hosts and paths](../architecture/hosts-and-paths.md)) ends
 - **Decided by:** the owner, 2026-10-22, in the launch review (plans/launch-review D-02, D-04, D-05): "D-02 D-04 chọn
   B"; "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi … nên nếu
@@ -63,8 +63,10 @@ The hosts of ADR 0042 are named by what they trust:
 | L2 | a registrable domain of its own | also SameSite, cookie tossing, a shared process and storage partition, a shared reputation | **before the first game the owner did not add** |
 | L3 | a site per game (a domain of its own, on the Public Suffix List) | also one game reaching another | many outside authors |
 
-The owner's review of a game includes changes to its dependencies (the supply chain is the real risk at L1). The games
-origin sends `Origin-Agent-Cluster: ?1`, so browsers that support it keep games apart by origin *(agent)*. Cloudflare
+The owner's review of a game includes changes to its dependencies (the supply chain is the real risk at L1). Asking
+browsers to keep the games origin apart by origin rather than by site (`Origin-Agent-Cluster: ?1`) is left for later:
+tried on 2026-10-22, the end-to-end test that opens the leaderboard from a game's title screen failed twice with the
+header and passed without it, so it needs understanding first (the product backlog). Cloudflare
 Access goes in front of `console.` before the launch *(agent; optional until the owner decides — owner, 2026-10-20)*.
 
 ### Two zones on the players' host
@@ -133,7 +135,6 @@ A layout route wraps every screen of the Play zone except a game in play.
 ## Consequences
 
 - `@tohe/routes`: the namespace `/together` (the app's page), with the screen that uses it. Generated files regenerated.
-- `deploy/docker/Caddyfile.games`: the header `Origin-Agent-Cluster: ?1`.
 - The hub: the layout route and the three tabs; Play together and Me as screens; the first screen; who is playing;
   the ended-session notice; the update policy (`registerType: 'prompt'`, the notice); `launch_handler`; persistent storage;
   the manifest without `orientation`; the PIN for links out; the history per level. e2e and the screenshots in light and
