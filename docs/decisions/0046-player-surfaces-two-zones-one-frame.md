@@ -117,6 +117,12 @@ A layout route wraps every screen of the Play zone except a game in play.
 - **The app no longer locks the screen to portrait** *(agent)*. The hub neither rotates nor locks: a game draws itself for
   the screen it gets, fitting the orientation its manifest prefers inside it (the kit's scaling does), so a portrait game
   on a landscape tablet or computer shows with margins.
+  **A portrait game on a phone held sideways** *(agent, launch review F2, 2026-10-23)*: the hub still does not lock the
+  screen — it asks the player to turn the phone. When the game's `game.json` says `portrait`, the screen is a touch
+  screen in landscape and under 500 px high, a calm layer covers the game ("Xoay dọc máy để chơi" · "Turn your phone
+  upright to play", a drawing of a phone turning upright); the game keeps running underneath and the layer goes when the
+  phone turns back. `any` and `landscape` games never get it, and a tablet or a computer (500 px and up, or a mouse)
+  never does.
 - **A child's profile of an account asks for the account's manage PIN** (six digits, [Identity](../architecture/identity.md))
   to follow a link out of Tò He *(agent)*. A device with only device profiles has no PIN, so nothing asks there.
 - No streaks that punish, no countdowns, no guilt — the first screen shows what was left unfinished, neutrally.
@@ -142,6 +148,11 @@ A layout route wraps every screen of the Play zone except a game in play.
 
 ## Consequences
 
+- **The short landscape screen** *(agent)*: the frame takes the rail instead of the bar and a compact header below
+  500 px of height (a height query, not only `md:`), so the catalog shows its games in the first screen; the kit's title
+  screen fits the height it gets (two columns from 480 px wide), checked by conformance on six screen sizes; a portrait
+  game asks to turn the phone (above). [Surfaces](../architecture/surfaces.md) and [Game shell](../architecture/game-shell.md)
+  describe them.
 - `@tohe/routes`: the namespace `/together` (the app's page), with the screen that uses it. Generated files regenerated.
 - The hub: the layout route and the three tabs; Play together and Me as screens; the first screen; who is playing;
   the ended-session notice; the update policy (`registerType: 'prompt'`, the notice); `launch_handler`; persistent storage;

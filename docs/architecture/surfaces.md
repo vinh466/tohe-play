@@ -109,7 +109,17 @@ flowchart LR
 - The app's manifest locks no orientation; each game declares its own.
 - On an account's child profile, a link out of Tò He asks for the account's manage PIN ([Identity](identity.md)); a device
   with only device profiles has no PIN.
-- The hub neither rotates nor locks the screen: a game fits the orientation it prefers inside the screen it gets.
+- The hub neither rotates nor locks the screen: a game fits the orientation it prefers inside the screen it gets. It
+  does ask, on one occasion: a portrait game on a phone held sideways (below).
+- **A short landscape screen** *(agent)* — a phone held sideways, under 500 px high (a height query on a touch screen
+  or not): the rail instead of the bottom bar, a compact header (the tab's name smaller, tighter spacing), and tiles
+  that shrink, so the catalog's first screen shows games, not only its heading. A tablet or a computer (500 px and up)
+  keeps the frame as above.
+- **A portrait game on a phone held sideways** *(agent)*: when the game's `game.json` orientation is `portrait`, the
+  screen is a touch screen in landscape and under 500 px high, a calm layer covers the game: "Xoay dọc máy để chơi" /
+  "Turn your phone upright to play", a drawing of a phone turning upright. The game keeps running underneath and the
+  layer goes when the phone turns back; `any` and `landscape` games never get it; a tablet or a computer never does. The
+  hub still does not lock the screen — it asks the player to turn the phone.
 - Nothing presses a child to keep playing: no punishing streaks, no countdowns, no guilt.
 
 **How the hub does it** (`apps/hub/src/frame/`):
@@ -117,6 +127,13 @@ flowchart LR
 - A layout route (`_frame` in `router.tsx`) holds `/play`, `/together` and every `/account/…` screen; a game
   (`/play/<id>`), its lobby, a table, a replay and the links into them (`/r/…`, `/s/…`) are outside it, full screen.
   `/account/links` is Chơi cùng's. Forms (signing in, signing up, a new profile) stay one narrow column inside it.
+- **The short screen** is two CSS queries in one place (`frame/short.ts`, the Tailwind variants `short:` and `turn:` in
+  `styles.css`; a test keeps them in step): `(max-height: 499px) and (orientation: landscape)`, and the same with
+  `(pointer: coarse)` for the layer that asks to turn the phone — a computer's short window gets the rail but is never
+  asked to turn a phone it cannot turn. The layer (`launcher/RotateHint.tsx`) is in the tree of every portrait game and
+  shown by CSS alone, so there is no state to stick and nothing is paused. A game outside the frame
+  (`launcher/GameFrame.tsx`) with the hub's own top bar (a game without the `shell` capability) keeps 56 px of bar under
+  a notch: the bar's height is 3.5rem plus the safe-area inset.
 - Each tab's screen starts with the tab's name and the player's avatar and name, which open the profile picker. The bar
   sits above the phone's home indicator (`env(safe-area-inset-bottom)`) and steps aside while a field that brings up the
   keyboard has the focus. The rail comes before the screen in the document and the bar after it, so the focus follows
@@ -158,6 +175,29 @@ flowchart LR
 | A link while installed | the manifest, `install/launch.ts`, `install/InstalledAppHint.tsx` | `launch_handler: { client_mode: ["focus-existing", "auto"] }`; where the browser has `launchQueue` (Chromium), a link handed to the open app goes there — a screen of the app inside it, a public page as a page. On an iPhone or iPad outside the app, an entry page's screens (`/r/…`, `/s/…`: the table's preview, the named screen) carry "Đã cài app Tò He? Mở app → Nhập mã 482 913"; not a dead end |
 | Storage | `install/launch.ts` | the installed app asks `navigator.storage.persist()` once (`tohe:persist-asked`), unless its storage persists already |
 | Counting | `telemetry/funnel.ts` | `hub.funnel.browser-return`, once a day, beside `hub.funnel.standalone-open` |
+
+## A quick cold start
+
+The first start with no cache took 1.9 s to the first tile on production (0.5 s warm) and, on a weak signal, could stop
+on "Đang tải…" for good: nothing limited the wait for `GET /api/auth/me`, and `#root` was empty until the script ran.
+
+| Part | Where | How |
+| --- | --- | --- |
+| The first paint | `apps/hub/index.html` | `#root` holds a static skeleton — the frame's rail and bar and a grid of tile placeholders — drawn with the design tokens through the CSS variables `theme-init.js` sets, the same Tailwind classes as the frame (it follows the short screen too); React replaces it on mount. A picture only: hidden from screen readers, nothing to focus. A page that is not a frame screen (a game, a link into a table) shows it for the moment the script takes to load |
+| The session's wait | `session/loadMe.ts`, `api/queries.ts` | `GET /api/auth/me` has a timeout of 3 s (`AbortSignal.timeout`). On a timeout, a network error or a 5xx the hub goes on with the copy of the session it keeps for playing offline (ADR 0005) — an account's profiles, or the device's own — and asks again in the background: after 5 s, then every wait twice as long up to a minute, and at once when the app comes back into sight or the network returns. **A timeout never ends the session**: "the session ended" (above) needs the API's own answer that nobody is signed in |
+
+## The installed app's icons and shortcuts
+
+- **Icons** are opaque, the brand colour in the corners (iOS paints transparency black): `icon-192.png`, `icon-512.png`
+  and `apple-touch-icon.png`, declared with `purpose: "any"`; `icon-maskable-512.png` is its own file for
+  `purpose: "maskable"`, its art inside the 80% safe zone. `pnpm --filter @tohe/hub generate:icons` draws them from
+  `favicon.svg`.
+- **Shortcuts** (a long press on the home-screen icon): Ghép Khối (`/play/merge-block`), **Chơi cùng** (`/together`) and
+  **Nhập mã** (`/together?code=1`: Chơi cùng with the box for a code focused, the way in for a code read aloud). The
+  shortcuts share the app's icon.
+- **Installing on iOS**: the sheet's steps name the buttons, not their place — Safari's Share button (⋯ first, if it is not
+  in sight: the bar differs on iPad and with Safari's layouts), then *Thêm vào Màn hình chính*, then *Mở dưới dạng ứng
+  dụng web*.
 
 ## Languages
 
@@ -254,6 +294,7 @@ language and IndexNow.
 | Game names per language | in place: a standard `name` with `names` and `descriptions` per language (ADR 0048); the hub shows its language's, the console the standard name, link previews their card's language's, each public page its own language's | — |
 | One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | in place: `games/<id>/page/` for the four games; a picture per game and language, made by `generate:og` and committed beside the page; the home page shows the catalog first and *Continue* on a device that has played, and never redirects; `/promise/` in both languages. No game claims offline play yet (no games-origin service worker), so no page does | — |
 | Collections and pages for a search | none: they wait for about eight games, and three fitting ones | the growth above |
+| The short landscape screen, the turn-your-phone layer, the cold start, the icons and shortcuts | in place (above) *(agent)*: the rail and a compact header below 500 px of height; "Xoay dọc máy để chơi" over a portrait game on a touch screen sideways; a skeleton in `#root` and a 3 s wait for `/api/auth/me`; opaque icons and a maskable one; shortcuts to Chơi cùng and the code box | — |
 | The app's frame and tabs, the language setting | in place: the bar and the rail, the three tabs, Chơi cùng, Tôi with the language, theme and sound, the history per level (a tab behind steps back), a "←" on every sub-screen and every full-screen gate, the app's own not-found, no orientation lock, the manage PIN before a link out on a child's profile; the bottom-sheet menu gone | — |
 | Public pages and the app joined | in place: *Chơi ngay* / *Chơi tiếp* in every public page's header; `?lang=` on every link into the app; `?from=app` and no link out on a public page the app opened; `tohe:returning` written when a game is opened | — |
 | Coming back | in place (above). Not yet: a table's six digits on Trò chơi (`GET /api/rooms/mine` does not answer the code, so the line names the host); the manage PIN on a child moving up is the hub's, the API does not ask for it when a profile is chosen; a share link that opens its game at once passes no screen to carry the iPhone's line | the API's part: a later pull request |

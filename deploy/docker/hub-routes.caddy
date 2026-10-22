@@ -6,7 +6,7 @@
 @publicStaticImmutable path /_web /_web/*
 @appPage path /play /play/* /together /together/* /account /account/* /r /r/* /s /s/*
 @appStaticImmutable path /assets /assets/*
-@appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png /screenshots /screenshots/*
+@appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png /icon-maskable-512.png /screenshots /screenshots/*
 @platformGenerated path /robots.txt /sitemap.xml /.well-known /.well-known/*
 # Link previews: a crawler asking for a link of a previewed namespace gets the API’s card for it; people the app.
 @linkPreview {

@@ -40,7 +40,7 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `descriptions` | map | — | The description per language: a language tag → 1–200 chars, at most 10 (ADR 0048). |
 | `entry` | string | `index.html` | Entry file relative to the build folder. |
 | `icon` | string | — | Icon file relative to the build folder (SVG or PNG, square). |
-| `orientation` | `portrait` \| `landscape` \| `any` | `portrait` | Preferred orientation. |
+| `orientation` | `portrait` \| `landscape` \| `any` | `portrait` | Preferred orientation. The hub neither locks nor rotates the screen; for a `portrait` game on a phone held sideways (a touch screen in landscape, under 500 px high) it covers the game with a layer that asks the player to turn the phone upright ([Surfaces](../architecture/surfaces.md)). |
 | `capabilities` | array of `save`, `scores`, `rooms`, `shell`, `ranked` | `[]` | Platform services the game uses. Undeclared calls are rejected. `shell`: the game draws its own title screen and menu with the way back to Tò He (below). `ranked`: the server replays its runs (below). |
 | `themes` | array of `light`, `dark` | `["light"]` | Looks the game has ([ADR 0013](../decisions/0013-light-and-dark-themes.md)). With both, it follows the hub through `settings.theme`; with one, it keeps that look. |
 | `minAge` | 0–18 | `0` | Hidden from younger profiles (M1). |
@@ -358,7 +358,9 @@ origin, and checks:
    opened at a two-seat table refereed by its own module, with a bot in the other seat, under random taps, and opened
    with `init.replay` to play back a hand its own bots played to the end;
 8. with `shell`: it reports its first screen (a `menu` message) within 8 s of the handshake, opens on a title screen
-   with `[data-tohe-play]` and `[data-tohe-exit]` and no `<canvas>` under it, plays from it (through a first-time
+   with `[data-tohe-play]` and `[data-tohe-exit]` and no `<canvas>` under it — with play, the way out and every tool
+   (`.tohe-tool`) wholly inside the screen at 390×844, 360×640, 320×568, 915×412, 667×375 and 568×320 (the kit's
+   title screen does it; a screenshot per size, `<id>-title-<w>x<h>.png`) — plays from it (through a first-time
    how-to), answers `menu` with `menu { open: true }` within 1.5 s once playing and closes the panel on the next
    `menu`, opens its panel on `pause`, shows no `[data-tohe-exit]` over play, leads from the panel's
    `[data-tohe-main-menu]` to the title screen leaving no `<canvas>` behind, and the title screen's

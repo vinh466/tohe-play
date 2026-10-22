@@ -1,10 +1,10 @@
 import { useQuery } from '@tanstack/react-query';
-import { Link } from '@tanstack/react-router';
+import { Link, useRouterState } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type GameSummary, links, type RoomSummary, type ShareLinkView } from '../api/client.ts';
 import { gamesQuery } from '../api/queries.ts';
-import { formatEntryCode } from '../entry/codes.ts';
+import { asksForCodeBox, formatEntryCode } from '../entry/codes.ts';
 import { EnterCodeForm } from '../entry/EnterCode.tsx';
 import { TabHeader } from '../frame/AppFrame.tsx';
 import { nameOf } from '../launcher/gameWords.ts';
@@ -36,6 +36,8 @@ function Together({ session }: { session: PlayingSession }) {
   const { t } = useTranslation();
   // Who acts at the tables and on links: the account's session, or the device profile with a copy on the server.
   const { acting, waiting } = useTablePlayer(session);
+  // The home-screen shortcut "Nhập mã" opens `/together?code=1`: the box for a code, ready for typing.
+  const focusCode = useRouterState({ select: (state) => asksForCodeBox(state.location.searchStr) });
 
   return (
     <Screen>
@@ -43,7 +45,7 @@ function Together({ session }: { session: PlayingSession }) {
 
       <Section id="together-code" title={t('together.codeTitle')}>
         <p className="-mt-2 text-ink-soft">{t('entry.codeBody')}</p>
-        <EnterCodeForm />
+        <EnterCodeForm autoFocus={focusCode} />
       </Section>
 
       {waiting ? (

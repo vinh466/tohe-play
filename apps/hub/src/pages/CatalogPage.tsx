@@ -120,7 +120,7 @@ function Catalog({ session }: { session: PlayingSession }) {
         {games.isPending && <p className="text-ink-soft">{t('loading')}</p>}
         {games.isError && <p className="text-danger">{t('loadFailed')}</p>}
         {games.data?.length === 0 && <p className="text-ink-soft">{t('noGames')}</p>}
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 short:gap-2">
           {shown.map((game, index) => (
             <li
               key={game.id}
@@ -130,11 +130,13 @@ function Catalog({ session }: { session: PlayingSession }) {
               <Link
                 {...gameLink(game)}
                 data-tile
-                className="flex h-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 text-center shadow-sm transition active:scale-95"
+                className="flex h-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 text-center shadow-sm transition active:scale-95 short:gap-1 short:p-2"
               >
-                <GameIcon game={game} size="size-20" />
+                <GameIcon game={game} size="size-20 short:size-12" />
                 <span className="font-bold text-ink text-lg">{nameOf(game)}</span>
-                <span className="line-clamp-2 text-ink-soft text-sm">{descriptionOf(game)}</span>
+                <span className="line-clamp-2 text-ink-soft text-sm short:line-clamp-1">
+                  {descriptionOf(game)}
+                </span>
               </Link>
               <ShareButton game={game} session={session} />
               {syncsWithServer(player) ? <LeaderboardButton game={game} player={player} /> : null}
@@ -156,7 +158,13 @@ function gameLink(game: GameSummary) {
     : ({ to: '/play/$gameId', params: { gameId: game.id } } as const);
 }
 
-function GameIcon({ game, size }: { game: GameSummary; size: 'size-14' | 'size-20' }) {
+function GameIcon({
+  game,
+  size,
+}: {
+  game: GameSummary;
+  size: 'size-14' | 'size-20' | 'size-20 short:size-12';
+}) {
   return game.iconUrl ? (
     <img src={game.iconUrl} alt="" className={`${size} shrink-0 rounded-2xl`} />
   ) : (

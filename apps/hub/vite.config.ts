@@ -86,17 +86,32 @@ export default defineConfig({
         // game.json prefers inside the screen it gets.
         background_color: '#fff7ed',
         theme_color: '#f97316',
+        // Opaque, the brand colour in the corners (iOS paints transparency black); the maskable one is its own file, its
+        // art inside the 80% safe zone. Made by `pnpm --filter @tohe/hub generate:icons`.
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
-        // Long-press on the home-screen icon: straight into the reference game.
+        // Long-press on the home-screen icon: the reference game, Chơi cùng, and the box for a code (`?code=1` opens
+        // Chơi cùng with the box focused — the way in for a code read aloud, ADR 0044).
         shortcuts: [
           {
             name: 'Ghép Khối',
             short_name: 'Ghép Khối',
             url: '/play/merge-block',
+            icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Chơi cùng',
+            short_name: 'Chơi cùng',
+            url: '/together',
+            icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Nhập mã',
+            short_name: 'Nhập mã',
+            url: '/together?code=1',
             icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
           },
         ],

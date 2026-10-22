@@ -36,6 +36,8 @@ const vi = {
   back: 'Quay lại',
   backToGames: 'Về danh sách',
   confirmExitTitle: 'Thoát trò chơi?',
+  // A portrait game with the phone held sideways on a short screen (launcher/RotateHint.tsx, ADR 0046).
+  rotate: { title: 'Xoay dọc máy để chơi' },
   shell: {
     leave: '← Về Tò He',
     stuckTitle: 'Trò chơi không trả lời',
@@ -486,11 +488,12 @@ const vi = {
     body: 'Mở thẳng từ màn hình chính, như một app.',
     action: 'Cài về máy',
     later: 'Để sau',
-    iosIntro: 'Trên iPhone và iPad, cài bằng Safari, 4 bước:',
-    iosStep1: 'Bấm ⋯ ở góc dưới bên phải của Safari.',
-    iosStep2: 'Chọn “Chia sẻ”.',
-    iosStep3: 'Chọn “Thêm vào Màn hình chính”.',
-    iosStep4: 'Bật “Mở dưới dạng ứng dụng web”, rồi bấm “Thêm”.',
+    iosIntro: 'Trên iPhone và iPad, cài bằng Safari, 3 bước:',
+    // Where Safari puts its buttons differs (the bar's place, iPad, the address bar's layout): the steps name the buttons.
+    iosStep1:
+      'Bấm nút “Chia sẻ” của Safari: ô vuông có mũi tên chỉ lên, ở thanh dưới hoặc thanh trên tuỳ máy. Chưa thấy thì bấm ⋯ trước.',
+    iosStep2: 'Chọn “Thêm vào Màn hình chính” (kéo danh sách xuống nếu chưa thấy).',
+    iosStep3: 'Bật “Mở dưới dạng ứng dụng web”, rồi bấm “Thêm”.',
     iosDone: 'Đã hiểu',
     iosNote:
       'Ứng dụng không dùng chung dữ liệu với Safari. Để mang hồ sơ theo: đăng nhập, hoặc dùng “Chuyển sang máy khác”.',
@@ -909,6 +912,7 @@ const en: typeof vi = {
   back: 'Back',
   backToGames: 'Back to games',
   confirmExitTitle: 'Leave the game?',
+  rotate: { title: 'Turn your phone upright to play' },
   shell: {
     leave: '← Back to Tò He',
     stuckTitle: 'The game is not answering',
@@ -1358,11 +1362,11 @@ const en: typeof vi = {
     body: 'Open it straight from your home screen, like an app.',
     action: 'Install',
     later: 'Not now',
-    iosIntro: 'On iPhone and iPad, install with Safari, in 4 steps:',
-    iosStep1: 'Tap ⋯ at the bottom right of Safari.',
-    iosStep2: 'Choose “Share”.',
-    iosStep3: 'Choose “Add to Home Screen”.',
-    iosStep4: 'Turn on “Open as Web App”, then tap “Add”.',
+    iosIntro: 'On iPhone and iPad, install with Safari, in 3 steps:',
+    iosStep1:
+      'Tap Safari’s “Share” button: a square with an arrow pointing up, in the bottom or the top bar depending on the device. If you do not see it, tap ⋯ first.',
+    iosStep2: 'Choose “Add to Home Screen” (scroll down the list if you do not see it).',
+    iosStep3: 'Turn on “Open as Web App”, then tap “Add”.',
     iosDone: 'Got it',
     iosNote:
       'The app does not share data with Safari. To take your profile along: sign in, or use “Move to another device”.',

@@ -202,7 +202,7 @@
   margin: 0 auto;
   /* Room under the last buttons: their entrance (tohe-rise) never pushes them out of the box, so no scrollbar
      flashes while the screen comes in. */
-  padding: 1.25rem 0 1.25rem;
+  padding: 1.25rem 0.7rem 1.25rem;
   border-radius: 0;
   background: none;
   box-shadow: none;
@@ -313,6 +313,132 @@
   background: var(--tohe-surface);
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.12);
   animation: tohe-rise 0.45s 0.22s ease-out both;
+}
+
+/* A short screen (a phone held sideways: 320 to 500 px high, ADR 0046's consequence for the kit). The title screen
+   compacts — a smaller picture and name, tighter buttons — so play, the tools and the way back to Tò He stay in reach
+   without scrolling; from 480 px wide it becomes two columns (the picture and name beside the buttons). Scrolling
+   inside the card stays the last resort. Conformance looks at 915x412, 667x375 and 568x320. */
+@media (max-height: 560px) {
+  .tohe-overlay-title {
+    padding-top: max(0.4rem, env(safe-area-inset-top));
+    padding-bottom: max(0.4rem, env(safe-area-inset-bottom));
+  }
+
+  .tohe-layout-title {
+    gap: 0.5rem;
+    /* Sideways room for the play button's glowing ring, which the scrolling card would clip. */
+    padding: 0.4rem 0.7rem;
+  }
+
+  .tohe-title-hero {
+    gap: 0.2rem;
+  }
+
+  .tohe-layout-title .tohe-card-icon {
+    width: 5rem;
+    height: 5rem;
+    margin-bottom: 0.2rem;
+    border-radius: 1.5rem;
+    font-size: 2.9rem;
+  }
+
+  .tohe-layout-title .tohe-card-title {
+    font-size: clamp(1.6rem, 8vh, 2.25rem);
+  }
+
+  .tohe-layout-title .tohe-card-body {
+    margin-top: 0.2rem;
+    padding: 0.2rem 0.8rem;
+    font-size: 0.9rem;
+  }
+
+  .tohe-layout-title .tohe-card-actions {
+    gap: 0.4rem;
+  }
+
+  .tohe-layout-title .tohe-button-hero {
+    min-height: 3.4rem;
+    margin-bottom: 0.45rem;
+    font-size: 1.4rem;
+  }
+
+  .tohe-layout-title .tohe-button-secondary {
+    min-height: 2.6rem;
+    font-size: 1rem;
+  }
+
+  .tohe-layout-title .tohe-tools {
+    gap: clamp(0.4rem, 2vw, 0.9rem);
+    margin-top: 0;
+  }
+
+  .tohe-layout-title .tohe-tool {
+    gap: 0.15rem;
+    min-width: 3.25rem;
+  }
+
+  .tohe-layout-title .tohe-tool-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.3rem;
+  }
+
+  .tohe-layout-title .tohe-tool-label {
+    font-size: 0.75rem;
+  }
+
+  .tohe-layout-title .tohe-button-quiet {
+    min-height: 2.5rem;
+  }
+}
+
+@media (max-height: 500px) and (min-width: 480px) {
+  .tohe-layout-title {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-content: center;
+    align-items: center;
+    justify-items: center;
+    column-gap: 1.5rem;
+    row-gap: 0.4rem;
+    width: min(40rem, 100%);
+  }
+
+  .tohe-layout-title .tohe-title-hero {
+    grid-column: 1;
+    grid-row: 1 / span 3;
+  }
+
+  .tohe-layout-title .tohe-card-actions,
+  .tohe-layout-title .tohe-tools,
+  .tohe-layout-title .tohe-button-quiet {
+    grid-column: 2;
+  }
+
+  .tohe-layout-title .tohe-card-actions {
+    width: 100%;
+  }
+}
+
+/* The in-game panel and a card over play on a short screen: a little tighter; it scrolls if it still does not fit. */
+@media (max-height: 500px) {
+  .tohe-layout-menu {
+    padding: 0.9rem 1.25rem;
+  }
+
+  .tohe-layout-menu .tohe-card-icon {
+    font-size: 1.8rem;
+    margin-bottom: 0.2rem;
+  }
+
+  .tohe-layout-menu .tohe-card-title {
+    font-size: 1.4rem;
+  }
+
+  .tohe-layout-menu .tohe-card-actions {
+    margin-top: 0.6rem;
+  }
 }
 
 /* The menu stage (ADR 0020): the game's own first screens, opaque, above play. A game may set --tohe-menu-bg to tint it

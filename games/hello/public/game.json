@@ -3,7 +3,7 @@
   "id": "hello",
   "name": "Tap Dot",
   "names": { "vi": "Chạm Chấm" },
-  "version": "1.4.2",
+  "version": "1.4.3",
   "protocol": 1,
   "description": "Tap the dot as fast as you can for 20 seconds. The platform's sample game.",
   "descriptions": {
