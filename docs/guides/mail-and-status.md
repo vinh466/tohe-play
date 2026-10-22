@@ -1,6 +1,6 @@
 ---
 title: Mail and the status page
-description: Transactional mail moves to notify.toheplay.io.vn, and the status page lives at status.toheplay.io.vn on a service outside Tò He — the owner's steps, the agent's changes, the checks.
+description: Transactional mail moves to notify.toheplay.io.vn, and the status page lives at status.toheplay.io.vn on Better Stack, outside Tò He — the owner's steps, the agent's changes, the checks.
 sidebar:
   order: 9
 ---
@@ -49,13 +49,37 @@ record at `_dmarc.toheplay.io.vn` stays as it is; the second check below confirm
 
 ## The status page
 
-The owner picks the service. What it must do:
+The service is **Better Stack Uptime**, on its free plan (chosen 2026-10-22, the owner leaving the choice to the agent).
+What the page must do, and how the free plan meets it:
 
 - Run outside Tò He's servers and outside the cluster: it stays up when they are down.
 - Serve `status.toheplay.io.vn` with a certificate it issues itself. HSTS covers every subdomain (ADR 0042), so a status
   page on plain HTTP would not open at all.
 - Check from outside at least every five minutes, and tell the owner when a check fails.
 - Show the page to anyone, without an account; incidents are written by hand.
+
+| Need | Better Stack's free plan ([pricing](https://betterstack.com/uptime/pricing)) |
+| --- | --- |
+| Outside Tò He | its own monitors and pages; it shares only the DNS zone (below) |
+| `status.toheplay.io.vn` over HTTPS | a custom subdomain by `CNAME` to `statuspage.betteruptime.com`; Better Stack issues the certificate ([docs](https://betterstack.com/docs/uptime/custom-subdomain/)) |
+| Checks, alerts | 10 monitors, a check every 3 minutes, alerts by e-mail (and Slack) |
+| A public page, incidents by hand | one status page; incidents written in its dashboard |
+
+Its free plan is for personal projects, which Tò He is: a family's, with no ads and nothing for sale. Others were
+weighed on 2026-10-22: UptimeRobot, Instatus and OpenStatus give no custom domain on their free plans; Upptime (GitHub
+Actions and Pages) is free with a custom domain, but GitHub runs scheduled workflows late under load, so five minutes is
+not kept; UptimeFlare runs on Cloudflare Workers, the same edge as Tò He, and is code to keep up to date. Upptime is
+the way out if Better Stack's free plan changes.
+
+### Setting it up
+
+| # | Who | Step |
+| --- | --- | --- |
+| 1 | owner | Sign up at [betterstack.com](https://betterstack.com/) with an address the owner reads, and pick Uptime's free plan. |
+| 2 | owner | **Monitors → Create**, one for each row of *What to watch* below: the URL; *Alert us when* "URL becomes unavailable", or for `/api/health` "URL doesn't contain keyword" `Healthy`; a check every 3 minutes; alerts by e-mail to the owner. |
+| 3 | owner | **Status pages → Create**: company name Tò He, a Better Stack subdomain, then **Custom domain** `status.toheplay.io.vn`. Add the monitors as resources, grouped as *What to watch* names them (Chơi, Game, Tài liệu). |
+| 4 | owner | Cloudflare DNS: `CNAME` `status` → `statuspage.betteruptime.com`, **DNS only**. Wait until the page opens at `https://status.toheplay.io.vn/`. |
+| 5 | agent | In this repository: the `status` host of `@tohe/routes` becomes `serving`, [Hosts and paths](../architecture/hosts-and-paths.md) follows, and `pnpm check:prod` checks that the page answers over HTTPS. |
 
 **DNS**: a `CNAME` `status` → the target the service names, **DNS only** (grey cloud). The service then sees its own
 hostname and keeps its certificate itself. The page still shares Tò He's DNS zone: if that zone fails, the owner's
