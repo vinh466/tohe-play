@@ -6,13 +6,13 @@
   nháp; owner đã trả lời Q1, Q4, Q5 (2026-10-22), còn Q2, Q3 và lời xác nhận.
 - Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
-- Research: [R-01 bản đồ trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại, SEO hai ngôn ngữ](research/R-02-layout-prior-art.md) · [R-03 quay lại, app đã cài](research/R-03-coming-back.md) · [R-04 review host và path](research/R-04-hosts-and-paths-review.md) · [R-05 học từ miniblox và nền tảng khác](research/R-05-learning-from-peers.md)
+- Research: [R-01 bản đồ trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại, SEO hai ngôn ngữ](research/R-02-layout-prior-art.md) · [R-03 quay lại, app đã cài](research/R-03-coming-back.md) · [R-04 review host và path](research/R-04-hosts-and-paths-review.md) · [R-05 học từ miniblox và nền tảng khác](research/R-05-learning-from-peers.md) · [R-06 SEO, GEO, mở rộng](research/R-06-seo-geo-scale.md)
 - Trước đó: [`product-surface`](../product-surface/PLAN.md) (Phase 1, Close 2026-10-21)
 
 ## Next — one item
 
 **Đợt 1 — thiết kế bề mặt** (owner 2026-10-23: "chốt được thiết kế này xong là có thể build tiếp chi tiết … sau đó … phát
-triển thêm đc game"). Việc tiếp theo: **[D-06 bề mặt giới thiệu: SEO, GEO, mở rộng](map.md)** — đang nghiên cứu. Sau D-06:
+triển thêm đc game"). Việc tiếp theo: **owner quyết [D-06 bề mặt giới thiệu](items/D-06-introduction-surface.md)** (đề xuất B; Q1–Q4). Sau D-06:
 ADR "Hai vùng, một khung" (D-01 + D-02 + D-04 + D-05 + D-06) và trang spec `docs/architecture/surfaces.md` → đợt 1 xong.
 Ý ngoài scope vào backlog sản phẩm (`docs/roadmap/product-backlog.md`).
 
@@ -39,7 +39,7 @@ ADR "Hai vùng, một khung" (D-01 + D-02 + D-04 + D-05 + D-06) và trang spec `
 | D-04 | [Mở lại app](items/D-04-coming-back.md) | decision | **decided** — B (2026-10-22); mục 4 (cập nhật êm) proposed | — |
 | D-01 | [Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ](items/D-01-languages.md) | decision | **decided** — tiếng Việt là mặt chính, `/en/`, `x-default` → `/en/` (2026-10-23, tạm chốt) | — |
 | D-05 | [Host và path](items/D-05-hosts-and-paths.md) | decision | **decided** — A, game ở L1; luật leo thang thành chủ đề trong spec (2026-10-23) | — |
-| D-06 | Bề mặt giới thiệu: SEO, GEO, mở rộng tới hàng chục game | decision | **researching** | — |
+| D-06 | [Bề mặt giới thiệu: SEO, GEO, mở rộng](items/D-06-introduction-surface.md) | decision | **proposed** — B, một nguồn cho mỗi game, sinh ra hết | — |
 
 **Đợt 2 — trước launch (sau thiết kế)**
 

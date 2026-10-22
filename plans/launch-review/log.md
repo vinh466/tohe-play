@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 (đêm) — agent
+
+- Backlog sản phẩm: `docs/roadmap/product-backlog.md`, PB-01…PB-19, PR #110.
+- R-06 + **D-06 proposed** (B: nội dung game trong `games/<id>/page/{vi,en}.md`, sự thật từ `game.json`, build sinh trang,
+  `hreflang`, JSON-LD, ảnh OG từng game; bộ sưu tập từ ~8 game; cho phép rõ bot tìm kiếm của AI). Chờ owner Q1–Q4.
+
 ## 2026-10-23 (khuya, sau) — agent
 
 - Owner: ý hay vào backlog có tracking; ưu tiên chốt thiết kế bề mặt (bố cục, UX, giới thiệu, SEO, GEO, mở rộng), rồi build,

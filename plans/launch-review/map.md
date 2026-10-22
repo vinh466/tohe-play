@@ -42,7 +42,7 @@ flowchart TD
 | E-04 | Câu chữ toàn sản phẩm, vi + en, gồm câu agent tự chọn ở Phase 1 | Owner: "review all" | E-05 |
 | E-05 | Điều khoản + Quyền riêng tư nói đúng hôm nay, bằng vi và en; `TERMS_VERSION` mới (mọi người đồng ý lại) | Owner: "chốt trước khi mở hẳn", "cung 2 ngin ngu" | E-01 |
 | E-06 | Console toàn tiếng Anh (hôm nay tiếng Việt viết thẳng trong code) | Owner: "console ... english toan bo" | — |
-| D-06 | Bề mặt giới thiệu: loại trang, URL vi + `/en/`, dữ liệu có cấu trúc, GEO và chính sách crawler, thêm một game là có đủ trang, mở rộng tới hàng chục game | Owner 2026-10-23: "bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai" | đợt 1 xong |
+| [D-06](items/D-06-introduction-surface.md) | Bề mặt giới thiệu: loại trang, URL vi + `/en/`, dữ liệu có cấu trúc, GEO và chính sách crawler, thêm một game là có đủ trang, mở rộng tới hàng chục game | Owner 2026-10-23: "bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai" | đợt 1 xong |
 | E-01 | Cổng: 14 dòng từ Phase 1 (backup, load test, `/security-review`, thư, Alertmanager, `status.`…) | Launch chính thức = Cổng qua | — |
 
 ## Ghi chú mang sang từ Phase 1
