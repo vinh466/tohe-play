@@ -11,21 +11,24 @@
 Owner đang tự dùng prod ("tôi sẽ test 1 mình chứ chưa mời ai 1 thời gian", 2026-10-19). Ngày mời người ngoài là quyết
 định của owner; trước ngày đó những việc dưới đây phải xong. Không chặn Phase 0/1.
 
-## Danh sách (nguồn: [R-01](../research/R-01-backlog-review.md))
+## Danh sách (nguồn: [product-surface R-01](../../product-surface/research/R-01-backlog-review.md))
+
+Mã item trong bảng (D-0x, E-0x) là của **plan cũ** — `product-surface` hoặc `public-launch`, ghi rõ ở từng dòng — không
+phải item của plan này.
 
 | # | Việc | Ai |
 |---|---|---|
 | 1 | Thử khôi phục backup prod (CNPG/R2) vào một DB tạm | agent, owner cho phép |
 | 2 | Load test phòng chơi (một API instance, ADR 0016) | agent, owner cho phép |
-| 3 | `/security-review` toàn bộ bề mặt công khai (gồm trang mới của P1) | agent |
+| 3 | `/security-review` toàn bộ bề mặt công khai (gồm trang mới của Phase 1 và của đợt 1 plan này) | agent |
 | 4 | Thư tới Gmail / Outlook / Yahoo vào hộp chính (sau khi sửa DMARC) | agent + owner |
-| 5 | Điều khoản + Quyền riêng tư đã duyệt — **cập nhật cho** hồ sơ máy trên server, link chia sẻ, đăng nhập Google, câu tuổi/đồng ý (D-06 Q6); liên hệ người vận hành (`hello@`, D-01 Q4). Owner 2026-10-21: chốt trong phase review, trước khi mở hẳn — không cập nhật theo từng tính năng | owner (agent soạn) |
+| 5 | Điều khoản + Quyền riêng tư đã duyệt (plan này E-05: bản vi gốc + en) — **cập nhật cho** hồ sơ máy trên server, link chia sẻ, đăng nhập Google, câu tuổi/đồng ý (`product-surface` D-06 Q6); liên hệ người vận hành (`hello@`, `product-surface` D-01 Q4). Owner 2026-10-21: chốt trong phase review, trước khi mở hẳn — không cập nhật theo từng tính năng | owner (agent soạn) |
 | 6 | Alertmanager của prod có người nhận (E-08 Q2 của `public-launch`) | owner, `platform-infra` |
-| 7 | Thời hạn xoá theo văn bản (E-07 Q7) | owner |
-| 8 | Chế độ đăng ký + đường vào nhanh (D-05); proof-of-work bật | owner |
-| 9 | ~~Domain lâu dài đã chốt (D-02)~~ — xong: `toheplay.io.vn` duy nhất (2026-10-19) | owner |
+| 7 | Thời hạn xoá theo văn bản (`public-launch` E-07 Q7) | owner |
+| 8 | Chế độ đăng ký + đường vào nhanh (`product-surface` D-05); proof-of-work bật | owner |
+| 9 | ~~Domain lâu dài đã chốt (`product-surface` D-02)~~ — xong: `toheplay.io.vn` duy nhất (2026-10-19) | owner |
 | 10 | Telemetry prod đọc được (`/health-report` với operator token) | owner (token) + agent |
-| 11 | Gia đình ở UAT hay lên prod (E-01 Q4); mở lại D-15 (UAT có HTTPS) | owner |
+| 11 | Gia đình ở UAT hay lên prod (`product-surface` E-01 Q4); mở lại `public-launch` D-15 (UAT có HTTPS) | owner |
 | 12 | Cộng đồng đầu tiên + mã mời | owner |
-| 13 | Console ở `console.` sau Cloudflare Access, phiên riêng (D-01 Q9, PR B4) | agent + owner |
-| 14 | Trang trạng thái `status.` có người theo dõi (D-01 Q11) | owner + agent |
+| 13 | Console ở `console.` sau Cloudflare Access, phiên riêng (`product-surface` D-01 Q9, PR B4); bật Access trước launch — plan này D-05 | agent + owner |
+| 14 | Trang trạng thái `status.` có người theo dõi (`product-surface` D-01 Q11) | owner + agent |

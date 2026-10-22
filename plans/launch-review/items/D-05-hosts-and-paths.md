@@ -5,6 +5,18 @@
 - Blocks: — · Blocked by: — · Đi cùng: [D-01](D-01-languages.md), [D-02](D-02-layout.md)
 - Decided: owner, 2026-10-23, chat: "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi (hiếm và siêu ít, gần chưa chưa tại bây giờ, tôi sẽ suy nghĩ nên lên L2 hay L3 khi có nucows đi này, nên nếu lên vấn đề này như 1 topic và nói tình hình hiện tại)"
 
+
+## Kết luận
+
+- **Giữ bố cục host của ADR 0042**: một domain `toheplay.io.vn`; host theo ranh giới tin cậy; app và trang công khai cùng
+  gốc; `docs.` riêng; `/en/` là thư mục con; một PWA.
+- **Mặt phẳng game ở L1** (origin riêng `games.`): game do owner thêm vào repo; review của owner gồm cả thư viện của game.
+- **Luật leo thang** ghi thành một chủ đề trong spec: trước game đầu tiên không do owner thêm, owner chọn **L2** (domain
+  riêng) hay **L3** (mỗi game một site) — backlog PB-14.
+- **Mô hình mặt phẳng** viết rõ trong spec: người chơi · game · vận hành · nhà phát triển · rìa.
+- Việc rẻ: `Origin-Agent-Cluster: ?1` trên `games.` (PB-13); Cloudflare Access cho `console.` (Cổng E-01).
+- Không dùng `vinetic.io.vn` cho trang giới thiệu hay game.
+
 ## Why it matters
 
 Owner (2026-10-22): "quay lai bai toan bo cuc chia trang xep sap subdomain hay path da hop ly chua, ban co the reseach hoc

@@ -1,9 +1,23 @@
 # D-06 — Bề mặt giới thiệu: thiết kế cho SEO, GEO, và để thêm game là có đủ trang?
 
-- Status: **proposed** (agent, 2026-10-23)
+- Status: **decided** — B (owner, 2026-10-23, chat)
 - Kind: decision
 - Blocks: đợt 1 xong (ADR + spec bề mặt) · Blocked by: — · Đi cùng: [D-01](D-01-languages.md), [D-02](D-02-layout.md)
-- Decided: —
+- Decided: owner, 2026-10-23, chat: "rất hợp lý, theo đề xuât tôi chốt nha"
+
+
+## Kết luận
+
+- **Một nguồn cho mỗi game**: `games/<id>/page/vi.md` + `en.md`; sự thật (tên, tuổi, số người, hướng màn) lấy từ
+  `game.json`; build sinh trang hai ngôn ngữ, `hreflang`, JSON-LD, **ảnh OG từng game**; thiếu gì thì build hỏng; `/new-game`
+  viết luôn hai file. Thêm game = một PR tự đủ.
+- **Loại trang**: trang chủ (danh mục trước, một câu "Không quảng cáo · Không cần tài khoản · Chơi ngay") · trang game (nút
+  Chơi ở đầu, **bảng sự thật**, cách chơi, ảnh) · **lời hứa** `/promise/` · hỏi đáp · hướng dẫn · bộ sưu tập (từ ~8 game) ·
+  trang theo nhu cầu tìm kiếm (chỉ khi ≥ 3 game hợp và chữ thật).
+- **GEO**: chữ rõ, sự thật có ngày, có bảng; `llms.txt` giữ; `robots.txt` giữ Content-Signal, **cho phép rõ** bot tìm kiếm
+  của AI, **chặn rõ** bot chỉ để huấn luyện; Cloudflare không chặn bot tìm kiếm.
+- **Mở rộng**: ~8 game bộ sưu tập · ~30 game tìm kiếm tĩnh · ~100 game sitemap theo ngôn ngữ + IndexNow.
+- **Đo**: Search Console, Bing, log theo crawler, Lighthouse CI, tự hỏi AI 10–20 câu mỗi tháng.
 
 ## Why it matters
 
@@ -146,7 +160,8 @@ thì theo ngôn ngữ của trang.
 
 ## Decision
 
-—
+**B** — owner, 2026-10-23, chat: "rất hợp lý, theo đề xuât tôi chốt nha" — Q1 = B; Q2 = chặn rõ bot chỉ để huấn luyện; Q3 = nội dung
+trang trong `games/<id>/page/`; Q4 = bộ sưu tập từ ~8 game, tìm kiếm từ ~30 game.
 
 ## Discussion
 

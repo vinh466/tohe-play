@@ -5,6 +5,20 @@
 - Blocks: E-02 (rà màn), E-03 (luồng) · Blocked by: D-02 (khung app) · Đi cùng: [D-02](D-02-layout.md)
 - Decided: owner, 2026-10-22, chat: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B"
 
+
+## Kết luận
+
+- **Màn đầu của Trò chơi**: người đang chơi (+ Đổi) → bàn đang ngồi (`rooms/mine`) → lời mời (cả hồ sơ máy) → chơi tiếp →
+  gần đây → mọi trò chơi. Không chuỗi ngày, không đếm ngược.
+- **"Ai đang chơi?"**: máy một hồ sơ thì không hỏi; nhiều hồ sơ thì hỏi một chạm khi mở lạnh sau **30 phút**; trẻ → người
+  lớn cần mã quản lý.
+- **Phiên hết hạn thì nói ra**, không lặng lẽ đổi người chơi.
+- **Cập nhật êm** *(proposed — rủi ro lỗi không có thật, nên chỉ còn lý do trải nghiệm)*: bản mới chờ tới lần mở lạnh;
+  "Có bản mới — Tải lại" chỉ ngoài lúc chơi và ngồi bàn. Làm trong PR khung app; owner duyệt trong ADR.
+- **Link khi đã cài**: `launch_handler` (Chrome/Edge); trang lối vào ghi "Đã cài app? Mở app → Nhập mã …" cho iPhone.
+- **`persist()`** cho app đã cài; **đếm lần quay lại** (chỉ số tổng).
+- **Để sau** (backlog): thông báo đẩy "đến lượt bạn" (PB-09), badge (PB-10).
+
 ## Why it matters
 
 Owner (2026-10-22, gõ không dấu): "flow khi app intalled hay user enter lai app UX ban thay on chu, ban co khao sat va

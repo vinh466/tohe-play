@@ -5,6 +5,19 @@
 - Blocks: E-02 (rà màn), D-01 (namespace `/en/`) · Blocked by: — · Đi cùng: [D-01](D-01-languages.md)
 - Decided: owner, 2026-10-22, chat: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B"
 
+
+## Kết luận
+
+- **Hai vùng**: **Khám phá** (trang tĩnh, được index, vi + `/en/`) — **Chơi** (app, không index).
+- **Khung app** ba mục có nhãn: **Trò chơi** (`/play`) · **Chơi cùng** (`/together`, mới) · **Tôi** (`/account`); thanh dưới
+  trên điện thoại, rail trái trên máy tính; ẩn khi đang chơi; menu bottom sheet bỏ, bốn mục về đúng chỗ.
+- **`/` danh mục trước**, giới thiệu sau; **bỏ redirect** người quay lại → nút "Chơi tiếp".
+- **Một game hai URL, vai rõ**: `/games/<id>` trang của game (index, nút Chơi ở đầu) · `/play/<id>` chỗ chơi (không index).
+- **Đường nối hai chiều**; **chỗ của người lớn**: link ra ngoài chỉ ở Tôi và chân trang, hồ sơ trẻ cần mã quản lý để mở.
+- **Bỏ khoá màn dọc** của app; game tự khai báo hướng màn.
+- Q2–Q5 (tên ba mục, bỏ redirect, PIN cho link ra ngoài, bỏ khoá màn dọc) theo đề xuất của agent — owner duyệt lần cuối
+  trong ADR.
+
 ## Why it matters
 
 Owner (2026-10-22, gõ không dấu): "toi chua hinh dung dc trang gioi thieu vao tu dau" và "tap trung dive research ve bo

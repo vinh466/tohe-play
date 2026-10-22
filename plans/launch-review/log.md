@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 (gom gọn) — agent
+
+- Owner: "rất hợp lý, theo đề xuât tôi chốt nha" → **D-06 decided** (B); brief **confirmed**; plan gom gọn: mỗi item có
+  *Kết luận* ở đầu, D-01 viết lại theo quyết định cuối, `design.md` v1 ghép mọi quyết định, `map.md` và `PLAN.md` viết lại.
+- Phase **Graduate — đợt 1**: G0 (ADR 0046, 0047 + `surfaces.md`) → G1 → G2a ∥ G3 → G2b ∥ G4 → G5 ∥ G6 → G7. Tiếp: G0.
+
 ## 2026-10-23 (đêm) — agent
 
 - Backlog sản phẩm: `docs/roadmap/product-backlog.md`, PB-01…PB-19, PR #110.

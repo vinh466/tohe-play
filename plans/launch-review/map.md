@@ -1,63 +1,65 @@
 # Map — Review trước launch
 
-Every item the goal depends on, and what blocks what. An edge `A --> B` reads "decide A before B".
-Status lives on the [PLAN.md](PLAN.md) board, not here — this page is the shape.
-
-**Hai đợt** (owner 2026-10-23): đợt 1 thiết kế bề mặt — D-01, D-02, D-04, D-05, D-06; đợt 2 trước launch — E-02…E-05,
-E-01. D-03 và E-06 chuyển sang backlog sản phẩm.
-
-**Nháp** (agent, 2026-10-22): theo [brief.md](brief.md) với câu trả lời Q1, Q4, Q5 của owner. Phase Map bắt đầu khi owner
-xác nhận brief; Q2 có thể sinh thêm item tính năng.
+Mọi item mục tiêu cần, và cái nào chặn cái nào. `A --> B` đọc là "xong A trước B". Trạng thái nằm ở bảng của
+[PLAN.md](PLAN.md); trang này là hình dạng.
 
 ```mermaid
 flowchart TD
-  D02[D-02 Bố cục trang và lối vào] --> D01[D-01 Hai ngôn ngữ vi + en: URL, SEO, chọn ngôn ngữ]
-  D01 --> E02[E-02 Rà từng màn]
-  D02 --> D04[D-04 Mở lại app: màn đầu, ai đang chơi, cập nhật]
-  D04 --> E02
-  D04 --> E03
-  D02 --> E02
-  E02 --> D03[D-03 Tính năng thiếu trước launch — Q2]
-  E03[E-03 Luồng đầu–cuối, e2e] --> D03
-  D01 --> E04[E-04 Câu chữ vi + en]
+  subgraph W1["Đợt 1 — thiết kế bề mặt (đã quyết)"]
+    D05[D-05 Host và path: mặt phẳng, game ở L1]
+    D02[D-02 Bố cục: hai vùng, khung app]
+    D04[D-04 Mở lại app]
+    D01[D-01 Hai ngôn ngữ]
+    D06[D-06 Bề mặt giới thiệu: SEO, GEO, mở rộng]
+  end
+  D05 --> ADR
+  D02 --> ADR
+  D04 --> ADR
+  D01 --> ADR
+  D06 --> ADR
+  ADR[ADR + spec: G0] --> BUILD[Build: G1–G6] --> DEV[Owner thử máy thật: G7]
+  subgraph W2["Đợt 2 — trước launch"]
+    E02[E-02 Rà từng màn]
+    E03[E-03 Luồng đầu–cuối]
+    E04[E-04 Câu chữ vi + en]
+    E05[E-05 Điều khoản vi gốc + en]
+    E01[E-01 Cổng]
+  end
+  DEV --> E02 & E03
   E02 --> E04
-  D01 --> E06[E-06 Console toàn tiếng Anh]
-  D03 --> E05[E-05 Điều khoản + Quyền riêng tư, vi + en]
-  E04 --> E05
-  E05 --> E01[E-01 Cổng trước người ngoài]
-  D03 --> E01
+  E04 --> E05 --> E01
+  E03 --> E01
 ```
 
 ## Items
 
-| ID | Question / change | Why the goal needs it | Blocks |
+| ID | Câu hỏi / thay đổi | Vì sao mục tiêu cần | Trạng thái |
 |---|---|---|---|
-| [D-02](items/D-02-layout.md) | Bố cục: trang giới thiệu dành cho ai, người ta tới nó từ đâu, app có đường ra các trang công khai không (menu hub hôm nay không có), `/` làm gì với người quay lại ([R-01](research/R-01-pages-and-ways-in.md)) | Owner: "toi chua hinh dung dc trang gioi thieu vao tu dau" | D-01, E-02 |
-| [D-01](items/D-01-languages.md) | Hai ngôn ngữ: URL cho trang công khai tiếng Anh (namespace mới trong `@tohe/routes`, ADR 0042), `hreflang`, sitemap, `og:locale`; hub chọn ngôn ngữ thế nào (trình duyệt, nút đổi, nhớ theo hồ sơ hay máy); game nhận `init.locale` như hôm nay. **ADR** — URL đã được index thì đắt để đổi | Owner: vi + en, trang giới thiệu có SEO | E-02, E-04, E-06 |
-| [D-04](items/D-04-coming-back.md) | Mở lại app: màn đầu "đang dở" (bàn, lời mời, chơi tiếp), "Ai đang chơi?" trên máy dùng chung, phiên hết hạn, cập nhật không làm hỏng phiên đang mở, link khi đã cài ([R-03](research/R-03-coming-back.md)) | Owner: "flow khi app intalled hay user enter lai app" | E-02, E-03 |
-| [D-05](items/D-05-hosts-and-paths.md) | Host và path: giữ ADR 0042 hay đổi (game ở domain riêng, Access cho console) ([R-04](research/R-04-hosts-and-paths-review.md)) | Owner: "subdomain hay path da hop ly chua" | — |
-| E-02 | Rà từng màn: hub, console, trang công khai, game; điện thoại + máy tính, sáng + tối, vi + en; ảnh chụp vào `research/` (cách làm: brief Q3) | "review lai toan bo cai dang co" | D-03, E-04 |
-| E-03 | Luồng đầu–cuối: người mới → chơi → cài app → account; link mời, mã bàn, "Thách bạn", chuyển máy, hồ sơ trẻ em; e2e cho từng luồng | "xem xet o cac goc do"; không ngõ cụt | D-03 |
-| [D-03](items/D-03-features-before-launch.md) | Tính năng trước launch — owner chọn từ ứng viên ([R-05](research/R-05-learning-from-peers.md)) | Owner chọn, agent không bịa | E-01, E-05 |
-| E-04 | Câu chữ toàn sản phẩm, vi + en, gồm câu agent tự chọn ở Phase 1 | Owner: "review all" | E-05 |
-| E-05 | Điều khoản + Quyền riêng tư nói đúng hôm nay, bằng vi và en; `TERMS_VERSION` mới (mọi người đồng ý lại) | Owner: "chốt trước khi mở hẳn", "cung 2 ngin ngu" | E-01 |
-| E-06 | Console toàn tiếng Anh (hôm nay tiếng Việt viết thẳng trong code) | Owner: "console ... english toan bo" | — |
-| [D-06](items/D-06-introduction-surface.md) | Bề mặt giới thiệu: loại trang, URL vi + `/en/`, dữ liệu có cấu trúc, GEO và chính sách crawler, thêm một game là có đủ trang, mở rộng tới hàng chục game | Owner 2026-10-23: "bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai" | đợt 1 xong |
-| E-01 | Cổng: 14 dòng từ Phase 1 (backup, load test, `/security-review`, thư, Alertmanager, `status.`…) | Launch chính thức = Cổng qua | — |
+| [D-05](items/D-05-hosts-and-paths.md) | Host và path; mặt phẳng; mức cách ly của game ([R-04](research/R-04-hosts-and-paths-review.md)) | "subdomain hay path da hop ly chua" | decided — A, L1 |
+| [D-02](items/D-02-layout.md) | Bố cục: hai vùng, khung app ba mục, `/` danh mục trước ([R-01](research/R-01-pages-and-ways-in.md), [R-02](research/R-02-layout-prior-art.md)) | "toi chua hinh dung dc trang gioi thieu vao tu dau" | decided — B |
+| [D-04](items/D-04-coming-back.md) | Mở lại app: màn đầu, ai đang chơi, phiên hết hạn, cập nhật, link khi đã cài ([R-03](research/R-03-coming-back.md)) | "flow khi app intalled hay user enter lai app" | decided — B |
+| [D-01](items/D-01-languages.md) | Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ, tên game, Điều khoản | vi + en, tiếng Việt là mặt chính | decided |
+| [D-06](items/D-06-introduction-surface.md) | Bề mặt giới thiệu: một nguồn cho mỗi game, GEO, mở rộng ([R-06](research/R-06-seo-geo-scale.md)) | "bề mặt giới thiệu sản phẩm, SEO GEO, và scale" | decided — B |
+| E-02 | Rà từng màn: hub, console, trang công khai, game; điện thoại + máy tính, sáng + tối, vi + en | "review lai toan bo cai dang co" | open — đợt 2 |
+| E-03 | Luồng đầu–cuối: người mới → chơi → cài app → account; link mời, mã bàn, "Thách bạn", chuyển máy, hồ sơ trẻ; e2e cho từng luồng | không ngõ cụt | open — đợt 2 |
+| E-04 | Câu chữ toàn sản phẩm vi + en, gồm câu agent tự chọn ở Phase 1 | "review all" | open — đợt 2 |
+| E-05 | Điều khoản + Quyền riêng tư, bản vi gốc + en, `TERMS_VERSION` mới | "chốt trước khi mở hẳn" | open — đợt 2 |
+| [E-01](items/E-01-gate-before-outsiders.md) | Cổng: backup, load test, `/security-review`, thư, Alertmanager, `status.`, Access cho `console.`… | launch = Cổng qua | open — đợt 2 |
+| [D-03](items/D-03-features-before-launch.md) | Tính năng trước launch ([R-05](research/R-05-learning-from-peers.md)) | — | **deferred** → backlog sản phẩm |
+| E-06 | Console toàn tiếng Anh | — | → backlog sản phẩm (PB-12) |
 
-## Ghi chú mang sang từ Phase 1
+## Ghi chú mang sang (đầu vào cho đợt 2)
 
-Đầu vào cho các item trên, chưa phải quyết định:
-
-- I4: nếu điểm Ghép Khối từ 1.000.000 trở lên (viết "1.234.567"), luật chặn số điện thoại làm hub gửi câu mặc định thay
-  câu của game (E-04).
-- I4: câu mặc định của hub là "Chơi {game} với mình trên Tò He nhé!", còn ADR 0045 ghi "Chơi {game} với mình nhé!" (E-04).
+- I4: điểm Ghép Khối từ 1.000.000 (viết "1.234.567") làm hub gửi câu mặc định thay câu của game (E-04).
+- I4: câu mặc định của hub "Chơi {game} với mình trên Tò He nhé!" khác ADR 0045 "Chơi {game} với mình nhé!" (E-04).
 - I4: một link tạo trước khi game nâng `identity.play` mất một lượt trước cổng ở `/play/<game>` (E-03).
-- I4: trên Safari, nút "Gửi" có thể cần chạm hai lần vì link được tạo sau một lần chờ mạng; K2 không báo lỗi (E-02).
-- Thẻ xem trước của link mời (`/s/…`, `/r/…`) cho crawler hôm nay chỉ có tiếng Việt (`services/api/src/Tohe.Api/Modules/Links/LinkPreviews.cs:54–130`) (D-01).
+- I4: trên Safari, "Gửi" có thể cần chạm hai lần (E-02).
+- Thẻ xem trước `/s`, `/r` chỉ có tiếng Việt — sửa ở G6.
 
 ## Considered and left off
 
-- **Ngôn ngữ thứ ba** cho hub và trang công khai: owner chỉ duy trì vi + en. Game tự thêm ngôn ngữ được vì `init.locale`
-  là chuỗi tự do — không cần item.
-- **Phase 2/3 như tính năng mới**: ngoài plan, trừ những gì owner chọn ở D-03.
+- **Ngôn ngữ thứ ba** cho hub và trang công khai — owner chỉ duy trì vi + en; game tự thêm được vì `init.locale` tự do.
+- **Tính năng mới** (thử thách hôm nay, bàn của gia đình, màn hình chung, bàn theo lượt, mùa Tết…) — backlog sản phẩm
+  (`docs/roadmap/product-backlog.md`).
+- **Game ở domain riêng (L2/L3)** — chỉ khi có game không do owner thêm (PB-14).
+- **Trang giới thiệu hay game trên `vinetic.io.vn`** — không (D-05).
