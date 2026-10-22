@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (G0, G1) — agent
+
+- Owner: "ok làm G0 G1 đi". **G0** #111: ADR 0046, 0047, `surfaces.md`; reviewer (Opus · high) 0 blocker, 4 major, 17 minor
+  — đã sửa (Access và cập nhật êm là đề xuất; thứ tự ngôn ngữ trong app hết tự mâu thuẫn; sitemap ở `@tohe/routes`;
+  `facts.json`; mô tả game để mở). **G1** #112 (xếp trên #111): crawler theo tên, `Origin-Agent-Cluster`; namespace dời
+  sang G2a/G2b/G4. `pnpm verify` xanh. Chờ owner duyệt.
+
 ## 2026-10-22 (sửa ngày) — agent
 
 - Các mục ghi "2026-10-23" là ngày agent tự ghi sai — hệ thống chỉ báo đổi ngày một lần, sang 2026-10-22. Đã sửa
