@@ -241,7 +241,7 @@ try {
   await host.getByRole('button', { name: 'Mời người chơi' }).tap();
   const invite = host.getByRole('dialog', { name: 'Mời người chơi' });
   await invite.getByRole('button', { name: /Bé Na/ }).tap();
-  await invite.getByText('✓ Đã mời').waitFor();
+  await invite.getByText('Đã mời', { exact: true }).waitFor();
   await shot(host, 'invite');
   await invite.getByRole('button', { name: 'Đóng' }).tap();
 
@@ -261,7 +261,7 @@ try {
   }
   await shot(kid, 'invitation');
   await kid.getByRole('link', { name: 'Vào phòng' }).tap();
-  await kid.getByRole('button', { name: '👁 Xem' }).tap();
+  await kid.getByRole('button', { name: 'Xem', exact: true }).tap();
   await kid.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   await kid.getByText('Bạn đang xem phòng này').waitFor();
   await shot(kid, 'watching');

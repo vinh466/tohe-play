@@ -279,7 +279,7 @@ try {
   await card.getByText('Đã thu hồi', { exact: true }).waitFor();
   const late = await phone('late');
   await late.goto(`${hubUrl}/s/${named}`);
-  await late.getByRole('heading', { name: 'Link mời đã bị thu hồi' }).waitFor();
+  await late.getByRole('heading', { name: 'Link mời đã thu hồi' }).waitFor();
   await check(late, 'revoked');
   await late.getByRole('link', { name: 'Chơi Chạm Chấm' }).tap();
   await inGame(late, 'hello');
