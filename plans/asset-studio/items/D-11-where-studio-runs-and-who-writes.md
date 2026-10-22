@@ -1,9 +1,9 @@
 # D-11 — Studio chạy ở đâu, và người, agent, CI mỗi bên được làm gì?
 
-- Status: **proposed** (open → researching → proposed → decided · deferred · dropped)
+- Status: **decided** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
-- Blocks: E-05, E-07 · Blocked by: D-06
-- Decided: —
+- Blocks: D-14, D-15, E-05, E-07 · Blocked by: D-06
+- Decided: owner, chat 2026-10-22: "D-11 ổn nha". Chỗ duyệt chuyển sang D-14
 
 ## Why it matters
 
@@ -57,9 +57,17 @@ Chi phí chấp nhận:
 
 ## Decision
 
-—
+**A**, owner: "D-11 ổn nha" (2026-10-22).
 
-Owner cần trả lời: có mở ngoại lệ "agent tạo bản nháp trong Studio prod bằng token `studio:draft`" không?
+- Studio là module `Studio` trong API của Tò He.
+- Agent chỉ tạo bản nháp, bằng một token hẹp. **Ngoại lệ cho `AGENTS.md:42` đã được mở cho đúng quyền này**: agent
+  không bao giờ duyệt và không bao giờ chạm cluster. Dòng `AGENTS.md` sẽ được sửa khi graduate.
+- Owner duyệt.
+- CI chỉ đọc bucket.
+
+Trong cùng tin nhắn, owner hỏi tiếp: "studio sẽ chung console hả, nên tách riêng k, nên xem đây là 1 dạng app độc lập
+k". Vì vậy chỗ duyệt ("trong console") chuyển sang **D-14**, và cơ chế token chuyển sang **D-15**. Owner cũng muốn sau
+này agent "cùng quản lý trên đó luôn (monitoring, update tự động, nhạy cảm thì k, ...)", nên token phải dùng lại được.
 
 ## Discussion
 

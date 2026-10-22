@@ -76,4 +76,7 @@ cần). Chúng không chặn *Done when*.
 - **3D, video, cutscene.**
 - **Mua bán asset hay marketplace.**
 - **Viết game Vườn Rau Mini đầy đủ.** Ở đây chỉ làm slice để kiểm chứng Studio.
+- **Agent cùng vận hành nền tảng** (monitoring, cập nhật tự động). Owner có ý định này (2026-10-22: "có đường cho bạn
+  (Agent) có thể cùng quản lý trên đó luôn (monitoring, update tự động, nhạy cảm thì k, ...)"). Nó sẽ là một plan riêng.
+  Plan này chỉ làm cơ chế token cho agent sao cho plan đó dùng lại được (D-15).
 - **Chọn LICENSE cho code của repo.** Đã ghi vào log là việc phát hiện ra. D-07 chỉ quyết license của asset.

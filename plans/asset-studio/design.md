@@ -13,8 +13,13 @@ Trang này **ghép** các item thành một bức tranh và không tự quyết 
   - Object storage + state trong DB ngay từ đầu, build có cache (D-06).
   - Danh sách license B (D-07).
   - Style do game chọn (D-08).
-- **Đã đề xuất, chờ owner:** Studio chạy trong API của Tò He; owner duyệt trong console; agent chỉ tạo bản nháp bằng
-  token hẹp. Cần một ngoại lệ cho luật "prod chỉ đọc" (D-11).
+  - Studio là module trong API; agent chỉ tạo bản nháp bằng token hẹp; ngoại lệ cho luật "prod chỉ đọc" đã mở cho đúng
+    quyền đó (D-11).
+- **Đã đề xuất, chờ owner:**
+  - Studio là app độc lập ở `studio.`, có session và studio role riêng, nhưng chung API và DB. Console là nơi điều khiển
+    (D-14).
+  - Một cơ chế token có scope cho mọi agent của nền tảng; `studio.draft` là scope đầu tiên; scope nhạy cảm bị cấm trong
+    code (D-15).
 - **Còn mở:** cổng duyệt và kiểm tra asset (D-09), công cụ cho AI và ngân sách (D-10), hình dạng contract (D-12), phục
   vụ lúc chạy (D-13). License cho asset Tò He tự làm vẫn chưa chọn (D-07).
 - **Chưa có số đo nào**: kích thước, FPS, save, hạn mức storage trên iOS đều chờ E-06 và E-07.
@@ -24,16 +29,17 @@ Trang này **ghép** các item thành một bức tranh và không tự quyết 
 ```mermaid
 flowchart LR
   subgraph src[Nguồn]
-    ai[AI agent<br/>token studio:draft · MCP]
+    ai[AI agent<br/>token scope studio.draft · D-15]
+    hu[Người: contributor · D-14]
     cc[Pack CC0 / CC-BY]
     co[Vẽ bằng code]
   end
-  subgraph st[Tò He Studio · module trong API · D-11 proposed]
+  subgraph st["Tò He Studio · app studio. (D-14 proposed) · module Studio trong API (D-11)"]
     bible[Art bible: nhiều style · D-08]
     post[Hậu xử lý cố định · D-10]
     chk[Kiểm tra asset · D-09]
     db[(PostgreSQL: pack, version,<br/>trạng thái, nguồn gốc · D-06)]
-    rev{{Owner duyệt trong console · D-09, D-11}}
+    rev{{Reviewer duyệt trong Studio, có 2FA · D-09, D-14}}
   end
   subgraph bucket[Object storage · R2 · D-06]
     draft[nháp: riêng tư]
@@ -47,6 +53,7 @@ flowchart LR
   end
   run["Lúc chạy · games.toheplay.io.vn<br/>bundle trong build · precache / on-demand: /assets/&lt;hash&gt; (D-13)"]
   ai --> post
+  hu --> post
   cc --> post
   co --> post
   bible -.-> post
@@ -71,8 +78,10 @@ flowchart LR
 | Art bible | Nhiều style. Style Tò He là mặc định, không bắt buộc; game tự chọn hoặc tạo style | Style model của Scenario (R-01) | Bản ghi trong Studio | D-08 |
 | Hậu xử lý | Ép palette của style, căn lưới pixel, cắt viền, kiểm mép tile, đóng atlas, nén | — | `packages/studio` CLI | D-10 |
 | Kiểm tra asset | Kích thước, palette theo style của pack, nền trong suốt, mép tile, license, semver | Conformance của game | Server Studio khi nhận bản nháp | D-09 |
-| Cổng duyệt | Agent chỉ tạo `draft`; owner chuyển sang `approved` trong console (Access + TOTP) *(proposed)* | Roblox moderation (R-01) | Console | D-09, D-11 |
-| Công cụ cho AI | Token `studio:draft`; CLI rồi MCP `tohe-studio`; adapter generator đổi được vendor | PixelLab MCP (R-01) | P0 CLI → P2 MCP | D-10, D-11 |
+| App Studio | App riêng ở `studio.`, session `__Host-tohe.studio`, studio role (`viewer`, `contributor`, `reviewer`); chỉ proxy `/api/studio/*`; console cấp role, cấp token và xem audit *(proposed)* | ADR 0042 "hosts by trust"; mẫu của `apps/console` | `apps/studio`, site thứ ba của Caddy trong image hub | D-14 |
+| Cổng duyệt | Agent và contributor chỉ tạo `draft`; reviewer (owner) chuyển sang `approved`, bắt buộc 2FA *(proposed)* | Roblox moderation (R-01) | App Studio | D-09, D-11, D-14 |
+| Token cho agent | Principal có tên; scope theo kiểu cho phép (`studio.draft` trước; `ops.*` cho plan vận hành sau); scope nhạy cảm bị cấm trong code; hạn dùng, thu hồi, audit *(proposed)* | Mẫu permission của console | Identity + console | D-15 |
+| Công cụ cho AI | CLI rồi MCP `tohe-studio` dùng token `studio.draft`; adapter generator đổi được vendor | PixelLab MCP (R-01) | P0 CLI → P2 MCP | D-10, D-15 |
 | Contract `assets` | `pack@version` + `delivery` theo pack; lock; key có type | `pnpm-lock` | `@tohe/contract` + ADR | D-12, E-01 |
 | Build | Resolve qua manifest, cache theo hash (máy, CI), kiểm hash, `--offline`, chỉ đóng gói file dùng, `sizeBudgetKb` | — | `tools/games-host` hoặc plugin Vite | E-02 |
 | Kit | Nạp asset theo key; `content` (Zod, loader, kiểm tham chiếu); credits; helper bố cục | Phaser loader | `@tohe/game-kit` | E-03, E-04 |
@@ -84,9 +93,9 @@ flowchart LR
 
 1. Agent chọn style (D-08), dùng style có sẵn hoặc đề xuất style mới.
 2. Lấy từ pack CC0, gọi generator, hoặc vẽ bằng code (D-10).
-3. Chạy hậu xử lý cục bộ, rồi tải lên bằng token `studio:draft` (D-11).
+3. Chạy hậu xử lý cục bộ, rồi tải lên bằng token scope `studio.draft` (D-11, D-15).
 4. Server kiểm tra asset (D-09) và lưu bản nháp: file riêng tư trong bucket, state trong DB.
-5. Owner mở console, xem gallery, duyệt.
+5. Owner (reviewer) mở Studio, xem gallery, duyệt với 2FA (D-14).
 6. Studio ghi file đã duyệt và manifest `packs/farm-crops/1.0.0.json` (bất biến) lên bucket. Pack chuyển sang
    `approved` (D-05, D-06).
 
@@ -120,13 +129,13 @@ flowchart LR
 
 | Bậc | Có gì | Mở khoá cho |
 |---|---|---|
-| **P0 — Studio tối thiểu** | Module `Studio` + bucket; schema pack; token `studio:draft` + CLI; kiểm tra asset phía server; màn duyệt trong console; manifest bất biến; contract `assets` chỉ với `bundle`; build có cache và lock; kit nạp asset + `content` + credits | Pilot E-07 |
-| **P1 — Studio cho người** | Upload và quản lý trong console; ngừng dùng pack; `precache` (sau E-06) | Người góp asset; game offline lớn |
+| **P0 — Studio tối thiểu** | Module `Studio` + bucket; schema pack; token agent có scope + CLI; kiểm tra asset phía server; `apps/studio` tối thiểu (gallery + duyệt); manifest bất biến; contract `assets` chỉ với `bundle`; build có cache và lock; kit nạp asset + `content` + credits | Pilot E-07 |
+| **P1 — Studio cho người** | Upload, quản lý pack và style trong Studio; ngừng dùng pack; `precache` (sau E-06) | Người góp asset; game offline lớn |
 | **P2 — Studio cho agent** | MCP `tohe-studio`; adapter generator (ngân sách theo D-10); `on-demand` khi có game cần | Agent tự làm asset là chính |
 
 ## 5. Còn mở
 
-D-11 *(proposed)*; D-09, D-10, D-12, D-13 *(open)*. Thứ tự giải quyết theo [map.md](map.md).
+D-14, D-15 *(proposed)*; D-09, D-10, D-12, D-13 *(open)*. Thứ tự giải quyết theo [map.md](map.md).
 
 ## 6. Rủi ro chưa có lời đáp
 
@@ -136,7 +145,7 @@ D-11 *(proposed)*; D-09, D-10, D-12, D-13 *(open)*. Thứ tự giải quyết th
 | Ngân sách generator trả phí | D-10 (owner). P0 chạy được không cần trả phí: CC0 + vẽ bằng code |
 | Ảnh AI không phù hợp trẻ em | D-09: bắt buộc người duyệt |
 | Sai license khi phát hành công khai | D-07 danh sách cho phép + máy kiểm phía server |
-| Agent ghi vào prod | D-11: token chỉ tạo nháp, thu hồi được, có nhật ký; ngoại lệ do owner mở |
+| Agent ghi vào prod | D-11 (ngoại lệ đã mở cho đúng một quyền), D-15: scope hẹp, cấm scope nhạy cảm trong code, thu hồi được, có nhật ký |
 | Store sập khi build | D-06 / E-02: cache theo hash, CI cache, `--offline` báo rõ |
 | Store sập khi chơi (`precache`, `on-demand`) | D-13: file hash qua Cloudflare `immutable`; mặc định là `bundle` |
 | iOS dọn storage, service worker trong iframe | E-06 (spike S1) |

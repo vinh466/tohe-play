@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-22 (3) — agent
+
+- Owner: "D-11 ổn nha" → decided (A; ngoại lệ prod-chỉ-đọc mở cho đúng quyền tạo bản nháp).
+- Owner hỏi Studio chung console hay tách, và có ý về sau cho agent cùng vận hành (monitoring, cập nhật, "nhạy cảm thì
+  k"). Thêm D-14 (app độc lập ở `studio.`, chung API và DB) và D-15 (một cơ chế token có scope), cả hai `proposed`.
+- Việc agent cùng vận hành được ghi vào *Not this plan* và *Considered and left off*: plan riêng, dùng lại D-15.
+- Chờ owner: D-14, D-15, map.
+
 ## 2026-10-22 (2) — agent
 
 - Owner: brief "đúng ý r" → confirmed; D-07 "chốt B nhé"; D-05 "on"; D-06 chọn object storage + state trong DB ngay từ

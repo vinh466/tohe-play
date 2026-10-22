@@ -25,8 +25,12 @@ flowchart TD
   D04[D-04 Game quyết bố cục] --> E04[E-04 Kit + conformance: bố cục]
   E01 --> E05[E-05 Quy trình agent]
   D09 --> E05
-  D11 --> E05
-  D11 --> E07
+  D11 --> D14[D-14 Studio là app riêng ở studio.]
+  D11 --> D15[D-15 Token cho agent dùng chung]
+  D14 --> E05
+  D14 --> E07
+  D15 --> E05
+  D15 --> E07
   E06[E-06 Spike S1 + hạn mức lưu trữ] --> D13
   E01 --> E07[E-07 Pilot: slice Vườn Rau]
   E02 --> E07
@@ -47,11 +51,13 @@ flowchart TD
 | D-06 | Studio lưu asset và state ở đâu (repo, LFS, repo riêng, object storage + DB) | Repo public, có hạn mức LFS, và build cần tái lập được | D-11, E-02 |
 | D-07 | Nhận license nào; ghi nguồn gốc ra sao; asset do AI tạo thì thế nào; asset của Tò He phát hành dưới license gì | Asset đã duyệt được phát hành công khai (bucket đọc công khai, build của game), nên phải có chính sách trước | D-09, D-10 |
 | D-08 | Một style Tò He chung hay mỗi game, mỗi pack một style; art bible chứa gì | Đồng bộ style là điểm yếu nhất của AI tạo ảnh (R-01) | D-09, D-10 |
-| D-09 | Duyệt theo tiêu chí gì; kiểm tra tự động nào ("conformance cho asset"). Ai duyệt và ở đâu thuộc D-11 | Trẻ em chơi; AI chỉ được tạo bản nháp | E-05, E-07 |
+| D-09 | Duyệt theo tiêu chí gì; kiểm tra tự động nào ("conformance cho asset"). Ai duyệt và ở đâu thuộc D-11, D-14 | Trẻ em chơi; AI chỉ được tạo bản nháp | E-05, E-07 |
 | D-10 | Công cụ cho AI: generator nào (ngân sách), hậu xử lý cố định, MCP `tohe-studio` | Owner muốn "các công cụ cho AI làm ra asset là chính" | — |
-| D-11 | Studio chạy ở đâu; người, agent, CI mỗi bên được làm gì; duyệt ở đâu | State nằm trong DB nên duyệt không còn qua PR; agent không được ghi vào prod (`AGENTS.md:42`) | E-05, E-07 |
+| D-11 | Studio chạy ở đâu; người, agent, CI mỗi bên được làm gì; duyệt ở đâu | State nằm trong DB nên duyệt không còn qua PR; agent không được ghi vào prod (`AGENTS.md:42`) | D-14, D-15, E-05, E-07 |
 | D-12 | Field `assets` trong `game.json`, lock, và cách code game gọi asset (key có type) | Game "lựa và chọn" phải là một contract rõ ràng | E-01, E-02, E-03 |
 | D-13 | Phục vụ `precache` / `on-demand` lúc chạy: đường dẫn, cache, hạn mức trên máy, nhãn của hub, xử lý lỗi | Đã thiết kế trong D-02, xây khi có điều kiện | — |
+| D-14 | Studio chung console hay là app độc lập (host, session, quyền) | Owner hỏi; quyết ai cần quyền gì để góp và duyệt asset | E-05, E-07 |
+| D-15 | Agent đăng nhập bằng gì: một cơ chế token có scope cho cả nền tảng | D-11 cần token; owner muốn agent cùng vận hành sau này, nên token phải dùng lại được | E-05, E-07 |
 | E-01 | Game Contract: ADR, docs, schema `assets`, conformance; sửa luật "outside their folder" | Contract đổi thì phải có ADR, docs và conformance trong cùng PR (`AGENTS.md`) | E-05, E-07 |
 | E-02 | `tools/games-host` hoặc plugin Vite: resolve pack qua manifest trên bucket, cache theo hash (dùng chung mọi worktree, CI cache, `--offline`), kiểm hash, đóng atlas, nén, ghi lock, tính `sizeBudgetKb` | Build hôm nay chỉ copy `dist/` (`tools/games-host/src/assemble.ts`) | E-07 |
 | E-03 | `@tohe/game-kit`: nạp asset theo key có type; `content` (schema Zod, loader, kiểm tham chiếu) | Agent viết data thay vì sửa engine | E-07 |
@@ -69,3 +75,5 @@ flowchart TD
 - **Kho luật chơi và cơ chế game**: R-02 ghi lại các nguồn để `/new-game` tham khảo (E-05). Không xây kho riêng.
 - **Nới giới hạn save 64 KB** (`docs/contracts/game-contract-v1.md:254`): chỉ xem lại khi pilot chạm tới (E-07).
 - **Spike S3** (xoay màn hình trong iframe): đã nằm trong E-04, không tách thành item riêng.
+- **Agent cùng vận hành nền tảng** (monitoring, cập nhật tự động; owner 2026-10-22: "nhạy cảm thì k"): plan riêng về
+  sau, thuộc console. Ở đây chỉ làm token dùng lại được (D-15).
