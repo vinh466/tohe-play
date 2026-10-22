@@ -3,7 +3,7 @@
 - Goal: bề mặt sản phẩm hoàn chỉnh trước launch chính thức — **đợt 1**: bố cục và UX của người chơi, bề mặt giới thiệu,
   SEO, GEO và cách nó mở rộng, thiết kế xong rồi build; **đợt 2**: rà màn, luồng, câu chữ, Điều khoản, Cổng. Sau đó tập
   trung làm game.
-- Phase: **Graduate — đợt 1** (G0–G6 xong, G7 chờ owner) ([process](../README.md#phases)) — brief đã xác nhận, mọi quyết định của đợt 1 đã chốt
+- Phase: **Graduate — đợt 1** (G0–G6 xong và trên prod; G7: owner thử máy thật) ([process](../README.md#phases)) — brief đã xác nhận, mọi quyết định của đợt 1 đã chốt
   (2026-10-22); đợt 2 còn ở *Map*.
 - Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (merged 2026-10-22; cập nhật sau đó là PR nhỏ từ cùng nhánh)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (bức tranh đầy đủ) · **Route: [routes.md](routes.md)** · Log: [log.md](log.md)
@@ -15,17 +15,18 @@
 
 ## Next — one item
 
-**G7 — owner thử thật trên UAT** (`uat-2026-10-22.4`, http://10.100.0.2:4820): Android, iPhone + app đã cài, Zalo, Messenger, máy
-tính — danh sách ở *Waiting on the owner* 1. Xong thì **"lên prod"**. Sau G7: lập danh sách đợt 2 (E-02 → E-05, E-01).
+**G7 — owner thử thật trên prod** (`prod-2026-10-22.1`, https://toheplay.io.vn — lên prod 2026-10-22 theo lời owner,
+`check:prod` 23/23): Android, iPhone + app đã cài, Zalo, Messenger, máy tính — danh sách ở *Waiting on the owner* 1.
+Sau G7: lập danh sách đợt 2 (E-02 → E-05, E-01).
 
 ## Waiting on the owner
 
-1. **Thử trên máy thật (G7)** — UAT `uat-2026-10-22.4` có đủ đợt 1 (G0–G6):
+1. **Thử trên máy thật (G7)** — prod `prod-2026-10-22.1` (= UAT `uat-2026-10-22.4`) có đủ đợt 1 (G0–G6):
    - `/` (trang chủ danh mục trước, *Chơi tiếp* khi máy đã chơi), `/en/`, `/promise/`, trang từng game;
    - app: thanh dưới / rail, Trò chơi · Chơi cùng · Tôi, đổi ngôn ngữ ở Tôi, nút back Android từng tầng;
    - mở lại sau 30 phút trên máy nhiều hồ sơ ("Ai đang chơi?"), *Chơi tiếp*, *Có bản mới — Tải lại* sau một deploy;
    - gửi link `/s`, `/r` qua Zalo, Messenger (thẻ theo ngôn ngữ người tạo); iPhone: dòng "Đã cài app Tò He?".
-2. **"lên prod"** khi thử xong — prod đang `prod-2026-10-21.2`.
+2. ~~"lên prod"~~ — xong 2026-10-22: `prod-2026-10-22.1`, platform-infra #246.
 3. Đọc chữ do agent viết: trang game (`games/*/page/vi.md`), trang chủ, `/promise/`, thẻ xem trước tiếng Anh;
    **Tiến Lên "khoảng 3–5 phút"** là ước lượng — xác nhận hay sửa.
 4. Thuộc Cổng (E-01):
@@ -84,7 +85,7 @@ Mỗi PR một mục đích, spec trước, `pnpm verify` xanh; builder Opus · 
 | **G4** ✓ [#119](https://github.com/vinh466/tohe-play/pull/119) | Khung app | namespace `/together` (đã vào map ở [#118](https://github.com/vinh466/tohe-play/pull/118), để G4 không đụng file generated); layout route; thanh dưới / rail; Trò chơi · Chơi cùng (`/together`) · Tôi; bỏ menu sheet; bố cục máy tính; bỏ khoá màn dọc; lịch sử cho nút back; cài đặt ngôn ngữ và thứ tự chọn; mã quản lý cho link ra ngoài của hồ sơ trẻ | D-02, D-01 | G1, G3 | G2b |
 | **G5** ✓ [#122](https://github.com/vinh466/tohe-play/pull/122) | Mở lại app | màn đầu "đang dở" (bàn, lời mời cho cả hồ sơ máy, chơi tiếp, gần đây); "Ai đang chơi?" 30 phút; phiên hết hạn; cập nhật êm (+ test hai bản build, PB-17); `launch_handler`; `persist()`; đếm lần quay lại; "Đã cài app?" trên trang lối vào | D-04 | G4 | G6 |
 | **G6** ✓ [#121](https://github.com/vinh466/tohe-play/pull/121) | Ngôn ngữ của link | API lưu ngôn ngữ của link (migration thêm cột); thẻ xem trước `/s`, `/r` vi và en | D-01 | G1 | G5 |
-| **G7** · chờ owner | Thử thật | UAT → prod khi owner nói; owner thử trên máy thật (Android, iPhone + app đã cài, Zalo, Messenger, máy tính) | — | G2b, G4, G5, G6 | — |
+| **G7** · prod ✓, owner thử máy | Thử thật | UAT → prod khi owner nói; owner thử trên máy thật (Android, iPhone + app đã cài, Zalo, Messenger, máy tính) | — | G2b, G4, G5, G6 | — |
 
 Thứ tự: G0 → G1 → (G2a ∥ G3) → (G2b ∥ G4) → (G5 ∥ G6) → G7. Migration EF ở G3 và G6 merge lần lượt (chung snapshot).
 
