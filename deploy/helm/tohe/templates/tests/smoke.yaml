@@ -38,7 +38,7 @@ spec:
           # The API's host filtering wants the public host, as the ingress would send it.
           curl -fsS -H "Host: {{ include "tohe.host" .Values.publicUrls.hub }}" http://{{ $hub }}:8080/api/health
           echo
-          curl -fsS http://{{ $hub }}:8080/ | grep -q 'href="/play"'
+          curl -fsS http://{{ $hub }}:8080/ | grep -q 'href="/play?lang=vi"'
           curl -fsS http://{{ $hub }}:8080/sitemap.xml | grep -q '<loc>{{ trimSuffix "/" .Values.publicUrls.hub }}/</loc>'
           curl -fsS http://{{ $hub }}:8080/play | grep -q '<div id="root">'
           curl -fsS http://{{ $games }}:8080/catalog.json | grep -q '"games"'
