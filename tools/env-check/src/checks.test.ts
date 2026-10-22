@@ -57,7 +57,7 @@ const homeHeaders = {
 };
 const homePage = (headers: Record<string, string> = homeHeaders): HttpResult =>
   html(
-    '<html><head><link rel="canonical" href="https://toheplay.io.vn/"></head><body><a class="primary" href="/play">Chơi ngay — không cần tài khoản</a></body></html>',
+    '<html><head><link rel="canonical" href="https://toheplay.io.vn/"></head><body><a class="primary" href="/play?lang=vi">Chơi ngay — không cần tài khoản</a></body></html>',
     headers,
   );
 
