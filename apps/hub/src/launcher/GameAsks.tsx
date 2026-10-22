@@ -1,4 +1,5 @@
 // The hub's own sheets over a game (ADR 0045): a name, an account, a share — always in the hub's words, never the
+
 // game's — and the notice when a link's place does not open in this build. GameFrame opens one at a time.
 import type { IdentityLevel, InitProfile, RequireReason, ShareError } from '@tohe/contract';
 import type { JsonValue } from '@tohe/game-sdk';
@@ -13,6 +14,7 @@ import { Button } from '../ui/Button.tsx';
 import { copyText } from '../ui/copyText.ts';
 import { Modal } from '../ui/Modal.tsx';
 import { QrCode } from '../ui/QrCode.tsx';
+import { nameOf } from './gameWords.ts';
 import { profileKind, shareErrorOf } from './requests.ts';
 
 export type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
@@ -93,7 +95,7 @@ function NamedSheet({
 }) {
   const { t } = useTranslation();
   return (
-    <Modal open title={game.name} onClose={ask.decline}>
+    <Modal open title={nameOf(game)} onClose={ask.decline}>
       <AtTables
         session={session}
         purpose="entry"
@@ -121,7 +123,7 @@ function NamedSheet({
 function AccountSheet({ ask, game }: { ask: Extract<GameAsk, { kind: 'account' }>; game: GameSummary }) {
   const { t } = useTranslation();
   return (
-    <Modal open title={game.name} onClose={ask.decline}>
+    <Modal open title={nameOf(game)} onClose={ask.decline}>
       <section className="flex flex-col gap-4 text-center">
         <h3 className="font-black text-2xl text-brand-ink">{t('gameAsks.accountTitle')}</h3>
         <p className="text-ink">{t(`gameAsks.reasons.${ask.reason}`)}</p>
@@ -155,7 +157,7 @@ function GameShareSheet({
   const { t } = useTranslation();
   const failed = useRef<ShareError | null>(null);
   return (
-    <Modal open title={t('share.title', { game: game.name })} onClose={() => ask.close(failed.current)}>
+    <Modal open title={t('share.title', { game: nameOf(game) })} onClose={() => ask.close(failed.current)}>
       <AtTables session={session} purpose="share" inline onSignIn={ask.signIn}>
         {() => (
           <ShareChoices
@@ -214,7 +216,7 @@ function ShareChoices({
   };
   const urlOf = (view: ShareLinkView) => shareUrl(view.code, window.location.origin);
   // The game's words when they passed the API's checks, else the hub's own (ADR 0045).
-  const messageOf = (view: ShareLinkView) => view.message ?? t('share.text', { game: game.name });
+  const messageOf = (view: ShareLinkView) => view.message ?? t('share.text', { game: nameOf(game) });
 
   const send = async () => {
     const view = await made();
@@ -243,9 +245,9 @@ function ShareChoices({
 
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <p className="text-ink">{t('gameAsks.shareBody', { game: game.name })}</p>
+      <p className="text-ink">{t('gameAsks.shareBody', { game: nameOf(game) })}</p>
       {link && shown === 'qr' ? (
-        <QrCode text={urlOf(link)} label={t('share.qr', { game: game.name })} />
+        <QrCode text={urlOf(link)} label={t('share.qr', { game: nameOf(game) })} />
       ) : null}
       {link ? (
         <>
@@ -296,7 +298,7 @@ export function EntryNotice({ open, game, onClose }: { open: boolean; game: Game
       className="m-auto w-[min(22rem,calc(100vw-2rem))] rounded-3xl bg-surface p-6 text-center text-ink shadow-xl backdrop:bg-scrim"
     >
       <h2 className="font-black text-2xl">{t('gameAsks.noticeTitle')}</h2>
-      <p className="mt-2 text-ink-soft">{t('gameAsks.noticeBody', { game: game.name })}</p>
+      <p className="mt-2 text-ink-soft">{t('gameAsks.noticeBody', { game: nameOf(game) })}</p>
       <button
         type="button"
         onClick={onClose}
@@ -311,5 +313,5 @@ export function EntryNotice({ open, game, onClose }: { open: boolean; game: Game
 /** A line under the game's name while it opens again after signing in. */
 export function Reopening({ game }: { game: GameSummary }): ReactNode {
   const { t } = useTranslation();
-  return <span className="text-ink-soft">{t('gameAsks.reopening', { game: game.name })}</span>;
+  return <span className="text-ink-soft">{t('gameAsks.reopening', { game: nameOf(game) })}</span>;
 }

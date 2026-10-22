@@ -1,10 +1,14 @@
 {
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "hello",
-  "name": "Chạm Chấm",
-  "version": "1.4.1",
+  "name": "Tap Dot",
+  "names": { "vi": "Chạm Chấm" },
+  "version": "1.4.2",
   "protocol": 1,
-  "description": "Chạm thật nhanh vào chấm tròn trong 20 giây. Game mẫu của nền tảng.",
+  "description": "Tap the dot as fast as you can for 20 seconds. The platform's sample game.",
+  "descriptions": {
+    "vi": "Chạm thật nhanh vào chấm tròn trong 20 giây. Game mẫu của nền tảng."
+  },
   "icon": "icon.svg",
   "orientation": "portrait",
   "capabilities": ["save", "scores", "shell"],

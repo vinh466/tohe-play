@@ -30,6 +30,7 @@ import { useTheme } from '../theme/useTheme.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
 import { EntryNotice, type GameAsk, GameAsks, type PlayingSession, Reopening } from './GameAsks.tsx';
+import { nameOf } from './gameWords.ts';
 import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './manifest.ts';
 import {
   declines,
@@ -546,7 +547,7 @@ export function GameFrame({
           >
             ← {exitLabel ?? t('exit')}
           </button>
-          <span className="truncate font-bold text-ink">{game.name}</span>
+          <span className="truncate font-bold text-ink">{nameOf(game)}</span>
           <span className="flex items-center gap-1">
             {topRight}
             <button
@@ -563,7 +564,7 @@ export function GameFrame({
       <div className="relative min-h-0 flex-1">
         <iframe
           ref={iframe}
-          title={game.name}
+          title={nameOf(game)}
           sandbox="allow-scripts allow-same-origin"
           allow="autoplay; fullscreen"
           className="absolute inset-0 size-full border-0"
@@ -584,7 +585,7 @@ export function GameFrame({
               ) : (
                 <span className="grid size-24 place-items-center rounded-3xl bg-soft text-5xl">🎲</span>
               )}
-              <span className="font-black text-2xl text-brand-ink">{game.name}</span>
+              <span className="font-black text-2xl text-brand-ink">{nameOf(game)}</span>
               {reopened ? <Reopening game={game} /> : null}
               <span role="status" className="flex h-6 items-end gap-1.5">
                 <span className="sr-only">{t('loading')}</span>

@@ -9,6 +9,7 @@ import { type GameSummary, type ProfileView, type RoomView, rooms } from '../api
 import { errorKey } from '../api/errors.ts';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame, type RoomBridge, type RoomUpdate } from '../launcher/GameFrame.tsx';
+import { nameOf } from '../launcher/gameWords.ts';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected, roomsHub } from '../rooms/connection.ts';
 import { hubRefusal, reportTrouble } from '../rooms/devicePlayer.ts';
@@ -331,10 +332,10 @@ function WaitingRoom({
   });
 
   const share = async () => {
-    const text = t('rooms.shareText', { game: game.name, code: formatCode(room.code) });
+    const text = t('rooms.shareText', { game: nameOf(game), code: formatCode(room.code) });
     if (navigator.share && window.isSecureContext) {
       try {
-        await navigator.share({ title: game.name, text, url: link });
+        await navigator.share({ title: nameOf(game), text, url: link });
         return;
       } catch {
         // dismissed: nothing to do
@@ -356,7 +357,7 @@ function WaitingRoom({
         >
           ←
         </BackLink>
-        <h1 className="font-bold text-ink text-xl">{game.name}</h1>
+        <h1 className="font-bold text-ink text-xl">{nameOf(game)}</h1>
         <Button variant="secondary" onClick={() => void share()}>
           {t('rooms.share')}
         </Button>

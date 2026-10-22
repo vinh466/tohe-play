@@ -2,11 +2,24 @@
 import { privacy, TERMS_VERSION } from '../../../hub/src/legal/documents.ts';
 import { legal } from '../content/legal.ts';
 // /privacy/: the privacy notice, rendered at build time from the app's own text, apps/hub/src/legal/documents.ts
-// (ADR 0025). The text is read, never copied: it has one source, and changing it there bumps TERMS_VERSION.
+// (ADR 0025). The text is read, never copied: it has one source, and changing it there bumps TERMS_VERSION. Vietnamese
+// only until its English text lands (vietnameseOnlyPages in @tohe/routes, ADR 0047).
+import { absolute } from '../content/site.ts';
 import Page from '../layouts/Page.astro';
+
+const jsonLd = [
+  {
+    '@type': 'WebPage',
+    name: privacy.title,
+    description: legal.privacy.description,
+    url: absolute('/privacy/'),
+    inLanguage: 'vi',
+    isPartOf: { '@id': absolute('/#website') },
+  },
+];
 ---
 
-<Page title={legal.privacy.title} description={legal.privacy.description} path="/privacy/">
+<Page title={legal.privacy.title} description={legal.privacy.description} path="/privacy/" jsonLd={jsonLd}>
   <main id="main" class="narrow">
     <h1>{privacy.title}</h1>
     <p class="note" role="note">{legal.draft(TERMS_VERSION)}</p>

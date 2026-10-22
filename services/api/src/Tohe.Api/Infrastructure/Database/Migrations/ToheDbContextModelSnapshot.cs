@@ -1441,6 +1441,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("description");
 
+                    b.Property<string>("Descriptions")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("descriptions")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
                     b.PrimitiveCollection<string[]>("Entries")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1489,6 +1496,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("name");
+
+                    b.Property<string>("Names")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("names")
+                        .HasDefaultValueSql("'{}'::jsonb");
 
                     b.Property<string>("Orientation")
                         .IsRequired()

@@ -1,26 +1,6 @@
 ---
-import { guides } from '../../content/install.ts';
-// /guides/: the list of guides. The words are in ../../content/install.ts.
-import Page from '../../layouts/Page.astro';
+// /guides/: the list of guides — ../../views/GuidesPage.astro.
+import GuidesPage from '../../views/GuidesPage.astro';
 ---
 
-<Page title={guides.title} description={guides.description} path="/guides/">
-  <main id="main" class="narrow">
-    <h1>{guides.heading}</h1>
-    <p class="lead">{guides.lead}</p>
-    <ul class="cards">
-      {
-        guides.items.map((item) => (
-          <li>
-            <div class="card">
-              <h2 class="card-title">
-                <a href={item.href}>{item.title}</a>
-              </h2>
-              <p>{item.text}</p>
-            </div>
-          </li>
-        ))
-      }
-    </ul>
-  </main>
-</Page>
+<GuidesPage />

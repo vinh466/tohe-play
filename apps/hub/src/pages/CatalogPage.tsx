@@ -5,6 +5,7 @@ import { gamesQuery } from '../api/queries.ts';
 import { EnterCodeButton } from '../entry/EnterCode.tsx';
 import { ShareButton } from '../entry/ShareSheet.tsx';
 import { InstallNudge } from '../install/InstallNudge.tsx';
+import { descriptionOf, nameOf } from '../launcher/gameWords.ts';
 import { hasShell } from '../launcher/manifest.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { MovedNotice } from '../session/MovedNotice.tsx';
@@ -106,8 +107,8 @@ function Catalog({ session }: { session: PlayingSession }) {
                 ) : (
                   <span className="grid size-20 place-items-center rounded-2xl bg-soft text-4xl">🎲</span>
                 )}
-                <span className="font-bold text-ink text-lg">{game.name}</span>
-                <span className="line-clamp-2 text-ink-soft text-sm">{game.description}</span>
+                <span className="font-bold text-ink text-lg">{nameOf(game)}</span>
+                <span className="line-clamp-2 text-ink-soft text-sm">{descriptionOf(game)}</span>
               </Link>
               <ShareButton game={game} session={session} />
               {syncsWithServer(player) ? <LeaderboardButton game={game} player={player} /> : null}

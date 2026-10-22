@@ -8,8 +8,14 @@ public sealed class Game
 {
     public required string Id { get; set; }
     public required string Version { get; set; }
+    /// <summary>The standard name (ADR 0048): English, or a proper name such as <c>Tiến Lên</c>.</summary>
     public required string Name { get; set; }
+    /// <summary>The name per language tag, as JSON (ADR 0048): <c>{"vi":"Ghép Khối"}</c>; <c>{}</c> without any.</summary>
+    public string Names { get; set; } = "{}";
+    /// <summary>The standard description, in the language of the standard name.</summary>
     public string Description { get; set; } = "";
+    /// <summary>The description per language tag, as JSON (ADR 0048); <c>{}</c> without any.</summary>
+    public string Descriptions { get; set; } = "{}";
     /// <summary>Path of the immutable build on the games origin, e.g. <c>hello/1.0.0/</c>.</summary>
     public required string Path { get; set; }
     public required string Entry { get; set; }
@@ -67,6 +73,8 @@ internal sealed class GameConfiguration : IEntityTypeConfiguration<Game>
         builder.Property(game => game.Version).HasMaxLength(40);
         builder.Property(game => game.Name).HasMaxLength(40);
         builder.Property(game => game.Description).HasMaxLength(200);
+        builder.Property(game => game.Names).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
+        builder.Property(game => game.Descriptions).HasColumnType("jsonb").HasDefaultValueSql("'{}'::jsonb");
         builder.Property(game => game.Path).HasMaxLength(200);
         builder.Property(game => game.Entry).HasMaxLength(200);
         builder.Property(game => game.Icon).HasMaxLength(200);

@@ -3,6 +3,7 @@ import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { rooms } from '../api/client.ts';
 import { gamesQuery } from '../api/queries.ts';
+import { nameOf } from '../launcher/gameWords.ts';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 
@@ -31,7 +32,7 @@ export function RoomInvites({ player }: { player: Player }) {
           >
             <Avatar avatar={invite.fromAvatar || '🙂'} size="sm" />
             <span className="min-w-0 flex-1 font-semibold">
-              {t('rooms.inviteBanner', { from: invite.fromName, game: game?.name ?? invite.gameId })}
+              {t('rooms.inviteBanner', { from: invite.fromName, game: game ? nameOf(game) : invite.gameId })}
             </span>
             <Link
               to="/r/$code"

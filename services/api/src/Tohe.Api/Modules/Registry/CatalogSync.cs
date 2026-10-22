@@ -59,7 +59,9 @@ internal sealed partial class CatalogSync(
 
             game.Version = manifest.Version;
             game.Name = manifest.Name;
+            game.Names = GameWords.FromManifest(manifest.Names, GameWords.MaxName);
             game.Description = manifest.Description ?? "";
+            game.Descriptions = GameWords.FromManifest(manifest.Descriptions, GameWords.MaxDescription);
             game.Path = entry.Path;
             game.Entry = manifest.Entry ?? "index.html";
             game.Icon = manifest.Icon;

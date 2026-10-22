@@ -2,11 +2,24 @@
 import { TERMS_VERSION, terms } from '../../../hub/src/legal/documents.ts';
 import { legal } from '../content/legal.ts';
 // /terms/: the terms of use, rendered at build time from the app's own text, apps/hub/src/legal/documents.ts (ADR 0025).
-// The text is read, never copied: it has one source, and changing it there bumps TERMS_VERSION.
+// The text is read, never copied: it has one source, and changing it there bumps TERMS_VERSION. Vietnamese only until
+// its English text lands (vietnameseOnlyPages in @tohe/routes, ADR 0047).
+import { absolute } from '../content/site.ts';
 import Page from '../layouts/Page.astro';
+
+const jsonLd = [
+  {
+    '@type': 'WebPage',
+    name: terms.title,
+    description: legal.terms.description,
+    url: absolute('/terms/'),
+    inLanguage: 'vi',
+    isPartOf: { '@id': absolute('/#website') },
+  },
+];
 ---
 
-<Page title={legal.terms.title} description={legal.terms.description} path="/terms/">
+<Page title={legal.terms.title} description={legal.terms.description} path="/terms/" jsonLd={jsonLd}>
   <main id="main" class="narrow">
     <h1>{terms.title}</h1>
     <p class="note" role="note">{legal.draft(TERMS_VERSION)}</p>

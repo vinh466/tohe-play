@@ -55,7 +55,10 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0039](0039-games-on-a-domain-of-their-own.md) | Serve games from a registrable domain of their own | Accepted; all of Tò He on toheplay.io.vn since 0040 |
 | [0040](0040-all-of-tohe-on-one-domain-of-its-own.md) | Run all of Tò He on toheplay.io.vn, the games one level below the hub | Accepted; hosts and paths laid out by 0042 |
 | [0041](0041-promote-one-build-through-the-environments-by-tag.md) | Promote one build through the environments by tag; production runs only what ran on UAT | Accepted |
-| [0042](0042-hosts-by-trust-paths-by-component.md) | Lay out Tò He by trust: one domain, a host per trust boundary, a path per component | Accepted |
+| [0042](0042-hosts-by-trust-paths-by-component.md) | Lay out Tò He by trust: one domain, a host per trust boundary, a path per component | Accepted; amended by 0046, 0047 |
 | [0043](0043-device-profiles-and-identity-levels.md) | Every player is a profile of this device or of an account; the highest level any source needs is asked for | Accepted; arrives in steps (I1, I2); the game's level from 0045 |
 | [0044](0044-entry-links.md) | Every way into Tò He is an entry; share links are objects on the server; one pipeline in the hub | Accepted; arrives with step I3; games take entries from 0045 |
 | [0045](0045-games-declare-identity-and-entries.md) | A game declares the identity it needs and the entries it takes; it asks the hub for more, and to share | Accepted; arrives with step I4 |
+| [0046](0046-player-surfaces-two-zones-one-frame.md) | Lay out the players' surfaces as two zones in one frame, and name the planes | Accepted; arrives in steps |
+| [0047](0047-two-languages-and-an-introduction-surface-that-grows.md) | Speak Vietnamese first and English second, and grow the introduction surface from one source per game | Accepted; arrives in steps; game names and descriptions per language settled by 0048 |
+| [0048](0048-a-standard-name-and-words-per-language-for-each-game.md) | Give each game a standard name, and a name and a description per language when it has them | Accepted |

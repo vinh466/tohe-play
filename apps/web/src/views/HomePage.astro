@@ -1,0 +1,110 @@
+---
+// The public home page, / in Vietnamese and /en/ in English (ADR 0042, 0047). The app starts at /play. The words are in
+// ../content/home.ts. A browser that has played here is sent on to the app by a script in <head>.
+import { loadGames } from '../content/games.ts';
+import { home } from '../content/home.ts';
+import { absolute, docsUrl, site, siteWords } from '../content/site.ts';
+import { appPath, localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = home[lang];
+const path = localPath(lang, '/');
+const games = loadGames(lang);
+const jsonLd = [
+  {
+    '@type': 'WebSite',
+    '@id': absolute(`${path}#website`),
+    url: absolute(path),
+    name: site.name,
+    description: words.description,
+    inLanguage: lang,
+    publisher: { '@id': absolute('/#organization') },
+  },
+  {
+    '@type': 'Organization',
+    '@id': absolute('/#organization'),
+    name: site.name,
+    url: absolute('/'),
+    logo: absolute('/icon-512.png'),
+    description: words.organization.description,
+    email: site.email,
+    sameAs: [site.github],
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} returning jsonLd={jsonLd}>
+  <main id="main" class="full">
+  <div class="hero">
+    <img src="/favicon.svg" alt="" width="96" height="96" />
+    <h1>{site.name}</h1>
+    <p class="lead">{words.lead}</p>
+    <div class="actions">
+      <a class="button primary" href={appPath(lang, '/play')}>{words.play}</a>
+    </div>
+    <p class="hint"><a href={localPath(lang, '/guides/install/')}>{words.installHint}</a></p>
+  </div>
+
+  <div class="container">
+    <section class="features" aria-label={siteWords[lang].tagline}>
+      {
+        words.features.map((feature) => (
+          <article>
+            <span class="icon" aria-hidden="true">
+              {feature.icon}
+            </span>
+            <h2>{feature.title}</h2>
+            <p>{feature.text}</p>
+          </article>
+        ))
+      }
+    </section>
+
+    <section class="band">
+      <h2>{words.games.heading}</h2>
+      <ul class="cards">
+        {
+          games.map((game) => (
+            <li>
+              <div class="card">
+                <div class="card-head">
+                  <img class="card-icon" src={game.icon} alt="" width="56" height="56" />
+                  <h3 class="card-title">
+                    <a href={localPath(lang, `/games/${game.id}/`)}>{game.name}</a>
+                  </h3>
+                </div>
+                <p>{game.description}</p>
+              </div>
+            </li>
+          ))
+        }
+      </ul>
+      <a class="more" href={localPath(lang, '/games/')}>{words.games.all}</a>
+    </section>
+
+    <section class="band">
+      <h2>{words.install.heading}</h2>
+      <p>{words.install.text}</p>
+      <a class="more" href={localPath(lang, '/guides/install/')}>{words.install.link}</a>
+    </section>
+
+    <section class="band">
+      <h2>{words.story.heading}</h2>
+      <p>{words.story.text}</p>
+    </section>
+
+    <section class="band">
+      <h2>{words.questions.heading}</h2>
+      <p>{words.questions.text}</p>
+      <a class="more" href={localPath(lang, '/faq/')}>{words.questions.link}</a>
+    </section>
+
+    <section class="band">
+      <h2>{words.dev.heading}</h2>
+      <p>{words.dev.text}</p>
+      <a class="more" href={`${docsUrl}/`}>{words.dev.link}</a>
+    </section>
+  </div>
+  </main>
+</Page>

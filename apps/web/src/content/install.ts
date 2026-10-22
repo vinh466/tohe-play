@@ -1,21 +1,41 @@
-// The words of /guides/ and /guides/install/. The steps for each platform come from plans/product-surface E-03; the
-// owner tries them on real devices (E-03 §14) and corrects what a phone shows differently.
+// The words of /guides/ and /guides/install/, and of their English pages under /en/. The steps for each platform come
+// from plans/product-surface E-03; the owner tries them on real devices (E-03 §14) and corrects what a phone shows
+// differently. A guide's `path` is its Vietnamese one: the English page links the same page under /en/.
+import type { Lang } from '../i18n.ts';
 
-export const guides = {
+const viGuides = {
   title: 'Hướng dẫn — Tò He',
   description: 'Hướng dẫn dùng Tò He: cài lên màn hình chính trên Android, iPhone và máy tính.',
   heading: 'Hướng dẫn',
   lead: 'Mọi thứ để bắt đầu với Tò He.',
   items: [
     {
-      href: '/guides/install/',
+      path: '/guides/install/',
       title: 'Cài Tò He lên màn hình chính',
       text: 'Mở nhanh như một ứng dụng, trên Android, iPhone hay máy tính — kể cả khi bạn đang đọc link trong Zalo hay Messenger.',
     },
   ],
 };
 
+export const guides: Record<Lang, typeof viGuides> = {
+  vi: viGuides,
+  en: {
+    title: 'Guides — Tò He',
+    description: 'Guides to Tò He: adding it to the home screen on Android, iPhone and a computer.',
+    heading: 'Guides',
+    lead: 'Everything you need to get started with Tò He.',
+    items: [
+      {
+        path: '/guides/install/',
+        title: 'Add Tò He to your home screen',
+        text: 'Open it quickly, like an app, on Android, iPhone or a computer — even when you are reading the link inside Zalo or Messenger.',
+      },
+    ],
+  },
+};
+
 export interface Platform {
+  /** The section's anchor, `#<id>`. */
   id: string;
   /** The label in the list at the top and the heading of the section. */
   title: string;
@@ -24,7 +44,7 @@ export interface Platform {
   note?: string;
 }
 
-export const install = {
+const viInstall = {
   title: 'Cài Tò He lên màn hình chính — Android, iPhone, máy tính',
   description:
     'Cách thêm Tò He vào màn hình chính trên Android (Chrome), iPhone (iOS 26, Safari), máy tính, và cách mở link từ Zalo hay Messenger bằng trình duyệt.',
@@ -76,11 +96,75 @@ export const install = {
       ],
       note: 'Safari trên Mac: Chia sẻ → Thêm vào Dock. Firefox trên máy tính không cài được ứng dụng web, nhưng vẫn chơi bình thường trong trang.',
     },
-  ] satisfies Platform[],
+  ] as Platform[],
   done: {
     heading: 'Cài xong rồi?',
     text: 'Mở Tò He từ màn hình chính và chơi tiếp. Gặp trục trặc, bạn cứ viết cho chúng tôi.',
     play: 'Mở Tò He',
     faq: 'Hỏi đáp',
+  },
+};
+
+export const install: Record<Lang, typeof viInstall> = {
+  vi: viInstall,
+  en: {
+    title: 'Add Tò He to your home screen — Android, iPhone, computer',
+    description:
+      'How to add Tò He to the home screen on Android (Chrome), iPhone (iOS 26, Safari) and a computer, and how to open a link from Zalo or Messenger in a real browser.',
+    heading: 'Add Tò He to your home screen',
+    back: '← Guides',
+    lead: 'You can play without installing anything. Once installed, Tò He opens quickly like an app, runs full screen and works offline too (after the first visit). Choose your device:',
+    jump: 'Choose your device',
+    platforms: [
+      {
+        id: 'android',
+        title: 'Android (Chrome)',
+        steps: [
+          'Open Tò He in Chrome (Edge or Samsung Internet work too).',
+          'Tap the ⋮ button in the top right corner.',
+          'Choose "Install app" (some phones say "Add to Home screen").',
+          'Tap "Install". The Tò He icon appears on your home screen.',
+        ],
+      },
+      {
+        id: 'iphone',
+        title: 'iPhone (iOS 26, Safari)',
+        steps: [
+          'Open Tò He in Safari. If you are inside Zalo or Messenger, follow the section below first.',
+          'Tap the ⋯ button in the bottom bar, then choose "Share".',
+          'Scroll down and choose "Add to Home Screen".',
+          'Turn on "Open as Web App", then tap "Add".',
+        ],
+        note: 'On iPhone, the installed app keeps its own data, apart from Safari. If you have a game in progress and want to keep it, sign in before installing. On older versions of iOS, the Share button (a square with an arrow pointing up) is right in Safari’s bottom bar.',
+      },
+      {
+        id: 'zalo',
+        title: 'Opened inside Zalo or Messenger',
+        intro:
+          'A link opened in Zalo, Messenger or Facebook runs in that app’s own small browser, which cannot install anything. Open it in your phone’s real browser:',
+        steps: [
+          'Tap the ⋯ (or ⋮) button at the top of the screen.',
+          'Choose "Open in browser". The wording differs a little between apps and versions — "Open in Chrome" or "Open in Safari", for example.',
+          'Or copy the link and paste it into Chrome or Safari.',
+          'Once Tò He is open in the browser, follow the Android or iPhone section above.',
+        ],
+      },
+      {
+        id: 'computer',
+        title: 'Computer',
+        steps: [
+          'Open Tò He in Chrome or Edge.',
+          'Click the install icon at the end of the address bar (a screen with an arrow pointing down), or open the ⋮ menu and choose "Install Tò He".',
+          'Click "Install". Tò He opens in a window of its own.',
+        ],
+        note: 'Safari on a Mac: Share → Add to Dock. Firefox on a computer cannot install web apps, but you can still play in the page.',
+      },
+    ],
+    done: {
+      heading: 'All set?',
+      text: 'Open Tò He from your home screen and keep playing. If something goes wrong, just write to us.',
+      play: 'Open Tò He',
+      faq: 'FAQ',
+    },
   },
 };

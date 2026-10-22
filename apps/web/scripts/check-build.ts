@@ -3,16 +3,21 @@
 //    JSON-LD block is data, not a script that runs: it is allowed, and must parse);
 //  - everything the build adds lives under /_web/ (the `public-assets` namespace), and every other file lies in a
 //    public namespace of the map in @tohe/routes: the pages the sitemap lists, /og.png and /llms.txt;
-//  - every page a search engine or an AI reader may take has what they read: language, its own title and description,
-//    a canonical link with the hub's URL, Open Graph and Twitter tags with the shared picture, one <h1>, the
-//    structured data its kind of page deserves (WebSite and Organization on the home page, VideoGame on a game's page,
-//    FAQPage on the FAQ with as many questions as the page shows);
+//  - every page a search engine or an AI reader may take has what they read: its own title and description, Open
+//    Graph and Twitter tags with the shared picture, one <h1>, the structured data its kind of page deserves (WebSite
+//    and Organization on the home pages, VideoGame on a game's page, FAQPage on the FAQ with as many questions as the
+//    page shows);
+//  - the languages (ADR 0047, language-rules.ts, which has the tests): every page of the sitemap has its pair in the
+//    other language but the declared Vietnamese-only ones; each page's <html lang>, og:locale and its alternate,
+//    canonical link to itself, JSON-LD in its language, links that stay in its language, and an English page's links
+//    into the app with ?lang=en;
 //  - the pages written are exactly the pages the sitemap lists, and every link on a page leads where the map knows.
 // Runs on the built HTML, so it checks exactly what readers get.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { matchHubPath, sitemapPaths } from '@tohe/routes';
+import { matchHubPath, pathInLanguage, sitemapPaths } from '@tohe/routes';
+import { languageProblems, pairProblems } from './language-rules.ts';
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(web, 'dist');
@@ -48,6 +53,7 @@ for (const file of built) {
   if (file.endsWith('.html')) pages.add(address);
 }
 
+problems.push(...pairProblems(expected));
 for (const path of expected)
   if (!pages.has(path)) problems.push(`${path} is in the sitemap and was not built`);
 for (const path of pages)
@@ -75,6 +81,7 @@ for (const file of built) {
   checkCsp(page, html);
   checkHead(page, html);
   checkLinks(page, html);
+  problems.push(...languageProblems(page, html, hubUrl));
 }
 
 if (problems.length > 0) {
@@ -82,7 +89,7 @@ if (problems.length > 0) {
   process.exit(1);
 }
 console.log(
-  `check-build: ${pages.size} pages, as the sitemap lists them; no inline script or style, every asset under /_web/; each page has its title, description, canonical, link preview and one h1`,
+  `check-build: ${pages.size} pages, as the sitemap lists them, each with its pair in the other language but the Vietnamese-only ones; no inline script or style, every asset under /_web/; each page has its language, title, description, canonical, link preview and one h1`,
 );
 
 /** What the page's CSP allows: scripts and styles are files, and what they load lies under /_web/. */
@@ -109,13 +116,9 @@ function checkHead(page: string, html: string) {
     new RegExp(`<meta\\s+${attribute}="${name}"\\s+content="([^"]*)"`).exec(html)?.[1]?.trim() ?? '';
   const title = /<title>([^<]*)<\/title>/.exec(html)?.[1]?.trim() ?? '';
   const description = meta('name', 'description');
-  const canonical = /<link rel="canonical" href="([^"]*)"/.exec(html)?.[1] ?? '';
-  if (!/<html lang="vi"/.test(html)) problems.push(`${page}: no lang="vi"`);
+  // The language and the canonical link are language-rules.ts'.
   if (title === '') problems.push(`${page}: no <title>`);
   if (description === '') problems.push(`${page}: no meta description`);
-  if (canonical !== `${hubUrl}${page}`) {
-    problems.push(`${page}: the canonical link is "${canonical}", not "${hubUrl}${page}"`);
-  }
   for (const name of ['og:title', 'og:description', 'og:url', 'og:image']) {
     if (meta('property', name) === '') problems.push(`${page}: no ${name}`);
   }
@@ -156,9 +159,11 @@ function checkStructuredData(page: string, html: string) {
     for (const type of wanted)
       if (!types.includes(type)) problems.push(`${page}: no ${type} structured data`);
   };
-  if (page === '/') need('WebSite', 'Organization');
-  if (page.startsWith('/games/') && page !== '/games/') need('VideoGame');
-  if (page === '/faq/') {
+  // The same kind of page in either language: /en/faq/ is a FAQ as /faq/ is.
+  const kind = pathInLanguage(page, 'vi');
+  if (kind === '/') need('WebSite', 'Organization');
+  if (kind.startsWith('/games/') && kind !== '/games/') need('VideoGame');
+  if (kind === '/faq/') {
     need('FAQPage');
     const shown = html.match(/<summary[\s>]/g)?.length ?? 0;
     const entity = nodes.find((node) => node['@type'] === 'FAQPage')?.mainEntity;

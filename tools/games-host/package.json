@@ -7,7 +7,8 @@
   "scripts": {
     "build": "node src/assemble.ts",
     "dev": "node src/assemble.ts && node src/serve.ts",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "dependencies": {
     "@tohe/conformance": "workspace:*",
@@ -18,6 +19,7 @@
     "@tohe/game-merge-block": "workspace:*",
     "@tohe/game-tap-merge": "workspace:*",
     "@tohe/game-tien-len": "workspace:*",
-    "@types/node": "^24.0.0"
+    "@types/node": "^24.0.0",
+    "vitest": "^5.0.0"
   }
 }

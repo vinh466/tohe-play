@@ -1,18 +1,26 @@
 // What scripts/generate.ts writes, as pure functions of the map so the tests can read them too.
 import {
+  languageOfPath,
+  type PublicLanguage,
+  pairOf,
+  pathInLanguage,
+  vietnameseOnlyPages,
+  xDefaultLanguage,
+} from './languages.ts';
+import {
   consoleLinks,
   consoleNamespaces,
   hubLinks,
   hubNamespaces,
-  hubRedirects,
   linkPreviewAppQuery,
   linkPreviewBrowsers,
   linkPreviewCrawlers,
   type Namespace,
   publicPages,
-  type Redirect,
+  searchCrawlers,
+  trainingCrawlers,
 } from './map.ts';
-import { alternation, covers, linkPreviewPattern, redirectPattern, redirectTemplate } from './match.ts';
+import { alternation, covers, linkPreviewPattern } from './match.ts';
 
 const header = (comment: string) =>
   [
@@ -46,8 +54,6 @@ export function caddyMatcherName(namespace: Namespace): string {
 export function caddyMatchers(namespaces: readonly Namespace[] = hubNamespaces): Map<string, string[]> {
   const matchers = new Map<string, string[]>();
   for (const namespace of namespaces) {
-    // A redirect is answered by a directive of its own (hubRedirectDirectives), not by a handler in Caddyfile.hub.
-    if (namespace.served === 'redirect') continue;
     if (namespace.component === 'app' && namespace.served === 'page' && namespace.indexed) {
       // Caddyfile.hub marks every app page noindex; an indexed page needs a matcher of its own there first.
       throw new Error(`${namespace.id}: an indexed app page is not supported by Caddyfile.hub yet`);
@@ -56,40 +62,6 @@ export function caddyMatchers(namespaces: readonly Namespace[] = hubNamespaces):
     matchers.set(name, [...(matchers.get(name) ?? []), ...caddyPaths(namespace)]);
   }
   return matchers;
-}
-
-/**
- * The redirects as Caddy `redir` directives, which run before any `handle` block of the site: the placeholder
- * namespaces (302) and the old paths of the app (301). The query is kept; Caddy drops the `?` when there is none.
- */
-export function hubRedirectDirectives(
-  namespaces: readonly Namespace[] = hubNamespaces,
-  redirects: readonly Redirect[] = hubRedirects,
-): string[] {
-  const lines: string[] = [];
-  for (const namespace of namespaces) {
-    if (namespace.served !== 'redirect' || namespace.redirectTo === undefined) continue;
-    const name = `${namespace.id}Redirect`;
-    lines.push(
-      `# ${namespace.path}: ${namespace.note}.`,
-      `@${name} path ${namespace.path}`,
-      `redir @${name} ${namespace.redirectTo}?{query} 302`,
-    );
-  }
-  if (redirects.length > 0) {
-    lines.push(
-      '# The app’s old paths, kept for the links in emails already sent: 301 to the new path, the query kept.',
-    );
-  }
-  for (const redirect of redirects) {
-    const name = `legacy${capitalise(redirect.id)}`;
-    const to = redirectTemplate(redirect, (n) => `{re.${name}.${n}}`);
-    lines.push(
-      `@${name} path_regexp ${name} ${redirectPattern(redirect)}`,
-      `redir @${name} ${to}?{query} 301`,
-    );
-  }
-  return lines;
 }
 
 /**
@@ -129,10 +101,7 @@ export function linkPreviewDirectives(namespaces: readonly Namespace[] = hubName
 }
 
 /** deploy/docker/hub-routes.caddy, imported by Caddyfile.hub inside its site block. */
-export function hubCaddySnippet(
-  namespaces: readonly Namespace[] = hubNamespaces,
-  redirects: readonly Redirect[] = hubRedirects,
-): string {
+export function hubCaddySnippet(namespaces: readonly Namespace[] = hubNamespaces): string {
   const lines = [
     header('#'),
     '# The namespaces of the hub’s host as named matchers; Caddyfile.hub serves each and answers 404 to the rest.',
@@ -140,14 +109,13 @@ export function hubCaddySnippet(
   for (const [name, paths] of caddyMatchers(namespaces)) {
     lines.push(`@${name} path ${paths.join(' ')}`);
   }
-  lines.push(...hubRedirectDirectives(namespaces, redirects));
   lines.push(...linkPreviewDirectives(namespaces));
   return `${lines.join('\n')}\n`;
 }
 
 /**
  * deploy/docker/console-routes.caddy, imported by Caddyfile.hub inside the console's site block: the console's
- * namespaces as named matchers. The console has no redirects.
+ * namespaces as named matchers.
  */
 export function consoleCaddySnippet(namespaces: readonly Namespace[] = consoleNamespaces): string {
   const lines = [
@@ -174,22 +142,38 @@ export const HUB_URL_ENV = 'TOHE_HUB_URL';
 export const CONTENT_SIGNAL = 'search=yes, ai-input=yes, ai-train=no';
 
 /**
- * apps/hub/public/robots.txt: everything may be crawled but what the map keeps out, the content signals, and where the
- * sitemap is. A Caddy template (the hub's Caddy fills in the sitemap's absolute URL), served as it is by `pnpm dev`,
- * where the line is ignored.
+ * apps/hub/public/robots.txt (ADR 0047): everything may be crawled but what the map keeps out, the content signals, and
+ * where the sitemap is. The crawlers that fetch for search and answers get a group of their own with the same rules —
+ * a crawler follows only the most specific group that names it (RFC 9309), so the group repeats what every crawler may
+ * not fetch — and the crawlers that fetch only to train models are kept out of everything. A Caddy template (the hub's
+ * Caddy fills in the sitemap's absolute URL), served as it is by `pnpm dev`, where the line is ignored.
  */
-export function robotsTxt(namespaces: readonly Namespace[] = hubNamespaces): string {
+export function robotsTxt(
+  namespaces: readonly Namespace[] = hubNamespaces,
+  search: readonly string[] = searchCrawlers,
+  training: readonly string[] = trainingCrawlers,
+): string {
   const disallowed = namespaces
     .filter((namespace) => !namespace.crawl)
     .map((namespace) => `Disallow: ${namespace.match === 'tree' ? `${namespace.path}/` : namespace.path}`);
+  const rules = [`Content-Signal: ${CONTENT_SIGNAL}`, 'Allow: /', ...disallowed];
   const sitemap = namespaces.find((namespace) => namespace.id === 'sitemap');
   return `${[
     header('#'),
     '',
     'User-agent: *',
-    `Content-Signal: ${CONTENT_SIGNAL}`,
-    'Allow: /',
-    ...disallowed,
+    ...rules,
+    ...(search.length > 0
+      ? [
+          '',
+          '# Search and answers that cite the page.',
+          ...search.map((name) => `User-agent: ${name}`),
+          ...rules,
+        ]
+      : []),
+    ...(training.length > 0
+      ? ['', '# Training models only.', ...training.map((name) => `User-agent: ${name}`), 'Disallow: /']
+      : []),
     ...(sitemap ? ['', `Sitemap: {{ env "${HUB_URL_ENV}" }}${sitemap.path}`] : []),
   ].join('\n')}\n`;
 }
@@ -221,21 +205,89 @@ export function sitemapPaths(
     });
 }
 
+/** An `hreflang` value of the sitemap: a language of the public pages, or the page for readers of neither. */
+export type Hreflang = PublicLanguage | 'x-default';
+
+/** A page of the sitemap and its language alternates — none for a page declared Vietnamese-only. */
+export interface SitemapEntry {
+  path: string;
+  alternates: readonly { hreflang: Hreflang; path: string }[];
+}
+
+/**
+ * The sitemap's pages with their `hreflang` alternates (ADR 0047): each page of a pair names both — itself among them,
+ * as search engines ask — and `x-default`, the English one. A page whose pair is not listed is refused, unless it is
+ * declared Vietnamese-only (`vietnameseOnlyPages`); so is a Vietnamese-only page that is not listed, or that has an
+ * English page after all — the list says exactly which pages stand alone.
+ */
+export function sitemapEntries(
+  namespaces: readonly Namespace[] = hubNamespaces,
+  gameIds: readonly string[] = [],
+  pages: Record<string, readonly string[]> = publicPages(gameIds),
+  vietnameseOnly: readonly string[] = vietnameseOnlyPages,
+): SitemapEntry[] {
+  const paths = sitemapPaths(namespaces, gameIds, pages);
+  const listed = new Set(paths);
+  for (const path of vietnameseOnly) {
+    if (!listed.has(path) || languageOfPath(path) !== 'vi') {
+      throw new Error(
+        `${path}: declared Vietnamese-only (vietnameseOnlyPages), but no Vietnamese page of the sitemap`,
+      );
+    }
+    if (listed.has(pathInLanguage(path, 'en'))) {
+      throw new Error(
+        `${path}: declared Vietnamese-only (vietnameseOnlyPages), but its English page is listed`,
+      );
+    }
+  }
+  return paths.map((path) => {
+    const pair = pairOf(path, vietnameseOnly);
+    if (pair === undefined) return { path, alternates: [] };
+    if (!listed.has(pair)) {
+      throw new Error(
+        `${path}: its ${languageOfPath(pair) === 'en' ? 'English' : 'Vietnamese'} page ${pair} is not listed (publicPages in map.ts; vietnameseOnlyPages for a page with none)`,
+      );
+    }
+    const vietnamese = pathInLanguage(path, 'vi');
+    const english = pathInLanguage(path, 'en');
+    return {
+      path,
+      alternates: [
+        { hreflang: 'vi', path: vietnamese },
+        { hreflang: 'en', path: english },
+        { hreflang: 'x-default', path: pathInLanguage(path, xDefaultLanguage) },
+      ],
+    };
+  });
+}
+
 /**
  * deploy/docker/hub-sitemap.caddy: the snippet `hubSitemap`, which Caddyfile.hub imports at its top level and uses to
  * answer /sitemap.xml. The URLs are absolute, from TOHE_HUB_URL when the container starts; without it the sitemap is a
- * 404 rather than a list of relative URLs, which crawlers reject.
+ * 404 rather than a list of relative URLs, which crawlers reject. Each page of a language pair names its alternates —
+ * the one place `hreflang` is declared (ADR 0047).
  */
 export function hubSitemapCaddySnippet(
   namespaces: readonly Namespace[] = hubNamespaces,
   gameIds: readonly string[] = [],
 ): string {
-  const urls = sitemapPaths(namespaces, gameIds).map(
-    (path) => `\t\t  <url><loc>{{ env "${HUB_URL_ENV}" }}${path}</loc></url>`,
+  const url = (path: string) => `{{ env "${HUB_URL_ENV}" }}${path}`;
+  const urls = sitemapEntries(namespaces, gameIds).flatMap(({ path, alternates }) =>
+    alternates.length === 0
+      ? [`\t\t  <url><loc>${url(path)}</loc></url>`]
+      : [
+          `\t\t  <url><loc>${url(path)}</loc>`,
+          ...alternates.map(
+            (alternate) =>
+              `\t\t    <xhtml:link rel="alternate" hreflang="${alternate.hreflang}" href="${url(alternate.path)}"/>`,
+          ),
+          '\t\t  </url>',
+        ],
   );
   return `${[
     header('#'),
-    '# The sitemap: the public pages the map marks as indexed, with absolute URLs from the hub’s own public URL.',
+    '# The sitemap: the public pages the map marks as indexed, with absolute URLs from the hub’s own public URL, and',
+    '# each page’s language alternates (hreflang, ADR 0047).',
     '(hubSitemap) {',
     `\t@noHubUrl expression \`{env.${HUB_URL_ENV}} == ""\``,
     '\terror @noHubUrl 404',
@@ -246,7 +298,7 @@ export function hubSitemapCaddySnippet(
     '\t}',
     '\trespond <<XML',
     '\t\t<?xml version="1.0" encoding="UTF-8"?>',
-    '\t\t<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '\t\t<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     ...urls,
     '\t\t</urlset>',
     '\t\tXML 200',

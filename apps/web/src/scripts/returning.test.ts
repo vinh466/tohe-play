@@ -2,10 +2,18 @@ import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
 import script from './returning.js?raw';
 
-/** Runs the script as a browser would, on a page at `search` with `stored` in localStorage; returns where it went. */
-function run(search: string, stored: Record<string, string>, storageThrows = false): string[] {
+/**
+ * Runs the script as a browser would, on the page at `pathname` with the query `search` and `stored` in localStorage;
+ * returns where it went.
+ */
+function run(
+  search: string,
+  stored: Record<string, string>,
+  storageThrows = false,
+  pathname = '/',
+): string[] {
   const moved: string[] = [];
-  const location = { search, replace: (url: string) => moved.push(url) };
+  const location = { pathname, search, replace: (url: string) => moved.push(url) };
   const localStorage = {
     getItem: (key: string) => {
       if (storageThrows) throw new Error('blocked');
@@ -35,6 +43,35 @@ describe('the returning-player script', () => {
 
   it('shows the page when storage is blocked', () => {
     expect(run('', { 'tohe:guest': '1' }, true)).toEqual([]);
+  });
+
+  // The English home page does the same, and opens the app in English, as every link of an English page does.
+  describe('on /en/', () => {
+    const onEnglish = (search: string, stored: Record<string, string>, storageThrows = false) =>
+      run(search, stored, storageThrows, '/en/');
+
+    it('leaves a new visitor on the page', () => {
+      expect(onEnglish('', {})).toEqual([]);
+    });
+
+    it('sends a device that has played to the app, in English', () => {
+      expect(onEnglish('', { 'tohe:returning': '1' })).toEqual(['/play?lang=en']);
+      expect(onEnglish('', { 'tohe:guest': '1' })).toEqual(['/play?lang=en']);
+      expect(onEnglish('?utm_source=x', { 'tohe:telemetry:device': '{}' })).toEqual(['/play?lang=en']);
+    });
+
+    it.each(['?stay', '?stay=1'])('never redirects on %s', (search) => {
+      expect(onEnglish(search, { 'tohe:guest': '1' })).toEqual([]);
+    });
+
+    it('shows the page when storage is blocked', () => {
+      expect(onEnglish('', { 'tohe:guest': '1' }, true)).toEqual([]);
+    });
+
+    it('treats only /en and what lies under it as English', () => {
+      expect(run('', { 'tohe:guest': '1' }, false, '/en')).toEqual(['/play?lang=en']);
+      expect(run('', { 'tohe:guest': '1' }, false, '/english/')).toEqual(['/play']);
+    });
   });
 
   it('reads the keys the app writes: the app’s code still names them', () => {

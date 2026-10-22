@@ -28,9 +28,11 @@ function memory() {
 
 const game: GameSummary = {
   id: 'merge-block',
-  name: 'Ghép Khối',
+  name: 'Merge Blocks',
+  names: { vi: 'Ghép Khối' },
   version: '1.11.0',
   description: '',
+  descriptions: {},
   entryUrl: 'http://localhost:4730/merge-block/1.11.0/index.html',
   iconUrl: null,
   orientation: 'portrait',

@@ -6,19 +6,21 @@ import {
   consoleCaddySnippet,
   hubCaddySnippet,
   hubPathsCs,
-  hubRedirectDirectives,
   hubSitemapCaddySnippet,
   robotsTxt,
+  sitemapEntries,
   sitemapPaths,
 } from './generate.ts';
+import { languageOfPath, pairOf, pathInLanguage, vietnameseOnlyPages } from './languages.ts';
 import {
   consoleLinks,
   consoleNamespaces,
   hosts,
   hubLinks,
   hubNamespaces,
-  hubRedirects,
   type Namespace,
+  searchCrawlers,
+  trainingCrawlers,
 } from './map.ts';
 import {
   isLinkPreview,
@@ -27,7 +29,6 @@ import {
   matchHubPath,
   navigationAllowlist,
   overlap,
-  redirectTarget,
 } from './match.ts';
 
 /** The hub's pages (apps/hub/src/router.tsx); the hub's own test reads its router. */
@@ -39,6 +40,7 @@ const appPages = [
   '/play/tien-len/rooms/0b7c/replay/3',
   '/r/ABCD',
   '/s/7KQ2M9XA',
+  '/together',
   '/account',
   '/account/email',
   '/account/sign-in',
@@ -62,6 +64,13 @@ const publicPaths = [
   '/about/',
   '/terms/',
   '/privacy/',
+  '/en/',
+  '/en/games/',
+  '/en/games/merge-block/',
+  '/en/guides/',
+  '/en/guides/install/',
+  '/en/faq/',
+  '/en/about/',
 ];
 
 describe('the map', () => {
@@ -104,6 +113,10 @@ describe('the map', () => {
     ['/about/', 'about'],
     ['/terms/', 'terms'],
     ['/privacy', 'privacy'],
+    ['/en', 'en'],
+    ['/en/', 'en'],
+    ['/en/games/merge-block/', 'en'],
+    ['/en/guides/install/', 'en'],
     ['/og.png', 'og-image'],
     ['/llms.txt', 'llms'],
     ['/_web/index.CkXW_mHm.css', 'public-assets'],
@@ -126,12 +139,22 @@ describe('the map', () => {
     '/sitemap.xml/x',
     '/playground',
     '/welcome',
+    '/sign-in/continue',
+    '/register/confirm',
+    '/password/reset',
+    '/profiles',
+    '/data',
     '/rooms/tien-len',
     '/room/0b7c',
     '/replay/0b7c/3',
     '/legal/terms',
+    '/legal/privacy',
+    '/togetherx',
     '/termsx',
     '/gamesx',
+    '/enx',
+    '/english',
+    '/vi/',
     '/og.png/x',
     '/llms.txt/x',
     '/admin',
@@ -153,9 +176,6 @@ describe('the map', () => {
       indexed: true,
       navigation: 'network',
     });
-    for (const namespace of hubNamespaces) {
-      expect(namespace.redirectTo !== undefined, namespace.id).toBe(namespace.served === 'redirect');
-    }
   });
 
   it('indexes public pages only — not the files of the public pages', () => {
@@ -183,6 +203,14 @@ describe('the map', () => {
       '/about/',
       '/terms/',
       '/privacy/',
+      '/en/',
+      '/en/games/',
+      '/en/games/hello/',
+      '/en/games/merge-block/',
+      '/en/guides/',
+      '/en/guides/install/',
+      '/en/faq/',
+      '/en/about/',
     ]);
     for (const path of publicPaths) {
       expect(sitemapPaths(hubNamespaces, ['merge-block']), path).toContain(path);
@@ -300,69 +328,6 @@ describe('the console’s host', () => {
   });
 });
 
-describe('the old paths', () => {
-  it('lead to a page of the app or a public page, and none lies in a namespace', () => {
-    const ids = hubRedirects.map((redirect) => redirect.id);
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const redirect of hubRedirects) {
-      const sample = redirect.from.replace(/:\w+/g, 'x');
-      expect(matchHubPath(sample), `${redirect.id}: ${sample} is in a namespace`).toBeUndefined();
-      const target = redirectTarget(sample);
-      const found = matchHubPath(target ?? '');
-      expect(
-        found?.component === 'app' || (found?.component === 'public' && found.indexed),
-        `${redirect.id}: ${target}`,
-      ).toBe(true);
-    }
-  });
-
-  it.each([
-    ['/welcome', '/account/sign-in'],
-    ['/sign-in/continue', '/account/sign-in/continue'],
-    ['/register', '/account/register'],
-    ['/register/confirm', '/account/register/confirm'],
-    ['/password/forgot', '/account/password/forgot'],
-    ['/password/reset', '/account/password/reset'],
-    ['/profiles', '/account/profiles'],
-    ['/data', '/account/data'],
-    ['/legal/terms', '/terms/'],
-    ['/legal/privacy', '/privacy/'],
-    ['/rooms/tien-len', '/play/tien-len/rooms'],
-  ])('sends %s to %s', (from, to) => {
-    expect(redirectTarget(from)).toBe(to);
-  });
-
-  it.each([
-    '/room/0b7c',
-    '/replay/0b7c/3',
-    '/rooms',
-    '/rooms/tien-len/x',
-    '/registerx',
-    '/welcome/x',
-    '/account',
-    '/play',
-    '/',
-  ])('leaves %s alone: no redirect', (path) => {
-    expect(redirectTarget(path)).toBeUndefined();
-  });
-
-  it('covers every page the API used to link to', () => {
-    // hubLinks holds the new paths; these are the ones the API wrote before the move (emails already sent carry them).
-    const oldLinks = [
-      '/welcome',
-      '/sign-in/continue',
-      '/register/confirm',
-      '/password/reset',
-      '/profiles',
-      '/account/email',
-      '/account',
-    ];
-    for (const path of oldLinks) {
-      expect(redirectTarget(path) ?? matchHubPath(path)?.path, path).toBeDefined();
-    }
-  });
-});
-
 describe('the service worker', () => {
   const allowed = (url: string) => navigationAllowlist().some((pattern) => pattern.test(url));
 
@@ -409,11 +374,13 @@ describe('what the map generates', () => {
     ]);
     expect(hubCaddySnippet()).toContain('@apiProxy path /api /api/*\n');
     expect(hubCaddySnippet()).toContain(
-      '@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /terms /terms/* /privacy /privacy/* /og.png /llms.txt\n',
+      '@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /terms /terms/* /privacy /privacy/* /en /en/* /og.png /llms.txt\n',
     );
     expect(hubCaddySnippet()).toContain('@publicStaticImmutable path /_web /_web/*\n');
     expect(hubCaddySnippet()).toContain(' /robots.txt /sitemap.xml /.well-known /.well-known/*\n');
-    expect(hubCaddySnippet()).toContain('@appPage path /play /play/* /account /account/* ');
+    expect(hubCaddySnippet()).toContain(
+      '@appPage path /play /play/* /together /together/* /account /account/* ',
+    );
     expect(hubCaddySnippet()).toContain(' /workbox-* ');
   });
 
@@ -474,33 +441,8 @@ describe('what the map generates', () => {
     expect(isLinkPreview('/r/482913', userAgent)).toBe(false);
   });
 
-  it('writes the redirects as directives, the query kept', () => {
-    const snippet = hubCaddySnippet();
-    expect(snippet).toContain('@legacyWelcome path_regexp legacyWelcome ^/welcome$\n');
-    expect(snippet).toContain('redir @legacyWelcome /account/sign-in?{query} 301\n');
-    expect(snippet).toContain('redir @legacyRegister /account/register{re.legacyRegister.1}?{query} 301\n');
-    expect(snippet).toContain('redir @legacyRooms /play/{re.legacyRooms.1}/rooms?{query} 301\n');
-    // One matcher and one redir for each, and no handler of the app's page answers a redirect.
-    expect(snippet.match(/^redir @/gm)).toHaveLength(hubRedirects.length);
-    expect(caddyMatchers().has('platformRedirect')).toBe(false);
-  });
-
-  it('can still answer a placeholder namespace with a temporary redirect', () => {
-    const placeholder: Namespace = {
-      id: 'soon',
-      path: '/soon',
-      match: 'exact',
-      component: 'platform',
-      served: 'redirect',
-      indexed: false,
-      crawl: true,
-      navigation: 'network',
-      redirectTo: '/play',
-      note: 'A page that is not there yet',
-    };
-    expect(hubRedirectDirectives([placeholder], []).join('\n')).toContain(
-      '@soonRedirect path /soon\nredir @soonRedirect /play?{query} 302',
-    );
+  it('answers no path with a redirect: an old path is a 404 like any other', () => {
+    expect(hubCaddySnippet()).not.toMatch(/^redir /m);
   });
 
   it('writes the console’s matchers', () => {
@@ -592,17 +534,152 @@ describe('what the map generates', () => {
 
   it('keeps crawlers out of the API, allows the rest, says what AI may do, and names the sitemap', () => {
     expect(robotsTxt()).toMatch(
-      /\nUser-agent: \*\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: \/\nDisallow: \/api\/\n\nSitemap: \{\{ env "TOHE_HUB_URL" \}\}\/sitemap\.xml\n$/,
+      /\nUser-agent: \*\nContent-Signal: search=yes, ai-input=yes, ai-train=no\nAllow: \/\nDisallow: \/api\/\n\n/,
     );
+    expect(robotsTxt()).toMatch(/\n\nSitemap: \{\{ env "TOHE_HUB_URL" \}\}\/sitemap\.xml\n$/);
+  });
+
+  // A crawler follows only the most specific group that names it (RFC 9309), so every group repeats the rules (ADR 0047).
+  it('names the search and answer crawlers in a group with the same rules as every crawler', () => {
+    const groups = robotsTxt().split('\n\n');
+    const everyone = groups.find((group) => group.startsWith('User-agent: *\n')) ?? '';
+    const rules = everyone.split('\n').slice(1);
+    const search = groups.find((group) => group.includes('User-agent: OAI-SearchBot')) ?? '';
+    for (const name of searchCrawlers) expect(search).toContain(`User-agent: ${name}\n`);
+    expect(
+      search.split('\n').filter((line) => !line.startsWith('User-agent:') && !line.startsWith('#')),
+    ).toEqual(rules);
+    expect(rules).toContain('Disallow: /api/');
+  });
+
+  it('keeps the crawlers that only train models out of everything', () => {
+    const training = robotsTxt()
+      .split('\n\n')
+      .find((group) => group.includes('User-agent: GPTBot'));
+    for (const name of trainingCrawlers) expect(training).toContain(`User-agent: ${name}\n`);
+    expect(training?.endsWith('\nDisallow: /')).toBe(true);
+    expect(trainingCrawlers.some((name) => searchCrawlers.includes(name))).toBe(false);
   });
 
   it('writes the sitemap from the indexed pages, with the hub’s URL read at run time', () => {
     const snippet = hubSitemapCaddySnippet(hubNamespaces, ['merge-block']);
     expect(snippet).toContain('(hubSitemap) {');
     expect(snippet).toContain('@noHubUrl expression `{env.TOHE_HUB_URL} == ""`');
-    expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/</loc></url>');
-    expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/games/merge-block/</loc></url>');
-    expect(snippet.match(/<url>/g)).toHaveLength(9);
+    expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/</loc>');
+    expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/terms/</loc></url>');
+    expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/games/merge-block/</loc>');
+    expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/en/games/merge-block/</loc>');
+    // Nine Vietnamese pages, seven English ones: the terms and the privacy notice are Vietnamese-only for now.
+    expect(snippet.match(/<url>/g)).toHaveLength(16);
+    expect(snippet).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
+  });
+
+  it('pairs each page with its language alternates in the sitemap, x-default the English one', () => {
+    const snippet = hubSitemapCaddySnippet(hubNamespaces, ['merge-block']);
+    const block = (path: string) =>
+      snippet
+        .split('<url>')
+        .find((url) => url.startsWith(`<loc>{{ env "TOHE_HUB_URL" }}${path}</loc>`))
+        ?.split('</url>')[0] ?? '';
+    const link = (hreflang: string, path: string) =>
+      `<xhtml:link rel="alternate" hreflang="${hreflang}" href="{{ env "TOHE_HUB_URL" }}${path}"/>`;
+    for (const [vi, en] of [
+      ['/', '/en/'],
+      ['/games/merge-block/', '/en/games/merge-block/'],
+      ['/faq/', '/en/faq/'],
+    ] as const) {
+      for (const page of [vi, en]) {
+        expect(block(page), page).toContain(link('vi', vi));
+        expect(block(page), page).toContain(link('en', en));
+        expect(block(page), page).toContain(link('x-default', en));
+        expect(block(page).match(/<xhtml:link/g), page).toHaveLength(3);
+      }
+    }
+    for (const page of vietnameseOnlyPages) {
+      expect(block(page), page).not.toBe('');
+      expect(block(page), page).not.toContain('xhtml:link');
+    }
+  });
+});
+
+describe('the public pages’ languages', () => {
+  it('reads a path’s language: English under /en, Vietnamese elsewhere', () => {
+    expect(['/', '/games/', '/terms/', '/english/'].map(languageOfPath)).toEqual(['vi', 'vi', 'vi', 'vi']);
+    expect(['/en', '/en/', '/en/games/hello/'].map(languageOfPath)).toEqual(['en', 'en', 'en']);
+  });
+
+  it('finds the same page in the other language, and none for a Vietnamese-only page', () => {
+    expect(pathInLanguage('/', 'en')).toBe('/en/');
+    expect(pathInLanguage('/en/', 'vi')).toBe('/');
+    expect(pathInLanguage('/en', 'vi')).toBe('/');
+    expect(pathInLanguage('/games/hello/', 'en')).toBe('/en/games/hello/');
+    expect(pathInLanguage('/en/faq/', 'vi')).toBe('/faq/');
+    expect(pathInLanguage('/faq/', 'vi')).toBe('/faq/');
+    expect(pairOf('/guides/install/')).toBe('/en/guides/install/');
+    expect(pairOf('/en/about/')).toBe('/about/');
+    expect(pairOf('/terms/')).toBeUndefined();
+    expect(pairOf('/en/privacy/')).toBeUndefined();
+  });
+
+  // The English terms and privacy notice come later (ADR 0047); until then these two, and only these, stand alone.
+  it('declares the terms and the privacy notice Vietnamese-only, and nothing else', () => {
+    expect(vietnameseOnlyPages).toEqual(['/terms/', '/privacy/']);
+    const english = sitemapPaths(hubNamespaces, ['hello']).filter((path) => languageOfPath(path) === 'en');
+    const vietnamese = sitemapPaths(hubNamespaces, ['hello']).filter((path) => languageOfPath(path) === 'vi');
+    expect(english.map((path) => pathInLanguage(path, 'vi'))).toEqual(
+      vietnamese.filter((path) => !vietnameseOnlyPages.includes(path)),
+    );
+  });
+
+  it('refuses a page without its pair, unless it is declared Vietnamese-only', () => {
+    const tree: Namespace = {
+      id: 'tips',
+      path: '/tips',
+      match: 'tree',
+      component: 'public',
+      served: 'static',
+      indexed: true,
+      crawl: true,
+      navigation: 'network',
+      cache: 'revalidate',
+      note: 'test',
+    };
+    const english = hubNamespaces.find((namespace) => namespace.id === 'en');
+    if (!english) throw new Error('no en namespace');
+    const both = [tree, english];
+    expect(() => sitemapEntries(both, [], { tips: ['/tips/'], en: ['/en/x/'] }, [])).toThrow(
+      /English page \/en\/tips\/ is not listed/,
+    );
+    expect(() => sitemapEntries(both, [], { tips: ['/tips/'], en: ['/en/tips/', '/en/x/'] }, [])).toThrow(
+      /Vietnamese page \/x\/ is not listed/,
+    );
+    expect(() => sitemapEntries(both, [], { tips: ['/tips/'], en: ['/en/tips/'] }, ['/tips/'])).toThrow(
+      /its English page is listed/,
+    );
+    expect(() => sitemapEntries([tree], [], { tips: ['/tips/'] }, ['/tips/', '/gone/'])).toThrow(
+      /\/gone\/: declared Vietnamese-only/,
+    );
+    expect(sitemapEntries([tree], [], { tips: ['/tips/'] }, ['/tips/'])).toEqual([
+      { path: '/tips/', alternates: [] },
+    ]);
+    expect(sitemapEntries(both, [], { tips: ['/tips/'], en: ['/en/tips/'] }, [])).toEqual([
+      {
+        path: '/tips/',
+        alternates: [
+          { hreflang: 'vi', path: '/tips/' },
+          { hreflang: 'en', path: '/en/tips/' },
+          { hreflang: 'x-default', path: '/en/tips/' },
+        ],
+      },
+      {
+        path: '/en/tips/',
+        alternates: [
+          { hreflang: 'vi', path: '/tips/' },
+          { hreflang: 'en', path: '/en/tips/' },
+          { hreflang: 'x-default', path: '/en/tips/' },
+        ],
+      },
+    ]);
   });
 
   it('gives the API the paths it used to write by hand', () => {
