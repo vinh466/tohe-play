@@ -13,8 +13,10 @@ sidebar:
 - **Decided by:** the owner, 2026-10-22, in the launch review (plans/launch-review D-02, D-04, D-05): "D-02 D-04 chọn
   B"; "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi … nên nếu
   lên vấn đề này như 1 topic và nói tình hình hiện tại". Points the agent proposed are marked *(agent)*;
-  the owner approved them on 2026-10-22 ("ổn nha, theo đề xuất") except **No redirect on `/`**, which waits for the
-  owner's review of the full route map, and turned Cloudflare Access on in front of `console.` the same day.
+  the owner approved them on 2026-10-22 ("ổn nha, theo đề xuất") and turned Cloudflare Access on in front of
+  `console.` the same day. **No redirect on `/`** waited for the owner's review of the full route map; the owner
+  decided it later that day, going further: "triệt để bỏ đi, làm như mới, prod hiện chỉ có tôi dùng thôi" — no redirect
+  on `/`, and the app's old paths from before ADR 0042 no longer answer `301` either.
 
 ## Context
 

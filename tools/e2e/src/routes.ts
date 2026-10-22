@@ -9,14 +9,7 @@
 // Runs against the hub's Caddy (docker compose up, CI's stack job), not `pnpm dev`, whose Vite answers every path
 // with the app. Usage: HUB_URL=http://localhost:4720 CONSOLE_URL=http://localhost:4721 pnpm --filter @tohe/e2e routes
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import {
-  consoleNamespaces,
-  hubNamespaces,
-  hubRedirects,
-  redirectTarget,
-  robotsTxt,
-  sitemapPaths,
-} from '@tohe/routes';
+import { consoleNamespaces, hubNamespaces, robotsTxt, sitemapPaths } from '@tohe/routes';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 // The hub's own public URL as its container knows it (TOHE_HUB_URL: robots.txt and the sitemap write it).
@@ -72,8 +65,7 @@ for (const path of appPages) {
 
 // The root is the public home page (apps/web): HTML that search engines may index, with a CSP that allows no inline
 // script or style, a link to the app and its assets under /_web/. The query changes nothing there (a returning device
-// is sent on by a script, in the browser: the smoke test); the app's old paths answer 301 to the new ones, the query
-// kept, for the links in emails already sent.
+// is sent on by a script, in the browser: the smoke test).
 {
   const { response, body } = await get('/?stay');
   const csp = response.headers.get('content-security-policy') ?? '';
@@ -197,25 +189,12 @@ for (const path of sitemapPaths(undefined, gameIds)) {
     `/llms.txt: text, lists every public page with absolute URLs (${llms.response.status})`,
   );
 }
-for (const redirect of hubRedirects) {
-  const from = redirect.from.replace(/:\w+/g, 'tien-len');
-  const to = redirectTarget(from);
-  const { response } = await get(`${from}?attempt=A&code=123456`);
-  check(
-    response.status === 301 && response.headers.get('location') === `${to}?attempt=A&code=123456`,
-    `${from}: 301 to ${to}, the query kept (${response.status} ${response.headers.get('location')})`,
-  );
-}
-{
-  const { response } = await get('/register/confirm?attempt=A&code=123456');
-  check(
-    response.status === 301 &&
-      response.headers.get('location') === '/account/register/confirm?attempt=A&code=123456',
-    `/register/confirm: 301 to /account/register/confirm, the query kept (${response.status})`,
-  );
-}
-
 for (const path of [
+  // The app's paths before ADR 0042 answer nothing any more (no redirect since 2026-10-22).
+  '/welcome',
+  '/register/confirm',
+  '/legal/terms',
+  '/rooms/tien-len',
   '/room/0b7c',
   '/replay/0b7c/3',
   '/nope',

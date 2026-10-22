@@ -6,7 +6,6 @@ import {
   consoleCaddySnippet,
   hubCaddySnippet,
   hubPathsCs,
-  hubRedirectDirectives,
   hubSitemapCaddySnippet,
   robotsTxt,
   sitemapEntries,
@@ -19,7 +18,6 @@ import {
   hosts,
   hubLinks,
   hubNamespaces,
-  hubRedirects,
   type Namespace,
   searchCrawlers,
   trainingCrawlers,
@@ -31,7 +29,6 @@ import {
   matchHubPath,
   navigationAllowlist,
   overlap,
-  redirectTarget,
 } from './match.ts';
 
 /** The hub's pages (apps/hub/src/router.tsx); the hub's own test reads its router. */
@@ -43,6 +40,7 @@ const appPages = [
   '/play/tien-len/rooms/0b7c/replay/3',
   '/r/ABCD',
   '/s/7KQ2M9XA',
+  '/together',
   '/account',
   '/account/email',
   '/account/sign-in',
@@ -141,10 +139,17 @@ describe('the map', () => {
     '/sitemap.xml/x',
     '/playground',
     '/welcome',
+    '/sign-in/continue',
+    '/register/confirm',
+    '/password/reset',
+    '/profiles',
+    '/data',
     '/rooms/tien-len',
     '/room/0b7c',
     '/replay/0b7c/3',
     '/legal/terms',
+    '/legal/privacy',
+    '/togetherx',
     '/termsx',
     '/gamesx',
     '/enx',
@@ -171,9 +176,6 @@ describe('the map', () => {
       indexed: true,
       navigation: 'network',
     });
-    for (const namespace of hubNamespaces) {
-      expect(namespace.redirectTo !== undefined, namespace.id).toBe(namespace.served === 'redirect');
-    }
   });
 
   it('indexes public pages only — not the files of the public pages', () => {
@@ -326,69 +328,6 @@ describe('the console’s host', () => {
   });
 });
 
-describe('the old paths', () => {
-  it('lead to a page of the app or a public page, and none lies in a namespace', () => {
-    const ids = hubRedirects.map((redirect) => redirect.id);
-    expect(new Set(ids).size).toBe(ids.length);
-    for (const redirect of hubRedirects) {
-      const sample = redirect.from.replace(/:\w+/g, 'x');
-      expect(matchHubPath(sample), `${redirect.id}: ${sample} is in a namespace`).toBeUndefined();
-      const target = redirectTarget(sample);
-      const found = matchHubPath(target ?? '');
-      expect(
-        found?.component === 'app' || (found?.component === 'public' && found.indexed),
-        `${redirect.id}: ${target}`,
-      ).toBe(true);
-    }
-  });
-
-  it.each([
-    ['/welcome', '/account/sign-in'],
-    ['/sign-in/continue', '/account/sign-in/continue'],
-    ['/register', '/account/register'],
-    ['/register/confirm', '/account/register/confirm'],
-    ['/password/forgot', '/account/password/forgot'],
-    ['/password/reset', '/account/password/reset'],
-    ['/profiles', '/account/profiles'],
-    ['/data', '/account/data'],
-    ['/legal/terms', '/terms/'],
-    ['/legal/privacy', '/privacy/'],
-    ['/rooms/tien-len', '/play/tien-len/rooms'],
-  ])('sends %s to %s', (from, to) => {
-    expect(redirectTarget(from)).toBe(to);
-  });
-
-  it.each([
-    '/room/0b7c',
-    '/replay/0b7c/3',
-    '/rooms',
-    '/rooms/tien-len/x',
-    '/registerx',
-    '/welcome/x',
-    '/account',
-    '/play',
-    '/',
-  ])('leaves %s alone: no redirect', (path) => {
-    expect(redirectTarget(path)).toBeUndefined();
-  });
-
-  it('covers every page the API used to link to', () => {
-    // hubLinks holds the new paths; these are the ones the API wrote before the move (emails already sent carry them).
-    const oldLinks = [
-      '/welcome',
-      '/sign-in/continue',
-      '/register/confirm',
-      '/password/reset',
-      '/profiles',
-      '/account/email',
-      '/account',
-    ];
-    for (const path of oldLinks) {
-      expect(redirectTarget(path) ?? matchHubPath(path)?.path, path).toBeDefined();
-    }
-  });
-});
-
 describe('the service worker', () => {
   const allowed = (url: string) => navigationAllowlist().some((pattern) => pattern.test(url));
 
@@ -439,7 +378,9 @@ describe('what the map generates', () => {
     );
     expect(hubCaddySnippet()).toContain('@publicStaticImmutable path /_web /_web/*\n');
     expect(hubCaddySnippet()).toContain(' /robots.txt /sitemap.xml /.well-known /.well-known/*\n');
-    expect(hubCaddySnippet()).toContain('@appPage path /play /play/* /account /account/* ');
+    expect(hubCaddySnippet()).toContain(
+      '@appPage path /play /play/* /together /together/* /account /account/* ',
+    );
     expect(hubCaddySnippet()).toContain(' /workbox-* ');
   });
 
@@ -500,33 +441,8 @@ describe('what the map generates', () => {
     expect(isLinkPreview('/r/482913', userAgent)).toBe(false);
   });
 
-  it('writes the redirects as directives, the query kept', () => {
-    const snippet = hubCaddySnippet();
-    expect(snippet).toContain('@legacyWelcome path_regexp legacyWelcome ^/welcome$\n');
-    expect(snippet).toContain('redir @legacyWelcome /account/sign-in?{query} 301\n');
-    expect(snippet).toContain('redir @legacyRegister /account/register{re.legacyRegister.1}?{query} 301\n');
-    expect(snippet).toContain('redir @legacyRooms /play/{re.legacyRooms.1}/rooms?{query} 301\n');
-    // One matcher and one redir for each, and no handler of the app's page answers a redirect.
-    expect(snippet.match(/^redir @/gm)).toHaveLength(hubRedirects.length);
-    expect(caddyMatchers().has('platformRedirect')).toBe(false);
-  });
-
-  it('can still answer a placeholder namespace with a temporary redirect', () => {
-    const placeholder: Namespace = {
-      id: 'soon',
-      path: '/soon',
-      match: 'exact',
-      component: 'platform',
-      served: 'redirect',
-      indexed: false,
-      crawl: true,
-      navigation: 'network',
-      redirectTo: '/play',
-      note: 'A page that is not there yet',
-    };
-    expect(hubRedirectDirectives([placeholder], []).join('\n')).toContain(
-      '@soonRedirect path /soon\nredir @soonRedirect /play?{query} 302',
-    );
+  it('answers no path with a redirect: an old path is a 404 like any other', () => {
+    expect(hubCaddySnippet()).not.toMatch(/^redir /m);
   });
 
   it('writes the console’s matchers', () => {

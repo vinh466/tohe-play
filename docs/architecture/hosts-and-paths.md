@@ -102,8 +102,7 @@ prefix). Its pages:
 | `/terms/`, `/privacy/` | The terms of use and the privacy notice, rendered at build time from `apps/hub/src/legal/documents.ts` — the one source; the app has no page of its own for them and its links are a full navigation to these. **Vietnamese only** for now |
 | `/og.png`, `/llms.txt` | The shared 1200×630 picture of every link preview (made by `pnpm --filter @tohe/web generate:og` and committed), and `llms.txt`, written at build time from the same pages, both languages in one file |
 
-A page's address ends in `/`: the path without it answers `308` to the one with it, and the old `/legal/terms` and
-`/legal/privacy` lead there at once.
+A page's address ends in `/`: the path without it answers `308` to the one with it.
 
 **The pages without an English text.** The terms and the privacy notice are declared Vietnamese-only in one list,
 `vietnameseOnlyPages` in `@tohe/routes`: they have no `/en/` page and no alternates in the sitemap, and English pages link
@@ -194,22 +193,11 @@ language from Astro. Proper names and established terms stay as they are in eith
 
 ### Old paths
 
-The app lived at thirteen prefixes on the root before the move. The paths that emails already sent may carry answer
-`301` to the new ones, the query kept; they are listed in the map (`hubRedirects`) and kept without an end date:
-
-| Old | New |
-| --- | --- |
-| `/welcome` | `/account/sign-in` |
-| `/sign-in/…` | `/account/sign-in/…` |
-| `/register`, `/register/…` | `/account/register`, `/account/register/…` |
-| `/password/…` | `/account/password/…` |
-| `/profiles` | `/account/profiles` |
-| `/data` | `/account/data` |
-| `/legal/terms`, `/legal/privacy` | `/terms/`, `/privacy/` |
-| `/rooms/<gameId>` | `/play/<gameId>/rooms` |
-
-`/room/<roomId>` and `/replay/<roomId>/<hand>` were only reached from inside the app and need a game id an old link
-does not carry: they answer `404`.
+The app lived at thirteen prefixes on the root before ADR 0042 moved it under `/play` and `/account`. Their `301`s to the
+new paths were removed on 2026-10-22 — production had no player but the owner, who decided it ("làm như mới",
+[ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)): `/welcome`, `/sign-in/…`, `/register/…`,
+`/legal/terms` and the rest are a `404` like any path in no namespace, and the map has no redirects at all. A path that
+moves from now on moves with every link to it, in the same pull request.
 
 ## Namespaces on the console's host
 
@@ -264,10 +252,10 @@ stays in force for its part.
 | Part | Today | In place when |
 | --- | --- | --- |
 | The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; `security.txt` once `hub.securityContact` is set in `platform-infra` | the map's pull request |
-| The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, `/s` (the pages of the entry pipeline, [Entry links](entry-links.md)); manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the old paths answer `301` | the routes' pull request |
+| The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, `/s` (the pages of the entry pipeline, [Entry links](entry-links.md)); manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the old paths are a `404` since 2026-10-22 | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | in place: `apps/web` is built into the hub image and serves the home page, the games' pages, the install guide, the FAQ, about, and the terms and privacy notice at the root, and the same in English under `/en/` but for the terms and the privacy notice (indexed, its own CSP; a script on `/` sends a returning player to `/play`), with `/sitemap.xml`, `robots.txt`, `llms.txt` and the link-preview picture; `apps/docs` serves the docs at the root of `docs.toheplay.io.vn` (`/docs/<page>` answers `301`); the chart's `site` values are `docs` | the public pages' pull request |
 | The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup, optional for now (2026-10-20) and required before the launch ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)); the API does not check Access's token yet | the console's pull request |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |
 | Crawlers by name in `robots.txt` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: `searchCrawlers` and `trainingCrawlers` in the map | the routes' pull request |
 | The English public pages, `/en/…` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: the namespace `en`, the English pages, the sitemap's `hreflang` alternates, the VI \| EN switch and the suggestion; the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages`) | the languages' pull request; the legal texts' English with the review's item for them |
-| The namespaces `/together`, `/promise/` | not yet: each arrives with the pages that use it, so the build's check — the pages written are the sitemap's — and the app's router stay whole | the app frame's and the introduction surface's pull requests |
+| The namespaces `/together`, `/promise/` | `/together` is in the map ahead of its page, so the app frame's pull request changes no generated file while the introduction surface's does (one worker at a time on them, [Working with agents](../guides/working-with-agents.md)); until then the app shows its own not-found there. `/promise/` arrives with its page, which the build's check — the pages written are the sitemap's — needs | the app frame's and the introduction surface's pull requests |
