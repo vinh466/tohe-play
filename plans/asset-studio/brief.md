@@ -1,7 +1,7 @@
 # Brief — Asset Studio: nguyên liệu cho game nhiều content
 
-Status: **draft**. Plan rời *Frame* khi owner xác nhận. Trích dẫn là lời owner trong chat ngày 2026-10-22, giữ nguyên
-văn và chỉ cắt bớt; `[...]` là chú thích của agent.
+Status: **confirmed**. Owner, chat 2026-10-22: "đúng ý r". Trích dẫn là lời owner trong chat ngày 2026-10-22, giữ
+nguyên văn và chỉ cắt bớt; `[...]` là chú thích của agent.
 
 ## Vì sao
 
@@ -44,6 +44,10 @@ Người dùng chính của nền tảng là agent:
 - **Repo public và chưa có LICENSE** (`gh repo view`, 2026-10-22). Asset nào vào repo thì ai cũng thấy.
 - **Host đã giữ chỗ** (ADR 0042, `packages/routes/src/map.ts:65`): `studio.` cho công cụ làm game, nếu cần quyền khác
   người chơi; `media.` cho file người dùng tải lên, không cookie.
+- **Production chỉ đọc từ ngoài** (`AGENTS.md:42`): agent không ghi vào cluster của prod. Studio chạy ở đâu và agent
+  ghi vào nó bằng gì là câu hỏi của D-11.
+- **Build được phép cần mạng** khi dùng Studio (owner, D-06): "build sẽ chịu là có mạng và phụ thuộc vào store (nếu có
+  dùng) (nên xây dựng cơ chế cache nha)".
 - **Nền tảng gia đình**: trẻ em chơi (`minAge`), nên nội dung phải được người duyệt.
 - **Chi phí**: owner quyết ngân sách cho generator trả phí. Worker là Opus ở effort ≤ high.
 - **Chưa có người dùng ngoài** (owner thử một mình): được làm lại tận gốc, không cần giữ tương thích ngược.

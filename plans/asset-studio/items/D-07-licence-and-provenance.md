@@ -1,9 +1,9 @@
 # D-07 — Nhận license nào, ghi nguồn gốc ra sao, asset do AI tạo thì thế nào?
 
-- Status: **proposed** (open → researching → proposed → decided · deferred · dropped)
+- Status: **decided** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
 - Blocks: D-09, D-10 · Blocked by: —
-- Decided: —
+- Decided: owner, chat 2026-10-22: "chốt B nhé". Câu 2 (license của asset Tò He) còn mở
 
 ## Why it matters
 
@@ -50,12 +50,22 @@ shell.
 
 ## Decision
 
-—
+**B**, owner: "chốt B nhé" (2026-10-22).
 
-Owner cần trả lời:
+- **Nhận:** CC0, CC-BY 4.0, OFL 1.1, MIT/BSD/Apache-2.0.
+- **CC-BY-SA:** owner quyết từng trường hợp, như trong B.
+- **Không nhận:** NC, ND, "free for personal use", license không rõ.
+- **Asset AI:** nhận khi có đủ nguồn gốc, điều khoản vendor cho phép, và có người duyệt.
+- **Credits:** sinh từ lock.
 
-1. Danh sách B có ổn không? CC-BY-SA thì tính sao?
-2. Asset Tò He tự làm phát hành dưới license nào?
+**Còn mở:** asset Tò He tự làm phát hành dưới license nào. Nên trả lời cùng lúc với LICENSE của code. Agent ghi
+nhận, không phải quyết định: khi chưa có license thì chưa ai ngoài Tò He được cấp quyền dùng.
+
+**Hệ quả:**
+
+- D-09: máy kiểm SPDX theo danh sách trên.
+- D-10: tra điều khoản từng vendor trước khi dùng.
+- E-03: màn credits trong kit shell.
 
 ## Discussion
 

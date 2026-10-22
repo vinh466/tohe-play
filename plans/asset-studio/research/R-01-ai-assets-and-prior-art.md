@@ -57,7 +57,7 @@ quyền không?
 
 - **D-02:** cách Roblox cấm tải từ xa lúc chạy, cho chọn version và duyệt trước khi public củng cố lựa chọn C.
 - **D-05:** pack CC0 được phát hành theo bộ cùng style, nên chọn pack làm đơn vị phát hành.
-- **D-06:** LFS có hạn mức, nên P0 dùng git thường có giới hạn, file lớn chờ object storage.
+- **D-06:** LFS có hạn mức, nên P0 dùng git thường có giới hạn, file lớn chờ object storage. (Owner sau đó chọn object storage + DB ngay từ đầu, xem D-06.)
 - **D-07:** asset thuần AI có thể không có bản quyền, nên cần ghi nguồn gốc và có người duyệt.
 - **D-08 / D-10:** đồng bộ style là điểm yếu nhất. Công cụ giữ style (model riêng, art bible, hậu xử lý cố định) quan
   trọng hơn chuyện chọn model nào.

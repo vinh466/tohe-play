@@ -1,9 +1,9 @@
 # D-05 — Asset và pack là gì: đơn vị phát hành, loại, metadata, version, hash?
 
-- Status: **proposed** (open → researching → proposed → decided · deferred · dropped)
+- Status: **decided** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
 - Blocks: D-06, D-09, D-12 · Blocked by: D-02
-- Decided: —
+- Decided: owner, chat 2026-10-22: "D-05 on"
 
 ## Why it matters
 
@@ -53,7 +53,14 @@ Chi phí chấp nhận:
 
 ## Decision
 
-—
+**B: pack.** Owner: "D-05 on" (2026-10-22).
+
+**Hệ quả:**
+
+- D-12 khoá theo `pack@version`.
+- Lock ghi sha256 từng file.
+- Kiểm tra asset (D-09) có máy kiểm semver.
+- `style` của pack trỏ tới art bible mà pack chọn (D-08).
 
 ## Discussion
 
