@@ -865,6 +865,18 @@ async function shellRun(run: {
     mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
     await page.screenshot({ path: run.screenshot.replace(/\.png$/, '-title.png') }).catch(() => {});
     checks.push({ name: 'shell: opens on its title screen, with play and the way back to Tò He', ok: opens });
+    if (opens) {
+      const reach = await titleReach(
+        page,
+        frame,
+        run.screenshot.replace(/-shell\.png$/, '-title-{size}.png'),
+      );
+      checks.push({
+        name: `shell: the title screen keeps play, its tools and the way back in sight on ${TITLE_VIEWPORTS.map(sizeName).join(', ')}`,
+        ok: reach.length === 0,
+        detail: reach.length === 0 ? undefined : reach.join('; '),
+      });
+    }
     const canvases = () => frame.evaluate(() => document.querySelectorAll('canvas').length).catch(() => -1);
     const underTitle = await canvases();
     checks.push({
@@ -932,6 +944,68 @@ async function shellRun(run: {
     host.dispose();
     await page.close();
   }
+}
+
+/**
+ * The screens a title screen must fit without scrolling (ADR 0046): a phone held upright and sideways, from the
+ * smallest still in use (320x568, 568x320) to a long Android one (915x412).
+ */
+const TITLE_VIEWPORTS = [
+  { width: 390, height: 844 },
+  { width: 360, height: 640 },
+  { width: 320, height: 568 },
+  { width: 915, height: 412 },
+  { width: 667, height: 375 },
+  { width: 568, height: 320 },
+];
+const sizeName = (size: { width: number; height: number }) => `${size.width}x${size.height}`;
+
+/**
+ * Resizes the page to each of TITLE_VIEWPORTS and asks whether play (`data-tohe-play`), the way back to Tò He
+ * (`data-tohe-exit`) and every tool of the title screen lie wholly inside it — scrolling the card is the last resort,
+ * not the plan. Writes a screenshot per size (`{size}` in `screenshot`), puts the page back, and returns what was out
+ * of reach, one line per size.
+ */
+async function titleReach(page: Page, frame: Frame, screenshot: string): Promise<string[]> {
+  const original = page.viewportSize();
+  const lines: string[] = [];
+  for (const size of TITLE_VIEWPORTS) {
+    await page.setViewportSize(size);
+    let outside: string[] = [];
+    // The screen's entrance animation (a few hundred ms) and the resize settle first.
+    for (let attempt = 0; attempt < 12; attempt++) {
+      await page.waitForTimeout(attempt === 0 ? 700 : 250);
+      outside = await frame
+        .evaluate(() => {
+          const out: string[] = [];
+          const nodes = document.querySelectorAll('[data-tohe-play], [data-tohe-exit], .tohe-tool');
+          for (const node of nodes) {
+            const box = node.getBoundingClientRect();
+            if (box.width === 0 || box.height === 0) continue;
+            const inside =
+              box.top >= -0.5 &&
+              box.left >= -0.5 &&
+              box.bottom <= window.innerHeight + 0.5 &&
+              box.right <= window.innerWidth + 0.5;
+            if (!inside) {
+              const name = (node.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 24);
+              out.push(
+                `"${name}" at ${Math.round(box.top)}-${Math.round(box.bottom)} of ${window.innerHeight}`,
+              );
+            }
+          }
+          return out;
+        })
+        .catch(() => ['the page could not be read']);
+      if (outside.length === 0) break;
+    }
+    mkdirSync(resolve(screenshot, '..'), { recursive: true });
+    await page.screenshot({ path: screenshot.replace('{size}', sizeName(size)) }).catch(() => {});
+    if (outside.length > 0) lines.push(`${sizeName(size)}: ${outside.join(', ')}`);
+  }
+  if (original) await page.setViewportSize(original);
+  await page.waitForTimeout(300);
+  return lines;
 }
 
 /**

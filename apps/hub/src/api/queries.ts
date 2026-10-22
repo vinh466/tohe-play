@@ -1,11 +1,12 @@
-import { queryOptions } from '@tanstack/react-query';
+import { type QueryClient, queryOptions } from '@tanstack/react-query';
 import i18n from '../i18n.ts';
-import { sessionEnded, sessionEndedBy } from '../session/ended.ts';
+import { sessionEnded } from '../session/ended.ts';
+import { createMeWatch, loadMe, type MeDeps } from '../session/loadMe.ts';
 import { funName } from '../session/profileNames.ts';
 import { db } from '../storage/db.ts';
 import { ensureDeviceProfile, listDeviceProfiles } from '../storage/deviceProfiles.ts';
 import { withOfflineCache } from '../storage/repository.ts';
-import { ApiError, fetchConfig, fetchGames, fetchMe, fetchProfileOptions, type MeView } from './client.ts';
+import { fetchConfig, fetchGames, fetchMe, fetchProfileOptions, type MeView } from './client.ts';
 
 export const configQuery = queryOptions({
   queryKey: ['config'],
@@ -22,31 +23,37 @@ export const gamesQuery = (profileId: string | null) =>
   });
 
 /**
- * The device session. When the API cannot be reached (network down, or the homelab's API down behind the hub's
- * proxy), the last known session is used so a child can keep playing offline (ADR 0005). An account's session that the
- * API no longer knows — while this device still kept it — has ended, and the app says so (session/ended.ts, ADR 0046).
+ * The device session. When the API cannot be reached — the network is down, the homelab's API is down behind the hub's
+ * proxy, or it did not answer within ME_TIMEOUT_MS — the last known session is used so a child can keep playing offline
+ * (ADR 0005) and a cold start on a weak signal is never stuck on "Đang tải…"; the API is asked again in the background.
+ * An account's session that the API no longer knows — while this device still kept it — has ended, and the app says so
+ * (session/ended.ts, ADR 0046); that needs the API's own answer, never a timeout (session/loadMe.ts).
  */
 export const meQuery = queryOptions({
   queryKey: ['me'],
-  queryFn: async (): Promise<MeView | null> => {
-    try {
-      const me = await fetchMe();
-      if (me) {
-        await db.cache.put({ key: 'me', value: me, at: Date.now() });
-        sessionEnded.clear();
-      } else {
-        const known = (await db.cache.get('me'))?.value as MeView | undefined;
-        if (sessionEndedBy(known, me)) sessionEnded.mark();
-        await db.cache.delete('me');
-      }
-      return me;
-    } catch (error) {
-      const unreachable = error instanceof TypeError || (error instanceof ApiError && error.status >= 500);
-      if (!unreachable) throw error;
-      return ((await db.cache.get('me'))?.value as MeView | undefined) ?? null;
-    }
+  queryFn: async ({ client }): Promise<MeView | null> => {
+    background = client;
+    const answer = await loadMe(meDeps);
+    meWatch.answered(answer.confirmed);
+    return answer.me;
   },
-  staleTime: 30 * 1000,
+  // A session that is only the device's copy is stale at once: a returning focus or a network coming back asks again.
+  staleTime: () => (meWatch.unconfirmed ? 0 : 30 * 1000),
+});
+
+const meDeps: MeDeps = {
+  fetchMe,
+  known: async () => (await db.cache.get('me'))?.value as MeView | undefined,
+  keep: async (me) => void (await db.cache.put({ key: 'me', value: me, at: Date.now() })),
+  forget: async () => void (await db.cache.delete('me')),
+  ended: sessionEnded,
+};
+
+/** The query client that last read the session, for the background ask. */
+let background: QueryClient | null = null;
+const meWatch = createMeWatch(() => {
+  // Offline there is nothing to ask: the network coming back asks (the session is stale by then).
+  if (navigator.onLine) void background?.refetchQueries({ queryKey: ['me'] });
 });
 
 export const profileOptionsQuery = queryOptions({

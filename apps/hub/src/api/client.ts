@@ -109,9 +109,12 @@ export const fetchConfig = () => call(api.GET('/api/config'));
 export const fetchGames = () => call(api.GET('/api/games'));
 export const fetchProfileOptions = () => call(api.GET('/api/profiles/options'));
 
-/** The device session, or null when nobody is signed in (the API answers 204 then). */
-export async function fetchMe(): Promise<MeView | null> {
-  const me: MeView | undefined = await call(api.GET('/api/auth/me'));
+/**
+ * The device session, or null when nobody is signed in (the API answers 204 then). `signal` cuts the wait short: a cold
+ * start on a weak signal must not hang on it (session/loadMe.ts).
+ */
+export async function fetchMe(signal?: AbortSignal): Promise<MeView | null> {
+  const me: MeView | undefined = await call(api.GET('/api/auth/me', { signal }));
   return me ?? null;
 }
 

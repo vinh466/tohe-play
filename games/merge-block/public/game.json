@@ -3,7 +3,7 @@
   "id": "merge-block",
   "name": "Merge Blocks",
   "names": { "vi": "Ghép Khối" },
-  "version": "1.11.1",
+  "version": "1.11.2",
   "protocol": 1,
   "description": "Drop number blocks into the columns: two matching blocks merge into one. Chain merges to multiply your score!",
   "descriptions": {

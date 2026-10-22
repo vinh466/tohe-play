@@ -17,6 +17,7 @@ import { useTranslation } from 'react-i18next';
 import { type GameSummary, runs } from '../api/client.ts';
 import { gameEntry } from '../entry/gameEntry.ts';
 import { entry as entryIntent } from '../entry/intent.ts';
+import { asksToTurnUpright } from '../frame/short.ts';
 import { installStore } from '../install/install.ts';
 import { TERMS_VERSION } from '../legal/documents.ts';
 import { tablesStep } from '../session/serverCopy.ts';
@@ -33,6 +34,7 @@ import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
 import { EntryNotice, type GameAsk, GameAsks, type PlayingSession, Reopening } from './GameAsks.tsx';
 import { nameOf } from './gameWords.ts';
 import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './manifest.ts';
+import { RotateHint } from './RotateHint.tsx';
 import {
   declines,
   ENTRY_ANSWER_MS,
@@ -526,7 +528,8 @@ export function GameFrame({
   return (
     <div className="fixed inset-0 flex flex-col bg-page">
       {shell ? null : (
-        <nav className="flex h-14 shrink-0 items-center justify-between border-line border-b-2 px-2 pt-[env(safe-area-inset-top)]">
+        // 56 px of bar under whatever the notch takes: the height adds the inset rather than sharing it.
+        <nav className="flex min-h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 items-center justify-between border-line border-b-2 px-2 pt-[env(safe-area-inset-top)]">
           <button
             type="button"
             onClick={leave}
@@ -600,6 +603,9 @@ export function GameFrame({
             </button>
           ) : null}
         </div>
+        {/* A portrait game on a phone held sideways: a calm layer asks to turn it. The game runs on underneath, and the
+            layer goes when the phone turns back (CSS, no state). The hub still neither locks nor rotates the screen. */}
+        {asksToTurnUpright(game.orientation) ? <RotateHint /> : null}
         {shell && topRight ? (
           <div className="pointer-events-none absolute inset-x-0 top-[max(0.5rem,env(safe-area-inset-top))] flex justify-center">
             <span className="rounded-full bg-notice px-3 py-1 text-notice-ink text-sm">{topRight}</span>

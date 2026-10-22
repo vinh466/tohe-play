@@ -163,7 +163,7 @@ function InstallPanel({ variant, onDone }: { variant: InstallVariant; onDone(): 
         <div className="flex flex-col gap-4">
           <p className="text-ink">{t('install.iosIntro')}</p>
           <ol className="flex list-decimal flex-col gap-2 pl-6 text-ink">
-            {(['iosStep1', 'iosStep2', 'iosStep3', 'iosStep4'] as const).map((step) => (
+            {(['iosStep1', 'iosStep2', 'iosStep3'] as const).map((step) => (
               <li key={step}>{t(`install.${step}`)}</li>
             ))}
           </ol>

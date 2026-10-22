@@ -41,7 +41,56 @@
     <script src="/theme-init.js"></script>
   </head>
   <body>
-    <div id="root"></div>
+    <!-- The first paint, before any script runs: the frame's navigation and a grid of tile placeholders, drawn with the
+         design tokens (the colours theme-init.js set on <html>) and the same Tailwind classes as the frame and the
+         catalog, so it is the shape of what comes. React replaces everything inside #root when it mounts. A picture
+         only: hidden from screen readers, nothing to focus (src/coldStart.test.ts). -->
+    <div id="root">
+      <div
+        aria-hidden="true"
+        data-skeleton="frame"
+        class="flex h-dvh flex-col overflow-hidden pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[calc(7rem+env(safe-area-inset-left))] short:pb-0 short:pl-[calc(7rem+env(safe-area-inset-left))]"
+      >
+        <nav
+          class="fixed inset-y-0 left-0 z-30 hidden w-[calc(7rem+env(safe-area-inset-left))] flex-col gap-2 border-line border-r bg-surface pt-[max(1.5rem,env(safe-area-inset-top))] pl-[env(safe-area-inset-left)] md:flex short:flex short:gap-1 short:pt-[max(0.5rem,env(safe-area-inset-top))]"
+        >
+          <div class="mx-2 h-20 rounded-2xl bg-soft short:h-14"></div>
+          <div class="mx-2 h-20 rounded-2xl bg-fill short:h-14"></div>
+          <div class="mx-2 h-20 rounded-2xl bg-fill short:h-14"></div>
+        </nav>
+        <div
+          class="mx-auto flex w-full max-w-[75rem] flex-col gap-6 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] md:px-8 short:gap-3 short:pt-[max(0.75rem,env(safe-area-inset-top))]"
+        >
+          <div class="flex items-center justify-between gap-3">
+            <div class="h-9 w-44 animate-pulse rounded-full bg-soft motion-reduce:animate-none short:h-7"></div>
+            <div class="h-11 w-36 animate-pulse rounded-full bg-surface shadow-sm motion-reduce:animate-none"></div>
+          </div>
+          <div class="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 short:gap-2">
+            <div data-skeleton="tile" class="h-44 animate-pulse rounded-3xl bg-soft motion-reduce:animate-none short:h-28"></div>
+            <div data-skeleton="tile" class="h-44 animate-pulse rounded-3xl bg-soft motion-reduce:animate-none short:h-28"></div>
+            <div data-skeleton="tile" class="h-44 animate-pulse rounded-3xl bg-soft motion-reduce:animate-none short:h-28"></div>
+            <div data-skeleton="tile" class="h-44 animate-pulse rounded-3xl bg-soft motion-reduce:animate-none short:h-28"></div>
+            <div data-skeleton="tile" class="h-44 animate-pulse rounded-3xl bg-soft motion-reduce:animate-none short:h-28"></div>
+            <div data-skeleton="tile" class="h-44 animate-pulse rounded-3xl bg-soft motion-reduce:animate-none short:h-28"></div>
+            <div data-skeleton="tile" class="h-44 animate-pulse rounded-3xl bg-soft motion-reduce:animate-none short:h-28"></div>
+            <div data-skeleton="tile" class="h-44 animate-pulse rounded-3xl bg-soft motion-reduce:animate-none short:h-28"></div>
+          </div>
+        </div>
+        <nav
+          class="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-line border-t bg-surface px-[env(safe-area-inset-left)] pb-[env(safe-area-inset-bottom)] md:hidden short:hidden"
+        >
+          <div class="flex h-16 flex-col items-center justify-center gap-1.5">
+            <span class="size-6 rounded-full bg-soft"></span><span class="h-2 w-10 rounded-full bg-soft"></span>
+          </div>
+          <div class="flex h-16 flex-col items-center justify-center gap-1.5">
+            <span class="size-6 rounded-full bg-fill"></span><span class="h-2 w-10 rounded-full bg-fill"></span>
+          </div>
+          <div class="flex h-16 flex-col items-center justify-center gap-1.5">
+            <span class="size-6 rounded-full bg-fill"></span><span class="h-2 w-10 rounded-full bg-fill"></span>
+          </div>
+        </nav>
+      </div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

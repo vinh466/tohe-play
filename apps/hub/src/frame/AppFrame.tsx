@@ -19,11 +19,11 @@ export function AppFrame() {
   const typing = useTyping();
   return (
     <FramedContext.Provider value={true}>
-      <div className="flex min-h-dvh flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[calc(7rem+env(safe-area-inset-left))]">
+      <div className="flex min-h-dvh flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[calc(7rem+env(safe-area-inset-left))] short:pb-0 short:pl-[calc(7rem+env(safe-area-inset-left))]">
         <TabNav
           current={current}
-          className="fixed inset-y-0 left-0 z-30 hidden w-[calc(7rem+env(safe-area-inset-left))] flex-col gap-2 border-line border-r bg-surface pt-[max(1.5rem,env(safe-area-inset-top))] pl-[env(safe-area-inset-left)] md:flex"
-          item="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl mx-2 px-1 text-center text-sm"
+          className="fixed inset-y-0 left-0 z-30 hidden w-[calc(7rem+env(safe-area-inset-left))] flex-col gap-2 border-line border-r bg-surface pt-[max(1.5rem,env(safe-area-inset-top))] pl-[env(safe-area-inset-left)] md:flex short:flex short:gap-1 short:pt-[max(0.5rem,env(safe-area-inset-top))]"
+          item="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl mx-2 px-1 text-center text-sm short:min-h-14 short:gap-0"
         />
         <Outlet />
         <UpdateNotice pathname={pathname} />
@@ -32,7 +32,7 @@ export function AppFrame() {
         {typing ? null : (
           <TabNav
             current={current}
-            className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-line border-t bg-surface px-[env(safe-area-inset-left)] pb-[env(safe-area-inset-bottom)] md:hidden"
+            className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-line border-t bg-surface px-[env(safe-area-inset-left)] pb-[env(safe-area-inset-bottom)] md:hidden short:hidden"
             item="flex h-16 flex-col items-center justify-center gap-0.5 text-xs"
           />
         )}
@@ -83,7 +83,7 @@ function UpdateNotice({ pathname }: { pathname: string }) {
   return (
     <div
       role="status"
-      className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-notice py-2 pr-2 pl-4 text-notice-ink shadow-lg md:bottom-4 md:left-[calc(8rem+env(safe-area-inset-left))]"
+      className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-notice py-2 pr-2 pl-4 text-notice-ink shadow-lg md:bottom-4 md:left-[calc(8rem+env(safe-area-inset-left))] short:bottom-4 short:left-[calc(8rem+env(safe-area-inset-left))]"
     >
       <span className="min-w-0 flex-1 font-semibold">{t('update.ready')}</span>
       <button
@@ -133,7 +133,7 @@ export function TabHeader({ title, player }: { title: string; player: Player | n
   const { t } = useTranslation();
   return (
     <header className="flex items-center justify-between gap-3">
-      <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink">{title}</h1>
+      <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink short:text-xl">{title}</h1>
       {player ? (
         <Link
           to="/account/profiles"

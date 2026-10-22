@@ -281,7 +281,14 @@ export const hubNamespaces: readonly Namespace[] = [
   appFile('favicon', '/favicon.svg', 'exact', 'revalidate', 'The icon in browser tabs'),
   appFile('apple-touch-icon', '/apple-touch-icon.png', 'exact', 'revalidate', 'The home-screen icon on iOS'),
   appFile('icon-192', '/icon-192.png', 'exact', 'revalidate', 'The app icon'),
-  appFile('icon-512', '/icon-512.png', 'exact', 'revalidate', 'The app icon, large and maskable'),
+  appFile('icon-512', '/icon-512.png', 'exact', 'revalidate', 'The app icon, large'),
+  appFile(
+    'icon-maskable-512',
+    '/icon-maskable-512.png',
+    'exact',
+    'revalidate',
+    'The app icon for masks: its art inside the 80% safe zone',
+  ),
   appFile(
     'screenshots',
     '/screenshots',

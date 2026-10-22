@@ -37,6 +37,7 @@
 @theme {
   --animate-shake: shake 0.4s ease-in-out;
   --animate-pop-in: pop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-turn-phone: turn-phone 3.6s ease-in-out infinite;
 
   @keyframes shake {
     0%,
@@ -50,6 +51,18 @@
     40%,
     80% {
       transform: translateX(10px);
+    }
+  }
+
+  /* The phone of "Xoay dọc máy để chơi": sideways, a pause, upright, a pause (RotateHint). */
+  @keyframes turn-phone {
+    0%,
+    20% {
+      transform: rotate(0deg);
+    }
+    55%,
+    100% {
+      transform: rotate(-90deg);
     }
   }
 
@@ -69,6 +82,13 @@
 @utility avatar-bg {
   background-image: linear-gradient(to bottom, var(--tohe-avatar-from), var(--tohe-avatar-to));
 }
+
+/*
+ * A short screen — a phone held sideways (src/frame/short.ts): `short:` is for the frame (the rail instead of the bar, a
+ * compact header), `turn:` for the layer that asks to turn a phone upright for a portrait game, on touch screens only.
+ */
+@custom-variant short (@media (max-height: 499px) and (orientation: landscape));
+@custom-variant turn (@media (max-height: 499px) and (orientation: landscape) and (pointer: coarse));
 
 @layer base {
   html {

@@ -26,10 +26,10 @@ export function Screen({
 }) {
   const framed = useContext(FramedContext);
   const width = widths[narrow ? 'narrow' : wide ? 'wide' : 'normal'];
-  const height = framed ? 'flex-1 pb-8' : 'min-h-dvh pb-[max(2rem,env(safe-area-inset-bottom))]';
+  const height = framed ? 'flex-1 pb-8 short:pb-4' : 'min-h-dvh pb-[max(2rem,env(safe-area-inset-bottom))]';
   return (
     <main
-      className={`mx-auto flex w-full flex-col gap-6 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] ${height} ${width}`}
+      className={`mx-auto flex w-full flex-col gap-6 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] short:gap-3 short:pt-[max(0.75rem,env(safe-area-inset-top))] ${height} ${width}`}
     >
       <InAppStrip />
       <InstalledAppHint />

@@ -68,6 +68,13 @@ and destroyed on the way back. "Vòng đời này giúp rõ ràng về luồng c
 └──────────────────────────────┘
 ```
 
+**On a short screen** *(agent)* — a phone held sideways, 320 to 500 px high — the title screen fits the height it gets
+instead of running past it: the picture and the name shrink, the buttons tighten and, from 480 px wide, the screen
+becomes two columns — the picture and name on the left, **▶ Chơi**, the tools and **← Về Tò He** in one column on the
+right — so play, the tools and the way back are always in reach, down to 320 px of height (568×320 is the smallest
+checked). Scrolling inside the card stays the last resort. Every game built on the kit gets it; the kit's CSS
+(`overlay.css`) does it with height media queries, no game code changes.
+
 **⚙️ Cài đặt** and **❓ Cách chơi** are full screens of the menu stage, `←` in the header (and phone Back) to return:
 ⚙️ starts with the 🔊 switch, then one section per setting of the game (block colours; Tiến Lên's house rules,
 players and level, deck). A section that changes how a game plays says "Đang có ván dở: áp dụng từ ván sau." while
@@ -139,8 +146,9 @@ Additive, protocol 1 ([Game Contract v1](../contracts/game-contract-v1.md)):
 Markers conformance looks for: `data-tohe-play` (play, and the first-time how-to's start), `data-tohe-exit` (the way
 back to Tò He, on the title screen; at a table or in a replay, in the panel), `data-tohe-menu` (☰),
 `data-tohe-main-menu` (🏠 in the panel and on the end card). Conformance, for a `shell` game: the first screen within
-8 s of the handshake; the title screen with play and the way out, and no `<canvas>` under it; play through the
-how-to; Back opens the panel within 1.5 s and Back again closes it; the hub's `pause` opens it; no visible
+8 s of the handshake; the title screen with play and the way out, and no `<canvas>` under it; play, every tool and
+the way out wholly inside the screen at 390×844, 360×640, 320×568, 915×412, 667×375 and 568×320 (a screenshot of each,
+`<id>-title-<w>x<h>.png`); play through the how-to; Back opens the panel within 1.5 s and Back again closes it; the hub's `pause` opens it; no visible
 `[data-tohe-exit]` over play; `[data-tohe-main-menu]` leads to the title screen and leaves no `<canvas>` behind; the
 title screen's way out sends `exit`.
 
@@ -215,7 +223,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 | Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, ⚙️ and ❓ screens, a new game asked first, the first-time how-to); the play stage (loading, playing, the panel without a way out, looks changed in place, 🏠 leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
 | Kit (`kit.test.ts`) | The HUD's count-up and shortened scores, run ids |
 | SDK | `init.shell`, `menu` both ways, `open`, `settings`, and refusal without the capability |
-| Conformance | The shell checks above, for every `shell` game; random input starts from **Chơi** and the how-to |
+| Conformance | The shell checks above, for every `shell` game — the title screen's reach on six screen sizes among them; random input starts from **Chơi** and the how-to |
 | Hub | `shell` kept from the API view; the trail of history entries behind a page |
 | e2e smoke | Chạm Chấm: the title screen, no bar; how-to, a round, the board over the title screen; Back opens and closes the panel; the hub hiding the game opens it; no way out to Tò He over play; 🏠 then ← Về Tò He back to the catalog's own history entry; Back on the title screen too |
 | e2e rooms | Tiến Lên's title → Chơi online → lobby → ← back to the game; leaving a table and stopping watching from ☰ |
