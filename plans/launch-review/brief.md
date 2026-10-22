@@ -80,7 +80,7 @@ Sáu hướng, từ những lời trên:
 | Q | Câu hỏi | Agent đề xuất |
 |---|---|---|
 | Q1 | ~~Phạm vi so với Phase 2/3~~ | **Owner 2026-10-22:** "review lai toan bo cai dang co, xem xet o cac goc do" — rà mọi thứ đang có; tính năng mới chỉ khi owner chọn ở Q2 |
-| Q2 | **Tính năng còn thiếu.** Owner đã có danh sách chưa? | Nếu chưa, agent liệt kê ứng viên từ backlog (đăng nhập Zalo, telemetry crash/CSP, Lấp Ô, service worker cho origin của game…) và từ phần rà màn, owner chọn |
+| Q2 | **Tính năng còn thiếu.** Owner đã có danh sách chưa? *(agent đưa ứng viên ở [D-03](items/D-03-features-before-launch.md), 2026-10-22)* | Nếu chưa, agent liệt kê ứng viên từ backlog (đăng nhập Zalo, telemetry crash/CSP, Lấp Ô, service worker cho origin của game…) và từ phần rà màn, owner chọn |
 | Q3 | **Cách rà UI/UX.** Agent chụp từng màn rồi owner xem, hay owner tự đi và ghi lại? | Agent chụp mọi màn bằng Playwright (điện thoại + máy tính, sáng + tối, vi), gom vào `research/`, ghi lỗi thấy được; owner xem và thêm cảm nhận |
 | Q4 | ~~Ngôn ngữ~~ | **Owner 2026-10-22:** vi + en cho hub, game, trang giới thiệu (SEO), Điều khoản + Quyền riêng tư; console chỉ tiếng Anh — soát câu chữ cả hai ngôn ngữ |
 | Q5 | ~~Mốc thời gian~~ | **Owner 2026-10-22:** "chua chot ngay launch, khi nao on thi launch ne  thoai mai nhe" |

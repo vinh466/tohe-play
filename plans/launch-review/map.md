@@ -35,7 +35,7 @@ flowchart TD
 | [D-05](items/D-05-hosts-and-paths.md) | Host và path: giữ ADR 0042 hay đổi (game ở domain riêng, Access cho console) ([R-04](research/R-04-hosts-and-paths-review.md)) | Owner: "subdomain hay path da hop ly chua" | — |
 | E-02 | Rà từng màn: hub, console, trang công khai, game; điện thoại + máy tính, sáng + tối, vi + en; ảnh chụp vào `research/` (cách làm: brief Q3) | "review lai toan bo cai dang co" | D-03, E-04 |
 | E-03 | Luồng đầu–cuối: người mới → chơi → cài app → account; link mời, mã bàn, "Thách bạn", chuyển máy, hồ sơ trẻ em; e2e cho từng luồng | "xem xet o cac goc do"; không ngõ cụt | D-03 |
-| D-03 | Tính năng thiếu trước launch — owner chọn (brief Q2) | Owner chọn, agent không bịa | E-01, E-05 |
+| [D-03](items/D-03-features-before-launch.md) | Tính năng trước launch — owner chọn từ ứng viên ([R-05](research/R-05-learning-from-peers.md)) | Owner chọn, agent không bịa | E-01, E-05 |
 | E-04 | Câu chữ toàn sản phẩm, vi + en, gồm câu agent tự chọn ở Phase 1 | Owner: "review all" | E-05 |
 | E-05 | Điều khoản + Quyền riêng tư nói đúng hôm nay, bằng vi và en; `TERMS_VERSION` mới (mọi người đồng ý lại) | Owner: "chốt trước khi mở hẳn", "cung 2 ngin ngu" | E-01 |
 | E-06 | Console toàn tiếng Anh (hôm nay tiếng Việt viết thẳng trong code) | Owner: "console ... english toan bo" | — |

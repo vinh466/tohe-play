@@ -6,15 +6,15 @@
   nháp; owner đã trả lời Q1, Q4, Q5 (2026-10-22), còn Q2, Q3 và lời xác nhận.
 - Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
-- Research: [R-01 bản đồ trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại, SEO hai ngôn ngữ](research/R-02-layout-prior-art.md) · [R-03 quay lại, app đã cài](research/R-03-coming-back.md) · [R-04 review host và path](research/R-04-hosts-and-paths-review.md)
+- Research: [R-01 bản đồ trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại, SEO hai ngôn ngữ](research/R-02-layout-prior-art.md) · [R-03 quay lại, app đã cài](research/R-03-coming-back.md) · [R-04 review host và path](research/R-04-hosts-and-paths-review.md) · [R-05 học từ miniblox và nền tảng khác](research/R-05-learning-from-peers.md)
 - Trước đó: [`product-surface`](../product-surface/PLAN.md) (Phase 1, Close 2026-10-21)
 
 ## Next — one item
 
-**Owner quyết [D-05 host và path](items/D-05-hosts-and-paths.md)** (đề xuất A: giữ ADR 0042, game sang domain riêng khi có
-game không do repo viết; Access cho console trước launch) và [D-01 ngôn ngữ](items/D-01-languages.md) (đề xuất B; Q1–Q4).
-D-02 và D-04 đã **decided** (B, 2026-10-22); rủi ro khi cập nhật không tái hiện được, nên không có PR riêng. Sau đó: ADR
-"Hai vùng, một khung" (D-02 + D-01 + D-05). Brief vẫn chờ Q2, Q3 và lời xác nhận.
+**Owner chọn [D-03 tính năng trước launch](items/D-03-features-before-launch.md)** (bậc 1: lời hứa "không bao giờ", Chơi cùng
+ba hành động, thẻ mời có số ghế, thử thách hôm nay, bàn của gia đình, chế độ trẻ em, trang SEO theo nhu cầu). D-01, D-02,
+D-04, D-05 đã decided. Sau D-03: brief chốt (Q3 cách rà màn còn mở) → ADR "Hai vùng, một khung" (D-01 + D-02 + D-04 + D-05)
+và hai ADR nhỏ của D-03 (lối vào `daily`, bàn của gia đình).
 
 ## Waiting on the owner
 
@@ -36,6 +36,7 @@ D-02 và D-04 đã **decided** (B, 2026-10-22); rủi ro khi cập nhật không
 | D-02 | [Bố cục các trang và app](items/D-02-layout.md) | decision | **decided** — B, hai vùng một khung (2026-10-22) | — |
 | D-01 | [Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ](items/D-01-languages.md) | decision | **decided** — B, **tiếng Việt mặc định** (đổi lại 2026-10-23), tên riêng/thuật ngữ giữ tiếng Anh; Q3 = bản vi gốc | — |
 | D-04 | [Mở lại app](items/D-04-coming-back.md) | decision | **decided** — B (2026-10-22); mục 4 (cập nhật) về *proposed*: rủi ro không tái hiện | — |
+| D-03 | [Tính năng trước launch](items/D-03-features-before-launch.md) | decision | **proposed** — bậc 1 (7 mục) trước launch, bậc 2 sau | — |
 | D-05 | [Host và path](items/D-05-hosts-and-paths.md) | decision | **decided** — A, game ở L1; luật leo thang L2/L3 ghi thành chủ đề trong spec (2026-10-23) | — |
 | E-01 | [Cổng trước khi mời người ngoài](items/E-01-gate-before-outsiders.md) (từ `product-surface` E-05) | enhancement | open | — |
 

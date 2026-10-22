@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 (khuya) — agent
+
+- Owner: D-05 ở **L1** (game do owner thêm; luật leo thang thành chủ đề trong spec) → **D-05 decided**.
+- Owner: học từ miniblox.io và sản phẩm tương tự, đề xuất mạnh → hai scout → R-05, **D-03 proposed** (bậc 1: 7 mục trước
+  launch, gồm thử thách hôm nay và bàn của gia đình; bậc 2: màn hình chung, bàn theo lượt, mùa Tết, thẻ kết quả).
+
 ## 2026-10-23 (tối) — agent
 
 - Owner: D-01 tạm chốt (`x-default` → `/en/`). D-05: vì sao cách ly game, đổi góc nhìn → giải thích thang cách ly L0–L3,
