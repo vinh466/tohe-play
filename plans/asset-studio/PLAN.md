@@ -4,7 +4,7 @@
   version và chế độ tải mình dùng; nền tảng cung cấp và giữ rào. Một slice farming dựng trên Studio để chứng minh.
 - Phase: **Frame** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)). Map và bốn
   item đã chốt có sẵn, vì owner đã chốt chúng trong chat trước khi plan mở.
-- Started: 2026-10-22 · Branch: `plan/asset-studio` · PR: (draft, link sau khi mở)
+- Started: 2026-10-22 · Branch: `plan/asset-studio` · PR: [#113](https://github.com/vinh466/tohe-play/pull/113) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** · Log: [log.md](log.md)
 - Research: [R-01 AI tạo asset, tiền lệ](research/R-01-ai-assets-and-prior-art.md) ·
   [R-02 nguồn luật chơi, cơ chế](research/R-02-rules-and-mechanics-sources.md)
