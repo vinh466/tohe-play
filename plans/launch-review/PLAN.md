@@ -34,9 +34,9 @@ D-02 và D-04 đã **decided** (B, 2026-10-22); rủi ro khi cập nhật không
 | ID | Item | Kind | Status | Blocked by |
 |---|---|---|---|---|
 | D-02 | [Bố cục các trang và app](items/D-02-layout.md) | decision | **decided** — B, hai vùng một khung (2026-10-22) | — |
-| D-01 | [Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ](items/D-01-languages.md) | decision | **decided** — B, **tiếng Anh mặc định**, tên game tiếng Anh (2026-10-22); Q3 chờ owner | — |
+| D-01 | [Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ](items/D-01-languages.md) | decision | **decided** — B, **tiếng Việt mặc định** (đổi lại 2026-10-23), tên riêng/thuật ngữ giữ tiếng Anh; Q3 = bản vi gốc | — |
 | D-04 | [Mở lại app](items/D-04-coming-back.md) | decision | **decided** — B (2026-10-22); mục 4 (cập nhật) về *proposed*: rủi ro không tái hiện | — |
-| D-05 | [Host và path](items/D-05-hosts-and-paths.md) | decision | **proposed** — A, giữ ADR 0042 + điều kiện mở lại domain của game | — |
+| D-05 | [Host và path](items/D-05-hosts-and-paths.md) | decision | **proposed** — A (giữ một domain + `Origin-Agent-Cluster` + Access cho console); B khi có game không do repo viết | — |
 | E-01 | [Cổng trước khi mời người ngoài](items/E-01-gate-before-outsiders.md) (từ `product-surface` E-05) | enhancement | open | — |
 
 Các item khác nằm ở [map.md](map.md) dưới dạng nháp; lên board khi owner đồng ý map. D-01, D-02 lên trước theo lời owner.

@@ -1,6 +1,6 @@
 # D-01 — Hai ngôn ngữ, vi và en: URL, SEO và cách chọn ngôn ngữ thế nào?
 
-- Status: **decided** — B, tiếng Anh mặc định (owner, 2026-10-22, chat); Q3 (bản gốc của Điều khoản) chờ owner
+- Status: **decided** — B, **tiếng Việt mặc định** (owner đổi lại 2026-10-23), tên riêng và thuật ngữ giữ tiếng Anh; Q3 = bản vi là bản gốc
 - Kind: decision
 - Blocks: E-02, E-04, E-05, E-06 · Blocked by: D-02 (bố cục quyết nơi đặt `/en/`) · Đi cùng: [D-02](D-02-layout.md)
 - Decided: phạm vi đã có lời owner (2026-10-22, gõ không dấu): "duy tri tieng anh va tieng viet th (game sau nay muon
@@ -118,6 +118,22 @@ Owner, 2026-10-22, chat: "D-01 Q1 theo đề xuất, Q2 chốt tên game chính 
   *Tap Merge* (`vi`: Chạm Ghép), Tiến Lên → *Tiến Lên* (tên riêng của trò chơi), Chạm Chấm (`hello`) → tên tiếng Anh do
   agent đề xuất trong ADR — owner duyệt.
 - **Q3 chờ owner** — agent gợi ý ở *Discussion* 2026-10-22.
+
+**Đổi lại** — owner, 2026-10-23, chat: "Q3 hợp lý nha, từ đây tôi muốn suy nghĩa lại cho bộ mặt sản phẩm sang default là tiếng việt và đánh vào user việt, en là hỗ trợ thêm cần thiết cho user nước ngoài tiếp cận, các nội dung cần tiếng anh thì nên giữ trên tiếng việt cũng được tạo sự chính xác (name, thuật ngũ, tên riêng ,....)".
+
+- **Q3 = bản tiếng Việt là bản gốc**; bản tiếng Anh là bản dịch; trang ghi theo luật "khi hai bản khác nhau, áp dụng bản
+  có lợi hơn cho người dùng" (Luật BVQLNTD 2023 Điều 23); mỗi điều có cùng mã ở hai bản, một test bắt đủ cặp.
+- **Q4 đổi: tiếng Việt là mặt chính** — thay cho "tiếng Anh mặc định" ở trên:
+  - Trang công khai: **tiếng Việt ở `/…`** (như hôm nay, không đổi URL đã index), **tiếng Anh ở `/en/…`**.
+  - `x-default` *(agent đề xuất, owner duyệt)*: trỏ **`/en/`** — người không đọc vi cũng không đọc en (Thái, Hàn…) đọc tiếng
+    Anh dễ hơn; người Việt vẫn được Google đưa tới `/` qua `hreflang="vi"`.
+  - Trình duyệt không phải `vi` mở trang vi: **gợi ý** "View in English →", không tự chuyển; bấm thì nhớ.
+  - App: cài đặt → ngôn ngữ của lối vào (trang vừa đi qua; với link mời là ngôn ngữ người tạo link, với bàn là người mở
+    bàn — người được rủ thường nói cùng tiếng người rủ) → trình duyệt (`vi` → vi, ngôn ngữ khác → en) → vi.
+- **Giữ tiếng Anh trong giao diện tiếng Việt** cho tên riêng, tên game, thuật ngữ đã quen (ví dụ "combo", "ranked") — E-04
+  soát câu chữ theo luật này, không dịch ép.
+- **Q2 giữ nguyên**: `name` là tên chuẩn của game (tiếng Anh hay tên riêng như Tiến Lên), bắt buộc, hiện mặc định; tên theo
+  ngôn ngữ (`names.vi`…) tuỳ chọn, có thì hiện — tác giả game quyết tên nào cần tiếng Việt.
 
 ## Discussion
 

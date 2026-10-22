@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 (sau) — agent
+
+- Owner: Q3 hợp lý (bản vi gốc); **đổi lại mặt chính sang tiếng Việt**, en hỗ trợ người nước ngoài, tên riêng và thuật ngữ
+  giữ tiếng Anh → D-01 cập nhật (`/` vi, `/en/` en, `x-default` → `/en/` chờ duyệt).
+- Owner: subdomain không tách được ư, hai domain tốn → giải thích origin vs site (PSL); D-05 quay về đề xuất A.
+
 ## 2026-10-23 — agent
 
 - Owner: **D-01 decided** — Q1 B; Q2 tên game tiếng Anh bắt buộc + tên theo ngôn ngữ tuỳ chọn (đổi Game Contract); Q4

@@ -1,6 +1,6 @@
 # D-05 — Host và path: giữ bố cục của ADR 0042, hay đổi gì trước launch?
 
-- Status: **proposed** (agent, 2026-10-22)
+- Status: **proposed** (agent, 2026-10-22; xem lại 2026-10-23 theo cái giá owner nêu)
 - Kind: decision
 - Blocks: — · Blocked by: — · Đi cùng: [D-01](D-01-languages.md), [D-02](D-02-layout.md)
 - Decided: —
@@ -76,3 +76,14 @@ cấu hình, không migration). Về `*.vinetic.io.vn`:
 - **Game sang `*.vinetic.io.vn` (để khỏi mua domain): cũng không nên.** `vinetic.io.vn` chứa các app không phải của Tò He
   (`auth`, `platform`, `wiki`); code game sẽ cùng site với chúng — đúng điều ADR 0039 tránh ("game code never on a site
   with apps that are not Tò He's"). Domain riêng cho game là cách sạch.
+
+**owner** (2026-10-23, chat): "về domain explain phat nữa lý do cho tôi, subdomain k giúp đc ta tách ư, 2 domain cho 1 sản
+phẩm cũng tốn đó".
+
+**agent** (2026-10-23): subdomain tách được **origin** (cookie riêng, lưu trữ riêng, game không đụng được hub — Tò He đã
+có), nhưng không tách được **site**: trình duyệt tính site theo domain đăng ký được (theo PSL), và `toheplay.io.vn` là một
+domain như thế, nên mọi subdomain của nó cùng site. Muốn subdomain thành site riêng thì phải đưa chính `toheplay.io.vn` vào
+PSL — mất hàng tuần, dành cho nhà cung cấp hosting nhiều khách, và làm gốc của hub thành "public suffix" — không hợp. Với
+game do repo này viết, phòng thủ hôm nay đã đủ; cộng thêm hai việc rẻ trong cùng domain: header `Origin-Agent-Cluster: ?1`
+trên `games.` (trình duyệt cách ly theo origin thay vì theo site) **[chưa kiểm hỗ trợ hiện tại]** và Cloudflare Access cho
+`console.`. **Đề xuất quay về A** vì cái giá của domain thứ hai; B khi có game không do repo viết.
