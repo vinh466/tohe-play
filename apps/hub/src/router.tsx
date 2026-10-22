@@ -105,8 +105,11 @@ const profilesRoute = createRoute({
   path: '/account/profiles',
   // ?auto=true when the hub sent someone here to pick a player: an account with one profile and no PIN plays at once
   // (D-01). Opened by hand ("Đổi người chơi"), the picker always shows, to add profiles or manage the account.
-  validateSearch: (search: Record<string, unknown>): { auto?: boolean } => ({
+  // ?ask=true: "Ai đang chơi?" at a cold start after 30 minutes unused (ADR 0046) — it shows, and the screen that asked
+  // opens after it, the entry this tab keeps with it.
+  validateSearch: (search: Record<string, unknown>): { auto?: boolean; ask?: boolean } => ({
     auto: search.auto === true || search.auto === 'true' ? true : undefined,
+    ask: search.ask === true || search.ask === 'true' ? true : undefined,
   }),
   component: ProfilesPage,
 });

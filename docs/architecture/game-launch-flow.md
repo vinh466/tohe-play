@@ -15,6 +15,7 @@ sequenceDiagram
   participant A as Platform API
 
   P->>H: tap game card
+  H->>L: note "opened" for this profile (Chơi tiếp)
   H->>H: check entryUrl is on the games origin
   H->>H: createHost() starts listening
   H->>G: iframe.src = entryUrl
@@ -52,6 +53,9 @@ sequenceDiagram
 - Saves are limited to 64 KB of JSON. Larger saves are rejected with `ok: false`.
 - The seed is the local date (`YYYYMMDD`), so everybody gets the same randomness on the same day — the basis for
   daily challenges.
+- Opening a game's menu, or the lobby of a game played at tables, notes that this profile opened it, on the device
+  (`launcher/recent.ts`): Trò chơi's first screen offers it as *Chơi tiếp* next time ([Surfaces](surfaces.md#coming-back)).
+  Nothing of the game's own goes into it; the game says what is left unfinished on its title screen.
 
 ## Leaving and phone Back
 
@@ -75,6 +79,9 @@ other for the same reason.
 
 - The hub's service worker precaches the hub; `GET /api/games` and `GET /api/config` are cached network-first,
   and the hub additionally keeps the last good copy in IndexedDB.
+- A new version of the hub never takes over a game in play: its service worker waits until every page of the app is
+  closed, and the page keeps the files it started with, so opening a game after a deploy loads the version the page
+  runs, with no reload ([Surfaces](surfaces.md#coming-back); `pnpm --filter @tohe/hub updates`).
 - Saves and scores are written to IndexedDB first. Nothing waits for the network.
 - Game builds are immutable and served with long cache lifetimes, so a game played once is in the browser cache.
   A dedicated games-origin service worker is a planned spike ([walking skeleton](../roadmap/walking-skeleton.md#spikes)).

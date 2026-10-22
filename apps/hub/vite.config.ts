@@ -55,7 +55,9 @@ export default defineConfig({
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // A new version waits for the next cold start and never reloads an open page by itself; the frame's screens offer
+      // "Tải lại" (ADR 0046, src/update/). Registered from src/update/register.ts.
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Tò He',
@@ -69,6 +71,9 @@ export default defineConfig({
         start_url: '/play',
         scope: '/',
         display: 'standalone',
+        // A link opened while the app runs goes to the open app (Chromium), which navigates to it through
+        // `launchQueue` (src/install/launch.ts); elsewhere the browser's own way ("auto") (ADR 0046).
+        launch_handler: { client_mode: ['focus-existing', 'auto'] },
         // No `orientation` (ADR 0046): the app neither rotates nor locks the screen; a game fits the orientation its
         // game.json prefers inside the screen it gets.
         background_color: '#fff7ed',

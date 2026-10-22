@@ -12,6 +12,7 @@ import { entry } from '../entry/intent.ts';
 import type { PlayingSession } from '../launcher/GameAsks.tsx';
 import { GameFrame } from '../launcher/GameFrame.tsx';
 import { hasShell } from '../launcher/manifest.ts';
+import { useOpened } from '../launcher/recent.ts';
 import { playLevel } from '../launcher/requests.ts';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import type { Player } from '../session/session.ts';
@@ -71,6 +72,9 @@ function Launcher({
     setConfirmingExit(false);
     paused.current?.resume();
   };
+
+  // "Chơi tiếp" on Trò chơi's first screen: this profile opened this game last (ADR 0046).
+  useOpened(player.id, gameId, Boolean(game));
 
   // The game is open, or not in this profile's catalog: either way the intent that led here is over.
   const settled = Boolean(game && gamesOrigin) || (games.isSuccess && !game);

@@ -78,7 +78,6 @@ Engagement here never means pressure: no streaks that punish, no countdowns, no 
 
 | ID | Idea | Value | Effort | Status | Needs |
 | --- | --- | --- | --- | --- | --- |
-| PB-17 | **A test that deploys over an open app**: two builds, the page on the first, the second deployed, a game opened — no error screen. Written on 2026-10-22, when it found the risk was not real (the router reloads once); not committed yet | M | S | idea | Decide whether CI runs it |
 | PB-18 | **Browser crashes and CSP reports** in telemetry, totals only ([ADR 0015](../decisions/0015-device-telemetry.md)) | M | M | idea | — |
 | PB-19 | **UAT over HTTPS** (`uat.toheplay.io.vn`, [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)) | L | M | idea | — |
 | PB-20 | **Catch up with Dependabot**: [#107](https://github.com/vinh466/tohe-play/pull/107) (NuGet: `dotnet-ef` 10.0.13, `Scalar.AspNetCore` 2.18.2) fails only because Biome would format `.config/dotnet-tools.json` differently; [#87](https://github.com/vinh466/tohe-play/pull/87) (15 npm minor and patch updates) passed on 2026-10-20 and needs a rebase and a fresh run. The ones in the [upgrade watchlist](upgrade-watchlist.md) (#88, #6, #5) stay open on purpose | M | S | ready | — |
@@ -87,6 +86,7 @@ Engagement here never means pressure: no streaks that punish, no countdowns, no 
 
 | ID | Idea | Pull request |
 | --- | --- | --- |
+| PB-17 | A test that deploys over an open app: two builds, a page on the first, the second deployed, a game opened — no error screen and no reload (`pnpm --filter @tohe/hub updates`, CI's *Updates* job) | the coming-back pull request (G5) |
 
 ## Dropped
 

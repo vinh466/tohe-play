@@ -6,7 +6,8 @@
 // signing in ("Thêm vào"). An iPhone sees the steps of iOS; the in-app browsers of Zalo and
 // Messenger see "Mở bằng trình duyệt" on arrival; the installed app (standalone) never sees any of it; a room link
 // still asks to sign in; a device profile moves to a new phone with its transfer code (six digits, the old phone says
-// yes). Needs the sample game in the catalog (the smoke test waits for it the same way), and Mailpit for the one
+// yes). Coming back (ADR 0046): "Chơi tiếp" after the first round, an ended session that says so, and on an iPhone a
+// room link's line on opening it in the installed app. Needs the sample game in the catalog (the smoke test waits for it the same way), and Mailpit for the one
 // sign-up's code.
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e journey
 import { AxeBuilder } from '@axe-core/playwright';
@@ -212,6 +213,11 @@ try {
   await playOneRound(android);
   await installCard(android).waitFor({ timeout: 5000 });
   await check(android, 'install-card');
+  // Coming back (ADR 0046): the catalog starts from the game this profile opened last.
+  await android
+    .getByRole('region', { name: 'Chơi tiếp' })
+    .getByRole('link', { name: /Chạm Chấm/ })
+    .waitFor();
 
   step('"Cài về máy" calls the browser\'s prompt and the card goes away');
   await android.getByRole('button', { name: 'Cài về máy' }).tap();
@@ -310,6 +316,19 @@ try {
   if (signedIn.active !== secondId)
     throw new Error('the phone does not play on as the profile it brought in');
   if (signedIn.server.includes(secondId)) throw new Error("a device profile's score reached a public board");
+
+  step(
+    "the account's session ends on that phone: the app says so and offers to sign in — no silent device profile (ADR 0046)",
+  );
+  await second.context().clearCookies();
+  await second.reload();
+  await second.getByRole('heading', { name: 'Phiên đăng nhập đã hết' }).waitFor();
+  if (await second.getByRole('link', { name: 'Đổi người chơi' }).isVisible()) {
+    throw new Error('a player shows as playing after the session ended');
+  }
+  await check(second, 'session-ended');
+  await second.getByRole('button', { name: 'Đăng nhập lại' }).tap();
+  await second.waitForURL(/\/account\/sign-in$/);
   await second.context().close();
 
   step(
@@ -332,6 +351,15 @@ try {
     .getByRole('dialog', { name: 'Cài Tò He' })
     .getByText(/Chia sẻ/)
     .waitFor();
+  await iphone.getByRole('dialog', { name: 'Cài Tò He' }).getByRole('button', { name: '✕' }).tap();
+
+  step(
+    'on the iPhone, a room link says how to open it in the installed app, whose storage Safari does not share',
+  );
+  await iphone.goto(`${hubUrl}/r/123456`);
+  await iphone.getByRole('heading', { name: 'Vào bàn cùng mọi người' }).waitFor();
+  await iphone.getByText('Đã cài app Tò He? Mở app → Nhập mã 123 456').waitFor();
+  await check(iphone, 'installed-app-hint');
   await iphone.context().close();
 
   for (const [name, userAgent, zalo] of [
@@ -387,6 +415,9 @@ try {
   await link.goto(`${hubUrl}/r/123456`);
   await link.getByRole('heading', { name: 'Vào bàn cùng mọi người' }).waitFor();
   await link.getByRole('button', { name: 'Nhờ bố mẹ' }).waitFor();
+  if (await link.getByText(/Đã cài app Tò He/).isVisible()) {
+    throw new Error('Android was told to open the link in the app by hand');
+  }
   await link.context().close();
 
   step(

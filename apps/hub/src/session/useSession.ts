@@ -4,6 +4,7 @@ import type { MeView } from '../api/client.ts';
 import { deviceProfileQuery, meQuery } from '../api/queries.ts';
 import { db } from '../storage/db.ts';
 import { funnel } from '../telemetry/telemetry.ts';
+import { sessionEnded } from './ended.ts';
 import { deviceMode, resolveSession, type SessionState } from './session.ts';
 
 /** The session, or `loading` while the first answer is pending. */
@@ -23,8 +24,10 @@ export function useSetMe() {
   return useCallback(
     async (me: MeView | null) => {
       queryClient.setQueryData(meQuery.queryKey, me);
-      if (me) await db.cache.put({ key: 'me', value: me, at: Date.now() });
-      else await db.cache.delete('me');
+      if (me) {
+        await db.cache.put({ key: 'me', value: me, at: Date.now() });
+        sessionEnded.clear();
+      } else await db.cache.delete('me');
       await queryClient.invalidateQueries({ queryKey: ['games'] });
     },
     [queryClient],

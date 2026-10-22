@@ -18,6 +18,7 @@ import { linkDeadEnds } from '../entry/deadEnds.ts';
 import { EntryGate } from '../entry/EntryGate.tsx';
 import { entryOfLink, gameEntry } from '../entry/gameEntry.ts';
 import { entry, once } from '../entry/intent.ts';
+import { EntryCodeContext } from '../install/InstalledAppHint.tsx';
 import { linkGameName, nameOf } from '../launcher/gameWords.ts';
 import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
@@ -46,11 +47,13 @@ export function RoomEntryPage() {
   const intent = useMemo(() => readCodeOf('room', raw), [raw]);
   if (!intent) return <DeadEnd reason="unknown" />;
   return (
-    <EntryGate key={intent.code} intent={intent} level={highestLevel(GAME_LEVEL, 'named')}>
-      {(player, session) => (
-        <RoomPreview intent={intent} player={player} device={session.status === 'device'} />
-      )}
-    </EntryGate>
+    <EntryCodeContext.Provider value={formatEntryCode(intent)}>
+      <EntryGate key={intent.code} intent={intent} level={highestLevel(GAME_LEVEL, 'named')}>
+        {(player, session) => (
+          <RoomPreview intent={intent} player={player} device={session.status === 'device'} />
+        )}
+      </EntryGate>
+    </EntryCodeContext.Provider>
   );
 }
 
@@ -180,7 +183,11 @@ export function ShareEntryPage() {
   const { code: raw } = useParams({ from: '/s/$code' });
   const intent = useMemo(() => readCodeOf('share', raw), [raw]);
   if (!intent) return <DeadEnd reason="unknown" />;
-  return <ShareResolve key={intent.code} intent={intent} />;
+  return (
+    <EntryCodeContext.Provider value={formatEntryCode(intent)}>
+      <ShareResolve key={intent.code} intent={intent} />
+    </EntryCodeContext.Provider>
+  );
 }
 
 function ShareResolve({ intent }: { intent: EntryIntent }) {

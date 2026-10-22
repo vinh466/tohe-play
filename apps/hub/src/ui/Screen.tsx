@@ -1,4 +1,5 @@
 import { createContext, type ReactNode, useContext } from 'react';
+import { InstalledAppHint } from '../install/InstalledAppHint.tsx';
 import { InAppStrip } from '../install/InstallNudge.tsx';
 
 /**
@@ -12,7 +13,7 @@ const widths = { narrow: 'max-w-md', normal: 'max-w-3xl', wide: 'max-w-[75rem] m
 /**
  * Centred column with safe-area padding: every hub screen but a game in play. Forms are `narrow`; the catalog is `wide`
  * (up to about 1200 px on a computer). In the in-app browser of a chat app it opens with the strip that says to open
- * the real browser.
+ * the real browser; on an entry page on an iPhone, with the line that says how to open it in the installed app.
  */
 export function Screen({
   children,
@@ -31,6 +32,7 @@ export function Screen({
       className={`mx-auto flex w-full flex-col gap-6 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] ${height} ${width}`}
     >
       <InAppStrip />
+      <InstalledAppHint />
       {children}
     </main>
   );

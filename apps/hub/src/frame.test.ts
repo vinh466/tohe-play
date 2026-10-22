@@ -131,3 +131,10 @@ describe('a link out of Tò He', () => {
 it('locks no orientation in the app’s manifest: each game declares its own', () => {
   expect(config).not.toMatch(/\borientation\s*:/);
 });
+
+it('lets a new version wait for the next cold start, and hands links to the open app (ADR 0046)', () => {
+  // `prompt`: no skipWaiting, no clientsClaim, no reload of the plugin's own (src/update/).
+  expect(config).toMatch(/registerType:\s*'prompt'/);
+  expect(config).not.toMatch(/autoUpdate|skipWaiting|clientsClaim/);
+  expect(config).toMatch(/launch_handler:\s*\{\s*client_mode:\s*\['focus-existing',\s*'auto'\]\s*\}/);
+});

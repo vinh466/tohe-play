@@ -8,6 +8,7 @@ import { gamesQuery } from '../api/queries.ts';
 import { AccountNeeded } from '../entry/EntryGate.tsx';
 import { nameOf } from '../launcher/gameWords.ts';
 import { hasShell } from '../launcher/manifest.ts';
+import { useOpened } from '../launcher/recent.ts';
 import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected } from '../rooms/connection.ts';
@@ -86,6 +87,8 @@ function Lobby({
   const queryClient = useQueryClient();
   const games = useQuery(gamesQuery(player.id));
   const game = games.data?.find((g) => g.id === gameId);
+  // "Chơi tiếp" on Trò chơi's first screen: a game played at tables is opened at its lobby (ADR 0046).
+  useOpened(player.id, gameId, Boolean(game));
   const list = useQuery({
     queryKey: ['rooms', gameId, player.id],
     queryFn: () => rooms.list(gameId),

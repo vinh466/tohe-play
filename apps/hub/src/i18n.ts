@@ -249,6 +249,8 @@ const vi = {
     signOut: 'Đăng xuất',
     pinTitle: 'Nhập mã PIN của {{name}}',
     adult: 'Người lớn',
+    upTitle: 'Đổi sang hồ sơ người lớn',
+    upBody: 'Để chơi bằng hồ sơ {{name}}, bố mẹ nhập mã quản lý (6 số).',
   },
   account: {
     title: 'Quản lý tài khoản',
@@ -399,6 +401,24 @@ const vi = {
     together: 'Chơi cùng',
     me: 'Tôi',
   },
+  // Coming back (ADR 0046): Trò chơi's first screen, an ended session, a new version.
+  comingBack: {
+    continue: 'Chơi tiếp',
+    recent: 'Gần đây',
+    table: '{{game}} · bàn của {{host}}',
+    backToTable: 'Vào lại',
+  },
+  sessionEnded: {
+    title: 'Phiên đăng nhập đã hết',
+    body: 'Đăng nhập lại để chơi tiếp bằng tài khoản.',
+    signIn: 'Đăng nhập lại',
+    onDevice: 'Chơi trên máy này',
+  },
+  update: {
+    ready: 'Có bản mới',
+    reload: 'Tải lại',
+    later: 'Để sau',
+  },
   together: {
     codeTitle: 'Có mã?',
     tablesTitle: 'Bàn đang ngồi',
@@ -542,6 +562,7 @@ const vi = {
   },
   // Every way in (ADR 0044): a link, a QR code, a typed code — and where each one ends.
   entry: {
+    installedApp: 'Đã cài app Tò He? Mở app → Nhập mã {{code}}',
     codeButton: 'Nhập mã',
     codeTitle: 'Nhập mã',
     codeBody: 'Có mã bàn chơi (6 số) hoặc mã link mời (8 ký tự)? Nhập vào đây.',
@@ -1089,6 +1110,8 @@ const en: typeof vi = {
     signOut: 'Sign out',
     pinTitle: "Enter {{name}}'s PIN",
     adult: 'Adult',
+    upTitle: "Switch to an adult's profile",
+    upBody: 'To play as {{name}}, a parent enters the manage PIN (6 digits).',
   },
   account: {
     title: 'Manage account',
@@ -1239,6 +1262,23 @@ const en: typeof vi = {
     together: 'Play together',
     me: 'Me',
   },
+  comingBack: {
+    continue: 'Continue',
+    recent: 'Recent',
+    table: '{{game}} · {{host}}’s table',
+    backToTable: 'Go back',
+  },
+  sessionEnded: {
+    title: 'Your session has ended',
+    body: 'Sign in again to play on with your account.',
+    signIn: 'Sign in again',
+    onDevice: 'Play on this device',
+  },
+  update: {
+    ready: 'A new version',
+    reload: 'Reload',
+    later: 'Later',
+  },
   together: {
     codeTitle: 'Got a code?',
     tablesTitle: 'Your tables',
@@ -1381,6 +1421,7 @@ const en: typeof vi = {
     gone: 'This profile was just renewed; try again.',
   },
   entry: {
+    installedApp: 'Installed Tò He? Open the app → Enter the code {{code}}',
     codeButton: 'Enter a code',
     codeTitle: 'Enter a code',
     codeBody: 'Got a table’s code (6 digits) or an invite link’s (8 characters)? Type it here.',

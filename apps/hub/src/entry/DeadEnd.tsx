@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { gamesQuery } from '../api/queries.ts';
+import { EntryCodeContext } from '../install/InstalledAppHint.tsx';
 import { BackLink } from '../navigation/leave.tsx';
 import { useSession } from '../session/useSession.ts';
 import { Button, buttonClass } from '../ui/Button.tsx';
@@ -31,27 +32,30 @@ export function DeadEnd({
     session.status === 'account' || session.status === 'device' ? (session.player?.id ?? null) : null;
   const catalog = useQuery({ ...gamesQuery(playerId), enabled: screen.toGame && Boolean(gameId) });
   const playable = Boolean(gameId) && Boolean(catalog.data?.some((listed) => listed.id === gameId));
+  // A link that leads nowhere does not lead anywhere in the installed app either: no "Đã cài app?" line here.
   return (
-    <Screen narrow>
-      <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 text-center shadow-sm">
-        <h1 className="font-black text-2xl text-brand-ink">{t(screen.title)}</h1>
-        <p className="text-ink">{t(screen.body, { game })}</p>
-        {screen.toGame && gameId && playable ? (
-          <Link to="/play/$gameId" params={{ gameId }} replace className={buttonClass()}>
-            {t('entry.toGame', { game: game || gameId })}
-          </Link>
-        ) : null}
-      </section>
-      {screen.codeBox ? (
-        <section className="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-sm">
-          <h2 className="font-bold text-ink text-xl">{t('entry.codeTitle')}</h2>
-          <EnterCodeForm />
+    <EntryCodeContext.Provider value={null}>
+      <Screen narrow>
+        <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 text-center shadow-sm">
+          <h1 className="font-black text-2xl text-brand-ink">{t(screen.title)}</h1>
+          <p className="text-ink">{t(screen.body, { game })}</p>
+          {screen.toGame && gameId && playable ? (
+            <Link to="/play/$gameId" params={{ gameId }} replace className={buttonClass()}>
+              {t('entry.toGame', { game: game || gameId })}
+            </Link>
+          ) : null}
         </section>
-      ) : null}
-      <BackLink to="/play" className="text-center font-semibold text-accent">
-        {t('entry.toCatalog')}
-      </BackLink>
-    </Screen>
+        {screen.codeBox ? (
+          <section className="flex flex-col gap-3 rounded-3xl bg-surface p-5 shadow-sm">
+            <h2 className="font-bold text-ink text-xl">{t('entry.codeTitle')}</h2>
+            <EnterCodeForm />
+          </section>
+        ) : null}
+        <BackLink to="/play" className="text-center font-semibold text-accent">
+          {t('entry.toCatalog')}
+        </BackLink>
+      </Screen>
+    </EntryCodeContext.Provider>
   );
 }
 

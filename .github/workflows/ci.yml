@@ -138,6 +138,22 @@ jobs:
         with:
           turbo-cache: conformance-${{ matrix.game }}
 
+  # A new version of the hub never interrupts an open page (ADR 0046, PB-17): two builds of the hub, served by the test
+  # itself, no stack; a page on the first must survive the second with no reload. About 20 seconds on a laptop.
+  updates:
+    name: Updates (two builds of the hub)
+    needs: changes
+    if: needs.changes.outputs.scope == 'all'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v7
+      - uses: ./.github/actions/setup
+      - name: Install Chromium
+        run: pnpm --filter @tohe/hub exec playwright install --with-deps chromium
+      - name: A page on build A survives build B's deploy, with no reload; the next cold start runs B
+        run: pnpm --filter @tohe/hub updates
+
   # What passed every check on main becomes the release (ADR 0021): the images are built here once, in parallel, and every
   # later job uses these very images — the chart on kind, the e2e suites, and publish, which pushes them as they are.
   images:
@@ -276,7 +292,7 @@ jobs:
 
   passed:
     name: CI passed
-    needs: [changes, verify, api, conformance, images, chart, e2e]
+    needs: [changes, verify, api, conformance, updates, images, chart, e2e]
     if: ${{ !cancelled() }}
     runs-on: ubuntu-latest
     timeout-minutes: 5
