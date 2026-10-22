@@ -2,6 +2,14 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 (F1, F2, S1 lên prod) — agent
+
+- Owner: "ổn thì tiến hành merge PRs và deploy xong prod luôn … sáng mai tôi review 1 thể". F1 #127, F2 #128 →
+  `uat-2026-10-23.1` / `prod-2026-10-23.1`; S1b #129 + S1a #130 → `uat-2026-10-23.2` / `prod-2026-10-23.2`.
+- CI: e2e chờ `/play?lang=vi`; job Updates lên 20 phút (mirror apt chậm); nút header trên `brand-strong` (AA).
+- S1 theo đề xuất D-07 khi owner chưa trả lời: Be Vietnam Pro, Phosphor, voice-and-look; app nhớ ngôn ngữ của trang
+  dẫn vào. Mở: "bàn"/"phòng"; S2, S3 chờ D-07.
+
 ## 2026-10-23 (khảo sát, research, F1 ∥ F2) — agent
 
 - Owner: review toàn bộ surface + khảo sát; rồi "bớt AI style", "quay lại và PWA có thoải mái chưa". Khảo sát prod bốn

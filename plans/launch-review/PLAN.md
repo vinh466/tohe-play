@@ -3,8 +3,8 @@
 - Goal: bề mặt sản phẩm hoàn chỉnh trước launch chính thức — **đợt 1**: bố cục và UX của người chơi, bề mặt giới thiệu,
   SEO, GEO và cách nó mở rộng, thiết kế xong rồi build; **đợt 2**: rà màn, luồng, câu chữ, Điều khoản, Cổng. Sau đó tập
   trung làm game.
-- Phase: **đợt 1 Graduate** (G0–G6 trên prod; G7 owner thử máy) · **đợt 2 Resolve** (2026-10-23: khảo sát prod + research
-  → D-07, E-07 proposed; F1, F2 đang build) ([process](../README.md#phases))
+- Phase: **đợt 1 Graduate** (G0–G6 trên prod; G7 owner thử máy) · **đợt 2 Graduate một phần** (2026-10-23: F1, F2, S1a,
+  S1b trên prod `prod-2026-10-23.2`; D-07, E-07 chờ owner cho S2, S3) ([process](../README.md#phases))
 - Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (merged 2026-10-22; cập nhật sau đó là PR nhỏ từ cùng nhánh)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (bức tranh đầy đủ) · **Route: [routes.md](routes.md)** · Log: [log.md](log.md)
 - Research: [R-01 trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại](research/R-02-layout-prior-art.md) ·
@@ -17,14 +17,16 @@
 
 ## Next — one item
 
-**Owner chọn hướng ở [D-07](items/D-07-visual-direction-and-voice.md) (bớt "AI style") và trả lời
-[E-07](items/E-07-installed-app-and-return.md) Q1–Q4.** Trong lúc đó F1, F2 (sửa lỗi chức năng từ khảo sát) build → merge →
-UAT. Sau đó: S1 (nền giọng văn + icon + danh mục) theo D-07.
+**Owner review buổi sáng 2026-10-23** (owner: "sáng mai tôi review 1 thể"): prod `prod-2026-10-23.2` có F1, F2, S1a, S1b — xem
+[D-07](items/D-07-visual-direction-and-voice.md) Q1–Q6 và [E-07](items/E-07-installed-app-and-return.md) Q1–Q4 (agent đã
+đi theo đề xuất ở những chỗ đổi lại được), rồi thử máy thật. Sau đó: S2 (menu trong game) và S3 (Xưởng tò he, cần người vẽ).
 
 ## Waiting on the owner
 
 1. **[D-07](items/D-07-visual-direction-and-voice.md) Q1–Q6**: hướng (đề xuất A làm đích, đi qua S1 → S2 → S3), ai vẽ cho S3
-   (đề xuất thuê hoạ sĩ người Việt theo brief), màu gấc, font Be Vietnam Pro, icon Phosphor, giọng văn agent viết.
+   (đề xuất thuê hoạ sĩ người Việt theo brief), màu gấc, font, icon, giọng văn. **S1 đã làm theo đề xuất** (Be Vietnam
+   Pro, Phosphor, `docs/conventions/voice-and-look.md`) — owner xem trên prod, đổi được nếu không ưng.
+   Thêm: "bàn" (Chơi cùng) và "phòng" (sảnh, trang bàn) — thống nhất về "bàn"?
 2. **[E-07](items/E-07-installed-app-and-return.md) Q1–Q4**: giữ không khoá xoay + lớp "xoay dọc"; cập nhật im lặng khi app
    vào nền (sửa ADR 0046); màu splash; "Vẫn là An? Chơi tiếp".
 3. **Tắt Cloudflare Web Analytics** cho `toheplay.io.vn` (Analytics & Logs → Web Analytics → bỏ automatic setup): beacon bị
@@ -116,9 +118,9 @@ dựng, tách ra là sửa cùng màn hai lần.
 
 | PR | Nội dung | Từ | Trạng thái |
 |---|---|---|---|
-| **F1** | Sửa lỗi bề mặt: `?lang=vi`, header *Chơi ngay*/*Chơi tiếp*, link ra ngoài khi mở từ app, *Chơi tiếp* sau game đầu, "Chơi trên máy này" → `/play`, not-found của app, lịch sử tab, ← ở mọi màn không khung, tên khớp hình, mất mạng, nhấn giữ/kéo-tải-lại, theme-color, Zod jitless, 404 hai thứ tiếng, ảnh JSON-LD, chữ sai ngôn ngữ, docs cũ | R-09, R-08 | builder đang làm |
-| **F2** | Xoay ngang (menu game vừa chiều cao, lớp "xoay dọc", rail khi màn thấp), icon đặc + maskable, shortcuts, skeleton + timeout `/me`, safe-area thanh game, hướng dẫn cài iOS/iPad | R-08 | builder đang làm |
-| **S1** | Nền: hướng dẫn giọng văn + hình (docs/conventions), viết lại câu chữ, icon SVG thay emoji, danh mục và trang chủ gọn, font tự host | D-07 | chờ owner |
+| **F1** ✓ [#127](https://github.com/vinh466/tohe-play/pull/127) | Sửa lỗi bề mặt: `?lang=vi`, header *Chơi ngay*/*Chơi tiếp*, link ra ngoài khi mở từ app, *Chơi tiếp* sau game đầu, "Chơi trên máy này" → `/play`, not-found của app, lịch sử tab, ← ở mọi màn không khung, tên khớp hình, mất mạng, nhấn giữ/kéo-tải-lại, theme-color, Zod jitless, 404 hai thứ tiếng, ảnh JSON-LD, chữ sai ngôn ngữ, docs cũ | R-09, R-08 | prod `prod-2026-10-23.1` |
+| **F2** ✓ [#128](https://github.com/vinh466/tohe-play/pull/128) | Xoay ngang (menu game vừa chiều cao, lớp "xoay dọc", rail khi màn thấp), icon đặc + maskable, shortcuts, skeleton + timeout `/me`, safe-area thanh game, hướng dẫn cài iOS/iPad | R-08 | prod `prod-2026-10-23.1` |
+| **S1** ✓ [#129](https://github.com/vinh466/tohe-play/pull/129) (S1b trang công khai) + [#130](https://github.com/vinh466/tohe-play/pull/130) (S1a hub) | Nền: `docs/conventions/voice-and-look.md`, viết lại câu chữ, icon SVG có nhãn thay emoji, danh mục và trang chủ gọn, Be Vietnam Pro tự host, app nhớ ngôn ngữ của trang dẫn vào | D-07 | prod `prod-2026-10-23.2` (agent theo đề xuất, owner duyệt) |
 | **S2** | Menu trong game (`game-kit`): icon SVG, logo vẽ của game | D-07 | chờ owner |
 | **S3** | Xưởng tò he: avatar, ảnh bìa, linh vật, token màu nhuộm, chuyển động/âm thanh | D-07 Q2 (người vẽ) | chờ owner |
 
