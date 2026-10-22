@@ -2,9 +2,9 @@
 
 - Goal: agent (chủ yếu) và người tạo, duyệt và quản lý asset tập trung trong một Studio của Tò He. Game khai báo pack,
   version và chế độ tải mình dùng; nền tảng cung cấp và giữ rào. Một slice farming dựng trên Studio để chứng minh.
-- Phase: **Map** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)). Brief đã được
-  xác nhận ("đúng ý r", 2026-10-22). Map chờ owner xác nhận không thiếu gì. Resolve chạy song song: 9 trên 15 quyết
-  định đã chốt.
+- Phase: **Resolve** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)). Brief:
+  "đúng ý r" (2026-10-22). Map: "ổn đó" (2026-10-23), trả lời cho lời hỏi chốt D-14, D-15 và xác nhận map đủ. 11 trên
+  15 quyết định đã chốt.
 - Started: 2026-10-22 · Branch: `plan/asset-studio` · PR: [#113](https://github.com/vinh466/tohe-play/pull/113) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** · Log: [log.md](log.md)
 - Research: [R-01 AI tạo asset, tiền lệ](research/R-01-ai-assets-and-prior-art.md) ·
@@ -12,21 +12,22 @@
 
 ## Next — one item
 
-**[D-14](items/D-14-studio-is-its-own-app.md) + [D-15](items/D-15-agent-tokens.md): Studio là app độc lập, và token
-cho agent dùng chung.** Cả hai đã `proposed`. Hai item này quyết P0 có thêm `apps/studio` và host `studio.` hay không,
-và token của agent trông thế nào để plan "agent cùng vận hành" sau này dùng lại được. Song song, agent làm **D-12**
-(hình dạng contract) và **D-09** (kiểm tra asset), vì cả hai đã hết bị chặn.
+**D-12 (hình dạng contract `assets`, lock, key có type), agent đưa lên `proposed`.** Đây là phần còn lại lớn nhất về
+kiến trúc, và nó chặn E-01, E-02, E-03. Cùng phiên đó: **D-09** (tiêu chí duyệt, kiểm tra tự động) và phần kỹ thuật của
+**D-10** (hậu xử lý, CLI, MCP). Xong ba item này thì sang Converge: viết danh sách PR và ADR để graduate.
 
 ## Waiting on the owner
 
-1. **D-14**: Studio là app riêng ở `studio.` (session và studio role riêng; chung API và DB; console cấp quyền) chứ
-   không nằm trong console?
-2. **D-15**: một cơ chế token có scope cho mọi agent, scope nhạy cảm bị cấm trong code, `studio.draft` là scope đầu
-   tiên?
-3. **Map**: [map.md](map.md) có thiếu item nào không?
-4. **D-07 (còn lại)**: asset Tò He tự làm phát hành dưới license nào? Nên chọn cùng LICENSE của code.
-5. **D-10** (không gấp): ngân sách cho generator trả phí. P0 chạy được không cần.
-6. **R2** (lúc graduate): tạo bucket, đưa credential vào Infisical. Đó là việc của owner và `platform-infra`.
+Ba lời "để sau" mà chỉ owner nói được (agent đề xuất `deferred`, kèm điều kiện mở lại):
+
+1. **D-13** (`precache` / `on-demand`): để sau, mở lại khi spike S1 (E-06) có kết quả **và** có game đầu tiên cần.
+   P0 chỉ có `bundle`.
+2. **D-10, phần ngân sách**: để sau tới P2. P0 và pilot dùng pack CC0 và hình vẽ bằng code, không tốn tiền generator.
+3. **D-07, license cho asset Tò He tự làm**: để sau tới khi chọn LICENSE cho code. Trong lúc chờ, metadata ghi
+   `LicenseRef-Tohe-Internal` ("chỉ dùng trong game của Tò He").
+
+Lúc graduate: **R2** (bucket, credential trong Infisical) và **DNS + ingress cho `studio.`** là việc của owner và
+`platform-infra`.
 
 ## Board
 
@@ -45,8 +46,8 @@ và token của agent trông thế nào để plan "agent cùng vận hành" sau
 | D-11 | [Studio chạy ở đâu · ai được làm gì](items/D-11-where-studio-runs-and-who-writes.md) | decision | **decided** — A | D-06 |
 | D-12 | Contract `assets` + lock + key có type | decision | open | D-01, D-02, D-05 |
 | D-13 | Phục vụ `precache` / `on-demand` | decision | open | D-02, E-06 |
-| D-14 | [Studio là app độc lập ở `studio.`](items/D-14-studio-is-its-own-app.md) | decision | proposed — B | D-11 |
-| D-15 | [Token cho agent dùng chung](items/D-15-agent-tokens.md) | decision | proposed — B | D-11 |
+| D-14 | [Studio là app độc lập ở `studio.`](items/D-14-studio-is-its-own-app.md) | decision | **decided** — B | D-11 |
+| D-15 | [Token cho agent dùng chung](items/D-15-agent-tokens.md) | decision | **decided** — B | D-11 |
 | E-01 | Game Contract + conformance cho `assets` | enhancement | open | D-12 |
 | E-02 | Build: resolve · cache · đóng gói · lock | enhancement | open | D-06, D-12 |
 | E-03 | Kit: nạp asset + `content` | enhancement | open | D-03, D-12 |

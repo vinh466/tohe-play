@@ -1,9 +1,9 @@
 # D-14 — Studio nằm chung console, hay là một app độc lập?
 
-- Status: **proposed** (open → researching → proposed → decided · deferred · dropped)
+- Status: **decided** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
 - Blocks: E-05, E-07 · Blocked by: D-11
-- Decided: —
+- Decided: owner, chat 2026-10-23: "ổn đó"
 
 ## Why it matters
 
@@ -64,7 +64,16 @@ Chi phí chấp nhận:
 
 ## Decision
 
-—
+**B**, owner: "ổn đó" (2026-10-23).
+
+**Hệ quả:**
+
+- `apps/studio` ở `studio.`. Host này chuyển từ giữ chỗ sang dùng thật: cần ADR; DNS và ingress do owner và
+  `platform-infra` làm.
+- Studio role là claim riêng, không phải platform role.
+- Console cấp role, cấp token và xem audit.
+- Duyệt bắt buộc 2FA.
+- Chi tiết route chốt khi graduate, theo `@tohe/routes`.
 
 ## Discussion
 

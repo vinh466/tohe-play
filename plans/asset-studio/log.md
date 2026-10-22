@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-23 — agent
+
+- Owner: "ổn đó" → D-14 (Studio là app độc lập ở `studio.`) và D-15 (token cho agent dùng chung) decided; map được xác
+  nhận đủ. Plan chuyển sang **Resolve**, 11 trên 15 quyết định đã chốt.
+- Agent đề xuất để sau: D-13 (sau S1 và khi có game cần), ngân sách của D-10 (tới P2), license asset Tò He của D-07 (cùng
+  LICENSE code). Chờ owner nói.
+- Tiếp theo: agent đưa D-12, D-09 và phần kỹ thuật của D-10 lên `proposed`, rồi sang Converge.
+
 ## 2026-10-22 (3) — agent
 
 - Owner: "D-11 ổn nha" → decided (A; ngoại lệ prod-chỉ-đọc mở cho đúng quyền tạo bản nháp).

@@ -1,9 +1,9 @@
 # D-15 — Agent đăng nhập vào Tò He bằng gì, để Studio hôm nay và việc vận hành sau này dùng chung?
 
-- Status: **proposed** (open → researching → proposed → decided · deferred · dropped)
+- Status: **decided** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
 - Blocks: E-05, E-07 · Blocked by: D-11
-- Decided: —
+- Decided: owner, chat 2026-10-23: "ổn đó"
 
 ## Why it matters
 
@@ -55,7 +55,15 @@ Chi phí chấp nhận:
 
 ## Decision
 
-—
+**B**, owner: "ổn đó" (2026-10-23).
+
+**Hệ quả:**
+
+- Một cơ chế token cho agent của cả nền tảng; `studio.draft` là scope đầu tiên.
+- Danh sách scope cấm nằm trong code, có test.
+- Có hạn dùng, thu hồi ngay, có audit. Console là nơi cấp và thu hồi.
+- Agent gọi vào host nào thì chốt khi graduate.
+- Plan "agent cùng vận hành" về sau chỉ thêm scope.
 
 ## Discussion
 
