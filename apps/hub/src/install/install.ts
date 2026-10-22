@@ -52,10 +52,14 @@ export function detectInApp(userAgent: string): InApp | null {
   return null;
 }
 
-/** Safari on iPhone or iPad (iPadOS 13+ says "Macintosh", with a touch screen), not another browser or a WebView. */
+/** An iPhone or an iPad (iPadOS 13+ says "Macintosh", with a touch screen), in any browser or app. */
+export function isIos(userAgent: string, maxTouchPoints: number): boolean {
+  return /iPhone|iPad|iPod/.test(userAgent) || (/Macintosh/.test(userAgent) && maxTouchPoints > 1);
+}
+
+/** Safari on iPhone or iPad, not another browser or a WebView. */
 export function isIosSafari(userAgent: string, maxTouchPoints: number): boolean {
-  const ios = /iPhone|iPad|iPod/.test(userAgent) || (/Macintosh/.test(userAgent) && maxTouchPoints > 1);
-  if (!ios || detectInApp(userAgent)) return false;
+  if (!isIos(userAgent, maxTouchPoints) || detectInApp(userAgent)) return false;
   return /Safari\//.test(userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|GSA\/|DuckDuckGo/.test(userAgent);
 }
 

@@ -214,7 +214,8 @@ try {
   await page.waitForURL((url) => url.pathname === '/play');
 
   step('wait for the catalog to list the sample game (the API syncs it from the games origin)');
-  const card = page.getByRole('link', { name: /Chạm Chấm/ });
+  // Its tile among every game: once opened, "Chơi tiếp" holds it too (ADR 0046).
+  const card = page.getByRole('region', { name: 'Tất cả trò chơi' }).getByRole('link', { name: /Chạm Chấm/ });
   for (let attempt = 0; ; attempt++) {
     const visible = await card.waitFor({ timeout: 3000 }).then(
       () => true,
@@ -404,6 +405,41 @@ try {
   await leaderboard.getByText('Bé Na (bạn)').waitFor();
   await shot('leaderboard');
   await leaderboard.getByRole('button', { name: '✕' }).tap();
+
+  step('coming back: Trò chơi starts with "Chơi tiếp", the game this profile opened last (ADR 0046)');
+  await page
+    .getByRole('region', { name: 'Chơi tiếp' })
+    .getByRole('link', { name: /Chạm Chấm/ })
+    .waitFor();
+  await shot('continue');
+
+  step(
+    '"Ai đang chơi?" at a cold start after 30 minutes unused; the child moving up to the adult asks a parent first',
+  );
+  // The app last used 31 minutes ago, once, before the app starts on the next load of this tab.
+  await context.addInitScript(() => {
+    if (sessionStorage.getItem('e2e:idle')) return;
+    sessionStorage.setItem('e2e:idle', '1');
+    localStorage.setItem('tohe:last-used', String(Date.now() - 31 * 60 * 1000));
+  });
+  await page.reload();
+  await page.waitForURL((url) => url.pathname === '/account/profiles');
+  await page.getByRole('heading', { name: 'Ai đang chơi?' }).waitFor();
+  await shot('who-is-playing');
+  await page.getByRole('button', { name: /Bố E2E/ }).tap();
+  const up = page.getByRole('dialog', { name: 'Đổi sang hồ sơ người lớn' });
+  // The account has no manage PIN yet: its password.
+  await up.getByLabel('Mật khẩu').fill(password);
+  await up.getByRole('button', { name: 'Xác nhận' }).tap();
+  await page.waitForURL(catalogUrl);
+  const adult = await page.evaluate(
+    async () => (await (await fetch('/api/auth/me')).json()).activeProfileId as string,
+  );
+  if (adult === kidId) throw new Error('the adult’s profile was not chosen after the parent’s password');
+  await page.reload();
+  await page.waitForTimeout(300);
+  if (new URL(page.url()).pathname !== '/play')
+    throw new Error(`a reload asked who is playing again: ${page.url()}`);
 
   step(
     `the public page (${hubUrl}/) and the docs (${docsUrl}) share the app's light/dark choice; a device that has played here stays on the root, which offers "Chơi tiếp" to the app (ADR 0046)`,

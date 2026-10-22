@@ -2,17 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
-import { type GameSummary, links, type RoomSummary, rooms, type ShareLinkView } from '../api/client.ts';
-import { deviceProfileQuery, gamesQuery } from '../api/queries.ts';
+import { type GameSummary, links, type RoomSummary, type ShareLinkView } from '../api/client.ts';
+import { gamesQuery } from '../api/queries.ts';
 import { formatEntryCode } from '../entry/codes.ts';
 import { EnterCodeForm } from '../entry/EnterCode.tsx';
 import { TabHeader } from '../frame/AppFrame.tsx';
 import { nameOf } from '../launcher/gameWords.ts';
-import { TERMS_VERSION } from '../legal/documents.ts';
-import { actAsDevice } from '../rooms/devicePlayer.ts';
+import { myTablesQuery, useTablePlayer } from '../rooms/myTables.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
-import { tablesStep } from '../session/serverCopy.ts';
 import type { Player, SessionState } from '../session/session.ts';
 import { syncsWithServer } from '../session/useBackgroundSync.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
@@ -36,19 +34,8 @@ export function TogetherPage() {
 
 function Together({ session }: { session: PlayingSession }) {
   const { t } = useTranslation();
-  const device = useQuery({ ...deviceProfileQuery(), enabled: session.status === 'device' });
   // Who acts at the tables and on links: the account's session, or the device profile with a copy on the server.
-  let acting: Player | null = null;
-  if (session.status === 'account') {
-    actAsDevice(null);
-    acting = session.player;
-  } else if (device.data && tablesStep(device.data, TERMS_VERSION) === 'play') {
-    actAsDevice(device.data.id);
-    acting = session.player;
-  } else {
-    actAsDevice(null);
-  }
-  const waiting = session.status === 'device' && device.isPending;
+  const { acting, waiting } = useTablePlayer(session);
 
   return (
     <Screen>
@@ -113,12 +100,7 @@ function GameIcon({ game }: { game?: GameSummary }) {
 function Tables({ player }: { player: Player }) {
   const { t } = useTranslation();
   const games = useQuery(gamesQuery(player.id));
-  const mine = useQuery({
-    queryKey: ['rooms-mine', player.id],
-    queryFn: () => rooms.mine(),
-    refetchInterval: 20_000,
-    refetchIntervalInBackground: false,
-  });
+  const mine = useQuery(myTablesQuery(player.id));
   if (mine.isPending) return <p className="text-ink-soft">{t('loading')}</p>;
   if (mine.isError || mine.data.length === 0) return <Empty text={t('together.tablesEmpty')} />;
   return (

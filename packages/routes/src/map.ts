@@ -276,7 +276,6 @@ export const hubNamespaces: readonly Namespace[] = [
   ),
   appFile('manifest', '/manifest.webmanifest', 'exact', 'revalidate', 'The web app manifest'),
   appFile('service-worker', '/sw.js', 'exact', 'revalidate', 'The service worker'),
-  appFile('register-sw', '/registerSW.js', 'exact', 'revalidate', 'Registers the service worker'),
   appFile('workbox', '/workbox-', 'prefix', 'revalidate', 'The service worker’s runtime, /workbox-<hash>.js'),
   appFile('theme-init', '/theme-init.js', 'exact', 'revalidate', 'Light or dark before the first paint'),
   appFile('favicon', '/favicon.svg', 'exact', 'revalidate', 'The icon in browser tabs'),

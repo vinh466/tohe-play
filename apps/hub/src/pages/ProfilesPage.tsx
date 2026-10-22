@@ -12,11 +12,13 @@ import { BringIn } from '../session/BringIn.tsx';
 import { withProgress } from '../session/bringInChoices.ts';
 import { MovedNotice } from '../session/MovedNotice.tsx';
 import { takeNext } from '../session/next.ts';
+import { ParentGate } from '../session/ParentGate.tsx';
 import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { deleteEverywhere } from '../session/serverCopy.ts';
 import { deviceMode } from '../session/session.ts';
 import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
+import { switchNeedsGate, whoIsPlaying } from '../session/whoIsPlaying.ts';
 import { db, type LocalProfile } from '../storage/db.ts';
 import {
   AVATARS,
@@ -72,6 +74,13 @@ function useGoOn() {
   );
 }
 
+/** "Ai đang chơi?" asked at a cold start (whoIsPlaying.ts): shown, so not asked again until the next one. */
+function useAsked(ask: boolean | undefined) {
+  useEffect(() => {
+    if (ask) whoIsPlaying.asked();
+  }, [ask]);
+}
+
 /**
  * Right after signing in, a device that played as its device profiles is asked once what to bring into the account
  * (ADR 0043); then it plays as the account's profiles.
@@ -109,11 +118,14 @@ function useBringInOffer() {
 
 function Picker({ me }: { me: MeView }) {
   const { t } = useTranslation();
-  const { auto } = useSearch({ from: '/_frame/account/profiles' });
+  const { auto, ask } = useSearch({ from: '/_frame/account/profiles' });
+  useAsked(ask);
   const navigate = useNavigate();
   const setMe = useSetMe();
   const goOn = useGoOn();
   const [pinFor, setPinFor] = useState<ProfileView | null>(null);
+  // A child's profile moving up to an adult's: the account's manage PIN first (ADR 0046).
+  const [gateFor, setGateFor] = useState<ProfileView | null>(null);
   const [pinErrors, setPinErrors] = useState(0);
   const { offer, finish, playNext } = useBringInOffer();
   // Device profiles left on this device with progress: each can still come into the account (ADR 0043).
@@ -127,7 +139,8 @@ function Picker({ me }: { me: MeView }) {
     mutationFn: ({ profile, pin }: { profile: ProfileView; pin?: string }) =>
       session.selectProfile(profile.id, pin),
     onSuccess: async (next, { profile }) => {
-      entry.switched({ auto, from: me.activeProfileId, to: profile.id });
+      // Asked at a cold start, the choice is the way on to what this tab came for, as when the hub sent someone here.
+      entry.switched({ auto: auto || ask, from: me.activeProfileId, to: profile.id });
       setPinFor(null);
       await setMe(next);
       await goOn(profile.id);
@@ -149,7 +162,9 @@ function Picker({ me }: { me: MeView }) {
   });
 
   const choose = (profile: ProfileView) => {
-    if (profile.hasPin) {
+    if (switchNeedsGate(me, profile)) {
+      setGateFor(profile);
+    } else if (profile.hasPin) {
       setPinErrors(0);
       setPinFor(profile);
     } else {
@@ -163,6 +178,16 @@ function Picker({ me }: { me: MeView }) {
   const handled = useRef(!auto);
   const [moving, setMoving] = useState(!!auto);
   const play = select.mutate;
+  // The gate opened (the parent typed the manage PIN, or proved it is them): on to the adult's profile — its own PIN
+  // too, if it has one. Choosing locks management again (the API), so the child cannot come back up by itself.
+  useEffect(() => {
+    if (!gateFor || switchNeedsGate(me, gateFor)) return;
+    setGateFor(null);
+    if (gateFor.hasPin) {
+      setPinErrors(0);
+      setPinFor(gateFor);
+    } else play({ profile: gateFor });
+  }, [gateFor, me, play]);
   const switched = useRef(false);
   useEffect(() => {
     if (offer !== 'none') return;
@@ -299,6 +324,14 @@ function Picker({ me }: { me: MeView }) {
           onComplete={(pin) => pinFor && select.mutate({ profile: pinFor, pin })}
         />
       </Modal>
+      <Modal open={gateFor !== null} title={t('profiles.upTitle')} onClose={() => setGateFor(null)}>
+        {/* Without a manage PIN yet, the gate asks the owner to prove it is them, in its own words. */}
+        <ParentGate
+          me={me}
+          title={t('outbound.gateTitle')}
+          body={me.account.hasManagePin ? t('profiles.upBody', { name: gateFor?.name ?? '' }) : undefined}
+        />
+      </Modal>
     </Screen>
   );
 }
@@ -309,7 +342,8 @@ function Picker({ me }: { me: MeView }) {
  */
 function DevicePicker() {
   const { t } = useTranslation();
-  const { auto } = useSearch({ from: '/_frame/account/profiles' });
+  const { auto, ask } = useSearch({ from: '/_frame/account/profiles' });
+  useAsked(ask);
   const goOn = useGoOn();
   const changed = useDeviceProfilesChanged();
   const profiles = useQuery(deviceProfilesQuery);
@@ -318,7 +352,7 @@ function DevicePicker() {
   const list = profiles.data ?? [];
 
   const choose = async (profile: LocalProfile) => {
-    entry.switched({ auto, from: current, to: profile.id });
+    entry.switched({ auto: auto || ask, from: current, to: profile.id });
     currentDeviceProfile.set(profile.id);
     await changed();
     await goOn(profile.id);

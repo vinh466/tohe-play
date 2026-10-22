@@ -1,9 +1,10 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { FramedContext } from '../ui/Screen.tsx';
+import { showsUpdateNotice, updates } from '../update/update.ts';
 import { isTyping, type TabId, tabOf, tabs } from './tabs.ts';
 
 /**
@@ -25,6 +26,7 @@ export function AppFrame() {
           item="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl mx-2 px-1 text-center text-sm"
         />
         <Outlet />
+        <UpdateNotice pathname={pathname} />
         {/* The keyboard of a phone covers the bottom of the screen: the bar steps aside while someone types, so it never
             sits over the field (or is pushed up over it, where the browser resizes the page). */}
         {typing ? null : (
@@ -65,6 +67,45 @@ function TabNav({ current, className, item }: { current: TabId | null; className
         );
       })}
     </nav>
+  );
+}
+
+/**
+ * "Có bản mới — Tải lại" (ADR 0046): a new version waits, and only the frame's screens say so — never a game, a table
+ * or a replay, which are outside the frame. It sits above the bar; "Để sau" hides it until the next start.
+ */
+function UpdateNotice({ pathname }: { pathname: string }) {
+  const { t } = useTranslation();
+  const waiting = useSyncExternalStore(updates.subscribe, updates.waiting);
+  const [later, setLater] = useState(false);
+  const [reloading, setReloading] = useState(false);
+  if (later || !showsUpdateNotice(waiting, pathname)) return null;
+  return (
+    <div
+      role="status"
+      className="fixed inset-x-3 bottom-[calc(4.5rem+env(safe-area-inset-bottom))] z-30 mx-auto flex max-w-md items-center gap-3 rounded-2xl bg-notice py-2 pr-2 pl-4 text-notice-ink shadow-lg md:bottom-4 md:left-[calc(8rem+env(safe-area-inset-left))]"
+    >
+      <span className="min-w-0 flex-1 font-semibold">{t('update.ready')}</span>
+      <button
+        type="button"
+        disabled={reloading}
+        onClick={() => {
+          setReloading(true);
+          void updates.apply();
+        }}
+        className="shrink-0 rounded-full bg-brand px-4 py-1.5 font-bold text-on-brand text-xl active:bg-brand-strong disabled:opacity-60"
+      >
+        {t('update.reload')}
+      </button>
+      <button
+        type="button"
+        aria-label={t('update.later')}
+        onClick={() => setLater(true)}
+        className="grid size-10 shrink-0 place-items-center rounded-full font-bold active:bg-soft"
+      >
+        ✕
+      </button>
+    </div>
   );
 }
 

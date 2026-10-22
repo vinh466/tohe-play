@@ -70,6 +70,7 @@ Four kinds of event, in the Game Contract (`packages/contract/src/telemetry.ts`)
 | `hub.funnel.sign-in-opened` | count | hub | a device profile's player opens the sign-in from the catalog's strip |
 | `hub.funnel.account-created` | count | hub | an account was created on this device |
 | `hub.funnel.standalone-open` | count | hub | the app starts as an installed app (once a day per device) |
+| `hub.funnel.browser-return` | count | hub | the app starts in a browser tab on a device that had started it before — `tohe:returning` was there already (once a day per device, [ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)) |
 | `hub.telemetry.dropped` | count | hub | the hub's buffer was full |
 
 With every batch, once per page load, the hub sends its **context**: hub version, device class (phone, tablet,
@@ -106,7 +107,8 @@ first minutes work. The hub's `hub.funnel.*` counts above answer, in totals per 
 - of the devices that arrived without an account (their first device profile), how many finished a first game (`first-game` / `guest-start`);
 - of the times the app was offered, how often it was accepted (`install-accepted` / every `install-offered.*`);
 - of the players who opened the sign-in from a device profile, how many made an account (`account-created` / `sign-in-opened`);
-- how often the installed app is opened (`standalone-open`).
+- how often the installed app is opened (`standalone-open`), and how often people come back in a browser tab
+  (`browser-return`) — both totals per day, never who.
 
 They are ordinary `count` events, so everything above applies: the same collector, budgets and three switches. With a
 switch off, nothing is sent. The steps that happen once are remembered on the device under one local-storage key,

@@ -1,5 +1,6 @@
 import { queryOptions } from '@tanstack/react-query';
 import i18n from '../i18n.ts';
+import { sessionEnded, sessionEndedBy } from '../session/ended.ts';
 import { funName } from '../session/profileNames.ts';
 import { db } from '../storage/db.ts';
 import { ensureDeviceProfile, listDeviceProfiles } from '../storage/deviceProfiles.ts';
@@ -22,15 +23,22 @@ export const gamesQuery = (profileId: string | null) =>
 
 /**
  * The device session. When the API cannot be reached (network down, or the homelab's API down behind the hub's
- * proxy), the last known session is used so a child can keep playing offline (ADR 0005).
+ * proxy), the last known session is used so a child can keep playing offline (ADR 0005). An account's session that the
+ * API no longer knows — while this device still kept it — has ended, and the app says so (session/ended.ts, ADR 0046).
  */
 export const meQuery = queryOptions({
   queryKey: ['me'],
   queryFn: async (): Promise<MeView | null> => {
     try {
       const me = await fetchMe();
-      if (me) await db.cache.put({ key: 'me', value: me, at: Date.now() });
-      else await db.cache.delete('me');
+      if (me) {
+        await db.cache.put({ key: 'me', value: me, at: Date.now() });
+        sessionEnded.clear();
+      } else {
+        const known = (await db.cache.get('me'))?.value as MeView | undefined;
+        if (sessionEndedBy(known, me)) sessionEnded.mark();
+        await db.cache.delete('me');
+      }
       return me;
     } catch (error) {
       const unreachable = error instanceof TypeError || (error instanceof ApiError && error.status >= 500);
