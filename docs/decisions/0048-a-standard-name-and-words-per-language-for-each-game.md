@@ -5,7 +5,7 @@ sidebar:
   order: 48
 ---
 
-- **Status:** Accepted — the points marked *(agent)* wait for the owner's review in the pull request
+- **Status:** Accepted
 - **Date:** 2026-10-22
 - **Amends:** [ADR 0047](0047-two-languages-and-an-introduction-surface-that-grows.md) — settles what it left open:
   game names per language, and descriptions *(agent)*
@@ -13,7 +13,8 @@ sidebar:
   English, or a proper name such as *Tiến Lên* — required and shown by default; a name per language is **optional and
   shown when present**. Proper names and established terms stay English inside Vietnamese text. Descriptions, the
   language tags, the lookup's order, the four games' names and where the repository's own rule is tested are the
-  agent's proposal, marked *(agent)*.
+  agent's proposal, marked *(agent)*; the owner left them to the agent on 2026-10-22 ("bạn đề xuất và xử đi"), and they
+  stand as proposed.
 
 ## Context
 
