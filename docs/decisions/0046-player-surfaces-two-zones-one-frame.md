@@ -7,9 +7,9 @@ sidebar:
 
 - **Status:** Accepted
 - **Date:** 2026-10-22
-- **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespace `/together` for the app; the root no
-  longer sends a returning player to `/play`; Cloudflare Access in front of `console.` before the launch, no longer
-  optional; the games origin asks for an origin-keyed agent cluster
+- **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespace `/together` for the app; the games
+  origin asks for an origin-keyed agent cluster; Cloudflare Access in front of `console.` before the launch is proposed.
+  The public pages' redirect of a returning player ([Hosts and paths](../architecture/hosts-and-paths.md)) ends
 - **Decided by:** the owner, 2026-10-22, in the launch review (plans/launch-review D-02, D-04, D-05): "D-02 D-04 chọn
   B"; "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi … nên nếu
   lên vấn đề này như 1 topic và nói tình hình hiện tại". Points the agent proposed and the owner reviews in this ADR are
@@ -26,8 +26,9 @@ On the players' host (`toheplay.io.vn`, ADR 0042) the public pages and the app g
   items (enter a code, my links, install, feedback). On a computer the app is one narrow column.
 - **Two catalogs and two pages for one game**, with no stated role: `/games/` and `/games/<id>/` (static, indexed) and
   `/play` and `/play/<id>` (the app).
-- **Playing together is scattered.** Tables are reached through each game; the API already lists a profile's tables and
-  invitations (`GET /api/rooms/mine`, `/api/rooms/invites`) but no screen shows them.
+- **Playing together is scattered.** Tables are reached through each game. The API lists a profile's tables
+  (`GET /api/rooms/mine`) but no screen shows them; invitations (`/api/rooms/invites`) show on the catalog, for profiles
+  that sync with the server.
 - **Coming back starts from zero.** The first screen is the catalog: no "continue", no "you are at a table". On a shared
   family device the last player stays active without asking. An account whose session ended falls back to the device's
   profile in silence.
@@ -64,7 +65,7 @@ The hosts of ADR 0042 are named by what they trust:
 
 The owner's review of a game includes changes to its dependencies (the supply chain is the real risk at L1). The games
 origin sends `Origin-Agent-Cluster: ?1`, so browsers that support it keep games apart by origin *(agent)*. Cloudflare
-Access goes in front of `console.` before the launch.
+Access goes in front of `console.` before the launch *(agent; optional until the owner decides — owner, 2026-10-20)*.
 
 ### Two zones on the players' host
 
@@ -79,8 +80,10 @@ Access goes in front of `console.` before the launch.
 - **`/` puts the catalog first** and the introduction after it.
 - **No redirect on `/`** *(agent)*. A browser that has played before gets a *Continue* button at the top of the page
   (the same small script reads the same keys). A link to `/` always shows `/`; the installed app still opens `/play`.
-- **Ways across both directions.** Every public page has *Play now* (and *Continue* when the device has played). In the
-  app, Me leads to *Help and about* (the guides, the FAQ, about) and *Papers* (the terms, the privacy notice).
+- **Ways across both directions.** Every public page has *Play now* (and *Continue* when the device has played); on a
+  phone it stays in sight in the header. In the app, Me leads to *Help and about* (the guides, the FAQ, about) and
+  *Papers* (the terms, the privacy notice). Links out of Tò He (the docs, GitHub, mail) appear only in Me and in the
+  public pages' footer.
 
 ### The app's frame
 
@@ -89,23 +92,32 @@ A layout route wraps every screen of the Play zone except a game in play.
 - **Three labelled tabs**: **Trò chơi** (Games, `/play`), **Chơi cùng** (Play together, `/together`), **Tôi** (Me,
   `/account`) *(agent: the names)*. A bottom bar on narrow screens, a rail on the left from tablet width; content up to
   about 1200 px wide, the catalog in four to six columns. Forms (signing in, a new profile) stay narrow.
-- **Games**: who is playing (avatar, name, *Change*); the table the player sits at, if any; invitations to them; *Continue*
-  — the game this profile opened last, one big tile; recent games; every game.
-- **Play together**: the box for a table's or a link's code; the player's tables; invitations to them; the links they sent.
+- A fourth tab comes only with a feature of its own (a shared board, friends), never to hold settings.
+- **Games**: who is playing (avatar, name, *Change*) and a button for a code *(agent)* — the code box stays one tap from
+  the first screen because an installed app on an iPhone cannot follow a link ([Entry links](../architecture/entry-links.md));
+  the table the player sits at, if any; invitations to them; *Continue* — the game this profile opened last, one big
+  tile; recent games; every game.
+- **Play together**: the box for a table's or a link's code; the player's tables; invitations to them; the links they sent
+  (the list stays at `/account/links`; Play together shows the newest and leads there).
 - **Me**: profiles and who is playing; settings (language, theme, sound); install; help and about; feedback; papers; the
   account.
 - **A game in play has no frame**: full screen as today ([ADR 0020](0020-a-game-has-a-menu-stage-and-a-play-stage.md)).
   Each level (the app, a table, a game) is an entry in the history, so Android's back steps one level.
 - The bottom sheet goes; its items move: enter a code and my links to Play together, install and feedback to Me.
-- **The app no longer locks the screen to portrait** *(agent)*: each game keeps the orientation its manifest declares.
-- **A child's profile asks for the manager PIN** to follow a link out of Tò He (the docs, GitHub, mail) *(agent)*.
+- **The app no longer locks the screen to portrait** *(agent)*. The hub neither rotates nor locks: a game draws itself for
+  the screen it gets, fitting the orientation its manifest prefers inside it (the kit's scaling does), so a portrait game
+  on a landscape tablet or computer shows with margins.
+- **A child's profile of an account asks for the account's manage PIN** (six digits, [Identity](../architecture/identity.md))
+  to follow a link out of Tò He *(agent)*. A device with only device profiles has no PIN, so nothing asks there.
 - No streaks that punish, no countdowns, no guilt — the first screen shows what was left unfinished, neutrally.
 
 ### Coming back
 
 - **Who is playing** on a shared device: with one profile, never asked; with several, one tap after a cold start that
-  follows **30 minutes** unused. Moving from a child's profile to an adult's or to the account asks for the manager PIN;
-  the other way does not.
+  follows **30 minutes** unused *(agent: the time)*. Moving from an account's child profile to an adult's or to the account
+  asks for the manage PIN; the other way does not.
+- **Invitations** stay addressed to profiles with a public ID ([ADR 0033](0033-invite-a-profile-by-its-id.md)), so they reach
+  an account's profiles; a device profile, which has none, joins by code or link *(agent)*.
 - **An ended session says so** ("your session has ended — sign in again to play on your account") instead of falling
   back to the device's profile in silence.
 - **Updates wait** *(agent)*: a new version takes over at the next cold start; in a long session, *A new version —
@@ -115,20 +127,25 @@ A layout route wraps every screen of the Play zone except a game in play.
   Safari and not the installed app, entry pages say "Installed Tò He? Open it → Enter the code ABCD-EFGH".
 - The installed app asks for persistent storage (`navigator.storage.persist()`); returning visits are counted as totals,
   never by whom (ADR 0015).
-- **Not done here**: push notifications ("your turn") and the app badge — the product backlog.
+- **Not done here** *(agent)*: push notifications ("your turn") and the app badge — the product backlog
+  (`docs/roadmap/product-backlog.md`).
 
 ## Consequences
 
-- `@tohe/routes`: the namespace `/together` (the app's page); the games origin's header. Generated files regenerated.
+- `@tohe/routes`: the namespace `/together` (the app's page), with the screen that uses it. Generated files regenerated.
+- `deploy/docker/Caddyfile.games`: the header `Origin-Agent-Cluster: ?1`.
 - The hub: the layout route and the three tabs; Play together and Me as screens; the first screen; who is playing;
   the ended-session notice; the update policy (`registerType: 'prompt'`, the notice); `launch_handler`; persistent storage;
   the manifest without `orientation`; the PIN for links out; the history per level. e2e and the screenshots in light and
   dark follow.
 - The public pages: the catalog first; *Continue* instead of the redirect; *Play now* on every page.
 - Docs: [Surfaces](../architecture/surfaces.md) (new) describes the planes, the zones, the frame and coming back;
-  [Hosts and paths](../architecture/hosts-and-paths.md) gains `/together`, the planes and the ladder.
+  [Hosts and paths](../architecture/hosts-and-paths.md) gains `/together`, the planes and the ladder;
+  [Entry links](../architecture/entry-links.md) (the code box and the links in the frame, not in a menu),
+  [Identity](../architecture/identity.md) (who is playing, the ended session) and [Telemetry](../architecture/telemetry.md)
+  (returning visits) follow when the frame lands.
 - ADR 0042's status line notes the amendment.
-- The gate before the launch includes Cloudflare Access on `console.`.
+- The gate before the launch includes Cloudflare Access on `console.` if the owner confirms it.
 
 ## Alternatives considered
 
@@ -137,8 +154,8 @@ A layout route wraps every screen of the Play zone except a game in play.
 - **The app is the website**: one React app prerendering every public page. One frame everywhere, but the public pages
   would load the app's code (slower, and they lose `connect-src 'none'`), Astro's simple static pages would be rewritten,
   and the gain over two zones is small.
-- **Keep the redirect on `/`.** Google allows it (Googlebot keeps no storage), but a returning player could never read
-  the introduction or the FAQ from a link to `/`.
+- **Keep the redirect on `/`.** Google's spam policy seems to allow it (our reading: Googlebot keeps no storage, so it
+  always gets the page), but a returning player could never read the introduction or the FAQ from a link to `/`.
 - **Games on a second domain now (L2).** Cleaner, but a domain and a zone to keep for what L1 already covers while every
   game is the owner's; the move stays one configuration change for when it is needed.
 - **The introduction pages or the games on the owner's other domain.** That domain hosts apps that are not Tò He's

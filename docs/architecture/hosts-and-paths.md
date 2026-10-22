@@ -5,7 +5,8 @@ description: Where every part of Tò He lives on toheplay.io.vn — a host per t
 
 Decision: [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md) (amends [ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md), [0027](../decisions/0027-platform-admin-and-the-first-owner.md)
 and [0021](../decisions/0021-release-production-through-the-tohe-chart.md)), amended by [ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)
-(`/together`, no redirect on `/`, the planes and the games' isolation ladder, Access on the console before the launch)
+(`/together`, no redirect on `/`, the planes and the games' isolation ladder, Access on the console before the launch
+proposed)
 and [ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md) (`/en/…`, `/promise/`, crawlers
 by name). What players see in these namespaces: [Surfaces](surfaces.md).
 
@@ -25,7 +26,7 @@ flowchart TB
     app["The app (PWA)<br/>/play · /account · /r · /s"]
     papi["/api → API"]
   end
-  subgraph ops ["console.toheplay.io.vn — operators, own sign-in (Cloudflare Access optional)"]
+  subgraph ops ["console.toheplay.io.vn — operators, own sign-in (Cloudflare Access optional; proposed before the launch)"]
     console["Console"]
     capi["/api/admin → API"]
   end
@@ -43,7 +44,7 @@ flowchart TB
 | Host | Role | Session | Indexed | Served by |
 | --- | --- | --- | --- | --- |
 | `toheplay.io.vn` | Players: public pages, the app, the API | `__Host-tohe.session`, `SameSite=Lax` | public pages only | the hub image's Caddy: the public pages (`apps/web`, in `/srv/web`) and the app (`/srv`), proxying `/api` |
-| `console.toheplay.io.vn` | Operators: the console, the API's console routes | `__Host-tohe.console`, `SameSite=Strict`; Cloudflare Access first once the owner turns it on (optional for now) | no | the hub image's Caddy, a second site |
+| `console.toheplay.io.vn` | Operators: the console, the API's console routes | `__Host-tohe.console`, `SameSite=Strict`; Cloudflare Access first once the owner turns it on (optional for now; before the launch, proposed in ADR 0046) | no | the hub image's Caddy, a second site |
 | `games.toheplay.io.vn` | Game builds, the catalog | none | no | the games image |
 | `docs.toheplay.io.vn` | Developer docs at the root of the host, generated API references, `llms.txt` | none | yes | the docs image (`apps/docs`) |
 | `status.toheplay.io.vn` | Status and incidents | none | yes | a service outside Tò He's infrastructure |
@@ -59,7 +60,8 @@ Kept for later, without DNS: `api.`, `account.`, `studio.`, `media.`, `uat.` ([A
 (`games.`), operators (`console.`), developers (`docs.`, later `studio.`), edge (`status.`, `notify.`). The games plane is
 at isolation level **L1** — an origin of its own, enough while every game is one the owner adds to this repository.
 **Before the first game the owner did not add**, the owner chooses L2 (a registrable domain of its own) or L3 (a site per
-game); the games origin is configuration (`publicUrls.games`), so either is a change of configuration and DNS.
+game); the games origin is configuration (`publicUrls.games`), so L2 is a change of configuration and DNS, while L3 also
+needs a URL per game from the API, the hub's CSP to allow each game's host, and a games host serving many names.
 
 ## Namespaces on the root
 
@@ -70,7 +72,7 @@ game); the games origin is configuration (`publicUrls.games`), so either is a ch
 | `/_web/…` | public pages — the scripts, styles and images their build adds, hashed names | static | no |
 | `/og.png`, `/llms.txt` | public pages — the picture a link preview shows, and the list of the pages for AI readers | static | not in the sitemap |
 | `/play`, `/play/<gameId>/…` | the app — the catalog, and only game ids under `/play/`, so a game named like a page never collides: `/play/<gameId>`, `/play/<gameId>/rooms`, `/play/<gameId>/rooms/<roomId>`, `/play/<gameId>/rooms/<roomId>/replay/<hand>` | the app's page | no |
-| `/together` | the app — playing together: a code, the player's tables, invitations, the links they sent ([Surfaces](surfaces.md)) | the app's page | no |
+| `/together` | the app — playing together: a code, the player's tables, invitations, the newest links they sent (the full list stays at `/account/links`) ([Surfaces](surfaces.md)) | the app's page | no |
 | `/account/…` | the app — signing in and up (`/account/sign-in`, `/account/register`), password, email, profiles, what telemetry sends (`/account/data`), moving a device profile (`/account/transfer`), the share links a profile made (`/account/links`, [Entry links](entry-links.md)), the account itself (`/account`) | the app's page | no |
 | `/r/<code>`, `/s/<code>` | the app's short links: a table's, a share link's ([Entry links](entry-links.md)); a known link-preview crawler gets the API's card for them instead, through a rewrite to `/api/previews/…` that the map generates | the app's page | no |
 | the app's assets, manifest and service worker | the app | static | — |
