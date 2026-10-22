@@ -18,7 +18,8 @@ import {
   siteWords,
   suggestion,
 } from '../content/site.ts';
-import { languages, localPath, ogLocales, otherLanguage, pageLanguage, pairOf } from '../i18n.ts';
+import { appPath, languages, localPath, ogLocales, otherLanguage, pageLanguage, pairOf } from '../i18n.ts';
+import fromAppUrl from '../scripts/from-app.js?url';
 import returningUrl from '../scripts/returning.js?url';
 
 interface Props {
@@ -26,18 +27,13 @@ interface Props {
   description: string;
   /** The page's own path, with its closing slash: the canonical link and og:url. */
   path: string;
-  /**
-   * Only the home pages: the script that marks a browser that has played here (`data-returning` on <html>), which
-   * shows the page's *Chơi tiếp* button. It never navigates: `/` never redirects (ADR 0046).
-   */
-  returning?: boolean;
   /** The link-preview picture, 1200×630: the shared one, or a game page's own (made by scripts/render-og.ts). */
   image?: { path: string; alt: string };
   /** Structured data: one JSON-LD block each, with the page's `inLanguage` (the build checks it). */
   jsonLd?: Record<string, unknown>[];
 }
 
-const { title, description, path, returning = false, image: picture, jsonLd = [] } = Astro.props;
+const { title, description, path, image: picture, jsonLd = [] } = Astro.props;
 const lang = pageLanguage(Astro.currentLocale);
 const words = siteWords[lang];
 const other = otherLanguage(lang);
@@ -64,7 +60,8 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#f97316" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f97316" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17110e" />
     <link rel="canonical" href={url} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
@@ -83,8 +80,9 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
     {blocks.map((block) => <script is:inline type="application/ld+json" set:html={block} />)}
-    {/* Blocking, before the first paint: on the home pages, whether this browser has played here (Chơi tiếp shows at once, without a jump); everywhere, the saved light/dark choice. */}
-    {returning && <script is:inline src={returningUrl}></script>}
+    {/* Blocking, before the first paint, on every page: whether this browser has opened a game here (Chơi tiếp replaces Chơi ngay at once, without a jump); whether the visit came from the app (no link out of Tò He shows); the saved light/dark choice. */}
+    <script is:inline src={returningUrl}></script>
+    <script is:inline src={fromAppUrl}></script>
     <script is:inline src={themeInitUrl}></script>
   </head>
   <body>
@@ -132,6 +130,9 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
           ))
         }
       </div>
+      {/* Into the app, on phones too (ADR 0046): "Chơi ngay", or "Chơi tiếp" on a device that has opened a game (returning.js sets data-returning; the stylesheet shows one of the two). */}
+      <a class="header-play new" href={appPath(lang, '/play')}>{words.play}</a>
+      <a class="header-play again" href={appPath(lang, '/play')}>{words.continue}</a>
     </header>
 
     {
@@ -155,9 +156,10 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
         <a href={localPath(lang, '/promise/')}>{words.footer.promise}</a>
         <a href="/terms/" hreflang={legalHreflang}>{words.footer.terms}</a>
         <a href="/privacy/" hreflang={legalHreflang}>{words.footer.privacy}</a>
-        <a href={`${docsUrl}/`}>{words.footer.docs}</a>
-        <a href={site.github}>{words.footer.github}</a>
-        <a href={`mailto:${site.email}`}>{site.email}</a>
+        {/* The links out of Tò He carry data-out: a visit that came from the app shows none (from-app.js). */}
+        <a href={`${docsUrl}/`} data-out>{words.footer.docs}</a>
+        <a href={site.github} data-out>{words.footer.github}</a>
+        <a href={`mailto:${site.email}`} data-out>{site.email}</a>
       </p>
     </footer>
   </body>

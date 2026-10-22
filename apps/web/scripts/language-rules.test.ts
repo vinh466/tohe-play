@@ -37,7 +37,7 @@ const vietnameseFaq: Page = {
     '<a href="/en/faq/" hreflang="en">EN</a>',
     '<a href="/games/">Trò chơi</a>',
     '<a href="/terms/">Điều khoản</a>',
-    '<a href="/play">Chơi</a>',
+    '<a href="/play?lang=vi">Chơi</a>',
   ],
 };
 
@@ -161,6 +161,21 @@ describe('a page’s language', () => {
       '/en/faq/: a link into the app, /play, without ?lang=en',
       '/en/faq/: a link into the app, /play/hello?lang=vi, without ?lang=en',
     ]);
+  });
+
+  it('fails when a Vietnamese page leads into the app without ?lang=vi (a Vietnamese page on an English phone)', () => {
+    expect(
+      check('/faq/', {
+        ...vietnameseFaq,
+        links: [...vietnameseFaq.links, '<a href="/play">Chơi</a>', '<a href="/play/hello?lang=en">Chơi</a>'],
+      }),
+    ).toEqual([
+      '/faq/: a link into the app, /play, without ?lang=vi',
+      '/faq/: a link into the app, /play/hello?lang=en, without ?lang=vi',
+    ]);
+    expect(
+      check('/terms/', { ...vietnameseTerms, links: [...vietnameseTerms.links, '<a href="/play">Chơi</a>'] }),
+    ).toEqual(['/terms/: a link into the app, /play, without ?lang=vi']);
   });
 });
 

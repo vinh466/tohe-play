@@ -10,6 +10,9 @@ sidebar:
 - **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespace `/together` for the app; Cloudflare
   Access in front of `console.` (on since 2026-10-22). The public pages' redirect of a returning player
   ([Hosts and paths](../architecture/hosts-and-paths.md)) ends.
+- **Refined:** 2026-10-23, after the launch review's surface round (plans/launch-review, F1): a public page opened from
+  the app shows no link out of Tò He (below, *Ways across both directions* and the consequences), *Chơi ngay* is built in
+  every header, and *Chơi tiếp* means the device has opened a game.
 - **Decided by:** the owner, 2026-10-22, in the launch review (plans/launch-review D-02, D-04, D-05): "D-02 D-04 chọn
   B"; "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi … nên nếu
   lên vấn đề này như 1 topic và nói tình hình hiện tại". Points the agent proposed are marked *(agent)*;
@@ -85,10 +88,12 @@ Access is in front of `console.` (the owner turned it on, 2026-10-22); the conso
 - **`/` puts the catalog first** and the introduction after it.
 - **No redirect on `/`** *(agent)*. A browser that has played before gets a *Continue* button at the top of the page
   (the same small script reads the same keys). A link to `/` always shows `/`; the installed app still opens `/play`.
-- **Ways across both directions.** Every public page has *Play now* (and *Continue* when the device has played); on a
-  phone it stays in sight in the header. In the app, Me leads to *Help and about* (the guides, the FAQ, about) and
+- **Ways across both directions.** Every public page has *Play now* (and *Continue* when the device has opened a game);
+  on a phone it stays in sight in the header. In the app, Me leads to *Help and about* (the guides, the FAQ, about) and
   *Papers* (the terms, the privacy notice). Links out of Tò He (the docs, GitHub, mail) appear only in Me and in the
-  public pages' footer.
+  public pages' footer — and **a public page opened from the app shows no link out**: the app adds `?from=app`, and the
+  page hides every link that leaves Tò He for that visit. A child who goes from Me to the FAQ has no way out of Tò He but
+  the app's own, which the PIN guards.
 
 ### The app's frame
 
@@ -153,7 +158,12 @@ A layout route wraps every screen of the Play zone except a game in play.
   the ended-session notice; the update policy (`registerType: 'prompt'`, the notice); `launch_handler`; persistent storage;
   the manifest without `orientation`; the PIN for links out; the history per level. e2e and the screenshots in light and
   dark follow.
-- The public pages: the catalog first; *Continue* instead of the redirect; *Play now* on every page.
+- The public pages: the catalog first; *Continue* instead of the redirect; *Play now* on every page, in the header, with
+  *Continue* in its place on a device that has opened a game (the hub writes `tohe:returning` where it notes "opened",
+  not on every start; no compatibility for devices from before). A page opened with `?from=app` hides the links out of
+  Tò He — marked `data-out`, hidden by a script file (the pages' CSP has no inline script) and kept for the visit in
+  `sessionStorage` — and the docs link is in the footer, not in the home page's body. Every link into the app carries
+  `?lang=` in the page's own language, Vietnamese included.
 - Docs: [Surfaces](../architecture/surfaces.md) (new) describes the planes, the zones, the frame and coming back;
   [Hosts and paths](../architecture/hosts-and-paths.md) gains `/together`, the planes and the ladder;
   [Entry links](../architecture/entry-links.md) (the code box and the links in the frame, not in a menu),

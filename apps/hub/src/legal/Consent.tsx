@@ -9,6 +9,7 @@ import { db } from '../storage/db.ts';
 import { Button } from '../ui/Button.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { TERMS_VERSION } from './documents.ts';
+import { PaperLink } from './PaperLink.tsx';
 
 /**
  * "Tôi từ 16 tuổi trở lên và đồng ý…" (ADR 0025). The documents open in a new tab, so a half-filled form stays.
@@ -35,15 +36,8 @@ export function ConsentCheckbox({
           className="mt-1 size-6 shrink-0 accent-brand"
         />
         <span>
-          {t('consent.agree')}{' '}
-          <a href="/terms" target="_blank" rel="noopener" className={link}>
-            {t('legal.terms')}
-          </a>{' '}
-          {t('consent.and')}{' '}
-          <a href="/privacy" target="_blank" rel="noopener" className={link}>
-            {t('legal.privacy')}
-          </a>
-          .
+          {t('consent.agree')} <PaperLink paper="terms" label={t('legal.terms')} className={link} />{' '}
+          {t('consent.and')} <PaperLink paper="privacy" label={t('legal.privacy')} className={link} />.
         </span>
       </label>
       {error ? <p className="text-danger text-sm">{error}</p> : null}
@@ -69,7 +63,7 @@ export function TermsPrompt({ me }: { me: MeView }) {
     },
   });
   return (
-    <Screen narrow>
+    <Screen narrow back="/play">
       <section className="mt-8 flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
         <h1 className="font-black text-2xl text-brand-ink">
           {me.account.termsVersion ? t('terms.updatedTitle') : t('terms.title')}

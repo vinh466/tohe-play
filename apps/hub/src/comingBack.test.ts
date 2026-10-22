@@ -9,11 +9,13 @@ import { isIos } from './install/install.ts';
 import { askPersistentStorage, launchTarget, PERSIST_KEY } from './install/launch.ts';
 import {
   comingBack,
+  markReturning,
   OPENED_KEPT,
   type Opened,
   openedBy,
   openedKey,
   RECENT_SHOWN,
+  RETURNING_KEY,
   readOpened,
   recordOpened,
   withOpened,
@@ -409,5 +411,29 @@ describe('the installed app’s storage', () => {
   it('says when the browser refuses', async () => {
     const { storage } = manager(false, false);
     expect(await askPersistentStorage(storage, memory())).toBe('refused');
+  });
+});
+
+describe('"Chơi tiếp" on the public pages: the device has opened a game', () => {
+  // apps/web returning.js reads `tohe:returning`; the hub writes it where it notes "opened", never on a plain start.
+  it('is the key the public pages read', () => {
+    expect(RETURNING_KEY).toBe('tohe:returning');
+  });
+
+  it('is written when a game is opened, and by nothing before', () => {
+    expect(local.values.has(RETURNING_KEY)).toBe(false);
+    markReturning(local);
+    expect(local.getItem(RETURNING_KEY)).toBe('1');
+  });
+
+  it('is no failure when storage is blocked', () => {
+    expect(() =>
+      markReturning({
+        setItem: () => {
+          throw new Error('blocked');
+        },
+      }),
+    ).not.toThrow();
+    expect(() => markReturning(undefined)).not.toThrow();
   });
 });

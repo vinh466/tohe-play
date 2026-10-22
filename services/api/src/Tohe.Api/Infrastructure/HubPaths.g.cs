@@ -28,7 +28,7 @@ public static class HubPaths
     /// <summary>The account page; ?linked= or ?link_error= after linking a provider.</summary>
     public const string Account = "/account";
 
-    /// <summary>The profile picker; ?auto=true goes straight on with one profile.</summary>
+    /// <summary>The profile picker; ?auto=true goes straight on with one profile; ?ask=true asks "Ai đang chơi?" after a cold start that follows 30 minutes unused.</summary>
     public const string Profiles = "/account/profiles";
 
     /// <summary>A room’s short link, /r/&lt;code&gt;: a link preview’s way to the app.</summary>

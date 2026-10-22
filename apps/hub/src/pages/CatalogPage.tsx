@@ -11,6 +11,7 @@ import { InstallNudge } from '../install/InstallNudge.tsx';
 import { byShownName, descriptionOf, nameOf } from '../launcher/gameWords.ts';
 import { hasShell } from '../launcher/manifest.ts';
 import { comingBack, openedBy } from '../launcher/recent.ts';
+import { useOnline } from '../net/online.ts';
 import { myTablesQuery, useTablePlayer } from '../rooms/myTables.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { MovedNotice } from '../session/MovedNotice.tsx';
@@ -43,6 +44,8 @@ function Catalog({ session }: { session: PlayingSession }) {
   const back = useMemo(() => comingBack(opened.data ?? [], games.data ?? []), [opened.data, games.data]);
   const { acting } = useTablePlayer(session);
   const onDevice = player.kind === 'device';
+  // Follows the connection live: the strip comes and goes with `online` and `offline`.
+  const online = useOnline();
   useBackgroundSync(player);
 
   return (
@@ -96,6 +99,7 @@ function Catalog({ session }: { session: PlayingSession }) {
               <li key={game.id}>
                 <Link
                   {...gameLink(game)}
+                  data-tile
                   className="flex h-full flex-col items-center gap-1.5 rounded-2xl bg-surface p-3 text-center shadow-sm transition active:scale-95"
                 >
                   <GameIcon game={game} size="size-14" />
@@ -107,9 +111,7 @@ function Catalog({ session }: { session: PlayingSession }) {
         </section>
       ) : null}
 
-      {!navigator.onLine && (
-        <p className="rounded-xl bg-notice px-4 py-2 text-notice-ink text-sm">{t('offline')}</p>
-      )}
+      {!online && <p className="rounded-xl bg-notice px-4 py-2 text-notice-ink text-sm">{t('offline')}</p>}
 
       <section aria-labelledby="games-heading" className="flex flex-col gap-3">
         <h2 id="games-heading" className="font-bold text-ink text-xl">
@@ -127,6 +129,7 @@ function Catalog({ session }: { session: PlayingSession }) {
             >
               <Link
                 {...gameLink(game)}
+                data-tile
                 className="flex h-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 text-center shadow-sm transition active:scale-95 short:gap-1 short:p-2"
               >
                 <GameIcon game={game} size="size-20 short:size-12" />
@@ -175,6 +178,7 @@ function ContinueTile({ game }: { game: GameSummary }) {
   return (
     <Link
       {...gameLink(game)}
+      data-tile
       className="flex items-center gap-4 rounded-3xl bg-surface p-4 shadow-sm transition active:scale-[0.98] md:max-w-xl"
     >
       <GameIcon game={game} size="size-20" />
@@ -210,6 +214,7 @@ function SeatedTables({ player, games }: { player: Player; games: readonly GameS
               <Link
                 to="/play/$gameId/rooms/$roomId"
                 params={{ gameId: room.gameId, roomId: room.id }}
+                data-tile
                 className="flex items-center gap-3 rounded-2xl bg-surface p-3 shadow-sm transition active:scale-[0.98]"
               >
                 {game ? (

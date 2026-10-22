@@ -91,8 +91,9 @@ front matter (`updated`) — outside `public/`, so the games origin never serves
 ages, orientation, seats and whether it plays together come from `game.json`; facts the manifest does not hold and that
 do not depend on the language, such as how long a round lasts, live once in `games/<id>/page/facts.json` *(agent)*.
 Every game under `games/` gets a page, as today. The public pages' build reads every game's folder and makes the pages
-in both languages, their JSON-LD and **a preview picture per game and language**, made at build time (not committed) and
-served under the game's page (`/games/<id>/og.png`, `/en/games/<id>/og.png`). The build fails when a game lacks a page
+in both languages, their JSON-LD and **a preview picture per game and language**, drawn by `generate:og` and committed
+beside the game's page (the build checks that each is there and up to date) and served under the game's page
+(`/games/<id>/og.png`, `/en/games/<id>/og.png`). The build fails when a game lacks a page
 in either language, a picture or a date, when a language pair is one-sided, or when a collection has fewer than three
 games. `/new-game` writes the files, and a game's Definition of Done includes them.
 

@@ -7,7 +7,7 @@ import { TabHeader } from '../frame/AppFrame.tsx';
 import { OutboundLink } from '../frame/OutboundLink.tsx';
 import { currentLanguage, setLanguage } from '../i18n.ts';
 import { InstallSheet, useStandalone } from '../install/InstallNudge.tsx';
-import { type Language, publicPage } from '../language/language.ts';
+import { fromApp, type Language, publicPage } from '../language/language.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player, SessionState } from '../session/session.ts';
 import { readMuted, saveMuted, subscribeMuted } from '../settings/sound.ts';
@@ -21,6 +21,7 @@ import { feedbackLink } from '../ui/feedback.ts';
 import { Screen } from '../ui/Screen.tsx';
 import { Segmented } from '../ui/Segmented.tsx';
 import { Switch } from '../ui/Switch.tsx';
+import { shortVersion } from '../ui/version.ts';
 
 type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
 
@@ -210,7 +211,7 @@ function PublicLinks({
           <li key={path}>
             {/* A public page is not a screen of the app: a full navigation (ADR 0042). */}
             <a
-              href={page.href}
+              href={fromApp(page.href)}
               className="flex min-h-12 items-center justify-between gap-3 border-line border-b py-2 font-semibold text-ink"
             >
               <span>
@@ -259,7 +260,7 @@ function Version() {
   const config = useQuery(configQuery);
   return config.data ? (
     <p className="text-center text-ink-soft text-xs">
-      {t('account.version', { version: config.data.apiVersion })}
+      {t('account.version', { version: shortVersion(config.data.apiVersion) })}
     </p>
   ) : null;
 }

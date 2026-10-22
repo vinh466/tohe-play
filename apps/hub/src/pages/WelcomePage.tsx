@@ -91,7 +91,7 @@ function SignIn() {
   const playOnDevice = async () => {
     deviceMode.enable();
     await queryClient.invalidateQueries({ queryKey: ['me'] });
-    await navigate({ to: '/', replace: true });
+    await navigate({ to: '/play', replace: true });
   };
 
   if (needsEmail) {

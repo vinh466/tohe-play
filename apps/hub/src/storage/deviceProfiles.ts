@@ -36,8 +36,6 @@ export const MAX_UPLOAD_SCORES = 1000;
 
 const CURRENT = 'tohe:device-profile';
 
-export const randomAvatar = () => AVATARS[Math.floor(Math.random() * AVATARS.length)] ?? '🦊';
-
 /** Which device profile plays on this device, remembered across visits. */
 export const currentDeviceProfile = {
   get: (): string | null => localStorage.getItem(CURRENT),
@@ -51,12 +49,13 @@ export function listDeviceProfiles(db: ToheDb): Promise<LocalProfile[]> {
 }
 
 /**
- * The device profile that plays: the one chosen last, else the oldest — or a new one, made silently with the name
- * given (the `any` level of ADR 0043). `made` says the device had none before.
+ * The device profile that plays: the one chosen last, else the oldest — or a new one, made silently with the name and
+ * avatar `suggest` gives (one animal for both: `funIdentity`; the `any` level of ADR 0043). `made` says the device had
+ * none before.
  */
 export async function ensureDeviceProfile(
   db: ToheDb,
-  suggestName: () => string,
+  suggest: () => { name: string; avatar: string },
 ): Promise<{ profile: LocalProfile; made: boolean }> {
   const chosen = currentDeviceProfile.get();
   const current = chosen ? await db.profiles.get(chosen) : undefined;
@@ -66,7 +65,7 @@ export async function ensureDeviceProfile(
     currentDeviceProfile.set(oldest.id);
     return { profile: oldest, made: false };
   }
-  const profile = await createDeviceProfile(db, { name: suggestName(), avatar: randomAvatar() });
+  const profile = await createDeviceProfile(db, suggest());
   return { profile, made: true };
 }
 

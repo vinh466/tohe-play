@@ -4,6 +4,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import {
   chooseLanguage,
+  fromApp,
   LANGUAGE_KEY,
   publicPage,
   savedLanguage,
@@ -166,5 +167,14 @@ describe('a link or a table made in the app’s language', () => {
       },
       { path: '/api/rooms', body: { language: 'vi', ...table } },
     ]);
+  });
+});
+
+describe('a public page opened from the app', () => {
+  // The public pages hide every link out of Tò He on a visit that carries `?from=app` (apps/web from-app.js).
+  it('carries ?from=app, after what the address has already', () => {
+    expect(fromApp('/faq/')).toBe('/faq/?from=app');
+    expect(fromApp('/en/guides/')).toBe('/en/guides/?from=app');
+    expect(fromApp('/terms/?x=1')).toBe('/terms/?x=1&from=app');
   });
 });

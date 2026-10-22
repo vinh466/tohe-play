@@ -57,7 +57,7 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
   - cookies are per host, not per port, so the hub, the public pages and the docs on one host share the choice.
 - **The code** lives in `@tohe/design-tokens`:
   - `theme` reads and saves the choice, resolves *Theo máy* against the device, and applies a theme: `<html>` gets
-    `data-theme` and `color-scheme` (for native controls and scrollbars), and `<meta name="theme-color">` gets
+    `data-theme` and `color-scheme` (for native controls and scrollbars), and every `<meta name="theme-color">` gets
     the `bar` colour;
   - `theme-init.js` does the same before the first paint, as a blocking script in `<head>`.
     `src/theme.test.ts` runs it against `theme.ts` for every cookie and device setting.
@@ -100,7 +100,11 @@ Games opt in; some games have one look by nature ([Game Contract](../contracts/g
 - `packages/design-tokens`:
   - both themes define the same tokens, and the token pairs meet WCAG AA in both themes;
   - `theme-init.js` agrees with `theme.ts`;
-  - the `theme-color` values equal the `bar` tokens.
+  - the `theme-color` values equal the `bar` tokens;
+  - the hub's page, its 404 page and the public pages carry two `theme-color` tags, one per scheme
+    (`media="(prefers-color-scheme: light|dark)"`) with the `bar` colours, so the browser's bars are right before the
+    script runs; the script (and `applyTheme`) then sets every tag to the chosen theme's colour, so a choice that differs
+    from the device's wins.
 - `apps/hub`: no raw palette classes; the copy of `theme-init.js` is identical to the original.
 - Games: conformance in every declared theme (above); `games/merge-block` also tests that every number is readable
   on its block.

@@ -152,6 +152,11 @@ section > h2 {
 :root[data-returning] .continue {
   display: block;
 }
+/* src/scripts/from-app.js sets data-from-app on <html> when the app opened the page: no link leaves Tò He (the ones
+   marked data-out), so a child reading Help or the papers has nowhere to go but back to the app or on in the site. */
+:root[data-from-app] [data-out] {
+  display: none;
+}
 .hint {
   display: flex;
   flex-wrap: wrap;
@@ -281,6 +286,14 @@ section > h2 {
 }
 .legal section + section {
   margin-top: 0;
+}
+
+/* The links at the foot of a page's text (about) */
+.page-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  font-weight: 700;
 }
 
 /* Footer */
@@ -513,6 +526,38 @@ section > h2 {
   }
   .languages {
     margin-left: auto;
+  }
+}
+
+/* Into the app, on every page and on phones too: "Chơi ngay", or "Chơi tiếp" once the device has opened a game. On a
+   narrow screen it sits beside the brand on the first row; from 48rem it ends the header's row. */
+.header-play {
+  order: 1;
+  padding: 0.5rem 1.1rem;
+  border-radius: 999px;
+  background: var(--tohe-brand);
+  color: var(--tohe-on-brand);
+  font-size: 1.05rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.header-play.again,
+:root[data-returning] .header-play.new {
+  display: none;
+}
+:root[data-returning] .header-play.again {
+  display: inline-block;
+}
+@media (max-width: 47.99rem) {
+  .languages,
+  .themes {
+    order: 2;
+  }
+}
+@media (min-width: 48rem) {
+  .header-play {
+    order: 4;
   }
 }
 

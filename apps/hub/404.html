@@ -4,18 +4,27 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <meta name="robots" content="noindex" />
-    <meta name="theme-color" content="#f97316" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f97316" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17110e" />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <title>Không tìm thấy trang · Tò He</title>
-    <!-- The hub's Caddy answers this page, with 404, to a path in no namespace (ADR 0042). -->
+    <title>Không tìm thấy trang · Page not found · Tò He</title>
+    <!-- The hub's Caddy answers this page, with 404, to a path in no namespace (ADR 0042). It speaks both languages: it
+         cannot know which one the visitor reads (ADR 0047). -->
     <script src="/theme-init.js"></script>
     <link rel="stylesheet" href="/src/not-found.css" />
   </head>
   <body>
     <main>
-      <h1>Không tìm thấy trang này</h1>
-      <p>Đường dẫn có thể đã cũ hoặc gõ nhầm.</p>
-      <a href="/">Về trang chủ Tò He</a>
+      <section lang="vi">
+        <h1>Không tìm thấy trang này</h1>
+        <p>Đường dẫn có thể đã cũ hoặc gõ nhầm.</p>
+        <a href="/">Về trang chủ Tò He</a>
+      </section>
+      <section lang="en">
+        <h2>Page not found</h2>
+        <p>The link may be old or mistyped.</p>
+        <a href="/en/">Back to the Tò He home page</a>
+      </section>
     </main>
   </body>
 </html>

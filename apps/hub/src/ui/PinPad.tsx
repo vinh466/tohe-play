@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface PinPadProps {
   /** Called with the digits once they are complete. */
@@ -15,6 +16,7 @@ const KEYS = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '', '0', '⌫'] as co
 
 /** Big digit keypad a small child can use: 4 digits for a profile's PIN, 6 for the manage PIN. */
 export function PinPad({ onComplete, length = 4, errorKey = 0, error, disabled }: PinPadProps) {
+  const { t } = useTranslation();
   const [digits, setDigits] = useState('');
   const [shaking, setShaking] = useState(false);
 
@@ -58,7 +60,7 @@ export function PinPad({ onComplete, length = 4, errorKey = 0, error, disabled }
               type="button"
               disabled={disabled}
               onClick={() => press(key)}
-              aria-label={key === '⌫' ? 'Xoá' : key}
+              aria-label={key === '⌫' ? t('pin.delete') : key}
               className="grid size-18 place-items-center rounded-full bg-surface font-black text-3xl text-ink shadow-sm active:scale-95 active:bg-soft disabled:opacity-50"
             >
               {key}

@@ -100,10 +100,23 @@ try {
     `open ${hubUrl} — a new device sees the public page; "Chơi ngay" plays as a device profile, and signing in is a choice`,
   );
   await page.goto(hubUrl);
-  await page.getByRole('link', { name: 'Chơi ngay' }).waitFor();
+  // The header's button, on a phone, to the app in the page's language; "Chơi tiếp" waits for a device that has opened a game.
+  const play = page.getByRole('link', { name: 'Chơi ngay', exact: true });
+  await play.waitFor();
+  if (!(await play.getAttribute('href'))?.endsWith('/play?lang=vi'))
+    throw new Error(
+      `the header's "Chơi ngay" does not carry the page's language: ${await play.getAttribute('href')}`,
+    );
+  if (await page.getByRole('link', { name: 'Chơi tiếp', exact: true }).isVisible())
+    throw new Error('a new device is offered "Chơi tiếp"');
+  // A plain visit shows the links out of Tò He, in the footer.
+  await page.getByRole('link', { name: 'Tài liệu kỹ thuật (tiếng Anh)' }).waitFor();
   await shot('landing');
-  await page.getByRole('link', { name: 'Chơi ngay' }).tap();
+  await play.tap();
   await page.waitForURL((url) => url.pathname === '/play');
+  // Opening the app is not opening a game: the public pages still take this device for a newcomer's.
+  if ((await page.evaluate(() => localStorage.getItem('tohe:returning'))) !== null)
+    throw new Error('the app wrote tohe:returning before any game was opened');
   await page.getByRole('link', { name: 'Đăng nhập' }).tap(); // the slim strip of a device profile
   await page.waitForURL(/\/account\/sign-in$/);
   await shot('welcome');
@@ -166,6 +179,51 @@ try {
   }
   await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Tiếng Việt' }).tap();
   await tabs.getByRole('link', { name: 'Tôi', exact: true }).waitFor();
+
+  step(
+    'Tôi → Hỏi đáp: a public page the app opens shows no link out of Tò He, and the visit remembers it (ADR 0046)',
+  );
+  await page.getByRole('link', { name: /Hỏi đáp/ }).tap();
+  await page.waitForURL((url) => url.pathname === '/faq/' && url.searchParams.get('from') === 'app');
+  await page.getByRole('link', { name: 'Hỏi đáp', exact: true }).first().waitFor();
+  const linksOut = async () => {
+    let shown = 0;
+    for (const link of await page.locator('a[data-out]').all()) if (await link.isVisible()) shown++;
+    return { shown, total: await page.locator('a[data-out]').count() };
+  };
+  const onFaq = await linksOut();
+  if (onFaq.total === 0 || onFaq.shown !== 0)
+    throw new Error(`a page the app opened shows ${onFaq.shown} of ${onFaq.total} links out of Tò He`);
+  // The next page the child reads carries no ?from=app, and still has none.
+  await page
+    .getByRole('navigation', { name: 'Các trang chính' })
+    .getByRole('link', { name: 'Giới thiệu' })
+    .tap();
+  await page.waitForURL((url) => url.pathname === '/about/');
+  const onAbout = await linksOut();
+  if (onAbout.total === 0 || onAbout.shown !== 0)
+    throw new Error(`the next page shows ${onAbout.shown} of ${onAbout.total} links out of Tò He`);
+  // The header's button is the way back into the app (this device has not opened a game: "Chơi ngay").
+  await page.getByRole('link', { name: 'Chơi ngay', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/play');
+
+  step(
+    'a tab already behind in the history steps back to it: /play → avatar → Trò chơi leaves no extra entry, so Back leaves the app (ADR 0046)',
+  );
+  const playEntry = await historyIndex(page);
+  await page.getByRole('link', { name: 'Đổi người chơi' }).tap();
+  await page.waitForURL((url) => url.pathname === '/account/profiles');
+  await shot('profiles-from-games');
+  if (!(await page.getByRole('link', { name: 'Quay lại' }).isVisible()))
+    throw new Error('the profile picker has no ← of its own');
+  await tabs.getByRole('link', { name: 'Trò chơi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/play');
+  if ((await historyIndex(page)) !== playEntry)
+    throw new Error(
+      `the Trò chơi tab stacked a new entry on top (${await historyIndex(page)}, not ${playEntry})`,
+    );
+  await tabs.getByRole('link', { name: 'Tôi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/account');
 
   step(
     '"Đổi người chơi" opens the picker, where a child profile with a PIN is added (the owner confirms with the password)',
@@ -453,7 +511,10 @@ try {
   // This device has played (the app wrote its keys above): / never redirects, it shows Chơi tiếp at the top.
   await page.goto(hubUrl);
   await expectTheme('dark');
-  const continueLink = page.getByRole('link', { name: 'Chơi tiếp' });
+  // The header's button: "Chơi tiếp" in place of "Chơi ngay" on a device that has opened a game (the hero's has an arrow).
+  if (await page.getByRole('link', { name: 'Chơi ngay', exact: true }).isVisible())
+    throw new Error('a device that has opened a game is still offered "Chơi ngay" in the header');
+  const continueLink = page.getByRole('link', { name: 'Chơi tiếp', exact: true });
   await continueLink.waitFor();
   if (new URL(page.url()).pathname !== '/') throw new Error(`/ was redirected to ${page.url()}`);
   await shot('landing-returning');

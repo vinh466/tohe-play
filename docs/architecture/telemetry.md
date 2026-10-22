@@ -67,10 +67,10 @@ Four kinds of event, in the Game Contract (`packages/contract/src/telemetry.ts`)
 | `hub.funnel.first-game` | count | hub | the first finished game on this device (once per device) |
 | `hub.funnel.install-offered.prompt` / `.ios` / `.in-app` | count | hub | the install card / the iOS steps / the in-app browser's strip is shown by itself (once per device and variant) |
 | `hub.funnel.install-accepted` / `hub.funnel.install-dismissed` | count | hub | the browser's install prompt was accepted; it was dismissed, or "Để sau", "Bỏ qua" or "Ẩn" was chosen |
-| `hub.funnel.sign-in-opened` | count | hub | a device profile's player opens the sign-in from the catalog's strip |
+| `hub.funnel.sign-in-opened` | count | hub | a device profile's player opens the sign-in — from the catalog's strip, from Tôi or from the profile picker |
 | `hub.funnel.account-created` | count | hub | an account was created on this device |
 | `hub.funnel.standalone-open` | count | hub | the app starts as an installed app (once a day per device) |
-| `hub.funnel.browser-return` | count | hub | the app starts in a browser tab on a device that had started it before — `tohe:returning` was there already (once a day per device, [ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)) |
+| `hub.funnel.browser-return` | count | hub | the app starts in a browser tab on a device that had opened a game before — `tohe:returning` (written when a game is opened, not on every start) was there already (once a day per device, [ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)) |
 | `hub.telemetry.dropped` | count | hub | the hub's buffer was full |
 
 With every batch, once per page load, the hub sends its **context**: hub version, device class (phone, tablet,
