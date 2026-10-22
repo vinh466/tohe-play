@@ -1,11 +1,15 @@
 ---
-// /games/<gameId>/ and /en/games/<gameId>/: one page for each game that has a game.json (../content/games.ts). The
-// name, what it is, the age and how it is played come from the game's manifest; the how-to and who it suits from the
-// game's copy in the page's language.
+// /games/<gameId>/ and /en/games/<gameId>/: one page for each game that has a game.json (../content/games.ts), from
+// the game's own folder (ADR 0047): the name, the age, the orientation and the seats from its manifest, its words from
+// games/<id>/page/<lang>.md, the facts the manifest does not hold from games/<id>/page/facts.json. Chơi and, for a game
+// with tables, Chơi cùng bạn at the top; then the answer, the facts table, how to play, who it suits, the game's own
+// questions, its pictures, the other games and the day its words were revised. Its link preview is its own picture,
+// drawn by `generate:og` and committed beside the page, which the build copies to <page>og.png (scripts/copy-og.ts).
 import { type Game, gamesPage } from '../content/games.ts';
 import { absolute } from '../content/site.ts';
 import { appPath, localPath, pageLanguage } from '../i18n.ts';
 import Page from '../layouts/Page.astro';
+import UpdatedOn from './UpdatedOn.astro';
 
 interface Props {
   game: Game;
@@ -16,6 +20,7 @@ const { game, others } = Astro.props;
 const lang = pageLanguage(Astro.currentLocale);
 const words = gamesPage[lang];
 const path = localPath(lang, `/games/${game.id}/`);
+const { page } = game;
 const jsonLd = [
   {
     '@type': 'VideoGame',
@@ -41,41 +46,101 @@ const jsonLd = [
     audience: { '@type': 'PeopleAudience', suggestedMinAge: game.minAge },
     isAccessibleForFree: true,
     offers: { '@type': 'Offer', price: 0, priceCurrency: 'VND', availability: 'https://schema.org/InStock' },
+    dateModified: page.updated,
     publisher: { '@id': absolute('/#organization') },
     isPartOf: { '@id': absolute(`${localPath(lang, '/')}#website`) },
+  },
+  {
+    '@type': 'BreadcrumbList',
+    inLanguage: lang,
+    itemListElement: [
+      { name: words.home, path: localPath(lang, '/') },
+      { name: words.heading, path: localPath(lang, '/games/') },
+      { name: game.name, path },
+    ].map((crumb, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      name: crumb.name,
+      item: absolute(crumb.path),
+    })),
   },
 ];
 ---
 
-<Page title={game.title} description={game.metaDescription} path={path} jsonLd={jsonLd}>
+<Page
+  title={game.title}
+  description={game.metaDescription}
+  path={path}
+  image={{ path: `${path}og.png`, alt: `${game.name} — ${page.kind}` }}
+  jsonLd={jsonLd}
+>
   <main id="main" class="narrow">
     <a class="crumb" href={localPath(lang, '/games/')}>{words.back}</a>
     <div class="game-head">
       <img src={game.icon} alt="" width="96" height="96" />
-      <div>
-        <h1>{game.name}</h1>
-        <ul class="chips">{game.facts.map((fact) => <li>{fact}</li>)}</ul>
-      </div>
+      <h1>{game.name}</h1>
     </div>
-    <p class="game-intro">{game.description}</p>
-    <div class="actions">
-      <a class="button primary" href={appPath(lang, `/play/${game.id}`)}>{words.playNow}</a>
+    <div class="actions start">
+      <a class="button primary" href={appPath(lang, `/play/${game.id}`)}>{words.play}</a>
+      {
+        game.together && (
+          <a class="button secondary" href={appPath(lang, `/play/${game.id}/rooms`)}>
+            {words.playTogether}
+          </a>
+        )
+      }
     </div>
-    <p class="lead">{words.noAccount}</p>
+    <p class="game-intro">{page.answer}</p>
+
+    <section>
+      <h2>{words.facts}</h2>
+      <table class="facts">
+        <tbody>
+          {
+            game.facts.map((fact) => (
+              <tr>
+                <th scope="row">{fact.label}</th>
+                <td>{fact.value}</td>
+              </tr>
+            ))
+          }
+        </tbody>
+      </table>
+    </section>
+
+    <section>
+      <h2>{words.howTo}</h2>
+      <ol class="steps panel">{page.howTo.map((line) => <li>{line}</li>)}</ol>
+    </section>
+
+    <section>
+      <h2>{words.suits}</h2>
+      <p>{page.suits}</p>
+    </section>
 
     {
-      game.copy && (
+      page.questions.length > 0 && (
         <section>
-          <h2>{words.howTo}</h2>
-          <ol class="steps panel">{game.copy.howTo.map((line) => <li>{line}</li>)}</ol>
+          <h2>{words.questions}</h2>
+          {page.questions.map(({ q, a }) => (
+            <div class="panel question">
+              <h3>{q}</h3>
+              <p>{a}</p>
+            </div>
+          ))}
         </section>
       )
     }
+
     {
-      game.copy && (
+      game.pictures.length > 0 && (
         <section>
-          <h2>{words.suits}</h2>
-          <p>{game.copy.suits}</p>
+          <h2>{words.pictures}</h2>
+          <div class="pictures">
+            {game.pictures.map((picture) => (
+              <img src={picture.src} alt={picture.alt} loading="lazy" />
+            ))}
+          </div>
         </section>
       )
     }
@@ -94,6 +159,7 @@ const jsonLd = [
                       <a href={localPath(lang, `/games/${other.id}/`)}>{other.name}</a>
                     </h3>
                   </div>
+                  <p>{other.page.kind}</p>
                 </div>
               </li>
             ))}
@@ -102,5 +168,6 @@ const jsonLd = [
       )
     }
     <p><a href={localPath(lang, '/guides/install/')}>{words.install}</a></p>
+    <UpdatedOn day={page.updated} />
   </main>
 </Page>

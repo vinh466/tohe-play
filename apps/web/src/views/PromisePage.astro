@@ -1,0 +1,47 @@
+---
+// /promise/ and /en/promise/ (ADR 0047): no ads, no tracking, nothing to buy, no coins — never. Linked from the home
+// page and every page's footer. The words are in ../content/promise.ts.
+import { promise } from '../content/promise.ts';
+import { absolute } from '../content/site.ts';
+import { localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+import UpdatedOn from './UpdatedOn.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = promise[lang];
+const path = localPath(lang, '/promise/');
+const jsonLd = [
+  {
+    '@type': 'WebPage',
+    name: words.heading,
+    description: words.description,
+    url: absolute(path),
+    inLanguage: lang,
+    dateModified: words.updated,
+    isPartOf: { '@id': absolute(`${localPath(lang, '/')}#website`) },
+    publisher: { '@id': absolute('/#organization') },
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
+  <main id="main" class="narrow">
+    <h1>{words.heading}</h1>
+    <p class="lead">{words.lead}</p>
+    <ul class="promises">
+      {
+        words.items.map((item) => (
+          <li class="panel">
+            <h2>{item.title}</h2>
+            <p>{item.text}</p>
+          </li>
+        ))
+      }
+    </ul>
+    <p>
+      {words.more}{' '}
+      <a href="/privacy/" hreflang={lang === 'vi' ? undefined : 'vi'}>{words.privacy}</a>
+    </p>
+    <UpdatedOn day={words.updated} />
+  </main>
+</Page>

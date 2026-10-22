@@ -1,0 +1,16 @@
+---
+// The day a page's words were last revised (ADR 0047): visible, with a machine-readable <time>. The build's check
+// (scripts/check-build.ts) wants it on the home pages, the games' pages and the promise.
+import { formatDay, updatedWord } from '../content/site.ts';
+import { pageLanguage } from '../i18n.ts';
+
+interface Props {
+  /** YYYY-MM-DD. */
+  day: string;
+}
+
+const { day } = Astro.props;
+const lang = pageLanguage(Astro.currentLocale);
+---
+
+<p class="updated">{updatedWord[lang]}: <time datetime={day}>{formatDay(day, lang)}</time></p>

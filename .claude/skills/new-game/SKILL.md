@@ -78,19 +78,32 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
 
 ## 3. Public page
 
-The game's public pages, `/games/<id>/` and the English `/en/games/<id>/`, are made from `public/game.json` and
-`public/icon.svg` by themselves (apps/web). What to do by hand:
+The game's public pages, `/games/<id>/` and the English `/en/games/<id>/`, are made from its own folder
+(docs/architecture/surfaces.md, "The introduction surface"); a game is not done without them, and the build fails
+without them.
 
-1. Check `game.json`: the descriptions are written for a stranger (`descriptions.vi` is the Vietnamese page's text and
-   meta description, `description` the English page's), `minAge`, `tags` and, with `rooms`, the seats and bots are
-   true — the pages' chips come from them.
-2. Add the game to `gameCopy` in `apps/web/src/content/games.ts`, once in Vietnamese (`vi`) and once in English (`en`):
-   `kind` (a few words after the name in the title), `howTo` (3–5 short lines, in the order of a first game) and
-   `suits`. Proper names and established terms stay as they are. `pnpm --filter @tohe/web test` fails without either
-   language.
-3. `pnpm --filter @tohe/routes build` (the sitemap lists the new page; commit the regenerated files) and
-   `pnpm --filter @tohe/web build` (its check fails on a page without title, description, canonical, link preview, one
-   `h1`, or a sitemap mismatch). Look at the page in light and dark.
+1. Check `public/game.json`: the descriptions are written for a stranger (`descriptions.vi` is the Vietnamese page's
+   meta description, `description` the English page's), `minAge`, `orientation`, `tags` and, with `rooms`, the seats
+   and bots are true — the facts table and the chips come from them.
+2. Write `page/vi.md` and `page/en.md` beside `public/` (copy `games/merge-block/page/` for the shape):
+   - front matter: `updated: <today, YYYY-MM-DD>` and `kind: <what it is in a few words>` (after the name in the title);
+   - the answer: one or two sentences, what it is and for whom — no numbers the facts table already holds;
+   - `## Cách chơi` / `## How to play`: 3 to 5 numbered lines, in the order of a first game;
+   - `## Hợp với ai` / `## Who it suits`;
+   - optionally `## Hỏi đáp` / `## Questions` (`### question?` and its answer) and `## Hình ảnh` / `## Pictures`
+     (`![what it shows](name.png)`, the file beside the page).
+   Plain text only. Proper names and established terms stay as they are. Vietnamese is the face; English the support.
+3. Write `page/facts.json`: `round` — `{ "kind": "fixed", "seconds": n }`, `{ "kind": "about", "minMinutes": a,
+   "maxMinutes": b }` or `{ "kind": "open" }` (no set length; the game keeps the player's place) — and `offline` —
+   `false` unless playing offline after a first visit is guaranteed (no games-origin service worker yet). Write only
+   what is true; ask when you do not know.
+4. `pnpm --filter @tohe/web generate:og --games`: draws the game's preview pictures, `page/og.vi.png` and
+   `page/og.en.png`, and their stamps, `page/og.json` (needs Chromium and Noto Sans). Look at both pictures, then
+   commit them; never put them under `public/`.
+5. `pnpm --filter @tohe/routes build` (the sitemap lists the new pages; commit the regenerated files) and
+   `pnpm --filter @tohe/web build` (its check fails on a missing or broken page file, a missing or out-of-date picture —
+   "run pnpm --filter @tohe/web generate:og" — a page without title, description, canonical, link preview, one `h1`, a
+   date, or a sitemap mismatch). Look at the pages in light and dark.
 
 ## 4. Verify
 

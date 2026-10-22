@@ -62,6 +62,7 @@ const publicPaths = [
   '/guides/install/',
   '/faq/',
   '/about/',
+  '/promise/',
   '/terms/',
   '/privacy/',
   '/en/',
@@ -71,6 +72,7 @@ const publicPaths = [
   '/en/guides/install/',
   '/en/faq/',
   '/en/about/',
+  '/en/promise/',
 ];
 
 describe('the map', () => {
@@ -111,12 +113,15 @@ describe('the map', () => {
     ['/guides/install/', 'guides'],
     ['/faq/', 'faq'],
     ['/about/', 'about'],
+    ['/promise/', 'promise'],
     ['/terms/', 'terms'],
     ['/privacy', 'privacy'],
     ['/en', 'en'],
     ['/en/', 'en'],
     ['/en/games/merge-block/', 'en'],
     ['/en/guides/install/', 'en'],
+    ['/games/merge-block/og.png', 'game-pages'],
+    ['/en/games/merge-block/og.png', 'en'],
     ['/og.png', 'og-image'],
     ['/llms.txt', 'llms'],
     ['/_web/index.CkXW_mHm.css', 'public-assets'],
@@ -201,6 +206,7 @@ describe('the map', () => {
       '/guides/install/',
       '/faq/',
       '/about/',
+      '/promise/',
       '/terms/',
       '/privacy/',
       '/en/',
@@ -211,6 +217,7 @@ describe('the map', () => {
       '/en/guides/install/',
       '/en/faq/',
       '/en/about/',
+      '/en/promise/',
     ]);
     for (const path of publicPaths) {
       expect(sitemapPaths(hubNamespaces, ['merge-block']), path).toContain(path);
@@ -374,7 +381,7 @@ describe('what the map generates', () => {
     ]);
     expect(hubCaddySnippet()).toContain('@apiProxy path /api /api/*\n');
     expect(hubCaddySnippet()).toContain(
-      '@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /terms /terms/* /privacy /privacy/* /en /en/* /og.png /llms.txt\n',
+      '@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /promise /promise/* /terms /terms/* /privacy /privacy/* /en /en/* /og.png /llms.txt\n',
     );
     expect(hubCaddySnippet()).toContain('@publicStaticImmutable path /_web /_web/*\n');
     expect(hubCaddySnippet()).toContain(' /robots.txt /sitemap.xml /.well-known /.well-known/*\n');
@@ -569,8 +576,8 @@ describe('what the map generates', () => {
     expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/terms/</loc></url>');
     expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/games/merge-block/</loc>');
     expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/en/games/merge-block/</loc>');
-    // Nine Vietnamese pages, seven English ones: the terms and the privacy notice are Vietnamese-only for now.
-    expect(snippet.match(/<url>/g)).toHaveLength(16);
+    // Ten Vietnamese pages, eight English ones: the terms and the privacy notice are Vietnamese-only for now.
+    expect(snippet.match(/<url>/g)).toHaveLength(18);
     expect(snippet).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
   });
 

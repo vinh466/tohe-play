@@ -35,8 +35,8 @@ export const APP_LANGUAGE_QUERY = 'lang';
 
 /**
  * A link into the app (`/play…`) from a page in `lang`. An English page's carries `?lang=en`, so the app can start in
- * the language the player came from; a Vietnamese page's carries nothing, Vietnamese being the default. The hub ignores
- * the parameter for now: it reads it in the app frame's pull request (docs/architecture/surfaces.md).
+ * the language the player came from; a Vietnamese page's carries nothing, Vietnamese being the default. The hub reads
+ * it when it has no language setting of its own yet (docs/architecture/surfaces.md, "Languages").
  */
 export const appPath = (lang: Lang, path: string): string =>
   lang === defaultPublicLanguage ? path : `${path}?${APP_LANGUAGE_QUERY}=${lang}`;

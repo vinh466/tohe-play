@@ -1,15 +1,18 @@
-// The public pages' words and the games' pages: what a game's manifest turns into, that every game has the copy only a
-// person can write in both languages, that the FAQ keeps its shape (it is also the page's FAQPage data), and that each
-// page's English words match its Vietnamese ones in shape (ADR 0047).
+// The public pages' words and the games' pages: what a game's manifest, its page's words and its facts turn into, that
+// every game has its page in both languages (games/<id>/page/, ADR 0047), that the FAQ keeps its shape (it is also the
+// page's FAQPage data), and that each page's English words match its Vietnamese ones in shape.
+import { existsSync, readdirSync } from 'node:fs';
 import { GameManifest } from '@tohe/contract';
 import { describe, expect, it } from 'vitest';
 import { languages } from '../i18n.ts';
 import { about } from './about.ts';
 import { faq } from './faq.ts';
-import { describeGame, gameCopy, gamePaths, gamesPage, loadGames } from './games.ts';
+import { allOffline, type GamePageText, parseGameFacts, parseGamePage } from './game-page.ts';
+import { describeGame, gamePaths, gamesPage, loadGames } from './games.ts';
 import { home } from './home.ts';
 import { guides, install } from './install.ts';
-import { siteWords } from './site.ts';
+import { promise } from './promise.ts';
+import { formatDay, siteWords } from './site.ts';
 
 const manifest = (extra: Record<string, unknown> = {}) =>
   GameManifest.parse({
@@ -21,84 +24,192 @@ const manifest = (extra: Record<string, unknown> = {}) =>
     ...extra,
   });
 
-describe('a game’s page from its manifest', () => {
+const page: GamePageText = {
+  updated: '2026-10-22',
+  kind: 'game thử',
+  answer: 'Một câu trả lời.',
+  howTo: ['a', 'b', 'c'],
+  suits: 's',
+  questions: [],
+  pictures: [],
+};
+const open = { round: { kind: 'open' as const }, offline: false };
+
+describe('a game’s page from its manifest, its words and its facts', () => {
   it('says the age, how it is played, and the ranking', () => {
     const alone = describeGame(
       manifest({ minAge: 3, capabilities: ['save', 'scores', 'ranked'], ranked: { verify: 'verify.js' } }),
       '/i.svg',
-      undefined,
+      page,
+      open,
+      'vi',
     );
-    expect(alone.facts).toEqual(['Từ 3 tuổi', 'Chơi một mình', 'Có bảng xếp hạng']);
+    expect(alone.chips).toEqual(['Từ 3 tuổi', 'Chơi một mình', 'Có bảng xếp hạng']);
     expect(alone.playMode).toBe('SinglePlayer');
+    expect(alone.together).toBe(false);
 
     const together = describeGame(
+      manifest({ capabilities: ['rooms'], rooms: { seats: { min: 2, max: 4 }, bots: ['easy'] } }),
+      '/i.svg',
+      page,
+      open,
+      'vi',
+    );
+    expect(together.chips).toEqual(['Mọi lứa tuổi', 'Cùng bạn bè: 2–4 người', 'Có bạn máy']);
+    expect(together.playMode).toBe('MultiPlayer');
+    expect(together.seats).toEqual({ min: 2, max: 4 });
+    expect(together.together).toBe(true);
+  });
+
+  it('puts the manifest’s facts and facts.json’s in one table, the ads and the data included', () => {
+    const game = describeGame(
       manifest({
+        minAge: 6,
+        orientation: 'portrait',
         capabilities: ['rooms'],
         rooms: { seats: { min: 2, max: 4 }, bots: ['easy'] },
       }),
       '/i.svg',
-      undefined,
+      page,
+      { round: { kind: 'about', minMinutes: 3, maxMinutes: 5 }, offline: false },
+      'vi',
     );
-    expect(together.facts).toEqual(['Mọi lứa tuổi', 'Cùng bạn bè: 2–4 người', 'Có bạn máy']);
-    expect(together.playMode).toBe('MultiPlayer');
-    expect(together.seats).toEqual({ min: 2, max: 4 });
-  });
-
-  it('says the same in English on an English page', () => {
-    const alone = describeGame(
-      manifest({
-        minAge: 3,
-        tags: ['puzzle'],
-        capabilities: ['save', 'scores', 'ranked'],
-        ranked: { verify: 'verify.js' },
-      }),
-      '/i.svg',
-      undefined,
-      'en',
-    );
-    expect(alone.facts).toEqual(['Ages 3+', 'Play alone', 'Leaderboard']);
-    expect(alone.genre).toEqual(['Puzzle']);
-    const together = describeGame(
-      manifest({ capabilities: ['rooms'], rooms: { seats: { min: 2, max: 4 }, bots: ['easy'] } }),
-      '/i.svg',
-      undefined,
-      'en',
-    );
-    expect(together.facts).toEqual(['All ages', 'With friends: 2–4 players', 'Bots to play against']);
-  });
-
-  it('has a title and a description even for a game nobody wrote copy for', () => {
-    const bare = describeGame(manifest({ description: '' }), '/i.svg', undefined);
-    expect(bare.title).toBe('Mẫu — chơi ngay | Tò He');
-    expect(bare.metaDescription).toContain('Mẫu');
-    expect(describeGame(manifest({ description: '' }), '/i.svg', undefined, 'en').title).toBe(
-      'Mẫu — play now | Tò He',
-    );
-    const written = describeGame(manifest(), '/i.svg', {
-      kind: 'game thử',
-      howTo: ['a', 'b', 'c'],
-      suits: 's',
+    expect(Object.fromEntries(game.facts.map((fact) => [fact.label, fact.value]))).toEqual({
+      'Độ tuổi': 'Từ 6 tuổi',
+      'Người chơi': '1 người với bạn máy, hoặc 2–4 người cùng bàn, mỗi người một máy',
+      'Một ván': 'Khoảng 3–5 phút',
+      'Màn hình': 'Dọc',
+      'Quảng cáo': 'Không có',
+      'Dữ liệu cá nhân': 'Không cần để chơi; không theo dõi',
     });
-    expect(written.title).toBe('Mẫu — game thử | Tò He');
-    expect(written.metaDescription).toBe('Một trò mẫu.');
+    const english = describeGame(
+      manifest(),
+      '/i.svg',
+      page,
+      { round: { kind: 'fixed', seconds: 20 }, offline: false },
+      'en',
+    );
+    expect(english.facts.map((fact) => fact.value)).toEqual([
+      'All ages',
+      '1 player',
+      '20 seconds',
+      'Portrait',
+      'None',
+      'None needed to play; no tracking',
+    ]);
+  });
+
+  it('says it plays offline only when every game does (ADR 0047)', () => {
+    const offline = { round: { kind: 'open' as const }, offline: true };
+    const labels = (offlineEverywhere: boolean) =>
+      describeGame(manifest(), '/i.svg', page, offline, 'vi', { offlineEverywhere }).facts.map(
+        (fact) => fact.label,
+      );
+    expect(labels(false)).not.toContain('Chơi khi mất mạng');
+    expect(labels(true)).toContain('Chơi khi mất mạng');
+    expect(allOffline([offline, open])).toBe(false);
+    expect(allOffline([offline, offline])).toBe(true);
+    expect(allOffline([])).toBe(false);
   });
 
   it('names and describes the game in the page’s language, from the manifest (ADR 0048)', () => {
-    const copy = { kind: 'test game', howTo: ['a', 'b', 'c'], suits: 's' };
     const words = {
       name: 'Sample',
       names: { vi: 'Mẫu' },
       description: 'A sample game.',
       descriptions: { vi: 'Một trò mẫu.' },
     };
-    const english = describeGame(manifest(words), '/i.svg', copy, 'en');
+    const english = describeGame(manifest(words), '/i.svg', { ...page, kind: 'test game' }, open, 'en');
     expect(english.name).toBe('Sample');
     expect(english.metaDescription).toBe('A sample game.');
     expect(english.title).toBe('Sample — test game | Tò He');
-    const vietnamese = describeGame(manifest(words), '/i.svg', { ...copy, kind: 'game thử' }, 'vi');
+    const vietnamese = describeGame(manifest(words), '/i.svg', page, open, 'vi');
     expect(vietnamese.name).toBe('Mẫu');
     expect(vietnamese.metaDescription).toBe('Một trò mẫu.');
     expect(vietnamese.title).toBe('Mẫu — game thử | Tò He');
+  });
+
+  it('falls back on the page’s answer for a manifest without a description', () => {
+    expect(describeGame(manifest({ description: '' }), '/i.svg', page, open, 'vi').metaDescription).toBe(
+      'Một câu trả lời.',
+    );
+  });
+});
+
+describe('a game’s page file', () => {
+  const file = [
+    '---',
+    'updated: 2026-10-22',
+    'kind: game thử',
+    '---',
+    '',
+    'Một câu trả lời',
+    'trên hai dòng.',
+    '',
+    '## Cách chơi',
+    '',
+    '1. Một.',
+    '2. Hai, dài',
+    '   hơn.',
+    '3. Ba.',
+    '',
+    '## Hợp với ai',
+    '',
+    'Mọi người.',
+    '',
+    '## Hỏi đáp',
+    '',
+    '### Có khó không?',
+    '',
+    'Không.',
+    '',
+    '## Hình ảnh',
+    '',
+    '![Bàn chơi giữa ván](ban-choi.png)',
+    '',
+  ].join('\n');
+
+  it('reads the front matter, the answer and every section', () => {
+    expect(parseGamePage(file, 'vi', 'vi.md')).toEqual({
+      updated: '2026-10-22',
+      kind: 'game thử',
+      answer: 'Một câu trả lời trên hai dòng.',
+      howTo: ['Một.', 'Hai, dài hơn.', 'Ba.'],
+      suits: 'Mọi người.',
+      questions: [{ q: 'Có khó không?', a: 'Không.' }],
+      pictures: [{ alt: 'Bàn chơi giữa ván', file: 'ban-choi.png' }],
+    });
+  });
+
+  it.each([
+    ['no front matter', file.slice(file.indexOf('Một câu')), /no front matter/],
+    ['no date', file.replace('updated: 2026-10-22\n', ''), /updated/],
+    ['a date that is no day', file.replace('2026-10-22', '2026-13-40'), /updated/],
+    ['an unknown key', file.replace('kind:', 'title: x\nkind:'), /unknown key "title"/],
+    ['a heading of the other language', file.replace('## Hợp với ai', '## Who it suits'), /no heading/],
+    ['no how-to', file.replace('## Cách chơi\n\n1. Một.\n2. Hai, dài\n   hơn.\n3. Ba.\n\n', ''), /howTo/],
+    ['two steps only', file.replace('3. Ba.\n', ''), /howTo/],
+    ['a step that is no numbered line', file.replace('3. Ba.', 'Ba.'), /not a numbered line/],
+    ['no answer', file.replace('Một câu trả lời\ntrên hai dòng.', ''), /answer/],
+    ['a question without "?"', file.replace('Có khó không?', 'Có khó không'), /questions/],
+    ['HTML', file.replace('Mọi người.', '<b>Mọi người.</b>'), /plain text only/],
+    ['a link', file.replace('Mọi người.', '[Mọi người](https://example.com)'), /plain text only/],
+    ['a picture without words', file.replace('Bàn chơi giữa ván', ''), /pictures/],
+  ])('refuses a file with %s, naming it', (_, broken, problem) => {
+    expect(() => parseGamePage(broken, 'vi', 'games/x/page/vi.md')).toThrow(problem);
+    expect(() => parseGamePage(broken, 'vi', 'games/x/page/vi.md')).toThrow(/^games\/x\/page\/vi\.md: /);
+  });
+
+  it('reads facts.json, and refuses one with a fact missing or one it does not know', () => {
+    expect(parseGameFacts({ round: { kind: 'fixed', seconds: 20 }, offline: false }, 'f')).toEqual({
+      round: { kind: 'fixed', seconds: 20 },
+      offline: false,
+    });
+    expect(() => parseGameFacts({ round: { kind: 'open' } }, 'f')).toThrow(/offline/);
+    expect(() => parseGameFacts({ round: { kind: 'open' }, offline: false, ads: true }, 'f')).toThrow(/ads/);
+    expect(() =>
+      parseGameFacts({ round: { kind: 'about', minMinutes: 9, maxMinutes: 3 }, offline: false }, 'f'),
+    ).toThrow(/minMinutes/);
   });
 });
 
@@ -119,16 +230,12 @@ describe('the games in the repository', () => {
     expect(games.slice(sample).every((game) => game.sample)).toBe(true);
   });
 
-  // A page is made without anyone writing it, but its how-to is not: add it to `gameCopy` in games.ts, in Vietnamese
-  // and in English (see docs/guides/create-a-game.md).
+  // A game's page is written in its folder, games/<id>/page/vi.md and en.md (docs/guides/create-a-game.md): a game
+  // without them does not load at all, and the build fails.
   it.each(languages.flatMap((lang) => loadGames(lang).map((game) => [game.id, lang, game] as const)))(
-    '%s has its how-to in %s, in 3 to 5 lines',
+    '%s has its page in %s',
     (id, lang, game) => {
-      expect(game.copy, `add "${id}".${lang} to gameCopy in apps/web/src/content/games.ts`).toBeDefined();
-      expect(game.copy?.howTo.length).toBeGreaterThanOrEqual(3);
-      expect(game.copy?.howTo.length).toBeLessThanOrEqual(5);
-      expect(game.copy?.kind.length).toBeGreaterThan(0);
-      expect(game.copy?.suits.length).toBeGreaterThan(0);
+      expect(game.page.howTo.length, `${id} ${lang}`).toBeGreaterThanOrEqual(3);
       expect(game.description, `${id}'s game.json needs a description`).not.toBe('');
     },
   );
@@ -139,11 +246,16 @@ describe('the games in the repository', () => {
     const vietnamese = games.find((game) => game.id === id);
     expect(english?.metaDescription).not.toBe(vietnamese?.metaDescription);
     expect(english?.title).not.toBe(vietnamese?.title);
+    expect(english?.page.answer).not.toBe(vietnamese?.page.answer);
   });
 
-  it('have no copy left over for a game that is gone', () => {
-    const ids = new Set(games.map((game) => game.id));
-    expect(Object.keys(gameCopy).filter((id) => !ids.has(id))).toEqual([]);
+  it('have no page left over for a game that is gone', () => {
+    const gamesDir = new URL('../../../../games/', import.meta.url);
+    const orphans = readdirSync(gamesDir, { withFileTypes: true })
+      .filter((entry) => entry.isDirectory() && existsSync(new URL(`${entry.name}/page`, gamesDir)))
+      .filter((entry) => !existsSync(new URL(`${entry.name}/public/game.json`, gamesDir)))
+      .map((entry) => entry.name);
+    expect(orphans).toEqual([]);
   });
 });
 
@@ -206,8 +318,14 @@ describe('the two languages', () => {
     ['install', install],
     ['faq', faq],
     ['about', about],
+    ['promise', promise],
   ] as const)('give the %s words the same shape in Vietnamese and English', (_, words) => {
     expect(shape(words.en)).toEqual(shape(words.vi));
+  });
+
+  it('write a day as each language does', () => {
+    expect(formatDay('2026-10-02', 'vi')).toBe('02/10/2026');
+    expect(formatDay('2026-10-02', 'en')).toBe('2 October 2026');
   });
 
   it('write different words in each, and the same links', () => {

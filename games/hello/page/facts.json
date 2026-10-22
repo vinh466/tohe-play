@@ -1,0 +1,4 @@
+{
+  "round": { "kind": "fixed", "seconds": 20 },
+  "offline": false
+}

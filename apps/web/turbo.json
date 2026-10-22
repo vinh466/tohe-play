@@ -6,7 +6,9 @@
       "inputs": [
         "$TURBO_DEFAULT$",
         "$TURBO_ROOT$/apps/hub/src/legal/documents.ts",
-        "$TURBO_ROOT$/games/*/public/**"
+        "$TURBO_ROOT$/games/*/public/**",
+        "$TURBO_ROOT$/games/*/page/**",
+        "$TURBO_ROOT$/apps/hub/public/favicon.svg"
       ]
     },
     "test": {
@@ -15,7 +17,8 @@
         "$TURBO_ROOT$/apps/hub/src/main.tsx",
         "$TURBO_ROOT$/apps/hub/src/session/session.ts",
         "$TURBO_ROOT$/apps/hub/src/telemetry/collector.ts",
-        "$TURBO_ROOT$/games/*/public/**"
+        "$TURBO_ROOT$/games/*/public/**",
+        "$TURBO_ROOT$/games/*/page/**"
       ]
     }
   }
