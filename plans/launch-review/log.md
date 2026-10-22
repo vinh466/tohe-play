@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 — agent
+
+- Owner: **D-01 decided** — Q1 B; Q2 tên game tiếng Anh bắt buộc + tên theo ngôn ngữ tuỳ chọn (đổi Game Contract); Q4
+  **tiếng Anh mặc định** (`/` en, `/vi/`), gợi ý vi khi trình duyệt đặt vi. Q3: agent gợi ý vi là bản gốc theo Luật BVQLNTD
+  2023 Điều 23 (bản có lợi hơn cho người dùng được áp dụng khi lệch) — chờ owner.
+- D-05: owner sẵn sàng tách ngay → agent đổi đề xuất sang B; trang giới thiệu hay game sang `vinetic.io.vn`: không nên.
+
 ## 2026-10-22 (khuya, sau) — agent
 
 - Builder tái hiện rủi ro cập nhật bằng test hai bản build (Chromium) → **không có màn lỗi**: HTTP cache giữ file cũ; khi

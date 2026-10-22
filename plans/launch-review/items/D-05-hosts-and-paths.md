@@ -61,3 +61,18 @@ phải sửa một lỗi.
 **agent** (2026-10-22): scout xếp `games.` cùng site là rủi ro "cao". Agent kiểm code và thấy phần lớn các việc scout đề
 xuất đã có sẵn (`SameOriginGuard`, `__Host-`, `form-action 'none'`, `connect-src 'self'`). Phần còn lại là chiều sâu,
 nên agent hạ xuống "chấp nhận được với game của Tò He".
+
+**owner** (2026-10-22, chat): "D-05 explain cho tôi rõ rành sự cải thiệt và đánh đổi, tôi sẳn sàng tách ngay sạch từ đầu
+luôn cũng đc nha" — và: "D-05 vậy các trang giới thiệu mang sang domain cha (cá nhân tôi) *.vinetic.io.vn được k".
+
+**agent** (2026-10-22): với lời "sẵn sàng tách ngay", agent đổi đề xuất sang **B — game sang domain riêng ngay**: cái giá
+nhỏ hơn đã ước (API ghép `entryUrl` từ cấu hình lúc trả lời — `RegistryModule.cs:109-117` — nên đổi domain chỉ là đổi
+cấu hình, không migration). Về `*.vinetic.io.vn`:
+
+- **Trang giới thiệu sang `vinetic.io.vn`: không nên.** (1) Nút "Chơi tiếp" của D-02 đọc localStorage của origin app — khác
+  domain thì không biết máy đã chơi; (2) SEO tách khỏi domain thương hiệu mà người ta gõ và chia sẻ; `hreflang`, sitemap,
+  đường nối hai chiều của D-02 đều cần cùng domain; (3) owner đã quyết rời `vinetic` (ADR 0040, 2026-10-18: "ta sẽ không
+  dính tới vinetic nữa").
+- **Game sang `*.vinetic.io.vn` (để khỏi mua domain): cũng không nên.** `vinetic.io.vn` chứa các app không phải của Tò He
+  (`auth`, `platform`, `wiki`); code game sẽ cùng site với chúng — đúng điều ADR 0039 tránh ("game code never on a site
+  with apps that are not Tò He's"). Domain riêng cho game là cách sạch.

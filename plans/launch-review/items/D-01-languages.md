@@ -1,6 +1,6 @@
 # D-01 — Hai ngôn ngữ, vi và en: URL, SEO và cách chọn ngôn ngữ thế nào?
 
-- Status: **proposed** (agent, 2026-10-22)
+- Status: **decided** — B, tiếng Anh mặc định (owner, 2026-10-22, chat); Q3 (bản gốc của Điều khoản) chờ owner
 - Kind: decision
 - Blocks: E-02, E-04, E-05, E-06 · Blocked by: D-02 (bố cục quyết nơi đặt `/en/`) · Đi cùng: [D-02](D-02-layout.md)
 - Decided: phạm vi đã có lời owner (2026-10-22, gõ không dấu): "duy tri tieng anh va tieng viet th (game sau nay muon
@@ -46,7 +46,8 @@ Chỉ vùng **Chơi** (app, không index) mới có lựa chọn thật. Vùng *
 
 ## Recommendation
 
-**B.**
+**B.** *(Owner đã đảo Q4: tiếng Anh mặc định ở `/`, tiếng Việt ở `/vi/` — xem [Decision](#decision); các dòng
+"tiếng Việt ở `/…` và là `x-default`" dưới đây không còn đúng.)*
 
 ### Vùng Khám phá (trang công khai)
 
@@ -99,9 +100,38 @@ Chỉ vùng **Chơi** (app, không index) mới có lựa chọn thật. Vùng *
 
 ## Decision
 
-—
+Owner, 2026-10-22, chat: "D-01 Q1 theo đề xuất, Q2 chốt tên game chính là tiếng anh hết nhé (bắt buộc và là default hiển thị) hỗ trợ optional thêm locate cho tên game (nếu có thì hiện), mà những tên k quá cần tiếng việt thì cứ tiếng anh đi cho chuẩn tại gamer viet nam cũng pro lắm haha … Q4 tiếng Anh là mặc định, nếu có phát hiện user đặt vi thì hỗ trợ vào đó".
+
+- **Q1 = B**: URL theo ngôn ngữ cho trang công khai; ngôn ngữ là cài đặt trong app; link mời không mang ngôn ngữ.
+- **Q4 = tiếng Anh mặc định** — đảo đề xuất của agent (vi mặc định). Hệ quả:
+  - Trang công khai: **tiếng Anh ở `/…` và là `x-default`; tiếng Việt ở `/vi/…`**. Các URL vi đang được index từ
+    2026-10-20 (`/`, `/games/<id>`…) đổi sang nội dung tiếng Anh tại chỗ, có `hreflang` trỏ sang `/vi/…` — không cần 301.
+  - "Phát hiện user đặt vi": trình duyệt có `vi` thì trang công khai **gợi ý** "Xem bằng tiếng Việt →" (không tự chuyển,
+    theo Google); bấm một lần thì nhớ, lần sau `/` đưa thẳng sang `/vi/`. Đây là lựa chọn của người dùng nên không trái
+    hướng dẫn.
+  - App: cài đặt → ngôn ngữ của trang vừa đi qua → trình duyệt có `vi` thì vi → còn lại **en** (hôm nay ngược lại: không
+    phải `en` thì vi).
+  - Thẻ xem trước của link mời: vẫn theo ngôn ngữ người tạo link.
+- **Q2 = tên game tiếng Anh, bắt buộc, hiển thị mặc định**; tên theo ngôn ngữ khác là **tuỳ chọn**, có thì hiện theo
+  ngôn ngữ người chơi. Đổi Game Contract (ADR, docs, conformance): `name` (và `description`) là tiếng Anh; thêm trường
+  tuỳ chọn như `names: { "vi": "Ghép Khối" }`. Bốn game hôm nay: Ghép Khối → *Merge Blocks* (`vi`: Ghép Khối), Chạm Ghép →
+  *Tap Merge* (`vi`: Chạm Ghép), Tiến Lên → *Tiến Lên* (tên riêng của trò chơi), Chạm Chấm (`hello`) → tên tiếng Anh do
+  agent đề xuất trong ADR — owner duyệt.
+- **Q3 chờ owner** — agent gợi ý ở *Discussion* 2026-10-22.
 
 ## Discussion
 
 **agent** (2026-10-22): scout đề xuất cho ngôn ngữ vào URL cả trong app (A). Agent chọn B, vì vùng Chơi không được index và
 một link mời gửi cho cả nhà phải mở đúng ngôn ngữ của từng người nhận.
+
+**agent** (2026-10-22, Q3): **Luật Bảo vệ quyền lợi người tiêu dùng 2023, Điều 23 khoản 2** (theo các trang tổng hợp
+văn bản, chưa đối chiếu Công báo): hợp đồng với người tiêu dùng, hợp đồng theo mẫu và điều kiện giao dịch chung **phải
+có tiếng Việt**, được thêm tiếng nước ngoài; **khi các bản khác nhau, áp dụng bản có lợi hơn cho người tiêu dùng** —
+https://hethongphapluat.com/luat-bao-ve-quyen-loi-nguoi-tieu-dung-2023/dieu-23,
+https://luatvietnam.vn/thuong-mai/luat-bao-ve-quyen-loi-nguoi-tieu-dung-2023-so-19-2023-qh15-259732-d1.html.
+Luật Bảo vệ dữ liệu cá nhân 2025 có hiệu lực từ 2026-01-01, thay Nghị định 13/2023 (nguồn thứ cấp) —
+https://luatvietan.vn/nhung-diem-moi-cua-luat-bao-ve-du-lieu-ca-nhan-2025-so-voi-nghi-dinh-13-2023-nd-cp.html.
+Gợi ý (không phải tư vấn pháp lý): **bản tiếng Việt là bản gốc** — viết trước, owner duyệt bằng tiếng mẹ đẻ; bản tiếng
+Anh là bản dịch đi kèm, và trang ghi theo đúng luật "khi hai bản khác nhau, áp dụng bản có lợi hơn cho người dùng" thay
+vì tự nhận một bản thắng. Để dễ kiểm sau này: mỗi điều khoản có cùng mã ở hai bản, một test bắt hai bản phải đủ cùng các
+điều, và mỗi lần sửa bản vi thì bản en sửa trong cùng PR.
