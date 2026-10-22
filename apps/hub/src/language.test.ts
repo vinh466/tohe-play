@@ -7,6 +7,7 @@ import {
   fromApp,
   LANGUAGE_KEY,
   publicPage,
+  rememberEntryLanguage,
   savedLanguage,
   saveLanguage,
 } from './language/language.ts';
@@ -37,6 +38,34 @@ describe('the app’s language, in order', () => {
 
   it('ignores what is not one of its two languages', () => {
     expect(chooseLanguage({ saved: 'de', query: 'xx', browser: ['vi'] })).toBe('vi');
+  });
+});
+
+describe('the language a public page brought in', () => {
+  const store = (initial: Record<string, string> = {}) => {
+    const data = new Map(Object.entries(initial));
+    return {
+      getItem: (k: string) => data.get(k) ?? null,
+      setItem: (k: string, v: string) => void data.set(k, v),
+      data,
+    };
+  };
+
+  it('is kept as the setting when the app has none, so the next start without ?lang= speaks it too', () => {
+    const storage = store();
+    rememberEntryLanguage(storage, 'vi');
+    expect(storage.data.get('tohe:language')).toBe('vi');
+    expect(chooseLanguage({ saved: savedLanguage(storage), query: null, browser: ['en-US'] })).toBe('vi');
+  });
+
+  it('never overwrites a choice already made, and ignores what is not a language', () => {
+    const chosen = store({ 'tohe:language': 'en' });
+    rememberEntryLanguage(chosen, 'vi');
+    expect(chosen.data.get('tohe:language')).toBe('en');
+    const empty = store();
+    rememberEntryLanguage(empty, 'fr');
+    rememberEntryLanguage(empty, null);
+    expect(empty.data.size).toBe(0);
   });
 });
 

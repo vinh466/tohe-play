@@ -155,7 +155,7 @@ flowchart TD
   email. Places are not shared: ties go to who got there first by the server's clock. The view also says whether the
   viewer is on public boards (`listed`), and whether the server can verify the game at all (`reproducible`), so the hub
   can explain an empty server board.
-- **The hub**: the 🏆 sheet has *Nhà mình*, *Cộng đồng* (when the account has one) and *Toàn Tò He*, each this week or all
+- **The hub**: the *Bảng điểm* sheet has *Nhà mình*, *Cộng đồng* (when the account has one) and *Toàn Tò He*, each this week or all
   time; a room game's lobby shows the three boards of the week.
 
 ## Ranked runs

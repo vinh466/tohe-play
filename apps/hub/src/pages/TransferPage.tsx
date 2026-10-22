@@ -32,6 +32,7 @@ import { MAX_DEVICE_PROFILES, TooManyDeviceProfiles } from '../storage/devicePro
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { copyText } from '../ui/copyText.ts';
+import { Icon } from '../ui/Icon.tsx';
 import { QrCode } from '../ui/QrCode.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
@@ -448,7 +449,8 @@ export function TransferReceivePage() {
             </Button>
             {canScan() ? (
               <Button variant="secondary" onClick={() => setPhase({ step: 'scanning' })}>
-                📷 {t('transfer.scan')}
+                <Icon name="camera" />
+                {t('transfer.scan')}
               </Button>
             ) : null}
           </form>

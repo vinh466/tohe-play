@@ -65,7 +65,7 @@ in the table but no longer appear on a board.
 | Local tables (`saves`, `scores` with `clientId`, `ranked` — runs handed in, ADR 0030) | `apps/hub/src/storage/db.ts` (Dexie, version 3) |
 | Push / pull rules | `apps/hub/src/storage/sync.ts` — tested in `src/sync.test.ts` against an in-memory server |
 | When it runs | `src/session/useBackgroundSync.ts` (screens, coming online), `PlayPage` (before a game, after saves) |
-| Leaderboard | 🏆 on each catalog card (`src/ui/Leaderboard.tsx`): this week or all time; it pushes the device's newest scores first |
+| Leaderboard | *Bảng điểm* under each game on the catalog (`src/ui/Leaderboard.tsx`): this week or all time; it pushes the device's newest scores first |
 
 ## Offline
 

@@ -70,8 +70,7 @@ export default defineConfig({
       manifest: {
         name: 'Tò He',
         short_name: 'Tò He',
-        description:
-          'Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link.',
+        description: 'Mấy trò chơi nhỏ cho cả nhà. Mở là chơi, không quảng cáo.',
         lang: 'vi',
         // The app's identity stays "/" whatever its start page; it starts at the catalog and is scoped to the whole
         // origin, whose pages the service worker answers only inside the map's namespaces (ADR 0042).
@@ -150,6 +149,8 @@ export default defineConfig({
         directoryIndex: null,
         // The 404 page is the hub's Caddy's answer to a path in no namespace, never the app's.
         globIgnores: ['**/node_modules/**/*', '404.html'],
+        // The default (js, css, html) and the self-hosted font's files, so the first paint offline is the one online.
+        globPatterns: ['**/*.{js,css,html,woff2}'],
         runtimeCaching: [
           {
             // Catalog and config stay usable offline; fresh data wins when the API answers.

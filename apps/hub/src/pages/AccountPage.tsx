@@ -20,8 +20,9 @@ import { Avatar, AvatarGrid } from '../ui/AvatarGrid.tsx';
 import { Button, buttonClass } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { copyText } from '../ui/copyText.ts';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
-import { Screen } from '../ui/Screen.tsx';
+import { backPill, Screen } from '../ui/Screen.tsx';
 import { Switch } from '../ui/Switch.tsx';
 import { TextField } from '../ui/TextField.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
@@ -97,16 +98,15 @@ function ManageAccount({ me }: { me: MeView }) {
 
   return (
     <Screen>
-      <header className="flex items-center gap-3">
-        <BackLink
-          to={back}
-          aria-label={t('back')}
-          className="grid size-11 place-items-center rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
-        >
-          ←
-        </BackLink>
-        <h1 className="min-w-0 flex-1 font-black text-3xl text-brand-ink">{t('account.title')}</h1>
-        <ThemeButton />
+      <header className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <BackLink to={back} className={backPill}>
+            <Icon name="arrow-left" className="text-xl" />
+            {t('back')}
+          </BackLink>
+          <ThemeButton />
+        </div>
+        <h1 className="font-black text-3xl text-brand-ink">{t('account.title')}</h1>
       </header>
 
       {unlocked ? (
@@ -127,7 +127,8 @@ function ManageAccount({ me }: { me: MeView }) {
               </a>
             ) : null}
             <Button variant="secondary" busy={lock.isPending} onClick={() => lock.mutate(undefined)}>
-              🔒 {t('account.lock')}
+              <Icon name="lock-simple" />
+              {t('account.lock')}
             </Button>
             <Version />
           </footer>
@@ -220,15 +221,13 @@ function Profiles({ me, startAdding }: { me: MeView; startAdding: boolean }) {
                   {profile.kind === 'adult'
                     ? t('profiles.adult')
                     : t('account.years', { band: profile.ageBand })}
-                  {profile.hasPin ? ` · 🔒 ${t('account.hasPin')}` : ''}
+                  {profile.hasPin ? ` · ${t('account.hasPin')}` : ''}
                 </span>
                 <span className="font-mono text-ink-soft text-xs tabular-nums">
                   {t('account.publicId')} {formatProfileId(profile.publicId)}
                 </span>
               </span>
-              <span aria-hidden className="text-ink-soft text-xl">
-                ›
-              </span>
+              <Icon name="caret-right" className="text-ink-soft text-xl" />
             </button>
           </li>
         ))}
@@ -270,7 +269,14 @@ function PublicId({ id }: { id: string }) {
         </span>
       </span>
       <Button variant="ghost" onClick={() => void copyText(id).then(setCopied)}>
-        {copied ? `✓ ${t('account.copied')}` : t('account.copyId')}
+        {copied ? (
+          <>
+            <Icon name="check" />
+            {t('account.copied')}
+          </>
+        ) : (
+          t('account.copyId')
+        )}
       </Button>
     </div>
   );

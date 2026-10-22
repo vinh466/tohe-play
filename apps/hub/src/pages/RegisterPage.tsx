@@ -31,6 +31,7 @@ import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
 import { db } from '../storage/db.ts';
 import { reIdDeviceProfile } from '../storage/deviceProfiles.ts';
 import { funnel } from '../telemetry/telemetry.ts';
+import { AnotherName } from '../ui/AnotherName.tsx';
 import { Button } from '../ui/Button.tsx';
 import { CodeStep } from '../ui/CodeStep.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
@@ -330,14 +331,7 @@ function Register() {
                 onChange={set('displayName')}
                 error={(showErrors && local.displayName) || fieldError('displayName')}
               />
-              <Button
-                variant="secondary"
-                aria-label={t('register.anotherName')}
-                title={t('register.anotherName')}
-                onClick={() => setForm((f) => ({ ...f, displayName: funName(i18n.language) }))}
-              >
-                🎲
-              </Button>
+              <AnotherName onClick={() => setForm((f) => ({ ...f, displayName: funName(i18n.language) }))} />
             </div>
             <TextField
               label={t('register.password')}

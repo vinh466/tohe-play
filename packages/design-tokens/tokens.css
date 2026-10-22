@@ -93,3 +93,9 @@
   --tohe-avatar-to: #6b4630;
   --tohe-bar: #17110e;
 }
+
+/* Type: not themed, so one block for both. Be Vietnam Pro is loaded by fonts.css; until it arrives (and wherever an app
+   does not import fonts.css) the system font stands in. */
+:root {
+  --tohe-font: "Be Vietnam Pro", system-ui, sans-serif;
+}

@@ -1,4 +1,6 @@
 import { type ReactNode, useEffect, useRef } from 'react';
+import { useTranslation } from 'react-i18next';
+import { Icon } from './Icon.tsx';
 
 interface ModalProps {
   open: boolean;
@@ -9,6 +11,7 @@ interface ModalProps {
 
 /** Bottom sheet on phones, centred card on larger screens; native <dialog> (focus trap, Escape). */
 export function Modal({ open, title, onClose, children }: ModalProps) {
+  const { t } = useTranslation();
   const dialog = useRef<HTMLDialogElement>(null);
 
   useEffect(() => {
@@ -33,10 +36,10 @@ export function Modal({ open, title, onClose, children }: ModalProps) {
         <button
           type="button"
           onClick={onClose}
-          aria-label="✕"
-          className="grid size-10 place-items-center rounded-full bg-soft text-accent text-xl active:scale-95"
+          className="flex min-h-11 items-center gap-1.5 rounded-full bg-soft px-4 font-semibold text-accent active:scale-95"
         >
-          ✕
+          <Icon name="x" />
+          {t('close')}
         </button>
       </div>
       {open ? children : null}

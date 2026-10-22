@@ -624,6 +624,25 @@ section > h2 {
 :root[data-returning] .header-play.again {
   display: inline-flex;
 }
+/* The smallest phones (320 px): the brand, VI | EN and Chơi ngay still share the first row in Be Vietnam Pro, which is
+   wider than the system face — tighter gaps and type, the 44 px targets kept. */
+@media (max-width: 21.5rem) {
+  .site-header {
+    gap: 0 0.25rem;
+  }
+  .brand {
+    gap: 0.35rem;
+    font-size: 1.1rem;
+  }
+  .brand img {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+  .header-play {
+    padding: 0 0.6rem;
+    font-size: 0.95rem;
+  }
+}
 @media (min-width: 48rem) {
   .site-header {
     gap: 0 1rem;

@@ -1,9 +1,10 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
 import { BackLink } from '../navigation/leave.tsx';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { FrameBackContext, FramedContext } from '../ui/Screen.tsx';
 import { showsUpdateNotice, updates } from '../update/update.ts';
 import { backTarget, isTyping, type TabId, tabOf, tabs } from './tabs.ts';
@@ -61,9 +62,7 @@ function TabNav({ current, className, item }: { current: TabId | null; className
           className: `${item} font-bold transition active:scale-95 ${active ? 'bg-soft text-accent' : 'text-ink-soft'}`,
           children: (
             <>
-              <span aria-hidden className="text-2xl leading-none">
-                {tab.icon}
-              </span>
+              <Icon name={tab.icon} weight={active ? 'fill' : 'regular'} className="text-3xl" />
               <span className="leading-tight">{t(tab.label)}</span>
             </>
           ),
@@ -106,9 +105,9 @@ function UpdateNotice({ pathname }: { pathname: string }) {
         type="button"
         aria-label={t('update.later')}
         onClick={() => setLater(true)}
-        className="grid size-10 shrink-0 place-items-center rounded-full font-bold active:bg-soft"
+        className="grid size-11 shrink-0 place-items-center rounded-full text-xl active:bg-soft"
       >
-        ✕
+        <Icon name="x" />
       </button>
     </div>
   );
@@ -132,23 +131,40 @@ function useTyping(): boolean {
 }
 
 /**
- * The top of a tab's screen: the tab's name, and who is playing — tapped, the profile picker, to change player.
+ * The top of a tab's screen. The bar or the rail already says which tab this is, so the tab's name is no big title: it
+ * stays as a heading for screen readers (`sr-only`), and the row shows who is playing — tapped, the profile picker —
+ * and, at the other end, what the screen offers at once (`action`; Trò chơi's "Nhập mã").
+ *
+ * The chip names the player without cutting the name: it wraps at the spaces, up to a width, and never ends in "…".
  */
-export function TabHeader({ title, player }: { title: string; player: Player | null }) {
+export function TabHeader({
+  title,
+  player,
+  action,
+}: {
+  title: string;
+  player: Player | null;
+  action?: ReactNode;
+}) {
   const { t } = useTranslation();
   return (
     <header className="flex items-center justify-between gap-3">
-      <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink short:text-xl">{title}</h1>
+      <h1 className="sr-only">{title}</h1>
       {player ? (
         <Link
           to="/account/profiles"
-          aria-label={t('switchProfile')}
-          className="flex shrink-0 items-center gap-2 rounded-full bg-surface py-1.5 pr-4 pl-1.5 shadow-sm active:scale-95"
+          aria-label={t('switchProfileOf', { name: player.name })}
+          className="flex min-h-11 min-w-0 items-center gap-2 rounded-full bg-surface py-1 pr-4 pl-1 shadow-sm active:scale-95"
         >
           <Avatar avatar={player.avatar} size="sm" />
-          <span className="max-w-28 truncate font-semibold text-ink">{player.name}</span>
+          <span className="max-w-36 font-semibold text-ink text-sm leading-tight sm:max-w-64 sm:text-base short:max-w-64">
+            {player.name}
+          </span>
         </Link>
-      ) : null}
+      ) : (
+        <span />
+      )}
+      {action}
     </header>
   );
 }

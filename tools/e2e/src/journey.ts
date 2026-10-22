@@ -183,7 +183,10 @@ try {
     );
   await play.tap();
   await android.waitForURL((url) => url.pathname === '/play');
-  await android.getByRole('link', { name: 'Đăng nhập' }).waitFor(); // the slim strip of a device profile
+  // The catalog has no strip about where progress is kept (voice-and-look.md): the chip of who plays, and the games.
+  await android.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
+  if (await android.getByText('Tiến độ đang lưu trên máy này').isVisible())
+    throw new Error('the catalog still carries the permanent strip about progress kept on this device');
   // The chip shows the avatar, then the name: the name is its last line.
   const chip = (await android.getByRole('link', { name: 'Đổi người chơi' }).innerText()).trim();
   const deviceName = (chip.split('\n').at(-1) ?? '').trim();
@@ -214,7 +217,7 @@ try {
   if (!body.includes('Phiên bản:') || !body.includes('Trình duyệt:')) {
     throw new Error(`the feedback mail lacks the version or the browser: ${body}`);
   }
-  await me.getByRole('button', { name: 'Cài app' }).waitFor();
+  await me.getByRole('button', { name: 'Cài', exact: true }).waitFor();
   await check(android, 'me');
   await tab(android, 'Trò chơi').tap();
   await android.waitForURL(catalogUrl);
@@ -238,10 +241,10 @@ try {
 
   step('"Cài app" in Tôi still opens something any time, saying how by hand once the prompt is used');
   await tab(android, 'Tôi').tap();
-  await me.getByRole('button', { name: 'Cài app' }).tap();
+  await me.getByRole('button', { name: 'Cài', exact: true }).tap();
   const sheet = android.getByRole('dialog', { name: 'Cài Tò He' });
   await sheet.getByText(/Cài đặt ứng dụng/).waitFor();
-  await sheet.getByRole('button', { name: '✕' }).tap();
+  await sheet.getByRole('button', { name: 'Đóng' }).tap();
   await tab(android, 'Trò chơi').tap();
   await android.waitForURL(catalogUrl);
 
@@ -250,6 +253,8 @@ try {
   );
   const deviceId = await android.evaluate(() => localStorage.getItem('tohe:device-profile'));
   if (!deviceId) throw new Error('no device profile is playing');
+  // A device profile signs in from Tôi, where the account's section says so.
+  await tab(android, 'Tôi').tap();
   await android.getByRole('link', { name: 'Đăng nhập' }).tap();
   await android.waitForURL(/\/account\/sign-in$/);
   await android.getByRole('link', { name: 'Tạo tài khoản' }).tap();
@@ -291,10 +296,11 @@ try {
   );
   const second = await visitor('second', userAgents.androidChrome, browser);
   await second.goto(catalogUrl);
-  await second.getByRole('link', { name: 'Đăng nhập' }).waitFor();
+  await second.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
   await playOneRound(second);
   const secondId = await second.evaluate(() => localStorage.getItem('tohe:device-profile'));
   if (!secondId) throw new Error('no device profile is playing on the second phone');
+  await tab(second, 'Tôi').tap();
   await second.getByRole('link', { name: 'Đăng nhập' }).tap();
   await second.waitForURL(/\/account\/sign-in$/);
   await second.getByLabel('Email', { exact: true }).fill(email);
@@ -348,7 +354,7 @@ try {
   );
   const iphone = await visitor('iphone', userAgents.iphoneSafari, browser);
   await iphone.goto(catalogUrl);
-  await iphone.getByRole('link', { name: 'Đăng nhập' }).waitFor();
+  await iphone.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
   await playOneRound(iphone);
   const steps = iphone.getByRole('dialog', { name: 'Cài Tò He' });
   await steps.getByText(/Thêm vào Màn hình chính/).waitFor();
@@ -358,19 +364,19 @@ try {
   await steps.waitFor({ state: 'hidden' });
   if ((await storedNo(iphone)) === null) throw new Error('"Đã hiểu" did not keep the hub quiet for 14 days');
   await tab(iphone, 'Tôi').tap();
-  await iphone.getByRole('main').getByRole('button', { name: 'Cài app' }).tap();
+  await iphone.getByRole('main').getByRole('button', { name: 'Cài', exact: true }).tap();
   await iphone
     .getByRole('dialog', { name: 'Cài Tò He' })
     .getByText(/Chia sẻ/)
     .waitFor();
-  await iphone.getByRole('dialog', { name: 'Cài Tò He' }).getByRole('button', { name: '✕' }).tap();
+  await iphone.getByRole('dialog', { name: 'Cài Tò He' }).getByRole('button', { name: 'Đóng' }).tap();
 
   step(
     'on the iPhone, a room link says how to open it in the installed app, whose storage Safari does not share',
   );
   await iphone.goto(`${hubUrl}/r/123456`);
   await iphone.getByRole('heading', { name: 'Vào bàn cùng mọi người' }).waitFor();
-  await iphone.getByText('Đã cài app Tò He? Mở app → Nhập mã 123 456').waitFor();
+  await iphone.getByText('Đã cài app Tò He? Mở app, bấm Nhập mã rồi gõ 123 456.').waitFor();
   await check(iphone, 'installed-app-hint');
   await iphone.context().close();
 
@@ -397,7 +403,7 @@ try {
     await strip.getByRole('button', { name: 'Ẩn' }).tap();
     await strip.waitFor({ state: 'hidden' });
     await inApp.reload();
-    await inApp.getByRole('link', { name: 'Đăng nhập' }).waitFor();
+    await inApp.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
     if (await openStrip(inApp).isVisible()) throw new Error(`${name}: the strip came back after "Ẩn"`);
     await inApp.context().close();
   }
@@ -408,7 +414,7 @@ try {
     asInstalledApp,
   ]);
   await installed.goto(catalogUrl);
-  await installed.getByRole('link', { name: 'Đăng nhập' }).waitFor();
+  await installed.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
   await playOneRound(installed);
   await installed.waitForTimeout(1500);
   if (await installCard(installed).isVisible()) throw new Error('the installed app offered to install');
@@ -417,7 +423,7 @@ try {
   await tab(installed, 'Tôi').tap();
   const installedMe = installed.getByRole('main');
   await installedMe.getByRole('link', { name: /Góp ý \/ báo lỗi/ }).waitFor();
-  if ((await installedMe.getByRole('button', { name: 'Cài app' }).count()) > 0) {
+  if ((await installedMe.getByRole('button', { name: 'Cài', exact: true }).count()) > 0) {
     throw new Error('the installed app has "Cài app" in Tôi');
   }
   await installed.context().close();
@@ -454,7 +460,7 @@ try {
   );
   const oldPhone = await visitor('transfer-old', userAgents.androidChrome, browser);
   await oldPhone.goto(catalogUrl);
-  await oldPhone.getByRole('link', { name: 'Đăng nhập' }).waitFor();
+  await oldPhone.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
   await playOneRound(oldPhone);
   const movingId = await oldPhone.evaluate(() => localStorage.getItem('tohe:device-profile'));
   if (!movingId) throw new Error('no device profile is playing on the old phone');

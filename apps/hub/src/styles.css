@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@tohe/design-tokens/tokens.css";
+@import "@tohe/design-tokens/fonts.css";
 
 /*
  * Colours come only from the design tokens (ADR 0013, docs/architecture/theming.md). The default palette is
@@ -104,8 +105,10 @@
     overscroll-behavior-y: none;
   }
 
+  /* Be Vietnam Pro, self-hosted (fonts.css of the design tokens): drawn for Vietnamese, so its marks sit right. The
+     system font stands in until the file arrives and wherever it does not load. */
   body {
-    font-family: system-ui, sans-serif;
+    font-family: var(--tohe-font, system-ui, sans-serif);
   }
 
   /*

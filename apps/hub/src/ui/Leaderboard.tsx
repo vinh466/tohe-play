@@ -9,16 +9,16 @@ import { syncer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
 import { withOfflineCache } from '../storage/repository.ts';
 import { Avatar } from './AvatarGrid.tsx';
+import { Icon } from './Icon.tsx';
 import { Modal } from './Modal.tsx';
 import { PublicBoard } from './PublicBoard.tsx';
+import { Rank } from './Rank.tsx';
 import { Segmented } from './Segmented.tsx';
-
-const MEDALS = ['🥇', '🥈', '🥉'];
 
 type Period = 'week' | 'all';
 type Scope = 'account' | 'community' | 'server';
 
-/** 🏆 in the corner of a game card: the best scores of the account's profiles for that game (M2). */
+/** "Bảng điểm" under a game's name: the best scores of the account's profiles for that game (M2). */
 export function LeaderboardButton({ game, player }: { game: GameSummary; player: Player }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -28,9 +28,10 @@ export function LeaderboardButton({ game, player }: { game: GameSummary; player:
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t('leaderboard.button', { game: nameOf(game) })}
-        className="absolute top-1.5 right-1.5 grid size-10 place-items-center rounded-full bg-soft text-xl active:scale-95"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 font-semibold text-accent text-sm active:bg-soft"
       >
-        <span aria-hidden>🏆</span>
+        <Icon name="trophy" className="text-lg" />
+        {t('leaderboard.short')}
       </button>
       <LeaderboardSheet game={game} player={player} open={open} onClose={() => setOpen(false)} />
     </>
@@ -124,7 +125,7 @@ function Rows({ gameId, player, period }: { gameId: string; player: Player; peri
             key={entry.profileId}
             className={`flex items-center gap-3 rounded-2xl p-3 ${mine ? 'bg-soft-strong' : 'bg-surface'}`}
           >
-            <span className="w-8 text-center font-black text-2xl text-ink">{MEDALS[index] ?? index + 1}</span>
+            <Rank place={index + 1} />
             <Avatar avatar={entry.avatar} size="sm" />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="truncate font-bold text-ink">

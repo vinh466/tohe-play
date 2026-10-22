@@ -31,6 +31,26 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 | `avatar-from`, `avatar-to` | Backdrop of emoji avatars |
 | `bar` | Browser UI colour (`theme-color`) |
 
+## Type and icons
+
+Tò He's look is more than its colours; the rest is in [Voice and look](../conventions/voice-and-look.md). Two parts are
+shared code:
+
+- **Font.** Be Vietnam Pro (SIL Open Font License; drawn for Vietnamese, so its marks sit right), self-hosted: the
+  `.woff2` files and the licence are in `packages/design-tokens/fonts/`, `fonts.css` declares weights 400, 600 and 700 for
+  the Vietnamese and the Latin subsets with `font-display: swap`, and `tokens.css` defines `--tohe-font` as
+  `"Be Vietnam Pro", system-ui, sans-serif`. An app imports `@tohe/design-tokens/fonts.css` beside `tokens.css` and sets
+  `font-family: var(--tohe-font)` (the hub does in `styles.css` and in the 404 page; the public pages use
+  `var(--tohe-font, …)`). The bundler puts the files under the app's own `/assets/` (immutable, already in the map of
+  `@tohe/routes`), so the CSP's `font-src` falls back to `'self'`; the hub's service worker precaches them, so a first
+  paint offline has the same letters. Heavier weights (the hub's `font-black`) fall to 700.
+- **Icons.** One set, Phosphor (MIT), as SVG: `apps/hub/src/ui/iconShapes.ts` holds the shapes used (the regular and the
+  fill weight, copied from `@phosphor-icons/core` rather than a 30 MB dependency, with its licence), `ui/Icon.tsx` draws
+  one in the text's colour and size (`1em`; `text-xl` on it sizes it). The weight `fill` is for what is on (the tab
+  shown). An icon is a decoration beside a visible label and is hidden from screen readers; a control never has only an
+  icon. No emoji as interface: `src/voiceAndLook.test.ts` fails on one in a screen's code (the avatars are content) or in
+  a string of either language.
+
 ## Rules for UI code
 
 - **Hub:** use the Tailwind classes generated from the tokens, for example `bg-page`, `bg-surface`, `text-ink`,
@@ -47,8 +67,9 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 
 - **Choices:** *Theo máy* (system, the default), *Sáng* (light) and *Tối* (dark). Picking one applies it at once,
   everywhere:
-  - in the hub, from Tôi → Giao diện (the app frame's third tab), and from the round 🌗 / ☀️ / 🌙 button in the top
-    corner of some other screens (signing in, the profile picker, account management);
+  - in the hub, from Tôi → Giao diện (the app frame's third tab), and from the *Giao diện* button (its icon shows the
+    current look: half circle, sun or moon) in the top corner of some other screens (signing in, the profile picker,
+    account management);
   - on the public pages, from the three buttons in the footer: an icon and a word each (*Sáng*, *Tối*, *Theo máy*);
   - in the docs, from Starlight's own theme menu (*Auto / Light / Dark*).
 - **Storage:** the choice belongs to the device and lives in the `tohe-theme` cookie:

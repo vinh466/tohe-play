@@ -6,6 +6,7 @@ import { deviceProfilesQuery } from '../api/queries.ts';
 import { TermsPrompt } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
 import { Button } from '../ui/Button.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
 import { sessionEnded } from './ended.ts';
 import { rememberNext } from './next.ts';
@@ -149,9 +150,7 @@ function SessionEnded({ returnTo }: { returnTo?: string }) {
         aria-labelledby="session-ended"
         className="mt-8 flex flex-col gap-4 rounded-3xl bg-surface p-5 text-center shadow-sm"
       >
-        <div aria-hidden className="text-5xl">
-          🔑
-        </div>
+        <Icon name="key" weight="fill" className="mx-auto text-5xl text-accent" />
         <h1 id="session-ended" className="font-black text-2xl text-brand-ink">
           {t('sessionEnded.title')}
         </h1>

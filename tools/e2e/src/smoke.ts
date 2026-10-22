@@ -117,7 +117,12 @@ try {
   // Opening the app is not opening a game: the public pages still take this device for a newcomer's.
   if ((await page.evaluate(() => localStorage.getItem('tohe:returning'))) !== null)
     throw new Error('the app wrote tohe:returning before any game was opened');
-  await page.getByRole('link', { name: 'Đăng nhập' }).tap(); // the slim strip of a device profile
+  // A device profile signs in from Tôi, where the account's section says so (the catalog has no strip for it).
+  await page
+    .getByRole('navigation', { name: 'Mục chính' })
+    .getByRole('link', { name: 'Tôi', exact: true })
+    .tap();
+  await page.getByRole('link', { name: 'Đăng nhập' }).tap();
   await page.waitForURL(/\/account\/sign-in$/);
   await shot('welcome');
 
@@ -144,7 +149,7 @@ try {
     throw new Error(`the catalog's tab is not the current one: "${current}"`);
   await tabs.getByRole('link', { name: 'Chơi cùng', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/together');
-  await page.getByLabel('Mã bàn chơi hoặc link mời').waitFor();
+  await page.getByLabel('Có mã? Gõ mã hoặc dán link.').waitFor();
   await page.getByRole('heading', { name: 'Bàn đang ngồi' }).waitFor();
   await shot('together');
 
@@ -265,7 +270,7 @@ try {
   const parent = page.getByRole('dialog', { name: 'Mở trang ngoài Tò He' });
   await parent.getByRole('heading', { name: 'Nhờ bố mẹ nhé' }).waitFor();
   await shot('outbound-gate');
-  await parent.getByRole('button', { name: '✕' }).tap();
+  await parent.getByRole('button', { name: 'Đóng' }).tap();
   if (new URL(page.url()).pathname !== '/account')
     throw new Error(`the link out was followed: ${page.url()}`);
   await tabs.getByRole('link', { name: 'Trò chơi', exact: true }).tap();
@@ -389,7 +394,7 @@ try {
   await frame.getByRole('button', { name: 'Bảng xếp hạng' }).tap();
   const board = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await board.getByText('Bé Na (bạn)').waitFor();
-  await board.getByRole('button', { name: '✕' }).tap();
+  await board.getByRole('button', { name: 'Đóng' }).tap();
 
   step('phone Back opens the menu (the round waits), Back again goes on playing');
   await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
@@ -458,11 +463,11 @@ try {
   }
 
   step("the account's leaderboard lists the child");
-  await page.getByRole('button', { name: 'Bảng xếp hạng Chạm Chấm' }).tap();
+  await page.getByRole('button', { name: 'Bảng điểm Chạm Chấm' }).tap();
   const leaderboard = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await leaderboard.getByText('Bé Na (bạn)').waitFor();
   await shot('leaderboard');
-  await leaderboard.getByRole('button', { name: '✕' }).tap();
+  await leaderboard.getByRole('button', { name: 'Đóng' }).tap();
 
   step('coming back: Trò chơi starts with "Chơi tiếp", the game this profile opened last (ADR 0046)');
   await page
