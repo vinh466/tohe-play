@@ -519,7 +519,8 @@ try {
   if (new URL(page.url()).pathname !== '/') throw new Error(`/ was redirected to ${page.url()}`);
   await shot('landing-returning');
   await continueLink.tap();
-  await page.waitForURL(catalogUrl);
+  // A public page's links into the app carry its language (?lang=vi, ADR 0047).
+  await page.waitForURL((url) => url.pathname === '/play');
   await expectTheme('dark');
 
   step(
