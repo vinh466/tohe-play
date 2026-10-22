@@ -220,6 +220,9 @@ for (const path of [
   '/replay/0b7c/3',
   '/nope',
   '/games/nope/',
+  '/en/games/nope/',
+  // The terms and the privacy notice have no English page yet (vietnameseOnlyPages in @tohe/routes).
+  '/en/terms/',
   '/guides/nope/',
   '/faq/x/',
   '/terms/x',
@@ -261,6 +264,12 @@ check(
       sitemap.body.includes(`<loc>${publicHubUrl}${path}</loc>`),
     ),
   `/sitemap.xml: XML, the indexed pages with absolute URLs (${sitemap.response.status})`,
+);
+// Each page of a language pair names its alternates there, the one place hreflang is declared (ADR 0047).
+check(
+  sitemap.body.includes(`<xhtml:link rel="alternate" hreflang="en" href="${publicHubUrl}/en/"/>`) &&
+    sitemap.body.includes(`<xhtml:link rel="alternate" hreflang="x-default" href="${publicHubUrl}/en/"/>`),
+  '/sitemap.xml: the pages’ language alternates, x-default the English page',
 );
 
 const contact = process.env.TOHE_SECURITY_CONTACT;

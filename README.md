@@ -8,7 +8,8 @@ technical foundation.
 - **Games** (`games/*`) — independent static builds in any web technology, bound to the platform only by the
   [Game Contract](docs/contracts/game-contract-v1.md) and checked by a conformance kit.
 - **Platform API** (`services/api`) — .NET 10 modular monolith on PostgreSQL.
-- **Public pages** (`apps/web`) — the Vietnamese home page at the root of the players' host, next to the app.
+- **Public pages** (`apps/web`) — the home page and the games' pages at the root of the players' host, next to the app:
+  Vietnamese at `/`, English under `/en/`.
 - **Docs** (`apps/docs`) — English developer docs rendered from [`docs/`](docs/index.md).
 
 ## Quick start

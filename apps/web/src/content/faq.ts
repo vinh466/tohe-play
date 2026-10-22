@@ -1,6 +1,7 @@
-// The words of /faq/: short questions people really ask, short answers (plain text: they are also the page's
-// FAQPage structured data, so no markup). The owner reviews them in the pull request; the privacy notice is the
-// authority on data (/privacy/), the terms on the rest (/terms/).
+// The words of /faq/ and /en/faq/: short questions people really ask, short answers (plain text: they are also the
+// page's FAQPage structured data, so no markup). The owner reviews them in the pull request; the privacy notice is the
+// authority on data (/privacy/), the terms on the rest (/terms/) — both in Vietnamese only for now (ADR 0047).
+import type { Lang } from '../i18n.ts';
 import { site } from './site.ts';
 
 export interface Question {
@@ -8,7 +9,7 @@ export interface Question {
   a: string;
 }
 
-export const faq = {
+const vi = {
   title: 'Hỏi đáp — Tò He',
   description:
     'Tò He có miễn phí không, có cần tài khoản không, dữ liệu để ở đâu, bé chơi có ổn không, chơi khi mất mạng được không: câu trả lời ngắn.',
@@ -61,5 +62,63 @@ export const faq = {
       q: 'Ai làm ra Tò He, và tôi góp ý ở đâu?',
       a: `Tò He là một dự án gia đình, do một người vận hành. Góp ý, báo lỗi hay hỏi về dữ liệu, bạn viết cho ${site.email}.`,
     },
-  ] satisfies Question[],
+  ] as Question[],
 };
+
+const en: typeof vi = {
+  title: 'FAQ — Tò He',
+  description:
+    'Is Tò He free, do you need an account, where is your data kept, is it fine for children, does it work offline: short answers.',
+  heading: 'FAQ',
+  lead: 'What people ask first.',
+  more: {
+    text: `Didn’t find your question? Write to us: ${site.email}.`,
+    privacy: 'Privacy notice (in Vietnamese)',
+    terms: 'Terms of use (in Vietnamese)',
+    install: 'How to add it to your home screen',
+  },
+  questions: [
+    {
+      q: 'Is Tò He free?',
+      a: 'Yes. Tò He has no ads, sells nothing in its games, and has no money, coins or items to buy or sell. Scores are just for fun.',
+    },
+    {
+      q: 'Do I need an account to play?',
+      a: 'No. Open the link and play, and your device remembers your games. Create an account (with an email address, or Google) when you want to keep your progress, play on another device or have your name on the leaderboard.',
+    },
+    {
+      q: 'What does Tò He keep about me?',
+      a: 'Without an account, your games stay on your device. With an account, Tò He keeps your email address, your profile names, your saved games and your scores. Tò He does not sell your data and has no third-party ads or trackers. A little technical data (the kind of device, errors, how smoothly a game runs) is not tied to your name, and you can turn it off. The details are in the privacy notice, in Vietnamese.',
+    },
+    {
+      q: 'Is it safe for children?',
+      a: 'Children under 16 do not create accounts themselves: a parent creates a profile for the child in their own account, and the child only picks an avatar. Online tables have only ready-made reactions, no free chat. By default, a child does not play with people outside the parent’s account.',
+    },
+    {
+      q: 'Can I play without an internet connection?',
+      a: 'Once you have opened Tò He once, games alone or against bots work offline too. Online tables need a connection.',
+    },
+    {
+      q: 'Which phones does Tò He run on?',
+      a: 'Android phones and iPhones with a modern browser such as Chrome or Safari, and computers too. Nothing to download from an app store.',
+    },
+    {
+      q: 'How do I add Tò He to my home screen?',
+      a: 'Use the browser’s menu: Chrome has "Install app", Safari on iPhone has Share → "Add to Home Screen". If the link opened inside Zalo or Messenger, open it in a real browser first. Step by step in the install guide.',
+    },
+    {
+      q: 'How do I play with friends and family?',
+      a: 'Some games, like Tiến Lên, have online tables: you open a table and send the link or the code to everyone, and each person joins on their own phone. If someone is missing, a bot takes the seat.',
+    },
+    {
+      q: 'How do I delete a profile or my account?',
+      a: 'Go to "Manage account" in Tò He. Deleting a profile deletes its saved games and scores at once. Deleting the account deletes every profile and its data for good after 7 days.',
+    },
+    {
+      q: 'Who makes Tò He, and where do I send feedback?',
+      a: `Tò He is a family project, run by one person. For feedback, a bug or a question about your data, write to ${site.email}.`,
+    },
+  ],
+};
+
+export const faq: Record<Lang, typeof vi> = { vi, en };

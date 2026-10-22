@@ -1,5 +1,13 @@
 // What scripts/generate.ts writes, as pure functions of the map so the tests can read them too.
 import {
+  languageOfPath,
+  type PublicLanguage,
+  pairOf,
+  pathInLanguage,
+  vietnameseOnlyPages,
+  xDefaultLanguage,
+} from './languages.ts';
+import {
   consoleLinks,
   consoleNamespaces,
   hubLinks,
@@ -239,21 +247,89 @@ export function sitemapPaths(
     });
 }
 
+/** An `hreflang` value of the sitemap: a language of the public pages, or the page for readers of neither. */
+export type Hreflang = PublicLanguage | 'x-default';
+
+/** A page of the sitemap and its language alternates — none for a page declared Vietnamese-only. */
+export interface SitemapEntry {
+  path: string;
+  alternates: readonly { hreflang: Hreflang; path: string }[];
+}
+
+/**
+ * The sitemap's pages with their `hreflang` alternates (ADR 0047): each page of a pair names both — itself among them,
+ * as search engines ask — and `x-default`, the English one. A page whose pair is not listed is refused, unless it is
+ * declared Vietnamese-only (`vietnameseOnlyPages`); so is a Vietnamese-only page that is not listed, or that has an
+ * English page after all — the list says exactly which pages stand alone.
+ */
+export function sitemapEntries(
+  namespaces: readonly Namespace[] = hubNamespaces,
+  gameIds: readonly string[] = [],
+  pages: Record<string, readonly string[]> = publicPages(gameIds),
+  vietnameseOnly: readonly string[] = vietnameseOnlyPages,
+): SitemapEntry[] {
+  const paths = sitemapPaths(namespaces, gameIds, pages);
+  const listed = new Set(paths);
+  for (const path of vietnameseOnly) {
+    if (!listed.has(path) || languageOfPath(path) !== 'vi') {
+      throw new Error(
+        `${path}: declared Vietnamese-only (vietnameseOnlyPages), but no Vietnamese page of the sitemap`,
+      );
+    }
+    if (listed.has(pathInLanguage(path, 'en'))) {
+      throw new Error(
+        `${path}: declared Vietnamese-only (vietnameseOnlyPages), but its English page is listed`,
+      );
+    }
+  }
+  return paths.map((path) => {
+    const pair = pairOf(path, vietnameseOnly);
+    if (pair === undefined) return { path, alternates: [] };
+    if (!listed.has(pair)) {
+      throw new Error(
+        `${path}: its ${languageOfPath(pair) === 'en' ? 'English' : 'Vietnamese'} page ${pair} is not listed (publicPages in map.ts; vietnameseOnlyPages for a page with none)`,
+      );
+    }
+    const vietnamese = pathInLanguage(path, 'vi');
+    const english = pathInLanguage(path, 'en');
+    return {
+      path,
+      alternates: [
+        { hreflang: 'vi', path: vietnamese },
+        { hreflang: 'en', path: english },
+        { hreflang: 'x-default', path: pathInLanguage(path, xDefaultLanguage) },
+      ],
+    };
+  });
+}
+
 /**
  * deploy/docker/hub-sitemap.caddy: the snippet `hubSitemap`, which Caddyfile.hub imports at its top level and uses to
  * answer /sitemap.xml. The URLs are absolute, from TOHE_HUB_URL when the container starts; without it the sitemap is a
- * 404 rather than a list of relative URLs, which crawlers reject.
+ * 404 rather than a list of relative URLs, which crawlers reject. Each page of a language pair names its alternates —
+ * the one place `hreflang` is declared (ADR 0047).
  */
 export function hubSitemapCaddySnippet(
   namespaces: readonly Namespace[] = hubNamespaces,
   gameIds: readonly string[] = [],
 ): string {
-  const urls = sitemapPaths(namespaces, gameIds).map(
-    (path) => `\t\t  <url><loc>{{ env "${HUB_URL_ENV}" }}${path}</loc></url>`,
+  const url = (path: string) => `{{ env "${HUB_URL_ENV}" }}${path}`;
+  const urls = sitemapEntries(namespaces, gameIds).flatMap(({ path, alternates }) =>
+    alternates.length === 0
+      ? [`\t\t  <url><loc>${url(path)}</loc></url>`]
+      : [
+          `\t\t  <url><loc>${url(path)}</loc>`,
+          ...alternates.map(
+            (alternate) =>
+              `\t\t    <xhtml:link rel="alternate" hreflang="${alternate.hreflang}" href="${url(alternate.path)}"/>`,
+          ),
+          '\t\t  </url>',
+        ],
   );
   return `${[
     header('#'),
-    '# The sitemap: the public pages the map marks as indexed, with absolute URLs from the hub’s own public URL.',
+    '# The sitemap: the public pages the map marks as indexed, with absolute URLs from the hub’s own public URL, and',
+    '# each page’s language alternates (hreflang, ADR 0047).',
     '(hubSitemap) {',
     `\t@noHubUrl expression \`{env.${HUB_URL_ENV}} == ""\``,
     '\terror @noHubUrl 404',
@@ -264,7 +340,7 @@ export function hubSitemapCaddySnippet(
     '\t}',
     '\trespond <<XML',
     '\t\t<?xml version="1.0" encoding="UTF-8"?>',
-    '\t\t<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    '\t\t<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">',
     ...urls,
     '\t\t</urlset>',
     '\t\tXML 200',

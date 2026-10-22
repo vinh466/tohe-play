@@ -2,6 +2,7 @@
 // docs/architecture/hosts-and-paths.md). It is the one place a path prefix is given to a component: the Caddy routes of
 // both hosts, the service worker's list of app pages, robots.txt and the API's links to the hub and the console are
 // generated from it (scripts/generate.ts). A new namespace is one entry here, reviewed; a new host needs an ADR.
+import { englishPrefix, pathInLanguage, vietnameseOnlyPages } from './languages.ts';
 
 /** A host's role. Hosts come from configuration (`publicUrls`), never from code: this names roles, not addresses. */
 export type HostRole =
@@ -205,7 +206,7 @@ export const hubNamespaces: readonly Namespace[] = [
     crawl: true,
     navigation: 'network',
     cache: 'revalidate',
-    note: 'The public home page (Vietnamese); a browser that has played here is sent on to /play',
+    note: 'The public home page (Vietnamese; the English one is /en/); a browser that has played here is sent on to /play',
   },
   publicPage(
     'game-pages',
@@ -217,6 +218,11 @@ export const hubNamespaces: readonly Namespace[] = [
   publicPage('about', '/about', 'What Tò He is, who runs it, how to reach them'),
   publicPage('terms', '/terms', 'The terms of use, rendered from apps/hub/src/legal/documents.ts'),
   publicPage('privacy', '/privacy', 'The privacy notice, rendered from apps/hub/src/legal/documents.ts'),
+  publicPage(
+    'en',
+    englishPrefix,
+    'The public pages in English (ADR 0047): /en/, /en/games/, /en/games/<gameId>/, /en/guides/… — the Vietnamese pages’ paths under /en, but for the Vietnamese-only ones (vietnameseOnlyPages)',
+  ),
   publicFile(
     'og-image',
     '/og.png',
@@ -403,10 +409,12 @@ export const consoleLinks = {
 /**
  * The pages of each indexed tree namespace of the hub's host, with the games' pages from the ids in
  * games/<id>/public/game.json. The sitemap lists them and apps/web's build must write exactly these (its check-build
- * compares); a tree that is indexed and has no entry here is refused by the sitemap generator.
+ * compares); a tree that is indexed and has no entry here is refused by the sitemap generator. The English pages
+ * (`en`, ADR 0047) are the Vietnamese ones under /en — the home page among them — but for those declared
+ * Vietnamese-only (`vietnameseOnlyPages`).
  */
 export function publicPages(gameIds: readonly string[]): Record<string, readonly string[]> {
-  return {
+  const vietnamese = {
     'game-pages': ['/games/', ...gameIds.map((id) => `/games/${id}/`)],
     guides: ['/guides/', '/guides/install/'],
     faq: ['/faq/'],
@@ -414,6 +422,10 @@ export function publicPages(gameIds: readonly string[]): Record<string, readonly
     terms: ['/terms/'],
     privacy: ['/privacy/'],
   };
+  const english = ['/', ...Object.values(vietnamese).flat()]
+    .filter((path) => !vietnameseOnlyPages.includes(path))
+    .map((path) => pathInLanguage(path, 'en'));
+  return { ...vietnamese, en: english };
 }
 
 /**

@@ -1,39 +1,6 @@
 ---
-import { faq } from '../content/faq.ts';
-import { absolute } from '../content/site.ts';
-// /faq/: short questions and answers. The words are in ../content/faq.ts; the same list is the page's FAQPage data.
-import Page from '../layouts/Page.astro';
-
-const jsonLd = [
-  {
-    '@type': 'FAQPage',
-    url: absolute('/faq/'),
-    inLanguage: 'vi',
-    mainEntity: faq.questions.map(({ q, a }) => ({
-      '@type': 'Question',
-      name: q,
-      acceptedAnswer: { '@type': 'Answer', text: a },
-    })),
-  },
-];
+// /faq/: short questions and answers — ../views/FaqPage.astro.
+import FaqPage from '../views/FaqPage.astro';
 ---
 
-<Page title={faq.title} description={faq.description} path="/faq/" jsonLd={jsonLd}>
-  <main id="main" class="narrow">
-    <h1>{faq.heading}</h1>
-    <p class="lead">{faq.lead}</p>
-    {
-      faq.questions.map(({ q, a }) => (
-        <details class="qa">
-          <summary>{q}</summary>
-          <p>{a}</p>
-        </details>
-      ))
-    }
-    <p>{faq.more.text}</p>
-    <p class="links">
-      <a href="/privacy/">{faq.more.privacy}</a> · <a href="/terms/">{faq.more.terms}</a> ·
-      <a href="/guides/install/">{faq.more.install}</a>
-    </p>
-  </main>
-</Page>
+<FaqPage />

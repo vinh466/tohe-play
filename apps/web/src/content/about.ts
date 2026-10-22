@@ -1,8 +1,9 @@
-// The words of /about/. The owner reviews them in the pull request (who writes "chúng tôi", and the contact, are theirs
-// to settle).
+// The words of /about/ and /en/about/. The owner reviews them in the pull request (who writes "chúng tôi", and the
+// contact, are theirs to settle).
+import type { Lang } from '../i18n.ts';
 import { site } from './site.ts';
 
-export const about = {
+const vi = {
   title: 'Giới thiệu — Tò He là gì, ai làm ra nó',
   description:
     'Tò He là một góc chơi nhỏ gồm những trò chơi đơn giản trên trình duyệt, không quảng cáo, không theo dõi. Một dự án gia đình, mở cho ai muốn chơi.',
@@ -42,3 +43,46 @@ export const about = {
     dev: 'Tài liệu cho người làm game',
   },
 };
+
+const en: typeof vi = {
+  title: 'About — what Tò He is and who makes it',
+  description:
+    'Tò He is a small corner of simple browser games, with no ads and no tracking. A family project, open to anyone who wants to play.',
+  heading: 'About',
+  sections: [
+    {
+      heading: 'What Tò He is',
+      paragraphs: [
+        'Tò He is a small corner for play: a few simple games that run right in the browser of a phone or a computer — open and play, a round in a few minutes.',
+        'The name comes from tò he, the coloured rice-dough figures Vietnamese children play with: small, bright and shaped very quickly. Every game here is one such tò he.',
+      ],
+    },
+    {
+      heading: 'Why no ads',
+      paragraphs: [
+        'Small game sites are usually full of ads and interruptions. Tò He sets out to do the opposite: a quiet place to play.',
+        'So Tò He has no ads, sells nothing in its games, has no third-party trackers and no free chat. The platform counts totals only and follows no one.',
+      ],
+    },
+    {
+      heading: 'Who makes Tò He',
+      paragraphs: [
+        'Tò He is a family project: one person builds and runs it, first for their own family, now open to anyone a link is shared with. It is also a place to learn how to build a platform that lasts, so its source code is public on GitHub.',
+      ],
+    },
+    {
+      heading: 'Contact',
+      paragraphs: [
+        'Feedback, a bug, a question about your data, or a game you would like to make for Tò He: write to us.',
+      ],
+    },
+  ],
+  contact: { label: 'Email', email: site.email },
+  links: {
+    games: 'See the games',
+    faq: 'Read the FAQ',
+    dev: 'Docs for game makers',
+  },
+};
+
+export const about: Record<Lang, typeof vi> = { vi, en };
