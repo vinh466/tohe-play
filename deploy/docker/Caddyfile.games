@@ -16,9 +16,6 @@
 	header Strict-Transport-Security "max-age=31536000; includeSubDomains"
 	# Game pages are meant only inside the hub's frame: search engines leave the whole origin out (ADR 0039).
 	header X-Robots-Tag "noindex, nofollow"
-	# The games origin is the same site as the hub (ADR 0040): ask browsers to keep it apart by origin rather than by site
-	# — its own agent cluster, and a process of its own where they isolate by origin (ADR 0046). Ignored where unknown.
-	header Origin-Agent-Cluster "?1"
 
 	# Nothing to see at the origin's own front page, a name people may type: it leads to the hub's catalog (ADR 0039).
 	redir / {$PUBLIC_HUB_URL}/play 302
