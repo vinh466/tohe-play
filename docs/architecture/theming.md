@@ -70,7 +70,7 @@ shared code:
   - in the hub, from Tôi → Giao diện (the app frame's third tab), and from the *Giao diện* button (its icon shows the
     current look: half circle, sun or moon) in the top corner of some other screens (signing in, the profile picker,
     account management);
-  - on the public home page, from the three buttons in the top corner;
+  - on the public pages, from the three buttons in the footer: an icon and a word each (*Sáng*, *Tối*, *Theo máy*);
   - in the docs, from Starlight's own theme menu (*Auto / Light / Dark*).
 - **Storage:** the choice belongs to the device and lives in the `tohe-theme` cookie:
   - values `light` or `dark`; no cookie means system;

@@ -22,8 +22,9 @@ export const site = {
 };
 
 const vi = {
-  tagline: 'Game nhỏ, mở ra là chơi',
-  imageAlt: 'Tò He — game nhỏ, mở ra là chơi',
+  /** Under the name in a game's link-preview picture (generate:og): the same line as the home page's. */
+  tagline: 'Mấy trò chơi nhỏ cho cả nhà',
+  imageAlt: 'Tò He: mấy trò chơi nhỏ cho cả nhà',
   home: 'trang chủ',
   /** The header's button into the app: for a newcomer, and for a device that has opened a game (returning.js). */
   play: 'Chơi ngay',
@@ -31,26 +32,28 @@ const vi = {
   skip: 'Bỏ qua phần đầu trang',
   navLabel: 'Các trang chính',
   themeLabel: 'Giao diện',
-  /** The paths are the Vietnamese ones; an English page's are the same under /en/. */
+  /** Three items: a fourth wrapped onto a line of its own on a 360 px phone; About is in the footer. The paths are the Vietnamese ones; an English page's are the same under /en/. */
   nav: [
     { label: 'Trò chơi', path: '/games/' },
     { label: 'Hướng dẫn', path: '/guides/' },
     { label: 'Hỏi đáp', path: '/faq/' },
-    { label: 'Giới thiệu', path: '/about/' },
   ],
+  /** The light/dark buttons in the footer: a drawn icon (src/layouts/ThemeIcon.astro) and the word. */
   themes: [
-    { choice: 'system', icon: '🌗', label: 'Theo máy' },
-    { choice: 'light', icon: '☀️', label: 'Sáng' },
-    { choice: 'dark', icon: '🌙', label: 'Tối' },
+    { choice: 'light', label: 'Sáng' },
+    { choice: 'dark', label: 'Tối' },
+    { choice: 'system', label: 'Theo máy' },
   ],
   /** The VI | EN switch in the header. */
   switch: { label: 'Ngôn ngữ' },
   footer: {
-    line: 'Tò He · dự án gia đình, không quảng cáo',
+    line: 'Tò He là dự án của một gia đình, không quảng cáo.',
+    about: 'Giới thiệu',
     promise: 'Lời hứa của Tò He',
+    install: 'Cài ra màn hình chính',
     terms: 'Điều khoản',
     privacy: 'Quyền riêng tư',
-    docs: 'Tài liệu kỹ thuật (tiếng Anh)',
+    docs: 'Làm game? Tài liệu (tiếng Anh)',
     github: 'GitHub',
   },
 };
@@ -58,8 +61,8 @@ const vi = {
 export type SiteWords = typeof vi;
 
 const en: SiteWords = {
-  tagline: 'Small games, open and play',
-  imageAlt: 'Tò He — small games, open and play',
+  tagline: 'Small games for the whole family',
+  imageAlt: 'Tò He: small games for the whole family',
   home: 'home',
   play: 'Play now',
   continue: 'Continue',
@@ -70,21 +73,22 @@ const en: SiteWords = {
     { label: 'Games', path: '/games/' },
     { label: 'Guides', path: '/guides/' },
     { label: 'FAQ', path: '/faq/' },
-    { label: 'About', path: '/about/' },
   ],
   themes: [
-    { choice: 'system', icon: '🌗', label: 'Follow the device' },
-    { choice: 'light', icon: '☀️', label: 'Light' },
-    { choice: 'dark', icon: '🌙', label: 'Dark' },
+    { choice: 'light', label: 'Light' },
+    { choice: 'dark', label: 'Dark' },
+    { choice: 'system', label: 'Auto' },
   ],
   switch: { label: 'Language' },
   footer: {
-    line: 'Tò He · a family project, no ads',
+    line: 'Tò He is a family project, with no ads.',
+    about: 'About',
     promise: 'Our promise',
+    install: 'Add to your home screen',
     // The terms and the privacy notice have no English text yet (ADR 0047): the links say so.
     terms: 'Terms (in Vietnamese)',
     privacy: 'Privacy (in Vietnamese)',
-    docs: 'Developer docs',
+    docs: 'Making games? Developer docs',
     github: 'GitHub',
   },
 };
@@ -107,7 +111,7 @@ export const suggestion = {
  * The EN button's name on a page with no English text yet (the Vietnamese-only terms and privacy notice): it leads to
  * the English home page and says why. In English, like the button.
  */
-export const noEnglishPage = 'English home page — this page is in Vietnamese only';
+export const noEnglishPage = 'English home page. This page is in Vietnamese only.';
 
 /** The word before the day a page's words were last revised (src/views/UpdatedOn.astro). */
 export const updatedWord: Record<Lang, string> = { vi: 'Cập nhật', en: 'Updated' };

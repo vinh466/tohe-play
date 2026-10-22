@@ -94,8 +94,8 @@ prefix). Its pages:
 
 | Page | What it is |
 | --- | --- |
-| `/` | The home page: the catalog first — a big tile per game, leading to its page — under one line ("Game nhỏ cho cả nhà · Không quảng cáo · Không cần tài khoản · Chơi ngay"), *Chơi ngay* to `/play`; then playing together, installing, the questions, the story, the promise; *Chơi tiếp* at the top on a device that has opened a game. No link to the developer docs in its body: the footer has it. It never redirects |
-| `/games/`, `/games/<gameId>/` | The games, and one page per game, made at build time from the game's own folder: `game.json` and its icon, and `page/vi.md`, `page/en.md` and `page/facts.json` ([Surfaces](surfaces.md#the-introduction-surface)). *Chơi* (and *Chơi cùng bạn* for a game with tables) at the top, the answer, the facts table, how to play, its questions, the other games, the day it was revised |
+| `/` | The home page: one line under the name ("Mấy trò chơi nhỏ cho cả nhà. Mở là chơi, không quảng cáo."), the games as the main action — a tile per game, leading to its page —, one "Chơi cùng" strip, and three questions parents ask, each linking into the FAQ; *Chơi tiếp* at the top on a device that has opened a game; the header's *Chơi ngay* (or *Chơi tiếp*) leads to `/play`. Installing, the story and the promise are links in the footer and About. No link to the developer docs in its body: the footer has it. It never redirects |
+| `/games/`, `/games/<gameId>/` | The games, and one page per game, made at build time from the game's own folder: `game.json` and its icon, and `page/vi.md`, `page/en.md` and `page/facts.json` ([Surfaces](surfaces.md#the-introduction-surface)). *Chơi* (and *Chơi cùng* for a game with tables) at the top, big, the short answer, the facts table, how to play, its questions, the other games, the day it was revised |
 | `/games/<gameId>/og.png` | A game's own link-preview picture, 1200×630, in each language (`/en/games/<gameId>/og.png`): made by `pnpm --filter @tohe/web generate:og` and committed beside the game's page (`games/<id>/page/og.vi.png`, `og.en.png`, with their stamps in `og.json`), copied here by the build, which fails when one is missing or out of date |
 | `/promise/` | The promise: no ads, no tracking, nothing to buy, no coins — never. Linked from the home page and every footer |
 | `/guides/`, `/guides/install/` | Guides; how to put Tò He on the home screen — Android, iPhone, inside Zalo or Messenger, a computer |
@@ -111,6 +111,11 @@ A page's address ends in `/`: the path without it answers `308` to the one with 
 to them labelled as Vietnamese ("Terms (in Vietnamese)", `hreflang="vi"`). The build allows exactly that list to stand
 alone and nothing else. **The list empties when the English texts land** — with their clause ids and the test that keeps
 the two in step (ADR 0047), the item of the launch review in which the owner syncs the legal texts.
+
+**The header and the footer.** On a 360 px phone the header is two rows: the brand, the VI | EN switch and *Chơi ngay*
+(or *Chơi tiếp*), then three pages (Trò chơi, Hướng dẫn, Hỏi đáp); from 48rem it is one row. Every target is 44 px
+high. About, the promise, the install guide, the papers, the developer docs, GitHub and the email are the footer's
+links, with the light/dark buttons (an icon and a word each) and one line of what Tò He is.
 
 **Switching language.** The header has a VI | EN switch: two links, to this page and to the same page in the other
 language (on a Vietnamese-only page, EN leads to `/en/`). A Vietnamese page shows a reader whose browser's first
@@ -174,7 +179,7 @@ language from Astro. Proper names and established terms stay as they are in eith
   before the first paint. The hub writes that key when a game is opened, where it notes "opened"
   (`apps/hub/src/launcher/recent.ts`) — not on every start, and nothing else counts (`tohe:guest` and the telemetry's
   device id no longer do); a device from before this rule becomes a returning one at its next game. Under it the
-  stylesheet shows *Chơi tiếp* in the header, in place of *Chơi ngay*, and the home pages' *Chơi tiếp →* button at the top.
+  stylesheet shows *Chơi tiếp* in the header, in place of *Chơi ngay*, and the home pages' *Chơi tiếp* button at the top.
   The session cookie is `HttpOnly`, so it cannot be the signal. *Chơi ngay* links to `/play`, from the header of every
   page and from the home page's body; each link into the app carries the page's `?lang=` as above.
 - **A page opened from the app has no link out of Tò He** ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)):

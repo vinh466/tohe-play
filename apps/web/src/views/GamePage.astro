@@ -2,8 +2,9 @@
 // /games/<gameId>/ and /en/games/<gameId>/: one page for each game that has a game.json (../content/games.ts), from
 // the game's own folder (ADR 0047): the name, the age, the orientation and the seats from its manifest, its words from
 // games/<id>/page/<lang>.md, the facts the manifest does not hold from games/<id>/page/facts.json. Chơi and, for a game
-// with tables, Chơi cùng bạn at the top; then the answer, the facts table, how to play, who it suits, the game's own
-// questions, its pictures, the other games and the day its words were revised. Its link preview is its own picture,
+// with tables, Chơi cùng at the top, big and first under the name; then the short answer, the facts table, how to play,
+// who it suits (only when the page's file says something the facts do not), the game's own questions, its pictures,
+// the other games and the day its words were revised. Its link preview is its own picture,
 // drawn by `generate:og` and committed beside the page, which the build copies to <page>og.png (scripts/copy-og.ts).
 import { type Game, gamesPage } from '../content/games.ts';
 import { absolute } from '../content/site.ts';
@@ -78,7 +79,10 @@ const jsonLd = [
     <a class="crumb" href={localPath(lang, '/games/')}>{words.back}</a>
     <div class="game-head">
       <img src={game.icon} alt="" width="96" height="96" />
-      <h1>{game.name}</h1>
+      <div>
+        <h1>{game.name}</h1>
+        <p class="game-kind">{page.kind}</p>
+      </div>
     </div>
     <div class="actions start">
       <a class="button primary" href={appPath(lang, `/play/${game.id}`)}>{words.play}</a>
@@ -113,10 +117,14 @@ const jsonLd = [
       <ol class="steps panel">{page.howTo.map((line) => <li>{line}</li>)}</ol>
     </section>
 
-    <section>
-      <h2>{words.suits}</h2>
-      <p>{page.suits}</p>
-    </section>
+    {
+      page.suits && (
+        <section>
+          <h2>{words.suits}</h2>
+          <p>{page.suits}</p>
+        </section>
+      )
+    }
 
     {
       page.questions.length > 0 && (

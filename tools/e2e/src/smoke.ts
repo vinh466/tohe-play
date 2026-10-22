@@ -110,7 +110,7 @@ try {
   if (await page.getByRole('link', { name: 'Chơi tiếp', exact: true }).isVisible())
     throw new Error('a new device is offered "Chơi tiếp"');
   // A plain visit shows the links out of Tò He, in the footer.
-  await page.getByRole('link', { name: 'Tài liệu kỹ thuật (tiếng Anh)' }).waitFor();
+  await page.getByRole('link', { name: 'Làm game? Tài liệu (tiếng Anh)' }).waitFor();
   await shot('landing');
   await play.tap();
   await page.waitForURL((url) => url.pathname === '/play');
@@ -202,12 +202,12 @@ try {
   // The next page the child reads carries no ?from=app, and still has none.
   await page
     .getByRole('navigation', { name: 'Các trang chính' })
-    .getByRole('link', { name: 'Giới thiệu' })
+    .getByRole('link', { name: 'Hướng dẫn' })
     .tap();
-  await page.waitForURL((url) => url.pathname === '/about/');
-  const onAbout = await linksOut();
-  if (onAbout.total === 0 || onAbout.shown !== 0)
-    throw new Error(`the next page shows ${onAbout.shown} of ${onAbout.total} links out of Tò He`);
+  await page.waitForURL((url) => url.pathname === '/guides/');
+  const onGuides = await linksOut();
+  if (onGuides.total === 0 || onGuides.shown !== 0)
+    throw new Error(`the next page shows ${onGuides.shown} of ${onGuides.total} links out of Tò He`);
   // The header's button is the way back into the app (this device has not opened a game: "Chơi ngay").
   await page.getByRole('link', { name: 'Chơi ngay', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
@@ -516,10 +516,11 @@ try {
   // This device has played (the app wrote its keys above): / never redirects, it shows Chơi tiếp at the top.
   await page.goto(hubUrl);
   await expectTheme('dark');
-  // The header's button: "Chơi tiếp" in place of "Chơi ngay" on a device that has opened a game (the hero's has an arrow).
+  // The header's button: "Chơi tiếp" in place of "Chơi ngay" on a device that has opened a game. The home page's own
+  // "Chơi tiếp" button at the top of the page says the same, so the first of the two is the one tapped.
   if (await page.getByRole('link', { name: 'Chơi ngay', exact: true }).isVisible())
     throw new Error('a device that has opened a game is still offered "Chơi ngay" in the header');
-  const continueLink = page.getByRole('link', { name: 'Chơi tiếp', exact: true });
+  const continueLink = page.getByRole('link', { name: 'Chơi tiếp', exact: true }).first();
   await continueLink.waitFor();
   if (new URL(page.url()).pathname !== '/') throw new Error(`/ was redirected to ${page.url()}`);
   await shot('landing-returning');

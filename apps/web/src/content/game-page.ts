@@ -13,13 +13,13 @@
 //   kind: game ghép khối số         what it is in a few words, after the name in the page's title
 //   ---
 //
-//   The answer: one or two sentences — what it is and for whom. No numbers the facts table holds (ages, players, a
-//   round's length): they come from game.json and facts.json, never written twice.
+//   The answer: one or two short sentences — what it is and for whom. No numbers the facts table holds (ages,
+//   players, a round's length): they come from game.json and facts.json, never written twice.
 //
 //   ## Cách chơi                    3 to 5 numbered lines, in the order a first game goes
 //   1. …
 //
-//   ## Hợp với ai                   who it suits, beyond what the manifest says
+//   ## Hợp với ai                   optional: who it suits, only where it says more than the facts and the answer
 //   …
 //
 //   ## Hỏi đáp                      optional: the game's own questions, each a "### question?" and its answer
@@ -53,10 +53,11 @@ export const IsoDate = z.iso.date();
 export const GamePageText = z.strictObject({
   updated: IsoDate,
   kind: text.pipe(z.string().max(60)),
-  /** One or two sentences: what it is and for whom. */
+  /** One or two short sentences: what it is and for whom. */
   answer: text.pipe(z.string().max(320)),
   howTo: z.array(text).min(3).max(5),
-  suits: text,
+  /** Optional: a section that only repeats the facts and the answer is left out (docs/conventions/voice-and-look.md). */
+  suits: text.optional(),
   questions: z.array(
     z.strictObject({ q: text.refine((q) => q.endsWith('?'), 'a question ends with "?"'), a: text }),
   ),
