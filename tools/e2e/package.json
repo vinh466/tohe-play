@@ -15,7 +15,7 @@
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",
     "@tohe/routes": "workspace:*",
-    "@types/node": "^24.0.0",
+    "@types/node": "^26.6.5",
     "playwright": "^1.64.0"
   }
 }
