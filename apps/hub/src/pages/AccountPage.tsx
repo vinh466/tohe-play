@@ -5,7 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, account, external, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery, profileOptionsQuery } from '../api/queries.ts';
-import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
+import { BackLink, previousPath, useLeaveTo } from '../navigation/leave.tsx';
 import { AuthenticatorSetup } from '../session/Authenticator.tsx';
 import { EmailChange } from '../session/EmailChange.tsx';
 import { ParentGate } from '../session/ParentGate.tsx';
@@ -25,6 +25,7 @@ import { Screen } from '../ui/Screen.tsx';
 import { Switch } from '../ui/Switch.tsx';
 import { TextField } from '../ui/TextField.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
+import { MePage } from './MePage.tsx';
 
 /** The account's profiles and settings, behind the parent gate (ADR 0011, 0023). */
 /** Who may ask a profile to a table by its ID (ADR 0033), as the API names them, with their labels. */
@@ -34,7 +35,21 @@ const INVITE_SCOPES = [
   ['account', 'account.invitesAccount'],
 ] as const;
 
+/** What `/account` reads from its address (router.tsx). */
+export interface AccountSearch {
+  manage?: true;
+  add?: true;
+  linked?: string;
+  link_error?: string;
+}
+
+/**
+ * `/account` is Tôi, the frame's third tab (ADR 0046); with `?manage=true` — or what comes back to the account's
+ * management: `?add=`, `?linked=`, `?link_error=` (the API's `HubPaths.Account`) — Quản lý tài khoản.
+ */
 export function AccountPage() {
+  const search = useSearch({ from: '/_frame/account' });
+  if (!(search.manage || search.add || search.linked || search.link_error)) return <MePage />;
   return <RequireSession need="account">{({ me }) => <ManageAccount me={me} />}</RequireSession>;
 }
 
@@ -59,7 +74,9 @@ function useMeMutation<T>(run: (input: T) => Promise<MeView>, onDone?: () => voi
 function ManageAccount({ me }: { me: MeView }) {
   const { t } = useTranslation();
   const leaveTo = useLeaveTo();
-  const { add } = useSearch({ from: '/account' });
+  const { add } = useSearch({ from: '/_frame/account' });
+  // Back where the owner came from: the profile picker ("Quản lý tài khoản", "Thêm hồ sơ"), else Tôi.
+  const back = previousPath() === '/account/profiles' ? '/account/profiles' : '/account';
   const unlocked = parentUnlocked(me);
   const [, rerender] = useReducer((n: number) => n + 1, 0);
 
@@ -74,14 +91,14 @@ function ManageAccount({ me }: { me: MeView }) {
 
   const lock = useMeMutation(
     () => session.lockParentGate(),
-    () => leaveTo({ to: '/account/profiles' }),
+    () => leaveTo({ to: back }),
   );
 
   return (
     <Screen>
       <header className="flex items-center gap-3">
         <BackLink
-          to="/account/profiles"
+          to={back}
           aria-label={t('back')}
           className="grid size-11 place-items-center rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
         >
@@ -94,7 +111,7 @@ function ManageAccount({ me }: { me: MeView }) {
       {unlocked ? (
         <>
           {me.account.hasManagePin ? null : <ManagePinNudge me={me} />}
-          <Profiles me={me} startAdding={add} />
+          <Profiles me={me} startAdding={add === true} />
           <Security me={me} />
           <TechnicalData me={me} />
           <DeleteAccount me={me} />
@@ -506,7 +523,7 @@ function ProfileForm({
 function Security({ me }: { me: MeView }) {
   const { t } = useTranslation();
   const config = useQuery(configQuery);
-  const { linked, link_error: linkError } = useSearch({ from: '/account' });
+  const { linked, link_error: linkError } = useSearch({ from: '/_frame/account' });
   const [open, setOpen] = useState<string | null>(null);
   const email = me.account.email;
   const close = () => setOpen(null);

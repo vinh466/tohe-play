@@ -14,7 +14,7 @@ phía owner — và mỗi việc cần tới mức nào, xếp vào đâu?
 | **Ngay** | Rẻ (vài phút), giảm một rủi ro có thật hôm nay. Không chờ plan. |
 | **P0** | Nền của plan này: luồng phát triển · kiểm thử · môi trường, và spec phải đúng ([E-01](../items/E-01-dev-test-env-flow.md), [E-04](../items/E-04-spec-truth.md)). |
 | **P1** | Bề mặt sản phẩm: domain, trang công khai, người mới, PWA (D-01…D-04, E-02, E-03). |
-| **Cổng** | Phải xong trước khi mời người ngoài vào prod — [E-05](../items/E-05-gate-before-outsiders.md). Không chặn P0/P1. |
+| **Cổng** | Phải xong trước khi mời người ngoài vào prod — [E-05](../../launch-review/items/E-01-gate-before-outsiders.md). Không chặn P0/P1. |
 | **Sau** | Phase 2 (hub) / Phase 3 (game), hoặc chờ một điều kiện. Ghi lại, không lên kế hoạch ở đây. |
 
 ## Findings
@@ -37,7 +37,7 @@ phía owner — và mỗi việc cần tới mức nào, xếp vào đâu?
 
 | # | Việc | Sự thật | Mức |
 |---|---|---|---|
-| B1 | E-10 / F4 checklist ra mắt | `open` trong `public-launch` | **Cổng** — chuyển thành [E-05](../items/E-05-gate-before-outsiders.md) |
+| B1 | E-10 / F4 checklist ra mắt | `open` trong `public-launch` | **Cổng** — chuyển thành [E-05](../../launch-review/items/E-01-gate-before-outsiders.md) |
 | B2 | Script kiểm môi trường nằm ngoài repo | `prod-check.sh`, `uat-step2.sh`, `check-hosts.sh`, `mail-dns.sh` chỉ có trong thư mục tạm của agent | **P0** (E-01) |
 | B3 | Chart chưa có khối email riêng | prod truyền cấu hình email qua `api.extraEnvFrom` — chạy được | Sau |
 | B4 | `plans/public-launch` | phase Graduate; mọi PR đã merge + deploy; chỉ còn E-10 | **P0** — đóng plan đó khi E-10 sang đây |

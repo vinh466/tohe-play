@@ -15,7 +15,7 @@ export function AccountEmailPage() {
 
 function ConfirmFromLink() {
   const { t } = useTranslation();
-  const { attempt, code } = useSearch({ from: '/account/email' });
+  const { attempt, code } = useSearch({ from: '/_frame/account/email' });
   const setMe = useSetMe();
   const confirm = useMutation({
     mutationFn: () => account.confirmEmailChange(attempt, code),
@@ -45,7 +45,7 @@ function ConfirmFromLink() {
         )}
         <Link
           to="/account"
-          search={{ add: false }}
+          search={{ manage: true }}
           className="font-bold text-brand-ink underline underline-offset-4"
         >
           {t('account.title')}

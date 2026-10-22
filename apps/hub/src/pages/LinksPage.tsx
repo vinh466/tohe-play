@@ -58,8 +58,8 @@ function Frame({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <Screen narrow>
-      <BackLink to="/play" className="font-semibold text-accent">
-        ← {t('backToGames')}
+      <BackLink to="/together" className="font-semibold text-accent">
+        ← {t('frame.together')}
       </BackLink>
       <div className="flex flex-col gap-1">
         <h1 className="font-black text-3xl text-brand-ink">{t('links.title')}</h1>

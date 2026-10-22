@@ -124,24 +124,48 @@ try {
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
 
-  step('choose the dark theme in "Giao diện": it applies at once and survives a reload');
-  await page.getByRole('button', { name: /^Giao diện/ }).tap();
-  const themes = page.getByRole('dialog', { name: 'Giao diện' });
-  await themes.getByRole('button', { name: /^Tối/ }).tap();
+  step('the frame: three tabs at the bottom; Chơi cùng has the box for a code (ADR 0046)');
+  const tabs = page.getByRole('navigation', { name: 'Mục chính' });
+  const current = await tabs.locator('[aria-current="page"]').innerText();
+  if (!current.includes('Trò chơi'))
+    throw new Error(`the catalog's tab is not the current one: "${current}"`);
+  await tabs.getByRole('link', { name: 'Chơi cùng', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/together');
+  await page.getByLabel('Mã bàn chơi hoặc link mời').waitFor();
+  await page.getByRole('heading', { name: 'Bàn đang ngồi' }).waitFor();
+  await shot('together');
+
+  step('Tôi: choose the dark theme — it applies at once and survives a reload');
+  await tabs.getByRole('link', { name: 'Tôi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/account');
+  const themes = page.getByRole('group', { name: 'Giao diện' });
+  await themes.getByRole('button', { name: 'Tối', exact: true }).tap();
   await expectTheme('dark');
-  await shot('theme-sheet');
-  await themes.getByRole('button', { name: '✕' }).tap();
+  await shot('me');
   await page.reload();
   await expectTheme('dark');
 
   step('"Theo máy" follows the device, live');
-  await page.getByRole('button', { name: /^Giao diện/ }).tap();
-  await themes.getByRole('button', { name: /^Theo máy/ }).tap();
+  await themes.getByRole('button', { name: 'Theo máy' }).tap();
   await page.emulateMedia({ colorScheme: 'dark' });
   await expectTheme('dark');
   await page.emulateMedia({ colorScheme: 'light' });
   await expectTheme('light');
-  await themes.getByRole('button', { name: '✕' }).tap();
+
+  step('Tôi → Ngôn ngữ: English at once, without a reload, kept under the key the public pages share');
+  const languages = page.getByRole('group', { name: 'Ngôn ngữ' });
+  await languages.getByRole('button', { name: 'English' }).tap();
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Me', exact: true })
+    .waitFor();
+  const kept = await page.evaluate(() => localStorage.getItem('tohe:language'));
+  if (kept !== 'en') throw new Error(`the language setting kept "${kept}", not "en", under tohe:language`);
+  if ((await page.evaluate(() => document.documentElement.lang)) !== 'en') {
+    throw new Error('the page does not say it is in English');
+  }
+  await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Tiếng Việt' }).tap();
+  await tabs.getByRole('link', { name: 'Tôi', exact: true }).waitFor();
 
   step(
     '"Đổi người chơi" opens the picker, where a child profile with a PIN is added (the owner confirms with the password)',
@@ -175,6 +199,19 @@ try {
   const kidId = await page.evaluate(
     async () => (await (await fetch('/api/auth/me')).json()).activeProfileId as string,
   );
+
+  step("on a child's profile, a link out of Tò He (feedback's mail) asks a parent first (ADR 0046)");
+  await tabs.getByRole('link', { name: 'Tôi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/account');
+  await page.getByRole('link', { name: /Góp ý \/ báo lỗi/ }).tap();
+  const parent = page.getByRole('dialog', { name: 'Mở trang ngoài Tò He' });
+  await parent.getByRole('heading', { name: 'Nhờ bố mẹ nhé' }).waitFor();
+  await shot('outbound-gate');
+  await parent.getByRole('button', { name: '✕' }).tap();
+  if (new URL(page.url()).pathname !== '/account')
+    throw new Error(`the link out was followed: ${page.url()}`);
+  await tabs.getByRole('link', { name: 'Trò chơi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/play');
 
   step('wait for the catalog to list the sample game (the API syncs it from the games origin)');
   const card = page.getByRole('link', { name: /Chạm Chấm/ });
@@ -428,7 +465,7 @@ try {
     step(
       'the authenticator is added in the hub, on the account page: step-up, then a new key and its first code',
     );
-    await page.goto(`${hubUrl}/account`);
+    await page.goto(`${hubUrl}/account?manage=true`);
     await page.getByLabel('Mật khẩu').fill(password);
     await page.getByRole('button', { name: 'Xác nhận' }).tap();
     await page.getByRole('button', { name: 'Thêm ứng dụng xác thực' }).tap();
@@ -474,7 +511,7 @@ try {
     await page.getByRole('button', { name: 'Đăng xuất' }).click();
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).waitFor();
   }
-  await page.goto(`${hubUrl}/account`);
+  await page.goto(`${hubUrl}/account?manage=true`);
   await page.getByRole('heading', { name: 'Quản lý tài khoản' }).waitFor();
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);

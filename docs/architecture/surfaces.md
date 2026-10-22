@@ -99,6 +99,23 @@ flowchart LR
 - The hub neither rotates nor locks the screen: a game fits the orientation it prefers inside the screen it gets.
 - Nothing presses a child to keep playing: no punishing streaks, no countdowns, no guilt.
 
+**How the hub does it** (`apps/hub/src/frame/`):
+
+- A layout route (`_frame` in `router.tsx`) holds `/play`, `/together` and every `/account/…` screen; a game
+  (`/play/<id>`), its lobby, a table, a replay and the links into them (`/r/…`, `/s/…`) are outside it, full screen.
+  `/account/links` is Chơi cùng's. Forms (signing in, signing up, a new profile) stay one narrow column inside it.
+- Each tab's screen starts with the tab's name and the player's avatar and name, which open the profile picker. The bar
+  sits above the phone's home indicator (`env(safe-area-inset-bottom)`) and steps aside while a field that brings up the
+  keyboard has the focus. The rail comes before the screen in the document and the bar after it, so the focus follows
+  what is seen; the tab of the screen shown carries `aria-current="page"`.
+- **History**: a tab takes the place of the screen in the history (the app is one level); a game, a table or a screen
+  under a tab is a new entry. The app opened straight at a game, a table or a link into one, with nothing of the app
+  behind it, first puts `/play` behind it, so Back from the game reaches the app before it leaves Tò He.
+- **Tôi** is `/account`; Quản lý tài khoản, behind the parent gate, is `/account?manage=true` — and what returns there:
+  `?add=true` (a new profile), `?linked=` and `?link_error=` (a provider linked, the API's `HubPaths.Account`).
+  Help and about and the papers are full navigations to the public pages, in the app's language where the page exists
+  in it. Feedback (`mailto:`) is the only link out of Tò He today.
+
 ## Coming back
 
 | Moment | What happens |
@@ -128,8 +145,8 @@ flowchart LR
   name; a name and a description per language (`names`, `descriptions`) are optional and shown in the reader's language
   when present ([ADR 0048](../decisions/0048-a-standard-name-and-words-per-language-for-each-game.md)).
 
-**What the public pages hand to the app** — two things, both read by the app once it has its language setting (the app
-frame's pull request); until then the hub ignores them:
+**What the public pages hand to the app** — two things, both read by the app when it starts
+(`apps/hub/src/language/language.ts`):
 
 | | What | Written by |
 | --- | --- | --- |
@@ -137,7 +154,8 @@ frame's pull request); until then the hub ignores them:
 | The page's language | **`?lang=en`** on every link from an English page into the app (`/play`, `/play/<id>`, `/play/<id>/rooms`), *Continue* on `/en/` among them; a Vietnamese page's links carry nothing, Vietnamese being the default | `appPath` in `apps/web/src/i18n.ts` |
 
 The app's order stays as above: its own setting, which a choice on the public pages' switch fills in (the key), then
-the page the player came from (`?lang=`), then the browser, then Vietnamese.
+the page the player came from (`?lang=`), then the browser, then Vietnamese. Tôi → Ngôn ngữ writes the same key, and
+the app changes language at once, without a reload; its links to the public pages follow it.
 
 ## The introduction surface
 
@@ -199,12 +217,12 @@ language and IndexNow.
 | --- | --- | --- |
 | Planes, L1, the escalation rule | L1 in place; Cloudflare Access on `console.` | — |
 | Crawlers by name in `robots.txt` | in place | — |
-| Namespaces `/together`, `/promise/` | `/promise/` in place with its page; `/together` in the map ahead of its page (the app shows its own not-found there until then) | the app frame's pull request |
-| Public pages in two languages | in place: Vietnamese at `/…`, English at `/en/…`, `hreflang` in the sitemap, the VI \| EN switch and the suggestion, the choice kept under `tohe:language`, `?lang=en` into the app (which ignores both for now); the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages` in `@tohe/routes`) | the public pages' languages pull request |
+| Namespaces `/together`, `/promise/` | in place: `/together` (Chơi cùng) and `/promise/` with their pages | — |
+| Public pages in two languages | in place: Vietnamese at `/…`, English at `/en/…`, `hreflang` in the sitemap, the VI \| EN switch and the suggestion, the choice kept under `tohe:language`, `?lang=en` into the app (which reads both); the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages` in `@tohe/routes`) | the public pages' languages pull request |
 | Game names per language | in place: a standard `name` with `names` and `descriptions` per language (ADR 0048); the hub shows its language's, the console the standard name, link previews the Vietnamese, each public page its own language's | — |
 | One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | in place: `games/<id>/page/` for the four games; a picture per game and language, made by `generate:og` and committed beside the page; the home page shows the catalog first and *Continue* on a device that has played, and never redirects; `/promise/` in both languages. No game claims offline play yet (no games-origin service worker), so no page does | — |
 | Collections and pages for a search | none: they wait for about eight games, and three fitting ones | the growth above |
-| The app's frame and tabs, the language setting | no frame; a bottom-sheet menu; the browser's language | the app frame's pull request |
+| The app's frame and tabs, the language setting | in place: the bar and the rail, the three tabs (Trò chơi without the table the player sits at, *Continue* and recent yet — the coming-back pull request), Chơi cùng, Tôi with the language, theme and sound, the history per level, no orientation lock, the manage PIN before a link out on a child's profile; the bottom-sheet menu gone | — |
 | Coming back | the catalog first; no "who is playing"; silent fallback; updates take over at once | the coming-back pull request |
 | Link previews in the maker's language | Vietnamese only | the link languages' pull request |
 | The terms and the privacy notice in English, the clause parity test | Vietnamese only | before the launch |

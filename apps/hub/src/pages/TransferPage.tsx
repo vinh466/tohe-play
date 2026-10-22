@@ -44,7 +44,7 @@ const link = 'text-center font-semibold text-accent';
 /** "Chuyển sang máy khác": the named screen and the copy first when needed, then the code, its QR code and a countdown. */
 export function TransferSendPage() {
   const { t } = useTranslation();
-  const { profile: first } = useSearch({ from: '/account/transfer/send' });
+  const { profile: first } = useSearch({ from: '/_frame/account/transfer/send' });
   // A copy sent under a new id (its old one was taken, or cleaned up) carries on under that one.
   const [id, setId] = useState(first);
   const changed = useDeviceProfilesChanged();

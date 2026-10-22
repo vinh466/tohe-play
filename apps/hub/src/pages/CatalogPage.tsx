@@ -1,11 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { gamesQuery } from '../api/queries.ts';
 import { EnterCodeButton } from '../entry/EnterCode.tsx';
 import { ShareButton } from '../entry/ShareSheet.tsx';
+import { TabHeader } from '../frame/AppFrame.tsx';
 import { InstallNudge } from '../install/InstallNudge.tsx';
-import { descriptionOf, nameOf } from '../launcher/gameWords.ts';
+import { byShownName, descriptionOf, nameOf } from '../launcher/gameWords.ts';
 import { hasShell } from '../launcher/manifest.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { MovedNotice } from '../session/MovedNotice.tsx';
@@ -13,12 +15,9 @@ import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player, SessionState } from '../session/session.ts';
 import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync.ts';
 import { funnel } from '../telemetry/telemetry.ts';
-import { Avatar } from '../ui/AvatarGrid.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
 import { LeaderboardButton } from '../ui/Leaderboard.tsx';
-import { MenuButton } from '../ui/MenuButton.tsx';
 import { Screen } from '../ui/Screen.tsx';
-import { ThemeButton } from '../ui/ThemePicker.tsx';
 
 type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
 
@@ -27,32 +26,21 @@ export function CatalogPage() {
 }
 
 function Catalog({ session }: { session: PlayingSession }) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { player } = session;
   const games = useQuery(gamesQuery(player.id));
+  const shown = useMemo(() => byShownName(games.data ?? [], i18n.language), [games.data, i18n.language]);
   const onDevice = player.kind === 'device';
   useBackgroundSync(player);
 
   return (
-    <Screen>
-      <header className="flex items-center justify-between gap-3">
-        <div className="min-w-0">
-          <h1 className="font-black text-3xl text-brand-ink">{t('appName')}</h1>
-          <p className="text-ink-soft leading-snug">{t('tagline')}</p>
-        </div>
-        <div className="flex shrink-0 items-center gap-2">
-          <ThemeButton />
-          <MenuButton />
-          <Link
-            to="/account/profiles"
-            aria-label={t('switchProfile')}
-            className="flex items-center gap-2 rounded-full bg-surface py-1.5 pr-4 pl-1.5 shadow-sm active:scale-95"
-          >
-            <Avatar avatar={player.avatar} size="sm" />
-            <span className="max-w-28 truncate font-semibold text-ink">{player.name}</span>
-          </Link>
-        </div>
-      </header>
+    <Screen wide>
+      {/* Who is playing (tap: change), and "Nhập mã" in sight on the first screen (ADR 0044, 0046): the installed app
+          on an iPhone cannot follow a link. */}
+      <TabHeader title={t('frame.games')} player={player} />
+      <div className="-mt-2 flex">
+        <EnterCodeButton />
+      </div>
 
       {/* A device profile moved to another device with a transfer code (ADR 0043): said once, when the hub opens. */}
       <MovedNotice />
@@ -80,18 +68,14 @@ function Catalog({ session }: { session: PlayingSession }) {
       )}
 
       <section aria-labelledby="games-heading" className="flex flex-col gap-3">
-        {/* "Nhập mã" in sight on the first screen (ADR 0044): the installed app on an iPhone cannot follow a link. */}
-        <div className="flex items-center justify-between gap-3">
-          <h2 id="games-heading" className="font-bold text-ink text-xl">
-            {t('games')}
-          </h2>
-          <EnterCodeButton />
-        </div>
+        <h2 id="games-heading" className="font-bold text-ink text-xl">
+          {t('allGames')}
+        </h2>
         {games.isPending && <p className="text-ink-soft">{t('loading')}</p>}
         {games.isError && <p className="text-danger">{t('loadFailed')}</p>}
         {games.data?.length === 0 && <p className="text-ink-soft">{t('noGames')}</p>}
-        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-          {games.data?.map((game, index) => (
+        <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
+          {shown.map((game, index) => (
             <li
               key={game.id}
               className="relative animate-pop-in"

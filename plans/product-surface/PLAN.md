@@ -19,7 +19,7 @@
 **Phase 1 xong — mở plan space của phase review** (owner 2026-10-20: "sau đó tôi để đến phase review … làm 1 nền tảng
 hoàn chỉnh về các mặt trước khi launch chính thức"): review toàn diện nền tảng (UI/UX, luồng, tính năng còn thiếu, câu
 chữ agent đã chọn, Điều khoản + Quyền riêng tư) trước khi launch chính thức; E-05 (Cổng) và *Waiting on the owner* dưới
-đây chuyển sang đó. Plan này đóng (xoá folder) ở PR cuối khi owner muốn.
+đây đã chuyển sang [`launch-review`](../launch-review/PLAN.md) (E-01). Plan này đóng (xoá folder) ở PR cuối khi owner muốn.
 
 ## Waiting on the owner
 
@@ -47,7 +47,7 @@ chữ agent đã chọn, Điều khoản + Quyền riêng tư) trước khi laun
 | D-06 | [Định danh theo bậc (hồ sơ máy)](items/D-06-identity-ladder.md) | 1 | decision | **decided** — B, Q6 = A | I1, I2, I4 |
 | D-07 | [Liên kết hồ sơ máy vào account](items/D-07-linking-device-profiles.md) | 1 | decision | **decided** — B | I1, I2 |
 | D-08 | [Lối vào: link mời, link chia sẻ](items/D-08-entry-links.md) | 1 | decision | **decided** — B | I3, I4 |
-| E-05 | [Cổng trước khi mời người ngoài](items/E-05-gate-before-outsiders.md) | Cổng | enhancement | open | sau K2 |
+| E-05 | [Cổng trước khi mời người ngoài](../launch-review/items/E-01-gate-before-outsiders.md) — **chuyển → `launch-review` E-01** | Cổng | enhancement | open | sau K2 |
 
 ## Graduation list
 

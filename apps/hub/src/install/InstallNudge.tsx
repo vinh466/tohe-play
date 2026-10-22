@@ -12,7 +12,7 @@ export function useInstallVariant(trigger: 'auto' | 'menu'): InstallVariant | nu
   return chooseInstall({ ...state, trigger, now: Date.now() });
 }
 
-/** True when running as the installed app: there is nothing to install, and no menu item says so. */
+/** True when running as the installed app: there is nothing to install, and Tôi offers nothing. */
 export function useStandalone(): boolean {
   return useSyncExternalStore(installStore.subscribe, installStore.snapshot).env.standalone;
 }
@@ -128,7 +128,7 @@ function InAppContent({ zalo }: { zalo: boolean }) {
   );
 }
 
-/** "Cài app" in the menu: the sheet or the prompt, any time, whatever was said before. */
+/** "Cài app" in Tôi: the sheet or the prompt, any time, whatever was said before. */
 export function InstallSheet({ open, onClose }: { open: boolean; onClose(): void }) {
   const { t } = useTranslation();
   const variant = useInstallVariant('menu');
@@ -139,7 +139,7 @@ export function InstallSheet({ open, onClose }: { open: boolean; onClose(): void
   );
 }
 
-/** What a way of installing says and offers; the same in the nudge and in the menu. */
+/** What a way of installing says and offers; the same in the nudge and in Tôi. */
 function InstallPanel({ variant, onDone }: { variant: InstallVariant; onDone(): void }) {
   const { t } = useTranslation();
   const inApp = installStore.snapshot().env.inApp;
