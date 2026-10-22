@@ -177,7 +177,7 @@ language and IndexNow.
 | --- | --- | --- |
 | Planes, L1, the escalation rule | L1 in place; Cloudflare Access on `console.` | — |
 | Crawlers by name in `robots.txt` | in place | — |
-| Namespaces `/together`, `/promise/` | not yet — each arrives with the pages that use it | the app frame's and the introduction surface's pull requests |
+| Namespaces `/together`, `/promise/` | `/together` in the map ahead of its page (the app shows its own not-found there until then); `/promise/` arrives with its page | the app frame's and the introduction surface's pull requests |
 | Public pages in two languages | in place: Vietnamese at `/…`, English at `/en/…`, `hreflang` in the sitemap, the VI \| EN switch and the suggestion, the choice kept under `tohe:language`, `?lang=en` into the app (which ignores both for now); the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages` in `@tohe/routes`) | the public pages' languages pull request |
 | Game names per language | in place: a standard `name` with `names` and `descriptions` per language (ADR 0048); the hub shows its language's, the console the standard name, link previews the Vietnamese, each public page its own language's | — |
 | One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | how-to in `apps/web/src/content/games.ts`, in both languages; one picture; `/` redirects a returning device | the introduction surface's pull request |

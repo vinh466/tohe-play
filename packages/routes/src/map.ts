@@ -76,11 +76,9 @@ export type Component = 'public' | 'app' | 'console' | 'api' | 'platform';
  * - `page`: a single-page app's page (its index.html), whatever the path under the namespace;
  * - `static`: files from the image, as they are;
  * - `proxy`: passed to a service behind the hub (the API);
- * - `generated`: written by the platform — at build time (robots.txt) or by Caddy at run time (security.txt);
- * - `redirect`: answered with a temporary redirect to `redirectTo` (a placeholder until a page of its own arrives; no
- *   namespace is one today).
+ * - `generated`: written by the platform — at build time (robots.txt) or by Caddy at run time (security.txt).
  */
-export type Served = 'page' | 'static' | 'proxy' | 'generated' | 'redirect';
+export type Served = 'page' | 'static' | 'proxy' | 'generated';
 
 /**
  * Which paths a namespace covers:
@@ -108,8 +106,6 @@ export interface Namespace {
   navigation: 'app-shell' | 'network';
   /** Static files only: `immutable` for hashed names, cached for a year; `revalidate` for the rest. */
   cache?: 'immutable' | 'revalidate';
-  /** Redirects only: where the namespace's path leads, with a 302 (the query is kept). */
-  redirectTo?: string;
   /**
    * App pages only: `/<path>/<code>` asked by a link-preview crawler (`linkPreviewCrawlers`) is answered by the API's
    * card for it, `/api/previews/<path>/<code>`, rather than the app's page (ADR 0044).
@@ -247,6 +243,11 @@ export const hubNamespaces: readonly Namespace[] = [
     'play',
     '/play',
     'The catalog (/play), a game (/play/<gameId>), its online rooms (/play/<gameId>/rooms), a room (…/rooms/<roomId>) and a hand played again (…/rooms/<roomId>/replay/<hand>)',
+  ),
+  appPage(
+    'together',
+    '/together',
+    'Chơi cùng, the app frame’s second tab (ADR 0046): the code box, the tables a person sits at, the invitations to them and the links they sent',
   ),
   appPage(
     'account',
@@ -455,61 +456,6 @@ export const hubLinks = {
   RoomLink: { path: '/r', note: 'A room’s short link, /r/<code>: a link preview’s way to the app' },
   ShareLink: { path: '/s', note: 'A share link, /s/<code>: a link preview’s way to the app (ADR 0044)' },
 } as const satisfies Record<string, { path: string; note: string }>;
-
-/**
- * An old path of the app that answers 301 to its new one, the query kept. `from` and `to` may share `:name` segments
- * (one path segment each); with `tree`, `from` also covers what follows it (`/register/confirm`) and `to` takes it over.
- */
-export interface Redirect {
-  /** A short name, unique in the map: it names the Caddy matcher. */
-  id: string;
-  from: string;
-  to: string;
-  tree: boolean;
-  note: string;
-}
-
-/**
- * The paths the app had at the root before ADR 0042 moved it under /play and /account. They are kept for the links in
- * emails already sent and for bookmarks; no date is set for removing them. /room/<id> and /replay/… are not here: they
- * are only reached from inside the app and need a game id that an old link does not carry, so they are a 404.
- * No `from` may lie in a namespace of the map (a test checks it).
- */
-export const hubRedirects: readonly Redirect[] = [
-  { id: 'welcome', from: '/welcome', to: '/account/sign-in', tree: false, note: 'Signing in' },
-  {
-    id: 'signIn',
-    from: '/sign-in',
-    to: '/account/sign-in',
-    tree: true,
-    note: 'Back from a provider: /sign-in/continue',
-  },
-  {
-    id: 'register',
-    from: '/register',
-    to: '/account/register',
-    tree: true,
-    note: 'Signing up, and the link in the sign-up email: /register/confirm',
-  },
-  {
-    id: 'password',
-    from: '/password',
-    to: '/account/password',
-    tree: true,
-    note: 'A forgotten password, and the link in the password email: /password/reset',
-  },
-  { id: 'profiles', from: '/profiles', to: '/account/profiles', tree: false, note: 'The profile picker' },
-  { id: 'data', from: '/data', to: '/account/data', tree: false, note: 'What telemetry sends' },
-  { id: 'terms', from: '/legal/terms', to: '/terms/', tree: false, note: 'The terms of use' },
-  { id: 'privacy', from: '/legal/privacy', to: '/privacy/', tree: false, note: 'The privacy notice' },
-  {
-    id: 'rooms',
-    from: '/rooms/:gameId',
-    to: '/play/:gameId/rooms',
-    tree: false,
-    note: 'A game’s online rooms',
-  },
-];
 
 /**
  * The link-preview crawlers (ADR 0044): a `User-Agent` with one of these, compared without case, asking for a link of a
