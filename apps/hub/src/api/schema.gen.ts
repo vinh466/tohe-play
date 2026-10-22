@@ -1434,6 +1434,7 @@ export interface components {
             /** @default false */
             spectators: boolean;
             accountOnly?: null | boolean;
+            language?: null | string;
         };
         DailyPoint: {
             /** Format: date */
@@ -1729,6 +1730,7 @@ export interface components {
             maxUses?: null | number;
             payload?: unknown;
             text?: null | string;
+            language?: null | string;
         };
         ManagePinRequest: {
             pin: string;
@@ -2027,6 +2029,7 @@ export interface components {
             /** Format: date-time */
             revokedAt: null | string;
             counts: components["schemas"]["LinkCounts"];
+            language: string;
             message?: null | string;
         };
         SignUpRequest: {

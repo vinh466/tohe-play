@@ -134,7 +134,7 @@ flowchart LR
 | --- | --- | --- |
 | Public pages | `/…` | `/en/…`; `x-default` → `/en/` |
 | The app | a setting (Me → Language), shared with the public pages' switch; without one: the public page the player came from, then the browser (`vi` → Vietnamese, else English), then Vietnamese | the same |
-| Link previews | the language of the link's maker, or of the table's host | the same |
+| Link previews | the language of the link's maker, or of the table's host; Vietnamese for a card that names no game | the same |
 | Terms and privacy | the original | a translation; where they differ, the version more favourable to the user applies |
 | Console, developer docs | — | English only |
 
@@ -219,11 +219,11 @@ language and IndexNow.
 | Crawlers by name in `robots.txt` | in place | — |
 | Namespaces `/together`, `/promise/` | in place: `/together` (Chơi cùng) and `/promise/` with their pages | — |
 | Public pages in two languages | in place: Vietnamese at `/…`, English at `/en/…`, `hreflang` in the sitemap, the VI \| EN switch and the suggestion, the choice kept under `tohe:language`, `?lang=en` into the app (which reads both); the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages` in `@tohe/routes`) | the public pages' languages pull request |
-| Game names per language | in place: a standard `name` with `names` and `descriptions` per language (ADR 0048); the hub shows its language's, the console the standard name, link previews the Vietnamese, each public page its own language's | — |
+| Game names per language | in place: a standard `name` with `names` and `descriptions` per language (ADR 0048); the hub shows its language's, the console the standard name, link previews their card's language's, each public page its own language's | — |
 | One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | in place: `games/<id>/page/` for the four games; a picture per game and language, made by `generate:og` and committed beside the page; the home page shows the catalog first and *Continue* on a device that has played, and never redirects; `/promise/` in both languages. No game claims offline play yet (no games-origin service worker), so no page does | — |
 | Collections and pages for a search | none: they wait for about eight games, and three fitting ones | the growth above |
 | The app's frame and tabs, the language setting | in place: the bar and the rail, the three tabs (Trò chơi without the table the player sits at, *Continue* and recent yet — the coming-back pull request), Chơi cùng, Tôi with the language, theme and sound, the history per level, no orientation lock, the manage PIN before a link out on a child's profile; the bottom-sheet menu gone | — |
 | Coming back | the catalog first; no "who is playing"; silent fallback; updates take over at once | the coming-back pull request |
-| Link previews in the maker's language | Vietnamese only | the link languages' pull request |
+| Link previews in the maker's language | in place: the hub sends its language when it makes a share link or opens a table; the API keeps it with the link or the table, and a card that names a game speaks it — its words, `lang`, `og:locale` and the game's name ([Entry links](entry-links.md#link-previews)) | — |
 | The terms and the privacy notice in English, the clause parity test | Vietnamese only | before the launch |
 | The console in English | Vietnamese words in its code | an item of the product backlog |

@@ -1,6 +1,7 @@
 // Typed API client. Types come from the API's OpenAPI document: pnpm --filter @tohe/hub generate:api
 import type { JsonValue } from '@tohe/game-sdk';
 import createClient from 'openapi-fetch';
+import { currentLanguage } from '../i18n.ts';
 import type { components, paths } from './schema.gen.ts';
 
 type Schemas = components['schemas'];
@@ -336,7 +337,9 @@ export const boards = {
 export const rooms = {
   list: (game: string) => call(api.GET('/api/rooms', { params: { query: { game } } })),
   mine: () => call(api.GET('/api/rooms/mine')),
-  create: (body: CreateRoomRequest) => call(api.POST('/api/rooms', { body })),
+  /** Opens a table in the app's language, which its link preview speaks (ADR 0047). */
+  create: (body: CreateRoomRequest) =>
+    call(api.POST('/api/rooms', { body: { language: currentLanguage(), ...body } })),
   byCode: (code: string) => call(api.GET('/api/rooms/code/{code}', { params: { path: { code } } })),
   get: (id: string) => call(api.GET('/api/rooms/{id}', { params: { path: { id } } })),
   join: (id: string) => call(api.POST('/api/rooms/{id}/join', { params: { path: { id } } })),
@@ -371,8 +374,12 @@ export const rooms = {
  * docs/architecture/entry-links.md
  */
 export const links = {
-  /** A `game` link to a game's menu; a `named` feature. */
-  make: (body: MakeLinkRequest) => call(api.POST('/api/links', { body })),
+  /**
+   * A `game` link to a game's menu, or an `entry` link to a place in it; a `named` feature. Made in the app's language,
+   * which its preview card speaks (ADR 0047); the link itself carries none.
+   */
+  make: (body: MakeLinkRequest) =>
+    call(api.POST('/api/links', { body: { language: currentLanguage(), ...body } })),
   /** The acting profile's links, newest first, with their state and counts. */
   mine: () => call(api.GET('/api/links/mine')),
   /** A new expiry, from now: 1 to 2160 hours. */

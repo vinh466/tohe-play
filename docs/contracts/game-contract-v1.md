@@ -69,8 +69,9 @@ description per language ([ADR 0048](../decisions/0048-a-standard-name-and-words
 - **The lookup**, for a reader's language: the exact tag, then its primary subtag (`en-GB` → `en`), then `name` or
   `description`. Tags compare without regard to case. `@tohe/contract` exports it as `gameName(manifest, language)`
   and `gameDescription(manifest, language)`.
-- The hub shows a game in its own language through the lookup; the console shows the standard `name`; link previews
-  speak Vietnamese for now. A game is not sent its names: its title is in its own strings, in `init.locale`'s language.
+- The hub shows a game in its own language through the lookup; the console shows the standard `name`; a link preview
+  shows it in the language of the link's maker or the table's host ([Entry links](../architecture/entry-links.md#link-previews)).
+  A game is not sent its names: its title is in its own strings, in `init.locale`'s language.
 - Write a name or a description per language only when it differs from the standard one. The games in this repository
   carry `descriptions.vi`, their `description` being the English one — a test of `tools/games-host` checks it; it is
   the repository's rule, not the contract's.

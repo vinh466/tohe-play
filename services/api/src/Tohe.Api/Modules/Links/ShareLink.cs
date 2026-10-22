@@ -2,6 +2,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Security.Cryptography;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Tohe.Api.Infrastructure;
 
 namespace Tohe.Api.Modules.Links;
 
@@ -71,6 +72,12 @@ public sealed class ShareLink
 
     /// <summary>When its maker, or the console, revoked it; a revoked link stays revoked.</summary>
     public DateTimeOffset? RevokedAt { get; set; }
+
+    /// <summary>
+    /// The language its maker's hub spoke when it made it (<c>vi</c> or <c>en</c>, ADR 0047): its preview card speaks it.
+    /// The link itself carries no language — whoever opens it reads the app in their own.
+    /// </summary>
+    public string Language { get; set; } = Languages.Vietnamese;
 }
 
 /// <summary>A share link's counts on one UTC day (ADR 0044): totals only, never who.</summary>
@@ -197,6 +204,8 @@ internal sealed class ShareLinkConfiguration : IEntityTypeConfiguration<ShareLin
         builder.Property(link => link.GameVersion).HasMaxLength(64);
         // Text, exactly as measured: jsonb would rewrite numbers (1e131071 grows to 131,072 digits) and refuse \u0000.
         builder.Property(link => link.Payload).HasColumnType("text");
+        // Links made before makers' languages were kept were made in Vietnamese: the cards spoke nothing else.
+        builder.Property(link => link.Language).HasMaxLength(Languages.MaxLength).HasDefaultValue(Languages.Vietnamese);
         // A maker's links, newest first, and its count of the day.
         builder.HasIndex(link => new { link.MakerProfileId, link.CreatedAt });
     }

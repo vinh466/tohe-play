@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type GameSummary, links, type ShareLinkView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { currentLanguage } from '../i18n.ts';
 import { nameOf } from '../launcher/gameWords.ts';
 import { AtTables } from '../session/AtTables.tsx';
 import type { Player, SessionState } from '../session/session.ts';
@@ -66,11 +67,14 @@ export function ShareSheet({
 function ShareLink({ game, player }: { game: GameSummary; player: Player }) {
   const { t, i18n } = useTranslation();
   const [copied, setCopied] = useState(false);
-  // The profile's live link to this game is shown again; a new one only when there is none (30 a day per profile).
+  // The profile's live link to this game, made in the app's language, is shown again; a new one only when there is
+  // none (30 a day per profile). Its preview card speaks the language it was made in (ADR 0047).
+  const language = currentLanguage();
   const link = useQuery({
-    queryKey: ['share-link', game.id, player.id],
+    queryKey: ['share-link', game.id, player.id, language],
     queryFn: async (): Promise<ShareLinkView> =>
-      reusableLink(await links.mine(), game.id, Date.now()) ?? (await links.make(gameLinkRequest(game.id))),
+      reusableLink(await links.mine(), game.id, Date.now(), language) ??
+      (await links.make(gameLinkRequest(game.id))),
     retry: false,
     staleTime: 5 * 60 * 1000,
   });

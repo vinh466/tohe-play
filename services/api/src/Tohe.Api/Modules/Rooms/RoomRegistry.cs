@@ -59,9 +59,13 @@ public sealed class RoomsOptions
     public bool ClockEnabled { get; set; } = true;
 }
 
-/// <summary>A table as a link preview may show it (ADR 0044): its game, and whether it is listed publicly.</summary>
+/// <summary>
+/// A table as a link preview may show it (ADR 0044): its game, whether it is listed publicly, and the language it was
+/// opened in (ADR 0047).
+/// </summary>
 /// <param name="Listed">Public, and open to more than its host's account: shown in the lobby to people it may seat.</param>
-public sealed record RoomPreview(string GameId, bool Listed);
+/// <param name="Language"><c>vi</c> or <c>en</c>: the language of the hub that opened it.</param>
+public sealed record RoomPreview(string GameId, bool Listed, string Language);
 
 /// <summary>Open tables by their code, for link previews (ADR 0044).</summary>
 public interface IRoomPreviews
@@ -111,7 +115,7 @@ internal sealed partial class RoomRegistry(
 
     RoomPreview? IRoomPreviews.FindByCode(string code) =>
         FindByCode(code) is { } room
-            ? new RoomPreview(room.Room.GameId, room.Room.IsPublic && room.Room.Entry != RoomEntry.Own)
+            ? new RoomPreview(room.Room.GameId, room.Room.IsPublic && room.Room.Entry != RoomEntry.Own, room.Room.Language)
             : null;
 
     public int MinSeats(Guid roomId) => _minSeats.TryGetValue(roomId, out var min) ? min : 2;
