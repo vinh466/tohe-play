@@ -19,10 +19,10 @@ Trang này **ghép** các item thành một bức tranh và không tự quyết 
     (D-14).
   - Một cơ chế token có scope cho mọi agent của nền tảng; `studio.draft` là scope đầu tiên; scope nhạy cảm bị cấm trong
     code (D-15).
-- **Còn mở, agent làm tiếp:** hình dạng contract (D-12), tiêu chí duyệt và kiểm tra asset (D-09), phần kỹ thuật của công
-  cụ cho AI (D-10).
-- **Agent đề xuất để sau, chờ owner nói:** phục vụ lúc chạy (D-13, sau S1), ngân sách generator (D-10, tới P2), license
-  cho asset Tò He tự làm (D-07, cùng LICENSE của code).
+- **Đã đề xuất, chờ owner:** contract `assets` → lock → `assets.gen.ts` (D-12); máy kiểm phía server + checklist người
+  duyệt + đường rút khẩn cấp (D-09); CLI `tohe-studio` cho P0 (D-10).
+- **Để sau** (owner, 2026-10-23): phục vụ lúc chạy (D-13, sau S1 và khi có game cần); ngân sách generator (D-10, tới
+  P2); license cho asset Tò He tự làm (D-07, cùng LICENSE của code; tạm ghi `LicenseRef-Tohe-Internal`).
 - **Chưa có số đo nào**: kích thước, FPS, save, hạn mức storage trên iOS đều chờ E-06 và E-07.
 
 ## 1. Bức tranh
@@ -128,6 +128,8 @@ flowchart LR
 
 ## 4. Lộ trình (dự kiến, chưa phải graduation list)
 
+Thứ tự PR cụ thể của P0 nằm ở [delivery.md](delivery.md).
+
 | Bậc | Có gì | Mở khoá cho |
 |---|---|---|
 | **P0 — Studio tối thiểu** | Module `Studio` + bucket; schema pack; token agent có scope + CLI; kiểm tra asset phía server; `apps/studio` tối thiểu (gallery + duyệt); manifest bất biến; contract `assets` chỉ với `bundle`; build có cache và lock; kit nạp asset + `content` + credits | Pilot E-07 |
@@ -136,7 +138,7 @@ flowchart LR
 
 ## 5. Còn mở
 
-D-09, D-10, D-12 *(open)*; D-13 *(agent đề xuất để sau)*. Thứ tự giải quyết theo [map.md](map.md).
+D-09, D-10, D-12 *(proposed)*; D-13 *(deferred)*. Thứ tự xây theo PR: [delivery.md](delivery.md). Thứ tự giải quyết theo [map.md](map.md).
 
 ## 6. Rủi ro chưa có lời đáp
 

@@ -3,7 +3,7 @@
 - Status: **decided** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
 - Blocks: D-09, D-10 · Blocked by: —
-- Decided: owner, chat 2026-10-22: "chốt B nhé". Câu 2 (license của asset Tò He) còn mở
+- Decided: owner, chat 2026-10-22: "chốt B nhé"; license asset Tò He để sau (2026-10-23)
 
 ## Why it matters
 
@@ -58,8 +58,9 @@ shell.
 - **Asset AI:** nhận khi có đủ nguồn gốc, điều khoản vendor cho phép, và có người duyệt.
 - **Credits:** sinh từ lock.
 
-**Còn mở:** asset Tò He tự làm phát hành dưới license nào. Nên trả lời cùng lúc với LICENSE của code. Agent ghi
-nhận, không phải quyết định: khi chưa có license thì chưa ai ngoài Tò He được cấp quyền dùng.
+**License cho asset Tò He tự làm: để sau** (owner, chat 2026-10-23: "ok chốt theo đề xuất ổn"). Mở lại khi chọn
+LICENSE cho code. Trong lúc chờ, metadata ghi `LicenseRef-Tohe-Internal`, nghĩa là chỉ dùng trong game của Tò He. Máy
+kiểm của D-09 nhận giá trị này cho pack có `source` là `ai`, `code` hay `upload` của Tò He.
 
 **Hệ quả:**
 

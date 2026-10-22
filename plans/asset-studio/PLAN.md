@@ -2,31 +2,32 @@
 
 - Goal: agent (chủ yếu) và người tạo, duyệt và quản lý asset tập trung trong một Studio của Tò He. Game khai báo pack,
   version và chế độ tải mình dùng; nền tảng cung cấp và giữ rào. Một slice farming dựng trên Studio để chứng minh.
-- Phase: **Resolve** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)). Brief:
-  "đúng ý r" (2026-10-22). Map: "ổn đó" (2026-10-23), trả lời cho lời hỏi chốt D-14, D-15 và xác nhận map đủ. 11 trên
-  15 quyết định đã chốt.
+- Phase: **Resolve → Converge** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases)).
+  Brief: "đúng ý r" (2026-10-22). Map: "ổn đó" (2026-10-23). 11 trên 15 quyết định đã chốt, 1 để sau (D-13); còn
+  D-09, D-10 (phần kỹ thuật), D-12 ở mức `proposed`. Bản nháp danh sách graduate: **[delivery.md](delivery.md)**.
 - Started: 2026-10-22 · Branch: `plan/asset-studio` · PR: [#113](https://github.com/vinh466/tohe-play/pull/113) (draft)
-- Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** · Log: [log.md](log.md)
+- Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** ·
+  **Delivery: [delivery.md](delivery.md)** · Log: [log.md](log.md)
 - Research: [R-01 AI tạo asset, tiền lệ](research/R-01-ai-assets-and-prior-art.md) ·
   [R-02 nguồn luật chơi, cơ chế](research/R-02-rules-and-mechanics-sources.md)
 
 ## Next — one item
 
-**D-12 (hình dạng contract `assets`, lock, key có type), agent đưa lên `proposed`.** Đây là phần còn lại lớn nhất về
-kiến trúc, và nó chặn E-01, E-02, E-03. Cùng phiên đó: **D-09** (tiêu chí duyệt, kiểm tra tự động) và phần kỹ thuật của
-**D-10** (hậu xử lý, CLI, MCP). Xong ba item này thì sang Converge: viết danh sách PR và ADR để graduate.
+**Owner chốt D-12, D-09, D-10 (phần kỹ thuật) và bản nháp [delivery.md](delivery.md).** Sau đó plan sang **Graduate**,
+bắt đầu từ N1 (ADR nguyên tắc khai báo) trên một nhánh feature thường. Owner đã nói: "sau khi ra luồng thì tôi tối ưu
+chi tiết sau" (2026-10-23).
 
 ## Waiting on the owner
 
-Ba lời "để sau" mà chỉ owner nói được (agent đề xuất `deferred`, kèm điều kiện mở lại):
+1. **[D-12](items/D-12-assets-in-the-contract.md)**: `assets` trong `game.json` → `assets.lock.json` → `assets.gen.ts`;
+   file trong `dist/studio/`; conformance kiểm request chỉ tới folder của game.
+2. **[D-09](items/D-09-review-and-checks.md)**: máy kiểm phía server là cổng cứng, người duyệt theo checklist, có đường
+   rút khẩn cấp (`withdrawn`).
+3. **[D-10](items/D-10-tools-for-agents.md)**: CLI `tohe-studio` (`import`, `draw`, `prepare`, `check`, `submit`) cho
+   P0; MCP và `generate` ở P2.
+4. **[delivery.md](delivery.md)**: 17 PR trong 8 lane, 4 ADR mới, và một PR hạ tầng (S2) cho owner.
 
-1. **D-13** (`precache` / `on-demand`): để sau, mở lại khi spike S1 (E-06) có kết quả **và** có game đầu tiên cần.
-   P0 chỉ có `bundle`.
-2. **D-10, phần ngân sách**: để sau tới P2. P0 và pilot dùng pack CC0 và hình vẽ bằng code, không tốn tiền generator.
-3. **D-07, license cho asset Tò He tự làm**: để sau tới khi chọn LICENSE cho code. Trong lúc chờ, metadata ghi
-   `LicenseRef-Tohe-Internal` ("chỉ dùng trong game của Tò He").
-
-Lúc graduate: **R2** (bucket, credential trong Infisical) và **DNS + ingress cho `studio.`** là việc của owner và
+Lúc graduate: **R2** (bucket, credential trong Infisical) và **DNS + ingress cho `studio.`** (S2) là việc của owner và
 `platform-infra`.
 
 ## Board
@@ -39,13 +40,13 @@ Lúc graduate: **R2** (bucket, credential trong Infisical) và **DNS + ingress c
 | D-04 | [Game quyết bố cục](items/D-04-layout-is-the-games-call.md) | decision | **decided** (tạm) | — |
 | D-05 | [Asset và pack](items/D-05-asset-and-pack-model.md) | decision | **decided** — B (pack) | D-02 |
 | D-06 | [Lưu: object storage + DB, build có cache](items/D-06-where-studio-lives.md) | decision | **decided** — D | D-05 |
-| D-07 | [License và nguồn gốc](items/D-07-licence-and-provenance.md) | decision | **decided** — B (còn license asset Tò He) | — |
+| D-07 | [License và nguồn gốc](items/D-07-licence-and-provenance.md) | decision | **decided** — B (license asset Tò He để sau) | — |
 | D-08 | [Style do game chọn](items/D-08-styles-are-the-games-call.md) | decision | **decided** — B | — |
-| D-09 | Cổng duyệt + kiểm tra asset | decision | open | D-05, D-07, D-08 |
-| D-10 | Công cụ cho AI: generator, hậu xử lý, MCP | decision | open | D-07, D-08 |
+| D-09 | [Tiêu chí duyệt + máy kiểm](items/D-09-review-and-checks.md) | decision | proposed — B | D-05, D-07, D-08 |
+| D-10 | [Công cụ cho agent: CLI, MCP, generator](items/D-10-tools-for-agents.md) | decision | proposed — B · ngân sách **deferred** | D-07, D-08 |
 | D-11 | [Studio chạy ở đâu · ai được làm gì](items/D-11-where-studio-runs-and-who-writes.md) | decision | **decided** — A | D-06 |
-| D-12 | Contract `assets` + lock + key có type | decision | open | D-01, D-02, D-05 |
-| D-13 | Phục vụ `precache` / `on-demand` | decision | open | D-02, E-06 |
+| D-12 | [Contract `assets` + lock + key có type](items/D-12-assets-in-the-contract.md) | decision | proposed — B | D-01, D-02, D-05 |
+| D-13 | [Phục vụ `precache` / `on-demand`](items/D-13-runtime-delivery.md) | decision | **deferred** (sau S1 + game cần) | D-02, E-06 |
 | D-14 | [Studio là app độc lập ở `studio.`](items/D-14-studio-is-its-own-app.md) | decision | **decided** — B | D-11 |
 | D-15 | [Token cho agent dùng chung](items/D-15-agent-tokens.md) | decision | **decided** — B | D-11 |
 | E-01 | Game Contract + conformance cho `assets` | enhancement | open | D-12 |
@@ -58,6 +59,7 @@ Lúc graduate: **R2** (bucket, credential trong Infisical) và **DNS + ingress c
 
 ## Graduation list
 
-Điền ở phase 4 (Converge). Lộ trình dự kiến P0 → P1 → P2 ở [design.md §4](design.md#4-lộ-trình-dự-kiến-chưa-phải-graduation-list).
-Dự kiến có ít nhất bốn ADR: nguyên tắc khai báo (D-01); asset trong Game Contract (D-02, D-12); host `studio.` (D-14,
-đổi từ giữ chỗ sang dùng thật theo ADR 0042); token cho agent và danh sách cấm (D-15).
+**Bản nháp: [delivery.md](delivery.md)** (2026-10-23). 17 PR trong 8 lane: **N** nền (N1–N3) · **B** backend (B1–B4) ·
+**C** contract (C1) · **S** Studio (S1, cùng S2 hạ tầng của owner) · **T** công cụ (T1–T2) · **K** kit (K1–K3) · **W** quy
+trình (W1) · **V** pilot Vườn Rau (V1–V2). Bốn ADR mới: nguyên tắc khai báo (N1), Asset Studio kèm host `studio.` (N2),
+token cho agent và danh sách scope cấm (N3), asset trong Game Contract (C1).

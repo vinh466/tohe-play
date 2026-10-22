@@ -2,6 +2,15 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-23 (2) — agent
+
+- Owner: "ok chốt theo đề xuất ổn, sau khi ra luồng thì tôi tối ưu chi tiết sau" → D-13 deferred; ngân sách của D-10 và
+  license asset Tò He của D-07 để sau (tạm ghi `LicenseRef-Tohe-Internal`).
+- Đưa D-12 (lock + `assets.gen.ts`, `dist/studio/`, conformance theo folder), D-09 (máy kiểm phía server + checklist +
+  `withdrawn`) và D-10 (CLI `tohe-studio` cho P0) lên `proposed`.
+- Viết bản nháp [delivery.md](delivery.md): 17 PR, 8 lane, 4 ADR, cùng S2 hạ tầng của owner.
+- Chờ owner: chốt D-12, D-09, D-10 và delivery, rồi Graduate từ N1.
+
 ## 2026-10-23 — agent
 
 - Owner: "ổn đó" → D-14 (Studio là app độc lập ở `studio.`) và D-15 (token cho agent dùng chung) decided; map được xác
