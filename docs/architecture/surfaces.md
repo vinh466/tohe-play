@@ -30,7 +30,7 @@ flowchart LR
 | --- | --- | --- |
 | Players | high: sessions, profiles, children's data | no third-party script; a CSP per namespace |
 | Games | low | sandboxed iframe, an origin of its own, the games' CSP; speaks only the Game Contract |
-| Operators | highest | its own session and second factor; Cloudflare Access in front before the launch (proposed, ADR 0046) |
+| Operators | highest | Cloudflare Access in front (on since 2026-10-22), then its own session and second factor |
 | Developers | public | no session |
 | Edge | — | no code of Tò He's |
 
@@ -163,7 +163,7 @@ language and IndexNow.
 
 | Part | Today | In place when |
 | --- | --- | --- |
-| Planes, L1, the escalation rule | L1 in place; Access on `console.` optional | Access before the launch, if the owner confirms the proposal |
+| Planes, L1, the escalation rule | L1 in place; Cloudflare Access on `console.` | — |
 | Crawlers by name in `robots.txt` | in place | — |
 | Namespaces `/together`, `/en/…`, `/promise/` | not yet — each arrives with the pages that use it | the app frame's, the languages' and the introduction surface's pull requests |
 | Public pages in two languages | Vietnamese only | the public pages' languages pull request |
