@@ -19,9 +19,6 @@ public static partial class GameWords
     /// <summary>Most characters of a game's description, standard or per language.</summary>
     public const int MaxDescription = 200;
 
-    /// <summary>The language the link previews speak until they speak their maker's (ADR 0047).</summary>
-    public const string Vietnamese = "vi";
-
     private static readonly IReadOnlyDictionary<string, string> None = new Dictionary<string, string>();
 
     /// <summary>A language tag: a language, an optional script and an optional region, in canonical case.</summary>

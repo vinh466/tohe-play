@@ -80,7 +80,7 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
     {
         var phone = await DevicePhoneAsync("Mèo Cam");
         var made = await MakeAsync(phone.Client, new { kind = "game", gameId = Game });
-        Assert.Equal(("game", Game, "1.0.0", "any", "ok"), (made.Kind, made.GameId, made.GameVersion, made.Level, made.State));
+        Assert.Equal(("game", Game, "1.0.0", "any", "ok", "vi"), (made.Kind, made.GameId, made.GameVersion, made.Level, made.State, made.Language));
         Assert.True(LinkCodes.TryNormalize(made.Code, out var code) && code == made.Code);
         Assert.InRange(made.ExpiresAt - made.CreatedAt, TimeSpan.FromDays(30) - TimeSpan.FromSeconds(1), TimeSpan.FromDays(30) + TimeSpan.FromSeconds(1));
         Assert.Equal(new LinkCounts(0, 0, null), made.Counts);
@@ -138,6 +138,10 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
             new { kind = "game", gameId = Game, expiresInHours = 2161 },
             new { kind = "game", gameId = Game, maxUses = 0 },
             new { kind = "game", gameId = Game, maxUses = 1001 },
+            new { kind = "game", gameId = Game, language = "fr" },
+            new { kind = "game", gameId = Game, language = "EN" },
+            new { kind = "game", gameId = Game, language = "vi-VN" },
+            new { kind = "game", gameId = Game, language = "" },
         })
         {
             Assert.Equal(HttpStatusCode.BadRequest, (await phone.Client.PostAsJsonAsync(Url("/api/links"), bad, Ct)).StatusCode);
@@ -667,7 +671,7 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
     public void Escaping_drops_control_characters_and_keeps_vietnamese()
     {
         Assert.Equal("Bé Na &lt;3", LinkPreviews.Escape("Bé\u0000 Na\u0007 <3"));
-        var card = LinkPreviews.Render(new PreviewCard("A \"b\"", "c"), "https://h.test/s/ABC?x=\"1\"", "https://h.test/og.png");
+        var card = LinkPreviews.Render(new PreviewCard("A \"b\"", "c", CardWords.Vietnamese), "https://h.test/s/ABC?x=\"1\"", "https://h.test/og.png");
         Assert.Contains("<meta property=\"og:url\" content=\"https://h.test/s/ABC?x=&quot;1&quot;\">", card, StringComparison.Ordinal);
     }
 
@@ -739,8 +743,8 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
     [Fact]
     public async Task Cards_name_the_game_in_vietnamese_and_a_links_intent_carries_its_names()
     {
-        // Standard names in English, with a Vietnamese one (ADR 0048): the cards speak Vietnamese until a link keeps
-        // its maker's language (ADR 0047).
+        // Standard names in English, with a Vietnamese one (ADR 0048): a link made, or a table opened, without a
+        // language is Vietnamese, and so is its card (ADR 0047).
         await Games.KnowAsync(factory, "ghep-so");
         await Games.KnowRoomGameAsync(factory, "o-an-quan");
         await QueryAsync(db => db.Games.Where(game => game.Id == "ghep-so").ExecuteUpdateAsync(set => set
@@ -763,6 +767,115 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
 
         var table = await CreateRoomAsync(await PersonAsync("Hùng"), new { gameId = "o-an-quan", seats = 2, isPublic = true });
         Assert.Contains("<title>Lời mời vào bàn Ô Ăn Quan</title>", await PreviewAsync($"/api/previews/r/{table.Code}"), StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_card_speaks_the_language_its_link_was_made_in()
+    {
+        await Games.KnowAsync(factory, "ghep-en");
+        await QueryAsync(db => db.Games.Where(game => game.Id == "ghep-en").ExecuteUpdateAsync(set => set
+            .SetProperty(game => game.Name, "Merge Blocks")
+            .SetProperty(game => game.Names, """{ "vi": "Ghép Khối", "en-GB": "Merging Blocks" }"""), Ct));
+        var maker = await DevicePhoneAsync("Lan");
+
+        // In English: the page, its locale, its words, and the game's name looked up in English — the standard one, as
+        // `en` does not find `en-GB` (ADR 0048).
+        var english = await MakeAsync(maker.Client, new { kind = "game", gameId = "ghep-en", language = "en" });
+        Assert.Equal("en", english.Language);
+        var card = await PreviewAsync($"/api/previews/s/{english.Code}");
+        Assert.Contains("<html lang=\"en\">", card, StringComparison.Ordinal);
+        Assert.Contains("<meta property=\"og:locale\" content=\"en_US\">", card, StringComparison.Ordinal);
+        Assert.Contains("<title>Lan invites you to play Merge Blocks</title>", card, StringComparison.Ordinal);
+        Assert.Contains("<meta property=\"og:title\" content=\"Lan invites you to play Merge Blocks\">", card, StringComparison.Ordinal);
+        Assert.Contains($"<meta property=\"og:description\" content=\"{CardWords.English.Description}\">", card, StringComparison.Ordinal);
+        Assert.Contains($"<a href=\"http://localhost/s/{english.Code}?app=1\">Open Tò He</a>", card, StringComparison.Ordinal);
+        Assert.DoesNotContain("Ghép Khối", card, StringComparison.Ordinal);
+        Assert.DoesNotContain("mời", card, StringComparison.Ordinal);
+
+        // In Vietnamese, asked for or by default: the Vietnamese name and words.
+        foreach (var made in new[]
+        {
+            await MakeAsync(maker.Client, new { kind = "game", gameId = "ghep-en", language = "vi" }),
+            await MakeAsync(maker.Client, new { kind = "game", gameId = "ghep-en" }),
+        })
+        {
+            Assert.Equal("vi", made.Language);
+            var vietnamese = await PreviewAsync($"/api/previews/s/{made.Code}");
+            Assert.Contains("<html lang=\"vi\">", vietnamese, StringComparison.Ordinal);
+            Assert.Contains("<meta property=\"og:locale\" content=\"vi_VN\">", vietnamese, StringComparison.Ordinal);
+            Assert.Contains("<title>Lan mời bạn chơi Ghép Khối</title>", vietnamese, StringComparison.Ordinal);
+            Assert.Contains($"<meta property=\"og:description\" content=\"{CardWords.Vietnamese.Description}\">", vietnamese, StringComparison.Ordinal);
+            Assert.Contains($"<a href=\"http://localhost/s/{made.Code}?app=1\">Mở Tò He</a>", vietnamese, StringComparison.Ordinal);
+        }
+
+        // The maker sees the language each was made in; the link itself carries none to whoever opens it.
+        Assert.Equal(new[] { "vi", "vi", "en" }, (await MineAsync(maker)).Select(view => view.Language));
+        Assert.Equal("ok", (await OpenAsync(factory.CreateClient(), english.Code)).State);
+
+        // A link that no longer opens gets the generic card, in Vietnamese, whatever it was made in.
+        await maker.Client.PostAsync(Url($"/api/links/{english.Code}/revoke"), null, Ct);
+        var revoked = await PreviewAsync($"/api/previews/s/{english.Code}");
+        Assert.Contains("<html lang=\"vi\">", revoked, StringComparison.Ordinal);
+        Assert.Contains("<title>Tò He</title>", revoked, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_childs_card_in_english_names_the_game_only()
+    {
+        var parent = await PersonAsync("Mẹ");
+        var child = await ChildAsync(parent, "Bé Na");
+        await Accounts.StepUpAsync(parent.Client);
+        Assert.Equal(HttpStatusCode.OK, (await parent.Client.PatchAsJsonAsync(Url($"/api/profiles/{child.ProfileId}"), new { playWithOthers = true }, Ct)).StatusCode);
+        var made = await MakeAsync(child.Client, new { kind = "game", gameId = Game, language = "en" });
+        var card = await PreviewAsync($"/api/previews/s/{made.Code}");
+        Assert.Contains("<title>An invite to play merge-block</title>", card, StringComparison.Ordinal);
+        Assert.DoesNotContain("Bé Na", card, StringComparison.Ordinal);
+    }
+
+    [Fact]
+    public async Task A_tables_card_speaks_the_language_it_was_opened_in_and_a_private_one_still_says_nothing()
+    {
+        await Games.KnowRoomGameAsync(factory, "o-an-quan-en");
+        await QueryAsync(db => db.Games.Where(game => game.Id == "o-an-quan-en").ExecuteUpdateAsync(set => set
+            .SetProperty(game => game.Name, "Mandarin Squares")
+            .SetProperty(game => game.Names, """{ "vi": "Ô Ăn Quan" }"""), Ct));
+
+        var english = await CreateRoomAsync(await PersonAsync("Lan"), new { gameId = "o-an-quan-en", seats = 2, isPublic = true, language = "en" });
+        var card = await PreviewAsync($"/api/previews/r/{english.Code}");
+        Assert.Contains("<html lang=\"en\">", card, StringComparison.Ordinal);
+        Assert.Contains("<meta property=\"og:locale\" content=\"en_US\">", card, StringComparison.Ordinal);
+        Assert.Contains("<title>An invite to a Mandarin Squares table</title>", card, StringComparison.Ordinal);
+        Assert.Contains($"<meta property=\"og:description\" content=\"{CardWords.English.Description}\">", card, StringComparison.Ordinal);
+        Assert.DoesNotContain("Lan", card, StringComparison.Ordinal);
+
+        var vietnamese = await CreateRoomAsync(await PersonAsync("Hùng"), new { gameId = "o-an-quan-en", seats = 2, isPublic = true, language = "vi" });
+        var tableCard = await PreviewAsync($"/api/previews/r/{vietnamese.Code}");
+        Assert.Contains("<html lang=\"vi\">", tableCard, StringComparison.Ordinal);
+        Assert.Contains("<title>Lời mời vào bàn Ô Ăn Quan</title>", tableCard, StringComparison.Ordinal);
+
+        // The language is kept with the table, as it is kept through a restart.
+        Assert.Equal("en", await QueryAsync(db => db.Rooms.Where(room => room.Id == english.Id).Select(room => room.Language).SingleAsync(Ct)));
+
+        // A private table opened in English reads exactly as a code that names no table: Vietnamese, the same words.
+        var hidden = await CreateRoomAsync(await PersonAsync("Tú"), new { gameId = "o-an-quan-en", seats = 2, isPublic = false, language = "en" });
+        var hiddenCard = await PreviewAsync($"/api/previews/r/{hidden.Code}");
+        var noTable = await PreviewAsync("/api/previews/r/000000");
+        Assert.Contains("<html lang=\"vi\">", hiddenCard, StringComparison.Ordinal);
+        Assert.Equal(noTable.Replace("000000", "", StringComparison.Ordinal), hiddenCard.Replace(hidden.Code, "", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public async Task A_table_is_opened_only_in_a_language_the_hub_speaks()
+    {
+        var host = await PersonAsync("Lan");
+        foreach (var language in new[] { "fr", "EN", "en-US", "" })
+        {
+            var refused = await host.Client.PostAsJsonAsync(Url("/api/rooms"), new { gameId = "co-tuong", seats = 2, language }, Ct);
+            Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+        }
+
+        var table = await CreateRoomAsync(host, new { gameId = "co-tuong", seats = 2 });
+        Assert.Equal("vi", await QueryAsync(db => db.Rooms.Where(room => room.Id == table.Id).Select(room => room.Language).SingleAsync(Ct)));
     }
 
     [Fact]

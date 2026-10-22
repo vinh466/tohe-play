@@ -522,6 +522,11 @@ internal static class RoomsModule
             return Refused(RoomErrors.AccountRequired);
         }
 
+        if (!Languages.TryParse(request.Language, out var language))
+        {
+            return Problems.Field("language", RoomErrors.InvalidOptions);
+        }
+
         var (optionsJson, invalid) = spec.Normalize(request.Options);
         if (invalid is not null)
         {
@@ -549,6 +554,7 @@ internal static class RoomsModule
             RulesPath = game.Path + spec.Rules,
             HostProfileId = player.ProfileId,
             HostAccountId = player.AccountId,
+            Language = language,
             IsPublic = request.IsPublic,
             // A child the account's owner has not allowed only opens tables for the account's own profiles.
             Entry = player.MayPlayWithOthers ? entry : RoomEntry.Own,

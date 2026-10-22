@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.Extensions.Options;
+using Tohe.Api.Infrastructure;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Registry;
 
@@ -22,6 +23,8 @@ namespace Tohe.Api.Modules.Links;
 /// <param name="Payload">For an <c>entry</c> link only, and required with it: the game's JSON, at most 2 KB as UTF-8.</param>
 /// <param name="Text">The message the player would send with the link (ADR 0045), to be checked — never stored: the
 /// answer's <c>message</c> is it when it may be sent.</param>
+/// <param name="Language">The language the maker's hub speaks: <c>vi</c> (the default) or <c>en</c> (ADR 0047). The
+/// link's preview card speaks it; the link itself carries none.</param>
 public sealed record MakeLinkRequest(
     [Required(AllowEmptyStrings = true)] string Kind,
     [Required(AllowEmptyStrings = true), StringLength(40)] string GameId,
@@ -29,7 +32,8 @@ public sealed record MakeLinkRequest(
     int? ExpiresInHours = null,
     int? MaxUses = null,
     JsonElement? Payload = null,
-    [StringLength(ShareTexts.MaxRequestLength)] string? Text = null);
+    [StringLength(ShareTexts.MaxRequestLength)] string? Text = null,
+    string? Language = null);
 
 /// <param name="ExpiresInHours">The new expiry, from now: 1 to 2160 hours (90 days).</param>
 public sealed record ChangeLinkRequest(int ExpiresInHours);
@@ -155,6 +159,11 @@ internal static class LinkEndpoints
             return Problems.Field("maxUses", "invalid_options");
         }
 
+        if (!Languages.TryParse(request.Language, out var language))
+        {
+            return Problems.Field("language", "invalid_options");
+        }
+
         if (await games.GetAsync(request.GameId, ct) is not { } game)
         {
             return Problems.Of(StatusCodes.Status404NotFound, "game_not_found", "No such game in the catalog");
@@ -204,6 +213,7 @@ internal static class LinkEndpoints
             CreatedAt = now,
             ExpiresAt = now.AddHours(hours),
             MaxUses = request.MaxUses,
+            Language = language,
         };
         try
         {

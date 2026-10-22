@@ -4033,6 +4033,12 @@
               "null",
               "boolean"
             ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -5131,6 +5137,12 @@
               "null",
               "string"
             ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -6194,7 +6206,8 @@
           "maxUses",
           "uses",
           "revokedAt",
-          "counts"
+          "counts",
+          "language"
         ],
         "type": "object",
         "properties": {
@@ -6244,6 +6257,9 @@
           },
           "counts": {
             "$ref": "#/components/schemas/LinkCounts"
+          },
+          "language": {
+            "type": "string"
           },
           "message": {
             "type": [

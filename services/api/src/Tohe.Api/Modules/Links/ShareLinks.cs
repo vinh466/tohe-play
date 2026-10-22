@@ -28,6 +28,7 @@ public sealed record LinkCounts(int Opened, int Played, int? AccountsMade);
 /// <param name="State">What it resolves to now: <c>ok</c>, <c>expired</c>, <c>revoked</c> or <c>used_up</c>.</param>
 /// <param name="Message">Only in the answer to making a link with a <c>text</c>: that text, when it passed the checks
 /// of ADR 0045 (one line, 120 characters, no address, no phone number, the name filter); otherwise null.</param>
+/// <param name="Language"><c>vi</c> or <c>en</c>: the language it was made in, which its preview card speaks (ADR 0047).</param>
 public sealed record ShareLinkView(
     string Code,
     string Kind,
@@ -41,6 +42,7 @@ public sealed record ShareLinkView(
     int Uses,
     DateTimeOffset? RevokedAt,
     LinkCounts Counts,
+    string Language,
     string? Message = null);
 
 /// <summary>
@@ -267,5 +269,6 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
         link.MaxUses,
         link.Uses,
         link.RevokedAt,
-        new LinkCounts(opened, played, made >= AccountsMadeShownFrom ? made : null));
+        new LinkCounts(opened, played, made >= AccountsMadeShownFrom ? made : null),
+        link.Language);
 }
