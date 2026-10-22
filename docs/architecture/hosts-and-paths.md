@@ -187,10 +187,10 @@ language from Astro. Proper names and established terms stay as they are in eith
    which holds the legal texts until their English lands.
 2. A new top-level path is a namespace first (above); its English pages live under `/en/`, which needs no namespace of
    its own.
-3. A game needs no page of its own: `games/<id>/public/game.json` makes `/games/<id>/` and `/en/games/<id>/`. What to
-   add by hand is the how-to in `apps/web/src/content/games.ts`, in Vietnamese and English, with an English
-   `description` (the manifest's is Vietnamese; a test fails without either), and, because the sitemap changes, the
-   regenerated files (`pnpm --filter @tohe/routes build`).
+3. A game needs no page of its own: `games/<id>/public/game.json` makes `/games/<id>/` and `/en/games/<id>/`. Its name and
+   description in each language come from `game.json` (ADR 0048); what to add by hand is the how-to in
+   `apps/web/src/content/games.ts`, in Vietnamese and English (a test fails without either), and, because the sitemap
+   changes, the regenerated files (`pnpm --filter @tohe/routes build`).
 
 ### Old paths
 

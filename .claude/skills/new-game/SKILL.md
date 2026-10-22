@@ -21,7 +21,19 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
 
 1. Copy the structure of `games/merge-block` (package.json, tsconfig with `vite/client` types, vite.config with
    `base: './'`, index.html with a DOM HUD, `public/game.json`, `public/icon.svg` with a `<title>`). Set name
-   `@tohe/game-<id>`, version `0.1.0`, capabilities, `themes`, `sizeBudgetKb` (≈ 2500 for a Phaser game).
+   `@tohe/game-<id>`, version `0.1.0`, capabilities, `themes`, `sizeBudgetKb` (≈ 2500 for a Phaser game). In
+   game.json, the names and descriptions (ADR 0048) — `name` is the **standard name**, English or a proper name such
+   as *Tiến Lên*; `names.vi` only when the Vietnamese name differs; `description` is the English text:
+
+   ```json
+   "name": "Merge Blocks",
+   "names": { "vi": "Ghép Khối" },
+   "description": "Drop number blocks into the columns: two matching blocks merge into one. …",
+   "descriptions": { "vi": "Thả khối số vào cột, …" },
+   ```
+
+   `description` is the English one; `pnpm --filter @tohe/games-host test` fails without `descriptions.vi`. Add
+   `names.vi` when the game has a Vietnamese name. The game's own title in each language is the same name.
 2. Add `"@tohe/game-<id>": "workspace:*"` to `devDependencies` in `tools/games-host/package.json`; `pnpm install`.
 3. `src/logic.ts`: pure functions returning **the new state and events**; no DOM/timers/`Math.random`; the PRNG
    state lives in the game state (see `random`/`spawn` in merge-block).
@@ -69,12 +81,13 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
 The game's public pages, `/games/<id>/` and the English `/en/games/<id>/`, are made from `public/game.json` and
 `public/icon.svg` by themselves (apps/web). What to do by hand:
 
-1. Check `game.json`: `description` is written for a stranger (it is the Vietnamese page's text and meta description),
-   `minAge`, `tags` and, with `rooms`, the seats and bots are true — the pages' chips come from them.
+1. Check `game.json`: the descriptions are written for a stranger (`descriptions.vi` is the Vietnamese page's text and
+   meta description, `description` the English page's), `minAge`, `tags` and, with `rooms`, the seats and bots are
+   true — the pages' chips come from them.
 2. Add the game to `gameCopy` in `apps/web/src/content/games.ts`, once in Vietnamese (`vi`) and once in English (`en`):
    `kind` (a few words after the name in the title), `howTo` (3–5 short lines, in the order of a first game) and
-   `suits`; the English one also has a `description` (the manifest's is Vietnamese). Proper names and established terms
-   stay as they are. `pnpm --filter @tohe/web test` fails without either language.
+   `suits`. Proper names and established terms stay as they are. `pnpm --filter @tohe/web test` fails without either
+   language.
 3. `pnpm --filter @tohe/routes build` (the sitemap lists the new page; commit the regenerated files) and
    `pnpm --filter @tohe/web build` (its check fails on a page without title, description, canonical, link preview, one
    `h1`, or a sitemap mismatch). Look at the page in light and dark.

@@ -6,6 +6,7 @@ import { ApiError, type GameSummary, type RoomSummary, rooms } from '../api/clie
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
 import { AccountNeeded } from '../entry/EntryGate.tsx';
+import { nameOf } from '../launcher/gameWords.ts';
 import { hasShell } from '../launcher/manifest.ts';
 import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
@@ -164,7 +165,7 @@ function Lobby({
           <BackLink
             to="/play/$gameId"
             params={{ gameId }}
-            aria-label={t('rooms.backToGame', { game: game.name })}
+            aria-label={t('rooms.backToGame', { game: nameOf(game) })}
             className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
           >
             ←
@@ -179,7 +180,9 @@ function Lobby({
           </BackLink>
         )}
         {game?.iconUrl ? <img src={game.iconUrl} alt="" className="size-12 rounded-2xl" /> : null}
-        <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink">{game?.name ?? gameId}</h1>
+        <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink">
+          {game ? nameOf(game) : gameId}
+        </h1>
       </header>
 
       {!online ? (

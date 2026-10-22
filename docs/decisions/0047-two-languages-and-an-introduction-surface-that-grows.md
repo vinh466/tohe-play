@@ -5,7 +5,8 @@ sidebar:
   order: 47
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — game names and descriptions per language, left to their own ADR here, settled by
+  [ADR 0048](0048-a-standard-name-and-words-per-language-for-each-game.md)
 - **Date:** 2026-10-22
 - **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespaces `/en/…` and `/promise/` for the
   public pages, and what `robots.txt` says to crawlers

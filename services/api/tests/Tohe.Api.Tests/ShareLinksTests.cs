@@ -737,6 +737,35 @@ public sealed class ShareLinksTests(ApiFactory factory) : IClassFixture<ApiFacto
     }
 
     [Fact]
+    public async Task Cards_name_the_game_in_vietnamese_and_a_links_intent_carries_its_names()
+    {
+        // Standard names in English, with a Vietnamese one (ADR 0048): the cards speak Vietnamese until a link keeps
+        // its maker's language (ADR 0047).
+        await Games.KnowAsync(factory, "ghep-so");
+        await Games.KnowRoomGameAsync(factory, "o-an-quan");
+        await QueryAsync(db => db.Games.Where(game => game.Id == "ghep-so").ExecuteUpdateAsync(set => set
+            .SetProperty(game => game.Name, "Merge Blocks")
+            .SetProperty(game => game.Names, """{ "vi": "Ghép Khối", "en-GB": "Merging Blocks" }"""), Ct));
+        await QueryAsync(db => db.Games.Where(game => game.Id == "o-an-quan").ExecuteUpdateAsync(set => set
+            .SetProperty(game => game.Name, "Mandarin Squares")
+            .SetProperty(game => game.Names, """{ "vi": "Ô Ăn Quan" }"""), Ct));
+
+        var maker = await DevicePhoneAsync("Lan");
+        var link = await MakeAsync(maker.Client, new { kind = "game", gameId = "ghep-so" });
+        var card = await PreviewAsync($"/api/previews/s/{link.Code}");
+        Assert.Contains("<title>Lan mời bạn chơi Ghép Khối</title>", card, StringComparison.Ordinal);
+        Assert.DoesNotContain("Merge Blocks", card, StringComparison.Ordinal);
+
+        // The hub shows its own language's name: the intent carries the standard one and the names per language.
+        var intent = await OpenAsync(factory.CreateClient(), link.Code);
+        Assert.Equal("Merge Blocks", intent.GameName);
+        Assert.Equal(new Dictionary<string, string> { ["vi"] = "Ghép Khối", ["en-GB"] = "Merging Blocks" }, intent.GameNames);
+
+        var table = await CreateRoomAsync(await PersonAsync("Hùng"), new { gameId = "o-an-quan", seats = 2, isPublic = true });
+        Assert.Contains("<title>Lời mời vào bàn Ô Ăn Quan</title>", await PreviewAsync($"/api/previews/r/{table.Code}"), StringComparison.Ordinal);
+    }
+
+    [Fact]
     public async Task Previews_past_their_limit_get_the_generic_card_and_still_200()
     {
         var maker = await DevicePhoneAsync("Lan");

@@ -72,7 +72,7 @@ internal sealed partial class LinkPreviews(
             && rooms.FindByCode(code) is { Listed: true } room
             && await games.GetAsync(room.GameId, ct) is { } game)
         {
-            card = new PreviewCard($"Lời mời vào bàn {game.Name}", Description);
+            card = new PreviewCard($"Lời mời vào bàn {game.NameIn(GameWords.Vietnamese)}", Description);
         }
 
         return Answer(http, card, HubPaths.RoomLink, code);
@@ -85,10 +85,12 @@ internal sealed partial class LinkPreviews(
             && await links.ResolveAsync(code, ct) is { State: LinkStates.Ok, Maker: { } maker } resolved
             && await games.GetAsync(resolved.Link.GameId, ct) is { } game)
         {
-            // The maker's current name on the server — a moderator's when one renamed it — never a child's.
+            // The maker's current name on the server — a moderator's when one renamed it — never a child's. The game's
+            // name in Vietnamese, the card's language until a link keeps its maker's (ADR 0047, 0048).
+            var name = game.NameIn(GameWords.Vietnamese);
             card = maker.Child
-                ? new PreviewCard($"Lời mời chơi {game.Name}", Description)
-                : new PreviewCard($"{maker.Name} mời bạn chơi {game.Name}", Description);
+                ? new PreviewCard($"Lời mời chơi {name}", Description)
+                : new PreviewCard($"{maker.Name} mời bạn chơi {name}", Description);
         }
 
         return Answer(http, card, HubPaths.ShareLink, code);

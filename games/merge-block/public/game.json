@@ -1,10 +1,14 @@
 {
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "merge-block",
-  "name": "Ghép Khối",
-  "version": "1.11.0",
+  "name": "Merge Blocks",
+  "names": { "vi": "Ghép Khối" },
+  "version": "1.11.1",
   "protocol": 1,
-  "description": "Thả khối số vào cột, hai khối giống nhau sẽ gộp lại. Gộp liên tiếp để nhân điểm!",
+  "description": "Drop number blocks into the columns: two matching blocks merge into one. Chain merges to multiply your score!",
+  "descriptions": {
+    "vi": "Thả khối số vào cột, hai khối giống nhau sẽ gộp lại. Gộp liên tiếp để nhân điểm!"
+  },
   "icon": "icon.svg",
   "orientation": "portrait",
   "capabilities": ["save", "scores", "shell", "ranked"],

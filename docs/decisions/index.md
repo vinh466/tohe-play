@@ -60,4 +60,5 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0044](0044-entry-links.md) | Every way into Tò He is an entry; share links are objects on the server; one pipeline in the hub | Accepted; arrives with step I3; games take entries from 0045 |
 | [0045](0045-games-declare-identity-and-entries.md) | A game declares the identity it needs and the entries it takes; it asks the hub for more, and to share | Accepted; arrives with step I4 |
 | [0046](0046-player-surfaces-two-zones-one-frame.md) | Lay out the players' surfaces as two zones in one frame, and name the planes | Accepted; arrives in steps |
-| [0047](0047-two-languages-and-an-introduction-surface-that-grows.md) | Speak Vietnamese first and English second, and grow the introduction surface from one source per game | Accepted; arrives in steps |
+| [0047](0047-two-languages-and-an-introduction-surface-that-grows.md) | Speak Vietnamese first and English second, and grow the introduction surface from one source per game | Accepted; arrives in steps; game names and descriptions per language settled by 0048 |
+| [0048](0048-a-standard-name-and-words-per-language-for-each-game.md) | Give each game a standard name, and a name and a description per language when it has them | Accepted |

@@ -4654,8 +4654,10 @@
         "required": [
           "id",
           "name",
+          "names",
           "version",
           "description",
+          "descriptions",
           "entryUrl",
           "iconUrl",
           "orientation",
@@ -4675,11 +4677,23 @@
           "name": {
             "type": "string"
           },
+          "names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "version": {
             "type": "string"
           },
           "description": {
             "type": "string"
+          },
+          "descriptions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "entryUrl": {
             "type": "string"
@@ -5034,6 +5048,15 @@
                 "$ref": "#/components/schemas/LinkEntry"
               }
             ]
+          },
+          "gameNames": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },

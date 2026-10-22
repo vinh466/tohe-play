@@ -20,8 +20,10 @@ const catalog = ['merge-block', 'tap-merge', 'tien-len', 'hello'].map((id) => {
   const manifest = JSON.parse(readFileSync(join(dir, 'game.json'), 'utf8')) as {
     id: string;
     name: string;
+    names?: Record<string, string>;
     version: string;
     description: string;
+    descriptions?: Record<string, string>;
     capabilities: string[];
     tags: string[];
     minAge: number;
@@ -29,8 +31,10 @@ const catalog = ['merge-block', 'tap-merge', 'tien-len', 'hello'].map((id) => {
   return {
     id: manifest.id,
     name: manifest.name,
+    names: manifest.names ?? {},
     version: manifest.version,
     description: manifest.description,
+    descriptions: manifest.descriptions ?? {},
     entryUrl: `https://games.example/${id}/index.html`,
     iconUrl: `${origin}/__icons/${id}.svg`,
     orientation: 'portrait',

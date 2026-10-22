@@ -2,19 +2,15 @@
 // from the game's own metadata — games/<id>/public/game.json and its icon — so a new game has a page without anyone
 // writing one. What the manifest cannot say is the how-to and the kind of game in a few words, in each language: that
 // copy is in `gameCopy` below, and content.test.ts fails for a game that lacks it in either language. The owner
-// reviews the words in the pull request. (ADR 0047 moves these words into each game's folder, games/<id>/page/.)
-import { GameManifest } from '@tohe/contract';
+// reviews the words in the pull request. (ADR 0047 moves these words into each game's folder, games/<id>/page/.) A game's
+// name and description come from game.json in the page's language (ADR 0048).
+import { GameManifest, gameDescription, gameName } from '@tohe/contract';
 import type { Lang } from '../i18n.ts';
 
 /** The words only a person can write for a game. `howTo`: 3 to 5 short lines, in the order a first game goes. */
 export interface GameCopy {
   /** What it is in a few words, after the name in the page's title: "game ghép khối số". */
   kind: string;
-  /**
-   * What the game is in a sentence or two, for a language the manifest's `description` is not written in: the English
-   * copy has one (the manifest's is Vietnamese). Without it the page shows the manifest's.
-   */
-  description?: string;
   howTo: string[];
   /** Who it suits, beyond what the manifest says (age, alone or together). */
   suits: string;
@@ -35,8 +31,6 @@ export const gameCopy: Record<string, Record<Lang, GameCopy>> = {
     },
     en: {
       kind: 'number block merging game',
-      description:
-        'Drop number blocks into the columns: two blocks with the same number merge into one. Chain merges to multiply your score!',
       howTo: [
         'Tap a column (or drag the block and let go) to drop the number block you hold into it.',
         'Two blocks with the same number that touch merge into one bigger block.',
@@ -60,8 +54,6 @@ export const gameCopy: Record<string, Record<Lang, GameCopy>> = {
     },
     en: {
       kind: 'tap-to-merge number game',
-      description:
-        'Tap a number block: the whole chain of equal blocks joined to it, diagonals included, merges into one. The more you gather, the bigger the number!',
       howTo: [
         'The board is always full of number blocks. Tap one.',
         'Every block with the same number connected to it, diagonals included, merges into the block you tapped.',
@@ -85,8 +77,6 @@ export const gameCopy: Record<string, Record<Lang, GameCopy>> = {
     },
     en: {
       kind: 'the Vietnamese card game Tiến lên miền Nam',
-      description:
-        'Tiến lên miền Nam, the card game of southern Vietnam: play against bots or open a table for the whole family. Chopping the 2s (chặt heo), chop chains, instant wins — house rules you choose.',
       howTo: [
         'Each player is dealt 13 cards, and everyone takes turns.',
         'On your turn, play cards of the same kind and higher than those on the table (a single, a pair, three of a kind, a straight…) or pass.',
@@ -110,7 +100,6 @@ export const gameCopy: Record<string, Record<Lang, GameCopy>> = {
     },
     en: {
       kind: '20-second reflex game',
-      description: 'Tap the round dot as fast as you can for 20 seconds. The platform’s sample game.',
       howTo: [
         'Each round lasts 20 seconds.',
         'Tap the orange dot as fast as you can: each hit scores 1 point, and the dot jumps somewhere else.',
@@ -241,8 +230,8 @@ export function describeGame(
   const genre = manifest.tags.flatMap((tag) => (words.tags[tag] ? [words.tags[tag]] : []));
   const game = {
     id: manifest.id,
-    name: manifest.name,
-    description: copy?.description ?? manifest.description,
+    name: gameName(manifest, lang),
+    description: gameDescription(manifest, lang),
     icon,
     minAge: manifest.minAge,
     facts,

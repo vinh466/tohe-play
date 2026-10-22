@@ -83,12 +83,22 @@ describe('a game’s page from its manifest', () => {
     expect(written.metaDescription).toBe('Một trò mẫu.');
   });
 
-  it('describes the game in the copy’s words when the copy has them, else in the manifest’s', () => {
-    const copy = { kind: 'test game', description: 'A sample game.', howTo: ['a', 'b', 'c'], suits: 's' };
-    const english = describeGame(manifest(), '/i.svg', copy, 'en');
-    expect(english.description).toBe('A sample game.');
+  it('names and describes the game in the page’s language, from the manifest (ADR 0048)', () => {
+    const copy = { kind: 'test game', howTo: ['a', 'b', 'c'], suits: 's' };
+    const words = {
+      name: 'Sample',
+      names: { vi: 'Mẫu' },
+      description: 'A sample game.',
+      descriptions: { vi: 'Một trò mẫu.' },
+    };
+    const english = describeGame(manifest(words), '/i.svg', copy, 'en');
+    expect(english.name).toBe('Sample');
     expect(english.metaDescription).toBe('A sample game.');
-    expect(english.title).toBe('Mẫu — test game | Tò He');
+    expect(english.title).toBe('Sample — test game | Tò He');
+    const vietnamese = describeGame(manifest(words), '/i.svg', { ...copy, kind: 'game thử' }, 'vi');
+    expect(vietnamese.name).toBe('Mẫu');
+    expect(vietnamese.metaDescription).toBe('Một trò mẫu.');
+    expect(vietnamese.title).toBe('Mẫu — game thử | Tò He');
   });
 });
 
@@ -123,9 +133,8 @@ describe('the games in the repository', () => {
     },
   );
 
-  // The manifest's description is in Vietnamese; the English page says what the game is in its own words.
+  // game.json describes the game in English (`description`) and in Vietnamese (`descriptions.vi`, ADR 0048).
   it.each(games.map((game) => [game.id] as const))('%s says what it is in English', (id) => {
-    expect(gameCopy[id]?.en.description, `add a description to "${id}".en in gameCopy`).toBeTruthy();
     const english = loadGames('en').find((game) => game.id === id);
     const vietnamese = games.find((game) => game.id === id);
     expect(english?.metaDescription).not.toBe(vietnamese?.metaDescription);

@@ -1601,8 +1601,14 @@ export interface components {
         GameSummary: {
             id: string;
             name: string;
+            names: {
+                [key: string]: string;
+            };
             version: string;
             description: string;
+            descriptions: {
+                [key: string]: string;
+            };
             entryUrl: string;
             iconUrl: null | string;
             orientation: string;
@@ -1701,6 +1707,9 @@ export interface components {
             level?: null | string;
             makerName?: null | string;
             entry?: null | components["schemas"]["LinkEntry"];
+            gameNames?: null | {
+                [key: string]: string;
+            };
         };
         LinkProofRequest: {
             code?: null | string;

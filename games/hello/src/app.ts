@@ -21,7 +21,7 @@ const text = {
     result: (score: number, best: number) => `Bạn được ${score} điểm · Kỷ lục ${best}`,
   },
   en: {
-    title: 'Tap the Dot',
+    title: 'Tap Dot',
     intro: 'Tap the dot as many times as you can in 20 seconds!',
     hints: 'The dot shrinks as you score. Missed taps cost nothing.',
     score: 'Score',

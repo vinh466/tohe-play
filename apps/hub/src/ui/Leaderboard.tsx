@@ -3,6 +3,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { boards, type GameSummary } from '../api/client.ts';
 import { meQuery } from '../api/queries.ts';
+import { nameOf } from '../launcher/gameWords.ts';
 import type { Player } from '../session/session.ts';
 import { syncer } from '../session/useBackgroundSync.ts';
 import { db } from '../storage/db.ts';
@@ -26,7 +27,7 @@ export function LeaderboardButton({ game, player }: { game: GameSummary; player:
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={t('leaderboard.button', { game: game.name })}
+        aria-label={t('leaderboard.button', { game: nameOf(game) })}
         className="absolute top-1.5 right-1.5 grid size-10 place-items-center rounded-full bg-soft text-xl active:scale-95"
       >
         <span aria-hidden>🏆</span>
@@ -50,7 +51,7 @@ export function LeaderboardSheet({
 }) {
   const { t } = useTranslation();
   return (
-    <Modal open={open} title={t('leaderboard.title', { game: game.name })} onClose={onClose}>
+    <Modal open={open} title={t('leaderboard.title', { game: nameOf(game) })} onClose={onClose}>
       {open ? <Ranking gameId={game.id} player={player} /> : null}
     </Modal>
   );

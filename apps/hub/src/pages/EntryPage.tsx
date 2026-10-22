@@ -18,6 +18,7 @@ import { linkDeadEnds } from '../entry/deadEnds.ts';
 import { EntryGate } from '../entry/EntryGate.tsx';
 import { entryOfLink, gameEntry } from '../entry/gameEntry.ts';
 import { entry, once } from '../entry/intent.ts';
+import { linkGameName, nameOf } from '../launcher/gameWords.ts';
 import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { rememberNext } from '../session/next.ts';
@@ -112,7 +113,7 @@ function RoomPreview({ intent, player, device }: { intent: EntryIntent; player: 
       {view ? (
         <section className="flex flex-col items-center gap-4 rounded-3xl bg-surface p-6 text-center shadow-sm">
           {game?.iconUrl ? <img src={game.iconUrl} alt="" className="size-20 rounded-2xl" /> : null}
-          <p className="font-bold text-ink text-xl">{game?.name ?? view.gameId}</p>
+          <p className="font-bold text-ink text-xl">{game ? nameOf(game) : view.gameId}</p>
           <div className="flex items-center gap-2">
             <Avatar avatar={host?.avatar ?? '🙂'} size="sm" />
             <span className="font-semibold text-ink">{t('rooms.preview', { host: host?.name ?? '' })}</span>
@@ -213,7 +214,7 @@ function ShareResolve({ intent }: { intent: EntryIntent }) {
       <DeadEnd
         reason={link.state as 'expired' | 'revoked' | 'used_up'}
         gameId={link.gameId}
-        gameName={link.gameName}
+        gameName={linkGameName(link)}
       />
     ) : (
       <DeadEnd reason="unknown" />
@@ -294,7 +295,7 @@ function OpenShare({
 
   if (higher) return <Loading label={t('loading')} />;
   if (missing)
-    return <DeadEnd reason="not-for-profile" gameName={link.gameName} child={player.kind === 'child'} />;
+    return <DeadEnd reason="not-for-profile" gameName={linkGameName(link)} child={player.kind === 'child'} />;
   if (games.isError) return <EntryTrouble message={t('loadFailed')} onRetry={() => void games.refetch()} />;
   if (play.isError)
     return <EntryTrouble message={t(errorKey(play.error))} onRetry={() => void play.refetch()} />;
@@ -303,7 +304,7 @@ function OpenShare({
       <DeadEnd
         reason={result.state as 'expired' | 'revoked' | 'used_up'}
         gameId={result.gameId ?? link.gameId}
-        gameName={result.gameName ?? link.gameName}
+        gameName={linkGameName(result) ?? linkGameName(link)}
       />
     ) : (
       <DeadEnd reason="unknown" />
