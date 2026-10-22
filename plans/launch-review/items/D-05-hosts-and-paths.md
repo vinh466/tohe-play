@@ -1,9 +1,9 @@
 # D-05 — Host và path: giữ bố cục của ADR 0042, hay đổi gì trước launch?
 
-- Status: **proposed** (agent, 2026-10-22; xem lại 2026-10-23 theo cái giá owner nêu)
+- Status: **decided** — A, mặt phẳng game ở **L1** (owner, 2026-10-23, chat)
 - Kind: decision
 - Blocks: — · Blocked by: — · Đi cùng: [D-01](D-01-languages.md), [D-02](D-02-layout.md)
-- Decided: —
+- Decided: owner, 2026-10-23, chat: "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi (hiếm và siêu ít, gần chưa chưa tại bây giờ, tôi sẽ suy nghĩ nên lên L2 hay L3 khi có nucows đi này, nên nếu lên vấn đề này như 1 topic và nói tình hình hiện tại)"
 
 ## Why it matters
 
@@ -54,7 +54,14 @@ phải sửa một lỗi.
 
 ## Decision
 
-—
+**A — L1** (owner, 2026-10-23, chat): "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi (hiếm và siêu ít, gần chưa chưa tại bây giờ, tôi sẽ suy nghĩ nên lên L2 hay L3 khi có nucows đi này, nên nếu lên vấn đề này như 1 topic và nói tình hình hiện tại)".
+
+- Game do owner thêm vào repo; người khác chỉ qua niềm tin và review của owner — hôm nay chưa có ai.
+- **Ghi thành một chủ đề trong spec** (ADR của D-02 và `docs/architecture/hosts-and-paths.md`): tình hình hôm nay (L1, ai
+  viết game, các lớp phòng thủ) và **luật leo thang** — trước khi lên game đầu tiên không do owner thêm, owner quyết L2
+  hay L3. Review của owner gồm cả PR thêm hay nâng thư viện của game (chuỗi cung ứng).
+- Việc rẻ đi kèm, agent đề xuất, owner duyệt trong ADR: header `Origin-Agent-Cluster: ?1` trên `games.`; Cloudflare
+  Access cho `console.` (Cổng E-01).
 
 ## Discussion
 
