@@ -151,7 +151,7 @@ flowchart LR
 | | What | Written by |
 | --- | --- | --- |
 | The remembered choice | `localStorage` key **`tohe:language`** on the players' origin, `vi` or `en`. Written when a reader uses the VI \| EN switch, follows the suggestion (`en`) or turns it down with *Stay in Vietnamese* (`vi`); a Vietnamese page shows the suggestion when the key says `en`, or when there is no key and the browser's first language is not `vi*`, and not when it says `vi` | `apps/web/src/scripts/language.ts` |
-| The page's language | **`?lang=en`** on every link from an English page into the app (`/play`, `/play/<id>`), and on the redirect of a returning device from `/en/` to `/play`; a Vietnamese page's links carry nothing, Vietnamese being the default | `appPath` in `apps/web/src/i18n.ts`, `returning.js` |
+| The page's language | **`?lang=en`** on every link from an English page into the app (`/play`, `/play/<id>`, `/play/<id>/rooms`), *Continue* on `/en/` among them; a Vietnamese page's links carry nothing, Vietnamese being the default | `appPath` in `apps/web/src/i18n.ts` |
 
 The app's order stays as above: its own setting, which a choice on the public pages' switch fills in (the key), then
 the page the player came from (`?lang=`), then the browser, then Vietnamese. Tôi → Ngôn ngữ writes the same key, and
@@ -163,7 +163,7 @@ the app changes language at once, without a reload; its links to the public page
 flowchart LR
   src["games/&lt;id&gt;/page/vi.md + en.md + facts.json<br/>games/&lt;id&gt;/public/game.json"] --> build[The public pages' build]
   build --> pages["/games/&lt;id&gt;/ and /en/games/&lt;id&gt;/"]
-  build --> meta["JSON-LD · a preview picture per game and language"]
+  build --> meta["JSON-LD · a preview picture per game and language,<br/>drawn by generate:og and committed"]
   src --> routes["@tohe/routes: sitemap + hreflang"]
   build --> check["the build check: anything missing fails the build"]
 ```
@@ -171,15 +171,37 @@ flowchart LR
 | Page | Holds | Structured data |
 | --- | --- | --- |
 | Home | the catalog first; "Game nhỏ cho cả nhà · Không quảng cáo · Không cần tài khoản · Chơi ngay"; *Continue*; a date | `WebSite`, `Organization`, `ItemList` |
-| A game's page | *Play*, *Play with a friend*; the answer; **the facts table** (ages, players, round length, ads: none, data collected: none); how to play; pictures; related games; a date | `VideoGame`, `BreadcrumbList` |
+| A game's page | *Play*, *Play with a friend*; the answer; **the facts table** (ages, players, round length, screen, ads: none, personal data: none needed to play, no tracking); how to play; who it suits; its own questions; pictures; related games; a date | `VideoGame`, `BreadcrumbList` |
 | The promise | no ads, no tracking, no purchases, no coins | `WebPage` |
 | A collection (from ~8 games) | a written introduction and a comparison table | `CollectionPage`, `ItemList`, `BreadcrumbList` |
 | A page for a search (≥ 3 fitting games) | written text that answers the search | `Article`, `ItemList` |
 
 **Adding a game** brings its public page: `/new-game` writes `games/<id>/page/vi.md`, `en.md` (with an `updated` date)
 and `facts.json` (facts the manifest does not hold, such as how long a round lasts); the rest comes from `game.json`;
-the build makes the pages and their pictures (`/games/<id>/og.png`, made at build time) and fails if anything is
-missing.
+`pnpm --filter @tohe/web generate:og` draws its preview pictures, committed beside the page; the build makes the pages,
+serves the pictures at `/games/<id>/og.png` and `/en/games/<id>/og.png`, and fails if anything is missing or out of
+date.
+
+**One source per game**, in the game's folder, outside `public/` so the games origin never serves it:
+
+| File | Holds | Read by |
+| --- | --- | --- |
+| `page/vi.md`, `page/en.md` | front matter `updated` (the day the words were last revised) and `kind` (what it is in a few words, after the name in the title); then the answer — what it is and for whom, one or two sentences, no numbers the facts table holds; then, under the page's own headings, how to play (3 to 5 numbered lines), who it suits, and optionally the game's own questions (`### …?`) and pictures (`![what it shows](name.png)`, the file beside it). Plain text, no HTML or links | `apps/web/src/content/game-page.ts`, which fails on anything else, naming the file |
+| `page/facts.json` | `round` — `fixed` (seconds, a clock ends it), `about` (a typical range of minutes) or `open` (no set length: a game goes on until it is over, and the game keeps the player's place); `offline` — true only when playing with no connection after a first visit is guaranteed, not left to the browser's cache (a games-origin service worker, [ADR 0005](../decisions/0005-offline-first.md)'s spike S1) | the same, with Zod |
+| `page/og.vi.png`, `page/og.en.png`, `page/og.json` | the game's link-preview picture in each language (1200×630: its icon, its name in that language, its `kind`, Tò He's tagline), made by `pnpm --filter @tohe/web generate:og` and committed beside the page; `og.json` holds a sha256 per language of what each was drawn from (those words, the icon's bytes, a version of the drawing) | `apps/web/scripts/og-stamp.ts`; the build copies them under the game's pages |
+| `public/game.json` | the name and description in each language ([ADR 0048](../decisions/0048-a-standard-name-and-words-per-language-for-each-game.md)), `minAge`, `orientation`, the seats and bots (`rooms`), whether it plays together (`rooms`) | the Game Contract |
+
+**The facts table** of a game's page: ages (`minAge`), players (one alone, or the seats of a table and the bots), a
+round (`facts.json`), the screen (`orientation`), ads (none) and personal data (none needed to play; no tracking).
+**Offline** is claimed — a row of the table, a sentence on the home page — only when every game's `facts.json` says
+`offline: true`, worked out at build time; none does today.
+
+**The build check** (`apps/web/scripts/check-build.ts`) fails the build when a game lacks either page or its facts,
+when one is broken, when a language pair of the sitemap does not name its alternates both ways, when a game lacks its
+picture in either language, when one is not 1200×630 or out of date (its stamp no longer matches what the sources
+give: "run pnpm --filter @tohe/web generate:og"), when a game's page does not name its own as `og:image`, when the
+home pages, a game's page
+or the promise show no `updated` day, or when a page lacks its structured data (the table above).
 
 **Crawlers.** `robots.txt` keeps the content signals (`search=yes, ai-input=yes, ai-train=no`), allows by name the
 crawlers that fetch for search and answers (Googlebot, Bingbot, `OAI-SearchBot`, `Claude-SearchBot`, `PerplexityBot`,
@@ -195,10 +217,11 @@ language and IndexNow.
 | --- | --- | --- |
 | Planes, L1, the escalation rule | L1 in place; Cloudflare Access on `console.` | — |
 | Crawlers by name in `robots.txt` | in place | — |
-| Namespaces `/together`, `/promise/` | `/together` in place (Chơi cùng); `/promise/` arrives with its page (Tôi links to it already) | the introduction surface's pull request |
+| Namespaces `/together`, `/promise/` | in place: `/together` (Chơi cùng) and `/promise/` with their pages | — |
 | Public pages in two languages | in place: Vietnamese at `/…`, English at `/en/…`, `hreflang` in the sitemap, the VI \| EN switch and the suggestion, the choice kept under `tohe:language`, `?lang=en` into the app (which reads both); the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages` in `@tohe/routes`) | the public pages' languages pull request |
 | Game names per language | in place: a standard `name` with `names` and `descriptions` per language (ADR 0048); the hub shows its language's, the console the standard name, link previews the Vietnamese, each public page its own language's | — |
-| One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | how-to in `apps/web/src/content/games.ts`, in both languages; one picture; `/` redirects a returning device | the introduction surface's pull request |
+| One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | in place: `games/<id>/page/` for the four games; a picture per game and language, made by `generate:og` and committed beside the page; the home page shows the catalog first and *Continue* on a device that has played, and never redirects; `/promise/` in both languages. No game claims offline play yet (no games-origin service worker), so no page does | — |
+| Collections and pages for a search | none: they wait for about eight games, and three fitting ones | the growth above |
 | The app's frame and tabs, the language setting | in place: the bar and the rail, the three tabs (Trò chơi without the table the player sits at, *Continue* and recent yet — the coming-back pull request), Chơi cùng, Tôi with the language, theme and sound, the history per level, no orientation lock, the manage PIN before a link out on a child's profile; the bottom-sheet menu gone | — |
 | Coming back | the catalog first; no "who is playing"; silent fallback; updates take over at once | the coming-back pull request |
 | Link previews in the maker's language | Vietnamese only | the link languages' pull request |

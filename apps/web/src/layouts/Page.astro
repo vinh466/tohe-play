@@ -26,20 +26,26 @@ interface Props {
   description: string;
   /** The page's own path, with its closing slash: the canonical link and og:url. */
   path: string;
-  /** Only the home pages: a browser that has played here goes on to the app. */
+  /**
+   * Only the home pages: the script that marks a browser that has played here (`data-returning` on <html>), which
+   * shows the page's *Chơi tiếp* button. It never navigates: `/` never redirects (ADR 0046).
+   */
   returning?: boolean;
+  /** The link-preview picture, 1200×630: the shared one, or a game page's own (made by scripts/render-og.ts). */
+  image?: { path: string; alt: string };
   /** Structured data: one JSON-LD block each, with the page's `inLanguage` (the build checks it). */
   jsonLd?: Record<string, unknown>[];
 }
 
-const { title, description, path, returning = false, jsonLd = [] } = Astro.props;
+const { title, description, path, returning = false, image: picture, jsonLd = [] } = Astro.props;
 const lang = pageLanguage(Astro.currentLocale);
 const words = siteWords[lang];
 const other = otherLanguage(lang);
 /** The same page in the other language; none for a page declared Vietnamese-only (the terms, the privacy notice). */
 const pair = pairOf(path);
 const url = absolute(path);
-const image = absolute(site.ogImage.path);
+const image = absolute(picture?.path ?? site.ogImage.path);
+const imageAlt = picture?.alt ?? words.imageAlt;
 // "<" is escaped so no text in the data can close the block.
 const blocks = jsonLd.map((data) =>
   JSON.stringify({ '@context': 'https://schema.org', ...data }).replace(/</g, '\\u003c'),
@@ -71,13 +77,13 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
     <meta property="og:image" content={image} />
     <meta property="og:image:width" content={String(site.ogImage.width)} />
     <meta property="og:image:height" content={String(site.ogImage.height)} />
-    <meta property="og:image:alt" content={words.imageAlt} />
+    <meta property="og:image:alt" content={imageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
     {blocks.map((block) => <script is:inline type="application/ld+json" set:html={block} />)}
-    {/* Blocking, before the first paint. On the home pages a browser that has played here goes to the app; the saved light/dark choice applies everywhere. */}
+    {/* Blocking, before the first paint: on the home pages, whether this browser has played here (Chơi tiếp shows at once, without a jump); everywhere, the saved light/dark choice. */}
     {returning && <script is:inline src={returningUrl}></script>}
     <script is:inline src={themeInitUrl}></script>
   </head>
@@ -146,6 +152,7 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
     <footer class="site-footer">
       <p>{words.footer.line}</p>
       <p class="links">
+        <a href={localPath(lang, '/promise/')}>{words.footer.promise}</a>
         <a href="/terms/" hreflang={legalHreflang}>{words.footer.terms}</a>
         <a href="/privacy/" hreflang={legalHreflang}>{words.footer.privacy}</a>
         <a href={`${docsUrl}/`}>{words.footer.docs}</a>

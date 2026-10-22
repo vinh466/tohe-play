@@ -6,7 +6,7 @@
   "description": "The public pages on the players' host (Vietnamese, and English under /en/): static HTML built into the hub image and served at its root (ADR 0042).",
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/check-build.ts",
+    "build": "astro build && node scripts/copy-og.ts && node scripts/check-build.ts",
     "preview": "astro preview",
     "test": "vitest run",
     "generate:og": "node scripts/render-og.ts"
@@ -20,6 +20,7 @@
     "@tohe/routes": "workspace:*",
     "@types/node": "^24.0.0",
     "playwright": "^1.64.0",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.0",
+    "zod": "^4.6.0"
   }
 }

@@ -44,6 +44,7 @@ const vi = {
   switch: { label: 'Ngôn ngữ' },
   footer: {
     line: 'Tò He · dự án gia đình, không quảng cáo',
+    promise: 'Lời hứa của Tò He',
     terms: 'Điều khoản',
     privacy: 'Quyền riêng tư',
     docs: 'Tài liệu kỹ thuật (tiếng Anh)',
@@ -74,6 +75,7 @@ const en: SiteWords = {
   switch: { label: 'Language' },
   footer: {
     line: 'Tò He · a family project, no ads',
+    promise: 'Our promise',
     // The terms and the privacy notice have no English text yet (ADR 0047): the links say so.
     terms: 'Terms (in Vietnamese)',
     privacy: 'Privacy (in Vietnamese)',
@@ -101,3 +103,27 @@ export const suggestion = {
  * the English home page and says why. In English, like the button.
  */
 export const noEnglishPage = 'English home page — this page is in Vietnamese only';
+
+/** The word before the day a page's words were last revised (src/views/UpdatedOn.astro). */
+export const updatedWord: Record<Lang, string> = { vi: 'Cập nhật', en: 'Updated' };
+
+const months = [
+  'January',
+  'February',
+  'March',
+  'April',
+  'May',
+  'June',
+  'July',
+  'August',
+  'September',
+  'October',
+  'November',
+  'December',
+];
+
+/** A day written YYYY-MM-DD, as a reader of `lang` writes it: 22/10/2026, 22 October 2026. */
+export function formatDay(day: string, lang: Lang): string {
+  const [year = '', month = '', date = ''] = day.split('-');
+  return lang === 'vi' ? `${date}/${month}/${year}` : `${Number(date)} ${months[Number(month) - 1]} ${year}`;
+}

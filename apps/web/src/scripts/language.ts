@@ -4,7 +4,7 @@
 // this file, which the build writes under /_web/.
 //
 // The choice lives in this origin's localStorage under one key, LANGUAGE_KEY, `vi` or `en`. The app reads the same key
-// once it has a language setting of its own (the app frame's pull request): a choice made here is kept for the app too.
+// for its language setting (Me → Language): a choice made here is kept for the app too.
 
 export const LANGUAGE_KEY = 'tohe:language';
 

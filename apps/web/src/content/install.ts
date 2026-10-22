@@ -50,7 +50,7 @@ const viInstall = {
     'Cách thêm Tò He vào màn hình chính trên Android (Chrome), iPhone (iOS 26, Safari), máy tính, và cách mở link từ Zalo hay Messenger bằng trình duyệt.',
   heading: 'Cài Tò He lên màn hình chính',
   back: '← Hướng dẫn',
-  lead: 'Không cài cũng chơi được bình thường. Cài rồi thì Tò He mở nhanh như một ứng dụng, chạy toàn màn hình và chơi được cả khi mất mạng (sau lần mở đầu). Chọn máy của bạn:',
+  lead: 'Không cài cũng chơi được bình thường. Cài rồi thì Tò He mở nhanh như một ứng dụng, chạy toàn màn hình, và vẫn mở được khi mất mạng; game đã chơi một lần thường vẫn chơi được. Chọn máy của bạn:',
   jump: 'Chọn máy của bạn',
   platforms: [
     {
@@ -113,7 +113,7 @@ export const install: Record<Lang, typeof viInstall> = {
       'How to add Tò He to the home screen on Android (Chrome), iPhone (iOS 26, Safari) and a computer, and how to open a link from Zalo or Messenger in a real browser.',
     heading: 'Add Tò He to your home screen',
     back: '← Guides',
-    lead: 'You can play without installing anything. Once installed, Tò He opens quickly like an app, runs full screen and works offline too (after the first visit). Choose your device:',
+    lead: 'You can play without installing anything. Once installed, Tò He opens quickly like an app, runs full screen, and still opens without a connection; a game you have played before usually still plays. Choose your device:',
     jump: 'Choose your device',
     platforms: [
       {

@@ -40,7 +40,7 @@ const vi = {
     },
     {
       q: 'Không có mạng thì có chơi được không?',
-      a: 'Sau khi đã mở Tò He một lần, các ván chơi một mình hay với bạn máy chơi được cả khi mất mạng. Phòng chơi online thì cần mạng.',
+      a: 'Tò He đã mở một lần thì vẫn mở được khi mất mạng, và game đã chơi một lần thường vẫn chơi được, vì trình duyệt còn giữ nó. Tiến độ lưu trên máy và đồng bộ khi có mạng lại. Bàn chơi online thì cần mạng.',
     },
     {
       q: 'Tò He chạy trên điện thoại nào?',
@@ -96,7 +96,7 @@ const en: typeof vi = {
     },
     {
       q: 'Can I play without an internet connection?',
-      a: 'Once you have opened Tò He once, games alone or against bots work offline too. Online tables need a connection.',
+      a: 'Once you have opened Tò He, it opens without a connection too, and a game you have played before usually still plays, as long as the browser has kept it. Your progress is saved on the device and syncs when you are back online. Online tables need a connection.',
     },
     {
       q: 'Which phones does Tò He run on?',

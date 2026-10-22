@@ -63,6 +63,11 @@
 		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/about/"/>
 		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/about/"/>
 		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/promise/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/promise/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/promise/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/promise/"/>
+		  </url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/terms/</loc></url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/privacy/</loc></url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/</loc>
@@ -114,6 +119,11 @@
 		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/about/"/>
 		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/about/"/>
 		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/about/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/promise/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/promise/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/promise/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/promise/"/>
 		  </url>
 		</urlset>
 		XML 200

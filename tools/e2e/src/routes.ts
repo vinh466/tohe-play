@@ -64,10 +64,10 @@ for (const path of appPages) {
 }
 
 // The root is the public home page (apps/web): HTML that search engines may index, with a CSP that allows no inline
-// script or style, a link to the app and its assets under /_web/. The query changes nothing there (a returning device
-// is sent on by a script, in the browser: the smoke test).
+// script or style, a link to the app and its assets under /_web/. It never redirects (ADR 0046): a device that has
+// played gets "Chơi tiếp" there, shown by a script in the browser (the smoke test).
 {
-  const { response, body } = await get('/?stay');
+  const { response, body } = await get('/');
   const csp = response.headers.get('content-security-policy') ?? '';
   check(
     response.status === 200 &&
@@ -111,7 +111,7 @@ for (const path of appPages) {
 
 // Every public page the map lists — the sitemap's own list, the games' pages from their game.json: HTML that is no
 // page of the app, indexed, with the pages' CSP, its own title and description, the canonical link, a link preview with
-// the shared picture, one h1 and no placeholder left. A path without its closing slash leads to the one with it.
+// its picture (a game's page its own, served beside it; the others the shared one), one h1 and no placeholder left. A path without its closing slash leads to the one with it.
 const pageTitles = new Set<string>();
 for (const path of sitemapPaths(undefined, gameIds)) {
   const { response, body } = await get(path);
@@ -120,6 +120,10 @@ for (const path of sitemapPaths(undefined, gameIds)) {
   const meta = (name: string) =>
     new RegExp(`<meta (?:name|property)="${name}" content="([^"]*)"`).exec(body)?.[1];
   const canonical = /<link rel="canonical" href="([^"]*)"/.exec(body)?.[1] ?? '';
+  // A game's page has its own picture, in its language (ADR 0047); the others the shared one.
+  const picture = /^(\/en)?\/games\/[^/]+\/$/.test(path)
+    ? `${publicHubUrl}${path}og.png`
+    : `${publicHubUrl}/og.png`;
   check(
     response.status === 200 &&
       (response.headers.get('content-type') ?? '').startsWith('text/html') &&
@@ -137,13 +141,20 @@ for (const path of sitemapPaths(undefined, gameIds)) {
       (meta('description') ?? '') !== '' &&
       canonical === `${publicHubUrl}${path}` &&
       meta('og:url') === `${publicHubUrl}${path}` &&
-      meta('og:image') === `${publicHubUrl}/og.png` &&
+      meta('og:image') === picture &&
       meta('twitter:card') === 'summary_large_image' &&
       (body.match(/<h1[\s>]/g) ?? []).length === 1 &&
       !body.includes('.invalid') &&
       !body.includes('[[['),
     `${path}: its own title and description, the canonical link, the link preview with the hub's URL, one h1 (${title})`,
   );
+  if (picture !== `${publicHubUrl}/og.png`) {
+    const own = await get(`${path}og.png`);
+    check(
+      own.response.status === 200 && (own.response.headers.get('content-type') ?? '').startsWith('image/png'),
+      `${path}og.png: the game's own link-preview picture (${own.response.status})`,
+    );
+  }
   pageTitles.add(title);
   if (path !== '/') {
     const bare = await get(path.slice(0, -1));
