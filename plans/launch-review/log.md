@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (merge G0 G1, G2a ∥ G3) — agent
+
+- Owner: Access đã bật (điểm 1); điểm 3–13 "ổn, theo đề xuất"; điểm 2 muốn xem toàn bộ route → [routes.md](routes.md);
+  "merge giúp" → **#110, #111, #112 merged** (quyết định ghi vào ADR 0042/0046/0047 trong #112). Không điểm nào tách.
+- **G2a ∥ G3**: hai builder (Opus · high) chạy từ `main`. B (Dependabot) → PB-20, #115. Status: **Better Stack** (miễn
+  phí, domain riêng, 3 phút), #114. Chat id để ở Infisical được (template). Mail thử nhận được; Resend `notify.` chưa.
+
 ## 2026-10-22 (G1, CI) — agent
 
 - CI của #112 đỏ ở E2E (smoke), bước "bảng xếp hạng trên game", hai lần liên tiếp; `main` xanh. Bỏ header

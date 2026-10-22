@@ -6,31 +6,36 @@
 - Phase: **Graduate — đợt 1** ([process](../README.md#phases)) — brief đã xác nhận, mọi quyết định của đợt 1 đã chốt
   (2026-10-22); đợt 2 còn ở *Map*.
 - Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (draft)
-- Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (bức tranh đầy đủ) · Log: [log.md](log.md)
+- Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (bức tranh đầy đủ) · **Route: [routes.md](routes.md)** · Log: [log.md](log.md)
 - Research: [R-01 trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại](research/R-02-layout-prior-art.md) ·
   [R-03 quay lại, app đã cài](research/R-03-coming-back.md) · [R-04 host và path](research/R-04-hosts-and-paths-review.md) ·
   [R-05 học từ miniblox](research/R-05-learning-from-peers.md) · [R-06 SEO, GEO, mở rộng](research/R-06-seo-geo-scale.md)
 - Trước đó: [`product-surface`](../product-surface/PLAN.md) (Phase 1, Close 2026-10-21) · Ý ngoài phạm vi:
-  `docs/roadmap/product-backlog.md` (PR #110)
+  `docs/roadmap/product-backlog.md` (#110, đã merge)
 
 ## Next — one item
 
-**Owner duyệt và merge G0 [#111](https://github.com/vinh466/tohe-play/pull/111)** (ADR 0046, 0047, `surfaces.md`) rồi **G1
-[#112](https://github.com/vinh466/tohe-play/pull/112)** (xếp trên #111). Trong ADR có các điểm *(agent)* chờ owner duyệt, và
-một câu **mở**: mô tả game theo ngôn ngữ (quyết ở G3). Sau đó: G2a ∥ G3.
+**G2a ∥ G3**: hai builder (Opus · high) đang chạy từ `main` sau #112. Master duyệt diff, chạy lại `pnpm verify`, mở PR,
+owner merge. Song song: owner duyệt [bản đồ route](routes.md) (điểm 2 — bỏ redirect ở `/`), cần trước G2b.
 
 ## Waiting on the owner
 
-1. **Duyệt G0** khi agent báo sẵn sàng.
-2. **Merge PR #110** (backlog sản phẩm) khi tiện.
-3. Thuộc Cổng (E-01), từ Phase 1:
-   - **Alertmanager trên prod** (Telegram): token bot vào Infisical `platform/prod` `/monitoring`, khoá `telegram-bot-token`,
-     gửi chat id — agent mở PR `platform-infra`.
-   - **Cloudflare**: AI Crawl Control cho phép bot tìm kiếm (D-06); Bot Fight Mode / Under Attack / WAF challenge tắt; chọn
-     dịch vụ `status.`; **Access cho `console.`** (D-05).
-   - Thư thử tới `hello@`, `security@`; Resend `notify.` ([guide](../../docs/guides/mail-and-status.md)).
-   - Khi chốt ngày launch: thử khôi phục bản sao lưu DB prod một lần.
+1. **Điểm 2 — bỏ redirect ở `/`**: xem [routes.md](routes.md), chốt giữ hay bỏ (đề xuất: bỏ, thêm *Chơi tiếp*).
+2. **Merge [#114](https://github.com/vinh466/tohe-play/pull/114)** (status page: Better Stack, docs) và
+   **[#115](https://github.com/vinh466/tohe-play/pull/115)** (PB-20 Dependabot vào backlog) khi tiện.
+3. Thuộc Cổng (E-01):
+   - **Better Stack** theo #114: đăng ký, bốn monitor, status page với domain `status.toheplay.io.vn`, `CNAME` `status`
+     → `statuspage.betteruptime.com` (DNS only). Xong thì báo — agent đổi host `status` sang `serving`, thêm kiểm tra.
+   - **Alertmanager trên prod** (Telegram): Infisical `platform/prod` `/monitoring`, khoá `telegram-bot-token` **và**
+     `telegram-chat-id` (chat id để ở Infisical được: Secret dựng bằng template như
+     `platform-infra/apps/platform/base/ghcr-secret.yaml`). Báo agent → agent mở PR `platform-infra`.
+   - **Resend `notify.`** ([guide](../../docs/guides/mail-and-status.md)): 2026-10-22 DNS chưa có
+     `resend._domainkey.notify`, `send.notify`.
+   - **Khôi phục bản sao lưu DB prod** một lần: khi owner báo launch "chín".
 4. Merge bằng `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng" — PR draft là chưa sẵn sàng.
+
+Xong (2026-10-22): Cloudflare Access trước `console.` (kiểm từ ngoài: 302 sang `vinh466.cloudflareaccess.com`);
+Cloudflare: AI Crawl Control, Bot Fight Mode / Under Attack / WAF challenge; thư thử `hello@`, `security@` nhận được.
 
 ## Board
 
@@ -62,10 +67,10 @@ Mỗi PR một mục đích, spec trước, `pnpm verify` xanh; builder Opus · 
 
 | Phase | PR | Nội dung | Từ | Cần trước | Song song với |
 |---|---|---|---|---|---|
-| **G0** | Spec | **ADR 0046** "Bề mặt người chơi: hai vùng, một khung" (D-02, D-04, mặt phẳng và luật leo thang của D-05; sửa ADR 0042: `/together`, bỏ redirect ở `/`). **ADR 0047** "Hai ngôn ngữ và bề mặt giới thiệu lớn theo số game" (D-01, D-06; sửa ADR 0042: `/en/`, `/promise/`). Trang **`docs/architecture/surfaces.md`** có sơ đồ; cập nhật `hosts-and-paths.md` | D-01, D-02, D-04, D-05, D-06 | — | — |
-| **G1** | Crawler, header | `robots.txt`: nhóm bot tìm kiếm của AI (lặp lại luật, RFC 9309), nhóm bot/token chỉ để huấn luyện `Disallow: /`; `Origin-Agent-Cluster: ?1` ở `Caddyfile.games`. **Namespace** `/en/`, `/promise/`, `/together` **đi cùng trang của chúng** (G2a, G2b, G4) — namespace được index mà chưa có trang thì sitemap và `check-build` hỏng | D-05, D-06 | G0 | — |
-| **G2a** | Trang công khai hai ngôn ngữ | namespace `/en/…`; Astro i18n routing; `/en/` cho mọi trang; `hreflang` trong sitemap, `x-default` → `/en/`; VI \| EN và gợi ý; luật mới của `check-build.ts`; viết nội dung tiếng Anh | D-01 | G1 | G3 |
-| **G3** | Tên game (Game Contract) | **ADR 0048**: `name` là tên chuẩn, `names.<ngôn ngữ>` tuỳ chọn; contract, SDK, registry (migration thêm cột), hub hiện tên theo ngôn ngữ, conformance; bốn game đổi `game.json` | D-01 | G1 | G2a |
+| **G0** ✓ [#111](https://github.com/vinh466/tohe-play/pull/111) | Spec | **ADR 0046** "Bề mặt người chơi: hai vùng, một khung" (D-02, D-04, mặt phẳng và luật leo thang của D-05; sửa ADR 0042: `/together`, bỏ redirect ở `/`). **ADR 0047** "Hai ngôn ngữ và bề mặt giới thiệu lớn theo số game" (D-01, D-06; sửa ADR 0042: `/en/`, `/promise/`). Trang **`docs/architecture/surfaces.md`** có sơ đồ; cập nhật `hosts-and-paths.md` | D-01, D-02, D-04, D-05, D-06 | — | — |
+| **G1** ✓ [#112](https://github.com/vinh466/tohe-play/pull/112) | Crawler | `robots.txt`: nhóm bot tìm kiếm của AI (lặp lại luật, RFC 9309), nhóm bot/token chỉ để huấn luyện `Disallow: /`; `Origin-Agent-Cluster: ?1` ở `Caddyfile.games`. **Namespace** `/en/`, `/promise/`, `/together` **đi cùng trang của chúng** (G2a, G2b, G4) — namespace được index mà chưa có trang thì sitemap và `check-build` hỏng | D-05, D-06 | G0 | — |
+| **G2a** · đang build | Trang công khai hai ngôn ngữ | namespace `/en/…`; Astro i18n routing; `/en/` cho mọi trang; `hreflang` trong sitemap, `x-default` → `/en/`; VI \| EN và gợi ý; luật mới của `check-build.ts`; viết nội dung tiếng Anh | D-01 | G1 | G3 |
+| **G3** · đang build | Tên game (Game Contract) | **ADR 0048**: `name` là tên chuẩn, `names.<ngôn ngữ>` tuỳ chọn; contract, SDK, registry (migration thêm cột), hub hiện tên theo ngôn ngữ, conformance; bốn game đổi `game.json` | D-01 | G1 | G2a |
 | **G2b** | Một nguồn cho mỗi game | namespace `/promise/`; `games/<id>/page/{vi,en}.md` + `facts.json`; sự thật từ `game.json`; ảnh OG từng game; trang game có bảng sự thật; trang chủ danh mục trước; `/promise/`; "Chơi tiếp" thay redirect; `/new-game` viết trang | D-06, D-02 | G2a, G3 | G4 |
 | **G4** | Khung app | namespace `/together`; layout route; thanh dưới / rail; Trò chơi · Chơi cùng (`/together`) · Tôi; bỏ menu sheet; bố cục máy tính; bỏ khoá màn dọc; lịch sử cho nút back; cài đặt ngôn ngữ và thứ tự chọn; mã quản lý cho link ra ngoài của hồ sơ trẻ | D-02, D-01 | G1, G3 | G2b |
 | **G5** | Mở lại app | màn đầu "đang dở" (bàn, lời mời cho cả hồ sơ máy, chơi tiếp, gần đây); "Ai đang chơi?" 30 phút; phiên hết hạn; cập nhật êm (+ test hai bản build, PB-17); `launch_handler`; `persist()`; đếm lần quay lại; "Đã cài app?" trên trang lối vào | D-04 | G4 | G6 |
@@ -73,6 +78,21 @@ Mỗi PR một mục đích, spec trước, `pnpm verify` xanh; builder Opus · 
 | **G7** | Thử thật | UAT → prod khi owner nói; owner thử trên máy thật (Android, iPhone + app đã cài, Zalo, Messenger, máy tính) | — | G2b, G4, G5, G6 | — |
 
 Thứ tự: G0 → G1 → (G2a ∥ G3) → (G2b ∥ G4) → (G5 ∥ G6) → G7. Migration EF ở G3 và G6 merge lần lượt (chung snapshot).
+
+**Các điểm *(agent)* owner đã duyệt (2026-10-22) — xếp vào đâu.** Owner: "ổn nha, theo đề xuất … sắp xếp vào backlog
+nếu tách được, không thì gom làm một lần". Không điểm nào đáng tách: mỗi điểm là một phần nhỏ của đúng màn mà PR đó
+dựng, tách ra là sửa cùng màn hai lần.
+
+| # | Điểm | Vào |
+|---|---|---|
+| 1 | Cloudflare Access trước `console.` | **xong** (owner bật) |
+| 2 | Bỏ redirect ở `/`, nút *Chơi tiếp* | G2b — **chờ owner duyệt [routes.md](routes.md)** |
+| 3, 4, 5 | Tên ba tab; ô nhập mã ở màn đầu; bỏ khoá màn dọc | G4 |
+| 6 | Hồ sơ trẻ hỏi PIN khi bấm link ra ngoài | G4 (link ra ngoài xuất hiện cùng Tôi, nên đi cùng) |
+| 11 | Thứ tự ngôn ngữ của app | G2a ghi khoá + `?lang=`, G4 đọc |
+| 7, 9 | "Ai đang chơi?" sau 30 phút; cập nhật êm (+ PB-17) | G5 |
+| 12, 13 | "Chơi offline" chỉ khi mọi game; `facts.json` | G2b |
+| 8, 10 | Lời mời cho hồ sơ có ID; chưa làm push/badge | không có việc (đúng sẵn; đã ở backlog) |
 
 ## Graduation list — đợt 2
 
