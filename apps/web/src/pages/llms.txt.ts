@@ -8,6 +8,7 @@ import { loadGames } from '../content/games.ts';
 import { home } from '../content/home.ts';
 import { guides, install } from '../content/install.ts';
 import { legal } from '../content/legal.ts';
+import { promise } from '../content/promise.ts';
 import { absolute, docsUrl, site } from '../content/site.ts';
 import { type Lang, localPath } from '../i18n.ts';
 
@@ -15,11 +16,12 @@ const link = (name: string, path: string, text: string) => `- [${name}](${absolu
 
 /** The pages of one language: the main ones, then the games. */
 const pages = (lang: Lang) => [
-  link(site.name, localPath(lang, '/'), home[lang].lead),
+  link(site.name, localPath(lang, '/'), home[lang].line),
   link(guides[lang].heading, localPath(lang, '/guides/'), guides[lang].lead),
   link(install[lang].heading, localPath(lang, '/guides/install/'), install[lang].description),
   link(faq[lang].heading, localPath(lang, '/faq/'), faq[lang].description),
   link(about[lang].heading, localPath(lang, '/about/'), about[lang].description),
+  link(promise[lang].heading, localPath(lang, '/promise/'), promise[lang].description),
 ];
 const games = (lang: Lang) =>
   loadGames(lang).map((game) => link(game.name, localPath(lang, `/games/${game.id}/`), game.metaDescription));

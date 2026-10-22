@@ -32,3 +32,20 @@ describe('the games in this repository (ADR 0048)', () => {
     },
   );
 });
+
+// A game's public page is written beside it, in games/<id>/page/ (ADR 0047): its words, its facts and its link-preview
+// pictures. Only public/ (through the game's build) reaches the games origin, so none of them may sit there.
+describe('the games’ public-page sources stay off the games origin (ADR 0047)', () => {
+  const pageFiles = /^(vi\.md|en\.md|facts\.json|og\.json|og\.[a-z]+\.png|page)$/;
+  const walk = (dir: string): string[] =>
+    readdirSync(dir, { withFileTypes: true }).flatMap((entry) =>
+      entry.isDirectory() ? [entry.name, ...walk(join(dir, entry.name))] : [entry.name],
+    );
+
+  it.each(manifests)('%s keeps them in page/, not in public/', (folder) => {
+    expect(existsSync(join(gamesDir, folder, 'page', 'facts.json')), `games/${folder}/page/facts.json`).toBe(
+      true,
+    );
+    expect(walk(join(gamesDir, folder, 'public')).filter((name) => pageFiles.test(name))).toEqual([]);
+  });
+});

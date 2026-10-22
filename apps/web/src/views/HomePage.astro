@@ -1,16 +1,24 @@
 ---
-// The public home page, / in Vietnamese and /en/ in English (ADR 0042, 0047). The app starts at /play. The words are in
-// ../content/home.ts. A browser that has played here is sent on to the app by a script in <head>.
-import { loadGames } from '../content/games.ts';
+import { latestDay } from '../content/game-page.ts';
+// The public home page, / in Vietnamese and /en/ in English (ADR 0042, 0046, 0047): the catalog first — a big tile for
+// each game, leading to its page — under one line that says what Tò He is, then *Chơi ngay* into the app; below, playing
+// together, installing, the questions, the story and the promise, and the day it was last revised. It never redirects:
+// a browser that has played here gets *Chơi tiếp* at the top (../scripts/returning.js marks it before the first paint).
+// The words are in ../content/home.ts.
+import { loadGames, offlineEverywhere } from '../content/games.ts';
 import { home } from '../content/home.ts';
-import { absolute, docsUrl, site, siteWords } from '../content/site.ts';
+import { absolute, docsUrl, site } from '../content/site.ts';
 import { appPath, localPath, pageLanguage } from '../i18n.ts';
 import Page from '../layouts/Page.astro';
+import UpdatedOn from './UpdatedOn.astro';
 
 const lang = pageLanguage(Astro.currentLocale);
 const words = home[lang];
 const path = localPath(lang, '/');
 const games = loadGames(lang);
+const together = games.filter((game) => game.together);
+const updated = latestDay([words.updated, ...games.map((game) => game.page.updated)]);
+const gamePath = (id: string) => localPath(lang, `/games/${id}/`);
 const jsonLd = [
   {
     '@type': 'WebSite',
@@ -19,6 +27,7 @@ const jsonLd = [
     name: site.name,
     description: words.description,
     inLanguage: lang,
+    dateModified: updated,
     publisher: { '@id': absolute('/#organization') },
   },
   {
@@ -31,80 +40,101 @@ const jsonLd = [
     email: site.email,
     sameAs: [site.github],
   },
+  {
+    '@type': 'ItemList',
+    name: words.games.heading,
+    inLanguage: lang,
+    itemListElement: games.map((game, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: absolute(gamePath(game.id)),
+      name: game.name,
+    })),
+  },
 ];
 ---
 
 <Page title={words.title} description={words.description} path={path} returning jsonLd={jsonLd}>
   <main id="main" class="full">
-  <div class="hero">
-    <img src="/favicon.svg" alt="" width="96" height="96" />
-    <h1>{site.name}</h1>
-    <p class="lead">{words.lead}</p>
-    <div class="actions">
-      <a class="button primary" href={appPath(lang, '/play')}>{words.play}</a>
+    <div class="hero">
+      <p class="continue"><a class="button primary" href={appPath(lang, '/play')}>{words.continue}</a></p>
+      <h1>{site.name}</h1>
+      <p class="lead">{words.line}</p>
     </div>
-    <p class="hint"><a href={localPath(lang, '/guides/install/')}>{words.installHint}</a></p>
-  </div>
 
-  <div class="container">
-    <section class="features" aria-label={siteWords[lang].tagline}>
-      {
-        words.features.map((feature) => (
-          <article>
-            <span class="icon" aria-hidden="true">
-              {feature.icon}
-            </span>
-            <h2>{feature.title}</h2>
-            <p>{feature.text}</p>
-          </article>
-        ))
-      }
-    </section>
+    <div class="container">
+      <section aria-labelledby="games">
+        <h2 id="games">{words.games.heading}</h2>
+        <ul class="tiles">
+          {
+            games.map((game) => (
+              <li>
+                <a class="tile" href={gamePath(game.id)}>
+                  <img src={game.icon} alt="" width="80" height="80" />
+                  <span class="tile-name">{game.name}</span>
+                  <span class="tile-kind">{game.page.kind}</span>
+                </a>
+              </li>
+            ))
+          }
+        </ul>
+        <div class="actions">
+          <a class="button primary" href={appPath(lang, '/play')}>{words.play}</a>
+        </div>
+        <p class="hint">
+          <a href={localPath(lang, '/games/')}>{words.games.all}</a>
+          <a href={localPath(lang, '/guides/install/')}>{words.installHint}</a>
+        </p>
+      </section>
 
-    <section class="band">
-      <h2>{words.games.heading}</h2>
-      <ul class="cards">
+      <section class="band">
+        <h2>{words.friends.heading}</h2>
+        <p>{words.friends.text}</p>
         {
-          games.map((game) => (
-            <li>
-              <div class="card">
-                <div class="card-head">
-                  <img class="card-icon" src={game.icon} alt="" width="56" height="56" />
-                  <h3 class="card-title">
-                    <a href={localPath(lang, `/games/${game.id}/`)}>{game.name}</a>
-                  </h3>
-                </div>
-                <p>{game.description}</p>
-              </div>
-            </li>
-          ))
+          together.length > 0 && (
+            <p>
+              {words.friends.games}{' '}
+              {together.map((game, index) => (
+                <>
+                  {index > 0 && ', '}
+                  <a href={gamePath(game.id)}>{game.name}</a>
+                </>
+              ))}
+            </p>
+          )
         }
-      </ul>
-      <a class="more" href={localPath(lang, '/games/')}>{words.games.all}</a>
-    </section>
+      </section>
 
-    <section class="band">
-      <h2>{words.install.heading}</h2>
-      <p>{words.install.text}</p>
-      <a class="more" href={localPath(lang, '/guides/install/')}>{words.install.link}</a>
-    </section>
+      <section class="band">
+        <h2>{words.install.heading}</h2>
+        <p>{words.install.text}{offlineEverywhere() && ` ${words.install.offline}`}</p>
+        <a class="more" href={localPath(lang, '/guides/install/')}>{words.install.link}</a>
+      </section>
 
-    <section class="band">
-      <h2>{words.story.heading}</h2>
-      <p>{words.story.text}</p>
-    </section>
+      <section class="band">
+        <h2>{words.questions.heading}</h2>
+        <p>{words.questions.text}</p>
+        <a class="more" href={localPath(lang, '/faq/')}>{words.questions.link}</a>
+      </section>
 
-    <section class="band">
-      <h2>{words.questions.heading}</h2>
-      <p>{words.questions.text}</p>
-      <a class="more" href={localPath(lang, '/faq/')}>{words.questions.link}</a>
-    </section>
+      <section class="band">
+        <h2>{words.story.heading}</h2>
+        <p>{words.story.text}</p>
+      </section>
 
-    <section class="band">
-      <h2>{words.dev.heading}</h2>
-      <p>{words.dev.text}</p>
-      <a class="more" href={`${docsUrl}/`}>{words.dev.link}</a>
-    </section>
-  </div>
+      <section class="band">
+        <h2>{words.promise.heading}</h2>
+        <p>{words.promise.text}</p>
+        <a class="more" href={localPath(lang, '/promise/')}>{words.promise.link}</a>
+      </section>
+
+      <section class="band">
+        <h2>{words.dev.heading}</h2>
+        <p>{words.dev.text}</p>
+        <a class="more" href={`${docsUrl}/`}>{words.dev.link}</a>
+      </section>
+
+      <UpdatedOn day={updated} />
+    </div>
   </main>
 </Page>

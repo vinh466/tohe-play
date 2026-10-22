@@ -121,55 +121,81 @@ section > h2 {
   text-decoration: none;
 }
 
-/* The home page */
+/* The home page: the catalog first, under one line; *Chơi tiếp* only on a browser that has played here. */
 .hero {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 0.75rem;
-  padding: 2rem 1.5rem 3rem;
+  gap: 0.5rem;
+  padding: 1.5rem 1.5rem 2rem;
   text-align: center;
   background: linear-gradient(180deg, var(--tohe-soft-strong) 0%, var(--tohe-page) 100%);
 }
-.hero img {
-  border-radius: 24px;
-}
 .hero h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-size: clamp(2.25rem, 7vw, 3.5rem);
   font-weight: 900;
   color: var(--tohe-brand-ink);
 }
 .hero .lead {
-  max-width: 34rem;
+  max-width: 40rem;
   margin: 0;
-  font-size: 1.2rem;
+  font-size: 1.1rem;
+  font-weight: 600;
   color: var(--tohe-ink);
 }
-.hero .hint {
-  margin: 0.5rem 0 0;
+/* src/scripts/returning.js sets data-returning on <html> before the first paint. */
+.continue {
+  display: none;
+  margin: 0 0 0.5rem;
 }
-.features {
+:root[data-returning] .continue {
+  display: block;
+}
+.hint {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.25rem 1.25rem;
+  margin: 0.75rem 0 0;
+  font-weight: 700;
+}
+.tiles {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(10rem, 1fr));
   gap: 1rem;
-  margin-top: 1.5rem;
-}
-.features article {
-  padding: 1.25rem;
-  border-radius: 1.25rem;
-  background: var(--tohe-surface);
-}
-.features h2 {
-  margin: 0.5rem 0 0.25rem;
-  font-size: 1.15rem;
-}
-.features p {
   margin: 0;
-  color: var(--tohe-ink-soft);
+  padding: 0;
+  list-style: none;
 }
-.features .icon {
-  font-size: 1.75rem;
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  height: 100%;
+  padding: 1.25rem 1rem;
+  border-radius: 1.5rem;
+  background: var(--tohe-surface);
+  border: 1px solid var(--tohe-line);
+  color: var(--tohe-ink);
+  text-align: center;
+  text-decoration: none;
+}
+.tile:hover {
+  border-color: var(--tohe-brand);
+}
+.tile img {
+  border-radius: 20px;
+}
+.tile-name {
+  font-size: 1.2rem;
+  font-weight: 800;
+  color: var(--tohe-brand-ink);
+}
+.tile-kind {
+  font-size: 0.95rem;
+  color: var(--tohe-ink-soft);
 }
 .band {
   margin-top: 2.5rem;
@@ -369,6 +395,71 @@ section > h2 {
 .game-intro {
   margin: 1rem 0;
   font-size: 1.15rem;
+}
+
+.actions.start {
+  justify-content: flex-start;
+}
+/* The facts table: a fact a row, its name on the left. */
+.facts {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 1.25rem;
+  background: var(--tohe-surface);
+  overflow: hidden;
+}
+.facts th,
+.facts td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+.facts th {
+  width: 40%;
+  font-weight: 700;
+  color: var(--tohe-ink-soft);
+}
+.facts tr + tr th,
+.facts tr + tr td {
+  border-top: 1px solid var(--tohe-line);
+}
+.question + .question {
+  margin-top: 0.75rem;
+}
+.question h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+.pictures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+.pictures img {
+  width: 100%;
+  height: auto;
+  border-radius: 1rem;
+}
+/* The day a page's words were last revised. */
+.updated {
+  margin: 2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--tohe-ink-soft);
+}
+/* The promise */
+.promises {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+.promises h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.2rem;
+  color: var(--tohe-brand-ink);
 }
 
 /* Header */

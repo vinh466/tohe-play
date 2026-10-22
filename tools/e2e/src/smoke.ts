@@ -369,24 +369,23 @@ try {
   await leaderboard.getByRole('button', { name: '✕' }).tap();
 
   step(
-    `the public page (${hubUrl}/?stay) and the docs (${docsUrl}) share the app's light/dark choice; a device that has played here goes on from the root to the app`,
+    `the public page (${hubUrl}/) and the docs (${docsUrl}) share the app's light/dark choice; a device that has played here stays on the root, which offers "Chơi tiếp" to the app (ADR 0046)`,
   );
-  await page.goto(`${hubUrl}/?stay`);
+  await page.goto(hubUrl);
   await page.getByRole('button', { name: 'Tối' }).tap();
   await expectTheme('dark');
   await page.goto(docsUrl);
   await expectTheme('dark');
   await shot('docs');
-  await page.goto(`${hubUrl}/?stay`);
-  await expectTheme('dark');
-  await page.waitForTimeout(300);
-  if (new URL(page.url()).pathname !== '/') throw new Error(`/?stay was redirected to ${page.url()}`);
-  // The app keeps `tohe:guest` on a device that plays as its device profiles; the page's script reads it (and the
-  // telemetry's device id) from the same origin's localStorage.
-  await page.evaluate(() => localStorage.setItem('tohe:guest', '1'));
+  // This device has played (the app wrote its keys above): / never redirects, it shows Chơi tiếp at the top.
   await page.goto(hubUrl);
+  await expectTheme('dark');
+  const continueLink = page.getByRole('link', { name: 'Chơi tiếp' });
+  await continueLink.waitFor();
+  if (new URL(page.url()).pathname !== '/') throw new Error(`/ was redirected to ${page.url()}`);
+  await shot('landing-returning');
+  await continueLink.tap();
   await page.waitForURL(catalogUrl);
-  await page.evaluate(() => localStorage.removeItem('tohe:guest'));
   await expectTheme('dark');
 
   step(

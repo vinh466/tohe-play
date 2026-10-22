@@ -184,5 +184,6 @@ passwords are public, so a database that holds real people must never have these
 | `ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION` | pnpm refuses packages published in the last 24 h (supply-chain policy). Use a slightly older version or wait; do not add exclusions. |
 | `dotnet watch` warns about the inotify limit | Already handled: the dev script uses the polling watcher. To raise the limit: `sudo sysctl fs.inotify.max_user_watches=524288`. |
 | Conformance/e2e: `Executable doesn't exist` | The tools fall back to system Chrome; install Chrome, or `pnpm exec playwright install chromium` where supported. |
+| The public pages' build: `games/<id>/page/og.vi.png is out of date` | The game's name, `kind` or icon changed since its link-preview picture was drawn: `pnpm --filter @tohe/web generate:og` (Chromium or Chrome, and Noto Sans for Vietnamese), look at the pictures, commit them. |
 | Catalog is empty | The API polls the games origin every 15 s (dev) / 20 s (docker). Check the games origin serves `/catalog.json`. |
 | Port already in use | Another mode is running: `docker compose down`, `pnpm stack:image --down`, or stop `pnpm dev`. |

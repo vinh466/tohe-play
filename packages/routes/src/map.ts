@@ -202,16 +202,21 @@ export const hubNamespaces: readonly Namespace[] = [
     crawl: true,
     navigation: 'network',
     cache: 'revalidate',
-    note: 'The public home page (Vietnamese; the English one is /en/); a browser that has played here is sent on to /play',
+    note: 'The public home page (Vietnamese; the English one is /en/): the catalog first; it never redirects — a browser that has played here gets Chơi tiếp to /play (ADR 0046)',
   },
   publicPage(
     'game-pages',
     '/games',
-    'The games (/games/) and one page for each (/games/<gameId>/), made from game.json',
+    'The games (/games/) and one page for each (/games/<gameId>/) with its link-preview picture (/games/<gameId>/og.png), made from the game’s folder: game.json and page/ (ADR 0047)',
   ),
   publicPage('guides', '/guides', 'Guides: /guides/ and how to install the app, /guides/install/'),
   publicPage('faq', '/faq', 'Short answers to what people ask first'),
   publicPage('about', '/about', 'What Tò He is, who runs it, how to reach them'),
+  publicPage(
+    'promise',
+    '/promise',
+    'The promise: no ads, no tracking, nothing to buy, no coins — never (ADR 0047)',
+  ),
   publicPage('terms', '/terms', 'The terms of use, rendered from apps/hub/src/legal/documents.ts'),
   publicPage('privacy', '/privacy', 'The privacy notice, rendered from apps/hub/src/legal/documents.ts'),
   publicPage(
@@ -420,6 +425,7 @@ export function publicPages(gameIds: readonly string[]): Record<string, readonly
     guides: ['/guides/', '/guides/install/'],
     faq: ['/faq/'],
     about: ['/about/'],
+    promise: ['/promise/'],
     terms: ['/terms/'],
     privacy: ['/privacy/'],
   };

@@ -1,42 +1,31 @@
-// The words of the home page, / and /en/. The owner reviews them in the pull request: change them here, not in the page.
+// The words of the home page, / and /en/ (ADR 0046, 0047): the catalog first, then playing together, installing, the
+// questions, the story and the promise. The owner reviews them in the pull request: change them here, not in the page.
 import type { Lang } from '../i18n.ts';
 
 const vi = {
   title: 'Tò He — game nhỏ, mở ra là chơi',
   description:
     'Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link.',
-  lead: 'Những trò chơi nhỏ, nhanh, gọn. Mở link là chơi trên điện thoại hay máy tính — không quảng cáo, không phải đăng ký.',
+  /** The one line under the name: what Tò He is, in five seconds (ADR 0047). */
+  line: 'Game nhỏ cho cả nhà · Không quảng cáo · Không cần tài khoản · Chơi ngay',
+  /** Only on a device that has played here (src/scripts/returning.js): to the app, at the top of the page. */
+  continue: 'Chơi tiếp →',
   play: 'Chơi ngay — không cần tài khoản',
   installHint: 'Cài lên màn hình chính',
-  features: [
-    {
-      icon: '📱',
-      title: 'Mở là chơi',
-      text: 'Bấm vào link là vào chơi ngay trên trình duyệt. Không phải tải về, không phải đăng ký trước.',
-    },
-    {
-      icon: '🚫',
-      title: 'Không quảng cáo',
-      text: 'Chơi liền mạch, không bị cắt ngang. Không bán gì trong game, không theo dõi bạn.',
-    },
-    {
-      icon: '🔗',
-      title: 'Rủ bạn bằng một link',
-      text: 'Mở phòng chơi, gửi link qua Zalo hay Messenger là bạn vào cùng bàn.',
-    },
-    {
-      icon: '💾',
-      title: 'Giữ tiến độ khi bạn muốn',
-      text: 'Chơi trước, đăng nhập sau: tạo tài khoản khi bạn muốn giữ điểm, chơi trên máy khác hay lên bảng xếp hạng.',
-    },
-  ],
   games: {
     heading: 'Chơi gì hôm nay?',
     all: 'Xem tất cả trò chơi →',
   },
+  friends: {
+    heading: 'Chơi cùng bạn bè',
+    text: 'Mở phòng chơi, gửi link qua Zalo hay Messenger là bạn vào cùng bàn — mỗi người một điện thoại.',
+    games: 'Chơi cùng được:',
+  },
   install: {
     heading: 'Như một ứng dụng trên điện thoại',
-    text: 'Thêm Tò He vào màn hình chính để mở nhanh, chạy toàn màn hình và chơi được cả khi mất mạng. Android, iPhone hay máy tính đều được.',
+    text: 'Thêm Tò He vào màn hình chính để mở nhanh và chạy toàn màn hình. Android, iPhone hay máy tính đều được.',
+    /** Said only once every game's facts say it plays offline (games/<id>/page/facts.json, ADR 0047). */
+    offline: 'Chơi được cả khi mất mạng.',
     link: 'Xem cách cài →',
   },
   story: {
@@ -48,6 +37,11 @@ const vi = {
     text: 'Miễn phí không, dữ liệu để đâu, bé chơi có ổn không — câu trả lời ngắn ở trang Hỏi đáp.',
     link: 'Đọc Hỏi đáp →',
   },
+  promise: {
+    heading: 'Lời hứa của Tò He',
+    text: 'Không quảng cáo, không theo dõi, không mua bán, không xu — không bao giờ.',
+    link: 'Đọc lời hứa →',
+  },
   dev: {
     heading: 'Dành cho người làm game',
     text: 'Mỗi trò chơi là một gói độc lập, giao tiếp với nền tảng qua một hợp đồng nhỏ và ổn định. Tài liệu kỹ thuật (tiếng Anh) mô tả kiến trúc, hợp đồng và cách tạo game mới — cho cả người lẫn AI.',
@@ -56,44 +50,31 @@ const vi = {
   organization: {
     description: 'Tò He là một góc chơi nhỏ gồm những trò chơi đơn giản trên trình duyệt, không quảng cáo.',
   },
+  /** The day these words were last revised; the page shows the latest of it and its games' (YYYY-MM-DD). */
+  updated: '2026-10-22',
 };
 
 const en: typeof vi = {
   title: 'Tò He — small games, open and play',
   description:
     'Small games you open and play: no ads, no account needed. Keep your progress when you want to, and bring friends to your table with one link.',
-  lead: 'Small, quick, tidy games. Open the link and play on a phone or a computer — no ads, no sign-up.',
+  line: 'Small games for the whole family · No ads · No account needed · Play now',
+  continue: 'Continue →',
   play: 'Play now — no account needed',
   installHint: 'Add it to your home screen',
-  features: [
-    {
-      icon: '📱',
-      title: 'Open and play',
-      text: 'Tap the link and you are playing, right in the browser. Nothing to download, nothing to sign up for first.',
-    },
-    {
-      icon: '🚫',
-      title: 'No ads',
-      text: 'Play without interruptions. Nothing is sold in the games, and nobody tracks you.',
-    },
-    {
-      icon: '🔗',
-      title: 'Invite with one link',
-      text: 'Open a table, send the link over Zalo or Messenger, and your friends sit down with you.',
-    },
-    {
-      icon: '💾',
-      title: 'Keep your progress when you want',
-      text: 'Play first, sign in later: create an account when you want to keep your scores, play on another device or get on the leaderboard.',
-    },
-  ],
   games: {
     heading: 'What to play today?',
     all: 'See all games →',
   },
+  friends: {
+    heading: 'Play with friends',
+    text: 'Open a table, send the link over Zalo or Messenger, and your friends sit down with you — each on their own phone.',
+    games: 'Games to play together:',
+  },
   install: {
     heading: 'Like an app on your phone',
-    text: 'Add Tò He to your home screen to open it quickly, play full screen and keep playing offline. Android, iPhone or a computer all work.',
+    text: 'Add Tò He to your home screen to open it quickly and play full screen. Android, iPhone or a computer all work.',
+    offline: 'It plays offline too.',
     link: 'See how to install →',
   },
   story: {
@@ -105,6 +86,11 @@ const en: typeof vi = {
     text: 'Is it free, where is my data, is it fine for children — short answers on the FAQ page.',
     link: 'Read the FAQ →',
   },
+  promise: {
+    heading: 'Our promise',
+    text: 'No ads, no tracking, nothing to buy, no coins — ever.',
+    link: 'Read the promise →',
+  },
   dev: {
     heading: 'For game makers',
     text: 'Every game is a package of its own that talks to the platform through a small, stable contract. The developer docs describe the architecture, the contract and how to make a new game — for people and AI alike.',
@@ -113,6 +99,7 @@ const en: typeof vi = {
   organization: {
     description: 'Tò He is a small corner of simple browser games, with no ads.',
   },
+  updated: '2026-10-22',
 };
 
 export const home: Record<Lang, typeof vi> = { vi, en };
