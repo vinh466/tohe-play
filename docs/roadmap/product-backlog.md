@@ -69,7 +69,7 @@ Engagement here never means pressure: no streaks that punish, no countdowns, no 
 
 | ID | Idea | Value | Effort | Status | Needs |
 | --- | --- | --- | --- | --- | --- |
-| PB-13 | **`Origin-Agent-Cluster: ?1` on the games origin**, so browsers keep games apart by origin rather than by site | M | S | idea | Check browser support |
+| PB-13 | **`Origin-Agent-Cluster: ?1` on the games origin**, so browsers keep games apart by origin rather than by site. Tried on 2026-10-22: the e2e step that opens the leaderboard from a game's title screen failed twice with it (a tap inside the game's frame timed out) and passed without it | M | S | idea | Understand why the e2e step fails with it; check browser support |
 | PB-14 | **Games on a domain of their own, then a site per game** (isolation levels L2, L3). Today the games origin is `games.` of the hub's domain (L1), right for games the owner adds to this repository | — | M | idea | **Condition:** before the first game that the owner did not add; the owner then chooses L2 or L3 |
 | PB-15 | **Sign in with Zalo** | M | M | idea | Zalo may not give an email address |
 | PB-16 | **A service worker on the games origin**, so games not opened recently also play offline | M | M | idea | The spike in the [walking skeleton](walking-skeleton.md) |
