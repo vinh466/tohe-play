@@ -97,9 +97,14 @@ flowchart LR
 
 | Tab | Path | From the top |
 | --- | --- | --- |
-| **Trò chơi** — Games | `/play` | who is playing (*Change*) and a button for a code → the table the player sits at → invitations → *Continue* (the game this profile opened last) → recent → every game |
-| **Chơi cùng** — Play together | `/together` | the box for a code → the player's tables → invitations → the links they sent (the full list stays at `/account/links`) |
-| **Tôi** — Me | `/account` | profiles and who is playing → settings (language, theme, sound) → install → help and about → feedback → papers → the account |
+| **Trò chơi** — Games | `/play` | who is playing (a chip with the name; tapped, the picker) and *Nhập mã* → the table the player sits at → invitations → *Chơi tiếp* (the game this profile opened last, one big tile) → recent → every game, each a picture and a name. No title, no strip about where progress is kept, no link to technical data: those are Tôi's |
+| **Chơi cùng** — Play together | `/together` | the player's tables → *Mở bàn* (one button for each game that has tables, to its lobby) → invitations → a one-line box for a code ("Có mã? Gõ mã hoặc dán link.") → the links they sent (the full list stays at `/account/links`). On a computer the first three and the last two stand in two columns |
+| **Tôi** — Me | `/account` | who is playing (one tap to change) → settings (language, theme, sound, install) → help (guides, FAQ, about, the promise, feedback — one row) → papers (terms, privacy, technical data) → the account. Groups are a heading and rows, not a card each; on a computer, two columns |
+
+None of the tabs' screens repeats its tab's name as a title: the bar or the rail says where it is, and the name stays as a
+heading for screen readers. The look and the words are those of [Voice and look](../conventions/voice-and-look.md): icons
+are SVG from one set and carry a label; a game's tile is a picture and a name, never a cut description; "Rủ bạn"
+(share) and "Bảng điểm" (leaderboard) are labelled buttons under the name.
 
 - Each level — the app, a table, a game — is an entry in the history, so Android's back steps one level.
 - **A way back on every screen.** An installed app on an iPhone has no Back, so no screen is a dead end that needs the
@@ -113,8 +118,8 @@ flowchart LR
   does ask, on one occasion: a portrait game on a phone held sideways (below).
 - **A short landscape screen** *(agent)* — a phone held sideways, under 500 px high (a height query on a touch screen
   or not): the rail instead of the bottom bar, a compact header (the tab's name smaller, tighter spacing), and tiles
-  that shrink, so the catalog's first screen shows games, not only its heading. A tablet or a computer (500 px and up)
-  keeps the frame as above.
+  that shrink, so the catalog's first screen shows games first. A tablet or a computer (500 px and up) keeps the frame as
+  above.
 - **A portrait game on a phone held sideways** *(agent)*: when the game's `game.json` orientation is `portrait`, the
   screen is a touch screen in landscape and under 500 px high, a calm layer covers the game: "Xoay dọc máy để chơi" /
   "Turn your phone upright to play", a drawing of a phone turning upright. The game keeps running underneath and the
@@ -134,7 +139,9 @@ flowchart LR
   shown by CSS alone, so there is no state to stick and nothing is paused. A game outside the frame
   (`launcher/GameFrame.tsx`) with the hub's own top bar (a game without the `shell` capability) keeps 56 px of bar under
   a notch: the bar's height is 3.5rem plus the safe-area inset.
-- Each tab's screen starts with the tab's name and the player's avatar and name, which open the profile picker. The bar
+- Each tab's screen starts with a chip of the player's avatar and name, which opens the profile picker (and, in Trò chơi, with
+  *Nhập mã* at the other end). The chip never cuts the name: it wraps at the spaces up to a width (9 rem on a phone, 16 rem
+  from a tablet and on a short screen), and the tab's name is a heading for screen readers only. The bar
   sits above the phone's home indicator (`env(safe-area-inset-bottom)`) and steps aside while a field that brings up the
   keyboard has the focus. The rail comes before the screen in the document and the bar after it, so the focus follows
   what is seen; the tab of the screen shown carries `aria-current="page"`.
@@ -168,11 +175,11 @@ flowchart LR
 
 | Moment | Where | How |
 | --- | --- | --- |
-| Trò chơi's first screen | `pages/CatalogPage.tsx`, `launcher/recent.ts`, `rooms/myTables.ts` | from the top: who is playing and *Nhập mã*; **Bàn đang ngồi** — the tables of `GET /api/rooms/mine`, "Tiến Lên · bàn của Bố — Vào lại" (an account's profile, or a device profile with a copy on the server); the invitations, as before; **Chơi tiếp** — the game this profile opened last, one big tile; **Gần đây** — up to six it opened before; every game. A section with nothing to show is not shown. The hub notes "opened" itself when a game's menu or its tables' lobby opens: per profile, on the device, in IndexedDB's `cache` table (`opened:<profileId>`, a game's id and a time, the last twelve), gone with a device profile that is deleted; the same moment writes `tohe:returning` in `localStorage`, which the public pages read for *Chơi tiếp* (and nothing else does); the Game Contract does not change. Whether a round is left unfinished, the game says on its own title screen |
-| Who is playing | `session/whoIsPlaying.ts`, `RequireSession`, the picker | localStorage `tohe:last-used` holds when the app was last in sight (written each minute while seen and when it leaves sight). A page load is a cold start: if it follows 30 minutes or more since then, and the device has more than one profile — an account's profiles, or this device's own — the first screen that needs a player sends to the picker (`/account/profiles?ask=true`) once; the screen that asked, or the link kept, opens after the tap. A first start, a clock set back, or storage refused asks nothing. On an account, choosing an adult's profile while a child's plays opens the parent gate first (the manage PIN, or the password or an email code without one), unless management is open already; choosing locks it again. Quản lý tài khoản was behind the gate already |
+| Trò chơi's first screen | `pages/CatalogPage.tsx`, `launcher/recent.ts`, `rooms/myTables.ts` | from the top: who is playing and *Nhập mã* (no title, no strip about progress, no technical-data link); **Bàn đang ngồi** — the tables of `GET /api/rooms/mine`, "Tiến Lên · bàn của Bố — Vào lại" (an account's profile, or a device profile with a copy on the server); the invitations, as before; **Chơi tiếp** — the game this profile opened last, one big tile (picture, name, the button); **Gần đây** — up to six it opened before; every game, as tiles of a picture and a name with *Rủ bạn* (and, for an account, *Bảng điểm*) under the name, in columns that grow with the screen (about 150 px on a phone, 240 px on a computer, 290 px on a tablet held upright) and stretch to fill the row. A section with nothing to show is not shown. The hub notes "opened" itself when a game's menu or its tables' lobby opens: per profile, on the device, in IndexedDB's `cache` table (`opened:<profileId>`, a game's id and a time, the last twelve), gone with a device profile that is deleted; the same moment writes `tohe:returning` in `localStorage`, which the public pages read for *Chơi tiếp* (and nothing else does); the Game Contract does not change. Whether a round is left unfinished, the game says on its own title screen |
+| Who is playing | `session/whoIsPlaying.ts`, `RequireSession`, the picker (`pages/ProfilesPage.tsx`) | The picker leads with the profile this device played last — "Vẫn là Mèo? Chơi tiếp", big, one tap — and the other profiles below it under "Người khác"; with no last player (a first start) it is the title and a grid. localStorage `tohe:last-used` holds when the app was last in sight (written each minute while seen and when it leaves sight). A page load is a cold start: if it follows 30 minutes or more since then, and the device has more than one profile — an account's profiles, or this device's own — the first screen that needs a player sends to the picker (`/account/profiles?ask=true`) once; the screen that asked, or the link kept, opens after the tap. A first start, a clock set back, or storage refused asks nothing. On an account, choosing an adult's profile while a child's plays opens the parent gate first (the manage PIN, or the password or an email code without one), unless management is open already; choosing locks it again. Quản lý tài khoản was behind the gate already |
 | The session ended | `session/ended.ts`, `api/queries.ts` | the hub keeps a copy of the account's session for playing offline; when the API answers that nobody is signed in while that copy is there, the session ended (signing out and deleting the account forget the copy first). The device keeps `tohe:session-ended` and every screen that needs a player shows "Phiên đăng nhập đã hết — đăng nhập lại để chơi tiếp bằng tài khoản" with *Đăng nhập lại* (back to the same screen after) and *Chơi trên máy này* — the device's profiles only when chosen. Signing in, or that choice, clears it |
 | A new version | `update/`, `vite.config.ts` | `registerType: 'prompt'`: the new service worker installs and waits, with no `skipWaiting`, `clientsClaim` or reload of its own, and takes over once every page of the app is closed. A long session asks for a new version every hour while in sight; *Có bản mới — Tải lại* shows above the bar on the frame's screens only (a game, a lobby, a table, a replay and the links into them are outside the frame), with *Để sau*. Only a tap reloads. `pnpm --filter @tohe/hub updates` builds the hub twice and checks it, in CI too |
-| A link while installed | the manifest, `install/launch.ts`, `install/InstalledAppHint.tsx` | `launch_handler: { client_mode: ["focus-existing", "auto"] }`; where the browser has `launchQueue` (Chromium), a link handed to the open app goes there — a screen of the app inside it, a public page as a page. On an iPhone or iPad outside the app, an entry page's screens (`/r/…`, `/s/…`: the table's preview, the named screen) carry "Đã cài app Tò He? Mở app → Nhập mã 482 913"; not a dead end |
+| A link while installed | the manifest, `install/launch.ts`, `install/InstalledAppHint.tsx` | `launch_handler: { client_mode: ["focus-existing", "auto"] }`; where the browser has `launchQueue` (Chromium), a link handed to the open app goes there — a screen of the app inside it, a public page as a page. On an iPhone or iPad outside the app, an entry page's screens (`/r/…`, `/s/…`: the table's preview, the named screen) carry "Đã cài app Tò He? Mở app, bấm Nhập mã rồi gõ 482 913."; not a dead end |
 | Storage | `install/launch.ts` | the installed app asks `navigator.storage.persist()` once (`tohe:persist-asked`), unless its storage persists already |
 | Counting | `telemetry/funnel.ts` | `hub.funnel.browser-return`, once a day, beside `hub.funnel.standalone-open` |
 
@@ -225,7 +232,9 @@ on "Đang tải…" for good: nothing limited the wait for `GET /api/auth/me`, a
 | The page's language | **`?lang=vi`** or **`?lang=en`** on every link from a public page into the app (`/play`, `/play/<id>`, `/play/<id>/rooms`), the header's *Chơi ngay* and *Continue* on the home pages among them — a Vietnamese page's too: a Vietnamese page read on an English phone opens a Vietnamese app | `appPath` in `apps/web/src/i18n.ts` |
 
 The app's order stays as above: its own setting, which a choice on the public pages' switch fills in (the key), then
-the page the player came from (`?lang=`), then the browser, then Vietnamese. Tôi → Ngôn ngữ writes the same key, and
+the page the player came from (`?lang=`), then the browser, then Vietnamese. When the app has no setting yet, the
+page's language becomes it (`rememberEntryLanguage`): the installed app opens at `/play` without `?lang=`, and a family
+that came from a Vietnamese page keeps a Vietnamese app on an English phone. A choice already made is never overwritten. Tôi → Ngôn ngữ writes the same key, and
 the app changes language at once, without a reload; its links to the public pages follow it (and carry `?from=app`,
 above).
 

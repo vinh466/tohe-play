@@ -32,6 +32,7 @@ import { durationBucket } from '../telemetry/collector.ts';
 import { funnel, telemetry, telemetryOn } from '../telemetry/telemetry.ts';
 import { useTheme } from '../theme/useTheme.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
 import { EntryNotice, type GameAsk, GameAsks, type PlayingSession, Reopening } from './GameAsks.tsx';
 import { nameOf } from './gameWords.ts';
@@ -548,20 +549,24 @@ export function GameFrame({
           <button
             type="button"
             onClick={leave}
-            className="rounded-full px-3 py-1.5 font-semibold text-accent active:bg-soft"
+            className="flex min-h-11 items-center gap-1.5 rounded-full px-3 font-semibold text-accent active:bg-soft"
           >
-            ← {exitLabel ?? t('exit')}
+            <Icon name="arrow-left" className="text-xl" />
+            {exitLabel ?? t('exit')}
           </button>
-          <span className="truncate font-bold text-ink">{nameOf(game)}</span>
+          <span className="min-w-0 flex-1 px-2 text-center font-bold text-ink leading-tight">
+            {nameOf(game)}
+          </span>
           <span className="flex items-center gap-1">
             {topRight}
             <button
               type="button"
               onClick={() => setMuted((value) => !value)}
-              aria-label={muted ? t('unmute') : t('mute')}
-              className="rounded-full px-3 py-1.5 text-xl active:bg-soft"
+              aria-pressed={muted}
+              className="flex min-h-11 items-center gap-1.5 rounded-full px-3 font-semibold text-accent text-sm active:bg-soft"
             >
-              {muted ? '🔇' : '🔊'}
+              <Icon name={muted ? 'speaker-slash' : 'speaker-high'} className="text-xl" />
+              {muted ? t('unmute') : t('mute')}
             </button>
           </span>
         </nav>
@@ -588,7 +593,9 @@ export function GameFrame({
               {game.iconUrl ? (
                 <img src={game.iconUrl} alt="" className="size-24 rounded-3xl shadow-sm" />
               ) : (
-                <span className="grid size-24 place-items-center rounded-3xl bg-soft text-5xl">🎲</span>
+                <span className="grid size-24 place-items-center rounded-3xl bg-soft text-5xl text-accent">
+                  <Icon name="dice-five" weight="fill" />
+                </span>
               )}
               <span className="font-black text-2xl text-brand-ink">{nameOf(game)}</span>
               {reopened ? <Reopening game={game} /> : null}

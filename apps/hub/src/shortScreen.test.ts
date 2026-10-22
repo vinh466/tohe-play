@@ -29,8 +29,13 @@ describe('a short screen', () => {
     expect(indexHtml).toMatch(/md:hidden short:hidden/);
   });
 
-  it('shrinks the tab title', () => {
-    expect(appFrame).toMatch(/text-3xl text-brand-ink short:text-xl/);
+  it('shows no title of a tab: its name is a heading for screen readers, the bar says where this is', () => {
+    expect(appFrame).toContain('<h1 className="sr-only">{title}</h1>');
+    expect(appFrame).not.toMatch(/text-3xl text-brand-ink/);
+  });
+
+  it('lets the profile chip grow on a short screen, so a name keeps its words', () => {
+    expect(appFrame).toMatch(/short:max-w-64/);
   });
 });
 

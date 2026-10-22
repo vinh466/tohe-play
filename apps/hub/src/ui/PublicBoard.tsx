@@ -4,8 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { boards, type PublicRow } from '../api/client.ts';
 import { formatProfileId } from '../session/profileIds.ts';
 import { Avatar } from './AvatarGrid.tsx';
-
-const MEDALS = ['🥇', '🥈', '🥉'];
+import { Rank } from './Rank.tsx';
 
 /**
  * A community's or the server's board of a game (ADR 0029): the first 50, and the viewer's place with two on each side
@@ -97,9 +96,7 @@ function Row({
         onClick={() => setOpen(!open)}
         className={`flex w-full items-center gap-3 rounded-2xl p-3 text-left ${mine ? 'bg-soft-strong' : 'bg-surface'}`}
       >
-        <span className="w-10 shrink-0 text-center font-black text-ink text-xl tabular-nums">
-          {MEDALS[row.rank - 1] ?? row.rank}
-        </span>
+        <Rank place={row.rank} />
         <Avatar avatar={row.avatar} size="sm" />
         <span className="flex min-w-0 flex-1 flex-col">
           <span className="truncate font-bold text-ink">

@@ -10,6 +10,7 @@ import { AtTables } from '../session/AtTables.tsx';
 import type { Player, SessionState } from '../session/session.ts';
 import { Button } from '../ui/Button.tsx';
 import { copyText } from '../ui/copyText.ts';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { QrCode } from '../ui/QrCode.tsx';
 import { formatEntryCode } from './codes.ts';
@@ -17,7 +18,7 @@ import { gameLinkRequest, reusableLink, shareUrl } from './share.ts';
 
 type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
 
-/** 🔗 in the corner of a game card: "Chia sẻ" that game. */
+/** "Rủ bạn" under a game's name: a link to that game to send to someone. */
 export function ShareButton({ game, session }: { game: GameSummary; session: PlayingSession }) {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -27,9 +28,10 @@ export function ShareButton({ game, session }: { game: GameSummary; session: Pla
         type="button"
         onClick={() => setOpen(true)}
         aria-label={t('share.button', { game: nameOf(game) })}
-        className="absolute top-1.5 left-1.5 grid size-10 place-items-center rounded-full bg-soft text-xl active:scale-95"
+        className="inline-flex min-h-11 items-center gap-1.5 rounded-full px-3 font-semibold text-accent text-sm active:bg-soft"
       >
-        <span aria-hidden>🔗</span>
+        <Icon name="paper-plane-tilt" className="text-lg" />
+        {t('share.short')}
       </button>
       <ShareSheet game={game} session={session} open={open} onClose={() => setOpen(false)} />
     </>

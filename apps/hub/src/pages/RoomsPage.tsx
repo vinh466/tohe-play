@@ -21,8 +21,9 @@ import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
-import { Screen } from '../ui/Screen.tsx';
+import { backPill, Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
 
 /**
@@ -165,17 +166,15 @@ function Lobby({
             to="/play/$gameId"
             params={{ gameId }}
             aria-label={t('rooms.backToGame', { game: nameOf(game) })}
-            className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
+            className={backPill}
           >
-            ←
+            <Icon name="arrow-left" className="text-xl" />
+            {t('rooms.backToMenu')}
           </BackLink>
         ) : (
-          <BackLink
-            to="/play"
-            aria-label={t('backToGames')}
-            className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
-          >
-            ←
+          <BackLink to="/play" className={backPill}>
+            <Icon name="arrow-left" className="text-xl" />
+            {t('backToGames')}
           </BackLink>
         )}
         {game?.iconUrl ? <img src={game.iconUrl} alt="" className="size-12 rounded-2xl" /> : null}
@@ -195,12 +194,15 @@ function Lobby({
           disabled={!online || !game}
           onClick={() => quick.mutate()}
         >
+          <Icon name="lightning" weight="fill" />
           {t('rooms.quickPlay')}
         </Button>
         <Button variant="secondary" disabled={!online || !game} onClick={() => setCreating(true)}>
+          <Icon name="plus" />
           {t('rooms.create')}
         </Button>
         <Button variant="secondary" disabled={!online} onClick={() => setEntering(true)}>
+          <Icon name="ticket" />
           {t('rooms.enterCode')}
         </Button>
         <BackLink
@@ -208,6 +210,7 @@ function Lobby({
           params={{ gameId }}
           className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl bg-surface px-5 font-bold text-accent text-xl active:scale-[0.97]"
         >
+          <Icon name="robot" />
           {t('rooms.playBots')}
         </BackLink>
       </div>
@@ -232,19 +235,16 @@ function Lobby({
               >
                 <Avatar avatar={room.hostAvatar || '🙂'} size="sm" />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-bold text-ink">
-                    {room.hostName} {room.locked ? t('rooms.locked') : ''}
-                  </span>
+                  <span className="truncate font-bold text-ink">{room.hostName}</span>
                   <span className="text-ink-soft text-sm">
                     {t('rooms.seatsTaken', { taken: room.taken, seats: room.seats })} ·{' '}
                     {t(`rooms.status.${room.status}`)}
                     {room.mine ? ` · ${t('rooms.yours')}` : ''}
-                    {room.spectators ? ' · 👁' : ''}
+                    {room.locked ? ` · ${t('rooms.locked')}` : ''}
+                    {room.spectators ? ` · ${t('rooms.canWatch')}` : ''}
                   </span>
                 </span>
-                <span aria-hidden className="text-accent text-xl">
-                  ›
-                </span>
+                <Icon name="caret-right" className="text-accent text-xl" />
               </button>
             </li>
           ))}

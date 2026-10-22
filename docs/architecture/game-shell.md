@@ -165,7 +165,7 @@ title screen's way out sends `exit`.
   hub's sheet offers **← Về Tò He** or **Chờ thêm**.
 - **Leaving from the game** goes at once: a choice made in its menu needs no question. Leaving a table asks, as
   before, unless watching.
-- **Leaderboard** opens as a sheet over the game: the same board as 🏆 on catalog cards, which stays.
+- **Leaderboard** opens as a sheet over the game: the same board as *Bảng điểm* under each game on the catalog, which stays.
 - **Sound** is remembered per device (`tohe:muted`), whichever game switched it.
 
 ## Kit

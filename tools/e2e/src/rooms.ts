@@ -243,7 +243,7 @@ try {
   await invite.getByRole('button', { name: /Bé Na/ }).tap();
   await invite.getByText('✓ Đã mời').waitFor();
   await shot(host, 'invite');
-  await invite.getByRole('button', { name: '✕' }).tap();
+  await invite.getByRole('button', { name: 'Đóng' }).tap();
 
   step('the invitation shows on the child’s catalog and leads to the room, which the child watches');
   const banner = kid.getByText('Bố Phòng mời bạn chơi Tiến Lên');

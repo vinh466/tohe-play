@@ -30,12 +30,12 @@ export function AvatarGrid({ avatars, value, onChange, label }: AvatarGridProps)
 }
 
 /** The big round avatar used on profile cards and chips. */
-export function Avatar({ avatar, size = 'lg' }: { avatar: string; size?: 'sm' | 'lg' }) {
+export function Avatar({ avatar, size = 'lg' }: { avatar: string; size?: 'sm' | 'md' | 'lg' }) {
   return (
     <span
       aria-hidden
       className={`avatar-bg grid shrink-0 place-items-center rounded-full ${
-        size === 'lg' ? 'size-24 text-6xl' : 'size-9 text-2xl'
+        size === 'lg' ? 'size-24 text-6xl' : size === 'md' ? 'size-16 text-4xl' : 'size-9 text-2xl'
       }`}
     >
       {avatar}

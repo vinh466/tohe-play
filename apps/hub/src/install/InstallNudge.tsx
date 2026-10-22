@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { copyText } from '../ui/copyText.ts';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { chooseInstall, type InstallVariant, installStore } from './install.ts';
 
@@ -100,9 +101,9 @@ export function InAppStrip() {
         type="button"
         onClick={() => installStore.dismiss()}
         aria-label={t('install.inApp.dismiss')}
-        className="grid size-8 shrink-0 place-items-center rounded-full active:scale-95"
+        className="grid size-11 shrink-0 place-items-center rounded-full text-xl active:scale-95"
       >
-        ✕
+        <Icon name="x" />
       </button>
     </section>
   );

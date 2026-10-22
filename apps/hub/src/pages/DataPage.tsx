@@ -4,7 +4,8 @@ import { BackLink } from '../navigation/leave.tsx';
 import { statusOf } from '../telemetry/collector.ts';
 import { setDeviceTelemetry, telemetry, useTelemetryState } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
-import { Screen } from '../ui/Screen.tsx';
+import { Icon } from '../ui/Icon.tsx';
+import { backPill, Screen } from '../ui/Screen.tsx';
 import { Switch } from '../ui/Switch.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
 
@@ -20,27 +21,26 @@ export function DataPage() {
 
   return (
     <Screen narrow>
-      <header className="flex items-center gap-3">
-        <BackLink
-          to="/play"
-          aria-label={t('back')}
-          className="grid size-11 place-items-center rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
-        >
-          ←
-        </BackLink>
-        <h1 className="min-w-0 flex-1 font-black text-3xl text-brand-ink">{t('data.title')}</h1>
-        <ThemeButton />
+      <header className="flex flex-col gap-3">
+        <div className="flex items-center justify-between gap-3">
+          <BackLink to="/account" className={backPill}>
+            <Icon name="arrow-left" className="text-xl" />
+            {t('back')}
+          </BackLink>
+          <ThemeButton />
+        </div>
+        <h1 className="font-black text-3xl text-brand-ink">{t('data.title')}</h1>
       </header>
 
       <p className="text-ink">{t('data.intro')}</p>
 
       <Card title={t('data.sentTitle')}>
-        <Items items={t('data.sent', { returnObjects: true }) as string[]} mark="✓" />
+        <Items items={t('data.sent', { returnObjects: true }) as string[]} mark="check" />
         <p className="text-ink-soft text-sm">{t('data.retention')}</p>
       </Card>
 
       <Card title={t('data.neverTitle')}>
-        <Items items={t('data.never', { returnObjects: true }) as string[]} mark="✕" />
+        <Items items={t('data.never', { returnObjects: true }) as string[]} mark="x" />
       </Card>
 
       <Card title={t('data.switchTitle')}>
@@ -81,14 +81,12 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-function Items({ items, mark }: { items: string[]; mark: string }) {
+function Items({ items, mark }: { items: string[]; mark: 'check' | 'x' }) {
   return (
     <ul className="flex flex-col gap-2">
       {items.map((item) => (
         <li key={item} className="flex gap-3 text-ink">
-          <span aria-hidden className="font-bold text-accent">
-            {mark}
-          </span>
+          <Icon name={mark} className="mt-1 text-accent" />
           <span>{item}</span>
         </li>
       ))}

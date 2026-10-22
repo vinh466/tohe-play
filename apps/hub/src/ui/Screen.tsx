@@ -4,6 +4,7 @@ import type { FrameBack } from '../frame/tabs.ts';
 import { InstalledAppHint } from '../install/InstalledAppHint.tsx';
 import { InAppStrip } from '../install/InstallNudge.tsx';
 import { BackLink } from '../navigation/leave.tsx';
+import { Icon } from './Icon.tsx';
 
 /**
  * True inside the app's frame (frame/AppFrame.tsx): the frame keeps the bottom of the screen — its bar and the phone's
@@ -16,6 +17,10 @@ export const FramedContext = createContext(false);
  * on a tab's root. `Screen` draws it, so no sub-screen of the frame is left without a way back.
  */
 export const FrameBackContext = createContext<FrameBack | null>(null);
+
+/** The way back at the top of a screen: the arrow and the word, a pill of at least 44 px. */
+export const backPill =
+  'inline-flex min-h-11 shrink-0 items-center gap-1.5 self-start rounded-full bg-surface pr-4 pl-3 font-semibold text-accent shadow-sm active:scale-95';
 
 const widths = { narrow: 'max-w-md', normal: 'max-w-3xl', wide: 'max-w-[75rem] md:px-8' } as const;
 
@@ -50,12 +55,9 @@ export function Screen({
       className={`mx-auto flex w-full flex-col gap-6 px-4 pt-[max(1.5rem,env(safe-area-inset-top))] short:gap-3 short:pt-[max(0.75rem,env(safe-area-inset-top))] ${height} ${width}`}
     >
       {arrow ? (
-        <BackLink
-          to={arrow}
-          aria-label={t('back')}
-          className="grid size-11 shrink-0 place-items-center self-start rounded-full bg-surface text-accent text-xl shadow-sm active:scale-95"
-        >
-          ←
+        <BackLink to={arrow} className={backPill}>
+          <Icon name="arrow-left" className="text-xl" />
+          {t('back')}
         </BackLink>
       ) : null}
       <InAppStrip />

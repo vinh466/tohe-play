@@ -6,6 +6,7 @@ import { errorKey } from '../api/errors.ts';
 import { formatProfileId, parseProfileId } from '../session/profileIds.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { TextField } from '../ui/TextField.tsx';
 
 /**
@@ -96,8 +97,9 @@ export function InviteById({ roomId, accountOnly }: { roomId: string; accountOnl
         </div>
       ) : null}
       {invited ? (
-        <p role="status" className="font-semibold text-accent">
-          ✓ {t('rooms.invitedName', { name: invited })}
+        <p role="status" className="flex items-center gap-1.5 font-semibold text-accent">
+          <Icon name="check" />
+          {t('rooms.invitedName', { name: invited })}
         </p>
       ) : null}
     </section>

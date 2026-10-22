@@ -79,11 +79,27 @@ export function publicPage(path: string, language: Language): { href: string; vi
 /** The language the app starts in, read from this page's address, storage and browser. */
 export function startingLanguage(): Language {
   const browser = globalThis.navigator;
+  const storage = localStorageOrNothing();
+  const query = new URLSearchParams(globalThis.location?.search ?? '').get(LANGUAGE_QUERY);
+  rememberEntryLanguage(storage, query);
   return chooseLanguage({
-    saved: savedLanguage(localStorageOrNothing()),
-    query: new URLSearchParams(globalThis.location?.search ?? '').get(LANGUAGE_QUERY),
+    saved: savedLanguage(storage),
+    query,
     browser: browser?.languages?.length ? browser.languages : [browser?.language ?? ''],
   });
+}
+
+/**
+ * The language of the public page that brought the player in (`?lang=`), kept as the app's setting when it has none
+ * yet: the installed app opens at `/play` with no `?lang=`, and a Vietnamese family on an English phone would get an
+ * English app on its next start. A choice already made (Tôi, or the public pages' switch) is never overwritten.
+ */
+export function rememberEntryLanguage(
+  storage: Pick<Storage, 'getItem' | 'setItem'> | undefined,
+  query: string | null,
+): void {
+  if (!isLanguage(query) || savedLanguage(storage) !== null) return;
+  saveLanguage(storage, query);
 }
 
 /**

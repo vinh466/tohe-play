@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // End-to-end test of the entry pipeline (ADR 0044, I3b) against a running stack, like journey.ts. A player signs up and
-// shares the sample game ("Chia sẻ": the link, its QR code); a share link that asks for a name, opened on a fresh
+// shares the sample game ("Rủ bạn": the link, its QR code); a share link that asks for a name, opened on a fresh
 // phone from a link preview's card (`?app=1`), keeps its intent through the named screen and lands in the game, `play`
 // counted once though the game is reloaded; one that asks for an account keeps it through signing up, which passes
 // `entryCode`; "Nhập mã" takes a share link's eight characters and a table's six digits; a link revoked in "Link của
@@ -139,13 +139,13 @@ async function openTable(page: Page, entry: 'named' | 'account'): Promise<{ id: 
 
 try {
   step(
-    'a player signs up, waits for the sample game, and shares it: "Chia sẻ" shows the link and its QR code',
+    'a player signs up, waits for the sample game, and shares it: "Rủ bạn" shows the link and its QR code',
   );
   const maker = await phone('maker');
   await maker.goto(`${hubUrl}/account/register`);
   await signUp(maker);
   await maker.waitForURL((url) => url.pathname === '/play');
-  const share = maker.getByRole('button', { name: 'Chia sẻ Chạm Chấm' });
+  const share = maker.getByRole('button', { name: 'Rủ bạn chơi Chạm Chấm' });
   for (let attempt = 0; ; attempt++) {
     const shown = await share.waitFor({ timeout: 3000 }).then(
       () => true,
@@ -156,7 +156,7 @@ try {
     await maker.reload();
   }
   await share.tap();
-  const sheet = maker.getByRole('dialog', { name: 'Chia sẻ Chạm Chấm' });
+  const sheet = maker.getByRole('dialog', { name: 'Rủ bạn chơi Chạm Chấm' });
   await sheet.getByRole('img', { name: 'Mã QR mời chơi Chạm Chấm' }).waitFor();
   const shown = ((await sheet.getByText(/^[0-9A-Z]{4} [0-9A-Z]{4}$/).textContent()) ?? '').replace(' ', '');
   await sheet.getByRole('button', { name: 'Chép link' }).tap();
@@ -165,11 +165,11 @@ try {
   if (copied !== `${hubUrl}/s/${shown}`)
     throw new Error(`"Chép link" copied ${copied}, not ${hubUrl}/s/${shown}`);
   await check(maker, 'share-sheet');
-  await sheet.getByRole('button', { name: '✕' }).tap();
+  await sheet.getByRole('button', { name: 'Đóng' }).tap();
   // Opening the sheet again shows the same link: it is not sharing twice.
   await share.tap();
   await sheet.getByText(`${shown.slice(0, 4)} ${shown.slice(4)}`).waitFor();
-  await sheet.getByRole('button', { name: '✕' }).tap();
+  await sheet.getByRole('button', { name: 'Đóng' }).tap();
   if ((await mine(maker)).length !== 1) throw new Error('opening the share sheet twice made two links');
 
   step(
@@ -226,7 +226,7 @@ try {
   await typist.getByRole('button', { name: 'Nhập mã' }).first().tap();
   const box = typist.getByRole('dialog', { name: 'Nhập mã' });
   await box
-    .getByLabel('Mã bàn chơi hoặc link mời')
+    .getByLabel('Có mã? Gõ mã hoặc dán link.')
     .fill(`${shown.slice(0, 4).toLowerCase()}-${shown.slice(4)}`);
   await box.getByText(`Link mời ${shown.slice(0, 4)} ${shown.slice(4)}`).waitFor();
   await check(typist, 'enter-code');
@@ -237,7 +237,7 @@ try {
   const { id: tableId, code: table } = await openTable(maker, 'named');
   await typist.goto(`${hubUrl}/play`);
   await typist.getByRole('button', { name: 'Nhập mã' }).first().tap();
-  await box.getByLabel('Mã bàn chơi hoặc link mời').fill(`${table.slice(0, 3)} ${table.slice(3)}`);
+  await box.getByLabel('Có mã? Gõ mã hoặc dán link.').fill(`${table.slice(0, 3)} ${table.slice(3)}`);
   await box.getByRole('button', { name: 'Mở' }).tap();
   await typist.waitForURL(`${hubUrl}/r/${table}`);
   await typist.getByRole('heading', { name: 'Vào bàn cùng mọi người' }).waitFor();
@@ -316,7 +316,7 @@ try {
   step('an unknown code: "Mã này không mở được nữa", with the catalog and the "Nhập mã" box');
   await late.goto(`${hubUrl}/s/ZZZZZZZZ`);
   await late.getByRole('heading', { name: 'Mã này không mở được nữa' }).waitFor();
-  await late.getByLabel('Mã bàn chơi hoặc link mời').waitFor();
+  await late.getByLabel('Có mã? Gõ mã hoặc dán link.').waitFor();
   await late.getByRole('link', { name: 'Về danh sách trò chơi' }).waitFor();
   await check(late, 'unknown');
 

@@ -1,6 +1,7 @@
 import { Link } from '@tanstack/react-router';
 import { useTranslation } from 'react-i18next';
 import { buttonClass } from '../ui/Button.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Screen } from '../ui/Screen.tsx';
 
 /**
@@ -16,9 +17,7 @@ export function NotFoundPage() {
         aria-labelledby="not-found"
         className="mt-8 flex flex-col items-center gap-4 rounded-3xl bg-surface p-5 text-center shadow-sm"
       >
-        <div aria-hidden className="text-5xl">
-          🧭
-        </div>
+        <Icon name="compass" weight="fill" className="text-5xl text-accent" />
         <h1 id="not-found" className="font-black text-2xl text-brand-ink">
           {t('notFound.title')}
         </h1>

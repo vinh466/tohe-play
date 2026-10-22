@@ -1,5 +1,6 @@
 /* The 404 page (404.html): no app, no Tailwind — the design tokens only, in light and dark (ADR 0013). */
 @import "@tohe/design-tokens/tokens.css";
+@import "@tohe/design-tokens/fonts.css";
 
 body {
   margin: 0;
@@ -8,7 +9,7 @@ body {
   place-items: center;
   background: var(--tohe-page);
   color: var(--tohe-ink);
-  font-family: system-ui, sans-serif;
+  font-family: var(--tohe-font, system-ui, sans-serif);
   text-align: center;
 }
 

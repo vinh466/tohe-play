@@ -2,21 +2,24 @@
 // as a bar at the bottom of a phone and a rail on the left from tablet width, around every screen of the Play zone but a
 // game in play, a table and a replay, which stay full screen (ADR 0020). Pure functions here; AppFrame.tsx draws it.
 
+import type { IconName } from '../ui/iconShapes.ts';
+
 export type TabId = 'games' | 'together' | 'me';
 
 export interface Tab {
   id: TabId;
   /** The tab's own screen. */
   to: '/play' | '/together' | '/account';
-  icon: string;
+  /** An icon of the one set (`ui/Icon.tsx`): the outline when the tab is not shown, the filled one when it is. */
+  icon: IconName;
   /** Its name, an i18n key. */
   label: `frame.${TabId}`;
 }
 
 export const tabs: readonly Tab[] = [
-  { id: 'games', to: '/play', icon: '🎮', label: 'frame.games' },
-  { id: 'together', to: '/together', icon: '🤝', label: 'frame.together' },
-  { id: 'me', to: '/account', icon: '👤', label: 'frame.me' },
+  { id: 'games', to: '/play', icon: 'game-controller', label: 'frame.games' },
+  { id: 'together', to: '/together', icon: 'users-three', label: 'frame.together' },
+  { id: 'me', to: '/account', icon: 'user-circle', label: 'frame.me' },
 ];
 
 /** Screens under /account that belong to Chơi cùng: the full list of the links a player sent. */

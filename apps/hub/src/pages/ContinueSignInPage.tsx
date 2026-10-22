@@ -32,6 +32,7 @@ import { useDeviceRename } from '../session/useDeviceRename.ts';
 import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
 import { db } from '../storage/db.ts';
 import { funnel } from '../telemetry/telemetry.ts';
+import { AnotherName } from '../ui/AnotherName.tsx';
 import { Button } from '../ui/Button.tsx';
 import { CodeStep } from '../ui/CodeStep.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
@@ -364,14 +365,7 @@ function SignUpStep({ step }: { step: PendingSignInView }) {
           onChange={(event) => setName(event.target.value)}
           error={showErrors ? nameError : null}
         />
-        <Button
-          variant="secondary"
-          aria-label={t('register.anotherName')}
-          title={t('register.anotherName')}
-          onClick={() => setName(funName(i18n.language))}
-        >
-          🎲
-        </Button>
+        <AnotherName onClick={() => setName(funName(i18n.language))} />
       </div>
       <TextField
         label={registration === 'invite' ? t('register.invite') : t('register.inviteOptional')}

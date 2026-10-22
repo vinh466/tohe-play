@@ -26,7 +26,8 @@ import { rememberNext } from '../session/next.ts';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
-import { Loading, Screen } from '../ui/Screen.tsx';
+import { Icon } from '../ui/Icon.tsx';
+import { backPill, Loading, Screen } from '../ui/Screen.tsx';
 
 // The entry pipeline's pages (ADR 0044): a table's link /r/<code> and a share link /s/<code>. A typed code ("Nhập mã")
 // comes here too, and a game's own address /play/<gameId> goes through the same gate (PlayPage).
@@ -96,8 +97,9 @@ function RoomPreview({ intent, player, device }: { intent: EntryIntent; player: 
 
   return (
     <Screen narrow>
-      <BackLink to="/play" className="font-semibold text-accent">
-        ← {t('backToGames')}
+      <BackLink to="/play" className={backPill}>
+        <Icon name="arrow-left" className="text-xl" />
+        {t('backToGames')}
       </BackLink>
       <h1 className="text-center font-black text-3xl text-brand-ink">
         {t('rooms.room', { code: formatEntryCode(intent) })}

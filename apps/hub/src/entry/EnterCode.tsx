@@ -2,6 +2,7 @@ import { useNavigate } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { Button } from '../ui/Button.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { TextField } from '../ui/TextField.tsx';
 import { formatEntryCode, readCode } from './codes.ts';
@@ -27,11 +28,12 @@ export function EnterCodeForm({ onGo, autoFocus = false }: { onGo?: () => void; 
     if (read.kind === 'room') void navigate({ to: '/r/$code', params: { code: read.code } });
     else void navigate({ to: '/s/$code', params: { code: read.code } });
   };
+  // What a code was read as, once it is one; the rule (6 digits, 8 characters) is only in the error.
   const hint = read
     ? t(read.kind === 'room' ? 'entry.codeIsRoom' : 'entry.codeIsShare', { code: formatEntryCode(read) })
-    : t('entry.codeHint');
+    : undefined;
   return (
-    <form onSubmit={submit} className="flex flex-col gap-4" noValidate>
+    <form onSubmit={submit} className="flex flex-col" noValidate>
       <TextField
         label={t('entry.codeLabel')}
         hint={hint}
@@ -44,15 +46,17 @@ export function EnterCodeForm({ onGo, autoFocus = false }: { onGo?: () => void; 
         enterKeyHint="go"
         maxLength={200}
         autoFocus={autoFocus}
+        action={
+          <Button type="submit" disabled={value.trim().length === 0} className="shrink-0">
+            {t('entry.codeGo')}
+          </Button>
+        }
         value={value}
         onChange={(event) => {
           setValue(event.target.value);
           setTried(false);
         }}
       />
-      <Button type="submit" disabled={value.trim().length === 0}>
-        {t('entry.codeGo')}
-      </Button>
     </form>
   );
 }
@@ -62,15 +66,12 @@ export function EnterCodeSheet({ open, onClose }: { open: boolean; onClose(): vo
   const { t } = useTranslation();
   return (
     <Modal open={open} title={t('entry.codeTitle')} onClose={onClose}>
-      <div className="flex flex-col gap-4">
-        <p className="text-ink-soft">{t('entry.codeBody')}</p>
-        <EnterCodeForm onGo={onClose} autoFocus />
-      </div>
+      <EnterCodeForm onGo={onClose} autoFocus />
     </Modal>
   );
 }
 
-/** "# Nhập mã" beside the catalog's heading: in sight on the first screen, for a newcomer and the installed app alike. */
+/** "Nhập mã" at the top of the catalog: in sight on the first screen, for a newcomer and the installed app alike. */
 export function EnterCodeButton() {
   const { t } = useTranslation();
   const [open, setOpen] = useState(false);
@@ -81,7 +82,7 @@ export function EnterCodeButton() {
         onClick={() => setOpen(true)}
         className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-full bg-surface px-4 font-bold text-accent shadow-sm active:scale-95"
       >
-        <span aria-hidden>#</span>
+        <Icon name="ticket" className="text-xl" />
         {t('entry.codeButton')}
       </button>
       <EnterCodeSheet open={open} onClose={() => setOpen(false)} />
