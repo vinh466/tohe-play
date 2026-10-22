@@ -2,6 +2,14 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (G2b, G4, G5, G6 merged; UAT) — agent
+
+- **G4** #119 khung app; **G2b** #120 (master đổi: ảnh OG từng game vẽ bằng `generate:og` và commit cạnh trang, có stamp —
+  không Chromium trong CI/image; câu offline chỉ nói điều đúng); **G6** #121 (migration `LinkAndTableLanguages`);
+  **G5** #122 (cập nhật êm + test hai bản build trong CI; master bỏ namespace `/registerSW.js` đã chết).
+- UAT `uat-2026-10-22.2` (G2b+G4), `.3` (G6), `uat-2026-10-22.4` (G5). Còn lại của G5: mã bàn trên Trò chơi, PIN khi trẻ lên người
+  lớn mới ở hub (API chưa kiểm) — PR sau. G7 chờ owner thử máy thật rồi "lên prod".
+
 ## 2026-10-22 (merge, UAT, G2b ∥ G4) — agent
 
 - Owner: ADR 0048 "bạn đề xuất và xử đi" → giữ đề xuất, status Accepted; điểm 2 "triệt để bỏ đi, làm như mới, prod hiện
