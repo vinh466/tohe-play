@@ -2,6 +2,11 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (lên prod) — agent
+
+- Owner: "lên prod đi" → `prod-2026-10-22.1` trên f1a091a (= `uat-2026-10-22.4`), GitHub Release, platform-infra #246
+  (chỉ `targetRevision`, agent merge), Argo CD ~2 phút, `check:prod` 23/23. Hai migration chỉ thêm cột.
+
 ## 2026-10-22 (G2b, G4, G5, G6 merged; UAT) — agent
 
 - **G4** #119 khung app; **G2b** #120 (master đổi: ảnh OG từng game vẽ bằng `generate:og` và commit cạnh trang, có stamp —
