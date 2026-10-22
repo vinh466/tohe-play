@@ -3,33 +3,39 @@
 - Goal: bề mặt sản phẩm hoàn chỉnh trước launch chính thức — **đợt 1**: bố cục và UX của người chơi, bề mặt giới thiệu,
   SEO, GEO và cách nó mở rộng, thiết kế xong rồi build; **đợt 2**: rà màn, luồng, câu chữ, Điều khoản, Cổng. Sau đó tập
   trung làm game.
-- Phase: **Graduate — đợt 1** (G0–G6 xong và trên prod; G7: owner thử máy thật) ([process](../README.md#phases)) — brief đã xác nhận, mọi quyết định của đợt 1 đã chốt
-  (2026-10-22); đợt 2 còn ở *Map*.
+- Phase: **đợt 1 Graduate** (G0–G6 trên prod; G7 owner thử máy) · **đợt 2 Resolve** (2026-10-23: khảo sát prod + research
+  → D-07, E-07 proposed; F1, F2 đang build) ([process](../README.md#phases))
 - Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (merged 2026-10-22; cập nhật sau đó là PR nhỏ từ cùng nhánh)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (bức tranh đầy đủ) · **Route: [routes.md](routes.md)** · Log: [log.md](log.md)
 - Research: [R-01 trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại](research/R-02-layout-prior-art.md) ·
   [R-03 quay lại, app đã cài](research/R-03-coming-back.md) · [R-04 host và path](research/R-04-hosts-and-paths-review.md) ·
-  [R-05 học từ miniblox](research/R-05-learning-from-peers.md) · [R-06 SEO, GEO, mở rộng](research/R-06-seo-geo-scale.md)
+  [R-05 học từ miniblox](research/R-05-learning-from-peers.md) · [R-06 SEO, GEO, mở rộng](research/R-06-seo-geo-scale.md) ·
+  [R-07 bớt "AI style"](research/R-07-ai-style.md) · [R-08 app đã cài, quay lại](research/R-08-installed-app-and-return.md) ·
+  [R-09 khảo sát prod 2026-10-23](research/R-09-survey-2026-10-23.md)
 - Trước đó: [`product-surface`](../product-surface/PLAN.md) (Phase 1, Close 2026-10-21) · Ý ngoài phạm vi:
   `docs/roadmap/product-backlog.md` (#110, đã merge)
 
 ## Next — one item
 
-**G7 — owner thử thật trên prod** (`prod-2026-10-22.1`, https://toheplay.io.vn — lên prod 2026-10-22 theo lời owner,
-`check:prod` 23/23): Android, iPhone + app đã cài, Zalo, Messenger, máy tính — danh sách ở *Waiting on the owner* 1.
-Sau G7: lập danh sách đợt 2 (E-02 → E-05, E-01).
+**Owner chọn hướng ở [D-07](items/D-07-visual-direction-and-voice.md) (bớt "AI style") và trả lời
+[E-07](items/E-07-installed-app-and-return.md) Q1–Q4.** Trong lúc đó F1, F2 (sửa lỗi chức năng từ khảo sát) build → merge →
+UAT. Sau đó: S1 (nền giọng văn + icon + danh mục) theo D-07.
 
 ## Waiting on the owner
 
-1. **Thử trên máy thật (G7)** — prod `prod-2026-10-22.1` (= UAT `uat-2026-10-22.4`) có đủ đợt 1 (G0–G6):
-   - `/` (trang chủ danh mục trước, *Chơi tiếp* khi máy đã chơi), `/en/`, `/promise/`, trang từng game;
-   - app: thanh dưới / rail, Trò chơi · Chơi cùng · Tôi, đổi ngôn ngữ ở Tôi, nút back Android từng tầng;
-   - mở lại sau 30 phút trên máy nhiều hồ sơ ("Ai đang chơi?"), *Chơi tiếp*, *Có bản mới — Tải lại* sau một deploy;
-   - gửi link `/s`, `/r` qua Zalo, Messenger (thẻ theo ngôn ngữ người tạo); iPhone: dòng "Đã cài app Tò He?".
-2. ~~"lên prod"~~ — xong 2026-10-22: `prod-2026-10-22.1`, platform-infra #246.
-3. Đọc chữ do agent viết: trang game (`games/*/page/vi.md`), trang chủ, `/promise/`, thẻ xem trước tiếng Anh;
+1. **[D-07](items/D-07-visual-direction-and-voice.md) Q1–Q6**: hướng (đề xuất A làm đích, đi qua S1 → S2 → S3), ai vẽ cho S3
+   (đề xuất thuê hoạ sĩ người Việt theo brief), màu gấc, font Be Vietnam Pro, icon Phosphor, giọng văn agent viết.
+2. **[E-07](items/E-07-installed-app-and-return.md) Q1–Q4**: giữ không khoá xoay + lớp "xoay dọc"; cập nhật im lặng khi app
+   vào nền (sửa ADR 0046); màu splash; "Vẫn là An? Chơi tiếp".
+3. **Tắt Cloudflare Web Analytics** cho `toheplay.io.vn` (Analytics & Logs → Web Analytics → bỏ automatic setup): beacon bị
+   CSP chặn, lỗi console mọi trang, ngược lời hứa "không theo dõi".
+4. **Thử trên máy thật (G7)** — danh sách 12 bước ở [R-08 §3](research/R-08-installed-app-and-return.md#3-danh-sách-thử-trên-máy-thật-owner-một-android-một-iphone);
+   nên đợi F1, F2 lên UAT/prod rồi thử một lần.
+5. Hai quyết định agent đã tạm theo đề xuất (2026-10-23, owner chưa trả lời riêng): trang công khai mở từ app ẩn link ra
+   ngoài; *Chơi tiếp* chỉ hiện sau khi máy đã mở một game. Owner muốn khác thì nói.
+6. Đọc chữ do agent viết: trang game (`games/*/page/vi.md`), trang chủ, `/promise/`, thẻ xem trước tiếng Anh;
    **Tiến Lên "khoảng 3–5 phút"** là ước lượng — xác nhận hay sửa.
-4. Thuộc Cổng (E-01):
+7. Thuộc Cổng (E-01):
    - **Better Stack** theo #114: đăng ký, bốn monitor, status page với domain `status.toheplay.io.vn`, `CNAME` `status`
      → `statuspage.betteruptime.com` (DNS only). Xong thì báo — agent đổi host `status` sang `serving`, thêm kiểm tra.
    - **Alertmanager trên prod** (Telegram): Infisical `platform/prod` `/monitoring`, khoá `telegram-bot-token` **và**
@@ -38,7 +44,7 @@ Sau G7: lập danh sách đợt 2 (E-02 → E-05, E-01).
    - **Resend `notify.`** ([guide](../../docs/guides/mail-and-status.md)): 2026-10-22 DNS chưa có
      `resend._domainkey.notify`, `send.notify`.
    - **Khôi phục bản sao lưu DB prod** một lần: khi owner báo launch "chín".
-5. Phiên 2026-10-22: owner cho agent merge PR đã ổn và deploy UAT; ngoài phiên đó vẫn là
+8. Phiên 2026-10-22: owner cho agent merge PR đã ổn và deploy UAT; ngoài phiên đó vẫn là
    `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng".
 
 Xong (2026-10-22): Cloudflare Access trước `console.` (kiểm từ ngoài: 302 sang `vinh466.cloudflareaccess.com`);
@@ -59,13 +65,15 @@ UAT `uat-2026-10-22.4` (G0–G6). #119 G4, #120 G2b, #121 G6, #122 G5 merged.
 | D-01 | [Hai ngôn ngữ: tiếng Việt là mặt chính](items/D-01-languages.md) | **decided** (2026-10-22) |
 | D-06 | [Bề mặt giới thiệu: một nguồn cho mỗi game](items/D-06-introduction-surface.md) | **decided** — B (2026-10-22) |
 
-**Đợt 2 — trước launch: sau khi đợt 1 lên prod**
+**Đợt 2 — trước launch**
 
 | ID | Item | Status |
 |---|---|---|
-| E-02 | Rà từng màn (brief Q3: cách rà) | open |
+| D-07 | [Trông và nói thế nào để không như máy làm](items/D-07-visual-direction-and-voice.md) | **proposed** — A làm đích, S1 → S2 → S3 |
+| E-07 | [App đã cài và lúc quay lại](items/E-07-installed-app-and-return.md) | **proposed** — phần chức năng ở F1, F2 |
+| E-02 | Rà từng màn — cách rà: khảo sát Playwright trên prod + checklist [R-07 §5](research/R-07-ai-style.md#5-checklist-cho-mỗi-lần-rà-màn) (trả lời brief Q3) | đang làm ([R-09](research/R-09-survey-2026-10-23.md)) |
 | E-03 | Luồng đầu–cuối, e2e | open |
-| E-04 | Câu chữ vi + en | open |
+| E-04 | Câu chữ vi + en | gộp vào D-07 S1 (hướng dẫn giọng văn + viết lại) |
 | E-05 | Điều khoản + Quyền riêng tư, vi gốc + en | open |
 | E-01 | [Cổng trước khi mời người ngoài](items/E-01-gate-before-outsiders.md) | open |
 
@@ -106,4 +114,12 @@ dựng, tách ra là sửa cùng màn hai lần.
 
 ## Graduation list — đợt 2
 
-Lập khi G7 xong: E-02 (cách rà theo brief Q3) → E-03 → E-04 → E-05 → E-01.
+| PR | Nội dung | Từ | Trạng thái |
+|---|---|---|---|
+| **F1** | Sửa lỗi bề mặt: `?lang=vi`, header *Chơi ngay*/*Chơi tiếp*, link ra ngoài khi mở từ app, *Chơi tiếp* sau game đầu, "Chơi trên máy này" → `/play`, not-found của app, lịch sử tab, ← ở mọi màn không khung, tên khớp hình, mất mạng, nhấn giữ/kéo-tải-lại, theme-color, Zod jitless, 404 hai thứ tiếng, ảnh JSON-LD, chữ sai ngôn ngữ, docs cũ | R-09, R-08 | builder đang làm |
+| **F2** | Xoay ngang (menu game vừa chiều cao, lớp "xoay dọc", rail khi màn thấp), icon đặc + maskable, shortcuts, skeleton + timeout `/me`, safe-area thanh game, hướng dẫn cài iOS/iPad | R-08 | builder đang làm |
+| **S1** | Nền: hướng dẫn giọng văn + hình (docs/conventions), viết lại câu chữ, icon SVG thay emoji, danh mục và trang chủ gọn, font tự host | D-07 | chờ owner |
+| **S2** | Menu trong game (`game-kit`): icon SVG, logo vẽ của game | D-07 | chờ owner |
+| **S3** | Xưởng tò he: avatar, ảnh bìa, linh vật, token màu nhuộm, chuyển động/âm thanh | D-07 Q2 (người vẽ) | chờ owner |
+
+Sau đó: E-03 → E-05 → E-01.

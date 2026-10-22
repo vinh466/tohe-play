@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 (khảo sát, research, F1 ∥ F2) — agent
+
+- Owner: review toàn bộ surface + khảo sát; rồi "bớt AI style", "quay lại và PWA có thoải mái chưa". Khảo sát prod bốn
+  lượt (Playwright + axe, chỉ đọc) + reviewer + hai scout → R-07, R-08, R-09; D-07, E-07 proposed.
+- Lỗi chức năng đi thẳng vào F1, F2 (hai builder Opus · high). Hai câu owner chưa trả lời (link ra ngoài khi mở từ app;
+  *Chơi tiếp* sau game đầu) agent tạm theo đề xuất. Cloudflare Web Analytics: owner tắt.
+
 ## 2026-10-22 (lên prod) — agent
 
 - Owner: "lên prod đi" → `prod-2026-10-22.1` trên f1a091a (= `uat-2026-10-22.4`), GitHub Release, platform-infra #246
