@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-22 (G2a, G3 PR) — agent
+
+- **G2a** #116: `/en/…`, `hreflang` trong sitemap, VI | EN, khoá `tohe:language`, `?lang=en`; điều khoản chỉ vi tới E-05.
+  Verify xanh (builder + master), CI xanh. **G3** #117 (trên #116): ADR 0048; master làm gọn — `description` tiếng Anh,
+  `descriptions.vi`, bỏ đoán tên tiếng Việt theo dấu; gộp G2a, mỗi trang công khai đọc tên theo ngôn ngữ. Verify xanh.
+- Ghi nhận: `apps/web` không có `typecheck` trong `pnpm verify`; thứ tự danh mục theo tên chuẩn → sửa ở G4.
+
 ## 2026-10-22 (merge G0 G1, G2a ∥ G3) — agent
 
 - Owner: Access đã bật (điểm 1); điểm 3–13 "ổn, theo đề xuất"; điểm 2 muốn xem toàn bộ route → [routes.md](routes.md);
