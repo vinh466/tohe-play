@@ -7,15 +7,40 @@ import {
   useRouter,
 } from '@tanstack/react-router';
 import { useCallback } from 'react';
+import { appLevelBeneath } from '../frame/tabs.ts';
 import { createTrail, type Trail } from './trail.ts';
 
 let trail: Trail | null = null;
 
 /** Follows the app's history from the start, so leaving a screen knows what is behind it. */
-export function followTrail(history: RouterHistory): void {
+export function followTrail(history: RouterHistory, behind?: Readonly<Record<number, string>>): void {
   trail?.stop();
-  trail = createTrail(history);
+  trail = createTrail(history, behind);
 }
+
+/**
+ * Opened straight at a game, a table or a link into one (a share link, a public page's "Chơi", the home screen's
+ * shortcut, a reload with nothing of the app behind): the app's level goes behind it first, as an entry of its own, so
+ * phone Back steps from the game to the app rather than out of Tò He (ADR 0046). Call before the router starts; returns
+ * what it put behind, for the trail.
+ */
+export function putAppLevelBehind(win: Window = window): Record<number, string> | undefined {
+  const state = win.history.state as { __TSR_index?: number } | null;
+  const beneath = appLevelBeneath(win.location.pathname, state?.__TSR_index);
+  if (!beneath) return undefined;
+  const here = `${win.location.pathname}${win.location.search}${win.location.hash}`;
+  // The entries as TanStack Router numbers them (its history reads `__TSR_index` and the keys back).
+  const entry = (index: number) => {
+    const key = Math.random().toString(36).slice(2, 10);
+    return { ...state, __TSR_index: index, key, __TSR_key: key };
+  };
+  win.history.replaceState(entry(0), '', beneath);
+  win.history.pushState(entry(1), '', here);
+  return { 0: beneath };
+}
+
+/** The path of the screen right behind this one in the history, when the app saw it. */
+export const previousPath = (): string | undefined => trail?.previous();
 
 /**
  * Leaving a screen (←, "Về Tò He", leaving a table, a profile chosen): back to the target when the player came from

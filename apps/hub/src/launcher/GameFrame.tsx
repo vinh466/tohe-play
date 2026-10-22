@@ -22,6 +22,7 @@ import { TERMS_VERSION } from '../legal/documents.ts';
 import { tablesStep } from '../session/serverCopy.ts';
 import type { Player } from '../session/session.ts';
 import { syncer, syncsWithServer } from '../session/useBackgroundSync.ts';
+import { readMuted, saveMuted } from '../settings/sound.ts';
 import { db } from '../storage/db.ts';
 import { loadSave, recordRanked, recordScore, storeSave } from '../storage/repository.ts';
 import { durationBucket } from '../telemetry/collector.ts';
@@ -45,16 +46,6 @@ import {
 
 /** `starting`: the game answered, but a shell game has not shown its first screen yet (ADR 0019). */
 type Status = 'loading' | 'starting' | 'ready' | 'failed' | 'untrusted';
-
-/** Sound on or off for this device, whichever game switched it (ADR 0018). */
-const MUTED_KEY = 'tohe:muted';
-const readMuted = () => {
-  try {
-    return localStorage.getItem(MUTED_KEY) === '1';
-  } catch {
-    return false;
-  }
-};
 
 /** How long a shell game has to answer Back before the hub offers its own way out. */
 const BACK_ANSWER_MS = 1500;
@@ -144,7 +135,7 @@ export function GameFrame({
   const iframe = useRef<HTMLIFrameElement>(null);
   const host = useRef<HostHandle | null>(null);
   const [status, setStatus] = useState<Status>('loading');
-  const [muted, setMuted] = useState(readMuted);
+  const [muted, setMuted] = useState(() => readMuted());
   const { theme } = useTheme();
   const navigate = useNavigate();
   const shell = hasShell(game);
@@ -171,11 +162,7 @@ export function GameFrame({
 
   // The device remembers sound, whichever game or bar switched it.
   useEffect(() => {
-    try {
-      localStorage.setItem(MUTED_KEY, muted ? '1' : '0');
-    } catch {
-      // Private mode: sound stays as it is for this visit.
-    }
+    saveMuted(muted);
   }, [muted]);
 
   // Phone Back (or the browser's) on a shell game opens its menu instead of leaving the page. Leaving the game goes

@@ -162,7 +162,9 @@ async function playOneRound(page: Page) {
 
 const installCard = (page: Page) => page.getByRole('heading', { name: 'Cài Tò He' });
 const openStrip = (page: Page) => page.getByRole('region', { name: 'Mở bằng trình duyệt' });
-const menuButton = (page: Page) => page.getByRole('button', { name: 'Menu', exact: true });
+/** A tab of the app's frame (ADR 0046), in the bar at the bottom of a phone. */
+const tab = (page: Page, name: 'Trò chơi' | 'Chơi cùng' | 'Tôi') =>
+  page.getByRole('navigation', { name: 'Mục chính' }).getByRole('link', { name, exact: true });
 const storedNo = (page: Page) => page.evaluate(() => localStorage.getItem('tohe:install-dismissed'));
 
 try {
@@ -186,10 +188,11 @@ try {
   if (android.url().includes('/account/sign-in')) throw new Error('a new visitor was sent to sign in');
   if (await installCard(android).isVisible()) throw new Error('the install card showed before any game');
 
-  step('"Góp ý / báo lỗi" in the menu writes to the operator, with the version and the browser in the mail');
-  await menuButton(android).tap();
-  const menu = android.getByRole('dialog', { name: 'Menu' });
-  const mail = await menu.getByRole('link', { name: /Góp ý \/ báo lỗi/ }).getAttribute('href');
+  step('"Góp ý / báo lỗi" in Tôi writes to the operator, with the version and the browser in the mail');
+  await tab(android, 'Tôi').tap();
+  await android.waitForURL((url) => url.pathname === '/account');
+  const me = android.getByRole('main');
+  const mail = await me.getByRole('link', { name: /Góp ý \/ báo lỗi/ }).getAttribute('href');
   const mailUrl = new URL(mail ?? 'about:blank');
   if (mailUrl.protocol !== 'mailto:' || mailUrl.pathname !== 'hello@toheplay.io.vn') {
     throw new Error(`the feedback link does not write to the operator: ${mail}`);
@@ -198,9 +201,10 @@ try {
   if (!body.includes('Phiên bản:') || !body.includes('Trình duyệt:')) {
     throw new Error(`the feedback mail lacks the version or the browser: ${body}`);
   }
-  await menu.getByRole('button', { name: 'Cài app' }).waitFor();
-  await android.screenshot({ path: 'test-results/journey-menu.png' });
-  await menu.getByRole('button', { name: '✕' }).tap();
+  await me.getByRole('button', { name: 'Cài app' }).waitFor();
+  await check(android, 'me');
+  await tab(android, 'Trò chơi').tap();
+  await android.waitForURL(catalogUrl);
 
   step(
     'the visitor plays the sample game without signing in; after the round, the catalog offers "Cài Tò He"',
@@ -214,12 +218,14 @@ try {
   await android.waitForFunction(() => (window as unknown as { __prompted: number }).__prompted === 1);
   await installCard(android).waitFor({ state: 'hidden' });
 
-  step('"Cài app" in the menu still opens something any time, saying how by hand once the prompt is used');
-  await menuButton(android).tap();
-  await menu.getByRole('button', { name: 'Cài app' }).tap();
+  step('"Cài app" in Tôi still opens something any time, saying how by hand once the prompt is used');
+  await tab(android, 'Tôi').tap();
+  await me.getByRole('button', { name: 'Cài app' }).tap();
   const sheet = android.getByRole('dialog', { name: 'Cài Tò He' });
   await sheet.getByText(/Cài đặt ứng dụng/).waitFor();
   await sheet.getByRole('button', { name: '✕' }).tap();
+  await tab(android, 'Trò chơi').tap();
+  await android.waitForURL(catalogUrl);
 
   step(
     `the visitor signs up keeping the device profile "${deviceName}" (ADR 0043): its score is in the account, on no public board`,
@@ -320,8 +326,8 @@ try {
   await steps.getByRole('button', { name: 'Đã hiểu' }).tap();
   await steps.waitFor({ state: 'hidden' });
   if ((await storedNo(iphone)) === null) throw new Error('"Đã hiểu" did not keep the hub quiet for 14 days');
-  await menuButton(iphone).tap();
-  await iphone.getByRole('dialog', { name: 'Menu' }).getByRole('button', { name: 'Cài app' }).tap();
+  await tab(iphone, 'Tôi').tap();
+  await iphone.getByRole('main').getByRole('button', { name: 'Cài app' }).tap();
   await iphone
     .getByRole('dialog', { name: 'Cài Tò He' })
     .getByText(/Chia sẻ/)
@@ -356,7 +362,7 @@ try {
     await inApp.context().close();
   }
 
-  step('the installed app (standalone) never shows an install offer: not after a round, not in the menu');
+  step('the installed app (standalone) never shows an install offer: not after a round, not in Tôi');
   const installed = await visitor('standalone', userAgents.androidChrome, browser, [
     fakeInstallPrompt,
     asInstalledApp,
@@ -368,11 +374,11 @@ try {
   if (await installCard(installed).isVisible()) throw new Error('the installed app offered to install');
   if (await openStrip(installed).isVisible())
     throw new Error('the installed app offered to open in a browser');
-  await menuButton(installed).tap();
-  const installedMenu = installed.getByRole('dialog', { name: 'Menu' });
-  await installedMenu.getByRole('link', { name: /Góp ý \/ báo lỗi/ }).waitFor();
-  if ((await installedMenu.getByRole('button', { name: 'Cài app' }).count()) > 0) {
-    throw new Error('the installed app has "Cài app" in its menu');
+  await tab(installed, 'Tôi').tap();
+  const installedMe = installed.getByRole('main');
+  await installedMe.getByRole('link', { name: /Góp ý \/ báo lỗi/ }).waitFor();
+  if ((await installedMe.getByRole('button', { name: 'Cài app' }).count()) > 0) {
+    throw new Error('the installed app has "Cài app" in Tôi');
   }
   await installed.context().close();
 

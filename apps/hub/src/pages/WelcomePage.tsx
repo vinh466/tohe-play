@@ -46,7 +46,7 @@ function SignIn() {
   const queryClient = useQueryClient();
   const setMe = useSetMe();
   const config = useQuery(configQuery);
-  const { external, deleting } = useSearch({ from: '/account/sign-in' });
+  const { external, deleting } = useSearch({ from: '/_frame/account/sign-in' });
   // The console's switches (ADR 0028).
   const passwordOn = config.data?.passwordSignIn ?? true;
   const registration = config.data?.registration ?? 'open';

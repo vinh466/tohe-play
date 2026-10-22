@@ -127,10 +127,12 @@ Opening the hub is playing ([vision](../vision.md)); nothing stands between a li
 
   A finished game is a final `score` (or a ranked finish) from the Game Contract's host side — no contract change.
   Never when running as the installed app (`display-mode: standalone`, `navigator.standalone`). "Để sau" and closing
-  are silent for 14 days (`localStorage` `tohe:install-dismissed`). The catalog's "⋯" menu has "Cài app", which opens the
-  same prompt or sheet at any time (and says how by hand where none fits), and "Góp ý / báo lỗi", a `mailto:` to
-  `hello@toheplay.io.vn` with the app's version and the browser in the body.
-- **The manifest** (`apps/hub/vite.config.ts`): user-first description, `start_url` `/play`, a shortcut to Ghép Khối,
+  are silent for 14 days (`localStorage` `tohe:install-dismissed`). Tôi, the app frame's third tab
+  ([Surfaces](surfaces.md)), has "Cài app", which opens the same prompt or sheet at any time (and says how by hand where
+  none fits), and "Góp ý / báo lỗi", a `mailto:` to `hello@toheplay.io.vn` with the app's version and the browser in the
+  body.
+- **The manifest** (`apps/hub/vite.config.ts`): user-first description, `start_url` `/play`, no `orientation` (each game
+  declares its own, ADR 0046), a shortcut to Ghép Khối,
   screenshots made by `pnpm --filter @tohe/hub generate:screenshots`. `index.html` carries static `og:` and `twitter:`
   tags (title, description) for link previews; the preview image and `og:url` must be absolute and wait for the hub's
   public URL at run time.

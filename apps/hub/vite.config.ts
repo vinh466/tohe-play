@@ -69,7 +69,8 @@ export default defineConfig({
         start_url: '/play',
         scope: '/',
         display: 'standalone',
-        orientation: 'portrait',
+        // No `orientation` (ADR 0046): the app neither rotates nor locks the screen; a game fits the orientation its
+        // game.json prefers inside the screen it gets.
         background_color: '#fff7ed',
         theme_color: '#f97316',
         icons: [

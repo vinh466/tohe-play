@@ -6,12 +6,17 @@ import type { RouterHistory } from '@tanstack/react-router';
 export interface Trail {
   /** How many pages back `pathname` is, or 0 when it is not behind the current page (or not known to be). */
   stepsBackTo(pathname: string): number;
+  /** The path of the page right behind this one, when it is known. */
+  previous(): string | undefined;
   stop(): void;
 }
 
-/** Remembers the path of every history entry seen in this visit (a reload forgets the older ones). */
-export function createTrail(history: RouterHistory): Trail {
-  const pages = new Map<number, string>();
+/**
+ * Remembers the path of every history entry seen in this visit (a reload forgets the older ones). `behind`: entries
+ * known before it starts — the app's level put behind a game the app was opened at (main.tsx).
+ */
+export function createTrail(history: RouterHistory, behind: Readonly<Record<number, string>> = {}): Trail {
+  const pages = new Map<number, string>(Object.entries(behind).map(([index, path]) => [Number(index), path]));
   const note = () => {
     const { pathname, state } = history.location;
     pages.set(state.__TSR_index, pathname);
@@ -28,6 +33,9 @@ export function createTrail(history: RouterHistory): Trail {
         if (page === pathname) return here - index;
       }
       return 0;
+    },
+    previous() {
+      return pages.get(history.location.state.__TSR_index - 1);
     },
     stop: unsubscribe,
   };

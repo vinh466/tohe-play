@@ -84,7 +84,7 @@ function Register() {
   const device = useQuery(signingUpDeviceQuery).data ?? null;
   const [answer, setAnswer] = useState<SignUpAnswer>(defaultAnswer);
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  const { invite: linked } = useSearch({ from: '/account/register' });
+  const { invite: linked } = useSearch({ from: '/_frame/account/register' });
   // A code from an invite link survives a trip to a sign-in provider (ADR 0028).
   useEffect(() => {
     if (linked) invite.remember(linked);
@@ -396,7 +396,7 @@ function Register() {
 
 function ConfirmFromLink() {
   const { t } = useTranslation();
-  const { attempt, code } = useSearch({ from: '/account/register/confirm' });
+  const { attempt, code } = useSearch({ from: '/_frame/account/register/confirm' });
   const signedUp = useSignedUp();
   // Opened in this browser, the sign-up started here: its device profile goes along. Elsewhere, the usual account.
   const pending = pendingSignUp.find(attempt);

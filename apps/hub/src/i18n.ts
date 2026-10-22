@@ -1,10 +1,12 @@
 import i18n from 'i18next';
 import { initReactI18next } from 'react-i18next';
+import { type Language, localStorageOrNothing, saveLanguage, startingLanguage } from './language/language.ts';
 
 const vi = {
   appName: 'Tò He',
   tagline: 'Game nhỏ, mở ra là chơi',
   games: 'Trò chơi',
+  allGames: 'Tất cả trò chơi',
   play: 'Chơi',
   exit: 'Thoát',
   mute: 'Tắt tiếng',
@@ -390,17 +392,52 @@ const vi = {
     keptHint: 'Chưa vào tài khoản: tiến độ chỉ lưu trên máy này.',
     savesLeft: 'Đã gộp. Một số màn chơi đã lưu của {{names}} vẫn ở lại máy này, chưa gộp được vào tài khoản.',
   },
-  menu: {
-    button: 'Menu',
-    title: 'Menu',
+  // The app's frame (ADR 0046): its three tabs, and what Chơi cùng and Tôi hold.
+  frame: {
+    label: 'Mục chính',
+    games: 'Trò chơi',
+    together: 'Chơi cùng',
+    me: 'Tôi',
+  },
+  together: {
+    codeTitle: 'Có mã?',
+    tablesTitle: 'Bàn đang ngồi',
+    tablesEmpty: 'Chưa ngồi bàn nào. Mở một trò chơi để rủ bạn chơi cùng, hoặc nhập mã bạn gửi cho.',
+    tableLine: '{{host}} · {{taken}}/{{seats}} chỗ',
+    invitesTitle: 'Lời mời',
+    invitesEmpty: 'Lúc này chưa có lời mời nào.',
+    linksTitle: 'Link đã gửi',
+    allLinks: 'Xem tất cả',
+  },
+  me: {
+    profiles: 'Hồ sơ',
+    playing: 'Đang chơi',
+    change: 'Đổi',
+    settings: 'Cài đặt',
+    language: 'Ngôn ngữ',
+    sound: 'Âm thanh',
+    soundHint: 'Tiếng trong các trò chơi, trên máy này',
     install: 'Cài app',
-    installHint: 'Mở Tò He từ màn hình chính',
-    feedback: 'Góp ý / báo lỗi',
-    feedbackHint: 'Gửi thư cho người làm Tò He',
-    code: 'Nhập mã',
-    codeHint: 'Mã bàn chơi hoặc mã link mời',
-    links: 'Link của tôi',
-    linksHint: 'Link mời bạn đã gửi, và số lượt mở',
+    installHint: 'Mở Tò He từ màn hình chính, như một app.',
+    installButton: 'Cài app',
+    help: 'Trợ giúp và giới thiệu',
+    guides: 'Hướng dẫn',
+    faq: 'Hỏi đáp',
+    about: 'Giới thiệu',
+    promise: 'Lời hứa của Tò He',
+    feedback: 'Góp ý',
+    feedbackHint: 'Gửi thư cho người làm Tò He.',
+    feedbackLink: 'Góp ý / báo lỗi',
+    papers: 'Giấy tờ',
+    inVietnamese: '',
+    account: 'Tài khoản',
+    deviceHint: 'Tiến độ đang lưu trên máy này. Có tài khoản thì chơi tiếp được trên máy khác.',
+  },
+  // A link out of Tò He on a child's profile (ADR 0046): the account's manage PIN first.
+  outbound: {
+    title: 'Mở trang ngoài Tò He',
+    gateTitle: 'Nhờ bố mẹ nhé',
+    gateBody: 'Trang này ở ngoài Tò He. Bố mẹ nhập mã quản lý (6 số) để mở.',
   },
   feedback: {
     subject: 'Góp ý Tò He',
@@ -807,6 +844,7 @@ const en: typeof vi = {
   appName: 'Tò He',
   tagline: 'Small games — open and play',
   games: 'Games',
+  allGames: 'All games',
   play: 'Play',
   exit: 'Exit',
   mute: 'Mute',
@@ -1195,17 +1233,50 @@ const en: typeof vi = {
     keptHint: 'Not in the account: progress is kept on this device only.',
     savesLeft: 'Merged. Some saved games of {{names}} stay on this device: they did not fit in.',
   },
-  menu: {
-    button: 'Menu',
-    title: 'Menu',
-    install: 'Install app',
-    installHint: 'Open Tò He from your home screen',
-    feedback: 'Feedback / report a problem',
-    feedbackHint: 'Write to the people who make Tò He',
-    code: 'Enter a code',
-    codeHint: 'A table’s code or an invite link’s',
-    links: 'My links',
-    linksHint: 'The invite links you sent, and how often they opened',
+  frame: {
+    label: 'Main sections',
+    games: 'Games',
+    together: 'Play together',
+    me: 'Me',
+  },
+  together: {
+    codeTitle: 'Got a code?',
+    tablesTitle: 'Your tables',
+    tablesEmpty: 'Not at a table yet. Open a game to ask a friend along, or enter a code a friend sent.',
+    tableLine: '{{host}} · {{taken}}/{{seats}} seats',
+    invitesTitle: 'Invitations',
+    invitesEmpty: 'No invitations right now.',
+    linksTitle: 'Links you sent',
+    allLinks: 'See all',
+  },
+  me: {
+    profiles: 'Profiles',
+    playing: 'Playing now',
+    change: 'Change',
+    settings: 'Settings',
+    language: 'Language',
+    sound: 'Sound',
+    soundHint: 'Sound in the games, on this device',
+    install: 'Install the app',
+    installHint: 'Open Tò He from your home screen, like an app.',
+    installButton: 'Install app',
+    help: 'Help and about',
+    guides: 'Guides',
+    faq: 'FAQ',
+    about: 'About',
+    promise: 'Our promise',
+    feedback: 'Feedback',
+    feedbackHint: 'Write to the people who make Tò He.',
+    feedbackLink: 'Feedback / report a problem',
+    papers: 'Papers',
+    inVietnamese: '(in Vietnamese)',
+    account: 'Account',
+    deviceHint: 'Progress is kept on this device. With an account, you can carry on from another device.',
+  },
+  outbound: {
+    title: 'Leaving Tò He',
+    gateTitle: 'Ask a parent',
+    gateBody: 'This page is outside Tò He. A parent enters the manage PIN (6 digits) to open it.',
   },
   feedback: {
     subject: 'Tò He feedback',
@@ -1603,11 +1674,31 @@ const en: typeof vi = {
   },
 };
 
+const starting = startingLanguage();
 void i18n.use(initReactI18next).init({
   resources: { vi: { translation: vi }, en: { translation: en } },
-  lng: navigator.language.toLowerCase().startsWith('en') ? 'en' : 'vi',
+  lng: starting,
   fallbackLng: 'vi',
   interpolation: { escapeValue: false },
 });
+markDocument(starting);
+
+/** The page says which language it speaks (screen readers, the browser's translate offer). */
+function markDocument(language: Language) {
+  if (typeof document !== 'undefined') document.documentElement.lang = language;
+}
+
+/**
+ * Tôi → Ngôn ngữ: remembered under the key the public pages' switch shares, and applied at once — every screen
+ * re-renders in it, without a reload (ADR 0047).
+ */
+export function setLanguage(language: Language) {
+  saveLanguage(localStorageOrNothing(), language);
+  markDocument(language);
+  void i18n.changeLanguage(language);
+}
+
+/** The app's language now. */
+export const currentLanguage = (): Language => (i18n.language === 'en' ? 'en' : 'vi');
 
 export default i18n;

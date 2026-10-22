@@ -57,7 +57,7 @@ export function EnterCodeForm({ onGo, autoFocus = false }: { onGo?: () => void; 
   );
 }
 
-/** The sheet that holds the box: from the catalog and from the menu. */
+/** The sheet that holds the box: from the catalog (Chơi cùng holds the box itself). */
 export function EnterCodeSheet({ open, onClose }: { open: boolean; onClose(): void }) {
   const { t } = useTranslation();
   return (
