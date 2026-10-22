@@ -5,6 +5,8 @@ import type { Lang } from '../i18n.ts';
 import { site } from './site.ts';
 
 export interface Question {
+  /** The anchor of the question on the page, `/faq/#<id>`: the same in both languages; the home page links to three. */
+  id: string;
   q: string;
   a: string;
 }
@@ -12,55 +14,65 @@ export interface Question {
 const vi = {
   title: 'Hỏi đáp — Tò He',
   description:
-    'Tò He có miễn phí không, có cần tài khoản không, dữ liệu để ở đâu, bé chơi có ổn không, chơi khi mất mạng được không: câu trả lời ngắn.',
+    'Tò He có miễn phí không, có cần tài khoản không, dữ liệu để đâu, bé chơi có an toàn không, mất mạng có chơi được không: trả lời ngắn.',
   heading: 'Hỏi đáp',
-  lead: 'Những câu người ta hay hỏi đầu tiên.',
+  lead: 'Mấy câu người ta hay hỏi đầu tiên.',
   more: {
-    text: `Chưa thấy câu bạn cần? Viết cho chúng tôi: ${site.email}.`,
+    text: `Chưa thấy câu cần hỏi? Viết cho chúng tôi: ${site.email}.`,
     privacy: 'Chính sách quyền riêng tư',
     terms: 'Điều khoản sử dụng',
-    install: 'Cách cài lên màn hình chính',
+    install: 'Cách cài ra màn hình chính',
   },
   questions: [
     {
+      id: 'mien-phi',
       q: 'Tò He có miễn phí không?',
-      a: 'Có. Tò He không quảng cáo, không bán gì trong game, và không có tiền, xu hay vật phẩm để mua bán. Điểm chỉ để vui.',
+      a: 'Có. Không quảng cáo, không bán gì trong game, không có xu hay vật phẩm để mua. Điểm chỉ để vui.',
     },
     {
-      q: 'Tôi có cần tạo tài khoản để chơi không?',
-      a: 'Không. Mở link là chơi ngay, và máy sẽ nhớ ván của bạn trên chính máy đó. Tạo tài khoản (bằng email, hoặc Google) khi bạn muốn giữ tiến độ, chơi trên máy khác hay có tên trên bảng xếp hạng.',
+      id: 'tai-khoan',
+      q: 'Có cần tạo tài khoản để chơi không?',
+      a: 'Không. Mở link là chơi, máy nhớ ván đang chơi ngay trên máy đó. Muốn giữ tiến độ, chơi trên máy khác hay có tên trên bảng xếp hạng thì tạo tài khoản bằng email hoặc Google.',
     },
     {
+      id: 'du-lieu',
       q: 'Tò He lưu những gì về tôi?',
-      a: 'Chơi không tài khoản thì ván chơi nằm trên máy của bạn. Có tài khoản thì Tò He lưu email, tên hồ sơ, ván đã lưu và điểm. Tò He không bán dữ liệu của bạn và không có quảng cáo hay công cụ theo dõi của bên thứ ba. Một ít số liệu kỹ thuật (loại máy, lỗi, độ mượt của game) không gắn với tên bạn, và bạn tắt được. Chi tiết ở trang Chính sách quyền riêng tư.',
+      a: 'Chơi không tài khoản thì ván chơi nằm trên máy. Có tài khoản thì Tò He lưu email, tên hồ sơ, ván đã lưu và điểm. Tò He không bán dữ liệu, không có quảng cáo hay công cụ theo dõi của bên khác. Một ít số liệu kỹ thuật (loại máy, lỗi, độ mượt của game) không gắn với tên ai, và tắt được. Chi tiết ở trang Chính sách quyền riêng tư.',
     },
     {
+      id: 'tre-em',
       q: 'Bé chơi có an toàn không?',
-      a: 'Trẻ dưới 16 tuổi không tự tạo tài khoản: bố mẹ tạo hồ sơ cho con trong tài khoản của mình, bé chỉ cần chọn một hình đại diện. Trong phòng chơi online chỉ có những câu phản ứng có sẵn, không có trò chuyện tự do. Mặc định, bé không chơi cùng người ngoài tài khoản của bố mẹ.',
+      a: 'Trẻ dưới 16 tuổi không tự tạo tài khoản: bố mẹ tạo hồ sơ cho con trong tài khoản của mình, bé chỉ cần chọn hình đại diện. Trong bàn chơi online chỉ có những câu phản ứng có sẵn, không trò chuyện tự do. Mặc định, bé không chơi cùng người ngoài tài khoản của bố mẹ.',
     },
     {
-      q: 'Không có mạng thì có chơi được không?',
-      a: 'Tò He đã mở một lần thì vẫn mở được khi mất mạng, và game đã chơi một lần thường vẫn chơi được, vì trình duyệt còn giữ nó. Tiến độ lưu trên máy và đồng bộ khi có mạng lại. Bàn chơi online thì cần mạng.',
+      id: 'mat-mang',
+      q: 'Mất mạng có chơi được không?',
+      a: 'Tò He đã mở một lần thì mở được cả khi mất mạng, và game đã chơi một lần thường vẫn chơi được vì trình duyệt còn giữ nó. Tiến độ lưu trên máy, có mạng lại thì đồng bộ. Bàn chơi online thì cần mạng.',
     },
     {
+      id: 'may-nao',
       q: 'Tò He chạy trên điện thoại nào?',
-      a: 'Trên điện thoại Android và iPhone có trình duyệt hiện đại như Chrome hay Safari, và cả trên máy tính. Không phải tải gì từ cửa hàng ứng dụng.',
+      a: 'Android và iPhone có trình duyệt mới như Chrome hay Safari, và cả máy tính. Không phải tải gì từ cửa hàng ứng dụng.',
     },
     {
-      q: 'Làm sao thêm Tò He vào màn hình chính?',
-      a: 'Dùng menu của trình duyệt: Chrome có "Cài đặt ứng dụng", Safari trên iPhone có Chia sẻ → "Thêm vào Màn hình chính". Link mở trong Zalo hay Messenger thì mở bằng trình duyệt trước. Từng bước ở trang Hướng dẫn cài đặt.',
+      id: 'cai-dat',
+      q: 'Thêm Tò He ra màn hình chính thế nào?',
+      a: 'Dùng menu của trình duyệt: Chrome có "Cài đặt ứng dụng", Safari trên iPhone có nút Chia sẻ rồi "Thêm vào Màn hình chính". Link mở trong Zalo hay Messenger thì mở bằng trình duyệt trước. Từng bước ở trang Hướng dẫn cài.',
     },
     {
-      q: 'Chơi cùng bạn bè và người thân như thế nào?',
-      a: 'Một số game, như Tiến Lên, có phòng chơi online: bạn mở phòng, gửi link hoặc mã cho mọi người, mỗi người vào bằng điện thoại của mình. Thiếu người thì có bạn máy chơi thay.',
+      id: 'choi-cung',
+      q: 'Chơi cùng cả nhà thế nào?',
+      a: 'Một số game, như Tiến Lên, có bàn chơi online: mở bàn, gửi link hoặc mã cho mọi người, ai cũng vào bằng điện thoại của mình. Thiếu người thì có bạn máy ngồi vào.',
     },
     {
-      q: 'Tôi muốn xoá hồ sơ hay tài khoản thì sao?',
-      a: 'Vào "Quản lý tài khoản" trong Tò He. Xoá một hồ sơ thì ván đã lưu và điểm của hồ sơ đó bị xoá ngay. Xoá tài khoản thì sau 7 ngày mọi hồ sơ và dữ liệu đi kèm bị xoá hẳn.',
+      id: 'xoa',
+      q: 'Muốn xoá hồ sơ hay tài khoản thì sao?',
+      a: 'Vào "Quản lý tài khoản" trong Tò He. Xoá hồ sơ thì ván đã lưu và điểm của hồ sơ đó mất ngay. Xoá tài khoản thì sau 7 ngày mọi hồ sơ và dữ liệu đi kèm được xoá hẳn.',
     },
     {
-      q: 'Ai làm ra Tò He, và tôi góp ý ở đâu?',
-      a: `Tò He là một dự án gia đình, do một người vận hành. Góp ý, báo lỗi hay hỏi về dữ liệu, bạn viết cho ${site.email}.`,
+      id: 'ai-lam',
+      q: 'Ai làm ra Tò He, góp ý ở đâu?',
+      a: `Tò He là dự án của một gia đình, một người làm và vận hành. Góp ý, báo lỗi hay hỏi về dữ liệu thì viết cho ${site.email}.`,
     },
   ] as Question[],
 };
@@ -68,7 +80,7 @@ const vi = {
 const en: typeof vi = {
   title: 'FAQ — Tò He',
   description:
-    'Is Tò He free, do you need an account, where is your data kept, is it fine for children, does it work offline: short answers.',
+    'Is Tò He free, do you need an account, where is your data kept, is it safe for children, does it work offline: short answers.',
   heading: 'FAQ',
   lead: 'What people ask first.',
   more: {
@@ -79,44 +91,54 @@ const en: typeof vi = {
   },
   questions: [
     {
+      id: 'mien-phi',
       q: 'Is Tò He free?',
-      a: 'Yes. Tò He has no ads, sells nothing in its games, and has no money, coins or items to buy or sell. Scores are just for fun.',
+      a: 'Yes. No ads, nothing to buy in the games, no coins or items. Scores are just for fun.',
     },
     {
+      id: 'tai-khoan',
       q: 'Do I need an account to play?',
-      a: 'No. Open the link and play, and your device remembers your games. Create an account (with an email address, or Google) when you want to keep your progress, play on another device or have your name on the leaderboard.',
+      a: 'No. Open the link and play. Your device remembers your game in progress. Create an account with an email address or Google if you want to keep your progress, play on another device or have your name on the leaderboard.',
     },
     {
+      id: 'du-lieu',
       q: 'What does Tò He keep about me?',
-      a: 'Without an account, your games stay on your device. With an account, Tò He keeps your email address, your profile names, your saved games and your scores. Tò He does not sell your data and has no third-party ads or trackers. A little technical data (the kind of device, errors, how smoothly a game runs) is not tied to your name, and you can turn it off. The details are in the privacy notice, in Vietnamese.',
+      a: 'Without an account, your games stay on your device. With an account, Tò He keeps your email address, profile names, saved games and scores. It does not sell your data, and has no ads or trackers from anyone else. A little technical data (the kind of device, errors, how smoothly a game runs) is not tied to anyone’s name, and you can turn it off. The details are in the privacy notice, in Vietnamese.',
     },
     {
+      id: 'tre-em',
       q: 'Is it safe for children?',
-      a: 'Children under 16 do not create accounts themselves: a parent creates a profile for the child in their own account, and the child only picks an avatar. Online tables have only ready-made reactions, no free chat. By default, a child does not play with people outside the parent’s account.',
+      a: 'Children under 16 do not create accounts themselves. A parent creates a profile for the child in their own account, and the child only picks an avatar. Online tables have only ready-made reactions, no free chat. By default, a child does not play with people outside the parent’s account.',
     },
     {
+      id: 'mat-mang',
       q: 'Can I play without an internet connection?',
-      a: 'Once you have opened Tò He, it opens without a connection too, and a game you have played before usually still plays, as long as the browser has kept it. Your progress is saved on the device and syncs when you are back online. Online tables need a connection.',
+      a: 'Once Tò He has been opened, it opens without a connection too, and a game you have played before usually still plays, as long as the browser has kept it. Your progress is saved on the device and syncs when you are back online. Online tables need a connection.',
     },
     {
+      id: 'may-nao',
       q: 'Which phones does Tò He run on?',
-      a: 'Android phones and iPhones with a modern browser such as Chrome or Safari, and computers too. Nothing to download from an app store.',
+      a: 'Android phones and iPhones with a recent browser such as Chrome or Safari, and computers too. Nothing to download from an app store.',
     },
     {
+      id: 'cai-dat',
       q: 'How do I add Tò He to my home screen?',
-      a: 'Use the browser’s menu: Chrome has "Install app", Safari on iPhone has Share → "Add to Home Screen". If the link opened inside Zalo or Messenger, open it in a real browser first. Step by step in the install guide.',
+      a: 'Use the browser’s menu: Chrome has "Install app", Safari on iPhone has the Share button, then "Add to Home Screen". If the link opened inside Zalo or Messenger, open it in a real browser first. Step by step in the install guide.',
     },
     {
-      q: 'How do I play with friends and family?',
-      a: 'Some games, like Tiến Lên, have online tables: you open a table and send the link or the code to everyone, and each person joins on their own phone. If someone is missing, a bot takes the seat.',
+      id: 'choi-cung',
+      q: 'How do we play together?',
+      a: 'Some games, like Tiến Lên, have online tables. Open a table and send the link or the code to everyone, and each person joins on their own phone. If someone is missing, a bot takes the seat.',
     },
     {
+      id: 'xoa',
       q: 'How do I delete a profile or my account?',
       a: 'Go to "Manage account" in Tò He. Deleting a profile deletes its saved games and scores at once. Deleting the account deletes every profile and its data for good after 7 days.',
     },
     {
+      id: 'ai-lam',
       q: 'Who makes Tò He, and where do I send feedback?',
-      a: `Tò He is a family project, run by one person. For feedback, a bug or a question about your data, write to ${site.email}.`,
+      a: `Tò He is a family project, built and run by one person. For feedback, a bug or a question about your data, write to ${site.email}.`,
     },
   ],
 };

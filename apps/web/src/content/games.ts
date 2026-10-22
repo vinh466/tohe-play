@@ -17,18 +17,18 @@ import {
 const viPage = {
   title: 'Trò chơi — Tò He',
   description:
-    'Các trò chơi nhỏ trên Tò He: ghép khối, bài Tiến lên, thử phản xạ. Chơi ngay trên điện thoại, miễn phí, không quảng cáo, không cần tài khoản.',
+    'Các trò chơi nhỏ trên Tò He: ghép khối, bài Tiến Lên, thử phản xạ. Chơi ngay trên điện thoại, miễn phí, không quảng cáo, không cần tài khoản.',
   heading: 'Trò chơi',
-  lead: 'Mỗi trò chơi là một con tò he nhỏ: mở ra là chơi, một ván vài phút. Chọn một trò để xem cách chơi, hay chơi luôn.',
+  lead: 'Mỗi trò chơi là một con tò he nhỏ: mở là chơi, một ván vài phút. Bấm Chơi, hoặc chọn một trò để xem cách chơi.',
   play: 'Chơi',
   /** Only for a game that can be played at a table with others (the `rooms` capability). */
-  playTogether: 'Chơi cùng bạn',
+  playTogether: 'Chơi cùng',
   back: '← Tất cả trò chơi',
   home: 'Trang chủ',
   facts: 'Thông tin nhanh',
   ...pageHeadings.vi,
   others: 'Các trò khác',
-  install: 'Muốn mở nhanh như một ứng dụng? Xem cách cài lên màn hình chính.',
+  install: 'Muốn mở nhanh như một ứng dụng? Xem cách cài ra màn hình chính.',
 };
 
 /** The page's own words, apart from the game's. */
@@ -37,11 +37,11 @@ export const gamesPage: Record<Lang, typeof viPage> = {
   en: {
     title: 'Games — Tò He',
     description:
-      'The small games on Tò He: merging number blocks, the card game Tiến lên, a reflex test. Play now on your phone — free, no ads, no account needed.',
+      'The small games on Tò He: merging number blocks, the card game Tiến Lên, a reflex test. Play now on your phone. Free, no ads, no account needed.',
     heading: 'Games',
-    lead: 'Every game is a small tò he: open it and play, a round takes a few minutes. Pick one to see how to play, or just play.',
+    lead: 'Every game is a small tò he: open it and play, a round takes a few minutes. Tap Play, or pick a game to see how to play.',
     play: 'Play',
-    playTogether: 'Play with a friend',
+    playTogether: 'Play together',
     back: '← All games',
     home: 'Home',
     facts: 'At a glance',
@@ -60,39 +60,38 @@ const factWords = {
       cards: 'Bài',
       classic: 'Kinh điển',
       reflex: 'Phản xạ',
-      sample: 'Game mẫu',
     } as Record<string, string>,
     fromAge: (age: number) => `Từ ${age} tuổi`,
     allAges: 'Mọi lứa tuổi',
-    together: (min: number, max: number) => `Cùng bạn bè: ${min}–${max} người`,
+    together: (min: number, max: number) => `Chơi cùng: ${min}–${max} người`,
     bots: 'Có bạn máy',
     alone: 'Chơi một mình',
     ranked: 'Có bảng xếp hạng',
     rows: {
-      ages: 'Độ tuổi',
+      ages: 'Tuổi',
       players: 'Người chơi',
       round: 'Một ván',
-      screen: 'Màn hình',
-      offline: 'Chơi khi mất mạng',
+      screen: 'Cầm máy',
+      offline: 'Khi mất mạng',
       ads: 'Quảng cáo',
-      data: 'Dữ liệu cá nhân',
+      data: 'Thông tin cá nhân',
     },
     players: (seats: { min: number; max: number } | undefined, bots: boolean) =>
       !seats
-        ? '1 người'
+        ? 'Một người'
         : bots
-          ? `1 người với bạn máy, hoặc ${seats.min}–${seats.max} người cùng bàn, mỗi người một máy`
+          ? `Một mình với bạn máy, hoặc ${seats.min}–${seats.max} người cùng bàn, mỗi người một máy`
           : `${seats.min}–${seats.max} người cùng bàn, mỗi người một máy`,
     round: (round: GameFacts['round']) =>
       round.kind === 'fixed'
         ? `${round.seconds} giây`
         : round.kind === 'about'
           ? `Khoảng ${round.minMinutes === round.maxMinutes ? round.minMinutes : `${round.minMinutes}–${round.maxMinutes}`} phút`
-          : 'Không cố định: chơi đến khi hết ván, game lưu lại để chơi tiếp',
-    screen: { portrait: 'Dọc', landscape: 'Ngang', any: 'Dọc hay ngang đều được' },
-    yes: 'Được',
+          : 'Không đặt giờ, chơi đến khi hết ván, game nhớ chỗ đang chơi',
+    screen: { portrait: 'Cầm dọc', landscape: 'Cầm ngang', any: 'Dọc hay ngang đều được' },
+    yes: 'Chơi được',
     noAds: 'Không có',
-    noData: 'Không cần để chơi; không theo dõi',
+    noData: 'Chơi không cần đăng ký, không theo dõi',
   },
   en: {
     tags: {
@@ -101,39 +100,38 @@ const factWords = {
       cards: 'Cards',
       classic: 'Classic',
       reflex: 'Reflex',
-      sample: 'Sample game',
     } as Record<string, string>,
     fromAge: (age: number) => `Ages ${age}+`,
     allAges: 'All ages',
-    together: (min: number, max: number) => `With friends: ${min}–${max} players`,
+    together: (min: number, max: number) => `Play together: ${min}–${max} players`,
     bots: 'Bots to play against',
     alone: 'Play alone',
     ranked: 'Leaderboard',
     rows: {
-      ages: 'Ages',
+      ages: 'Age',
       players: 'Players',
-      round: 'A round',
-      screen: 'Screen',
-      offline: 'Plays offline',
+      round: 'One round',
+      screen: 'Hold it',
+      offline: 'Without internet',
       ads: 'Ads',
-      data: 'Personal data',
+      data: 'Your data',
     },
     players: (seats: { min: number; max: number } | undefined, bots: boolean) =>
       !seats
-        ? '1 player'
+        ? 'One player'
         : bots
-          ? `1 player against bots, or ${seats.min}–${seats.max} at one table, each on their own device`
+          ? `Alone against bots, or ${seats.min}–${seats.max} at one table, each on their own device`
           : `${seats.min}–${seats.max} at one table, each on their own device`,
     round: (round: GameFacts['round']) =>
       round.kind === 'fixed'
         ? `${round.seconds} seconds`
         : round.kind === 'about'
           ? `About ${round.minMinutes === round.maxMinutes ? round.minMinutes : `${round.minMinutes}–${round.maxMinutes}`} minutes`
-          : 'No set length: play until the game is over; it keeps your place',
-    screen: { portrait: 'Portrait', landscape: 'Landscape', any: 'Portrait or landscape' },
-    yes: 'Yes',
+          : 'No clock: play until the game is over, and it keeps your place',
+    screen: { portrait: 'Upright', landscape: 'Sideways', any: 'Upright or sideways' },
+    yes: 'Plays',
     noAds: 'None',
-    noData: 'None needed to play; no tracking',
+    noData: 'No sign-up needed to play, no tracking',
   },
 } satisfies Record<Lang, unknown>;
 

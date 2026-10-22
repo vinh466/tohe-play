@@ -87,10 +87,9 @@ without them.
    and bots are true — the facts table and the chips come from them.
 2. Write `page/vi.md` and `page/en.md` beside `public/` (copy `games/merge-block/page/` for the shape):
    - front matter: `updated: <today, YYYY-MM-DD>` and `kind: <what it is in a few words>` (after the name in the title);
-   - the answer: one or two sentences, what it is and for whom — no numbers the facts table already holds;
+   - the answer: one or two short sentences, what it is and for whom — no numbers the facts table already holds;
    - `## Cách chơi` / `## How to play`: 3 to 5 numbered lines, in the order of a first game;
-   - `## Hợp với ai` / `## Who it suits`;
-   - optionally `## Hỏi đáp` / `## Questions` (`### question?` and its answer) and `## Hình ảnh` / `## Pictures`
+   - optionally `## Hợp với ai` / `## Who it suits` (only where it says more than the facts and the answer), `## Hỏi đáp` / `## Questions` (`### question?` and its answer) and `## Hình ảnh` / `## Pictures`
      (`![what it shows](name.png)`, the file beside the page).
    Plain text only. Proper names and established terms stay as they are. Vietnamese is the face; English the support.
 3. Write `page/facts.json`: `round` — `{ "kind": "fixed", "seconds": n }`, `{ "kind": "about", "minMinutes": a,
