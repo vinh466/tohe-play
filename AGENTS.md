@@ -18,7 +18,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
 | `apps/console` | The operator's console on a host of its own (`console.`, :4721 locally) with its own sign-in and session, and its own API at `/api/admin` (ADR 0027, 0042) |
-| `apps/web` | The public pages on the players' host (vi): static, built into the hub image, served at its root (ADR 0042) |
+| `apps/web` | The public pages on the players' host (vi at `/`, en at `/en/`): static, built into the hub image, served at its root (ADR 0042, 0047) |
 | `apps/docs` | The developer docs (en), rendered from `docs/`, at the root of their own host |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
 | `deploy/` | Helm chart (`deploy/helm/tohe`), Caddyfiles and Dockerfiles, UAT scripts (`deploy/uat`) |

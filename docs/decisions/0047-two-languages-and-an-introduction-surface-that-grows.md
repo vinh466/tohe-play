@@ -14,7 +14,9 @@ sidebar:
   tieng viet th (game sau nay muon them van dc) trang gioi thieu cung 2 ngon ngu nha (nho toi uu ve SEO) trang console thi
   chot la chi dung english nha"; "bộ mặt sản phẩm sang default là tiếng việt và đánh vào user việt, en là hỗ trợ thêm cần
   thiết cho user nước ngoài tiếp cận, các nội dung cần tiếng anh thì nên giữ trên tiếng việt cũng được tạo sự chính xác
-  (name, thuật ngũ, tên riêng ,....)"; on D-06: "rất hợp lý, theo đề xuât tôi chốt nha".
+  (name, thuật ngũ, tên riêng ,....)"; on D-06: "rất hợp lý, theo đề xuât tôi chốt nha". Points the agent proposed
+  are marked *(agent)*; the owner approved them on 2026-10-22 ("ổn nha, theo đề xuất"). How descriptions are written
+  per language stays open until the Game Contract's names ADR.
 
 ## Context
 

@@ -1,0 +1,55 @@
+---
+// /guides/install/ and /en/guides/install/: putting Tò He on the home screen, on each kind of device. The words are in
+// ../content/install.ts.
+import { install } from '../content/install.ts';
+import { absolute } from '../content/site.ts';
+import { appPath, localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = install[lang];
+const path = localPath(lang, '/guides/install/');
+const jsonLd = [
+  {
+    '@type': 'WebPage',
+    name: words.heading,
+    description: words.description,
+    url: absolute(path),
+    inLanguage: lang,
+    isPartOf: { '@id': absolute(`${localPath(lang, '/')}#website`) },
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
+  <main id="main" class="narrow">
+    <a class="crumb" href={localPath(lang, '/guides/')}>{words.back}</a>
+    <h1>{words.heading}</h1>
+    <p class="lead">{words.lead}</p>
+    <ul class="jump" aria-label={words.jump}>
+      {words.platforms.map((platform) => <li><a href={`#${platform.id}`}>{platform.title}</a></li>)}
+    </ul>
+
+    {
+      words.platforms.map((platform) => (
+        <section id={platform.id}>
+          <h2>{platform.title}</h2>
+          <div class="panel">
+            {platform.intro && <p>{platform.intro}</p>}
+            <ol class="steps">{platform.steps.map((step) => <li>{step}</li>)}</ol>
+            {platform.note && <p class="note">{platform.note}</p>}
+          </div>
+        </section>
+      ))
+    }
+
+    <section>
+      <h2>{words.done.heading}</h2>
+      <p>{words.done.text}</p>
+      <div class="actions">
+        <a class="button primary" href={appPath(lang, '/play')}>{words.done.play}</a>
+        <a class="button secondary" href={localPath(lang, '/faq/')}>{words.done.faq}</a>
+      </div>
+    </section>
+  </main>
+</Page>

@@ -1,0 +1,13 @@
+---
+// /en/games/<gameId>/: one page for each game that has a game.json, in English — ../../../views/GamePage.astro.
+import { gamePaths } from '../../../content/games.ts';
+import GamePage from '../../../views/GamePage.astro';
+
+export function getStaticPaths() {
+  return gamePaths('en');
+}
+
+const { game, others } = Astro.props;
+---
+
+<GamePage game={game} others={others} />

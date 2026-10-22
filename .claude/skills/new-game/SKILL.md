@@ -78,15 +78,16 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
 
 ## 3. Public page
 
-The game's public page, `/games/<id>/`, is made from `public/game.json` and `public/icon.svg` by itself (apps/web). What to
-do by hand:
+The game's public pages, `/games/<id>/` and the English `/en/games/<id>/`, are made from `public/game.json` and
+`public/icon.svg` by themselves (apps/web). What to do by hand:
 
 1. Check `game.json`: the descriptions are written for a stranger (`descriptions.vi` is the Vietnamese page's text and
-   meta description), `minAge`,
-   `tags` and, with `rooms`, the seats and bots are true — the page's chips come from them.
-2. Add the game to `gameCopy` in `apps/web/src/content/games.ts`: `kind` (a few words after the name in the title),
-   `howTo` (3–5 short lines, Vietnamese, in the order of a first game) and `suits`. `pnpm --filter @tohe/web test` fails
-   without it.
+   meta description, `description` the English page's), `minAge`, `tags` and, with `rooms`, the seats and bots are
+   true — the pages' chips come from them.
+2. Add the game to `gameCopy` in `apps/web/src/content/games.ts`, once in Vietnamese (`vi`) and once in English (`en`):
+   `kind` (a few words after the name in the title), `howTo` (3–5 short lines, in the order of a first game) and
+   `suits`. Proper names and established terms stay as they are. `pnpm --filter @tohe/web test` fails without either
+   language.
 3. `pnpm --filter @tohe/routes build` (the sitemap lists the new page; commit the regenerated files) and
    `pnpm --filter @tohe/web build` (its check fails on a page without title, description, canonical, link preview, one
    `h1`, or a sitemap mismatch). Look at the page in light and dark.

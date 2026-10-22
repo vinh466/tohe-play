@@ -95,7 +95,7 @@ everywhere (ADR 0047).
   it resolves carries the game's names too. **Link previews** speak Vietnamese for now: `names.vi`, else `name`, until
   ADR 0047's previews in the maker's language.
 - **The console** speaks English: the standard `name`.
-- **The public pages**: the Vietnamese lookup on the Vietnamese pages; the English pages read English when they come.
+- **The public pages**: the lookup in the page's language — Vietnamese at `/…`, English at `/en/…` (ADR 0047).
 - **Games** are not sent their names: a game has its own title in its own strings.
 
 ### Not done
@@ -113,8 +113,8 @@ everywhere (ADR 0047).
 - The API: registry columns for `names` and `descriptions`, read by `CatalogSync` and returned with each game and with
   a resolved link; previews in Vietnamese; the OpenAPI document and the clients' types regenerated; tests on
   PostgreSQL.
-- The hub shows the lookup everywhere it names or describes a game; the console the standard name; the public pages the
-  Vietnamese lookup.
+- The hub shows the lookup everywhere it names or describes a game; the console the standard name; each public page
+  the lookup in its language.
 - The four games: `names` and `descriptions`, a patch version each; the sample's English title follows its name.
 - `tools/games-host`: the repository's rule above, tested.
 - Docs: [Game Contract v1](../contracts/game-contract-v1.md) (the manifest and versioning), [Create a

@@ -2,7 +2,7 @@
 # Do not edit: change the map and regenerate (ADR 0042, docs/architecture/hosts-and-paths.md).
 # The namespaces of the hub’s host as named matchers; Caddyfile.hub serves each and answers 404 to the rest.
 @apiProxy path /api /api/*
-@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /terms /terms/* /privacy /privacy/* /og.png /llms.txt
+@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /terms /terms/* /privacy /privacy/* /en /en/* /og.png /llms.txt
 @publicStaticImmutable path /_web /_web/*
 @appPage path /play /play/* /account /account/* /r /r/* /s /s/*
 @appStaticImmutable path /assets /assets/*

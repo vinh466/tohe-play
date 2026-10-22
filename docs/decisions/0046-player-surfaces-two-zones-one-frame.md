@@ -8,12 +8,13 @@ sidebar:
 - **Status:** Accepted
 - **Date:** 2026-10-22
 - **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespace `/together` for the app; Cloudflare
-  Access in front of `console.` before the launch is proposed.
-  The public pages' redirect of a returning player ([Hosts and paths](../architecture/hosts-and-paths.md)) ends
+  Access in front of `console.` (on since 2026-10-22). The public pages' redirect of a returning player
+  ([Hosts and paths](../architecture/hosts-and-paths.md)) ends.
 - **Decided by:** the owner, 2026-10-22, in the launch review (plans/launch-review D-02, D-04, D-05): "D-02 D-04 chọn
   B"; "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi … nên nếu
-  lên vấn đề này như 1 topic và nói tình hình hiện tại". Points the agent proposed and the owner reviews in this ADR are
-  marked *(agent)*.
+  lên vấn đề này như 1 topic và nói tình hình hiện tại". Points the agent proposed are marked *(agent)*;
+  the owner approved them on 2026-10-22 ("ổn nha, theo đề xuất") except **No redirect on `/`**, which waits for the
+  owner's review of the full route map, and turned Cloudflare Access on in front of `console.` the same day.
 
 ## Context
 
@@ -67,7 +68,7 @@ The owner's review of a game includes changes to its dependencies (the supply ch
 browsers to keep the games origin apart by origin rather than by site (`Origin-Agent-Cluster: ?1`) is left for later:
 tried on 2026-10-22, the end-to-end test that opens the leaderboard from a game's title screen failed twice with the
 header and passed without it, so it needs understanding first (the product backlog). Cloudflare
-Access goes in front of `console.` before the launch *(agent; optional until the owner decides — owner, 2026-10-20)*.
+Access is in front of `console.` (the owner turned it on, 2026-10-22); the console's own sign-in still asks after it.
 
 ### Two zones on the players' host
 
@@ -146,7 +147,8 @@ A layout route wraps every screen of the Play zone except a game in play.
   [Identity](../architecture/identity.md) (who is playing, the ended session) and [Telemetry](../architecture/telemetry.md)
   (returning visits) follow when the frame lands.
 - ADR 0042's status line notes the amendment.
-- The gate before the launch includes Cloudflare Access on `console.` if the owner confirms it.
+- Cloudflare Access in front of `console.` is in place (2026-10-22); [Admin console](../architecture/admin.md) already
+  describes it.
 
 ## Alternatives considered
 

@@ -42,11 +42,12 @@ sidebar:
    pnpm --filter @tohe/game-<id> build
    pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>*.png (one per theme)
    ```
-7. **Give it its public page.** `/games/<id>/` is made from `public/game.json` and the icon, so write the
-   descriptions for someone who has never heard of the game (`descriptions.vi` is the Vietnamese page's text and its
-   search description), and
-   give `minAge` and `tags`. Add the game's how-to (3 to 5 lines), what it is in a few words and who it suits to
-   `gameCopy` in `apps/web/src/content/games.ts` — `pnpm --filter @tohe/web test` fails without it — then run
+7. **Give it its public pages.** `/games/<id>/` and its English page `/en/games/<id>/` are made from `public/game.json`
+   and the icon, so write the descriptions for someone who has never heard of the game (`descriptions.vi` is the
+   Vietnamese page's text and search description, `description` the English page's), and give `minAge` and `tags`. Add
+   the game's how-to (3 to 5 lines), what it is in a few words and who it suits to `gameCopy` in
+   `apps/web/src/content/games.ts`, in Vietnamese (`vi`) and in English (`en`) — `pnpm --filter @tohe/web test` fails
+   without either — then run
    `pnpm --filter @tohe/routes build` (the sitemap lists the page) and `pnpm --filter @tohe/web build`, which checks the
    page ([Hosts and paths](../architecture/hosts-and-paths.md#adding-or-changing-a-public-page)).
 8. **Play it** in the hub (`pnpm dev`, then rebuild `@tohe/games-host`) on a phone-sized window, then on a phone.

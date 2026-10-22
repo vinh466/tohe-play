@@ -6,4 +6,24 @@ Content-Signal: search=yes, ai-input=yes, ai-train=no
 Allow: /
 Disallow: /api/
 
+# Search and answers that cite the page.
+User-agent: Googlebot
+User-agent: Bingbot
+User-agent: OAI-SearchBot
+User-agent: Claude-SearchBot
+User-agent: PerplexityBot
+User-agent: Applebot
+User-agent: coccocbot-web
+Content-Signal: search=yes, ai-input=yes, ai-train=no
+Allow: /
+Disallow: /api/
+
+# Training models only.
+User-agent: GPTBot
+User-agent: ClaudeBot
+User-agent: Google-Extended
+User-agent: Applebot-Extended
+User-agent: CCBot
+Disallow: /
+
 Sitemap: {{ env "TOHE_HUB_URL" }}/sitemap.xml
