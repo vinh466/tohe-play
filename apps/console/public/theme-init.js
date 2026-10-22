@@ -8,7 +8,9 @@
   const root = document.documentElement;
   root.dataset.theme = theme;
   root.style.colorScheme = theme;
-  document
-    .querySelector('meta[name="theme-color"]')
-    ?.setAttribute('content', theme === 'dark' ? '#17110e' : '#f97316');
+  // Every theme-color tag, so a page with one per scheme (media="(prefers-color-scheme: …)") shows the chosen theme's
+  // colour whichever scheme the device is in.
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+    meta.setAttribute('content', theme === 'dark' ? '#17110e' : '#f97316');
+  }
 })();

@@ -12,6 +12,7 @@
 // Usage: HUB_URL=http://localhost:4720 pnpm --filter @tohe/e2e journey
 import { AxeBuilder } from '@axe-core/playwright';
 import { type Browser, type BrowserContext, chromium, type Frame, type Page } from 'playwright';
+import { ANIMALS } from '../../../apps/hub/src/session/animals.ts';
 import { codeSentTo } from './mailpit.ts';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
@@ -174,14 +175,25 @@ try {
   );
   const android = await visitor('android', userAgents.androidChrome, browser, [fakeInstallPrompt]);
   await android.goto(hubUrl);
-  await android.getByRole('link', { name: 'Chơi ngay' }).tap();
-  await android.waitForURL(catalogUrl);
+  // The header's button, on a phone (a Vietnamese page's link carries ?lang=vi: a Vietnamese app on any phone).
+  const play = android.getByRole('link', { name: 'Chơi ngay', exact: true });
+  if (!(await play.getAttribute('href'))?.endsWith('/play?lang=vi'))
+    throw new Error(
+      `the header's "Chơi ngay" does not carry the page's language: ${await play.getAttribute('href')}`,
+    );
+  await play.tap();
+  await android.waitForURL((url) => url.pathname === '/play');
   await android.getByRole('link', { name: 'Đăng nhập' }).waitFor(); // the slim strip of a device profile
   // The chip shows the avatar, then the name: the name is its last line.
   const chip = (await android.getByRole('link', { name: 'Đổi người chơi' }).innerText()).trim();
   const deviceName = (chip.split('\n').at(-1) ?? '').trim();
   if (!deviceName || deviceName === 'Khách')
     throw new Error(`the catalog names no device profile: "${deviceName}"`);
+  // One animal for the name and the avatar: never "Cá Heo Lém Lỉnh" with a fox.
+  const avatarOf = chip.split('\n')[0]?.trim() ?? '';
+  const animal = ANIMALS.find((candidate) => candidate.avatar === avatarOf);
+  if (!animal || !deviceName.includes(animal.vi))
+    throw new Error(`the guest's name "${deviceName}" does not match its avatar "${avatarOf}"`);
   await android
     .getByRole('link', { name: /Ghép Khối|Chạm Chấm/ })
     .first()
@@ -419,6 +431,23 @@ try {
     throw new Error('Android was told to open the link in the app by hand');
   }
   await link.context().close();
+
+  step(
+    'a guest at a game’s lobby has a way out (←); a path that is no screen says so in Vietnamese, with the way to Trò chơi (ADR 0046)',
+  );
+  const lost = await visitor('lost', userAgents.androidChrome, browser);
+  await lost.goto(`${hubUrl}/play/tien-len/rooms`);
+  const out = lost.getByRole('link', { name: /Quay lại|Về danh sách trò chơi/ }).first();
+  await out.waitFor();
+  await out.tap();
+  await lost.waitForURL((url) => url.pathname === '/play');
+  for (const path of ['/account/foo', '/play/x/y']) {
+    await lost.goto(`${hubUrl}${path}`);
+    await lost.getByRole('heading', { name: 'Không tìm thấy trang này' }).waitFor();
+    await lost.getByRole('link', { name: 'Về Tò He' }).tap();
+    await lost.waitForURL((url) => url.pathname === '/play');
+  }
+  await lost.context().close();
 
   step(
     'a device profile moves to a new phone with six digits the old phone confirms, its score with it (ADR 0043, I2b)',

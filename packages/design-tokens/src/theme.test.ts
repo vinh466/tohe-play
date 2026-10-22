@@ -36,12 +36,18 @@ describe('theme choice', () => {
 describe('theme-init.js', () => {
   // The script runs before a page starts; it must reach the same theme as theme.ts for every cookie and device.
   const run = (cookie: string, deviceDark: boolean) => {
-    const meta = { content: '', setAttribute: (_: string, value: string) => (meta.content = value) };
+    // Two theme-color tags, one per scheme (the hub's index.html): the script sets both.
+    const tag = () => {
+      const meta = { content: '', setAttribute: (_: string, value: string) => (meta.content = value) };
+      return meta;
+    };
+    const metas = [tag(), tag()];
     const root = { dataset: {} as Record<string, string>, style: {} as Record<string, string> };
-    const fakeDocument = { cookie, documentElement: root, querySelector: () => meta };
+    const fakeDocument = { cookie, documentElement: root, querySelectorAll: () => metas };
     const fakeMatchMedia = () => ({ matches: deviceDark });
     new Function('document', 'matchMedia', initScript)(fakeDocument, fakeMatchMedia);
-    return { theme: root.dataset.theme, scheme: root.style.colorScheme, bar: meta.content };
+    expect(metas[0]?.content).toBe(metas[1]?.content);
+    return { theme: root.dataset.theme, scheme: root.style.colorScheme, bar: metas[0]?.content };
   };
 
   for (const cookie of [

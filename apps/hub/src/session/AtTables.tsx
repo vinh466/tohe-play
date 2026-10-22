@@ -6,6 +6,7 @@ import { ApiError, devices } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery, deviceProfileQuery } from '../api/queries.ts';
 import { TERMS_VERSION } from '../legal/documents.ts';
+import { PaperLink } from '../legal/PaperLink.tsx';
 import { actAsDevice, onDeviceTrouble } from '../rooms/devicePlayer.ts';
 import { db, type LocalProfile } from '../storage/db.ts';
 import { AVATARS, updateDeviceProfile } from '../storage/deviceProfiles.ts';
@@ -181,7 +182,13 @@ export function SendCopy({
       <Button onClick={() => send.mutate()}>{t('named.retry')}</Button>
     </>
   );
-  return inline ? <div className="flex flex-col gap-4">{failed}</div> : <Screen narrow>{failed}</Screen>;
+  return inline ? (
+    <div className="flex flex-col gap-4">{failed}</div>
+  ) : (
+    <Screen narrow back="/play">
+      {failed}
+    </Screen>
+  );
 }
 
 /** What the `named` screen is for: the words around its one line change, the line does not. */
@@ -300,19 +307,12 @@ export function NamedScreen({
             className="mt-1 size-6 shrink-0 accent-brand"
           />
           <span>
-            {t('named.agree')}{' '}
-            <a href="/terms" target="_blank" rel="noopener" className={link}>
-              {t('named.terms')}
-            </a>{' '}
+            {t('named.agree')} <PaperLink paper="terms" label={t('named.terms')} className={link} />{' '}
             {t('named.age')}
           </span>
         </label>
         <p className="text-ink-soft text-sm">
-          {words.kept}{' '}
-          <a href="/privacy" target="_blank" rel="noopener" className={link}>
-            {t('legal.privacy')}
-          </a>
-          .
+          {words.kept} <PaperLink paper="privacy" label={t('legal.privacy')} className={link} />.
         </p>
         {send.isError && !refused ? (
           <p role="alert" className="text-danger">
@@ -346,5 +346,11 @@ export function NamedScreen({
       </p>
     </>
   );
-  return inline ? <div className="flex flex-col gap-4">{content}</div> : <Screen narrow>{content}</Screen>;
+  return inline ? (
+    <div className="flex flex-col gap-4">{content}</div>
+  ) : (
+    <Screen narrow back="/play">
+      {content}
+    </Screen>
+  );
 }

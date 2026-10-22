@@ -1,7 +1,7 @@
 import { queryOptions } from '@tanstack/react-query';
 import i18n from '../i18n.ts';
 import { sessionEnded, sessionEndedBy } from '../session/ended.ts';
-import { funName } from '../session/profileNames.ts';
+import { funIdentity } from '../session/profileNames.ts';
 import { db } from '../storage/db.ts';
 import { ensureDeviceProfile, listDeviceProfiles } from '../storage/deviceProfiles.ts';
 import { withOfflineCache } from '../storage/repository.ts';
@@ -63,7 +63,7 @@ export const deviceProfileQuery = (onMade?: () => void) =>
   queryOptions({
     queryKey: ['device-profile'],
     queryFn: async () => {
-      const { profile, made } = await ensureDeviceProfile(db, () => funName(i18n.language));
+      const { profile, made } = await ensureDeviceProfile(db, () => funIdentity(i18n.language));
       if (made) onMade?.();
       return profile;
     },

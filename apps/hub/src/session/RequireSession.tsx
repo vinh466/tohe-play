@@ -144,7 +144,7 @@ function SessionEnded({ returnTo }: { returnTo?: string }) {
   const { t } = useTranslation();
   const navigate = useNavigate();
   return (
-    <Screen narrow>
+    <Screen narrow back="/play">
       <section
         aria-labelledby="session-ended"
         className="mt-8 flex flex-col gap-4 rounded-3xl bg-surface p-5 text-center shadow-sm"

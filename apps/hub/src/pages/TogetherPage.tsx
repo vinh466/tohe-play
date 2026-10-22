@@ -119,6 +119,7 @@ function TableRow({ room, game }: { room: RoomSummary; game?: GameSummary }) {
       <Link
         to="/play/$gameId/rooms/$roomId"
         params={{ gameId: room.gameId, roomId: room.id }}
+        data-tile
         className="flex items-center gap-3 rounded-2xl bg-surface p-3 shadow-sm transition active:scale-[0.98]"
       >
         <GameIcon game={game} />

@@ -19,6 +19,8 @@ import { gameEntry } from '../entry/gameEntry.ts';
 import { entry as entryIntent } from '../entry/intent.ts';
 import { installStore } from '../install/install.ts';
 import { TERMS_VERSION } from '../legal/documents.ts';
+import { BackLink } from '../navigation/leave.tsx';
+import { useOnline } from '../net/online.ts';
 import { tablesStep } from '../session/serverCopy.ts';
 import type { Player } from '../session/session.ts';
 import { syncer, syncsWithServer } from '../session/useBackgroundSync.ts';
@@ -33,6 +35,7 @@ import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
 import { EntryNotice, type GameAsk, GameAsks, type PlayingSession, Reopening } from './GameAsks.tsx';
 import { nameOf } from './gameWords.ts';
 import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './manifest.ts';
+import { loadFailure, OFFLINE_GRACE_MS } from './offline.ts';
 import {
   declines,
   ENTRY_ANSWER_MS,
@@ -44,8 +47,11 @@ import {
   takesEntry,
 } from './requests.ts';
 
-/** `starting`: the game answered, but a shell game has not shown its first screen yet (ADR 0019). */
-type Status = 'loading' | 'starting' | 'ready' | 'failed' | 'untrusted';
+/**
+ * `starting`: the game answered, but a shell game has not shown its first screen yet (ADR 0019). `offline`: it did not
+ * answer and the device has no connection — a game never opened has nothing in the cache (launcher/offline.ts).
+ */
+type Status = 'loading' | 'starting' | 'ready' | 'failed' | 'offline' | 'untrusted';
 
 /** How long a shell game has to answer Back before the hub offers its own way out. */
 const BACK_ANSWER_MS = 1500;
@@ -135,6 +141,7 @@ export function GameFrame({
   const iframe = useRef<HTMLIFrameElement>(null);
   const host = useRef<HostHandle | null>(null);
   const [status, setStatus] = useState<Status>('loading');
+  const online = useOnline();
   const [muted, setMuted] = useState(() => readMuted());
   const { theme } = useTheme();
   const navigate = useNavigate();
@@ -486,7 +493,7 @@ export function GameFrame({
         }
       },
       () => {
-        setStatus('failed');
+        setStatus(loadFailure(navigator.onLine));
         telemetry.count('hub.game.failed', scope);
       },
     );
@@ -512,6 +519,14 @@ export function GameFrame({
       frame.src = 'about:blank';
     };
   }, [buildKey, gamesOrigin, player.id, roomId, canKey]);
+
+  // Offline while the game has not answered: a game never opened has nothing in the cache, so waiting more is no use —
+  // say so, with a way back, instead of an endless "Đang tải…" (launcher/offline.ts).
+  useEffect(() => {
+    if (online || status !== 'loading') return;
+    const timer = setTimeout(() => setStatus('offline'), OFFLINE_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [online, status]);
 
   // Mute and theme changes reach a running game as `settings` (e.g. "Theo máy" turning dark mid-round).
   useEffect(() => {
@@ -588,6 +603,17 @@ export function GameFrame({
             </div>
           ) : null}
           {status === 'failed' && t('gameFailed')}
+          {status === 'offline' && (
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-lg">{t('offlineGame.body')}</p>
+              <BackLink
+                to="/play"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-5 font-bold text-on-brand text-xl active:bg-brand-strong"
+              >
+                {t('offlineGame.leave')}
+              </BackLink>
+            </div>
+          )}
           {status === 'untrusted' && t('untrusted')}
           {/* A shell game holds the way out in its own menu; until it is up (or if it never is), the hub's. */}
           {shell && status !== 'ready' ? (

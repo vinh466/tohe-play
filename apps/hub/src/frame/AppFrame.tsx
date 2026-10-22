@@ -1,11 +1,12 @@
 import { Link, Outlet, useRouterState } from '@tanstack/react-router';
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+import { BackLink } from '../navigation/leave.tsx';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
-import { FramedContext } from '../ui/Screen.tsx';
+import { FrameBackContext, FramedContext } from '../ui/Screen.tsx';
 import { showsUpdateNotice, updates } from '../update/update.ts';
-import { isTyping, type TabId, tabOf, tabs } from './tabs.ts';
+import { backTarget, isTyping, type TabId, tabOf, tabs } from './tabs.ts';
 
 /**
  * The app's frame (ADR 0046): the layout route around the three tabs' screens. A phone gets a bar at the bottom, above
@@ -19,31 +20,34 @@ export function AppFrame() {
   const typing = useTyping();
   return (
     <FramedContext.Provider value={true}>
-      <div className="flex min-h-dvh flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[calc(7rem+env(safe-area-inset-left))]">
-        <TabNav
-          current={current}
-          className="fixed inset-y-0 left-0 z-30 hidden w-[calc(7rem+env(safe-area-inset-left))] flex-col gap-2 border-line border-r bg-surface pt-[max(1.5rem,env(safe-area-inset-top))] pl-[env(safe-area-inset-left)] md:flex"
-          item="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl mx-2 px-1 text-center text-sm"
-        />
-        <Outlet />
-        <UpdateNotice pathname={pathname} />
-        {/* The keyboard of a phone covers the bottom of the screen: the bar steps aside while someone types, so it never
-            sits over the field (or is pushed up over it, where the browser resizes the page). */}
-        {typing ? null : (
+      <FrameBackContext.Provider value={backTarget(pathname)}>
+        <div className="flex min-h-dvh flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[calc(7rem+env(safe-area-inset-left))]">
           <TabNav
             current={current}
-            className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-line border-t bg-surface px-[env(safe-area-inset-left)] pb-[env(safe-area-inset-bottom)] md:hidden"
-            item="flex h-16 flex-col items-center justify-center gap-0.5 text-xs"
+            className="fixed inset-y-0 left-0 z-30 hidden w-[calc(7rem+env(safe-area-inset-left))] flex-col gap-2 border-line border-r bg-surface pt-[max(1.5rem,env(safe-area-inset-top))] pl-[env(safe-area-inset-left)] md:flex"
+            item="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl mx-2 px-1 text-center text-sm"
           />
-        )}
-      </div>
+          <Outlet />
+          <UpdateNotice pathname={pathname} />
+          {/* The keyboard of a phone covers the bottom of the screen: the bar steps aside while someone types, so it never
+            sits over the field (or is pushed up over it, where the browser resizes the page). */}
+          {typing ? null : (
+            <TabNav
+              current={current}
+              className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-line border-t bg-surface px-[env(safe-area-inset-left)] pb-[env(safe-area-inset-bottom)] md:hidden"
+              item="flex h-16 flex-col items-center justify-center gap-0.5 text-xs"
+            />
+          )}
+        </div>
+      </FrameBackContext.Provider>
     </FramedContext.Provider>
   );
 }
 
 /**
- * The three tabs. Switching tabs takes the place of the screen in the history: the app is one level (ADR 0046), so
- * phone Back from a tab leaves the app, and from a game comes back to the app.
+ * The three tabs. A tab whose screen is already behind in the history steps back to it, as "←" does (`BackLink`), so
+ * `/play → avatar → Trò chơi tab → Back` leaves the app instead of staying in it; a tab not behind takes the place of the
+ * screen — the app is one level (ADR 0046), so phone Back from a tab leaves the app, and from a game comes back to it.
  */
 function TabNav({ current, className, item }: { current: TabId | null; className: string; item: string }) {
   const { t } = useTranslation();
@@ -51,20 +55,21 @@ function TabNav({ current, className, item }: { current: TabId | null; className
     <nav aria-label={t('frame.label')} className={className}>
       {tabs.map((tab) => {
         const active = tab.id === current;
-        return (
-          <Link
-            key={tab.id}
-            to={tab.to}
-            replace
-            aria-current={active ? 'page' : undefined}
-            className={`${item} font-bold transition active:scale-95 ${active ? 'bg-soft text-accent' : 'text-ink-soft'}`}
-          >
-            <span aria-hidden className="text-2xl leading-none">
-              {tab.icon}
-            </span>
-            <span className="leading-tight">{t(tab.label)}</span>
-          </Link>
-        );
+        const props = {
+          to: tab.to,
+          'aria-current': active ? ('page' as const) : undefined,
+          className: `${item} font-bold transition active:scale-95 ${active ? 'bg-soft text-accent' : 'text-ink-soft'}`,
+          children: (
+            <>
+              <span aria-hidden className="text-2xl leading-none">
+                {tab.icon}
+              </span>
+              <span className="leading-tight">{t(tab.label)}</span>
+            </>
+          ),
+        };
+        // The tab shown now stays where it is; another one goes back to its screen when that is behind.
+        return active ? <Link key={tab.id} replace {...props} /> : <BackLink key={tab.id} {...props} />;
       })}
     </nav>
   );

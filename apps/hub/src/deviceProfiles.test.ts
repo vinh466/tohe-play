@@ -121,7 +121,7 @@ describe('the guest becomes the first device profile (IndexedDB version 4)', () 
     expect(await loadSave(db, 'guest-1', 'merge-block')).toEqual({ level: 7 });
     expect(await hasProgress(db, 'guest-1')).toBe(true);
     // It is the one that plays: nothing new is made, so the funnel counts no new start.
-    expect(await ensureDeviceProfile(db, () => 'Mèo Cam')).toMatchObject({
+    expect(await ensureDeviceProfile(db, () => ({ name: 'Mèo Cam', avatar: '🐱' }))).toMatchObject({
       profile: { id: 'guest-1' },
       made: false,
     });
@@ -132,9 +132,12 @@ describe('the guest becomes the first device profile (IndexedDB version 4)', () 
 describe('device profiles', () => {
   it('a new device gets one silently, with the suggested name, once', async () => {
     const db = fresh();
-    const first = await ensureDeviceProfile(db, () => 'Mèo Cam');
+    const first = await ensureDeviceProfile(db, () => ({ name: 'Mèo Cam', avatar: '🐱' }));
     expect(first).toMatchObject({ made: true, profile: { name: 'Mèo Cam' } });
-    expect(await ensureDeviceProfile(db, () => 'Khác')).toEqual({ profile: first.profile, made: false });
+    expect(await ensureDeviceProfile(db, () => ({ name: 'Khác', avatar: '🦊' }))).toEqual({
+      profile: first.profile,
+      made: false,
+    });
   });
 
   it('are five at most, switch, and keep the last one', async () => {
@@ -414,7 +417,7 @@ describe('the sign-up question (ADR 0043)', () => {
 
   it('or once the player named it or chose its avatar — never for the untouched one the hub made', async () => {
     const db = fresh();
-    const { profile: silent } = await ensureDeviceProfile(db, () => 'Mèo Vui');
+    const { profile: silent } = await ensureDeviceProfile(db, () => ({ name: 'Mèo Vui', avatar: '🐱' }));
     expect(await signingUpDevice(db)).toBeNull();
     await updateDeviceProfile(db, silent.id, { avatar: '🦄' });
     expect(await signingUpDevice(db)).toMatchObject({ id: silent.id });

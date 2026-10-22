@@ -11,6 +11,7 @@ import { hasShell } from '../launcher/manifest.ts';
 import { useOpened } from '../launcher/recent.ts';
 import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
+import { useOnline } from '../net/online.ts';
 import { ensureConnected, onReconnected } from '../rooms/connection.ts';
 import { formatCode, normalizeCode, quickPick } from '../rooms/model.ts';
 import { RoomResults } from '../rooms/RoomResults.tsx';
@@ -96,7 +97,7 @@ function Lobby({
   });
   const [creating, setCreating] = useState(false);
   const [entering, setEntering] = useState(false);
-  const [online, setOnline] = useState(navigator.onLine);
+  const online = useOnline();
 
   // The lobby is live: the rooms hub says when it changed, and the list is fetched again.
   useEffect(() => {
@@ -117,14 +118,9 @@ function Lobby({
       void watch();
       refresh();
     });
-    const goOnline = () => setOnline(navigator.onLine);
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOnline);
     return () => {
       stopped = true;
       off();
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOnline);
       void ensureConnected()
         .then((hub) => {
           hub.off('LobbyChanged', refresh);

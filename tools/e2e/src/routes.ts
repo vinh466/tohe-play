@@ -73,9 +73,9 @@ for (const path of appPages) {
     response.status === 200 &&
       (response.headers.get('content-type') ?? '').startsWith('text/html') &&
       !body.includes('<div id="root">') &&
-      body.includes('href="/play"') &&
+      body.includes('href="/play?lang=vi"') &&
       body.includes('Chơi ngay'),
-    `/: the public home page, with "Chơi ngay" to /play (${response.status})`,
+    `/: the public home page, with "Chơi ngay" to /play, in its language (${response.status})`,
   );
   check(
     response.headers.get('x-robots-tag') === null && !/name="robots"/.test(body),
@@ -95,15 +95,29 @@ for (const path of appPages) {
   );
   const assets = [...body.matchAll(/(?:src|href)="(\/_web\/[^"]+)"/g)].map((match) => match[1] ?? '');
   check(assets.length >= 3, `/: its scripts and styles are files under /_web/ (${assets.length})`);
+  // The build's scripts and styles are not indexed; its pictures — a game's icon, which the pages' structured data
+  // names — are: a search engine told "noindex" on an image drops the markup that names it.
   for (const path of assets) {
     const asset = await get(path);
+    const picture = /\.(png|svg|jpe?g|webp|avif)$/.test(path);
+    const noindex = (asset.response.headers.get('x-robots-tag') ?? '').includes('noindex');
     check(
       asset.response.status === 200 &&
         (asset.response.headers.get('cache-control') ?? '').includes('immutable') &&
-        (asset.response.headers.get('x-robots-tag') ?? '').includes('noindex'),
-      `${path}: served, cached for good, not indexed (${asset.response.status})`,
+        noindex === !picture,
+      `${path}: served, cached for good, ${picture ? 'indexable (a picture)' : 'not indexed'} (${asset.response.status})`,
     );
   }
+  // The Organization's logo in the structured data: the app's own icon, indexable; the app's other files are not.
+  const logo = await get('/icon-512.png');
+  const other = await get('/icon-192.png');
+  check(
+    logo.response.status === 200 &&
+      !(logo.response.headers.get('x-robots-tag') ?? '').includes('noindex') &&
+      other.response.status === 200 &&
+      (other.response.headers.get('x-robots-tag') ?? '').includes('noindex'),
+    `/icon-512.png: the logo of the structured data, indexable (${logo.response.status}); /icon-192.png still is not`,
+  );
   // A JSON-LD block is data, which the CSP leaves alone; any other script without a src runs, and is refused.
   const inline = /<script(?![^>]*\ssrc=)(?![^>]*type="application\/ld\+json")[^>]*>|<style[\s>]/.test(body);
   check(!inline, '/: no inline script or style in the page (JSON-LD data aside)');
@@ -233,6 +247,18 @@ for (const path of [
       !body.includes('<div id="root">') &&
       (response.headers.get('x-robots-tag') ?? '').includes('noindex'),
     `${path}: 404 with the not-found page, noindex (${response.status})`,
+  );
+}
+
+{
+  // The 404 page speaks both languages, with a way to each home page (it cannot know which one the visitor reads).
+  const { body } = await get('/nope');
+  check(
+    body.includes('Không tìm thấy trang này') &&
+      body.includes('Page not found') &&
+      body.includes('href="/"') &&
+      body.includes('href="/en/"'),
+    '/nope: the 404 page in Vietnamese and in English, with links to / and /en/',
   );
 }
 

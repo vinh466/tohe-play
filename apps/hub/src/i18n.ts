@@ -12,7 +12,21 @@ const vi = {
   mute: 'Tắt tiếng',
   unmute: 'Bật tiếng',
   loading: 'Đang tải…',
-  offline: 'Đang ngoại tuyến — hiển thị danh sách đã lưu',
+  offline: 'Đang mất mạng. Trò đã mở trước đó vẫn chơi được.',
+  // A game never opened has nothing to open without a connection (launcher/offline.ts).
+  offlineGame: {
+    body: 'Trò này cần mạng để mở lần đầu.',
+    leave: 'Về Tò He',
+  },
+  // A path of the app that is no screen (pages/NotFoundPage.tsx).
+  notFound: {
+    title: 'Không tìm thấy trang này',
+    body: 'Đường dẫn có thể đã cũ hoặc gõ nhầm.',
+    home: 'Về Tò He',
+  },
+  pin: {
+    delete: 'Xoá',
+  },
   noGames: 'Chưa có trò chơi nào.',
   loadFailed: 'Không tải được danh sách trò chơi.',
   gameNotFound: 'Không tìm thấy trò chơi này.',
@@ -144,6 +158,8 @@ const vi = {
   legal: {
     terms: 'Điều khoản sử dụng',
     privacy: 'Chính sách quyền riêng tư',
+    // The terms and the privacy notice have no English text yet: an English link says so.
+    inVietnamese: '',
   },
   consent: {
     agree: 'Tôi từ 16 tuổi trở lên và đồng ý với',
@@ -467,7 +483,7 @@ const vi = {
   },
   install: {
     title: 'Cài Tò He',
-    body: 'Mở thẳng từ màn hình chính, như một app, chơi được cả khi không có mạng.',
+    body: 'Mở thẳng từ màn hình chính, như một app.',
     action: 'Cài về máy',
     later: 'Để sau',
     iosIntro: 'Trên iPhone và iPad, cài bằng Safari, 4 bước:',
@@ -871,7 +887,19 @@ const en: typeof vi = {
   mute: 'Mute',
   unmute: 'Unmute',
   loading: 'Loading…',
-  offline: 'Offline — showing the saved list',
+  offline: "You're offline. Games you've opened before still work.",
+  offlineGame: {
+    body: 'This game needs a connection to open the first time.',
+    leave: 'Back to Tò He',
+  },
+  notFound: {
+    title: 'Page not found',
+    body: 'The link may be old or mistyped.',
+    home: 'Back to Tò He',
+  },
+  pin: {
+    delete: 'Delete',
+  },
   noGames: 'No games yet.',
   loadFailed: 'Could not load the games.',
   gameNotFound: 'Game not found.',
@@ -1004,6 +1032,7 @@ const en: typeof vi = {
   legal: {
     terms: 'Terms of use',
     privacy: 'Privacy notice',
+    inVietnamese: '(in Vietnamese)',
   },
   consent: {
     agree: 'I am 16 or older and accept the',
@@ -1326,7 +1355,7 @@ const en: typeof vi = {
   },
   install: {
     title: 'Install Tò He',
-    body: 'Open it straight from your home screen, like an app, and play even without a connection.',
+    body: 'Open it straight from your home screen, like an app.',
     action: 'Install',
     later: 'Not now',
     iosIntro: 'On iPhone and iPad, install with Safari, in 4 steps:',

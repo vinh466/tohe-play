@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
+import { ANIMALS } from './session/animals.ts';
 import { checkDigit, formatProfileId, parseProfileId } from './session/profileIds.ts';
-import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from './session/profileNames.ts';
+import { cleanName, funIdentity, funName, MAX_NAME_LENGTH, visibleLength } from './session/profileNames.ts';
+import { AVATARS } from './storage/deviceProfiles.ts';
 
 /** An ID as the API makes them: eleven digits and their Damm check digit. */
 const withCheck = (body: string) => body + checkDigit(body);
@@ -51,5 +53,42 @@ describe('profile names', () => {
         expect(visibleLength(name)).toBeLessThanOrEqual(MAX_NAME_LENGTH);
       }
     }
+  });
+});
+
+describe('a random name and its avatar', () => {
+  it('are one animal: the name says the animal of the avatar, in either language', () => {
+    for (const language of ['vi', 'en']) {
+      for (const animal of ANIMALS) {
+        // The same chance for every animal in turn: the one at this index of the list.
+        const at = ANIMALS.indexOf(animal);
+        const { name, avatar } = funIdentity(language, () => (at + 0.5) / ANIMALS.length);
+        expect(avatar).toBe(animal.avatar);
+        expect(name).toContain(language === 'en' ? animal.en : animal.vi);
+      }
+    }
+  });
+
+  it('never name an animal that has no avatar, nor leave an avatar without a name', () => {
+    expect(new Set(ANIMALS.map((animal) => animal.avatar))).toEqual(new Set(AVATARS));
+    expect(ANIMALS.length).toBe(AVATARS.length);
+    for (const animal of ANIMALS) {
+      expect(animal.vi.trim()).not.toBe('');
+      expect(animal.en.trim()).not.toBe('');
+    }
+  });
+
+  it('start as a name that fits, with an avatar from the list', () => {
+    for (const language of ['vi', 'en']) {
+      for (let i = 0; i < 200; i++) {
+        const { name, avatar } = funIdentity(language);
+        expect(visibleLength(name)).toBeLessThanOrEqual(MAX_NAME_LENGTH);
+        expect(AVATARS as readonly string[]).toContain(avatar);
+      }
+    }
+  });
+
+  it('leave funName as the name alone', () => {
+    expect(funName('en').split(' ').length).toBeGreaterThanOrEqual(2);
   });
 });

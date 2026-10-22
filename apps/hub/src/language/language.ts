@@ -85,3 +85,10 @@ export function startingLanguage(): Language {
     browser: browser?.languages?.length ? browser.languages : [browser?.language ?? ''],
   });
 }
+
+/**
+ * A public page opened from the app: it carries `?from=app`, and a script on the public pages (apps/web from-app.js)
+ * hides every link that leaves Tò He for the visit — a child reading Help has no way out of Tò He but the app's own,
+ * which the PIN guards (ADR 0046).
+ */
+export const fromApp = (href: string): string => `${href}${href.includes('?') ? '&' : '?'}from=app`;

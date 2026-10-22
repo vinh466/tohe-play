@@ -20,6 +20,21 @@ export const RECENT_SHOWN = 6;
 
 export const openedKey = (profileId: string) => `opened:${profileId}`;
 
+/**
+ * The key the public pages read to show a device "Chơi tiếp" in place of "Chơi ngay" (apps/web returning.js, ADR 0046):
+ * set once this device has opened a game, never on a plain start of the app.
+ */
+export const RETURNING_KEY = 'tohe:returning';
+
+/** Notes in `storage` that this device has opened a game; with storage blocked there is nothing to note. */
+export function markReturning(storage: Pick<Storage, 'setItem'> | undefined) {
+  try {
+    storage?.setItem(RETURNING_KEY, '1');
+  } catch {
+    // The public pages show "Chơi ngay", which leads here too.
+  }
+}
+
 /** The list with `gameId` opened at `at`: first, once, and no longer than OPENED_KEPT. */
 export function withOpened(list: readonly Opened[], gameId: string, at: number): Opened[] {
   return [{ gameId, at }, ...list.filter((opened) => opened.gameId !== gameId)].slice(0, OPENED_KEPT);
@@ -64,9 +79,14 @@ export function comingBack(
   return { last: listed[0] ?? null, recent: listed.slice(1, 1 + RECENT_SHOWN) };
 }
 
-/** Notes, once the game is known to this profile's catalog, that the player opened it: its menu or its tables. */
+/**
+ * Notes, once the game is known to this profile's catalog, that the player opened it: its menu or its tables. The
+ * device is then a returning one for the public pages (`tohe:returning`).
+ */
 export function useOpened(profileId: string, gameId: string, known: boolean) {
   useEffect(() => {
-    if (known) void recordOpened(deviceDb, profileId, gameId).catch(() => {});
+    if (!known) return;
+    markReturning(globalThis.localStorage);
+    void recordOpened(deviceDb, profileId, gameId).catch(() => {});
   }, [profileId, gameId, known]);
 }
