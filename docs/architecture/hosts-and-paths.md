@@ -121,8 +121,9 @@ privacy notice are not copy of this app: change them in `documents.ts`, with `TE
   ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)): the ones that fetch for search
   and answers (`searchCrawlers` in the map — Googlebot, Bingbot, `OAI-SearchBot`, `Claude-SearchBot`, `PerplexityBot`,
   Applebot, `coccocbot-web`) in a group with the same rules as every crawler, since a crawler follows only the group that
-  names it (RFC 9309); the ones that fetch only to train models (`trainingCrawlers` — `GPTBot`, `ClaudeBot`,
-  `Google-Extended`, `Applebot-Extended`, `CCBot`) with `Disallow: /`.
+  names it (RFC 9309); the crawlers and tokens only for training models (`trainingCrawlers` — `GPTBot`, `ClaudeBot`,
+  `CCBot`, and the tokens `Google-Extended` and `Applebot-Extended`, which say whether what Googlebot and Applebot fetch
+  may train models) with `Disallow: /`.
 
 - **Indexed**: no `X-Robots-Tag: noindex`, canonical and Open Graph links with the hub's own URL.
 - **Its own CSP**: no third-party script, no inline script and no inline style, no frame, no form, no connection. Every

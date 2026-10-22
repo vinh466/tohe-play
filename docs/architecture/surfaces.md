@@ -162,7 +162,7 @@ language and IndexNow.
 
 | Part | Today | In place when |
 | --- | --- | --- |
-| Planes, L1, the escalation rule | L1 in place; `Origin-Agent-Cluster: ?1` on the games origin; Access on `console.` optional | Access before the launch |
+| Planes, L1, the escalation rule | L1 in place; `Origin-Agent-Cluster: ?1` on the games origin; Access on `console.` optional | Access before the launch, if the owner confirms the proposal |
 | Crawlers by name in `robots.txt` | in place | — |
 | Namespaces `/together`, `/en/…`, `/promise/` | not yet — each arrives with the pages that use it | the app frame's, the languages' and the introduction surface's pull requests |
 | Public pages in two languages | Vietnamese only | the public pages' languages pull request |
