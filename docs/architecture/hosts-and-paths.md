@@ -4,7 +4,11 @@ description: Where every part of Tò He lives on toheplay.io.vn — a host per t
 ---
 
 Decision: [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md) (amends [ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md), [0027](../decisions/0027-platform-admin-and-the-first-owner.md)
-and [0021](../decisions/0021-release-production-through-the-tohe-chart.md)).
+and [0021](../decisions/0021-release-production-through-the-tohe-chart.md)), amended by [ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)
+(`/together`, no redirect on `/`, the planes and the games' isolation ladder, Access on the console before the launch
+proposed)
+and [ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md) (`/en/…`, `/promise/`, crawlers
+by name). What players see in these namespaces: [Surfaces](surfaces.md).
 
 ## The standard
 
@@ -22,7 +26,7 @@ flowchart TB
     app["The app (PWA)<br/>/play · /account · /r · /s"]
     papi["/api → API"]
   end
-  subgraph ops ["console.toheplay.io.vn — operators, own sign-in (Cloudflare Access optional)"]
+  subgraph ops ["console.toheplay.io.vn — operators, own sign-in (Cloudflare Access optional; proposed before the launch)"]
     console["Console"]
     capi["/api/admin → API"]
   end
@@ -40,7 +44,7 @@ flowchart TB
 | Host | Role | Session | Indexed | Served by |
 | --- | --- | --- | --- | --- |
 | `toheplay.io.vn` | Players: public pages, the app, the API | `__Host-tohe.session`, `SameSite=Lax` | public pages only | the hub image's Caddy: the public pages (`apps/web`, in `/srv/web`) and the app (`/srv`), proxying `/api` |
-| `console.toheplay.io.vn` | Operators: the console, the API's console routes | `__Host-tohe.console`, `SameSite=Strict`; Cloudflare Access first once the owner turns it on (optional for now) | no | the hub image's Caddy, a second site |
+| `console.toheplay.io.vn` | Operators: the console, the API's console routes | `__Host-tohe.console`, `SameSite=Strict`; Cloudflare Access first once the owner turns it on (optional for now; before the launch, proposed in ADR 0046) | no | the hub image's Caddy, a second site |
 | `games.toheplay.io.vn` | Game builds, the catalog | none | no | the games image |
 | `docs.toheplay.io.vn` | Developer docs at the root of the host, generated API references, `llms.txt` | none | yes | the docs image (`apps/docs`) |
 | `status.toheplay.io.vn` | Status and incidents | none | yes | a service outside Tò He's infrastructure |
@@ -52,14 +56,23 @@ the mail provider's return path.
 
 Kept for later, without DNS: `api.`, `account.`, `studio.`, `media.`, `uat.` ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)).
 
+**The hosts as planes** ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)): players (the root), games
+(`games.`), operators (`console.`), developers (`docs.`, later `studio.`), edge (`status.`, `notify.`). The games plane is
+at isolation level **L1** — an origin of its own, enough while every game is one the owner adds to this repository.
+**Before the first game the owner did not add**, the owner chooses L2 (a registrable domain of its own) or L3 (a site per
+game); the games origin is configuration (`publicUrls.games`), so L2 is a change of configuration and DNS, while L3 also
+needs a URL per game from the API, the hub's CSP to allow each game's host, and a games host serving many names.
+
 ## Namespaces on the root
 
 | Namespace | Component | Served | Indexed |
 | --- | --- | --- | --- |
-| `/` (the root only), `/games/`, `/guides/`, `/faq/`, `/about/`, `/terms/`, `/privacy/` | public pages (`apps/web`) | static HTML | yes |
+| `/` (the root only), `/games/`, `/guides/`, `/faq/`, `/about/`, `/promise/`, `/terms/`, `/privacy/` | public pages (`apps/web`), Vietnamese | static HTML | yes |
+| `/en/…` — the same pages in English ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | public pages (`apps/web`), English | static HTML | yes |
 | `/_web/…` | public pages — the scripts, styles and images their build adds, hashed names | static | no |
 | `/og.png`, `/llms.txt` | public pages — the picture a link preview shows, and the list of the pages for AI readers | static | not in the sitemap |
 | `/play`, `/play/<gameId>/…` | the app — the catalog, and only game ids under `/play/`, so a game named like a page never collides: `/play/<gameId>`, `/play/<gameId>/rooms`, `/play/<gameId>/rooms/<roomId>`, `/play/<gameId>/rooms/<roomId>/replay/<hand>` | the app's page | no |
+| `/together` | the app — playing together: a code, the player's tables, invitations, the newest links they sent (the full list stays at `/account/links`) ([Surfaces](surfaces.md)) | the app's page | no |
 | `/account/…` | the app — signing in and up (`/account/sign-in`, `/account/register`), password, email, profiles, what telemetry sends (`/account/data`), moving a device profile (`/account/transfer`), the share links a profile made (`/account/links`, [Entry links](entry-links.md)), the account itself (`/account`) | the app's page | no |
 | `/r/<code>`, `/s/<code>` | the app's short links: a table's, a share link's ([Entry links](entry-links.md)); a known link-preview crawler gets the API's card for them instead, through a rewrite to `/api/previews/…` that the map generates | the app's page | no |
 | the app's assets, manifest and service worker | the app | static | — |
@@ -110,7 +123,8 @@ privacy notice are not copy of this app: change them in `documents.ts`, with `TE
 - **Its own CSP**: no third-party script, no inline script and no inline style, no frame, no form, no connection. Every
   script and stylesheet is a file under `/_web/` (the build's `scripts/check-build.ts` fails when one is inlined); the
   Caddy test in `@tohe/routes` checks the header.
-- **A returning player goes to the app**: a small blocking script in `<head>` sends a browser that already has this
+- **A returning player goes to the app** — until the introduction surface's pull request, which replaces the redirect
+  with a *Continue* button ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)): a small blocking script in `<head>` sends a browser that already has this
   origin's `tohe:guest` (the device plays as its device profiles; the key kept from guest mode) or `tohe:telemetry:device` (the id the app's telemetry gives a device)
   in `localStorage` to `/play` with `location.replace`. The session cookie is `HttpOnly`, so it cannot be the signal.
   `/?stay` (any `stay` parameter) never redirects, so the page can still be looked at. *Chơi ngay* links to `/play`.
@@ -210,5 +224,6 @@ stays in force for its part.
 | The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; `security.txt` once `hub.securityContact` is set in `platform-infra` | the map's pull request |
 | The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, `/s` (the pages of the entry pipeline, [Entry links](entry-links.md)); manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the old paths answer `301` | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | in place: `apps/web` is built into the hub image and serves the home page, the games' pages, the install guide, the FAQ, about, and the terms and privacy notice at the root (indexed, its own CSP; a script on `/` sends a returning player to `/play`), with `/sitemap.xml`, `robots.txt`, `llms.txt` and the link-preview picture; `apps/docs` serves the docs at the root of `docs.toheplay.io.vn` (`/docs/<page>` answers `301`); the chart's `site` values are `docs` | the public pages' pull request |
-| The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup, optional for now (2026-10-20); the API does not check Access's token yet | the console's pull request |
+| The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup, optional for now (2026-10-20) and required before the launch ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)); the API does not check Access's token yet | the console's pull request |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |
+| `/together`, `/en/…`, `/promise/`; crawlers by name in `robots.txt` | not yet ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md), [0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | the routes' pull request |

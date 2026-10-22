@@ -9,7 +9,9 @@ sidebar:
   tài khoản → Bảo mật tài khoản), by an account with a role and a password: nobody signs in to the console without one,
   so it cannot be added there ([Admin console](../architecture/admin.md#two-factor-authentication)); Cloudflare Access in
   front of the console is optional for now (owner, 2026-10-20): the console's own sign-in, a password and a code, is the
-  gate until the owner turns Access on
+  gate until the owner turns Access on. Amended by [ADR 0046](0046-player-surfaces-two-zones-one-frame.md) (`/together`,
+  the public pages' redirect on `/` ends, Access before the launch proposed, the games plane's isolation ladder) and
+  [ADR 0047](0047-two-languages-and-an-introduction-surface-that-grows.md) (`/en/…`, `/promise/`, crawlers by name)
 - **Date:** 2026-10-19
 - **Amends:** [ADR 0040](0040-all-of-tohe-on-one-domain-of-its-own.md) — the paths on the hub's host and three new
   hosts; [ADR 0027](0027-platform-admin-and-the-first-owner.md) — the console leaves `/admin/` for a host of its own;
