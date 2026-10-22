@@ -11,10 +11,10 @@
 
 ## Next — one item
 
-**Owner chọn [D-03 tính năng trước launch](items/D-03-features-before-launch.md)** (bậc 1: lời hứa "không bao giờ", Chơi cùng
-ba hành động, thẻ mời có số ghế, thử thách hôm nay, bàn của gia đình, chế độ trẻ em, trang SEO theo nhu cầu). D-01, D-02,
-D-04, D-05 đã decided. Sau D-03: brief chốt (Q3 cách rà màn còn mở) → ADR "Hai vùng, một khung" (D-01 + D-02 + D-04 + D-05)
-và hai ADR nhỏ của D-03 (lối vào `daily`, bàn của gia đình).
+**Đợt 1 — thiết kế bề mặt** (owner 2026-10-23: "chốt được thiết kế này xong là có thể build tiếp chi tiết … sau đó … phát
+triển thêm đc game"). Việc tiếp theo: **[D-06 bề mặt giới thiệu: SEO, GEO, mở rộng](map.md)** — đang nghiên cứu. Sau D-06:
+ADR "Hai vùng, một khung" (D-01 + D-02 + D-04 + D-05 + D-06) và trang spec `docs/architecture/surfaces.md` → đợt 1 xong.
+Ý ngoài scope vào backlog sản phẩm (`docs/roadmap/product-backlog.md`).
 
 ## Waiting on the owner
 
@@ -31,16 +31,28 @@ và hai ADR nhỏ của D-03 (lối vào `daily`, bàn của gia đình).
 
 ## Board
 
+**Đợt 1 — thiết kế bề mặt (bây giờ)**
+
 | ID | Item | Kind | Status | Blocked by |
 |---|---|---|---|---|
 | D-02 | [Bố cục các trang và app](items/D-02-layout.md) | decision | **decided** — B, hai vùng một khung (2026-10-22) | — |
-| D-01 | [Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ](items/D-01-languages.md) | decision | **decided** — B, **tiếng Việt mặc định** (đổi lại 2026-10-23), tên riêng/thuật ngữ giữ tiếng Anh; Q3 = bản vi gốc | — |
-| D-04 | [Mở lại app](items/D-04-coming-back.md) | decision | **decided** — B (2026-10-22); mục 4 (cập nhật) về *proposed*: rủi ro không tái hiện | — |
-| D-03 | [Tính năng trước launch](items/D-03-features-before-launch.md) | decision | **proposed** — bậc 1 (7 mục) trước launch, bậc 2 sau | — |
-| D-05 | [Host và path](items/D-05-hosts-and-paths.md) | decision | **decided** — A, game ở L1; luật leo thang L2/L3 ghi thành chủ đề trong spec (2026-10-23) | — |
-| E-01 | [Cổng trước khi mời người ngoài](items/E-01-gate-before-outsiders.md) (từ `product-surface` E-05) | enhancement | open | — |
+| D-04 | [Mở lại app](items/D-04-coming-back.md) | decision | **decided** — B (2026-10-22); mục 4 (cập nhật êm) proposed | — |
+| D-01 | [Hai ngôn ngữ: URL, SEO, chọn ngôn ngữ](items/D-01-languages.md) | decision | **decided** — tiếng Việt là mặt chính, `/en/`, `x-default` → `/en/` (2026-10-23, tạm chốt) | — |
+| D-05 | [Host và path](items/D-05-hosts-and-paths.md) | decision | **decided** — A, game ở L1; luật leo thang thành chủ đề trong spec (2026-10-23) | — |
+| D-06 | Bề mặt giới thiệu: SEO, GEO, mở rộng tới hàng chục game | decision | **researching** | — |
 
-Các item khác nằm ở [map.md](map.md) dưới dạng nháp; lên board khi owner đồng ý map. D-01, D-02 lên trước theo lời owner.
+**Đợt 2 — trước launch (sau thiết kế)**
+
+| ID | Item | Kind | Status | Blocked by |
+|---|---|---|---|---|
+| E-02 | Rà từng màn (map) | enhancement | open | đợt 1 |
+| E-03 | Luồng đầu–cuối, e2e (map) | enhancement | open | đợt 1 |
+| E-04 | Câu chữ vi + en (map) | enhancement | open | đợt 1 |
+| E-05 | Điều khoản + Quyền riêng tư, vi gốc + en (map) | enhancement | open | E-04 |
+| E-01 | [Cổng trước khi mời người ngoài](items/E-01-gate-before-outsiders.md) (từ `product-surface` E-05) | enhancement | open | E-05 |
+
+**Chuyển sang backlog sản phẩm** (owner 2026-10-23): [D-03](items/D-03-features-before-launch.md) (tính năng — deferred),
+E-06 (console tiếng Anh).
 
 ## Graduation list
 

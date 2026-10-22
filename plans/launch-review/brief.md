@@ -38,6 +38,18 @@ Sáu hướng, từ những lời trên:
    Anh**. Game sau này thêm ngôn ngữ khác vẫn được.
 6. **Bố cục các trang** — hợp lý chưa, và người ta vào trang giới thiệu từ đâu ([R-01](research/R-01-pages-and-ways-in.md)).
 
+### Thứ tự ưu tiên (owner, 2026-10-23)
+
+> rất nhìu thứ hay cần làm, nhưng nó trải trên nhìu scope, hay tạo các backlog đến hợp hơp và tracking tốt để có thể pick ra làm từ từ phù hợp sau đó quay lại nhiệm vụ ưu tiên là chốt và nâng cấp bố cục sản phảm và các bề mặt tốt cho UX user, và bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai nè, tôi muốn chốt được thiết kế này xong là có thể build tiếp chi tiết tiếp theo và sau đó có thể tập trung phát triển thêm đc game sau đó nè
+
+- **Đợt 1 — bây giờ: thiết kế bề mặt.** Bố cục sản phẩm và UX của người chơi (hướng 6, D-02, D-04), bề mặt giới thiệu,
+  SEO, GEO và cách nó mở rộng (D-06), hai ngôn ngữ (hướng 5, D-01), host và path (D-05). Xong khi thiết kế thành spec, để
+  build chi tiết.
+- **Đợt 2 — sau thiết kế, trước launch**: hướng 1–4 (rà màn, luồng, câu chữ, Điều khoản, Cổng).
+- **Rồi**: tập trung làm thêm game.
+- Ý hay ngoài scope (tính năng của D-03, console tiếng Anh, thông báo đẩy…) vào **backlog sản phẩm**
+  (`docs/roadmap/product-backlog.md`), chọn ra làm dần.
+
 ## Ràng buộc đang có hiệu lực
 
 - **UAT giữ dữ liệu thật của gia đình**: chỉ `deploy/uat/deploy.sh <tag uat->`, migration chỉ tiến, không wipe (ADR 0010,
@@ -53,6 +65,13 @@ Sáu hướng, từ những lời trên:
   Quyền riêng tư: agent soạn, owner duyệt; agent không tư vấn pháp lý.
 
 ## Xong khi *(agent đề xuất)*
+
+**Đợt 1 — thiết kế bề mặt** (8, 7, 9 trước; spec viết xong là đợt 1 xong):
+
+9. Bề mặt giới thiệu có thiết kế cho SEO, GEO và cho lúc có hàng chục game: loại trang, URL hai ngôn ngữ, dữ liệu có cấu
+   trúc, chính sách với crawler, cách thêm một game là có đủ trang (D-06).
+
+**Đợt 2 — trước launch**: 1–4, 6. Mục 5 chuyển sang backlog sản phẩm (owner 2026-10-23).
 
 1. Mỗi màn của hub, console, trang công khai và mỗi game đã được rà trên điện thoại và máy tính, sáng và tối; mỗi lỗi
    tìm được đã sửa, hoặc owner hoãn và có ghi lại.

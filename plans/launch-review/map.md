@@ -3,6 +3,9 @@
 Every item the goal depends on, and what blocks what. An edge `A --> B` reads "decide A before B".
 Status lives on the [PLAN.md](PLAN.md) board, not here — this page is the shape.
 
+**Hai đợt** (owner 2026-10-23): đợt 1 thiết kế bề mặt — D-01, D-02, D-04, D-05, D-06; đợt 2 trước launch — E-02…E-05,
+E-01. D-03 và E-06 chuyển sang backlog sản phẩm.
+
 **Nháp** (agent, 2026-10-22): theo [brief.md](brief.md) với câu trả lời Q1, Q4, Q5 của owner. Phase Map bắt đầu khi owner
 xác nhận brief; Q2 có thể sinh thêm item tính năng.
 
@@ -39,6 +42,7 @@ flowchart TD
 | E-04 | Câu chữ toàn sản phẩm, vi + en, gồm câu agent tự chọn ở Phase 1 | Owner: "review all" | E-05 |
 | E-05 | Điều khoản + Quyền riêng tư nói đúng hôm nay, bằng vi và en; `TERMS_VERSION` mới (mọi người đồng ý lại) | Owner: "chốt trước khi mở hẳn", "cung 2 ngin ngu" | E-01 |
 | E-06 | Console toàn tiếng Anh (hôm nay tiếng Việt viết thẳng trong code) | Owner: "console ... english toan bo" | — |
+| D-06 | Bề mặt giới thiệu: loại trang, URL vi + `/en/`, dữ liệu có cấu trúc, GEO và chính sách crawler, thêm một game là có đủ trang, mở rộng tới hàng chục game | Owner 2026-10-23: "bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai" | đợt 1 xong |
 | E-01 | Cổng: 14 dòng từ Phase 1 (backup, load test, `/security-review`, thư, Alertmanager, `status.`…) | Launch chính thức = Cổng qua | — |
 
 ## Ghi chú mang sang từ Phase 1

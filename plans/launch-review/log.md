@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 (khuya, sau) — agent
+
+- Owner: ý hay vào backlog có tracking; ưu tiên chốt thiết kế bề mặt (bố cục, UX, giới thiệu, SEO, GEO, mở rộng), rồi build,
+  rồi game → plan chia **đợt 1 / đợt 2**; D-03 **deferred** → `docs/roadmap/product-backlog.md` (PR riêng); **D-06** mở,
+  scout đang nghiên cứu SEO, GEO, mở rộng.
+
 ## 2026-10-23 (khuya) — agent
 
 - Owner: D-05 ở **L1** (game do owner thêm; luật leo thang thành chủ đề trong spec) → **D-05 decided**.
