@@ -1,9 +1,9 @@
 # D-06 — Bề mặt giới thiệu: thiết kế cho SEO, GEO, và để thêm game là có đủ trang?
 
-- Status: **decided** — B (owner, 2026-10-23, chat)
+- Status: **decided** — B (owner, 2026-10-22, chat)
 - Kind: decision
 - Blocks: đợt 1 xong (ADR + spec bề mặt) · Blocked by: — · Đi cùng: [D-01](D-01-languages.md), [D-02](D-02-layout.md)
-- Decided: owner, 2026-10-23, chat: "rất hợp lý, theo đề xuât tôi chốt nha"
+- Decided: owner, 2026-10-22, chat: "rất hợp lý, theo đề xuât tôi chốt nha"
 
 
 ## Kết luận
@@ -21,7 +21,7 @@
 
 ## Why it matters
 
-Owner (2026-10-23): "chốt và nâng cấp bố cục sản phảm và các bề mặt tốt cho UX user, và bề mặt giới thiệu sản phẩm, SEO
+Owner (2026-10-22): "chốt và nâng cấp bố cục sản phảm và các bề mặt tốt cho UX user, và bề mặt giới thiệu sản phẩm, SEO
 GEO, và scale bề mặt này tương lai nè, tôi muốn chốt được thiết kế này xong là có thể build tiếp chi tiết tiếp theo và sau
 đó có thể tập trung phát triển thêm đc game". Khi tập trung làm game, mỗi game mới phải tự kéo theo trang giới thiệu đúng
 chuẩn mà không ai phải nhớ.
@@ -160,10 +160,10 @@ thì theo ngôn ngữ của trang.
 
 ## Decision
 
-**B** — owner, 2026-10-23, chat: "rất hợp lý, theo đề xuât tôi chốt nha" — Q1 = B; Q2 = chặn rõ bot chỉ để huấn luyện; Q3 = nội dung
+**B** — owner, 2026-10-22, chat: "rất hợp lý, theo đề xuât tôi chốt nha" — Q1 = B; Q2 = chặn rõ bot chỉ để huấn luyện; Q3 = nội dung
 trang trong `games/<id>/page/`; Q4 = bộ sưu tập từ ~8 game, tìm kiếm từ ~30 game.
 
 ## Discussion
 
-**agent** (2026-10-23): nền SEO của S1 đã đúng; D-06 làm cho nó **tự mở rộng** — điều kiện để owner yên tâm "tập trung
+**agent** (2026-10-22): nền SEO của S1 đã đúng; D-06 làm cho nó **tự mở rộng** — điều kiện để owner yên tâm "tập trung
 phát triển thêm game" mà bề mặt giới thiệu không tụt lại.

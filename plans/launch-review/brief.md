@@ -1,6 +1,6 @@
 # Brief — Review trước launch: bề mặt sản phẩm hoàn chỉnh trước khi mở cho mọi người
 
-Status: **confirmed** — owner, 2026-10-23, chat: "rất hợp lý, theo đề xuât tôi chốt nha, bạn review toàn bộ plan align lại
+Status: **confirmed** — owner, 2026-10-22, chat: "rất hợp lý, theo đề xuât tôi chốt nha, bạn review toàn bộ plan align lại
 quyết định 1 cách sạch vè gọn rõ ràng giúp tôi nha". Trích dẫn là lời owner trong chat, giữ nguyên văn (có lúc gõ không
 dấu), chỉ cắt bớt.
 
@@ -16,7 +16,7 @@ Rồi đặt thứ tự:
 
 > "… quay lại nhiệm vụ ưu tiên là chốt và nâng cấp bố cục sản phảm và các bề mặt tốt cho UX user, và bề mặt giới thiệu
 > sản phẩm, SEO GEO, và scale bề mặt này tương lai nè, tôi muốn chốt được thiết kế này xong là có thể build tiếp chi tiết
-> tiếp theo và sau đó có thể tập trung phát triển thêm đc game sau đó nè" (2026-10-23)
+> tiếp theo và sau đó có thể tập trung phát triển thêm đc game sau đó nè" (2026-10-22)
 
 ## Hai đợt
 

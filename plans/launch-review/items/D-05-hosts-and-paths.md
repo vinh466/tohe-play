@@ -1,9 +1,9 @@
 # D-05 — Host và path: giữ bố cục của ADR 0042, hay đổi gì trước launch?
 
-- Status: **decided** — A, mặt phẳng game ở **L1** (owner, 2026-10-23, chat)
+- Status: **decided** — A, mặt phẳng game ở **L1** (owner, 2026-10-22, chat)
 - Kind: decision
 - Blocks: — · Blocked by: — · Đi cùng: [D-01](D-01-languages.md), [D-02](D-02-layout.md)
-- Decided: owner, 2026-10-23, chat: "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi (hiếm và siêu ít, gần chưa chưa tại bây giờ, tôi sẽ suy nghĩ nên lên L2 hay L3 khi có nucows đi này, nên nếu lên vấn đề này như 1 topic và nói tình hình hiện tại)"
+- Decided: owner, 2026-10-22, chat: "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi (hiếm và siêu ít, gần chưa chưa tại bây giờ, tôi sẽ suy nghĩ nên lên L2 hay L3 khi có nucows đi này, nên nếu lên vấn đề này như 1 topic và nói tình hình hiện tại)"
 
 
 ## Kết luận
@@ -66,7 +66,7 @@ phải sửa một lỗi.
 
 ## Decision
 
-**A — L1** (owner, 2026-10-23, chat): "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi (hiếm và siêu ít, gần chưa chưa tại bây giờ, tôi sẽ suy nghĩ nên lên L2 hay L3 khi có nucows đi này, nên nếu lên vấn đề này như 1 topic và nói tình hình hiện tại)".
+**A — L1** (owner, 2026-10-22, chat): "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi (hiếm và siêu ít, gần chưa chưa tại bây giờ, tôi sẽ suy nghĩ nên lên L2 hay L3 khi có nucows đi này, nên nếu lên vấn đề này như 1 topic và nói tình hình hiện tại)".
 
 - Game do owner thêm vào repo; người khác chỉ qua niềm tin và review của owner — hôm nay chưa có ai.
 - **Ghi thành một chủ đề trong spec** (ADR của D-02 và `docs/architecture/hosts-and-paths.md`): tình hình hôm nay (L1, ai
@@ -96,10 +96,10 @@ cấu hình, không migration). Về `*.vinetic.io.vn`:
   (`auth`, `platform`, `wiki`); code game sẽ cùng site với chúng — đúng điều ADR 0039 tránh ("game code never on a site
   with apps that are not Tò He's"). Domain riêng cho game là cách sạch.
 
-**owner** (2026-10-23, chat): "về domain explain phat nữa lý do cho tôi, subdomain k giúp đc ta tách ư, 2 domain cho 1 sản
+**owner** (2026-10-22, chat): "về domain explain phat nữa lý do cho tôi, subdomain k giúp đc ta tách ư, 2 domain cho 1 sản
 phẩm cũng tốn đó".
 
-**agent** (2026-10-23): subdomain tách được **origin** (cookie riêng, lưu trữ riêng, game không đụng được hub — Tò He đã
+**agent** (2026-10-22): subdomain tách được **origin** (cookie riêng, lưu trữ riêng, game không đụng được hub — Tò He đã
 có), nhưng không tách được **site**: trình duyệt tính site theo domain đăng ký được (theo PSL), và `toheplay.io.vn` là một
 domain như thế, nên mọi subdomain của nó cùng site. Muốn subdomain thành site riêng thì phải đưa chính `toheplay.io.vn` vào
 PSL — mất hàng tuần, dành cho nhà cung cấp hosting nhiều khách, và làm gốc của hub thành "public suffix" — không hợp. Với
@@ -107,10 +107,10 @@ game do repo này viết, phòng thủ hôm nay đã đủ; cộng thêm hai vi�
 trên `games.` (trình duyệt cách ly theo origin thay vì theo site) **[chưa kiểm hỗ trợ hiện tại]** và Cloudflare Access cho
 `console.`. **Đề xuất quay về A** vì cái giá của domain thứ hai; B khi có game không do repo viết.
 
-**owner** (2026-10-23, chat): "D-01 tam chot v nhe / ve D-05 ta lật lại vấn đề tại sao cần isolate game plane nè, và có thể
+**owner** (2026-10-22, chat): "D-01 tam chot v nhe / ve D-05 ta lật lại vấn đề tại sao cần isolate game plane nè, và có thể
 ta thay đổi góc nhìn là nâng cấp luôn bố cục sản phẩm k".
 
-**agent** (2026-10-23): **vì sao cách ly mặt phẳng game** — code game là code không tin tuyệt đối dù do repo viết:
+**agent** (2026-10-22): **vì sao cách ly mặt phẳng game** — code game là code không tin tuyệt đối dù do repo viết:
 (1) nó đóng gói thư viện bên thứ ba (Phaser 4 qua `@tohe/game-kit`; engine WASM) — chuỗi cung ứng; (2) nó cần CSP lỏng
 (`'wasm-unsafe-eval'`, `style-src 'unsafe-inline'`, `blob:` — `packages/contract/src/csp.ts:9-19`) mà hub, nơi giữ phiên và
 dữ liệu trẻ em, không được có; (3) nền tảng làm ra để agent thêm game nhanh — trình duyệt bắt luật của contract (không gọi

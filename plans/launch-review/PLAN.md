@@ -4,7 +4,7 @@
   SEO, GEO và cách nó mở rộng, thiết kế xong rồi build; **đợt 2**: rà màn, luồng, câu chữ, Điều khoản, Cổng. Sau đó tập
   trung làm game.
 - Phase: **Graduate — đợt 1** ([process](../README.md#phases)) — brief đã xác nhận, mọi quyết định của đợt 1 đã chốt
-  (2026-10-23); đợt 2 còn ở *Map*.
+  (2026-10-22); đợt 2 còn ở *Map*.
 - Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (bức tranh đầy đủ) · Log: [log.md](log.md)
 - Research: [R-01 trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại](research/R-02-layout-prior-art.md) ·
@@ -37,11 +37,11 @@ Owner duyệt chữ của ADR — gồm các câu phụ của D-02 và "cập nh
 
 | ID | Item | Status |
 |---|---|---|
-| D-05 | [Host và path: mặt phẳng, game ở L1](items/D-05-hosts-and-paths.md) | **decided** — A (2026-10-23) |
+| D-05 | [Host và path: mặt phẳng, game ở L1](items/D-05-hosts-and-paths.md) | **decided** — A (2026-10-22) |
 | D-02 | [Bố cục: hai vùng, khung app ba mục](items/D-02-layout.md) | **decided** — B (2026-10-22) |
 | D-04 | [Mở lại app](items/D-04-coming-back.md) | **decided** — B (2026-10-22); "cập nhật êm" duyệt trong ADR |
-| D-01 | [Hai ngôn ngữ: tiếng Việt là mặt chính](items/D-01-languages.md) | **decided** (2026-10-23) |
-| D-06 | [Bề mặt giới thiệu: một nguồn cho mỗi game](items/D-06-introduction-surface.md) | **decided** — B (2026-10-23) |
+| D-01 | [Hai ngôn ngữ: tiếng Việt là mặt chính](items/D-01-languages.md) | **decided** (2026-10-22) |
+| D-06 | [Bề mặt giới thiệu: một nguồn cho mỗi game](items/D-06-introduction-surface.md) | **decided** — B (2026-10-22) |
 
 **Đợt 2 — trước launch: sau khi đợt 1 lên prod**
 
@@ -53,7 +53,7 @@ Owner duyệt chữ của ADR — gồm các câu phụ của D-02 và "cập nh
 | E-05 | Điều khoản + Quyền riêng tư, vi gốc + en | open |
 | E-01 | [Cổng trước khi mời người ngoài](items/E-01-gate-before-outsiders.md) | open |
 
-**Sang backlog sản phẩm** (owner 2026-10-23): [D-03](items/D-03-features-before-launch.md) (deferred), E-06 → PB-12.
+**Sang backlog sản phẩm** (owner 2026-10-22): [D-03](items/D-03-features-before-launch.md) (deferred), E-06 → PB-12.
 
 ## Graduation list — đợt 1
 

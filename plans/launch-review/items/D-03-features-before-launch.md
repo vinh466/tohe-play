@@ -1,6 +1,6 @@
 # D-03 — Tính năng nào phải có trước launch, cái nào để sau?
 
-- Status: **deferred** → backlog sản phẩm (owner, 2026-10-23, chat) — mở lại khi owner chọn một mục ra làm
+- Status: **deferred** → backlog sản phẩm (owner, 2026-10-22, chat) — mở lại khi owner chọn một mục ra làm
 - Kind: decision
 - Blocks: E-01 (Cổng), E-05 (Điều khoản nói đúng tính năng) · Blocked by: — · Đi cùng: [D-02](D-02-layout.md), [D-04](D-04-coming-back.md)
 - Decided: —
@@ -74,7 +74,7 @@ Cách đặt trong khung (D-02):
 
 ## Decision
 
-**Deferred** — owner, 2026-10-23, chat: "rất nhìu thứ hay cần làm, nhưng nó trải trên nhìu scope, hay tạo các backlog đến hợp hơp và tracking tốt để có thể pick ra làm từ từ phù hợp sau đó quay lại nhiệm vụ ưu tiên là chốt và nâng cấp bố cục sản phảm và các bề mặt tốt cho UX user, và bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai nè, tôi muốn chốt được thiết kế này xong là có thể build tiếp chi tiết tiếp theo và sau đó có thể tập trung phát triển thêm đc game sau đó nè". Mục 1–12 vào `docs/roadmap/product-backlog.md`, có mã, trạng thái
+**Deferred** — owner, 2026-10-22, chat: "rất nhìu thứ hay cần làm, nhưng nó trải trên nhìu scope, hay tạo các backlog đến hợp hơp và tracking tốt để có thể pick ra làm từ từ phù hợp sau đó quay lại nhiệm vụ ưu tiên là chốt và nâng cấp bố cục sản phảm và các bề mặt tốt cho UX user, và bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai nè, tôi muốn chốt được thiết kế này xong là có thể build tiếp chi tiết tiếp theo và sau đó có thể tập trung phát triển thêm đc game sau đó nè". Mục 1–12 vào `docs/roadmap/product-backlog.md`, có mã, trạng thái
 và nguồn; mục 1 (lời hứa), 7 (trang SEO theo nhu cầu) thuộc bề mặt giới thiệu nên đi vào D-06; mục 2 đã nằm trong D-02.
 
 ## Discussion

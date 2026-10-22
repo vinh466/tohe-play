@@ -1,7 +1,7 @@
 # Design — Review trước launch: bề mặt sản phẩm (v1, đợt 1 đã quyết)
 
 Trang này **ghép** các item thành một bức tranh. Nó không quyết gì: mỗi ý chỉ về item đã quyết nó. Item nào đổi, sửa
-trang này trong cùng phiên. Ngày: 2026-10-23.
+trang này trong cùng phiên. Ngày: 2026-10-22.
 
 ## Ngắn gọn: đã chốt tới đâu?
 

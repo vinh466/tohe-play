@@ -1,6 +1,6 @@
 # D-01 — Hai ngôn ngữ, vi và en: URL, SEO và cách chọn ngôn ngữ thế nào?
 
-- Status: **decided** (owner, 2026-10-22 → đổi lại 2026-10-23, chat) — tiếng Việt là mặt chính, tiếng Anh hỗ trợ
+- Status: **decided** (owner, 2026-10-22 → đổi lại 2026-10-22, chat) — tiếng Việt là mặt chính, tiếng Anh hỗ trợ
 - Kind: decision
 - Blocks: E-04, E-05, PB-12 (console) · Blocked by: — · Đi cùng: [D-02](D-02-layout.md), [D-06](D-06-introduction-surface.md)
 - Decided: owner, chat — xem [Decision](#decision)
@@ -52,10 +52,10 @@ ngôn ngữ hay IP; `hreflang` hai chiều, khai một cách; có nút đổi ng
    hiển thị) hỗ trợ optional thêm locate cho tên game (nếu có thì hiện), mà những tên k quá cần tiếng việt thì cứ tiếng
    anh đi cho chuẩn tại gamer viet nam cũng pro lắm haha … Q4 tiếng Anh là mặc định, nếu có phát hiện user đặt vi thì hỗ
    trợ vào đó" — Q1 = B; Q2 = tên game; Q4 = tiếng Anh mặc định (**đã thay bởi 3**).
-3. Owner, 2026-10-23, chat: "Q3 hợp lý nha, từ đây tôi muốn suy nghĩa lại cho bộ mặt sản phẩm sang default là tiếng việt
+3. Owner, 2026-10-22, chat: "Q3 hợp lý nha, từ đây tôi muốn suy nghĩa lại cho bộ mặt sản phẩm sang default là tiếng việt
    và đánh vào user việt, en là hỗ trợ thêm cần thiết cho user nước ngoài tiếp cận, các nội dung cần tiếng anh thì nên giữ
    trên tiếng việt cũng được tạo sự chính xác (name, thuật ngũ, tên riêng ,....)" — Q3 = bản vi gốc; mặt chính tiếng Việt.
-4. Owner, 2026-10-23, chat: "D-01 tam chot v nhe" — `x-default` → `/en/` và phần còn lại như *Kết luận*.
+4. Owner, 2026-10-22, chat: "D-01 tam chot v nhe" — `x-default` → `/en/` và phần còn lại như *Kết luận*.
 
 ## Discussion
 
@@ -70,5 +70,5 @@ lực từ 2026-01-01, thay Nghị định 13/2023 (nguồn thứ cấp) —
 https://luatvietan.vn/nhung-diem-moi-cua-luat-bao-ve-du-lieu-ca-nhan-2025-so-voi-nghi-dinh-13-2023-nd-cp.html. Không phải
 tư vấn pháp lý; nên đọc văn bản gốc trước launch.
 
-**agent** (2026-10-23, gom gọn): item viết lại với *Kết luận* ở đầu; lần chốt "tiếng Anh mặc định" (2) đã được owner thay
-bằng (3), chi tiết của nó còn ở `log.md` 2026-10-23.
+**agent** (2026-10-22, gom gọn): item viết lại với *Kết luận* ở đầu; lần chốt "tiếng Anh mặc định" (2) đã được owner thay
+bằng (3), chi tiết của nó còn ở `log.md` 2026-10-22.

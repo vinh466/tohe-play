@@ -1,12 +1,12 @@
 # R-06 — Bề mặt giới thiệu: SEO, GEO, và mở rộng tới hàng chục game
 
-- Date: 2026-10-23 · Feeds: D-06
+- Date: 2026-10-22 · Feeds: D-06
 - **[đã kiểm]** = đọc hôm nay, kèm ngày cập nhật của trang. **[thứ cấp]** = bài viết khác thuật lại. **[chưa kiểm]** = hiểu
   biết chung.
 
 ## Question
 
-Owner (2026-10-23): "bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai". Bề mặt giới thiệu hôm nay có
+Owner (2026-10-22): "bề mặt giới thiệu sản phẩm, SEO GEO, và scale bề mặt này tương lai". Bề mặt giới thiệu hôm nay có
 gì, Google và các công cụ trả lời bằng AI cần gì năm 2026, và làm sao để thêm một game là có đủ trang mà không thành
 "nội dung hàng loạt"?
 
