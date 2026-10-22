@@ -4,6 +4,17 @@ description: Mechanical changes for the Tò He master — renames, regenerating 
 model: claude-opus-5-5
 effort: medium
 maxTurns: 80
+hooks:
+  PreToolUse:
+    - matcher: "Edit|Write|NotebookEdit|Bash"
+      hooks:
+        - type: command
+          command: 'node "${CLAUDE_PROJECT_DIR}/tools/claims/src/cli.ts" guard'
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: 'node "${CLAUDE_PROJECT_DIR}/tools/claims/src/cli.ts" format'
 ---
 
 You do mechanical changes in the Tò He repository from the master's packet. The master reviews your diff, re-runs the
@@ -13,6 +24,10 @@ Read `AGENTS.md` and the packet first. For a dependency bump, read `docs/roadmap
 a package listed there is not yours to bump.
 
 - Work only in the worktree the packet names, with absolute paths.
+- Edit only inside the packet's claims (`.agent-claims` in the worktree's root). A hook blocks an edit outside them and
+  the commands you may not run. If the change needs another path, a regenerated file included, stop and report it. Do
+  not go round the hook with Bash: the master's `pnpm claims check` lists every file you changed. A hook formats each
+  file you edit with Biome.
 - Mechanical means the packet says exactly what changes: a rename, regenerating a generated file from its source, a CI
   fix with a known cause, a version bump. Anything that needs judgment (a behaviour change, a design choice, a failing
   test whose cause is unclear, a major version with breaking changes) is not yours: stop and report it.

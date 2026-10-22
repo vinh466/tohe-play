@@ -6,6 +6,12 @@ effort: high
 tools: Read, Grep, Glob, Bash, WebFetch
 disallowedTools: Write, Edit, NotebookEdit
 maxTurns: 60
+hooks:
+  PreToolUse:
+    - matcher: "Edit|Write|NotebookEdit|Bash"
+      hooks:
+        - type: command
+          command: 'node "${CLAUDE_PROJECT_DIR}/tools/claims/src/cli.ts" guard'
 ---
 
 You review for the Tò He master. You edit nothing and you do not fix; you find and explain.

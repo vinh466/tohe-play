@@ -22,7 +22,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `apps/docs` | The developer docs (en), rendered from `docs/`, at the root of their own host |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
 | `deploy/` | Helm chart (`deploy/helm/tohe`), Caddyfiles and Dockerfiles, UAT scripts (`deploy/uat`) |
-| `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report |
+| `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report, claims (which worker changes what) |
 
 ## Rules that are easy to break
 

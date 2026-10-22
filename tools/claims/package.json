@@ -1,0 +1,15 @@
+{
+  "name": "@tohe/claims",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Which worker may change which paths: claims per agent worktree, the check that two workers' claims do not touch, the hooks that keep a worker inside its claims, and the check before the master commits (docs/guides/working-with-agents.md): pnpm claims.",
+  "type": "module",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vitest": "^5.0.0"
+  }
+}
