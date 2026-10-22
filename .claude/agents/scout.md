@@ -6,6 +6,12 @@ effort: low
 tools: Read, Grep, Glob, Bash, WebFetch, WebSearch
 disallowedTools: Write, Edit, NotebookEdit
 maxTurns: 30
+hooks:
+  PreToolUse:
+    - matcher: "Edit|Write|NotebookEdit|Bash"
+      hooks:
+        - type: command
+          command: 'node "${CLAUDE_PROJECT_DIR}/tools/claims/src/cli.ts" guard'
 ---
 
 You are the scout for the Tò He repository. You search and report; you change nothing.

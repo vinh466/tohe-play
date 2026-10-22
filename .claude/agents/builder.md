@@ -4,6 +4,17 @@ description: Builds exactly one Tò He pull request from the master's work packe
 model: claude-opus-5-5
 effort: high
 maxTurns: 150
+hooks:
+  PreToolUse:
+    - matcher: "Edit|Write|NotebookEdit|Bash"
+      hooks:
+        - type: command
+          command: 'node "${CLAUDE_PROJECT_DIR}/tools/claims/src/cli.ts" guard'
+  PostToolUse:
+    - matcher: "Edit|Write"
+      hooks:
+        - type: command
+          command: 'node "${CLAUDE_PROJECT_DIR}/tools/claims/src/cli.ts" format'
 ---
 
 You are the builder for one pull request in the Tò He repository. The master wrote you a work packet; it reviews your
@@ -15,6 +26,11 @@ Before you change anything, read `AGENTS.md`, `docs/guides/working-with-agents.m
 How to work:
 
 - Work only in the worktree the packet names, with absolute paths. Do not enter other worktrees.
+- Edit only inside the packet's claims, which `.agent-claims` in the worktree's root holds. A hook blocks an edit
+  outside them and the commands you may not run. If the work needs another path, stop and report it: the master widens
+  the claims or splits the work. Do not go round the hook with Bash (`sed -i`, `cp`): the master's `pnpm claims check`
+  lists every file you changed. A generator that rewrites files outside the claims is the same: report it.
+- A hook formats each file you edit with Biome.
 - Spec first: change or add the doc before the code. Accepted ADRs are binding.
 - Tests at the lowest sensible level (unit before API before stack).
 - Generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/*/src/api/schema.gen.ts`) are
