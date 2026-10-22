@@ -1,7 +1,7 @@
 ---
 // The frame of every public page (ADR 0042, 0047): head with the language, title, description, canonical and
 // link-preview tags, the structured data a page brings, the header with its navigation, the VI | EN switch and the
-// light/dark buttons, the suggestion to read in English, and the footer. The page's language is Astro's i18n routing's
+// way into the app, the suggestion to read in English, and the footer with its links and the light/dark buttons. The page's language is Astro's i18n routing's
 // (astro.config.ts: Vietnamese at the root, English under /en/); its pair in the other language comes from
 // @tohe/routes, which declares the pages that have none yet. Colours come from the design tokens (ADR 0013). The page's
 // CSP allows no inline script and no inline style: the scripts below are files under /_web/, and a JSON-LD block is
@@ -21,6 +21,7 @@ import {
 import { appPath, languages, localPath, ogLocales, otherLanguage, pageLanguage, pairOf } from '../i18n.ts';
 import fromAppUrl from '../scripts/from-app.js?url';
 import returningUrl from '../scripts/returning.js?url';
+import ThemeIcon from './ThemeIcon.astro';
 
 interface Props {
   title: string;
@@ -121,15 +122,6 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
           ))
         }
       </nav>
-      <div class="themes" role="group" aria-label={words.themeLabel}>
-        {
-          words.themes.map(({ choice, icon, label }) => (
-            <button type="button" data-choice={choice} aria-label={label} title={label} aria-pressed="false">
-              <span aria-hidden="true">{icon}</span>
-            </button>
-          ))
-        }
-      </div>
       {/* Into the app, on phones too (ADR 0046): "Chơi ngay", or "Chơi tiếp" on a device that has opened a game (returning.js sets data-returning; the stylesheet shows one of the two). */}
       <a class="header-play new" href={appPath(lang, '/play')}>{words.play}</a>
       <a class="header-play again" href={appPath(lang, '/play')}>{words.continue}</a>
@@ -151,9 +143,10 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
     <slot />
 
     <footer class="site-footer">
-      <p>{words.footer.line}</p>
       <p class="links">
+        <a href={localPath(lang, '/about/')}>{words.footer.about}</a>
         <a href={localPath(lang, '/promise/')}>{words.footer.promise}</a>
+        <a href={localPath(lang, '/guides/install/')}>{words.footer.install}</a>
         <a href="/terms/" hreflang={legalHreflang}>{words.footer.terms}</a>
         <a href="/privacy/" hreflang={legalHreflang}>{words.footer.privacy}</a>
         {/* The links out of Tò He carry data-out: a visit that came from the app shows none (from-app.js). */}
@@ -161,6 +154,18 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
         <a href={site.github} data-out>{words.footer.github}</a>
         <a href={`mailto:${site.email}`} data-out>{site.email}</a>
       </p>
+      {/* Light, dark or the device's: three buttons with a word each; the script below keeps them true. */}
+      <div class="themes" role="group" aria-label={words.themeLabel}>
+        {
+          words.themes.map(({ choice, label }) => (
+            <button type="button" data-choice={choice} aria-pressed="false">
+              <ThemeIcon choice={choice} />
+              <span>{label}</span>
+            </button>
+          ))
+        }
+      </div>
+      <p class="line">{words.footer.line}</p>
     </footer>
   </body>
 </html>
@@ -176,7 +181,7 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
   } from '@tohe/design-tokens/theme';
   import { localStorageOrNothing, startLanguage } from '../scripts/language.ts';
 
-  // The three buttons show and change the choice; "Theo máy" follows the device live.
+  // The three buttons in the footer show and change the choice; "Theo máy" follows the device live.
   const buttons = [...document.querySelectorAll<HTMLButtonElement>('.themes button')];
   const device = deviceScheme();
   const show = () => {

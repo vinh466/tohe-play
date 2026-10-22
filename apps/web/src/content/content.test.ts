@@ -9,7 +9,7 @@ import { about } from './about.ts';
 import { faq } from './faq.ts';
 import { allOffline, type GamePageText, parseGameFacts, parseGamePage } from './game-page.ts';
 import { describeGame, gamePaths, gamesPage, loadGames } from './games.ts';
-import { home } from './home.ts';
+import { home, homeQuestionIds } from './home.ts';
 import { guides, install } from './install.ts';
 import { promise } from './promise.ts';
 import { formatDay, siteWords } from './site.ts';
@@ -55,7 +55,7 @@ describe('a game’s page from its manifest, its words and its facts', () => {
       open,
       'vi',
     );
-    expect(together.chips).toEqual(['Mọi lứa tuổi', 'Cùng bạn bè: 2–4 người', 'Có bạn máy']);
+    expect(together.chips).toEqual(['Mọi lứa tuổi', 'Chơi cùng: 2–4 người', 'Có bạn máy']);
     expect(together.playMode).toBe('MultiPlayer');
     expect(together.seats).toEqual({ min: 2, max: 4 });
     expect(together.together).toBe(true);
@@ -75,12 +75,12 @@ describe('a game’s page from its manifest, its words and its facts', () => {
       'vi',
     );
     expect(Object.fromEntries(game.facts.map((fact) => [fact.label, fact.value]))).toEqual({
-      'Độ tuổi': 'Từ 6 tuổi',
-      'Người chơi': '1 người với bạn máy, hoặc 2–4 người cùng bàn, mỗi người một máy',
+      Tuổi: 'Từ 6 tuổi',
+      'Người chơi': 'Một mình với bạn máy, hoặc 2–4 người cùng bàn, mỗi người một máy',
       'Một ván': 'Khoảng 3–5 phút',
-      'Màn hình': 'Dọc',
+      'Cầm máy': 'Cầm dọc',
       'Quảng cáo': 'Không có',
-      'Dữ liệu cá nhân': 'Không cần để chơi; không theo dõi',
+      'Thông tin cá nhân': 'Chơi không cần đăng ký, không theo dõi',
     });
     const english = describeGame(
       manifest(),
@@ -91,11 +91,11 @@ describe('a game’s page from its manifest, its words and its facts', () => {
     );
     expect(english.facts.map((fact) => fact.value)).toEqual([
       'All ages',
-      '1 player',
+      'One player',
       '20 seconds',
-      'Portrait',
+      'Upright',
       'None',
-      'None needed to play; no tracking',
+      'No sign-up needed to play, no tracking',
     ]);
   });
 
@@ -105,8 +105,8 @@ describe('a game’s page from its manifest, its words and its facts', () => {
       describeGame(manifest(), '/i.svg', page, offline, 'vi', { offlineEverywhere }).facts.map(
         (fact) => fact.label,
       );
-    expect(labels(false)).not.toContain('Chơi khi mất mạng');
-    expect(labels(true)).toContain('Chơi khi mất mạng');
+    expect(labels(false)).not.toContain('Khi mất mạng');
+    expect(labels(true)).toContain('Khi mất mạng');
     expect(allOffline([offline, open])).toBe(false);
     expect(allOffline([offline, offline])).toBe(true);
     expect(allOffline([])).toBe(false);
@@ -179,6 +179,12 @@ describe('a game’s page file', () => {
       questions: [{ q: 'Có khó không?', a: 'Không.' }],
       pictures: [{ alt: 'Bàn chơi giữa ván', file: 'ban-choi.png' }],
     });
+  });
+
+  it('lets a page leave out "Hợp với ai" when it only repeats the facts', () => {
+    const without = file.replace('## Hợp với ai\n\nMọi người.\n\n', '');
+    expect(without).not.toContain('Hợp với ai');
+    expect(parseGamePage(without, 'vi', 'vi.md').suits).toBeUndefined();
   });
 
   it.each([
@@ -332,5 +338,72 @@ describe('the two languages', () => {
     expect(home.en.title).not.toBe(home.vi.title);
     expect(siteWords.en.nav.map((item) => item.path)).toEqual(siteWords.vi.nav.map((item) => item.path));
     expect(guides.en.items.map((item) => item.path)).toEqual(guides.vi.items.map((item) => item.path));
+  });
+});
+
+describe('the home page and the FAQ', () => {
+  it.each(languages)('link the home page’s three questions to the FAQ, by id, in %s', (lang) => {
+    const ids = faq[lang].questions.map((question) => question.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    expect(homeQuestionIds).toHaveLength(3);
+    for (const id of homeQuestionIds) expect(ids, id).toContain(id);
+  });
+
+  it('keep the same question ids in both languages', () => {
+    expect(faq.en.questions.map((question) => question.id)).toEqual(
+      faq.vi.questions.map((question) => question.id),
+    );
+  });
+});
+
+// docs/conventions/voice-and-look.md, the parts a machine can read: the words of the public pages.
+describe('the voice of the public pages’ words', () => {
+  const strings = (value: unknown, skip: readonly string[] = []): string[] => {
+    if (typeof value === 'string') return [value];
+    if (Array.isArray(value)) return value.flatMap((inner) => strings(inner, skip));
+    if (value !== null && typeof value === 'object') {
+      return Object.entries(value).flatMap(([key, inner]) =>
+        skip.includes(key) ? [] : strings(inner, skip),
+      );
+    }
+    return [];
+  };
+  // The tab title, the description and the picture's alt are not read on the page.
+  const unseen = ['title', 'description', 'imageAlt'];
+  const pages = [
+    ['site', siteWords],
+    ['home', home],
+    ['games', gamesPage],
+    ['guides', guides],
+    ['install', install],
+    ['faq', faq],
+    ['about', about],
+    ['promise', promise],
+  ] as const;
+
+  it.each(pages.flatMap(([name, words]) => languages.map((lang) => [name, lang, words[lang]] as const)))(
+    '%s in %s: no "·" in a sentence, no emoji, nothing internal, at most one long dash',
+    (_, __, words) => {
+      const text = strings(words, unseen);
+      for (const line of text) {
+        expect(line, line).not.toMatch(/ · /);
+        expect(line, line).not.toMatch(/\p{Extended_Pictographic}/u);
+        expect(line, line).not.toMatch(/game mẫu|sample game/i);
+      }
+      expect(text.join(' ').split('—').length - 1).toBeLessThanOrEqual(1);
+    },
+  );
+
+  it.each(languages)('the games’ pages in %s say nothing internal and keep to one long dash', (lang) => {
+    for (const game of loadGames(lang)) {
+      const text = [game.description, game.page.kind, game.page.answer, game.page.suits ?? ''].concat(
+        game.page.howTo,
+        game.page.questions.flatMap(({ q, a }) => [q, a]),
+        game.genre,
+        game.chips,
+      );
+      for (const line of text) expect(line, `${game.id}: ${line}`).not.toMatch(/game mẫu|sample game/i);
+      expect(text.join(' ').split('—').length - 1, game.id).toBeLessThanOrEqual(1);
+    }
   });
 });
