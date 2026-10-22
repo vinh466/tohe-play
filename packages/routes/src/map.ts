@@ -533,3 +533,31 @@ export const linkPreviewAppQuery = 'app';
 
 /** The characters a code in a previewed link may have, and how many: anything else is the app's page. */
 export const linkPreviewCode = '[0-9A-Za-z-]{1,20}';
+
+/**
+ * Crawlers that fetch for search and for answers that cite the page (ADR 0047): robots.txt names them in a group of
+ * their own that allows what every crawler may fetch, so a later rule for one of them cannot shut search out by mistake.
+ * OpenAI's, Anthropic's and Perplexity's search crawlers are distinct from their training crawlers.
+ */
+export const searchCrawlers: readonly string[] = [
+  'Googlebot',
+  'Bingbot',
+  'OAI-SearchBot',
+  'Claude-SearchBot',
+  'PerplexityBot',
+  'Applebot',
+  'coccocbot-web',
+];
+
+/**
+ * Crawlers that fetch only to train models (ADR 0047): robots.txt keeps them out of everything, as the content signal
+ * `ai-train=no` asks of those that read it. `Google-Extended` and `Applebot-Extended` are tokens, not crawlers of their
+ * own: they say whether what Googlebot and Applebot fetch may train Gemini and Apple's models, and leave search alone.
+ */
+export const trainingCrawlers: readonly string[] = [
+  'GPTBot',
+  'ClaudeBot',
+  'Google-Extended',
+  'Applebot-Extended',
+  'CCBot',
+];

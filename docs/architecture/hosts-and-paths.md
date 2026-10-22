@@ -5,8 +5,7 @@ description: Where every part of Tò He lives on toheplay.io.vn — a host per t
 
 Decision: [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md) (amends [ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md), [0027](../decisions/0027-platform-admin-and-the-first-owner.md)
 and [0021](../decisions/0021-release-production-through-the-tohe-chart.md)), amended by [ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)
-(`/together`, no redirect on `/`, the planes and the games' isolation ladder, Access on the console before the launch
-proposed)
+(`/together`, no redirect on `/`, the planes and the games' isolation ladder, Access on the console)
 and [ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md) (`/en/…`, `/promise/`, crawlers
 by name). What players see in these namespaces: [Surfaces](surfaces.md).
 
@@ -26,7 +25,7 @@ flowchart TB
     app["The app (PWA)<br/>/play · /account · /r · /s"]
     papi["/api → API"]
   end
-  subgraph ops ["console.toheplay.io.vn — operators, own sign-in (Cloudflare Access optional; proposed before the launch)"]
+  subgraph ops ["console.toheplay.io.vn — operators, Cloudflare Access, then its own sign-in"]
     console["Console"]
     capi["/api/admin → API"]
   end
@@ -44,7 +43,7 @@ flowchart TB
 | Host | Role | Session | Indexed | Served by |
 | --- | --- | --- | --- | --- |
 | `toheplay.io.vn` | Players: public pages, the app, the API | `__Host-tohe.session`, `SameSite=Lax` | public pages only | the hub image's Caddy: the public pages (`apps/web`, in `/srv/web`) and the app (`/srv`), proxying `/api` |
-| `console.toheplay.io.vn` | Operators: the console, the API's console routes | `__Host-tohe.console`, `SameSite=Strict`; Cloudflare Access first once the owner turns it on (optional for now; before the launch, proposed in ADR 0046) | no | the hub image's Caddy, a second site |
+| `console.toheplay.io.vn` | Operators: the console, the API's console routes | `__Host-tohe.console`, `SameSite=Strict`; Cloudflare Access first (on since 2026-10-22), then the console's own sign-in | no | the hub image's Caddy, a second site |
 | `games.toheplay.io.vn` | Game builds, the catalog | none | no | the games image |
 | `docs.toheplay.io.vn` | Developer docs at the root of the host, generated API references, `llms.txt` | none | yes | the docs image (`apps/docs`) |
 | `status.toheplay.io.vn` | Status and incidents | none | yes | a service outside Tò He's infrastructure |
@@ -117,7 +116,13 @@ privacy notice are not copy of this app: change them in `documents.ts`, with `TE
   in a public namespace of the map, and every link on a page leads somewhere the map knows (a public page is checked
   to exist);
 - `robots.txt` carries Cloudflare's content signals, `Content-Signal: search=yes, ai-input=yes, ai-train=no`: search
-  engines and AI answers may use the pages, training may not (the owner's choice for now, 2026-10-20).
+  engines and AI answers may use the pages, training may not (the owner's choice, 2026-10-20). It also names crawlers
+  ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)): the ones that fetch for search
+  and answers (`searchCrawlers` in the map — Googlebot, Bingbot, `OAI-SearchBot`, `Claude-SearchBot`, `PerplexityBot`,
+  Applebot, `coccocbot-web`) in a group with the same rules as every crawler, since a crawler follows only the group that
+  names it (RFC 9309); the crawlers and tokens only for training models (`trainingCrawlers` — `GPTBot`, `ClaudeBot`,
+  `CCBot`, and the tokens `Google-Extended` and `Applebot-Extended`, which say whether what Googlebot and Applebot fetch
+  may train models) with `Disallow: /`.
 
 - **Indexed**: no `X-Robots-Tag: noindex`, canonical and Open Graph links with the hub's own URL.
 - **Its own CSP**: no third-party script, no inline script and no inline style, no frame, no form, no connection. Every
@@ -135,8 +140,8 @@ privacy notice are not copy of this app: change them in `documents.ts`, with `TE
 - **`/sitemap.xml` and `robots.txt`** are generated from the map: the sitemap lists every indexed namespace (a tree
   such as `/games/` needs its pages listed first — the generator refuses it until then; the games' pages come from
   `games/*/public/game.json`, so a new game is a change of the generated sitemap, which the drift check shows), with
-  absolute URLs from `TOHE_HUB_URL`; `robots.txt` allows `/`, keeps crawlers out of `/api/`, gives the content signals
-  and names the sitemap.
+  absolute URLs from `TOHE_HUB_URL`; `robots.txt` allows `/`, keeps crawlers out of `/api/`, gives the content signals,
+  names the search and the training crawlers (above) and names the sitemap.
 - **The docs host** serves the docs at its root: an old `/docs/<page>` answers `301` to `/<page>`, the query kept, and
   `/play` leads to the hub's `/play`.
 
@@ -226,4 +231,5 @@ stays in force for its part.
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | in place: `apps/web` is built into the hub image and serves the home page, the games' pages, the install guide, the FAQ, about, and the terms and privacy notice at the root (indexed, its own CSP; a script on `/` sends a returning player to `/play`), with `/sitemap.xml`, `robots.txt`, `llms.txt` and the link-preview picture; `apps/docs` serves the docs at the root of `docs.toheplay.io.vn` (`/docs/<page>` answers `301`); the chart's `site` values are `docs` | the public pages' pull request |
 | The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access in front is the owner's setup, optional for now (2026-10-20) and required before the launch ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)); the API does not check Access's token yet | the console's pull request |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |
-| `/together`, `/en/…`, `/promise/`; crawlers by name in `robots.txt` | not yet ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md), [0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | the routes' pull request |
+| Crawlers by name in `robots.txt` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: `searchCrawlers` and `trainingCrawlers` in the map | the routes' pull request |
+| The namespaces `/together`, `/en/…`, `/promise/` | not yet: each arrives with the pages that use it, so the build's check — the pages written are the sitemap's — and the app's router stay whole | the app frame's, the languages' and the introduction surface's pull requests |
