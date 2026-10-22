@@ -4,6 +4,7 @@ import { useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { type GameSummary, links, type ShareLinkView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
+import { nameOf } from '../launcher/gameWords.ts';
 import { AtTables } from '../session/AtTables.tsx';
 import type { Player, SessionState } from '../session/session.ts';
 import { Button } from '../ui/Button.tsx';
@@ -24,7 +25,7 @@ export function ShareButton({ game, session }: { game: GameSummary; session: Pla
       <button
         type="button"
         onClick={() => setOpen(true)}
-        aria-label={t('share.button', { game: game.name })}
+        aria-label={t('share.button', { game: nameOf(game) })}
         className="absolute top-1.5 left-1.5 grid size-10 place-items-center rounded-full bg-soft text-xl active:scale-95"
       >
         <span aria-hidden>🔗</span>
@@ -52,7 +53,7 @@ export function ShareSheet({
 }) {
   const { t } = useTranslation();
   return (
-    <Modal open={open} title={t('share.title', { game: game.name })} onClose={onClose}>
+    <Modal open={open} title={t('share.title', { game: nameOf(game) })} onClose={onClose}>
       {open ? (
         <AtTables session={session} purpose="share" inline>
           {(player) => <ShareLink game={game} player={player} />}
@@ -94,15 +95,15 @@ function ShareLink({ game, player }: { game: GameSummary; player: Player }) {
   }
 
   const url = shareUrl(link.data.code, window.location.origin);
-  const text = t('share.text', { game: game.name });
+  const text = t('share.text', { game: nameOf(game) });
   const canShare = typeof navigator.share === 'function';
   const until = new Intl.DateTimeFormat(i18n.language, { dateStyle: 'medium' }).format(
     new Date(link.data.expiresAt),
   );
   return (
     <div className="flex flex-col items-center gap-4 text-center">
-      <p className="text-ink">{t('share.body', { game: game.name })}</p>
-      <QrCode text={url} label={t('share.qr', { game: game.name })} />
+      <p className="text-ink">{t('share.body', { game: nameOf(game) })}</p>
+      <QrCode text={url} label={t('share.qr', { game: nameOf(game) })} />
       <p className="flex flex-col">
         <span className="text-ink-soft text-sm">{t('share.code')}</span>
         <span className="font-black text-3xl text-ink tracking-widest">

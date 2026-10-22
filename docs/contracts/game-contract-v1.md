@@ -32,10 +32,12 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | Field | Type | Default | Meaning |
 | --- | --- | --- | --- |
 | `id` | string | — | `a-z`, digits, `-`; 3–40 chars. Equals the folder name under `games/`. Never changes. |
-| `name` | string | — | Display name (≤ 40 chars). Vietnamese is fine. |
+| `name` | string | — | The **standard name** (1–40 chars): English, or a proper name such as *Tiến Lên*. Shown when the reader's language has no name of its own. |
+| `names` | map | — | The name per language, when it differs: a [language tag](#names-and-descriptions-per-language) → 1–40 chars, at most 10 ([ADR 0048](../decisions/0048-a-standard-name-and-words-per-language-for-each-game.md)). |
 | `version` | semver | — | Bump for every published change. |
 | `protocol` | `1` | — | Contract version the game speaks. |
-| `description` | string | `""` | ≤ 200 chars, shown in the catalog. |
+| `description` | string | `""` | ≤ 200 chars, shown in the catalog and on the game's public page: the standard description, in the language of `name`. |
+| `descriptions` | map | — | The description per language: a language tag → 1–200 chars, at most 10 (ADR 0048). |
 | `entry` | string | `index.html` | Entry file relative to the build folder. |
 | `icon` | string | — | Icon file relative to the build folder (SVG or PNG, square). |
 | `orientation` | `portrait` \| `landscape` \| `any` | `portrait` | Preferred orientation. |
@@ -48,6 +50,30 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `ranked` | object | — | A one-player game whose runs the server replays ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)); required with the `ranked` capability, which needs `scores` too. See [Ranked runs](#ranked-runs). |
 | `identity` | object | — | What the game asks of its player ([ADR 0045](../decisions/0045-games-declare-identity-and-entries.md)): `play` — `any` (default), `named` or `account`, what opening it asks for, at a table too; `rooms` — `named` (default) or `account`, the least a table of it asks for, only with `rooms`. See [Entries and identity](#entries-and-identity). |
 | `entries` | `["share"]` | — | The kinds of entry the game opens itself ("entry" as in ADR 0044, not the `entry` file above). With `share`, the build ships `entries/share.json`. See [Entries and identity](#entries-and-identity). |
+
+### Names and descriptions per language
+
+A game has one **standard name**, `name` — English, or a proper name such as *Tiến Lên* — and may add a name and a
+description per language ([ADR 0048](../decisions/0048-a-standard-name-and-words-per-language-for-each-game.md)):
+
+```json
+"name": "Merge Blocks",
+"names": { "vi": "Ghép Khối" },
+"description": "Drop number blocks into the columns; two matching blocks merge. Chain merges to multiply your score!",
+"descriptions": { "vi": "Thả khối số vào cột, …", "en": "Drop number blocks into the columns; …" }
+```
+
+- **Keys** are language tags like the ones `init.locale` carries, in their canonical case: a language of two or three
+  lower-case letters, then optionally a script (`Hant`) and a region (`GB`, `419`) — `vi`, `en`, `en-GB`, `zh-Hant`.
+  Anything else makes the manifest invalid.
+- **The lookup**, for a reader's language: the exact tag, then its primary subtag (`en-GB` → `en`), then `name` or
+  `description`. Tags compare without regard to case. `@tohe/contract` exports it as `gameName(manifest, language)`
+  and `gameDescription(manifest, language)`.
+- The hub shows a game in its own language through the lookup; the console shows the standard `name`; link previews
+  speak Vietnamese for now. A game is not sent its names: its title is in its own strings, in `init.locale`'s language.
+- Write a name per language only when it differs from the standard one. The games in this repository carry
+  `descriptions.vi` and `descriptions.en`, `description` equal to `descriptions.en`, and `names.vi` when the standard
+  name is not Vietnamese — a test of `tools/games-host` checks it; it is the repository's rule, not the contract's.
 
 ### Online rooms
 
@@ -370,7 +396,8 @@ build — a game that answers at once would otherwise miss them.
   game plays unranked; and `init.rankedReplay` (ADR 0032), which only `ranked` games get, from the console, in the
   build that played the run; `identity`, `entries`, `init.entry`, `init.can`, `profile.kind` and the messages `entry`,
   `identity.require` and `share` (ADR 0045) — older hubs send no entry and answer neither request (the game sees `can`
-  absent), and games that do not declare `entries` are opened as before.
+  absent), and games that do not declare `entries` are opened as before; `names` and `descriptions` (ADR 0048), which
+  only the platform reads — a manifest without them shows `name` and `description` everywhere.
 - The CSP is not the protocol: tightening it keeps the number when no game relies on what it takes away — the
   conformance kit serves every game with the current one. Example: `form-action 'none'` (ADR 0040).
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;

@@ -125,7 +125,8 @@ flowchart LR
   alternate, and a canonical link to itself.
 - The VI | EN switch leads to the same page; a non-Vietnamese browser gets a suggestion, never a redirect.
 - Proper names and established terms stay in English inside the Vietnamese interface. A game's `name` is its standard
-  name; names per language are optional; descriptions are decided with them in the Game Contract's ADR.
+  name; a name and a description per language (`names`, `descriptions`) are optional and shown in the reader's language
+  when present ([ADR 0048](../decisions/0048-a-standard-name-and-words-per-language-for-each-game.md)).
 
 ## The introduction surface
 
@@ -166,7 +167,7 @@ language and IndexNow.
 | Planes, L1, the escalation rule | L1 in place; Access on `console.` optional | Access before the launch, if the owner confirms the proposal |
 | Namespaces `/together`, `/en/…`, `/promise/`; crawlers by name | not yet | the routes' pull request |
 | Public pages in two languages | Vietnamese only | the public pages' languages pull request |
-| Game names per language | one `name`, Vietnamese | the Game Contract's names pull request, with its own ADR |
+| Game names per language | in place: a standard `name` with `names` and `descriptions` per language (ADR 0048); the hub shows its language's, the console the standard name, link previews and the public pages the Vietnamese | — |
 | One source per game, a picture per game, the facts table, the catalog-first home, the promise, *Continue* instead of the redirect | how-to in `apps/web/src/content/games.ts`; one picture; `/` redirects a returning device | the introduction surface's pull request |
 | The app's frame and tabs, the language setting | no frame; a bottom-sheet menu; the browser's language | the app frame's pull request |
 | Coming back | the catalog first; no "who is playing"; silent fallback; updates take over at once | the coming-back pull request |

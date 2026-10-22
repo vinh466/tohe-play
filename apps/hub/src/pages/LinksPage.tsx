@@ -6,6 +6,7 @@ import { errorKey } from '../api/errors.ts';
 import { deviceProfileQuery, gamesQuery } from '../api/queries.ts';
 import { formatEntryCode } from '../entry/codes.ts';
 import { EXPIRY_CHOICES, shareUrl } from '../entry/share.ts';
+import { nameOf } from '../launcher/gameWords.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { actAsDevice } from '../rooms/devicePlayer.ts';
 import { AtTables } from '../session/AtTables.tsx';
@@ -165,7 +166,7 @@ function LinkCard({ link, game, player }: { link: ShareLinkView; game?: GameSumm
           <span className="grid size-12 place-items-center rounded-xl bg-soft text-2xl">🎲</span>
         )}
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate font-bold text-ink text-lg">{game?.name ?? link.gameId}</span>
+          <span className="truncate font-bold text-ink text-lg">{game ? nameOf(game) : link.gameId}</span>
           <span className="font-semibold text-ink-soft tracking-wider">
             {formatEntryCode({ kind: 'share', code: link.code })}
           </span>

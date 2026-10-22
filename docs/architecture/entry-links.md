@@ -165,6 +165,10 @@ flowchart LR
 | `/s/<code>` of an `ok` link made by a child's profile | "Lời mời chơi {game}" — no name, no avatar (the owner's opt-in arrives later) |
 | `/s/<code>` of any other link | The hub's generic card |
 
+`{game}` is the game's Vietnamese name — `names.vi`, else its standard `name`
+([ADR 0048](../decisions/0048-a-standard-name-and-words-per-language-for-each-game.md)) — as the cards speak Vietnamese
+until a link keeps its maker's language (ADR 0047).
+
 Each card has `og:title`, `og:description`, `og:url` (the link itself), `og:image` (the hub's `/og.png`),
 `og:site_name`, `og:locale` and the matching `twitter:` tags, and one link to the app. A card Zalo or Facebook already
 cached cannot be called back: revoking or deleting stops new cards only.
@@ -182,9 +186,10 @@ cached cannot be called back: revoking or deleting stops new cards only.
 | `GET`/`HEAD /api/previews/r/{code}` · `GET`/`HEAD /api/previews/s/{code}` | — | The crawler's card, HTML (not in the OpenAPI document) |
 | `GET /api/admin/links/{code}` · `POST /api/admin/links/{code}/revoke` | the console | Find · revoke |
 
-The intent is `{ code, state, kind, gameId, gameName, level, makerName }`: for `unknown`, only the state; for `expired`,
-`revoked` and `used_up`, the kind and the game too, so the hub can offer the game's menu as a way out; the maker's name
-only for `ok`, and never a child's. Resolving is public and limited per client address — the address the trusted proxy
+The intent is `{ code, state, kind, gameId, gameName, gameNames, level, makerName }`: for `unknown`, only the state; for
+`expired`, `revoked` and `used_up`, the kind and the game too — its standard name and its names per language, which the
+hub shows in its own language (ADR 0048) — so the hub can offer the game's menu as a way out; the maker's name only for
+`ok`, and never a child's. Resolving is public and limited per client address — the address the trusted proxy
 chain gives, an IPv6 address by its /64 (`ClientAddress`), `Links:ResolvesPerMinute`; past it, `429`. There is no limit
 for the whole server: a handful of addresses could use it up and switch every link off for everyone.
 

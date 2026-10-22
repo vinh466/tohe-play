@@ -31,6 +31,11 @@ public sealed record GameRoomsView(int MinSeats, int MaxSeats, IReadOnlyList<str
 public sealed record GameIdentityView(string Play, string? Rooms);
 
 /// <summary>A playable game as shown in the hub.</summary>
+/// <param name="Name">The standard name (ADR 0048): English, or a proper name such as <c>Tiến Lên</c>.</param>
+/// <param name="Names">The name per language tag, when the game has one (ADR 0048); the hub shows the one of its
+/// language — the exact tag, then its primary subtag — else <paramref name="Name"/>.</param>
+/// <param name="Description">The standard description, in the language of the standard name.</param>
+/// <param name="Descriptions">The description per language tag (ADR 0048), looked up as <paramref name="Names"/>.</param>
 /// <param name="EntryUrl">Absolute URL to load in the game iframe.</param>
 /// <param name="IconUrl">Absolute icon URL, if the game ships one.</param>
 /// <param name="Rooms">Set for games played online at a table.</param>
@@ -39,8 +44,10 @@ public sealed record GameIdentityView(string Play, string? Rooms);
 public sealed record GameSummary(
     string Id,
     string Name,
+    IReadOnlyDictionary<string, string> Names,
     string Version,
     string Description,
+    IReadOnlyDictionary<string, string> Descriptions,
     string EntryUrl,
     string? IconUrl,
     string Orientation,
@@ -112,8 +119,10 @@ internal static class RegistryModule
         return new GameSummary(
             game.Id,
             game.Name,
+            GameWords.Parse(game.Names),
             game.Version,
             game.Description,
+            GameWords.Parse(game.Descriptions),
             new Uri(root, game.Entry).ToString(),
             game.Icon is null ? null : new Uri(root, game.Icon).ToString(),
             game.Orientation,

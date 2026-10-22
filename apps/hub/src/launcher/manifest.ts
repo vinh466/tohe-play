@@ -15,9 +15,12 @@ export function manifestFrom(game: GameSummary): GameManifest {
   return {
     id: game.id,
     name: game.name,
+    // A catalog cached before the API returned the words per language has none (ADR 0048).
+    ...(game.names ? { names: game.names } : {}),
     version: game.version,
     protocol: PROTOCOL_VERSION,
     description: game.description,
+    ...(game.descriptions ? { descriptions: game.descriptions } : {}),
     entry: entryUrl.pathname.split('/').pop() || 'index.html',
     orientation: game.orientation as GameManifest['orientation'],
     capabilities: game.capabilities.filter((c): c is Capability => Capability.safeParse(c).success),

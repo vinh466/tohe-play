@@ -15,7 +15,11 @@ sidebar:
    it is the source of truth for the game.
 2. **Scaffold** from `games/hello`:
    - `package.json` — name `@tohe/game-<id>`, same scripts;
-   - `public/game.json` — new `id` (= folder name), `name`, `version: 0.1.0`, capabilities, `themes`, size budget;
+   - `public/game.json` — new `id` (= folder name), `name`, `version: 0.1.0`, capabilities, `themes`, size budget.
+     `name` is the **standard name** — English, or a proper name such as *Tiến Lên*; add `names.vi` when the
+     Vietnamese name differs, and `descriptions.vi` and `descriptions.en`, with `description` the English one
+     ([names per language](../contracts/game-contract-v1.md#names-and-descriptions-per-language)); a test of
+     `@tohe/games-host` fails without them;
    - `public/icon.svg` — square, with a `<title>`;
    - `vite.config.ts` — keep `base: './'`.
 3. **Register** the game: add `"@tohe/game-<id>": "workspace:*"` to `devDependencies` of
@@ -39,7 +43,8 @@ sidebar:
    pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>*.png (one per theme)
    ```
 7. **Give it its public page.** `/games/<id>/` is made from `public/game.json` and the icon, so write the
-   `description` for someone who has never heard of the game (it is the page's text and its search description), and
+   descriptions for someone who has never heard of the game (`descriptions.vi` is the Vietnamese page's text and its
+   search description), and
    give `minAge` and `tags`. Add the game's how-to (3 to 5 lines), what it is in a few words and who it suits to
    `gameCopy` in `apps/web/src/content/games.ts` — `pnpm --filter @tohe/web test` fails without it — then run
    `pnpm --filter @tohe/routes build` (the sitemap lists the page) and `pnpm --filter @tohe/web build`, which checks the

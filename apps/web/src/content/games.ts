@@ -2,7 +2,7 @@
 // metadata — games/<id>/public/game.json and its icon — so a new game has a page without anyone writing one. What
 // the manifest cannot say is the how-to and the kind of game in a few words: that copy is in `gameCopy` below, and
 // games.test.ts fails for a game that has none. The owner reviews the words in the pull request.
-import { GameManifest } from '@tohe/contract';
+import { GameManifest, gameDescription, gameName } from '@tohe/contract';
 
 /** The words only a person can write for a game. `howTo`: 3 to 5 short lines, in the order a first game goes. */
 export interface GameCopy {
@@ -121,8 +121,8 @@ export function describeGame(manifest: GameManifest, icon: string, copy: GameCop
   const genre = manifest.tags.flatMap((tag) => (tagLabels[tag] ? [tagLabels[tag]] : []));
   return {
     id: manifest.id,
-    name: manifest.name,
-    description: manifest.description,
+    name: gameName(manifest, 'vi'),
+    description: gameDescription(manifest, 'vi'),
     icon,
     minAge: manifest.minAge,
     facts,

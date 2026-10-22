@@ -3,9 +3,12 @@ import {
   GameManifest,
   GameMessage,
   gameContentSecurityPolicy,
+  gameDescription,
   gameLevels,
+  gameName,
   HostMessage,
   highestIdentityLevel,
+  inLanguage,
   jsonBytes,
 } from './index.ts';
 
@@ -42,6 +45,81 @@ describe('GameManifest', () => {
     ['no theme', { id: 'merge', name: 'x', version: '1.0.0', protocol: 1, themes: [] }],
   ])('rejects %s', (_label, input) => {
     expect(GameManifest.safeParse(input).success).toBe(false);
+  });
+});
+
+describe('names and descriptions per language (ADR 0048)', () => {
+  const base = { id: 'merge-block', name: 'Merge Blocks', version: '1.0.0', protocol: 1 };
+
+  it('accepts a standard name with optional names and descriptions per language tag', () => {
+    const manifest = GameManifest.parse({
+      ...base,
+      names: { vi: 'Ghép Khối', 'zh-Hant': '合併方塊', 'es-419': 'Bloques' },
+      description: 'Drop blocks.',
+      descriptions: { vi: 'Thả khối.', en: 'Drop blocks.', 'en-GB': 'Drop blocks, mate.' },
+    });
+    expect(manifest.names).toEqual({ vi: 'Ghép Khối', 'zh-Hant': '合併方塊', 'es-419': 'Bloques' });
+    // Without them, a manifest means what it meant before.
+    expect(GameManifest.parse(base)).not.toHaveProperty('names');
+    expect(GameManifest.parse(base)).not.toHaveProperty('descriptions');
+  });
+
+  it.each([
+    ['a tag in the wrong case', { names: { VI: 'Ghép Khối' } }],
+    ['a region in lower case', { names: { 'en-gb': 'Merge Blocks' } }],
+    ['an underscore', { names: { en_GB: 'Merge Blocks' } }],
+    ['a word for a tag', { names: { vietnamese: 'Ghép Khối' } }],
+    ['a private-use tag', { names: { 'x-klingon': 'Merge' } }],
+    ['an empty tag', { names: { '': 'Merge' } }],
+    ['an empty name', { names: { vi: '' } }],
+    ['a name over 40 characters', { names: { vi: 'x'.repeat(41) } }],
+    ['a name that is not text', { names: { vi: 1 } }],
+    ['an empty description', { descriptions: { vi: '' } }],
+    ['a description over 200 characters', { descriptions: { en: 'x'.repeat(201) } }],
+    ['names as a list', { names: ['Ghép Khối'] }],
+    [
+      'more than ten languages',
+      { names: Object.fromEntries('aa ab ae af ak am an ar as av ay'.split(' ').map((tag) => [tag, 'x'])) },
+    ],
+  ])('rejects %s', (_label, extra) => {
+    expect(GameManifest.safeParse({ ...base, ...extra }).success).toBe(false);
+  });
+
+  it('accepts names at the limits', () => {
+    const ten = Object.fromEntries(
+      'aa ab ae af ak am an ar as av'.split(' ').map((tag) => [tag, 'x'.repeat(40)]),
+    );
+    expect(
+      GameManifest.safeParse({ ...base, names: ten, descriptions: { vi: 'x'.repeat(200) } }).success,
+    ).toBe(true);
+  });
+
+  it('looks up the exact tag, then its primary subtag, then the standard words', () => {
+    const game = {
+      name: 'Merge Blocks',
+      names: { vi: 'Ghép Khối', 'pt-BR': 'Blocos' },
+      description: 'Drop blocks.',
+      descriptions: { vi: 'Thả khối.', en: 'Drop blocks!', 'en-GB': 'Drop blocks, mate.' },
+    };
+    expect(gameName(game, 'vi')).toBe('Ghép Khối');
+    expect(gameName(game, 'vi-VN')).toBe('Ghép Khối');
+    expect(gameName(game, 'en')).toBe('Merge Blocks');
+    expect(gameName(game, 'pt-BR')).toBe('Blocos');
+    // A region's name is not found from the bare language.
+    expect(gameName(game, 'pt')).toBe('Merge Blocks');
+    expect(gameDescription(game, 'en-GB')).toBe('Drop blocks, mate.');
+    expect(gameDescription(game, 'en-US')).toBe('Drop blocks!');
+    expect(gameDescription(game, 'fr')).toBe('Drop blocks.');
+    // A browser's spelling of a tag still finds it.
+    expect(gameDescription(game, 'EN_gb')).toBe('Drop blocks, mate.');
+    expect(gameName(game, 'VI')).toBe('Ghép Khối');
+  });
+
+  it('falls back to the standard words without a map, or for an empty language', () => {
+    expect(gameName({ name: 'Tiến Lên' }, 'en')).toBe('Tiến Lên');
+    expect(gameName({ name: 'Tiến Lên', names: null }, 'vi')).toBe('Tiến Lên');
+    expect(gameDescription({ description: '' }, 'vi')).toBe('');
+    expect(inLanguage({ vi: 'Ghép Khối' }, '', 'Merge Blocks')).toBe('Merge Blocks');
   });
 });
 

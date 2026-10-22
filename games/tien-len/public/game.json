@@ -2,9 +2,13 @@
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "tien-len",
   "name": "Tiến Lên",
-  "version": "0.6.1",
+  "version": "0.6.2",
   "protocol": 1,
-  "description": "Tiến lên miền Nam: chơi với bạn máy hoặc mở phòng chơi với cả nhà. Chặt heo, chặt chồng, tới trắng, luật nhà tự chọn.",
+  "description": "The Southern Vietnamese card game: play against bots or open a table for the whole family. Chop the 2s, stack chops, win on the deal, and pick your house rules.",
+  "descriptions": {
+    "vi": "Tiến lên miền Nam: chơi với bạn máy hoặc mở phòng chơi với cả nhà. Chặt heo, chặt chồng, tới trắng, luật nhà tự chọn.",
+    "en": "The Southern Vietnamese card game: play against bots or open a table for the whole family. Chop the 2s, stack chops, win on the deal, and pick your house rules."
+  },
   "icon": "icon.svg",
   "orientation": "portrait",
   "capabilities": ["save", "rooms", "shell"],

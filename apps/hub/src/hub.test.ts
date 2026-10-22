@@ -2,15 +2,18 @@ import 'fake-indexeddb/auto';
 import { GameManifest } from '@tohe/contract';
 import { describe, expect, it } from 'vitest';
 import type { GameSummary } from './api/client.ts';
+import { descriptionOf, linkGameName, nameOf } from './launcher/gameWords.ts';
 import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './launcher/manifest.ts';
 import { openDb } from './storage/db.ts';
 import { bestScore, loadSave, recordScore, storeSave, withOfflineCache } from './storage/repository.ts';
 
 const hello: GameSummary = {
   id: 'hello',
-  name: 'Chạm Chấm',
+  name: 'Tap Dot',
+  names: { vi: 'Chạm Chấm' },
   version: '1.0.0',
-  description: '',
+  description: 'Tap the dot.',
+  descriptions: { vi: 'Chạm vào chấm.', en: 'Tap the dot.' },
   entryUrl: 'http://localhost:4730/hello/1.0.0/index.html',
   iconUrl: null,
   orientation: 'portrait',
@@ -28,6 +31,30 @@ describe('launcher', () => {
     const manifest = manifestFrom(hello);
     expect(GameManifest.safeParse(manifest).success).toBe(true);
     expect(manifest.capabilities).toEqual(['save', 'scores']);
+  });
+
+  it('keeps the standard name and the words per language in the manifest (ADR 0048)', () => {
+    const manifest = manifestFrom(hello);
+    expect(manifest).toMatchObject({
+      name: 'Tap Dot',
+      names: { vi: 'Chạm Chấm' },
+      description: 'Tap the dot.',
+    });
+    expect(manifest.descriptions).toEqual({ vi: 'Chạm vào chấm.', en: 'Tap the dot.' });
+  });
+
+  it('shows a game in the hub’s language, else its standard words (ADR 0048)', () => {
+    expect(nameOf(hello, 'vi')).toBe('Chạm Chấm');
+    expect(nameOf(hello, 'en')).toBe('Tap Dot');
+    expect(descriptionOf(hello, 'vi')).toBe('Chạm vào chấm.');
+    expect(descriptionOf(hello, 'en')).toBe('Tap the dot.');
+    // A catalog cached before the API returned the words per language.
+    const cached = { name: 'Chạm Chấm', description: 'Chạm vào chấm.' };
+    expect([nameOf(cached, 'en'), descriptionOf(cached, 'en')]).toEqual(['Chạm Chấm', 'Chạm vào chấm.']);
+    // A resolved link: its game's standard name and names, or none when the game is not listed.
+    expect(linkGameName({ gameName: 'Tap Dot', gameNames: { vi: 'Chạm Chấm' } }, 'vi')).toBe('Chạm Chấm');
+    expect(linkGameName({ gameName: 'Tiến Lên', gameNames: null }, 'en')).toBe('Tiến Lên');
+    expect(linkGameName({ gameName: null }, 'vi')).toBeNull();
   });
 
   it('keeps the shell capability: the game draws its own menus and the hub no bar (ADR 0018)', () => {
