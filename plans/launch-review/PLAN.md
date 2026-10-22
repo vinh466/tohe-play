@@ -3,9 +3,9 @@
 - Goal: bề mặt sản phẩm hoàn chỉnh trước launch chính thức — **đợt 1**: bố cục và UX của người chơi, bề mặt giới thiệu,
   SEO, GEO và cách nó mở rộng, thiết kế xong rồi build; **đợt 2**: rà màn, luồng, câu chữ, Điều khoản, Cổng. Sau đó tập
   trung làm game.
-- Phase: **Graduate — đợt 1** ([process](../README.md#phases)) — brief đã xác nhận, mọi quyết định của đợt 1 đã chốt
+- Phase: **Graduate — đợt 1** (G0–G6 xong, G7 chờ owner) ([process](../README.md#phases)) — brief đã xác nhận, mọi quyết định của đợt 1 đã chốt
   (2026-10-22); đợt 2 còn ở *Map*.
-- Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (draft)
+- Started: 2026-10-21 · Branch: `plan/launch-review` · PR: [tohe-play#109](https://github.com/vinh466/tohe-play/pull/109) (merged 2026-10-22; cập nhật sau đó là PR nhỏ từ cùng nhánh)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (bức tranh đầy đủ) · **Route: [routes.md](routes.md)** · Log: [log.md](log.md)
 - Research: [R-01 trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại](research/R-02-layout-prior-art.md) ·
   [R-03 quay lại, app đã cài](research/R-03-coming-back.md) · [R-04 host và path](research/R-04-hosts-and-paths-review.md) ·
@@ -15,15 +15,20 @@
 
 ## Next — one item
 
-**G2b ∥ G4 đang build** (hai builder Opus · high, từ `main` c56758c). Master review diff, verify, mở PR, merge khi CI
-xanh rồi deploy UAT (owner 2026-10-22: "nếu ổn thì merge và deploy giúp t luôn"). Sau đó: G5 ∥ G6.
+**G7 — owner thử thật trên UAT** (`uat-2026-10-22.4`, http://10.100.0.2:4820): Android, iPhone + app đã cài, Zalo, Messenger, máy
+tính — danh sách ở *Waiting on the owner* 1. Xong thì **"lên prod"**. Sau G7: lập danh sách đợt 2 (E-02 → E-05, E-01).
 
 ## Waiting on the owner
 
-1. **"lên prod"** khi muốn đưa đợt 1 lên prod — UAT đang chạy `uat-2026-10-22.1` (G0–G3); theo plan, prod ở G7 sau khi đủ G2b…G6
-   và owner thử trên máy thật.
-2. Đọc chữ của G2b (trang game, trang chủ, `/promise/`) khi PR mở — chữ do agent viết, owner sửa thẳng trong PR.
-3. Thuộc Cổng (E-01):
+1. **Thử trên máy thật (G7)** — UAT `uat-2026-10-22.4` có đủ đợt 1 (G0–G6):
+   - `/` (trang chủ danh mục trước, *Chơi tiếp* khi máy đã chơi), `/en/`, `/promise/`, trang từng game;
+   - app: thanh dưới / rail, Trò chơi · Chơi cùng · Tôi, đổi ngôn ngữ ở Tôi, nút back Android từng tầng;
+   - mở lại sau 30 phút trên máy nhiều hồ sơ ("Ai đang chơi?"), *Chơi tiếp*, *Có bản mới — Tải lại* sau một deploy;
+   - gửi link `/s`, `/r` qua Zalo, Messenger (thẻ theo ngôn ngữ người tạo); iPhone: dòng "Đã cài app Tò He?".
+2. **"lên prod"** khi thử xong — prod đang `prod-2026-10-21.2`.
+3. Đọc chữ do agent viết: trang game (`games/*/page/vi.md`), trang chủ, `/promise/`, thẻ xem trước tiếng Anh;
+   **Tiến Lên "khoảng 3–5 phút"** là ước lượng — xác nhận hay sửa.
+4. Thuộc Cổng (E-01):
    - **Better Stack** theo #114: đăng ký, bốn monitor, status page với domain `status.toheplay.io.vn`, `CNAME` `status`
      → `statuspage.betteruptime.com` (DNS only). Xong thì báo — agent đổi host `status` sang `serving`, thêm kiểm tra.
    - **Alertmanager trên prod** (Telegram): Infisical `platform/prod` `/monitoring`, khoá `telegram-bot-token` **và**
@@ -32,14 +37,14 @@ xanh rồi deploy UAT (owner 2026-10-22: "nếu ổn thì merge và deploy giúp
    - **Resend `notify.`** ([guide](../../docs/guides/mail-and-status.md)): 2026-10-22 DNS chưa có
      `resend._domainkey.notify`, `send.notify`.
    - **Khôi phục bản sao lưu DB prod** một lần: khi owner báo launch "chín".
-4. Phiên 2026-10-22: owner cho agent merge PR đã ổn và deploy UAT; ngoài phiên đó vẫn là
+5. Phiên 2026-10-22: owner cho agent merge PR đã ổn và deploy UAT; ngoài phiên đó vẫn là
    `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng".
 
 Xong (2026-10-22): Cloudflare Access trước `console.` (kiểm từ ngoài: 302 sang `vinh466.cloudflareaccess.com`);
 Cloudflare: AI Crawl Control, Bot Fight Mode / Under Attack / WAF challenge; thư thử `hello@`, `security@` nhận được.
 Điểm 2 chốt: **bỏ hẳn** — "triệt để bỏ đi, làm như mới, prod hiện chỉ có tôi dùng thôi" (bỏ cả 301 của đường cũ, #118).
 ADR 0048: owner giao agent ("bạn đề xuất và xử đi") → giữ nguyên đề xuất. #114, #115, #116, #117, #118 merged;
-UAT `uat-2026-10-22.1`.
+UAT `uat-2026-10-22.4` (G0–G6). #119 G4, #120 G2b, #121 G6, #122 G5 merged.
 
 ## Board
 
@@ -75,11 +80,11 @@ Mỗi PR một mục đích, spec trước, `pnpm verify` xanh; builder Opus · 
 | **G1** ✓ [#112](https://github.com/vinh466/tohe-play/pull/112) | Crawler | `robots.txt`: nhóm bot tìm kiếm của AI (lặp lại luật, RFC 9309), nhóm bot/token chỉ để huấn luyện `Disallow: /`; `Origin-Agent-Cluster: ?1` ở `Caddyfile.games`. **Namespace** `/en/`, `/promise/`, `/together` **đi cùng trang của chúng** (G2a, G2b, G4) — namespace được index mà chưa có trang thì sitemap và `check-build` hỏng | D-05, D-06 | G0 | — |
 | **G2a** ✓ [#116](https://github.com/vinh466/tohe-play/pull/116) | Trang công khai hai ngôn ngữ | namespace `/en/…`; Astro i18n routing; `/en/` cho mọi trang; `hreflang` trong sitemap, `x-default` → `/en/`; VI \| EN và gợi ý; luật mới của `check-build.ts`; viết nội dung tiếng Anh | D-01 | G1 | G3 |
 | **G3** ✓ [#117](https://github.com/vinh466/tohe-play/pull/117) | Tên game (Game Contract) | **ADR 0048**: `name` là tên chuẩn, `names.<ngôn ngữ>` tuỳ chọn; contract, SDK, registry (migration thêm cột), hub hiện tên theo ngôn ngữ, conformance; bốn game đổi `game.json` | D-01 | G1 | G2a |
-| **G2b** · đang build | Một nguồn cho mỗi game | namespace `/promise/`; `games/<id>/page/{vi,en}.md` + `facts.json`; sự thật từ `game.json`; ảnh OG từng game; trang game có bảng sự thật; trang chủ danh mục trước; `/promise/`; "Chơi tiếp" thay redirect; `/new-game` viết trang | D-06, D-02 | G2a, G3 | G4 |
-| **G4** · đang build | Khung app | namespace `/together` (đã vào map ở [#118](https://github.com/vinh466/tohe-play/pull/118), để G4 không đụng file generated); layout route; thanh dưới / rail; Trò chơi · Chơi cùng (`/together`) · Tôi; bỏ menu sheet; bố cục máy tính; bỏ khoá màn dọc; lịch sử cho nút back; cài đặt ngôn ngữ và thứ tự chọn; mã quản lý cho link ra ngoài của hồ sơ trẻ | D-02, D-01 | G1, G3 | G2b |
-| **G5** | Mở lại app | màn đầu "đang dở" (bàn, lời mời cho cả hồ sơ máy, chơi tiếp, gần đây); "Ai đang chơi?" 30 phút; phiên hết hạn; cập nhật êm (+ test hai bản build, PB-17); `launch_handler`; `persist()`; đếm lần quay lại; "Đã cài app?" trên trang lối vào | D-04 | G4 | G6 |
-| **G6** | Ngôn ngữ của link | API lưu ngôn ngữ của link (migration thêm cột); thẻ xem trước `/s`, `/r` vi và en | D-01 | G1 | G5 |
-| **G7** | Thử thật | UAT → prod khi owner nói; owner thử trên máy thật (Android, iPhone + app đã cài, Zalo, Messenger, máy tính) | — | G2b, G4, G5, G6 | — |
+| **G2b** ✓ [#120](https://github.com/vinh466/tohe-play/pull/120) | Một nguồn cho mỗi game | namespace `/promise/`; `games/<id>/page/{vi,en}.md` + `facts.json`; sự thật từ `game.json`; ảnh OG từng game; trang game có bảng sự thật; trang chủ danh mục trước; `/promise/`; "Chơi tiếp" thay redirect; `/new-game` viết trang | D-06, D-02 | G2a, G3 | G4 |
+| **G4** ✓ [#119](https://github.com/vinh466/tohe-play/pull/119) | Khung app | namespace `/together` (đã vào map ở [#118](https://github.com/vinh466/tohe-play/pull/118), để G4 không đụng file generated); layout route; thanh dưới / rail; Trò chơi · Chơi cùng (`/together`) · Tôi; bỏ menu sheet; bố cục máy tính; bỏ khoá màn dọc; lịch sử cho nút back; cài đặt ngôn ngữ và thứ tự chọn; mã quản lý cho link ra ngoài của hồ sơ trẻ | D-02, D-01 | G1, G3 | G2b |
+| **G5** ✓ [#122](https://github.com/vinh466/tohe-play/pull/122) | Mở lại app | màn đầu "đang dở" (bàn, lời mời cho cả hồ sơ máy, chơi tiếp, gần đây); "Ai đang chơi?" 30 phút; phiên hết hạn; cập nhật êm (+ test hai bản build, PB-17); `launch_handler`; `persist()`; đếm lần quay lại; "Đã cài app?" trên trang lối vào | D-04 | G4 | G6 |
+| **G6** ✓ [#121](https://github.com/vinh466/tohe-play/pull/121) | Ngôn ngữ của link | API lưu ngôn ngữ của link (migration thêm cột); thẻ xem trước `/s`, `/r` vi và en | D-01 | G1 | G5 |
+| **G7** · chờ owner | Thử thật | UAT → prod khi owner nói; owner thử trên máy thật (Android, iPhone + app đã cài, Zalo, Messenger, máy tính) | — | G2b, G4, G5, G6 | — |
 
 Thứ tự: G0 → G1 → (G2a ∥ G3) → (G2b ∥ G4) → (G5 ∥ G6) → G7. Migration EF ở G3 và G6 merge lần lượt (chung snapshot).
 
