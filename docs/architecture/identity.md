@@ -457,7 +457,8 @@ page. Signing in, the password just typed counts as level 2 for adding a first e
 profile plays ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md), [Surfaces](surfaces.md)): the same
 parent gate, in a sheet in Tôi, and the link opens once the gate does — the parent who typed the PIN leaves management
 open for its ten minutes, as anywhere else. An adult's profile follows it at once; so does a device profile, whose device
-has no manage PIN.
+has no manage PIN. The PIN guards the links out *inside the app*; the public pages the app opens (help, about, papers)
+carry `?from=app` and show no link out of Tò He at all, so a child reading them has no way out the PIN did not guard.
 
 **Moving up to an adult's profile** asks for level 1 too ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)):
 in the picker, while an account's child profile plays, choosing an adult's profile opens the same parent gate first,

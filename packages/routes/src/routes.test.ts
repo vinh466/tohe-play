@@ -500,6 +500,25 @@ describe('what the map generates', () => {
       }
     });
 
+    it('lets the pictures that structured data names be indexed: the build’s images and the logo, nothing else of theirs', () => {
+      const hub = site(':8080');
+      // The pages' JSON-LD names a game's icon (a file under /_web/) and the Organization's logo (/icon-512.png): told
+      // "noindex", a search engine drops the markup. Scripts, styles and the app's other files stay noindex.
+      const built = block(hub, 'publicStaticImmutable');
+      expect(built).toMatch(
+        /@notPicture \{\s*not path \*\.png \*\.svg \*\.jpg \*\.jpeg \*\.webp \*\.avif\s*\}/,
+      );
+      expect(built).toContain('header @notPicture X-Robots-Tag "noindex"');
+      expect(built).not.toMatch(/^\s*header X-Robots-Tag "noindex"/m);
+      const app = block(hub, 'appStaticRevalidate');
+      expect(app).toMatch(/@notLogo \{\s*not path \/icon-512\.png\s*\}/);
+      expect(app).toContain('header @notLogo X-Robots-Tag "noindex"');
+      expect(app).not.toMatch(/^\s*header X-Robots-Tag "noindex"/m);
+      // The app's pages and its hashed files keep the plain header.
+      expect(block(hub, 'appPage')).toMatch(/^\s*header X-Robots-Tag "noindex"/m);
+      expect(block(hub, 'appStaticImmutable')).toMatch(/^\s*header X-Robots-Tag "noindex"/m);
+    });
+
     it('gives the public pages a CSP of their own: no inline script, no inline style, no other origin', () => {
       const home = block(site(':8080'), 'publicStaticRevalidate');
       const csp = /Content-Security-Policy "([^"]*)"/.exec(home)?.[1] ?? '';

@@ -16,9 +16,18 @@ main {
   padding: 1.5rem;
 }
 
-h1 {
+h1,
+h2 {
+  margin: 0 0 0.5rem;
   font-size: 1.5rem;
   color: var(--tohe-brand-ink);
+}
+
+/* Vietnamese first, English under it: the page cannot know which one the visitor reads. */
+section + section {
+  margin-top: 2rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid var(--tohe-line);
 }
 
 p {

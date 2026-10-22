@@ -1,4 +1,5 @@
 // Profile names (ADR 0023): free, public, checked by the API (ProfileNames.cs). The hub only helps people type them.
+import { ANIMALS } from './animals.ts';
 
 /** The most visible characters a name may have, as the API counts them. */
 export const MAX_NAME_LENGTH = 24;
@@ -13,24 +14,6 @@ export const cleanName = (text: string) => text.normalize('NFC').trim();
 
 const words = {
   vi: {
-    animals: [
-      'Mèo',
-      'Cá Heo',
-      'Gấu Trúc',
-      'Thỏ',
-      'Cáo',
-      'Hổ',
-      'Ếch',
-      'Cánh Cụt',
-      'Koala',
-      'Sư Tử',
-      'Kỳ Lân',
-      'Bạch Tuộc',
-      'Rùa',
-      'Khủng Long',
-      'Ong',
-      'Cú',
-    ],
     traits: [
       'Vui',
       'Nhanh',
@@ -48,24 +31,6 @@ const words = {
     join: (animal: string, trait: string) => `${animal} ${trait}`,
   },
   en: {
-    animals: [
-      'Cat',
-      'Dolphin',
-      'Panda',
-      'Bunny',
-      'Fox',
-      'Tiger',
-      'Frog',
-      'Penguin',
-      'Koala',
-      'Lion',
-      'Unicorn',
-      'Octopus',
-      'Turtle',
-      'Dino',
-      'Bee',
-      'Owl',
-    ],
     traits: [
       'Happy',
       'Speedy',
@@ -84,13 +49,23 @@ const words = {
   },
 };
 
-const pick = (items: string[]) => items[Math.floor(Math.random() * items.length)] ?? '';
-
 /**
- * A fun name for a new account's first profile, like "Mèo Vui" or "Cá Heo Nhanh" (D-17): never one taken from an
- * email or a real name, because profile names are public. People change it as they like.
+ * A fun name and the avatar that goes with it, from one animal ("Cáo Vui" with 🦊): for a new profile, a name never
+ * taken from an email or a real name, because profile names are public. People change either as they like.
+ * `random` is the source of chance (tests give it a fixed one).
  */
-export function funName(language: string): string {
-  const { animals, traits, join } = language.startsWith('en') ? words.en : words.vi;
-  return join(pick(animals), pick(traits));
+export function funIdentity(
+  language: string,
+  random: () => number = Math.random,
+): { name: string; avatar: string } {
+  const { traits, join } = language.startsWith('en') ? words.en : words.vi;
+  const animal = ANIMALS[Math.floor(random() * ANIMALS.length)] ?? ANIMALS[0];
+  const trait = traits[Math.floor(random() * traits.length)] ?? '';
+  return {
+    name: join(language.startsWith('en') ? (animal?.en ?? '') : (animal?.vi ?? ''), trait),
+    avatar: animal?.avatar ?? '🦊',
+  };
 }
+
+/** Only the name, where the avatar is chosen elsewhere or later: like "Mèo Vui" or "Cáo Nhanh" (D-17). */
+export const funName = (language: string): string => funIdentity(language).name;

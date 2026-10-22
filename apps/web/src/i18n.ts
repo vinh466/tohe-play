@@ -34,9 +34,8 @@ export const localPath = (lang: Lang, path: string): string => pathInLanguage(pa
 export const APP_LANGUAGE_QUERY = 'lang';
 
 /**
- * A link into the app (`/play…`) from a page in `lang`. An English page's carries `?lang=en`, so the app can start in
- * the language the player came from; a Vietnamese page's carries nothing, Vietnamese being the default. The hub reads
- * it when it has no language setting of its own yet (docs/architecture/surfaces.md, "Languages").
+ * A link into the app (`/play…`) from a page in `lang`: it always carries `?lang=`, so the app starts in the language
+ * of the page the player came from, not the phone's (a Vietnamese page read on an English phone opens a Vietnamese
+ * app). The hub reads it when it has no language setting of its own yet (docs/architecture/surfaces.md, "Languages").
  */
-export const appPath = (lang: Lang, path: string): string =>
-  lang === defaultPublicLanguage ? path : `${path}?${APP_LANGUAGE_QUERY}=${lang}`;
+export const appPath = (lang: Lang, path: string): string => `${path}?${APP_LANGUAGE_QUERY}=${lang}`;

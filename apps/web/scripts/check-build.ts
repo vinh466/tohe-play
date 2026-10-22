@@ -3,6 +3,7 @@
 //    JSON-LD block is data, not a script that runs: it is allowed, and must parse);
 //  - everything the build adds lives under /_web/ (the `public-assets` namespace), and every other file lies in a
 //    public namespace of the map in @tohe/routes: the pages the sitemap lists, /og.png and /llms.txt;
+//  - the browser's bars: one theme-color tag per scheme, with the tokens' `bar` colours (theming.md);
 //  - every page a search engine or an AI reader may take has what they read: its own title and description, Open
 //    Graph and Twitter tags with its picture (a game's page its own, the others the shared one), one <h1>, the
 //    structured data its kind of page deserves (WebSite, Organization and ItemList on the home pages, VideoGame and
@@ -16,19 +17,23 @@
 //  - the languages (ADR 0047, language-rules.ts, which has the tests): every page of the sitemap has its pair in the
 //    other language but the declared Vietnamese-only ones, and the sitemap's hreflang alternates name each other both
 //    ways; each page's <html lang>, og:locale and its alternate,
-//    canonical link to itself, JSON-LD in its language, links that stay in its language, and an English page's links
-//    into the app with ?lang=en;
+//    canonical link to itself, JSON-LD in its language, links that stay in its language, and a page's links into
+//    the app with ?lang= of its own language;
+//  - the links out of Tò He (another origin, mailto:) all carry data-out, which the script hiding them for a visit
+//    that came from the app reads (ADR 0046, from-app.js);
 //  - the pages written are exactly the pages the sitemap lists, and every link on a page leads where the map knows.
 // Runs on the built HTML, so it checks exactly what readers get.
 import { existsSync, readdirSync, readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { BAR_COLOR } from '@tohe/design-tokens/theme';
 import { matchHubPath, pathInLanguage, sitemapEntries, sitemapPaths } from '@tohe/routes';
 import { IsoDate } from '../src/content/game-page.ts';
 import { languages, localPath } from '../src/i18n.ts';
 import { readGameSources } from './game-sources.ts';
 import { languageProblems, pairProblems } from './language-rules.ts';
 import { picturePath, pictureStamp, stampPath } from './og-stamp.ts';
+import { outboundProblems } from './outbound-rules.ts';
 
 const web = join(dirname(fileURLToPath(import.meta.url)), '..');
 const dist = join(web, 'dist');
@@ -139,6 +144,8 @@ for (const file of built) {
   checkHead(page, html);
   checkLinks(page, html);
   problems.push(...languageProblems(page, html, hubUrl));
+  problems.push(...outboundProblems(page, html));
+  checkWayIn(page, html);
 }
 
 if (problems.length > 0) {
@@ -167,6 +174,21 @@ function checkCsp(page: string, html: string) {
   }
 }
 
+/**
+ * Every page has the way into the app in its header, "Chơi ngay" and "Chơi tiếp", and the two scripts that choose
+ * between them and hide the links out for a visit from the app (ADR 0046).
+ */
+function checkWayIn(page: string, html: string) {
+  for (const kind of ['new', 'again']) {
+    if (!new RegExp(`<a\\b[^>]*class="header-play ${kind}"[^>]*\\shref="/play\\?lang=(vi|en)"`).test(html))
+      problems.push(`${page}: no header link into the app (header-play ${kind})`);
+  }
+  for (const script of ['returning', 'from-app']) {
+    if (!new RegExp(`<script\\b[^>]*\\ssrc="/_web/${script}\\.[^"]*\\.js"`).test(html))
+      problems.push(`${page}: the page does not load ${script}.js`);
+  }
+}
+
 /** What search engines and AI readers take from a page. */
 function checkHead(page: string, html: string) {
   const meta = (attribute: string, name: string) =>
@@ -190,6 +212,16 @@ function checkHead(page: string, html: string) {
       problems.push(`${page}: the day it was revised, "${day}", is no day`);
   }
   if (meta('name', 'twitter:card') === '') problems.push(`${page}: no twitter:card`);
+  // The browser's bars: one theme-color per scheme, from the tokens' `bar` (docs/architecture/theming.md).
+  const bars = [
+    ...html.matchAll(
+      /<meta\s+name="theme-color"\s+media="\(prefers-color-scheme: (light|dark)\)"\s+content="([^"]*)"/g,
+    ),
+  ]
+    .map(([, scheme, content]) => `${scheme}=${content}`)
+    .join(' ');
+  const wantedBars = `light=${BAR_COLOR.light} dark=${BAR_COLOR.dark}`;
+  if (bars !== wantedBars) problems.push(`${page}: theme-color tags are "${bars}", not "${wantedBars}"`);
   const headings = html.match(/<h1[\s>]/g)?.length ?? 0;
   if (headings !== 1) problems.push(`${page}: ${headings} <h1>, not one`);
   if (title !== '' && titles.has(title)) problems.push(`${page}: the title is also ${titles.get(title)}'s`);

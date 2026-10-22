@@ -25,6 +25,9 @@ const vi = {
   tagline: 'Game nhỏ, mở ra là chơi',
   imageAlt: 'Tò He — game nhỏ, mở ra là chơi',
   home: 'trang chủ',
+  /** The header's button into the app: for a newcomer, and for a device that has opened a game (returning.js). */
+  play: 'Chơi ngay',
+  continue: 'Chơi tiếp',
   skip: 'Bỏ qua phần đầu trang',
   navLabel: 'Các trang chính',
   themeLabel: 'Giao diện',
@@ -58,6 +61,8 @@ const en: SiteWords = {
   tagline: 'Small games, open and play',
   imageAlt: 'Tò He — small games, open and play',
   home: 'home',
+  play: 'Play now',
+  continue: 'Continue',
   skip: 'Skip to the content',
   navLabel: 'Main pages',
   themeLabel: 'Appearance',

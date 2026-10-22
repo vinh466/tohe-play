@@ -2,9 +2,11 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { RouterProvider } from '@tanstack/react-router';
 import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
+import './zod-csp.ts';
 import './i18n.ts';
 import { installStore, readEnvironment } from './install/install.ts';
 import { askPersistentStorage, followLaunches } from './install/launch.ts';
+import { RETURNING_KEY } from './launcher/recent.ts';
 import { followTrail, putAppLevelBehind } from './navigation/leave.tsx';
 import { createAppRouter } from './router.tsx';
 import './styles.css';
@@ -19,14 +21,14 @@ startUpdates();
 // "Ai đang chơi?" (ADR 0046): whether this cold start follows 30 minutes unused is decided now, before any screen.
 whoIsPlaying.start();
 keepLastUsed();
-// The public home page shows a device that has used the app "Chơi tiếp" (apps/web returning.js, ADR 0046): every
-// start says so, for guests and accounts alike. Whether it was there before tells a returning visit (the funnel).
+// Whether this device has opened a game before — the public pages show it "Chơi tiếp" (apps/web returning.js, ADR 0046);
+// the app writes the key when a game is opened (launcher/recent.ts), not on every start. It tells a returning visit
+// (the funnel).
 let returning = false;
 try {
-  returning = localStorage.getItem('tohe:returning') === '1';
-  localStorage.setItem('tohe:returning', '1');
+  returning = localStorage.getItem(RETURNING_KEY) !== null;
 } catch {
-  // Storage blocked: the home page shows only "Chơi ngay", which leads here too.
+  // Storage blocked: the funnel counts nothing as returning.
 }
 // The browser's install prompt fires once, early: keep it until the player asks (or a game has finished).
 installStore.capture({

@@ -25,6 +25,7 @@ import { Screen } from '../ui/Screen.tsx';
 import { Switch } from '../ui/Switch.tsx';
 import { TextField } from '../ui/TextField.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
+import { shortVersion } from '../ui/version.ts';
 import { MePage } from './MePage.tsx';
 
 /** The account's profiles and settings, behind the parent gate (ADR 0011, 0023). */
@@ -790,6 +791,8 @@ function Version() {
   const { t } = useTranslation();
   const config = useQuery(configQuery);
   return config.data ? (
-    <p className="text-ink-soft text-xs">{t('account.version', { version: config.data.apiVersion })}</p>
+    <p className="text-ink-soft text-xs">
+      {t('account.version', { version: shortVersion(config.data.apiVersion) })}
+    </p>
   ) : null;
 }

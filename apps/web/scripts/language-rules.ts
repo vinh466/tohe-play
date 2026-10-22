@@ -10,7 +10,7 @@
 //  - its links stay in its language: a link to a public page of the other language says so (`hreflang`) — the
 //    switch, and an English page's links to the Vietnamese-only terms and privacy notice — and the switch leads to the
 //    page's pair;
-//  - an English page's links into the app carry `?lang=en`.
+//  - a page's links into the app carry `?lang=` with the page's own language (`?lang=vi` on a Vietnamese page).
 import { languageOfPath, matchHubPath, pairOf, pathInLanguage, vietnameseOnlyPages } from '@tohe/routes';
 import { APP_LANGUAGE_QUERY, ogLocales, otherLanguage } from '../src/i18n.ts';
 
@@ -114,9 +114,9 @@ export function languageProblems(
       }
       if (path === pair && hreflang === other) switchFound = true;
     }
-    if (lang === 'en' && namespace?.component === 'app' && namespace.served === 'page') {
-      if (new URLSearchParams(query).get(APP_LANGUAGE_QUERY) !== 'en') {
-        problems.push(`${page}: a link into the app, ${href}, without ?${APP_LANGUAGE_QUERY}=en`);
+    if (namespace?.component === 'app' && namespace.served === 'page') {
+      if (new URLSearchParams(query).get(APP_LANGUAGE_QUERY) !== lang) {
+        problems.push(`${page}: a link into the app, ${href}, without ?${APP_LANGUAGE_QUERY}=${lang}`);
       }
     }
   }

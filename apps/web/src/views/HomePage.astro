@@ -3,11 +3,12 @@ import { latestDay } from '../content/game-page.ts';
 // The public home page, / in Vietnamese and /en/ in English (ADR 0042, 0046, 0047): the catalog first — a big tile for
 // each game, leading to its page — under one line that says what Tò He is, then *Chơi ngay* into the app; below, playing
 // together, installing, the questions, the story and the promise, and the day it was last revised. It never redirects:
-// a browser that has played here gets *Chơi tiếp* at the top (../scripts/returning.js marks it before the first paint).
+// a browser that has opened a game here gets *Chơi tiếp* at the top (../scripts/returning.js marks it before the first
+// paint). The developer docs are linked from the footer only, so a page the app opens shows no link out of Tò He.
 // The words are in ../content/home.ts.
 import { loadGames, offlineEverywhere } from '../content/games.ts';
 import { home } from '../content/home.ts';
-import { absolute, docsUrl, site } from '../content/site.ts';
+import { absolute, site } from '../content/site.ts';
 import { appPath, localPath, pageLanguage } from '../i18n.ts';
 import Page from '../layouts/Page.astro';
 import UpdatedOn from './UpdatedOn.astro';
@@ -54,7 +55,7 @@ const jsonLd = [
 ];
 ---
 
-<Page title={words.title} description={words.description} path={path} returning jsonLd={jsonLd}>
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
   <main id="main" class="full">
     <div class="hero">
       <p class="continue"><a class="button primary" href={appPath(lang, '/play')}>{words.continue}</a></p>
@@ -126,12 +127,6 @@ const jsonLd = [
         <h2>{words.promise.heading}</h2>
         <p>{words.promise.text}</p>
         <a class="more" href={localPath(lang, '/promise/')}>{words.promise.link}</a>
-      </section>
-
-      <section class="band">
-        <h2>{words.dev.heading}</h2>
-        <p>{words.dev.text}</p>
-        <a class="more" href={`${docsUrl}/`}>{words.dev.link}</a>
       </section>
 
       <UpdatedOn day={updated} />

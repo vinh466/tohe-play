@@ -34,6 +34,41 @@ export function tabOf(pathname: string): TabId | null {
   return null;
 }
 
+/** Where a frame screen's "←" leads: the tab's root or the screen it belongs under. */
+export type FrameBack = '/play' | '/account' | '/account/sign-in' | '/account/register' | '/account/profiles';
+
+/**
+ * Where "←" leads from a screen of the frame that is not a tab's root, or null for a tab's root (and for a screen
+ * outside the frame). An installed app on an iPhone has no Back and the bar is not a way back from a form, so every
+ * sub-screen has its own arrow (ADR 0046); `Screen` draws it. A way back that the history knows — the screen the player
+ * came from — is taken first (`BackLink`), so Android's Back and "←" agree.
+ */
+export function backTarget(pathname: string): FrameBack | null {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  switch (path) {
+    case '/account/sign-in':
+    case '/account/email':
+      return '/account';
+    case '/account/sign-in/continue':
+    case '/account/password/forgot':
+    case '/account/password/reset':
+    case '/account/register':
+      return '/account/sign-in';
+    case '/account/register/confirm':
+      return '/account/register';
+    case '/account/profiles':
+      return '/play';
+    case '/account/transfer':
+    case '/account/transfer/send':
+      return '/account/profiles';
+    default:
+      return null;
+  }
+}
+
+/** Screens of the frame that draw an arrow of their own, in their header, rather than the one `Screen` draws. */
+export const ownBack: readonly string[] = ['/account/data', '/account/links'];
+
 /**
  * The app's own level, to put behind a game, a table or a link into one that the app was opened at directly (a share
  * link, a public page's "Play", the home screen's shortcut, a reload): each level is an entry of the history, so phone

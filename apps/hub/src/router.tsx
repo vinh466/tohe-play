@@ -14,6 +14,7 @@ import { AccountPage, type AccountSearch } from './pages/AccountPage.tsx';
 import { CatalogPage } from './pages/CatalogPage.tsx';
 import { ContinueSignInPage } from './pages/ContinueSignInPage.tsx';
 import { DataPage } from './pages/DataPage.tsx';
+import { NotFoundPage } from './pages/NotFoundPage.tsx';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordPage.tsx';
 import { ProfilesPage } from './pages/ProfilesPage.tsx';
 import { ConfirmRegistrationPage, RegisterPage } from './pages/RegisterPage.tsx';
@@ -245,6 +246,8 @@ export function createAppRouter(queryClient: QueryClient) {
     ]),
     context: { queryClient },
     defaultPreload: 'intent',
+    // A path that is no screen: in the app's language, with a way to Trò chơi (never TanStack's bare "Not Found").
+    defaultNotFoundComponent: NotFoundPage,
   });
 }
 

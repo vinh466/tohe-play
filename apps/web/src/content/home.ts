@@ -42,11 +42,6 @@ const vi = {
     text: 'Không quảng cáo, không theo dõi, không mua bán, không xu — không bao giờ.',
     link: 'Đọc lời hứa →',
   },
-  dev: {
-    heading: 'Dành cho người làm game',
-    text: 'Mỗi trò chơi là một gói độc lập, giao tiếp với nền tảng qua một hợp đồng nhỏ và ổn định. Tài liệu kỹ thuật (tiếng Anh) mô tả kiến trúc, hợp đồng và cách tạo game mới — cho cả người lẫn AI.',
-    link: 'Đọc tài liệu →',
-  },
   organization: {
     description: 'Tò He là một góc chơi nhỏ gồm những trò chơi đơn giản trên trình duyệt, không quảng cáo.',
   },
@@ -90,11 +85,6 @@ const en: typeof vi = {
     heading: 'Our promise',
     text: 'No ads, no tracking, nothing to buy, no coins — ever.',
     link: 'Read the promise →',
-  },
-  dev: {
-    heading: 'For game makers',
-    text: 'Every game is a package of its own that talks to the platform through a small, stable contract. The developer docs describe the architecture, the contract and how to make a new game — for people and AI alike.',
-    link: 'Read the docs →',
   },
   organization: {
     description: 'Tò He is a small corner of simple browser games, with no ads.',

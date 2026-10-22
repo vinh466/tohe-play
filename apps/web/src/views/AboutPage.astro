@@ -32,13 +32,14 @@ const jsonLd = [
         </section>
       ))
     }
-    <p>
-      {words.contact.label}: <a href={`mailto:${words.contact.email}`}>{words.contact.email}</a>
+    {/* The links out of Tò He carry data-out, and the label with the mailto goes with it (from-app.js). */}
+    <p data-out>
+      {words.contact.label}: <a href={`mailto:${words.contact.email}`} data-out>{words.contact.email}</a>
     </p>
-    <p class="links">
-      <a href={localPath(lang, '/games/')}>{words.links.games}</a> ·
-      <a href={localPath(lang, '/faq/')}>{words.links.faq}</a> ·
-      <a href={`${docsUrl}/`}>{words.links.dev}</a>
+    <p class="page-links">
+      <a href={localPath(lang, '/games/')}>{words.links.games}</a>
+      <a href={localPath(lang, '/faq/')}>{words.links.faq}</a>
+      <a href={`${docsUrl}/`} data-out>{words.links.dev}</a>
     </p>
   </main>
 </Page>

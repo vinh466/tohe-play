@@ -41,10 +41,15 @@ export function saveChoice(choice: ThemeChoice) {
 /** The device's own light/dark setting; listen to its `change` event to follow it live. */
 export const deviceScheme = () => window.matchMedia('(prefers-color-scheme: dark)');
 
-/** Shows a theme: `data-theme` and `color-scheme` on <html>, and the browser UI colour. */
+/**
+ * Shows a theme: `data-theme` and `color-scheme` on <html>, and the browser UI colour — on every `theme-color` tag, so a
+ * page with one per scheme (`media="(prefers-color-scheme: …)"`) follows a choice that differs from the device's.
+ */
 export function applyTheme(theme: Theme) {
   const root = document.documentElement;
   root.dataset.theme = theme;
   root.style.colorScheme = theme;
-  document.querySelector('meta[name="theme-color"]')?.setAttribute('content', BAR_COLOR[theme]);
+  for (const meta of document.querySelectorAll('meta[name="theme-color"]')) {
+    meta.setAttribute('content', BAR_COLOR[theme]);
+  }
 }

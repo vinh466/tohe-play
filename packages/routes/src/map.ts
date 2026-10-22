@@ -456,7 +456,7 @@ export const hubLinks = {
   Account: { path: '/account', note: 'The account page; ?linked= or ?link_error= after linking a provider' },
   Profiles: {
     path: '/account/profiles',
-    note: 'The profile picker; ?auto=true goes straight on with one profile',
+    note: 'The profile picker; ?auto=true goes straight on with one profile; ?ask=true asks "Ai đang chơi?" after a cold start that follows 30 minutes unused',
   },
   RoomLink: { path: '/r', note: 'A room’s short link, /r/<code>: a link preview’s way to the app' },
   ShareLink: { path: '/s', note: 'A share link, /s/<code>: a link preview’s way to the app (ADR 0044)' },

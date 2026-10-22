@@ -13,7 +13,7 @@ import { withProgress } from '../session/bringInChoices.ts';
 import { MovedNotice } from '../session/MovedNotice.tsx';
 import { takeNext } from '../session/next.ts';
 import { ParentGate } from '../session/ParentGate.tsx';
-import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
+import { cleanName, funIdentity, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { deleteEverywhere } from '../session/serverCopy.ts';
 import { deviceMode } from '../session/session.ts';
@@ -26,7 +26,6 @@ import {
   currentDeviceProfile,
   listDeviceProfiles,
   MAX_DEVICE_PROFILES,
-  randomAvatar,
   updateDeviceProfile,
 } from '../storage/deviceProfiles.ts';
 import { funnel } from '../telemetry/telemetry.ts';
@@ -466,8 +465,10 @@ function DeviceProfileForm({
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const changed = useDeviceProfilesChanged();
-  const [name, setName] = useState(() => profile?.name ?? funName(i18n.language));
-  const [avatar, setAvatar] = useState(() => profile?.avatar ?? randomAvatar());
+  // A new profile starts as one animal: its name and its avatar match.
+  const [start] = useState(() => funIdentity(i18n.language));
+  const [name, setName] = useState(() => profile?.name ?? start.name);
+  const [avatar, setAvatar] = useState(() => profile?.avatar ?? start.avatar);
   const [showErrors, setShowErrors] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const clean = cleanName(name);
@@ -525,7 +526,12 @@ function DeviceProfileForm({
           variant="secondary"
           aria-label={t('register.anotherName')}
           title={t('register.anotherName')}
-          onClick={() => setName(funName(i18n.language))}
+          onClick={() => {
+            // Another animal: the avatar follows the name.
+            const next = funIdentity(i18n.language);
+            setName(next.name);
+            setAvatar(next.avatar);
+          }}
         >
           🎲
         </Button>

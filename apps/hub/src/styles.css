@@ -78,8 +78,33 @@
     overscroll-behavior: none;
   }
 
+  /* The app's root never pulls to refresh, so an installed app (or a game in it) is not reloaded by a drag. */
+  html,
+  body {
+    overscroll-behavior-y: none;
+  }
+
   body {
     font-family: system-ui, sans-serif;
+  }
+
+  /*
+   * What a finger presses is no text to select and no picture to drag or to long-press for a menu: the nav bar and
+   * rail, the tiles (data-tile), the buttons (chips and avatars among them). Readable content keeps its selection.
+   */
+  button,
+  nav,
+  summary,
+  [data-tile] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  nav img,
+  button img,
+  [data-tile] img {
+    -webkit-user-drag: none;
   }
 
   /* Keyboard focus is visible in both themes (pointer and touch do not show it). */
