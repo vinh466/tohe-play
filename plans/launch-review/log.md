@@ -2,6 +2,11 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-23 (tối) — agent
+
+- Owner: D-01 tạm chốt (`x-default` → `/en/`). D-05: vì sao cách ly game, đổi góc nhìn → giải thích thang cách ly L0–L3,
+  mô hình mặt phẳng (ADR 0042 đã là nó); đề xuất viết rõ mặt phẳng + luật leo thang vào ADR của D-02.
+
 ## 2026-10-23 (sau) — agent
 
 - Owner: Q3 hợp lý (bản vi gốc); **đổi lại mặt chính sang tiếng Việt**, en hỗ trợ người nước ngoài, tên riêng và thuật ngữ

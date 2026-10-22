@@ -87,3 +87,23 @@ PSL — mất hàng tuần, dành cho nhà cung cấp hosting nhiều khách, v�
 game do repo này viết, phòng thủ hôm nay đã đủ; cộng thêm hai việc rẻ trong cùng domain: header `Origin-Agent-Cluster: ?1`
 trên `games.` (trình duyệt cách ly theo origin thay vì theo site) **[chưa kiểm hỗ trợ hiện tại]** và Cloudflare Access cho
 `console.`. **Đề xuất quay về A** vì cái giá của domain thứ hai; B khi có game không do repo viết.
+
+**owner** (2026-10-23, chat): "D-01 tam chot v nhe / ve D-05 ta lật lại vấn đề tại sao cần isolate game plane nè, và có thể
+ta thay đổi góc nhìn là nâng cấp luôn bố cục sản phẩm k".
+
+**agent** (2026-10-23): **vì sao cách ly mặt phẳng game** — code game là code không tin tuyệt đối dù do repo viết:
+(1) nó đóng gói thư viện bên thứ ba (Phaser 4 qua `@tohe/game-kit`; engine WASM) — chuỗi cung ứng; (2) nó cần CSP lỏng
+(`'wasm-unsafe-eval'`, `style-src 'unsafe-inline'`, `blob:` — `packages/contract/src/csp.ts:9-19`) mà hub, nơi giữ phiên và
+dữ liệu trẻ em, không được có; (3) nền tảng làm ra để agent thêm game nhanh — trình duyệt bắt luật của contract (không gọi
+API, không lưu riêng, không mạng) thay vì tin người review; (4) game treo hay hỏng thì hub vẫn còn nút thoát. Không cách ly
+(cùng origin), một thư viện game bị nhiễm độc chạy với toàn quyền của người chơi: gọi API, gửi lời mời, đọc hồ sơ trẻ.
+
+**Thang cách ly**: L0 cùng origin (không) → **L1 origin riêng — Tò He hôm nay** (+ `SameOriginGuard`, `__Host-`, CSP) →
+L2 site riêng (domain thứ hai) → L3 mỗi game một site (domain + PSL). Leo bậc theo **ai viết game**: repo này → L1 + hai
+việc rẻ; người ngoài → L2 trước khi game lên; nhiều người ngoài, chợ game → L3.
+
+**Góc nhìn "mặt phẳng"** (plane): ADR 0042 đã là mô hình này — mặt phẳng người chơi (`toheplay.io.vn`: hai vùng của D-02 +
+API), mặt phẳng game (`games.`), mặt phẳng vận hành (`console.`), mặt phẳng nhà phát triển (`docs.`, sau này `studio.` cho
+người làm game — tên đã giữ trong ADR 0042), dịch vụ rìa (`status.`, `notify.`). Nâng cấp đáng làm không phải dời host mà là
+**viết rõ** mỗi mặt phẳng được làm gì, tin ai, và **luật leo thang** ở trên, để quyết định sau này thành cơ học — gộp vào ADR
+"Hai vùng, một khung" của D-02.
