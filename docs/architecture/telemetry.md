@@ -165,7 +165,7 @@ flowchart LR
 | --- | --- | --- |
 | Server | the owner | `Telemetry__Enabled=false` in the API's environment; the hub reads it from `GET /api/config` |
 | Account | the account's owner | **Quản lý tài khoản → Dữ liệu kỹ thuật** (`PATCH /api/account { telemetry }`) |
-| Device | anyone, guests included | **Dữ liệu kỹ thuật** (`/account/data`, linked from the welcome, profile and game screens) |
+| Device | anyone, guests included | **Dữ liệu kỹ thuật** (`/account/data`, linked from the welcome, profile and game screens and from Tôi) |
 
 The `/account/data` page lists what is sent and never sent (as above), says which switch keeps telemetry off, and shows the
 last batch exactly as it was sent. Turning a switch off drops what was waiting, including batches queued offline.

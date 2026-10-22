@@ -47,7 +47,8 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 
 - **Choices:** *Theo máy* (system, the default), *Sáng* (light) and *Tối* (dark). Picking one applies it at once,
   everywhere:
-  - in the hub, from the round 🌗 / ☀️ / 🌙 button in the top corner of its screens;
+  - in the hub, from Tôi → Giao diện (the app frame's third tab), and from the round 🌗 / ☀️ / 🌙 button in the top
+    corner of some other screens (signing in, the profile picker, account management);
   - on the public home page, from the three buttons in the top corner;
   - in the docs, from Starlight's own theme menu (*Auto / Light / Dark*).
 - **Storage:** the choice belongs to the device and lives in the `tohe-theme` cookie:
@@ -106,5 +107,5 @@ Games opt in; some games have one look by nature ([Game Contract](../contracts/g
 - E2E smoke test (`tools/e2e`):
   - every hub screen, the public home page and the docs are screenshotted in light and dark, with axe-core's
     colour-contrast rule in both;
-  - the hub picker: dark survives a reload, and *Theo máy* follows the device live;
+  - the hub's choice in Tôi: dark survives a reload, and *Theo máy* follows the device live;
   - a choice made on the public home page also applies to the docs and the hub.

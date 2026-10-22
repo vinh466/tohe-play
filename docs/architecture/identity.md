@@ -453,6 +453,12 @@ flowchart TD
 Both levels are claims of this device's session: they close when someone is chosen to play, or the owner locks the
 page. Signing in, the password just typed counts as level 2 for adding a first email.
 
+**A link out of Tò He** (feedback's mail today; any other origin or scheme) asks for level 1 too when an account's child
+profile plays ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md), [Surfaces](surfaces.md)): the same
+parent gate, in a sheet in Tôi, and the link opens once the gate does — the parent who typed the PIN leaves management
+open for its ten minutes, as anywhere else. An adult's profile follows it at once; so does a device profile, whose device
+has no manage PIN.
+
 ## Sessions
 
 | What | How |

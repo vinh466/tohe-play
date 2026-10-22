@@ -24,7 +24,7 @@ export const FUNNEL = {
   standaloneOpen: 'hub.funnel.standalone-open',
 } as const;
 
-/** An `InstallVariant` of install/install.ts; `generic` (only from the menu, never offered by itself) is not counted. */
+/** An `InstallVariant` of install/install.ts; `generic` (only from Tôi, never offered by itself) is not counted. */
 export type OfferedVariant = 'prompt' | 'ios' | 'open-in-browser' | 'generic';
 
 export interface FunnelDeps {

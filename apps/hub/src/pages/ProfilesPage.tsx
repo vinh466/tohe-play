@@ -109,7 +109,7 @@ function useBringInOffer() {
 
 function Picker({ me }: { me: MeView }) {
   const { t } = useTranslation();
-  const { auto } = useSearch({ from: '/account/profiles' });
+  const { auto } = useSearch({ from: '/_frame/account/profiles' });
   const navigate = useNavigate();
   const setMe = useSetMe();
   const goOn = useGoOn();
@@ -275,7 +275,10 @@ function Picker({ me }: { me: MeView }) {
       ) : null}
 
       <footer className="mt-auto flex flex-wrap justify-center gap-3">
-        <Button variant="secondary" onClick={() => void navigate({ to: '/account', search: { add: false } })}>
+        <Button
+          variant="secondary"
+          onClick={() => void navigate({ to: '/account', search: { manage: true } })}
+        >
           ⚙️ {t('profiles.manage')}
         </Button>
         <Button variant="ghost" busy={signOut.isPending} onClick={() => signOut.mutate()}>
@@ -306,7 +309,7 @@ function Picker({ me }: { me: MeView }) {
  */
 function DevicePicker() {
   const { t } = useTranslation();
-  const { auto } = useSearch({ from: '/account/profiles' });
+  const { auto } = useSearch({ from: '/_frame/account/profiles' });
   const goOn = useGoOn();
   const changed = useDeviceProfilesChanged();
   const profiles = useQuery(deviceProfilesQuery);

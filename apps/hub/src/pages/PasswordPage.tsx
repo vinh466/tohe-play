@@ -114,7 +114,7 @@ function Forgot() {
 
 function ResetFromLink() {
   const { t } = useTranslation();
-  const { attempt, code } = useSearch({ from: '/account/password/reset' });
+  const { attempt, code } = useSearch({ from: '/_frame/account/password/reset' });
   return (
     <Frame>
       <NewPassword attemptId={attempt} email={null} initialCode={code} />

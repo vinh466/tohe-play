@@ -36,6 +36,24 @@ describe('the trail of pages behind the current one', () => {
     trail.stop();
   });
 
+  it('knows the app’s level put behind a game the app was opened at, so leaving the game goes back to it', () => {
+    // main.tsx: /play/hello opened straight became [/play, /play/hello] before the router started.
+    const history = createMemoryHistory({ initialEntries: ['/play', '/play/hello'], initialIndex: 1 });
+    const trail = createTrail(history, { 0: '/play' });
+    expect(trail.stepsBackTo('/play')).toBe(1);
+    expect(trail.previous()).toBe('/play');
+    trail.stop();
+  });
+
+  it('names the page right behind this one, when it saw it', () => {
+    const history = createMemoryHistory({ initialEntries: ['/account/profiles'] });
+    const trail = createTrail(history);
+    expect(trail.previous()).toBeUndefined();
+    history.push('/account?manage=true');
+    expect(trail.previous()).toBe('/account/profiles');
+    trail.stop();
+  });
+
   it('does not skip over pages it never saw (opened from a link, or after a reload)', () => {
     const history = createMemoryHistory({ initialEntries: ['/play', '/play/hello'], initialIndex: 1 });
     const trail = createTrail(history);
