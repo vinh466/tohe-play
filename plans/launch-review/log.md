@@ -2,6 +2,14 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-24 (D-07, E-07 chốt; S2, E-07, G5+ lên prod) — agent
+
+- Owner: "chốt theo đề xuất nha, bạn triển nghiêm túc đi", "hoàn thành và lên prod luôn". ADR 0049 (#132, #133 sửa
+  front matter — #132 lỡ merge khi CI đỏ), ADR 0046 tinh chỉnh; brief cho hoạ sĩ.
+- #136 API (mã bàn, cổng phụ huynh phía server + DELETE), #137 hub (cập nhật khi khuất, splash, "bàn"), #138 + #142 S2,
+  #139 hub follow-up → `prod-2026-10-24.1`. Phiên "tohe-play studio" chạy song song: ADR 0050–0053 của họ, nhắn nhau trước mỗi tag.
+- Mở: thanh HUD bàn online Tiến Lên cắt "Bàn online" ở 360–390 px; chữ trên canvas chưa dùng font mới.
+
 ## 2026-10-23 (F1, F2, S1 lên prod) — agent
 
 - Owner: "ổn thì tiến hành merge PRs và deploy xong prod luôn … sáng mai tôi review 1 thể". F1 #127, F2 #128 →
