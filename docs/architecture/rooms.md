@@ -37,15 +37,15 @@ flow should be built once, properly, so that later turn-based games (Cờ caro, 
 
 | Word | Vietnamese in the UI | Meaning |
 | --- | --- | --- |
-| Room | Phòng / bàn | A table for one game: seats, options, a code, a host. Lives from creation until the last person leaves. |
+| Room | Bàn | A table for one game: seats, options, a code, a host. Lives from creation until the last person leaves. |
 | Seat | Ghế | A place at the table: empty, a profile — an account's, or a device profile on the server (ADR 0043) — or a bot. |
-| Host | Chủ phòng | The profile that created the room, or the one it passed to. Changes options, adds bots, starts, removes players. |
+| Host | Chủ bàn | The profile that created the room, or the one it passed to. Changes options, adds bots, starts, removes players. |
 | Hand | Ván | One deal played to the end. |
 | Series | Bảng điểm | The running score of a room across its hands. |
 | Spectator | Người xem | Watches public information only (if the room allows). |
 | Invitation | Lời mời | A player asks another profile to the table — of their account, or another account's found by its 12-digit ID, as its owner allows ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)); it shows on that profile's catalog for 10 minutes. |
 | Replay | Xem lại | A finished hand played back in the game, for the people who played it. |
-| Code | Mã phòng | 6 digits, unique among open rooms. |
+| Code | Mã bàn | 6 digits, unique among open rooms. |
 | Link | Link mời | `https://<hub>/r/<code>`: the same code, one tap. |
 
 ## A room's life
@@ -79,10 +79,10 @@ The lobby is a hub page (`/play/<game>/rooms`). The game's catalog card opens th
 ┌──────────────────────────────┐
 │  Tiến Lên                    │
 │  [ ⚡ Chơi nhanh ]            │  join the fullest public room waiting for players, or create one
-│  [ ＋ Tạo phòng ] [ # Nhập mã ]│
+│  [ ＋ Tạo bàn ] [ # Nhập mã ]│
 │  [ 🤖 Chơi với máy ]          │  offline: the game alone, against bots on this phone
 │                              │
-│  Phòng đang mở               │  public rooms, live (SignalR), newest first
+│  Bàn đang mở               │  public rooms, live (SignalR), newest first
 │  🐯 Ba · 2/4 · đang chờ   ›  │
 │  🐼 Mẹ · 4/4 · đang chơi  👁 │  👁 = spectators allowed
 └──────────────────────────────┘
@@ -97,7 +97,7 @@ for that game, so creating the next room is one tap.
 
 ```text
 ┌──────────────────────────────┐
-│  Phòng 482 913      [Chia sẻ]│  code large enough to read across a table
+│  Bàn 482 913      [Chia sẻ]│  code large enough to read across a table
 │  ▓▓ QR ▓▓                     │  scanned by another phone in the same room
 │  ┌────┐ ┌────┐ ┌────┐ ┌────┐ │
 │  │🐯 Ba│ │🐼Mẹ│ │ ＋ │ │🤖  │ │  ＋ = empty: invite, or host adds a bot
@@ -142,7 +142,7 @@ sequenceDiagram
   end
   H->>API: GET /api/rooms/code/482913
   API-->>H: preview: game, host, seats, options, state
-  H->>P: "Vào phòng của Ba?" [Vào ngồi] [Xem]
+  H->>P: "Vào bàn của Ba?" [Vào ngồi] [Xem]
   P->>H: Vào ngồi
   H->>API: POST /api/rooms/{id}/seats (rate limited)
   API-->>H: seat 3
@@ -164,10 +164,10 @@ sequenceDiagram
 
 | Case | What the player sees | Offered |
 | --- | --- | --- |
-| No room with that code | "Không tìm thấy phòng 482 913" | Try again, lobby |
-| Room full | "Phòng đã đủ người" | Watch (if allowed), lobby |
+| No room with that code | "Không tìm thấy bàn 482 913" | Try again, lobby |
+| Room full | "Bàn đã đủ người" | Watch (if allowed), lobby |
 | Hand in progress, no free seat | "Ván đang chơi" | Watch, or sit at the next free seat between hands |
-| Room locked by the host | "Chủ phòng đã khóa phòng" | Lobby |
+| Room locked by the host | "Chủ bàn đã khóa bàn" | Lobby |
 | Child profile, another account, switch off | "Cần chủ tài khoản cho phép chơi với người ngoài" | Lobby |
 | Child profile, switch off, a device profile at the table — or a device profile, such a child at the table | the same | Lobby |
 | Device profile, a table for accounts only | "Bàn này chỉ dành cho người có tài khoản Tò He" | Sign in |
@@ -195,7 +195,7 @@ countdown. Players can leave; the host can change seats and options; empty seats
 
 When the host allows it (**Cho người khác vào xem**, off by default), a room is marked 👁 in the lobby. Tapping a
 full or locked table watches it instead of joining; a code or link preview offers **👁 Xem** next to joining. The same doors apply as for sitting (account-only, the parent switch). A spectator gets the view
-of seat `null`: the table, card counts and places, never a hand; the waiting room says **Bạn đang xem phòng này**,
+of seat `null`: the table, card counts and places, never a hand; the waiting room says **Bạn đang xem bàn này**,
 and the game hides its buttons and reactions. Leaving gives up nothing.
 
 ### 9. Inviting players
@@ -204,7 +204,7 @@ and the game hides its buttons and reactions. Leaving gives up nothing.
 profile by its 12-digit ID ([ADR 0033](../decisions/0033-invite-a-profile-by-its-id.md)). The phone checks the ID's
 Damm digit first, so a mistyped digit or two swapped neighbours say "ID không đúng" at once; **Tìm** then shows the
 profile's card — avatar, name, ID — and only **Mời {name}** on that card asks it: a free name never misleads. An
-invitation shows as a banner on that profile's catalog (checked every 20 s) with **Vào phòng**, which opens the room's
+invitation shows as a banner on that profile's catalog (checked every 20 s) with **Vào bàn**, which opens the room's
 preview. It lasts 10 minutes, opens a locked room for that profile, and never gets round the parent switch or a full
 table. Invitations live in the room's memory: an API restart forgets them.
 
@@ -243,7 +243,7 @@ sequenceDiagram
     R->>R: the invitation, 10 minutes
     R-->>H: 204
     B->>R: GET /api/rooms/invites (every 20 s)
-    R-->>B: the banner — Vào phòng opens the preview
+    R-->>B: the banner — Vào bàn opens the preview
   end
 ```
 

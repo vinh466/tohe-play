@@ -37,3 +37,7 @@ export function useTablePlayer(session: PlayingSession): { acting: Player | null
   actAsDevice(null);
   return { acting: null, waiting: device.isPending };
 }
+
+/** A table's six digits as people read them out: "482 113" (`GET /api/rooms/mine` gives the code, rooms.md). */
+export const tableCode = (code: string): string =>
+  /^\d{6}$/.test(code) ? `${code.slice(0, 3)} ${code.slice(3)}` : code;

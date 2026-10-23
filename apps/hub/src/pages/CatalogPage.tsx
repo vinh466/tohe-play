@@ -12,7 +12,7 @@ import { byShownName, nameOf } from '../launcher/gameWords.ts';
 import { hasShell } from '../launcher/manifest.ts';
 import { comingBack, openedBy } from '../launcher/recent.ts';
 import { useOnline } from '../net/online.ts';
-import { myTablesQuery, useTablePlayer } from '../rooms/myTables.ts';
+import { myTablesQuery, tableCode, useTablePlayer } from '../rooms/myTables.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { MovedNotice } from '../session/MovedNotice.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
@@ -202,7 +202,12 @@ function SeatedTables({ player, games }: { player: Player; games: readonly GameS
                   </span>
                 )}
                 <span className="min-w-0 flex-1 font-bold text-ink">
-                  {t('comingBack.table', { game: game ? nameOf(game) : room.gameId, host: room.hostName })}
+                  {room.code
+                    ? t('comingBack.tableCode', {
+                        game: game ? nameOf(game) : room.gameId,
+                        code: tableCode(room.code),
+                      })
+                    : t('comingBack.table', { game: game ? nameOf(game) : room.gameId, host: room.hostName })}
                 </span>
                 <span className="shrink-0 rounded-full bg-brand px-4 py-2 font-bold text-on-brand text-xl">
                   {t('comingBack.backToTable')}
