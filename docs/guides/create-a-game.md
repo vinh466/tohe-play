@@ -27,7 +27,18 @@ sidebar:
 4. **Write the rules as pure functions** in `src/logic.ts` — state in, state out; no DOM, no timers,
    no `Math.random` (take an `Rng`). Test them in `src/logic.test.ts`, including a random-play bot with
    `fast-check` that asserts the invariants of your game.
-5. **Write the two stages** ([ADR 0020](../decisions/0020-a-game-has-a-menu-stage-and-a-play-stage.md)): `src/app.ts`
+5. **Content as data.** A game with a lot of content (items, crops, levels, dialogue) keeps it as typed data in
+   `src/content/`, so that adding content means writing data, not engine code. Each list is a catalog:
+   `defineCatalog('crop', [{ id: 'rice', seed: 'rice-seed', days: 3 }, …] as const)` from `@tohe/game-kit` gives
+   `items`, `ids`, `get(id)` and `has(id)`, and throws at once on an empty or duplicate id. Every entry has a stable
+   string `id`; another entry refers to it by that id, typed with `IdOf<typeof crops>`. In the game's tests,
+   `checkReferences([{ from: crops, field: 'seed', to: seeds, ids: (crop) => [crop.seed] }])` lists every reference
+   that does not resolve, and `checkSchema(crops, Crop)` every entry a schema refuses — Zod is a `devDependency`
+   used only in tests (`expect(checkSchema(crops, Crop)).toEqual([])`); the bundle never validates content at run
+   time. Content keeps asset **keys** (`'crop.rice'`), never files or paths
+   ([Asset Studio](../architecture/asset-studio.md)). Numbers that decide the rules (scores, odds, timings) stay in
+   code that the rules module imports, tested with it.
+6. **Write the two stages** ([ADR 0020](../decisions/0020-a-game-has-a-menu-stage-and-a-play-stage.md)): `src/app.ts`
    connects (`connect({ gameId })`) and holds what both share (strings, sounds, the save and `persist()`);
    `src/main.ts` is the menu stage — the kit's `createShell` with the game's content and
    `stage: () => import('./stage.ts')`; `src/stage.ts` is the play stage — `start(ctx)` reads input, calls the
@@ -35,7 +46,7 @@ sidebar:
    rows). Honour `muted`, `save` after every move and `submitScore` at the end of a round (a run saved mid-way reports
    with `session.run(id)`, ADR 0014). With both themes, follow `settings.theme` (`followTheme` from the kit) and keep
    a palette per theme for your art. [Game shell](../architecture/game-shell.md#kit) has the skeleton.
-6. **Portrait, landscape, desktop.** The game decides its layout and declares it in `orientation` in game.json
+7. **Portrait, landscape, desktop.** The game decides its layout and declares it in `orientation` in game.json
    ([Game Contract](../contracts/game-contract-v1.md)). The hub never rotates the screen for the game, and iOS cannot
    lock the orientation of a web page; on a phone held sideways it covers a `portrait` game with a layer asking the
    player to turn the phone upright. A game that targets portrait only may stay so. With `any`, lay the game out
@@ -45,14 +56,14 @@ sidebar:
    right in landscape), both inside the safe area; `fitWorld(world, view, 'contain' | 'cover')` gives the zoom and
    scroll for a camera of the game's own that shows the world centred in the view. Keep every touch target inside
    the safe area.
-7. **Verify**:
+8. **Verify**:
    ```sh
    pnpm --filter @tohe/game-<id> test
    pnpm --filter @tohe/game-<id> typecheck
    pnpm --filter @tohe/game-<id> build
    pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>*.png (one per theme)
    ```
-8. **Give it its public pages.** `/games/<id>/` and its English page `/en/games/<id>/` are made from the game's folder
+9. **Give it its public pages.** `/games/<id>/` and its English page `/en/games/<id>/` are made from the game's folder
    ([Surfaces](../architecture/surfaces.md#the-introduction-surface)). In `public/game.json`, write the descriptions for
    someone who has never heard of the game (`descriptions.vi` is the Vietnamese page's search description,
    `description` the English page's), and give `minAge`, `orientation` and `tags`. Beside `public/`, write
@@ -66,8 +77,8 @@ sidebar:
    a missing or broken file or a picture out of date
    ([Hosts and paths](../architecture/hosts-and-paths.md#adding-or-changing-a-public-page)). Look at both pages in
    light and dark. Change the name or the `kind` later, and the build asks you to run `generate:og` again.
-9. **Play it** in the hub (`pnpm dev`, then rebuild `@tohe/games-host`) on a phone-sized window, then on a phone —
-   with `any`, upright and sideways, and in a desktop window too. Add `?perf` to the play page's address to see the frame rate there (the kit's `#perf` readout).
+10. **Play it** in the hub (`pnpm dev`, then rebuild `@tohe/games-host`) on a phone-sized window, then on a phone —
+    with `any`, upright and sideways, and in a desktop window too. Add `?perf` to the play page's address to see the frame rate there (the kit's `#perf` readout).
 
 ## Choosing technology
 

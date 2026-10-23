@@ -1,4 +1,16 @@
 // Engine-independent parts of the kit. Phaser helpers live in '@tohe/game-kit/phaser'.
+export {
+  type Catalog,
+  type ContentItem,
+  checkReferences,
+  checkSchema,
+  defineCatalog,
+  type IdOf,
+  type ReferenceProblem,
+  type ReferenceRule,
+  type SchemaProblem,
+  type SchemaValidator,
+} from './content/index.ts';
 export { formatCompact, formatScore, formatValue } from './format.ts';
 export { type Haptic, haptics } from './haptics.ts';
 export {
