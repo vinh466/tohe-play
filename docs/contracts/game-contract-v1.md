@@ -435,6 +435,15 @@ production CSP**, embeds it in a fake hub on a second origin, and checks:
    lock is one the Studio accepts, a file whose licence asks for credit has an attribution, and `studio/credits.json`
    lists every pack of the lock with its version and licences and names every attribution the lock holds. Without
    `assets` none of these run.
+12. **orientation** ([ADR 0050](../decisions/0050-a-game-declares-what-it-depends-on.md)): the main run plays on a
+   phone held upright (390×844). After its random input and themes, a game whose `orientation` is `landscape` is also
+   played at 844×390 (a phone held sideways), and one whose `orientation` is `any` at 844×390 and at 1280×800 (a
+   desktop window); a `portrait` game gets nothing more. For each size the kit brings the game back to play (a `shell`
+   game left on its title screen plays again; an open panel is closed with `menu`), resizes the page, lets the game
+   settle, and checks that its play area — the kit's play stage (`.tohe-play-stage`), else its largest `<canvas>`,
+   else the page's body — fills the frame within 1 px, with no console errors, uncaught exceptions or protocol errors
+   since the resize; one check per size (`plays sideways (844×390)`, `plays in a desktop window (1280×800)`) and a
+   screenshot `<id>-play-<w>x<h>.png`. The page is put back to 390×844 afterwards.
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
 `<id>-<theme>.png` per theme, `<id>-room.png` at a table, `<id>-replay.png` replaying a hand and
