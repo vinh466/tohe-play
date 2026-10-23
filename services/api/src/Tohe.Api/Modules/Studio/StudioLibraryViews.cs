@@ -12,11 +12,13 @@ public sealed record StudioCreatorView(string Kind, Guid Id);
 public sealed record StyleSampleView(string Sha256, string Ext, long Bytes, bool Uploaded);
 
 /// <summary>A style: an art bible kept in the Studio.</summary>
-/// <param name="Status"><c>draft</c> or <c>approved</c>.</param>
+/// <param name="Status"><c>draft</c>, <c>approved</c> or <c>rejected</c> (a draft again once its creator changes it).</param>
 /// <param name="TileSize">The tile's side in pixels, for a tiled style.</param>
 /// <param name="View"><c>top-down</c>, <c>side</c>, <c>isometric</c> or <c>other</c>.</param>
 /// <param name="Palette">The colours, <c>#rrggbb</c>; none for a painted style.</param>
 /// <param name="Outline">A note on the outline.</param>
+/// <param name="ReviewedBy">The reviewer who approved or rejected it last.</param>
+/// <param name="Reason">Why it was rejected last.</param>
 public sealed record StyleView(
     string Id,
     string Name,
@@ -28,7 +30,10 @@ public sealed record StyleView(
     IReadOnlyList<StyleSampleView> Samples,
     StudioCreatorView CreatedBy,
     DateTimeOffset CreatedAt,
-    DateTimeOffset UpdatedAt);
+    DateTimeOffset UpdatedAt,
+    Guid? ReviewedBy,
+    DateTimeOffset? ReviewedAt,
+    string? Reason);
 
 /// <param name="Status"><c>draft</c>, <c>submitted</c>, <c>approved</c>, <c>rejected</c>, <c>deprecated</c> or <c>withdrawn</c>.</param>
 public sealed record PackVersionSummaryView(
@@ -52,6 +57,10 @@ public sealed record PackView(
 /// <summary>One asset of a version.</summary>
 /// <param name="Kind"><c>image</c>, <c>spritesheet</c>, <c>tileset</c>, <c>audio</c>, <c>font</c> or <c>palette</c>.</param>
 /// <param name="Licence">An SPDX identifier.</param>
+/// <param name="Sha256">The sha256 of its file: once uploaded, of the file as kept, its metadata stripped.</param>
+/// <param name="Width">Its width in pixels: once uploaded, read from the file.</param>
+/// <param name="Height">Its height in pixels: once uploaded, read from the file.</param>
+/// <param name="Wang">A tileset's Wang edges.</param>
 /// <param name="Source">Where it came from, as it was sent.</param>
 /// <param name="Uploaded">Its file has arrived.</param>
 /// <param name="PublicUrl">Its file in the public library, while the version is published and a public address is configured.</param>
@@ -64,6 +73,7 @@ public sealed record AssetView(
     int? Width,
     int? Height,
     AssetFrames? Frames,
+    AssetWang? Wang,
     IReadOnlyList<string> Tags,
     string Licence,
     string? Attribution,
@@ -77,6 +87,8 @@ public sealed record AssetView(
 /// <param name="Reason">Why it was rejected.</param>
 /// <param name="ManifestSha256">The sha256 of its manifest, once approved.</param>
 /// <param name="ManifestUrl">Its manifest in the public library, while published and a public address is configured.</param>
+/// <param name="ShareAlikeAllowed">The reviewer allowed <c>CC-BY-SA-4.0</c> in it when approving it.</param>
+/// <param name="ShareAlikeReason">Why.</param>
 public sealed record PackVersionView(
     Guid Id,
     string PackId,
@@ -94,7 +106,18 @@ public sealed record PackVersionView(
     string? WithdrawReason,
     string? ManifestSha256,
     string? ManifestUrl,
+    bool ShareAlikeAllowed,
+    string? ShareAlikeReason,
     IReadOnlyList<AssetView> Assets);
+
+/// <summary>A file uploaded to a draft, as kept.</summary>
+/// <param name="Sha256">
+/// Its sha256 as kept: when the file carried metadata (EXIF, text), the stripped file's, which every asset that named the
+/// file now names.
+/// </param>
+/// <param name="Bytes">Its size as kept.</param>
+/// <param name="Stripped">Its metadata was stripped, so its sha256 and size are new.</param>
+public sealed record StudioUploadView(string Sha256, long Bytes, int? Width, int? Height, bool Stripped);
 
 /// <summary>A sample picture of a style, before its file is uploaded.</summary>
 /// <param name="Sha256">The sha256 of the file, lower-case hex.</param>
@@ -123,9 +146,17 @@ public sealed record StyleRequest(
 /// <param name="Sha256">The sha256 of the file, lower-case hex.</param>
 /// <param name="Ext">Its extension without the dot, e.g. <c>png</c>.</param>
 /// <param name="Bytes">Its size.</param>
+/// <param name="Width">Its width in pixels; the upload sets it from the file.</param>
+/// <param name="Height">Its height in pixels; the upload sets it from the file.</param>
+/// <param name="Frames">A sprite sheet's frames: their size and count.</param>
+/// <param name="Wang">A tileset's Wang edges: per tile, the labels of its north, east, south and west edges.</param>
 /// <param name="Licence">An SPDX identifier, e.g. <c>CC0-1.0</c>.</param>
 /// <param name="Attribution">The credit, when the licence asks for one.</param>
-/// <param name="Source">Where it came from — <c>pack</c>, <c>upload</c>, <c>ai</c> or <c>code</c> with its details — as a JSON object.</param>
+/// <param name="Source">
+/// Where it came from, as a JSON object with its <c>type</c>: <c>pack</c> (<c>name</c>, <c>url</c>, <c>author</c>),
+/// <c>upload</c> (<c>by</c>), <c>ai</c> (<c>vendor</c>, <c>model</c>, <c>prompt</c>, <c>seed</c>, <c>date</c>) or
+/// <c>code</c> (<c>script</c>).
+/// </param>
 public sealed record AssetInput(
     string? Id,
     string? Kind,
@@ -135,6 +166,7 @@ public sealed record AssetInput(
     int? Width,
     int? Height,
     AssetFrames? Frames,
+    AssetWang? Wang,
     IReadOnlyList<string>? Tags,
     string? Licence,
     string? Attribution,
@@ -157,6 +189,11 @@ public sealed record DraftUpdateRequest(string? Version, IReadOnlyList<AssetInpu
 
 /// <param name="Reason">Why: required to reject, optional to deprecate; at most 1000 characters.</param>
 public sealed record ReviewReasonRequest(string? Reason);
+
+/// <summary>Approving a pack version.</summary>
+/// <param name="AllowShareAlike">Allow its <c>CC-BY-SA-4.0</c> assets (ADR 0051: the owner decides each case).</param>
+/// <param name="ShareAlikeReason">Why, required with <paramref name="AllowShareAlike"/>; at most 1000 characters.</param>
+public sealed record ApproveRequest(bool? AllowShareAlike, string? ShareAlikeReason);
 
 /// <param name="Reason">Why it is withdrawn — a takedown, say; at most 1000 characters.</param>
 /// <param name="Code">A fresh code from the authenticator.</param>
@@ -307,6 +344,14 @@ internal static partial class StudioInput
             errors.Add($"{at}.frames", "frames_invalid");
         }
 
+        if (asset.Wang is { } wang
+            && (asset.Kind != "tileset"
+                || wang.Tiles is not { Length: > 0 and <= MaxFrames } tiles
+                || tiles.Any(tile => tile is not { Length: 4 } || tile.Any(label => label is null || !WangLabel().IsMatch(label)))))
+        {
+            errors.Add($"{at}.wang", "wang_invalid");
+        }
+
         var tags = asset.Tags ?? [];
         if (tags.Count > MaxTags || tags.Any(tag => string.IsNullOrWhiteSpace(tag) || tag.Length > MaxTag))
         {
@@ -371,4 +416,7 @@ internal static partial class StudioInput
 
     [GeneratedRegex("^#[0-9a-f]{6}$")]
     private static partial Regex Colour();
+
+    [GeneratedRegex("^[a-z0-9][a-z0-9-]{0,31}$")]
+    private static partial Regex WangLabel();
 }

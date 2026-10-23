@@ -24,7 +24,7 @@ internal static class StudioModule
         // The library: object storage (503 on every endpoint of it while unconfigured), the checks, the drafts' clean-up.
         builder.Services.AddOptions<StudioOptions>().BindConfiguration(StudioOptions.Section);
         builder.Services.AddSingleton<IStudioStorage, S3StudioStorage>();
-        builder.Services.TryAddScoped<IStudioChecks, PassingStudioChecks>();
+        builder.Services.TryAddScoped<IStudioChecks, StudioChecks>();
         builder.Services.AddScoped<StudioDraftCleanup>();
         if (builder.Configuration.GetValue($"{StudioOptions.Section}:DraftCleanupEnabled", defaultValue: true)
             && !BuildTime.IsGeneratingOpenApi)

@@ -48,6 +48,14 @@ internal static partial class StudioLibraryEndpoints
             .RequireStudioPermission(StudioPermissions.Contribute).AllowStudioAgents()
             .WithName("UploadStudioStyleSample")
             .WithSummary("Upload a sample picture its style's metadata names; the body is the file.");
+        library.MapPost("/styles/{id}/approve", ApproveStyleAsync)
+            .RequireStudioPermission(StudioPermissions.Review).RequireStudioStepUp()
+            .WithName("ApproveStudioStyle")
+            .WithSummary("Approve a style draft whose samples are all uploaded: it never changes again, and its packs' versions may be approved.");
+        library.MapPost("/styles/{id}/reject", RejectStyleAsync)
+            .RequireStudioPermission(StudioPermissions.Review).RequireStudioStepUp()
+            .WithName("RejectStudioStyle")
+            .WithSummary("Reject a style draft, with a reason: its creator changes it, and it is a draft again.");
 
         library.MapGet("/packs", ListPacksAsync)
             .RequireStudioPermission(StudioPermissions.Read).AllowStudioAgents()
@@ -77,7 +85,11 @@ internal static partial class StudioLibraryEndpoints
         library.MapPut("/drafts/{versionId:guid}/files/{sha256}", UploadFileAsync)
             .RequireStudioPermission(StudioPermissions.Contribute).AllowStudioAgents()
             .WithName("UploadStudioDraftFile")
-            .WithSummary("Upload a file an asset of the draft names; the body is the file, checked against its sha256 and size.");
+            .WithSummary("Upload a file an asset of the draft names; the body is the file, checked against its sha256 and size, then by the Studio's checks, its metadata stripped.");
+        library.MapPost("/drafts/{versionId:guid}/check", CheckAsync)
+            .RequireStudioPermission(StudioPermissions.Contribute).AllowStudioAgents()
+            .WithName("CheckStudioDraft")
+            .WithSummary("Run every check of a submission on a draft as it stands — the files uploaded so far — and save nothing.");
         library.MapPost("/drafts/{versionId:guid}/submit", SubmitAsync)
             .RequireStudioPermission(StudioPermissions.Contribute).AllowStudioAgents()
             .WithName("SubmitStudioDraft")
@@ -202,6 +214,7 @@ internal static partial class StudioLibraryEndpoints
         var now = clock.GetUtcNow();
         style.Name = request.Name!.Trim();
         style.View = request.View!;
+        style.Status = StyleStatus.Draft;
         Apply(style, request, now);
 
         // The samples are replaced; one whose file arrived and that is still named keeps it.
@@ -219,7 +232,11 @@ internal static partial class StudioLibraryEndpoints
         db.StudioStyleSamples.RemoveRange(before);
         db.StudioStyleSamples.AddRange(after);
         Audit(db, actor, "style.update", id, null, new { samples = after.Count }, now);
-        await db.SaveChangesAsync(ct);
+        if (await SaveStyleAsync(db, ct) is { } changed)
+        {
+            return changed;
+        }
+
         await DeleteQuietlyAsync(storage, gone, logs);
         return TypedResults.Ok(View(style, after));
     }
@@ -266,9 +283,93 @@ internal static partial class StudioLibraryEndpoints
         var now = clock.GetUtcNow();
         sample.UploadedAt = now;
         style.UpdatedAt = now;
+        style.Status = StyleStatus.Draft;
         Audit(db, actor, "style.sample.upload", id, null, new { sha256, bytes = content.Length }, now);
-        await db.SaveChangesAsync(ct);
+        if (await SaveStyleAsync(db, ct) is { } changed)
+        {
+            return changed;
+        }
+
         return TypedResults.NoContent();
+    }
+
+    private static async Task<Results<Ok<StyleView>, ProblemHttpResult>> ApproveStyleAsync(
+        string id, HttpContext http, ToheDbContext db, TimeProvider clock, CancellationToken ct)
+    {
+        if (await db.StudioStyles.FirstOrDefaultAsync(found => found.Id == id, ct) is not { } style)
+        {
+            return StyleNotFound();
+        }
+
+        if (style.Status != StyleStatus.Draft)
+        {
+            return StyleNotDraft();
+        }
+
+        // A reviewer judges a style by its sample pictures: every one it names is there.
+        var samples = await db.StudioStyleSamples.AsNoTracking().Where(sample => sample.StyleId == id).ToListAsync(ct);
+        if (samples.Where(sample => sample.UploadedAt is null).Select(sample => sample.Sha256).ToList() is { Count: > 0 } missing)
+        {
+            return TypedResults.Problem(
+                title: "Some samples are not uploaded yet",
+                statusCode: StatusCodes.Status409Conflict,
+                extensions: new Dictionary<string, object?> { ["code"] = "files_missing", ["samples"] = missing });
+        }
+
+        var now = clock.GetUtcNow();
+        var reviewer = StudioActor.Of(http);
+        style.Status = StyleStatus.Approved;
+        style.ReviewedBy = reviewer.AccountId;
+        style.ReviewedAt = now;
+        style.Reason = null;
+        style.UpdatedAt = now;
+        Audit(db, reviewer, "style.approve", id, null, new { samples = samples.Count }, now);
+        if (await SaveStyleAsync(db, ct) is { } changed)
+        {
+            return changed;
+        }
+
+        return TypedResults.Ok(View(style, samples));
+    }
+
+    private static async Task<Results<Ok<StyleView>, ValidationProblem, ProblemHttpResult>> RejectStyleAsync(
+        string id, ReviewReasonRequest request, HttpContext http, ToheDbContext db, TimeProvider clock, CancellationToken ct)
+    {
+        var reason = request.Reason?.Trim();
+        if (string.IsNullOrEmpty(reason))
+        {
+            return Problems.Field("reason", "reason_required");
+        }
+
+        if (reason.Length > StudioStyle.MaxReason)
+        {
+            return Problems.Field("reason", "reason_too_long");
+        }
+
+        if (await db.StudioStyles.FirstOrDefaultAsync(found => found.Id == id, ct) is not { } style)
+        {
+            return StyleNotFound();
+        }
+
+        if (style.Status != StyleStatus.Draft)
+        {
+            return StyleNotDraft();
+        }
+
+        var now = clock.GetUtcNow();
+        var reviewer = StudioActor.Of(http);
+        style.Status = StyleStatus.Rejected;
+        style.ReviewedBy = reviewer.AccountId;
+        style.ReviewedAt = now;
+        style.Reason = reason;
+        style.UpdatedAt = now;
+        Audit(db, reviewer, "style.reject", id, null, new { reason }, now);
+        if (await SaveStyleAsync(db, ct) is { } changed)
+        {
+            return changed;
+        }
+
+        return TypedResults.Ok(View(style, await SamplesOfAsync(db, id, ct)));
     }
 
     // ----------------------------------------------------------------------------------------------- packs, versions
@@ -453,7 +554,7 @@ internal static partial class StudioLibraryEndpoints
         return TypedResults.Ok(View(version, after, options.Value));
     }
 
-    private static async Task<Results<NoContent, ValidationProblem, ProblemHttpResult>> UploadFileAsync(
+    private static async Task<Results<Ok<StudioUploadView>, ValidationProblem, ProblemHttpResult>> UploadFileAsync(
         Guid versionId,
         string sha256,
         Stream body,
@@ -501,26 +602,59 @@ internal static partial class StudioLibraryEndpoints
         }
 
         var style = await StyleOfAsync(db, version.PackId, ct);
-        if (ChecksFailed(await checks.CheckFileAsync(new StudioFileToCheck(version, style, assets, content), ct)) is { } failed)
+        var result = await checks.CheckFileAsync(new StudioFileToCheck(version, style, assets, content), ct);
+        if (ChecksFailed(result.Problems) is { } failed)
         {
             return failed;
         }
 
-        await storage.PutAsync(StudioKeys.Draft(versionId, sha256, file.Ext), content, StudioKeys.ContentType(file.Ext), published: false, ct);
+        // The file as kept: its metadata stripped — a new sha256 and size, which every asset naming it takes — and the
+        // size in pixels read from it.
+        var kept = result.Content;
+        var keptSha256 = ReferenceEquals(kept, content) ? sha256 : PackManifests.Sha256(kept);
+        await storage.PutAsync(StudioKeys.Draft(versionId, keptSha256, file.Ext), kept, StudioKeys.ContentType(file.Ext), published: false, ct);
         var now = clock.GetUtcNow();
         foreach (var asset in assets)
         {
+            asset.Sha256 = keptSha256;
+            asset.Bytes = kept.LongLength;
+            asset.Width = result.Width;
+            asset.Height = result.Height;
             asset.UploadedAt = now;
         }
 
         version.UpdatedAt = now;
-        Audit(db, actor, "draft.file.upload", Target(version), version.Id, new { sha256, bytes = content.Length }, now);
+        var stripped = keptSha256 != sha256;
+        Audit(db, actor, "draft.file.upload", Target(version), version.Id, new { sha256 = keptSha256, bytes = kept.LongLength, uploadedSha256 = stripped ? sha256 : null }, now);
         if (await SaveReviewAsync(db, ct) is { } changed)
         {
             return changed;
         }
 
-        return TypedResults.NoContent();
+        return TypedResults.Ok(new StudioUploadView(keptSha256, kept.LongLength, result.Width, result.Height, stripped));
+    }
+
+    private static async Task<Results<Ok<StudioCheckReport>, ProblemHttpResult>> CheckAsync(
+        Guid versionId, HttpContext http, ToheDbContext db, IStudioChecks checks, CancellationToken ct)
+    {
+        if (await db.StudioPackVersions.AsNoTracking().FirstOrDefaultAsync(found => found.Id == versionId, ct) is not { } version)
+        {
+            return VersionNotFound();
+        }
+
+        if (DraftRefusal(version, StudioActor.Of(http)) is { } refused)
+        {
+            return refused;
+        }
+
+        // What submitting would check, on what is there now; nothing is saved.
+        var assets = await AssetsOfAsync(db, versionId, ct);
+        if (await ToCheckAsync(db, version, assets, ct) is not { } toCheck)
+        {
+            return VersionNotGreater();
+        }
+
+        return TypedResults.Ok(StudioCheckReport.Of(await checks.CheckVersionAsync(toCheck, StudioCheckStage.Submit, ct)));
     }
 
     private static async Task<Results<Ok<PackVersionView>, ValidationProblem, ProblemHttpResult>> SubmitAsync(
@@ -576,8 +710,9 @@ internal static partial class StudioLibraryEndpoints
 
     // ---------------------------------------------------------------------------------------------------------- review
 
-    private static async Task<Results<Ok<PackVersionView>, ProblemHttpResult>> ApproveAsync(
+    private static async Task<Results<Ok<PackVersionView>, ValidationProblem, ProblemHttpResult>> ApproveAsync(
         Guid versionId,
+        ApproveRequest? request,
         HttpContext http,
         ToheDbContext db,
         IStudioStorage storage,
@@ -598,6 +733,25 @@ internal static partial class StudioLibraryEndpoints
         }
 
         var assets = await AssetsOfAsync(db, versionId, ct);
+
+        // CC-BY-SA-4.0 is the owner's call each time (ADR 0051): allowed here, with a reason, for this version alone.
+        if (request?.AllowShareAlike == true && assets.Any(asset => asset.Licence == StudioLicences.ShareAlike))
+        {
+            var why = request.ShareAlikeReason?.Trim();
+            if (string.IsNullOrEmpty(why))
+            {
+                return Problems.Field("shareAlikeReason", "reason_required");
+            }
+
+            if (why.Length > StudioPackVersion.MaxReason)
+            {
+                return Problems.Field("shareAlikeReason", "reason_too_long");
+            }
+
+            version.ShareAlikeAllowed = true;
+            version.ShareAlikeReason = why;
+        }
+
         if (await ToCheckAsync(db, version, assets, ct) is not { } toCheck)
         {
             return VersionNotGreater();
@@ -650,7 +804,7 @@ internal static partial class StudioLibraryEndpoints
         version.ReviewedAt = now;
         version.ManifestSha256 = manifestSha256;
         version.UpdatedAt = now;
-        Audit(db, reviewer, "version.approve", Target(version), version.Id, new { manifestSha256, files = files.Count }, now);
+        Audit(db, reviewer, "version.approve", Target(version), version.Id, new { manifestSha256, files = files.Count, shareAlikeReason = version.ShareAlikeReason }, now);
         if (await SaveReviewAsync(db, ct) is { } changed)
         {
             return changed;
@@ -869,7 +1023,7 @@ internal static partial class StudioLibraryEndpoints
         var previous = approved.Count > 0 ? approved[0].Version : null;
         var previousAssets = previous is null ? [] : await AssetsOfAsync(db, previous.Id, ct);
         var pack = await db.StudioPacks.AsNoTracking().SingleAsync(found => found.Id == version.PackId, ct);
-        var style = await db.StudioStyles.AsNoTracking().SingleAsync(found => found.Id == pack.StyleId, ct);
+        var style = await db.StudioStyles.AsNoTracking().FirstOrDefaultAsync(found => found.Id == pack.StyleId, ct);
         return new StudioVersionToCheck(pack, style, version, assets, previous, previousAssets);
     }
 
@@ -1001,18 +1155,40 @@ internal static partial class StudioLibraryEndpoints
             return NotYours();
         }
 
-        return style.Status == StyleStatus.Draft
-            ? null
-            : Problems.Of(StatusCodes.Status409Conflict, "not_a_draft", "This style is no longer a draft");
+        // A rejected style is changed again, and is a draft again; an approved one never changes.
+        return style.Status == StyleStatus.Approved ? StyleNotDraft() : null;
     }
 
-    private static ProblemHttpResult? ChecksFailed(IReadOnlyList<StudioCheckFailure> failures) =>
-        failures.Count == 0
+    private static ProblemHttpResult StyleNotDraft() =>
+        Problems.Of(StatusCodes.Status409Conflict, "not_a_draft", "This style is not a draft");
+
+    /// <summary>Saves a change of a style read before: someone else changing or reviewing it meanwhile is a 409.</summary>
+    private static async Task<ProblemHttpResult?> SaveStyleAsync(ToheDbContext db, CancellationToken ct)
+    {
+        try
+        {
+            await db.SaveChangesAsync(ct);
+            return null;
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            return Problems.Of(StatusCodes.Status409Conflict, "style_changed", "This style changed meanwhile; read it again");
+        }
+    }
+
+    /// <summary>A report with problems refuses the request: <c>422 checks_failed</c>, with the report's <c>ok</c> and <c>problems</c>.</summary>
+    private static ProblemHttpResult? ChecksFailed(IReadOnlyList<StudioCheckProblem> problems) =>
+        problems.Count == 0
             ? null
             : TypedResults.Problem(
                 title: "The Studio's checks refused it",
                 statusCode: StatusCodes.Status422UnprocessableEntity,
-                extensions: new Dictionary<string, object?> { ["code"] = "checks_failed", ["failures"] = failures });
+                extensions: new Dictionary<string, object?>
+                {
+                    ["code"] = "checks_failed",
+                    ["ok"] = false,
+                    ["problems"] = StudioVersionChecks.Ordered(problems),
+                });
 
     private static void Audit(ToheDbContext db, StudioActor? actor, string action, string target, Guid? versionId, object? details, DateTimeOffset now) =>
         db.StudioAudit.Add(new StudioAuditEntry
@@ -1055,6 +1231,7 @@ internal static partial class StudioLibraryEndpoints
         Width = asset.Width,
         Height = asset.Height,
         Frames = asset.Frames,
+        Wang = asset.Wang,
         Tags = [.. asset.Tags ?? []],
         Licence = asset.Licence!,
         Attribution = string.IsNullOrWhiteSpace(asset.Attribution) ? null : asset.Attribution.Trim(),
@@ -1067,11 +1244,11 @@ internal static partial class StudioLibraryEndpoints
     internal static async Task<List<StudioAsset>> AssetsOfAsync(ToheDbContext db, Guid versionId, CancellationToken ct) =>
         await db.StudioAssets.AsNoTracking().Where(asset => asset.VersionId == versionId).OrderBy(asset => asset.AssetId).ToListAsync(ct);
 
-    private static async Task<StudioStyle> StyleOfAsync(ToheDbContext db, string packId, CancellationToken ct) =>
+    private static async Task<StudioStyle?> StyleOfAsync(ToheDbContext db, string packId, CancellationToken ct) =>
         await db.StudioPacks.AsNoTracking()
             .Where(pack => pack.Id == packId)
             .Join(db.StudioStyles.AsNoTracking(), pack => pack.StyleId, style => style.Id, (_, style) => style)
-            .SingleAsync(ct);
+            .FirstOrDefaultAsync(ct);
 
     private static StudioCreatorView Creator(Guid? agentId, Guid? accountId) =>
         agentId is { } agent ? new StudioCreatorView("agent", agent) : new StudioCreatorView("account", accountId ?? Guid.Empty);
@@ -1087,7 +1264,10 @@ internal static partial class StudioLibraryEndpoints
         [.. samples.OrderBy(sample => sample.Sha256, StringComparer.Ordinal).Select(sample => new StyleSampleView(sample.Sha256, sample.Ext, sample.Bytes, sample.UploadedAt is not null))],
         Creator(style.CreatedByAgent, style.CreatedByAccount),
         style.CreatedAt,
-        style.UpdatedAt);
+        style.UpdatedAt,
+        style.ReviewedBy,
+        style.ReviewedAt,
+        style.Reason);
 
     private static PackView View(StudioPack pack, IEnumerable<StudioPackVersion> versions) => new(
         pack.Id,
@@ -1127,6 +1307,8 @@ internal static partial class StudioLibraryEndpoints
             version.WithdrawReason,
             version.ManifestSha256,
             published ? $"{publicBase}/{StudioKeys.Manifest(version.PackId, version.Version)}" : null,
+            version.ShareAlikeAllowed,
+            version.ShareAlikeReason,
             [
                 .. assets.OrderBy(asset => asset.AssetId, StringComparer.Ordinal).Select(asset => new AssetView(
                     asset.AssetId,
@@ -1137,6 +1319,7 @@ internal static partial class StudioLibraryEndpoints
                     asset.Width,
                     asset.Height,
                     asset.Frames,
+                    asset.Wang,
                     asset.Tags,
                     asset.Licence,
                     asset.Attribution,

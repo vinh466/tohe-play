@@ -30,6 +30,8 @@
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" />
     <PackageReference Include="prometheus-net.AspNetCore" />
     <PackageReference Include="Scalar.AspNetCore" />
+    <PackageReference Include="SkiaSharp" />
+    <PackageReference Include="SkiaSharp.NativeAssets.Linux.NoDependencies" />
     <!-- Pins MimeKit's transitive dependency to its patched version (Directory.Packages.props). -->
     <PackageReference Include="System.Security.Cryptography.Pkcs" />
   </ItemGroup>

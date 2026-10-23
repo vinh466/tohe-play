@@ -4,11 +4,15 @@ using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
 namespace Tohe.Api.Modules.Studio;
 
-/// <summary>A style's status: a draft its creator changes, or approved.</summary>
+/// <summary>
+/// A style's status: a draft its creator changes, approved by a reviewer — then it never changes — or rejected, with a
+/// reason, until its creator changes it and it is a draft again.
+/// </summary>
 public enum StyleStatus
 {
     Draft,
     Approved,
+    Rejected,
 }
 
 /// <summary>Where a pack version is in its life (docs/architecture/asset-studio.md#a-versions-life).</summary>
@@ -43,6 +47,8 @@ public sealed class StudioStyle
 
     public const int MaxOutline = 500;
 
+    public const int MaxReason = 1000;
+
     public required string Id { get; set; }
 
     public required string Name { get; set; }
@@ -67,7 +73,16 @@ public sealed class StudioStyle
 
     public DateTimeOffset CreatedAt { get; set; }
 
+    /// <summary>Changed by every change and every review: a review of a style changed meanwhile is refused.</summary>
     public DateTimeOffset UpdatedAt { get; set; }
+
+    /// <summary>The reviewer who approved or rejected it last.</summary>
+    public Guid? ReviewedBy { get; set; }
+
+    public DateTimeOffset? ReviewedAt { get; set; }
+
+    /// <summary>Why it was rejected last; kept when its creator changes it again.</summary>
+    public string? Reason { get; set; }
 }
 
 /// <summary>A sample picture of a style, kept privately under <c>styles/&lt;styleId&gt;/</c>.</summary>
@@ -149,10 +164,25 @@ public sealed class StudioPackVersion
 
     /// <summary>The sha256 of its manifest's bytes, once approved.</summary>
     public string? ManifestSha256 { get; set; }
+
+    /// <summary>
+    /// The reviewer allowed <c>CC-BY-SA-4.0</c> in this version when approving it (ADR 0051: the owner decides each case),
+    /// for <see cref="ShareAlikeReason"/>.
+    /// </summary>
+    public bool ShareAlikeAllowed { get; set; }
+
+    public string? ShareAlikeReason { get; set; }
 }
 
 /// <summary>A sprite sheet's frames: their size and how many.</summary>
 public sealed record AssetFrames(int Width, int Height, int Count);
+
+/// <summary>
+/// A Wang tileset's edges: for each tile, in the order of its grid (left to right, then top to bottom), the label of its
+/// north, east, south and west edge. Edges with the same label meet, so their outermost pixels must be the same.
+/// </summary>
+/// <param name="Tiles">Per tile, four labels: north, east, south, west.</param>
+public sealed record AssetWang(string[][] Tiles);
 
 /// <summary>One asset of a pack version: its metadata, and whether its file has arrived.</summary>
 public sealed class StudioAsset
@@ -175,6 +205,9 @@ public sealed class StudioAsset
 
     public AssetFrames? Frames { get; set; }
 
+    /// <summary>A tileset's Wang edges, when it has them.</summary>
+    public AssetWang? Wang { get; set; }
+
     public string[] Tags { get; set; } = [];
 
     /// <summary>An SPDX identifier.</summary>
@@ -187,6 +220,26 @@ public sealed class StudioAsset
 
     /// <summary>When its file arrived in <c>drafts/</c>; null until then.</summary>
     public DateTimeOffset? UploadedAt { get; set; }
+}
+
+/// <summary>
+/// An AI vendor (ADR 0051): an <c>ai</c> source names one, and is accepted only once the owner has checked that its
+/// terms allow commercial use and redistribution (<see cref="TermsCheckedAt"/>). Empty until the owner checks one.
+/// </summary>
+public sealed class StudioVendor
+{
+    /// <summary>What an <c>ai</c> source's <c>vendor</c> holds, e.g. <c>pixellab</c>.</summary>
+    public required string Id { get; set; }
+
+    public required string Name { get; set; }
+
+    /// <summary>The terms that were read.</summary>
+    public string? TermsUrl { get; set; }
+
+    /// <summary>When the owner checked its terms; until then an <c>ai</c> source from it fails the checks.</summary>
+    public DateTimeOffset? TermsCheckedAt { get; set; }
+
+    public string? Note { get; set; }
 }
 
 /// <summary>One action in the Studio, with who did it: an agent or an account (none for the API's own clean-up).</summary>
@@ -213,9 +266,19 @@ public sealed class StudioAuditEntry
 
 internal static class StudioNames
 {
-    public static string Of(StyleStatus status) => status == StyleStatus.Approved ? "approved" : "draft";
+    public static string Of(StyleStatus status) => status switch
+    {
+        StyleStatus.Approved => "approved",
+        StyleStatus.Rejected => "rejected",
+        _ => "draft",
+    };
 
-    public static StyleStatus StyleStatusOf(string name) => name == "approved" ? StyleStatus.Approved : StyleStatus.Draft;
+    public static StyleStatus StyleStatusOf(string name) => name switch
+    {
+        "approved" => StyleStatus.Approved,
+        "rejected" => StyleStatus.Rejected,
+        _ => StyleStatus.Draft,
+    };
 
     public static string Of(PackVersionStatus status) => status switch
     {
@@ -244,7 +307,7 @@ internal sealed class StudioStyleConfiguration : IEntityTypeConfiguration<Studio
     {
         builder.ToTable("styles", "studio", table =>
         {
-            table.HasCheckConstraint("ck_styles_status", "status IN ('draft', 'approved')");
+            table.HasCheckConstraint("ck_styles_status", "status IN ('draft', 'approved', 'rejected')");
             table.HasCheckConstraint("ck_styles_view", "view IN ('top-down', 'side', 'isometric', 'other')");
             table.HasCheckConstraint("ck_styles_creator", "(created_by_agent IS NULL) <> (created_by_account IS NULL)");
         });
@@ -256,6 +319,9 @@ internal sealed class StudioStyleConfiguration : IEntityTypeConfiguration<Studio
             .HasMaxLength(16);
         builder.Property(style => style.View).HasMaxLength(16);
         builder.Property(style => style.Outline).HasMaxLength(StudioStyle.MaxOutline);
+        builder.Property(style => style.Reason).HasMaxLength(StudioStyle.MaxReason);
+        // A review reads the style it judges: its creator changing it meanwhile, the review hears 409, and the other way.
+        builder.Property(style => style.UpdatedAt).IsConcurrencyToken();
     }
 }
 
@@ -306,6 +372,7 @@ internal sealed class StudioPackVersionConfiguration : IEntityTypeConfiguration<
         builder.Property(version => version.Reason).HasMaxLength(StudioPackVersion.MaxReason);
         builder.Property(version => version.WithdrawReason).HasMaxLength(StudioPackVersion.MaxReason);
         builder.Property(version => version.ManifestSha256).HasMaxLength(64);
+        builder.Property(version => version.ShareAlikeReason).HasMaxLength(StudioPackVersion.MaxReason);
         builder.HasOne<StudioPack>().WithMany().HasForeignKey(version => version.PackId).OnDelete(DeleteBehavior.Cascade);
         // One published version per number: whatever was ever approved keeps its number, withdrawn or not.
         builder.HasIndex(version => new { version.PackId, version.Version })
@@ -338,8 +405,26 @@ internal sealed class StudioAssetConfiguration : IEntityTypeConfiguration<Studio
                 frames => frames == null ? null : JsonSerializer.Serialize(frames, JsonSerializerOptions.Web),
                 json => json == null ? null : JsonSerializer.Deserialize<AssetFrames>(json, JsonSerializerOptions.Web))
             .HasColumnType("jsonb");
+        builder.Property(asset => asset.Wang)
+            .HasConversion(
+                wang => wang == null ? null : JsonSerializer.Serialize(wang, JsonSerializerOptions.Web),
+                json => json == null ? null : JsonSerializer.Deserialize<AssetWang>(json, JsonSerializerOptions.Web))
+            .HasColumnType("jsonb");
         builder.HasOne<StudioPackVersion>().WithMany().HasForeignKey(asset => asset.VersionId).OnDelete(DeleteBehavior.Cascade);
         builder.HasIndex(asset => asset.Sha256);
+    }
+}
+
+internal sealed class StudioVendorConfiguration : IEntityTypeConfiguration<StudioVendor>
+{
+    public void Configure(EntityTypeBuilder<StudioVendor> builder)
+    {
+        builder.ToTable("vendors", "studio");
+        builder.HasKey(vendor => vendor.Id);
+        builder.Property(vendor => vendor.Id).HasMaxLength(40);
+        builder.Property(vendor => vendor.Name).HasMaxLength(80);
+        builder.Property(vendor => vendor.TermsUrl).HasMaxLength(500);
+        builder.Property(vendor => vendor.Note).HasMaxLength(1000);
     }
 }
 

@@ -21,4 +21,9 @@
     <Using Include="Xunit" />
   </ItemGroup>
 
+  <ItemGroup>
+    <!-- The Studio checks' corpus of good and bad files (Fixtures/studio/README.md). -->
+    <None Include="Fixtures/studio/*.png;Fixtures/studio/*.webp;Fixtures/studio/*.gif" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
 </Project>

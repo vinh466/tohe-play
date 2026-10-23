@@ -115,11 +115,79 @@ internal static class StudioLibrary
             }
         });
 
-    /// <summary>A new file of random bytes: unique, so tests never share a blob unless they mean to.</summary>
-    public static TestFile NewFile(int length = 64)
+    /// <summary>The colour of every opaque pixel of <see cref="NewFile"/>: in the palette of every style the tests make.</summary>
+    public const string Colour = "#aa5533";
+
+    /// <summary>
+    /// A new PNG that passes the checks of the tests' styles: random pixels, each <see cref="Colour"/> or transparent, so
+    /// unique — tests never share a blob unless they mean to. Stored without compression and without metadata, so every
+    /// file of one size has the same length and the upload keeps it as it is.
+    /// </summary>
+    public static TestFile NewFile(int width = 16, int height = 16) => Of(Png(width, height, (_, _) =>
+        RandomNumberGenerator.GetInt32(2) == 0 ? (0xaa, 0x55, 0x33, 0xff) : (0, 0, 0, 0)));
+
+    /// <summary>A file of random bytes, not a picture.</summary>
+    public static TestFile NewBytes(int length) => Of(RandomNumberGenerator.GetBytes(length));
+
+    public static TestFile Of(byte[] bytes) => new(bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)));
+
+    /// <summary>A PNG of 8-bit RGBA, its pixels from <paramref name="pixel"/>, with no chunk but IHDR, IDAT and IEND.</summary>
+    public static byte[] Png(int width, int height, Func<int, int, (int R, int G, int B, int A)> pixel)
     {
-        var bytes = RandomNumberGenerator.GetBytes(length);
-        return new TestFile(bytes, Convert.ToHexStringLower(SHA256.HashData(bytes)));
+        var raw = new byte[height * ((width * 4) + 1)];
+        for (var y = 0; y < height; y++)
+        {
+            for (var x = 0; x < width; x++)
+            {
+                var (r, g, b, a) = pixel(x, y);
+                var at = (y * ((width * 4) + 1)) + 1 + (x * 4);
+                (raw[at], raw[at + 1], raw[at + 2], raw[at + 3]) = ((byte)r, (byte)g, (byte)b, (byte)a);
+            }
+        }
+
+        using var data = new MemoryStream();
+        using (var zlib = new System.IO.Compression.ZLibStream(data, System.IO.Compression.CompressionLevel.NoCompression, leaveOpen: true))
+        {
+            zlib.Write(raw);
+        }
+
+        var header = new byte[13];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(header, width);
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(header.AsSpan(4), height);
+        (header[8], header[9]) = (8, 6);
+        using var png = new MemoryStream();
+        png.Write([0x89, 0x50, 0x4E, 0x47, 0x0D, 0x0A, 0x1A, 0x0A]);
+        Chunk(png, "IHDR", header);
+        Chunk(png, "IDAT", data.ToArray());
+        Chunk(png, "IEND", []);
+        return png.ToArray();
+    }
+
+    private static void Chunk(Stream png, string type, byte[] data)
+    {
+        var length = new byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteInt32BigEndian(length, data.Length);
+        png.Write(length);
+        var body = System.Text.Encoding.ASCII.GetBytes(type).Concat(data).ToArray();
+        png.Write(body);
+        var crc = new byte[4];
+        System.Buffers.Binary.BinaryPrimitives.WriteUInt32BigEndian(crc, Crc32(body));
+        png.Write(crc);
+    }
+
+    private static uint Crc32(byte[] bytes)
+    {
+        var crc = 0xFFFFFFFFu;
+        foreach (var b in bytes)
+        {
+            crc ^= b;
+            for (var bit = 0; bit < 8; bit++)
+            {
+                crc = (crc & 1) != 0 ? (crc >> 1) ^ 0xEDB88320u : crc >> 1;
+            }
+        }
+
+        return ~crc;
     }
 
     /// <summary>A client calling with an agent's token.</summary>
@@ -142,21 +210,26 @@ internal static class StudioLibrary
         return id;
     }
 
-    /// <summary>The metadata of one asset of a file.</summary>
-    public static object Asset(string id, TestFile file, string licence = "CC0-1.0", string? attribution = null, string kind = "image") => new
+    /// <summary>The metadata of one asset of a file; its size in pixels is the upload's to read.</summary>
+    public static object Asset(string id, TestFile file, string licence = "CC0-1.0", string? attribution = null, string kind = "image", object? source = null, string ext = "png") => new
     {
         id,
         kind,
         sha256 = file.Sha256,
-        ext = "png",
+        ext,
         bytes = file.Length,
-        width = 16,
-        height = 16,
         tags = new[] { "test" },
         licence,
         attribution,
-        source = new { type = "code", script = "draw.ts" },
+        source = source ?? new { type = "code", script = "draw.ts" },
     };
+
+    /// <summary>A reviewer approves a style.</summary>
+    public static async Task ApproveStyleAsync(HttpClient reviewer, string styleId)
+    {
+        var approved = await reviewer.PostAsync(Url($"/api/studio/styles/{styleId}/approve"), null, Ct);
+        Assert.Equal(HttpStatusCode.OK, approved.StatusCode);
+    }
 
     public static async Task<HttpResponseMessage> CreateDraftAsync(HttpClient client, string packId, string version, string? styleId, params object[] assets) =>
         await client.PostAsJsonAsync(Url("/api/studio/drafts"), new { packId, version, styleId, description = "Rau củ trong vườn", assets }, Ct);
@@ -169,7 +242,7 @@ internal static class StudioLibrary
         var draft = (await made.Content.ReadFromJsonAsync<PackVersionView>(Ct))!;
         foreach (var file in assets.Select(asset => asset.File).DistinctBy(file => file.Sha256))
         {
-            Assert.Equal(HttpStatusCode.NoContent, (await UploadAsync(client, draft.Id, file)).StatusCode);
+            Assert.Equal(HttpStatusCode.OK, (await UploadAsync(client, draft.Id, file)).StatusCode);
         }
 
         return draft;

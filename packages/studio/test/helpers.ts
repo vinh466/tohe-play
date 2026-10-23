@@ -116,6 +116,9 @@ export function style(id: string, palette: string[] | null, tileSize: number | n
     createdBy: creator,
     createdAt: now(),
     updatedAt: now(),
+    reviewedBy: null,
+    reviewedAt: null,
+    reason: null,
   };
 }
 
@@ -162,6 +165,8 @@ export async function startFakeStudio(token = TOKEN): Promise<FakeStudio> {
     withdrawReason: null,
     manifestSha256: null,
     manifestUrl: null,
+    shareAlikeAllowed: false,
+    shareAlikeReason: null,
     assets: version.assets.map(
       (asset): AssetView => ({
         id: asset.id ?? '',
@@ -172,6 +177,7 @@ export async function startFakeStudio(token = TOKEN): Promise<FakeStudio> {
         width: asset.width,
         height: asset.height,
         frames: asset.frames,
+        wang: null,
         tags: asset.tags ?? [],
         licence: asset.licence ?? '',
         attribution: asset.attribution,
