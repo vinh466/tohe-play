@@ -1,0 +1,29 @@
+{
+  "name": "@tohe/studio",
+  "version": "0.1.0",
+  "description": "tohe-studio, the CLI agents make asset packs with (ADR 0051): import from a known free pack or draw with code, fit to a style, check with the Studio's API and submit for review.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tohe-studio": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "generate:api": "pnpm --filter @tohe/codegen api-types",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^1.0.11",
+    "@tohe/contract": "workspace:*",
+    "fflate": "^0.8.2",
+    "openapi-fetch": "^0.17.0",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.19.2",
+    "vitest": "^5.0.0"
+  }
+}

@@ -22,6 +22,7 @@
     "claims": "node tools/claims/src/cli.ts",
     "assets:resolve": "node tools/assets/src/cli.ts resolve",
     "assets:check": "node tools/assets/src/cli.ts check",
+    "studio": "node packages/studio/src/cli.ts",
     "verify": "sh scripts/verify.sh"
   },
   "devDependencies": {
