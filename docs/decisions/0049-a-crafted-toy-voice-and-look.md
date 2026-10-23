@@ -1,6 +1,6 @@
 ---
 title: "0049: Make Tò He look and talk like a toy someone made — one icon set, its own type, a tò he palette, drawn pictures"
-description: Tò He drops the defaults that make it read as machine-made — emoji as interface, a borrowed palette, the system font, templated copy. One SVG icon set with labels, Be Vietnam Pro, a voice guide every screen passes, and a brand drawn from the tò he toy itself: a palette from its traditional dyes and pictures drawn by an illustrator.
+description: "Tò He drops the defaults that make it read as machine-made — emoji as interface, a borrowed palette, the system font, templated copy. One SVG icon set with labels, Be Vietnam Pro, a voice guide every screen passes, and a brand drawn from the tò he toy itself: a palette from its traditional dyes and pictures drawn by an illustrator."
 sidebar:
   order: 49
 ---
