@@ -210,14 +210,14 @@ try {
 
   step('the host creates a room: easy bots, 15 s a turn, spectators welcome');
   await host
-    .getByRole('button', { name: /Tạo phòng/ })
+    .getByRole('button', { name: /Mở bàn/ })
     .first()
     .tap();
-  const form = host.getByRole('dialog', { name: 'Tạo phòng' });
+  const form = host.getByRole('dialog', { name: 'Mở bàn' });
   await form.getByRole('button', { name: 'Dễ' }).tap();
   await form.getByRole('button', { name: '15 giây' }).tap();
   await form.getByRole('switch', { name: /Cho người khác vào xem/ }).tap();
-  await form.getByRole('button', { name: 'Tạo phòng' }).last().tap();
+  await form.getByRole('button', { name: 'Mở bàn' }).last().tap();
   await host.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
   const code = ((await host.locator('p.tracking-widest').textContent()) ?? '').replace(/\D/g, '');
   if (!/^\d{6}$/.test(code)) throw new Error(`no room code on the waiting room (${code})`);
@@ -260,10 +260,10 @@ try {
     await kid.reload();
   }
   await shot(kid, 'invitation');
-  await kid.getByRole('link', { name: 'Vào phòng' }).tap();
+  await kid.getByRole('link', { name: 'Vào bàn' }).tap();
   await kid.getByRole('button', { name: 'Xem', exact: true }).tap();
   await kid.waitForURL(/\/play\/tien-len\/rooms\/[^/]+$/);
-  await kid.getByText('Bạn đang xem phòng này').waitFor();
+  await kid.getByText('Bạn đang xem bàn này').waitFor();
   await shot(kid, 'watching');
 
   step('the host starts; the two players and the child see the table, the child never a hand nor a button');
@@ -298,7 +298,7 @@ try {
   step("the friend leaves from the game's menu (the hub asks first) and lands in the lobby");
   await friendGame.locator('[data-tohe-menu]').tap();
   await friendGame.getByRole('button', { name: 'Rời bàn' }).tap();
-  await friend.getByRole('dialog').getByRole('button', { name: 'Rời phòng' }).tap();
+  await friend.getByRole('dialog').getByRole('button', { name: 'Rời bàn' }).tap();
   await friend.waitForURL(/\/play\/tien-len\/rooms$/);
 
   step('the hand is in the friend’s results, and its replay plays to the end');

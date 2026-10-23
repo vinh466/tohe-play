@@ -138,3 +138,11 @@ it('lets a new version wait for the next cold start, and hands links to the open
   expect(config).not.toMatch(/autoUpdate|skipWaiting|clientsClaim/);
   expect(config).toMatch(/launch_handler:\s*\{\s*client_mode:\s*\['focus-existing',\s*'auto'\]\s*\}/);
 });
+
+it('starts the installed app on the brand colour, in light and dark alike (ADR 0046)', () => {
+  // The light theme's --tohe-brand from tokens.css, not a colour of its own; `pnpm --filter @tohe/hub updates` checks
+  // the built manifest's value.
+  expect(config).toMatch(/background_color:\s*brand,/);
+  expect(config).toMatch(/const tokensCss = readFileSync\([^;]*'@tohe\/design-tokens\/tokens\.css'\)/);
+  expect(config).toContain("const brand = token(parseTokens(tokensCss).light, 'brand');");
+});

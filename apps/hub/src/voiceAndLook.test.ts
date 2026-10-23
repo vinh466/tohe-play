@@ -96,6 +96,18 @@ describe('the voice', () => {
     expect(vi('leaderboard.title', { game: 'Tiến Lên' })).toBe('Bảng điểm Tiến Lên');
   });
 
+  it('calls a table "bàn" and "table", never "phòng" or "room" (docs/architecture/surfaces.md)', () => {
+    // "Mã dự phòng" is a backup code, not a table.
+    const vi = strings('vi').filter(([, text]) => /phòng/iu.test(text.replace(/dự phòng/giu, '')));
+    expect(vi).toEqual([]);
+    expect(strings('en').filter(([, text]) => /\brooms?\b/i.test(text))).toEqual([]);
+    const t = i18n.getFixedT('vi');
+    expect(t('rooms.create')).toBe('Mở bàn');
+    expect(t('rooms.leave')).toBe('Rời bàn');
+    expect(t('rooms.room', { code: '482 913' })).toBe('Bàn 482 913');
+    expect(i18n.getFixedT('en')('rooms.room', { code: '482 913' })).toBe('Table 482 913');
+  });
+
   it('names a button that shares: "Rủ bạn", with its game in the name a screen reader gets', () => {
     const vi = i18n.getFixedT('vi');
     expect(vi('share.short')).toBe('Rủ bạn');

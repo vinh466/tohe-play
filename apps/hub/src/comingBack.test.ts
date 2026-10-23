@@ -31,7 +31,7 @@ import {
 } from './session/whoIsPlaying.ts';
 import { openDb } from './storage/db.ts';
 import { createDeviceProfile, deleteDeviceProfile, reIdDeviceProfile } from './storage/deviceProfiles.ts';
-import { createUpdateStore, showsUpdateNotice } from './update/update.ts';
+import { appliesOutOfSight, createUpdateStore, holdsWork, showsUpdateNotice } from './update/update.ts';
 
 function memory() {
   const values = new Map<string, string>();
@@ -327,6 +327,94 @@ describe('a new version', () => {
     const { store, done } = wired(false);
     store.found();
     await store.apply();
+    expect(done).toEqual(['reload']);
+  });
+
+  const at = (pathname: string, search = '') => ({ pathname, search });
+
+  it('is taken out of sight on a screen of the frame that a reload brings back as it was', () => {
+    for (const path of ['/play', '/play/', '/together', '/account', '/account/links']) {
+      expect(appliesOutOfSight(true, at(path), false), path).toBe(true);
+    }
+    expect(appliesOutOfSight(true, at('/together', '?code=1'), false)).toBe(true);
+  });
+
+  it('is never taken out of sight in a game, at a table, in a replay or on a link into them', () => {
+    for (const path of [
+      '/play/hello',
+      '/play/tien-len/rooms',
+      '/play/tien-len/rooms/abc',
+      '/play/tien-len/rooms/abc/replay/2',
+      '/r/482913',
+      '/s/7KQ2M9XA',
+    ]) {
+      expect(appliesOutOfSight(true, at(path), false), path).toBe(false);
+    }
+  });
+
+  it('waits out of sight on a screen whose step lives only in the page, or with work in it', () => {
+    for (const path of [
+      '/account/sign-in',
+      '/account/sign-in/continue',
+      '/account/register',
+      '/account/register/confirm',
+      '/account/password/forgot',
+      '/account/password/reset',
+      '/account/email',
+      '/account/profiles',
+      '/account/transfer',
+      '/account/transfer/send',
+    ]) {
+      expect(appliesOutOfSight(true, at(path), false), path).toBe(false);
+    }
+    // Quản lý tài khoản: the parent gate and the forms behind it.
+    expect(appliesOutOfSight(true, at('/account', '?manage=true'), false)).toBe(false);
+    expect(appliesOutOfSight(true, at('/play'), true)).toBe(false);
+    expect(appliesOutOfSight(false, at('/play'), false)).toBe(false);
+  });
+
+  it('counts an open dialog and a field with text in it as work, not an empty field or a checkbox', () => {
+    const page = (dialog: boolean, fields: { tagName: string; type?: string; value: string }[]) =>
+      ({
+        querySelector: (selector: string) => (selector === 'dialog[open]' && dialog ? {} : null),
+        querySelectorAll: () => fields,
+      }) as unknown as ParentNode;
+    expect(holdsWork(page(false, []))).toBe(false);
+    expect(holdsWork(page(true, []))).toBe(true);
+    expect(holdsWork(page(false, [{ tagName: 'INPUT', type: 'text', value: '  ' }]))).toBe(false);
+    expect(holdsWork(page(false, [{ tagName: 'INPUT', type: 'checkbox', value: 'on' }]))).toBe(false);
+    expect(holdsWork(page(false, [{ tagName: 'INPUT', type: 'text', value: '4829' }]))).toBe(true);
+    expect(holdsWork(page(false, [{ tagName: 'TEXTAREA', value: 'Chào' }]))).toBe(true);
+  });
+
+  it('takes over and reloads as the app goes out of sight on /play', async () => {
+    const { store, done } = wired();
+    store.found();
+    await store.outOfSight(at('/play'), false);
+    expect(done).toEqual(['skip']);
+    store.controlling();
+    expect(done).toEqual(['skip', 'reload']);
+  });
+
+  it('reloads nothing as the app goes out of sight in a game, with work in the page, or with nothing waiting', async () => {
+    const { store, done } = wired();
+    await store.outOfSight(at('/play'), false);
+    expect(done).toEqual([]);
+    store.found();
+    await store.outOfSight(at('/play/hello'), false);
+    await store.outOfSight(at('/play/tien-len/rooms/abc'), false);
+    await store.outOfSight(at('/play'), true);
+    expect(done).toEqual([]);
+    // Coming back to the game in sight: still nothing, and the notice still waits for the frame.
+    store.controlling();
+    expect(done).toEqual([]);
+    expect(store.waiting()).toBe(true);
+  });
+
+  it('reloads at once out of sight when another tab already moved to the new version', async () => {
+    const { store, done } = wired(false);
+    store.controlling();
+    await store.outOfSight(at('/together'), false);
     expect(done).toEqual(['reload']);
   });
 });

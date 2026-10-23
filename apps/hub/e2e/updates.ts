@@ -8,13 +8,17 @@
 //   with that cache evicted, as a phone short of space does;
 // - "Có bản mới — Tải lại" shows on the frame's screen (/play) and not over the game;
 // - the next cold start (every page of the app closed, the app opened again) runs B;
-// - "Tải lại" moves the page to B when the player taps it.
+// - going out of sight on the frame's screen (/play) moves the page to B, at the same address, with no tap; going out
+//   of sight in a game reloads nothing and the game stays on A;
+// - "Tải lại" moves the page to B when the player taps it;
+// - the built manifest starts the installed app on the brand colour (`background_color`, the light --tohe-brand).
 // Usage: pnpm --filter @tohe/hub updates
 import { createReadStream, existsSync, mkdirSync, readFileSync, rmSync, statSync } from 'node:fs';
 import { createServer } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import { dirname, extname, join, normalize } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { parseTokens, token } from '@tohe/design-tokens';
 import { covers, hubNamespaces } from '@tohe/routes';
 import { type Browser, type BrowserContext, chromium, type Page } from 'playwright';
 import { build } from 'vite';
@@ -51,6 +55,16 @@ const scripts = {
 if (!scripts.a || !scripts.b || scripts.a === scripts.b) {
   throw new Error(`the two builds do not differ in their script: ${scripts.a} / ${scripts.b}`);
 }
+
+// The installed app's splash screen: the brand colour of the light theme, in light and dark alike (ADR 0046).
+const manifest = JSON.parse(readFileSync(join(builds.a, 'manifest.webmanifest'), 'utf8')) as {
+  background_color?: string;
+};
+const brand = token(
+  parseTokens(readFileSync(join(hub, '..', '..', 'packages', 'design-tokens', 'tokens.css'), 'utf8')).light,
+  'brand',
+);
+const splash = manifest.background_color === brand;
 
 let serving = builds.a;
 const types: Record<string, string> = {
@@ -131,6 +145,7 @@ const check = (ok: boolean, message: string) => {
   console.log(`${ok ? '✓' : '✗'} ${message}`);
   if (!ok) failures.push(message);
 };
+check(splash, `the manifest's background_color is the brand colour ${brand} (${manifest.background_color})`);
 
 /** Which build the page runs, by the app's script in its document. */
 const runs = (page: Page) =>
@@ -187,6 +202,18 @@ async function deployB(page: Page): Promise<boolean> {
       };
       poll();
     });
+  });
+}
+
+/**
+ * The app goes out of sight — the player switches apps or locks the phone. The browser here keeps every page in sight,
+ * so the page is told so as a browser does: `visibilityState` reads "hidden", and `visibilitychange` fires.
+ */
+async function goOutOfSight(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', { configurable: true, get: () => 'hidden' });
+    Object.defineProperty(document, 'hidden', { configurable: true, get: () => true });
+    document.dispatchEvent(new Event('visibilitychange'));
   });
 }
 
@@ -267,6 +294,69 @@ try {
     await gameTile(again).waitFor();
     check((await runs(again)) === scripts.b, 'the next cold start runs B');
     await context.close();
+  }
+
+  // Out of sight on the frame's screen: the page takes B unseen and comes back to the same screen.
+  {
+    const page = await openOnA(browser);
+    await deployB(page);
+    await notice(page).waitFor({ timeout: 5000 });
+    check(
+      (await notice(page).getByRole('button', { name: 'Để sau', exact: true }).innerText()).trim() ===
+        'Để sau',
+      'in sight, the notice offers a visible "Để sau"',
+    );
+    // To look at: the notice on the narrowest phone, light and dark (test-results/updates/).
+    await page.setViewportSize({ width: 360, height: 780 });
+    for (const colorScheme of ['light', 'dark'] as const) {
+      await page.emulateMedia({ colorScheme });
+      await page.screenshot({ path: join(out, `notice-${colorScheme}.png`) });
+    }
+    const loads = countLoads(page);
+    await goOutOfSight(page);
+    const moved = await page
+      .waitForFunction(
+        (b) => document.querySelector('script[type="module"][src]')?.getAttribute('src') === b,
+        scripts.b,
+        { timeout: 10_000 },
+      )
+      .then(
+        () => true,
+        () => false,
+      );
+    check(moved, 'out of sight on /play: the page moves to B with no tap');
+    await gameTile(page)
+      .waitFor({ timeout: 10_000 })
+      .catch(() => {});
+    check(
+      new URL(page.url()).pathname === '/play' && (await gameTile(page).isVisible()),
+      `out of sight on /play: it comes back to the same screen (${new URL(page.url()).pathname}, ${loads.count} load(s))`,
+    );
+    await page.context().close();
+  }
+
+  // Out of sight in a game: nothing reloads, the game stays on A.
+  {
+    const page = await openOnA(browser);
+    await deployB(page);
+    await notice(page).waitFor({ timeout: 5000 });
+    await gameTile(page).click();
+    await page.locator('iframe[title="Hello"]').waitFor({ timeout: 10_000 });
+    const loads = countLoads(page);
+    await goOutOfSight(page);
+    await page.waitForTimeout(3000);
+    const routerReloads = await page.evaluate(() =>
+      Object.keys(sessionStorage).filter((key) => key.startsWith('tanstack_router_reload:')),
+    );
+    check(
+      loads.count === 0 && routerReloads.length === 0,
+      `out of sight in a game: no reload (${loads.count} load(s); router's reload marks: ${routerReloads.join(', ') || 'none'})`,
+    );
+    check(
+      (await runs(page)) === scripts.a && (await page.locator('iframe[title="Hello"]').isVisible()),
+      `out of sight in a game: the game stays on A (${new URL(page.url()).pathname})`,
+    );
+    await page.context().close();
   }
 
   // A long session: the player taps "Tải lại" on the frame's screen, and the page moves to B.
