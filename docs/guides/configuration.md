@@ -48,6 +48,11 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Integrity:Replays`, `Integrity:ReplayInterval` | Replay ranked runs in the background, and how often to look for new ones ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)) | `true`, `00:00:05` |
 | `Admin:SetupToken` | The token that makes a new deployment's first owner, at the console's `/setup` ([Admin console](../architecture/admin.md#the-first-owner)); keep it in the secret store | unset: made up at start and logged once while there is no owner |
 | `Admin:BootstrapEmails` | Addresses allowed to become the first owner (`Admin__BootstrapEmails__0`, `__1`…) | empty: any confirmed address with the token |
+| `Studio:Storage:ServiceUrl`, `Studio:Storage:Bucket` | The Asset Studio's object storage, over the S3 API: the endpoint (production: Cloudflare R2, `https://<account>.r2.cloudflarestorage.com`) and the bucket ([Asset Studio](../architecture/asset-studio.md#configuration)) | unset: no storage — the Studio's library answers `503 studio_storage_not_configured`, the rest of the API runs (development and compose: SeaweedFS on 4770, `tohe-studio`) |
+| `Studio:Storage:AccessKey`, `Studio:Storage:SecretKey` | The bucket's credentials; keep them in the secret store | unset: no storage (development and compose: `tohe`, `tohe-dev-only`) |
+| `Studio:Storage:PublicBaseUrl` | The public address of the library — what the build tool reads as `TOHE_ASSETS_REGISTRY`; the Studio's answers name manifests' and files' public URLs under it | unset: no public URLs in the answers |
+| `Studio:MaxFileBytes`, `Studio:DraftQuotaBytes` | The most bytes of one uploaded file, and of uploaded files one creator keeps in drafts and submitted versions | `8388608`, `268435456` |
+| `Studio:DraftCleanupEnabled` | Remove, once a day, the Studio's drafts not submitted within 30 days, with their files | `true` |
 
 The API trusts the `X-Forwarded-For` the hub sends, so nothing but the hub may reach it. Its host filtering
 (`AllowedHosts`) must let both the hub's host and the console's through: the hub's Caddy passes the visitor's `Host` on,
@@ -125,7 +130,9 @@ The chart sets all of the above from its values ([Self-hosting](self-hosting.md)
 `console` and an Ingress rule for it — empty, none of them (production: `https://console.toheplay.io.vn`);
 `hub.proxy.*` give `TOHE_TRUSTED_PROXIES` and `TOHE_CLIENT_IP_HEADERS`; `hub.securityContact` gives
 `TOHE_SECURITY_CONTACT`; `api.reference.enabled` gives `Api:Reference:Enabled` (default `false`); `infra.postgres.*`
-and the Secret give `ConnectionStrings:Database`; `api.config` adds any other API key.
+and the Secret give `ConnectionStrings:Database`; the Secret's optional keys `studio-storage-service-url`,
+`studio-storage-bucket`, `studio-storage-access-key`, `studio-storage-secret-key` and `studio-storage-public-base-url`
+give `Studio:Storage:*` — without them, no storage, the default; `api.config` adds any other API key.
 
 ## Every web origin
 

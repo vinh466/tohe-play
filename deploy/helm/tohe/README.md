@@ -47,6 +47,7 @@ With `secrets.existingSecret`, that Secret must hold:
 | `infra.postgres.passwordKey` (default `postgres-password`) | yes, unless `external.connectionStringKey` |
 | `infra.postgres.external.connectionStringKey`, when set | yes |
 | `telemetry-operator-token` | no — the telemetry report (ADR 0015) is off without it |
+| `studio-storage-service-url`, `studio-storage-bucket`, `studio-storage-access-key`, `studio-storage-secret-key`, `studio-storage-public-base-url` | no — the Asset Studio's object storage (ADR 0051); without them its pack endpoints answer `503 studio_storage_not_configured` |
 
 Without one, the chart renders a Secret from `secrets.values`. **Nothing is generated**: GitOps tools render charts
 with `helm template`, where a generated value would change on every render. Pass the values in, e.g.

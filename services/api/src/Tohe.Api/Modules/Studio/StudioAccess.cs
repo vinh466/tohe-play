@@ -72,9 +72,15 @@ internal sealed class StudioAccess : IEndpointFilter
         return (account, held);
     }
 
-    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next)
+    public async ValueTask<object?> InvokeAsync(EndpointFilterInvocationContext context, EndpointFilterDelegate next) =>
+        await RefuseAsync(context.HttpContext) ?? await next(context);
+
+    /// <summary>
+    /// The checks of this filter, in its order: null when the Studio session may call the endpoint — the caller is then
+    /// in <see cref="StudioCaller"/> — or the answer that refuses it.
+    /// </summary>
+    public static async Task<IResult?> RefuseAsync(HttpContext http)
     {
-        var http = context.HttpContext;
         if (await CallerAsync(http) is not var (account, held))
         {
             return TypedResults.Unauthorized();
@@ -94,7 +100,7 @@ internal sealed class StudioAccess : IEndpointFilter
         }
 
         http.Items[typeof(StudioCaller)] = new StudioCaller(account.Id, held);
-        return await next(context);
+        return null;
     }
 }
 

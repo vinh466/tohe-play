@@ -110,6 +110,16 @@ spec:
                   name: {{ include "tohe.secretName" . }}
                   key: telemetry-operator-token
                   optional: true
+            {{- /* The Studio's object storage (ADR 0051), from the Secret alone and each key optional: without them the
+                   API runs and the Studio's library answers 503. */}}
+            {{- range $setting, $key := dict "ServiceUrl" "studio-storage-service-url" "Bucket" "studio-storage-bucket" "AccessKey" "studio-storage-access-key" "SecretKey" "studio-storage-secret-key" "PublicBaseUrl" "studio-storage-public-base-url" }}
+            - name: Studio__Storage__{{ $setting }}
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "tohe.secretName" $ }}
+                  key: {{ $key }}
+                  optional: true
+            {{- end }}
             {{- range $key, $value := .Values.api.config }}
             - name: {{ $key }}
               value: {{ $value | quote }}

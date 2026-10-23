@@ -1,11 +1,12 @@
 using Microsoft.Extensions.DependencyInjection.Extensions;
+using Tohe.Api.Infrastructure;
 
 namespace Tohe.Api.Modules.Studio;
 
 /// <summary>
-/// The Asset Studio (ADR 0051), in the <c>studio</c> schema: who holds a studio role, and the Studio's own session under
-/// <c>/api/studio</c> — its own OpenAPI document, so neither the hub's nor the console's generated types carry a Studio
-/// endpoint. An endpoint of the Studio is mapped on the group <see cref="MapStudioEndpoints"/> makes and declares its
+/// The Asset Studio (ADR 0051), in the <c>studio</c> schema: who holds a studio role, the Studio's own session, and the
+/// library — styles, packs, drafts, review, object storage — under <c>/api/studio</c>, with its own OpenAPI document, so
+/// neither the hub's nor the console's generated types carry a Studio endpoint. An endpoint of the Studio is mapped on the group <see cref="MapStudioEndpoints"/> makes and declares its
 /// permission with <c>.RequireStudioPermission(StudioPermissions.X)</c>; the console gives and takes studio roles through
 /// <see cref="StudioConsoleEndpoints"/>, under the console's routes. See docs/architecture/asset-studio.md.
 /// </summary>
@@ -19,6 +20,18 @@ internal static class StudioModule
         builder.Services.TryAddSingleton(TimeProvider.System);
         builder.Services.AddScoped<StudioRoles>();
         StudioSession.Add(builder.Services);
+
+        // The library: object storage (503 on every endpoint of it while unconfigured), the checks, the drafts' clean-up.
+        builder.Services.AddOptions<StudioOptions>().BindConfiguration(StudioOptions.Section);
+        builder.Services.AddSingleton<IStudioStorage, S3StudioStorage>();
+        builder.Services.TryAddScoped<IStudioChecks, PassingStudioChecks>();
+        builder.Services.AddScoped<StudioDraftCleanup>();
+        if (builder.Configuration.GetValue($"{StudioOptions.Section}:DraftCleanupEnabled", defaultValue: true)
+            && !BuildTime.IsGeneratingOpenApi)
+        {
+            builder.Services.AddHostedService<StudioDraftCleanupWorker>();
+        }
+
         builder.Services.AddOpenApi(Document, options =>
         {
             // By default a document also takes every endpoint without a group, i.e. all of the hub's.
@@ -41,6 +54,7 @@ internal static class StudioModule
             .WithTags("Studio")
             .RequireAuthorization(StudioSession.Policy);
         StudioSessionEndpoints.Map(studio);
+        StudioLibraryEndpoints.Map(studio);
         return api;
     }
 }

@@ -212,6 +212,9 @@ secrets:
   #   <infra.postgres.passwordKey>       the database password (not with external.connectionStringKey)
   #   <external.connectionStringKey>     the whole connection string, when set
   #   telemetry-operator-token           optional: token for the telemetry report (ADR 0015)
+  #   studio-storage-service-url, studio-storage-bucket, studio-storage-access-key, studio-storage-secret-key,
+  #   studio-storage-public-base-url     optional: the Asset Studio's object storage, Studio:Storage:* (ADR 0051);
+  #                                      without the first four the Studio's library answers 503 and the rest runs
   existingSecret: ""
   # Otherwise the chart renders a Secret from these values. Nothing is generated: under GitOps the chart is rendered
   # with `helm template`, and a generated value would change on every render. For example:

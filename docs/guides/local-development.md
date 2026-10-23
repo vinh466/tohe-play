@@ -39,6 +39,7 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 | 4750 | PostgreSQL (bound to 127.0.0.1) — user `tohe`, password `tohe-dev-only`, database `tohe` |
 | 4760 | Mailpit — every email the API sends locally, in a web UI ([ADR 0022](../decisions/0022-send-transactional-email-through-an-outbox.md)) |
 | 4761 | Mailpit's SMTP port, which `pnpm dev`'s API sends to (start it with `docker compose up -d mailpit`) |
+| 4770 | SeaweedFS's S3 gateway (bound to 127.0.0.1): the [Asset Studio](../architecture/asset-studio.md)'s object storage, bucket `tohe-studio`, key `tohe` / `tohe-dev-only` |
 
 ## Mode A — hot reload (day-to-day)
 
@@ -52,6 +53,10 @@ Open <http://localhost:4720/play> (under compose the root, <http://localhost:472
 A new device plays as a device profile at once, with no sign-in screen. To sign up, use the "Đăng nhập" strip on the catalog
 and "Tạo tài khoản": any email and a password of 8+ characters (the code arrives in Mailpit,
 <http://localhost:4760>); add a child profile under "Quản lý tài khoản".
+
+The Asset Studio's library needs its object storage: `docker compose up -d seaweedfs` as well. Without it the API
+starts all the same, and the Studio's library answers `503` or fails to reach the storage
+([The library in the API](../architecture/asset-studio.md#the-library-in-the-api)).
 
 `pnpm dev` builds the games once at start. After changing a game, rebuild it and the games origin picks it up:
 
@@ -68,7 +73,7 @@ pnpm --filter @tohe/game-hello dev:standalone    # http://localhost:4731
 ## Mode B — production-like containers
 
 ```sh
-docker compose up --build -d    # postgres, mailpit, api, hub, games, docs
+docker compose up --build -d    # postgres, mailpit, seaweedfs, api, hub, games, docs
 ```
 
 Same URLs as above. Images are the ones production will use (Caddy + chiseled .NET). Stop with
@@ -158,6 +163,18 @@ no scores, and the command says so. Run it again then.
 set it, never UAT's configuration or the chart. `pnpm seed` asks for `Development` only for its own single command, in
 the `tohe` and `tohe-image` projects, never in `tohe-uat`; a UAT container asked the same way still refuses. The
 passwords are public, so a database that holds real people must never have these accounts.
+
+## The Asset Studio's storage
+
+`compose.yaml`'s `seaweedfs` service is SeaweedFS (`chrislusf/seaweedfs`, Apache-2.0) with its S3 gateway on
+<http://localhost:4770>, a bucket `tohe-studio` made when it starts, and its data in the volume `seaweedfs-data`. The
+API reaches it with the development-only key `tohe` / `tohe-dev-only` (`appsettings.Development.json` under `pnpm dev`,
+`compose.yaml` in Mode B), the same kind of default as the database's password. Anyone may read `blobs/` and `packs/`
+without a key, as the public library in production; drafts and style samples need the key.
+
+A game can build against it: `TOHE_ASSETS_REGISTRY=http://localhost:4770/tohe-studio pnpm assets:resolve`
+([Use assets in a game](use-assets-in-a-game.md)). The API's tests start a SeaweedFS of their own (Testcontainers), never
+this one.
 
 ## Everyday commands
 

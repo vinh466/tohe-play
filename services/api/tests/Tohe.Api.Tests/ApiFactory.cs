@@ -105,6 +105,9 @@ public sealed class ApiFactory : WebApplicationFactory<Program>, IAsyncLifetime
         builder.UseSetting("Email:DeliveryEnabled", "false");
         // Tests replay ranked runs by hand (RankedReplays.RunAsync), not on a timer.
         builder.UseSetting("Integrity:Replays", "false");
+        // Tests remove the Studio's expired drafts themselves (StudioDraftCleanup.RunAsync). No storage here:
+        // StudioLibrary.WithStorage adds a SeaweedFS of the test's own.
+        builder.UseSetting("Studio:DraftCleanupEnabled", "false");
         builder.ConfigureTestServices(services => services.AddSingleton<ISmtpTransport>(Smtp));
         builder.ConfigureServices(services =>
         {
