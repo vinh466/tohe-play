@@ -462,6 +462,47 @@
           "share"
         ]
       }
+    },
+    "assets": {
+      "description": "Asset packs the game pins (ADR 0053): pack id → exact version and delivery; the build ships them in studio/",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z][a-z0-9-]{1,38}[a-z0-9]$"
+      },
+      "additionalProperties": {
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": "string",
+            "pattern": "^\\d+\\.\\d+\\.\\d+(?:-[0-9A-Za-z.-]+)?$",
+            "description": "The pack version, exact semver — never a range"
+          },
+          "delivery": {
+            "type": "string",
+            "enum": [
+              "bundle"
+            ],
+            "description": "How the pack reaches the device; only \"bundle\" for now (ADR 0051)"
+          },
+          "include": {
+            "description": "Globs of asset ids to take from the pack; without it, the whole pack",
+            "minItems": 1,
+            "maxItems": 50,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 100
+            }
+          }
+        },
+        "required": [
+          "version",
+          "delivery"
+        ],
+        "additionalProperties": false
+      }
     }
   },
   "required": [

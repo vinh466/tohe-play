@@ -12,7 +12,7 @@ requires an [ADR](../decisions/index.md) and a protocol version decision (see [V
 
 **A game declares what it depends on** ([ADR 0050](../decisions/0050-a-game-declares-what-it-depends-on.md)). Every way a
 game leans on the platform — services (`capabilities`), who may open it (`identity`), ways in (`entries`), screen
-(`orientation`, `themes`), size (`sizeBudgetKb`) — is a field of `game.json` with levels the platform offers. Without a
+(`orientation`, `themes`), size (`sizeBudgetKb`), asset packs (`assets`) — is a field of `game.json` with levels the platform offers. Without a
 declaration a game depends on nothing but the protocol. The platform provides each level, keeps guardrails no
 declaration changes (the sandbox, the CSP, immutable builds, nothing but Tò He's own origins), and conformance checks
 exactly the levels a game declared.
@@ -26,10 +26,13 @@ dist/
 ├── game.json        manifest (below)
 ├── index.html       entry
 ├── icon.svg         optional icon
-└── assets/…
+├── assets/…
+└── studio/          only with `assets` in game.json: the packs' files by hash, lock.json, credits.json
 ```
 
-- All URLs must be **relative** (`./assets/x.js`): builds are served from `/<id>/<version>/`.
+- All URLs must be **relative** (`./assets/x.js`): builds are served from `/<id>/<version>/`, and a request outside
+  that folder fails conformance.
+- `studio/` belongs to the asset packs the game declares ([Assets](#assets)); without `assets`, a build has none.
 - The folder is published as an **immutable** build. A change means a new `version`.
 
 ## 2. The manifest — `game.json`
@@ -57,6 +60,7 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `ranked` | object | — | A one-player game whose runs the server replays ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)); required with the `ranked` capability, which needs `scores` too. See [Ranked runs](#ranked-runs). |
 | `identity` | object | — | What the game asks of its player ([ADR 0045](../decisions/0045-games-declare-identity-and-entries.md)): `play` — `any` (default), `named` or `account`, what opening it asks for, at a table too; `rooms` — `named` (default) or `account`, the least a table of it asks for, only with `rooms`. See [Entries and identity](#entries-and-identity). |
 | `entries` | `["share"]` | — | The kinds of entry the game opens itself ("entry" as in ADR 0044, not the `entry` file above). With `share`, the build ships `entries/share.json`. See [Entries and identity](#entries-and-identity). |
+| `assets` | map | — | The asset packs the game pins ([ADR 0053](../decisions/0053-assets-in-the-game-contract.md)): a pack id (`a-z`, digits, `-`; 3–40) → `{ version, delivery, include? }`, at most 20. The build ships them in `studio/`. See [Assets](#assets). |
 
 ### Names and descriptions per language
 
@@ -221,6 +225,43 @@ if (session.canShare) await session.share({ payload: { v: 1, seed, score }, text
 await session.identity.require('named', 'others'); // session.profile is up to date when it resolves
 ```
 
+### Assets
+
+[ADR 0053](../decisions/0053-assets-in-the-game-contract.md). A game that uses pictures, sounds or fonts from the
+[Asset Studio](../architecture/asset-studio.md) declares the packs in `game.json` and ships them pinned by hash: nothing
+about a built game changes afterwards ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)).
+
+```json
+"assets": {
+  "farm-crops": { "version": "1.0.0", "delivery": "bundle" },
+  "farm-tiles": { "version": "2.1.0", "delivery": "bundle", "include": ["ground/*", "fence/*"] }
+}
+```
+
+| Field | Means |
+| --- | --- |
+| key | a pack id (`a-z`, digits, `-`; 3–40), at most 20 packs |
+| `version` | the pack version, exact semver — never a range |
+| `delivery` | `bundle`: the files are in the build and count against `sizeBudgetKb`. The only value for now; `precache` and `on-demand` come later as new values (ADR 0051) |
+| `include` | optional: 1–50 globs of asset ids (each 1–100 chars); without it, the whole pack |
+
+- **The lock** — `assets.lock.json`, next to `game.json` — pins, per pack, its version, the sha256 of its manifest in
+  the Studio, and for each file its asset id, kind, sha256, extension, bytes, SPDX licence and attribution. It is
+  generated (`pnpm assets:resolve`) and committed; the build reads only the lock, never resolves anew. JSON Schema:
+  [`assets-lock.schema.json`](../../packages/contract/schema/assets-lock.schema.json).
+- **`studio/`** in the build holds every asset file the game uses, named `<sha256>.<ext>`, copied as it is (no atlases
+  yet); `lock.json`, a copy of `assets.lock.json`; and `credits.json`.
+- **The credits** — `studio/credits.json` — list every pack with its licences and, for every file whose licence asks for
+  it, the attribution. The game shows them, through the kit. JSON Schema:
+  [`asset-credits.schema.json`](../../packages/contract/schema/asset-credits.schema.json).
+- **Licences** the Studio accepts: `CC0-1.0`, `CC-BY-4.0`, `CC-BY-SA-4.0`, `OFL-1.1`, `MIT`, `BSD-2-Clause`,
+  `BSD-3-Clause`, `Apache-2.0` and `LicenseRef-Tohe-Internal`. Every one but `CC0-1.0` and `LicenseRef-Tohe-Internal`
+  needs an attribution. `@tohe/contract` exports them as `ACCEPTED_ASSET_LICENCES` and `licenceNeedsAttribution()`.
+- **The game's code** reaches its files through `src/assets.gen.ts`, generated from the lock: typed keys, URLs relative
+  to the build. It comes with the build tool (`assets:resolve`, the cache, the copy into `studio/`), which follows in a
+  pull request of its own; so do the kit's pack loader and credits screen.
+- What decides a table's rules or a ranked run (numbers, recipes) is in the game's code, never in an asset.
+
 ## 3. Runtime rules
 
 A game **must**:
@@ -347,8 +388,8 @@ pnpm --filter @tohe/game-<id> build
 pnpm --filter @tohe/game-<id> conformance     # = tohe-conformance dist
 ```
 
-The kit serves the build on its own origin **with the production CSP**, embeds it in a fake hub on a second
-origin, and checks:
+The kit serves the build on its own origin under its folder, `/<id>/<version>/`, as the games origin does, **with the
+production CSP**, embeds it in a fake hub on a second origin, and checks:
 
 1. `game.json` is valid; entry and icon exist; the build fits `sizeBudgetKb`;
 2. the handshake (`ready` → `init`) completes within 10 s;
@@ -356,7 +397,9 @@ origin, and checks:
    change, which switches to a theme the game did not start in;
 4. in every theme listed in `themes`, its text meets WCAG AA contrast (axe-core; text drawn on a canvas is not
    checked), and a game that lists both looks different in each;
-5. no console errors or uncaught exceptions, no requests outside the game origin, no protocol errors;
+5. no console errors or uncaught exceptions, no protocol errors, and **no requests outside the game's folder**: only
+   to `/<id>/<version>/` on the game's origin, to the hub's origin, and to `data:` and `blob:` URLs — a request to any
+   other path of the game's origin (another game, the origin's root) fails the check (ADR 0053);
 6. with `init.telemetry` on, as in the hub, its `telemetry` messages stay within budget: about one a minute plus one
    per pause, each at most 8 KB;
 7. with `rooms`: the rules module exists, is at most 256 KB and mentions no browser API, loads on its own with every
@@ -386,6 +429,12 @@ origin, and checks:
    opened with hostile payloads (`null`, a string, wrong types, deep nesting, close to 2 KB) it answers `invalid` or
    `unsupported` within 3 s and shows its title screen. Under the random input of check 3 the fake hub answers
    `identity.require` with `declined` and `share` with `cancelled`, and the game plays on. No errors anywhere.
+11. with `assets` ([ADR 0053](../decisions/0053-assets-in-the-game-contract.md)): `studio/lock.json` is a valid lock
+   whose packs and versions are exactly those of `assets`; every file in `studio/` is named `<sha256>.<ext>`, its
+   content hashes to that name, and it is in the lock, and every file of the lock is in `studio/`; every licence in the
+   lock is one the Studio accepts, a file whose licence asks for credit has an attribution, and `studio/credits.json`
+   lists every pack of the lock with its version and licences and names every attribution the lock holds. Without
+   `assets` none of these run.
 
 It writes phone-sized screenshots to `test-results/conformance/`: `<id>.png` after the random input and
 `<id>-<theme>.png` per theme, `<id>-room.png` at a table, `<id>-replay.png` replaying a hand and
@@ -407,9 +456,12 @@ build — a game that answers at once would otherwise miss them.
   build that played the run; `identity`, `entries`, `init.entry`, `init.can`, `profile.kind` and the messages `entry`,
   `identity.require` and `share` (ADR 0045) — older hubs send no entry and answer neither request (the game sees `can`
   absent), and games that do not declare `entries` are opened as before; `names` and `descriptions` (ADR 0048), which
-  only the platform reads — a manifest without them shows `name` and `description` everywhere.
+  only the platform reads — a manifest without them shows `name` and `description` everywhere; and `assets` with the
+  build's `studio/` folder (ADR 0053) — a game without `assets` is built and checked as before.
 - The CSP is not the protocol: tightening it keeps the number when no game relies on what it takes away — the
-  conformance kit serves every game with the current one. Example: `form-action 'none'` (ADR 0040).
+  conformance kit serves every game with the current one. Example: `form-action 'none'` (ADR 0040). Likewise a check of
+  a rule already written: conformance fails a request outside the game's folder since ADR 0053; the runtime rules
+  always forbade it.
 - Anything a v1 game could trip over is a new protocol number. The hub then supports **N and N−1** side by side;
   games are migrated before N−1 is dropped.
 - The SDK follows semver independently; its major version changes only with the protocol.

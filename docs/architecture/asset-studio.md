@@ -94,7 +94,7 @@ with no idea of its own; a game may choose or make another, and its `SPEC.md` sa
 | Licence | Accepted |
 | --- | --- |
 | `CC0-1.0`, `CC-BY-4.0`, `OFL-1.1`, `MIT`, `BSD-2-Clause`, `BSD-3-Clause`, `Apache-2.0` | yes |
-| `CC-BY-SA-4.0` | the owner decides each case |
+| `CC-BY-SA-4.0` | the owner decides each case, when the pack is reviewed; a game's conformance accepts it once approved |
 | `LicenseRef-Tohe-Internal` | for what is made for Tò He, until the repository has a licence |
 | NC, ND, "free for personal use", unknown | never |
 
@@ -117,12 +117,16 @@ shipping images in 2025.
 
 ## Building a game with assets
 
-1. The game declares packs in `game.json` (the Game Contract's side comes with ADR 0053).
+1. The game declares packs in `game.json` ([Game Contract, Assets](../contracts/game-contract-v1.md#assets),
+   [ADR 0053](../decisions/0053-assets-in-the-game-contract.md)).
 2. `pnpm assets:resolve` reads each version's manifest, writes `assets.lock.json` (every file's sha256, bytes, licence
    and attribution) and `src/assets.gen.ts` (typed keys). Both are generated files.
 3. The build reads only the lock — never resolves anew — fetches files by hash through a cache shared by every worktree
-   on the machine (and CI's cache), checks each hash, packs the files the game uses into atlases, writes them under
-   `dist/studio/`, and writes `dist/credits.json`. `--offline` fails naming what is missing.
+   on the machine (and CI's cache), checks each hash, and copies the files the game uses as they are to
+   `dist/studio/<sha256>.<ext>`, with `dist/studio/lock.json` (a copy of the lock) and `dist/studio/credits.json`.
+   `--offline` fails naming what is missing. Packing files into atlases is a later optimisation (ADR 0053).
+4. Conformance checks the lock against `assets`, every file in `studio/` against the lock by hash, and the licences
+   and credits.
 
 ## The Studio app
 

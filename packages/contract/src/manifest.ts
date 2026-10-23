@@ -1,13 +1,11 @@
 import { z } from 'zod';
+import { GameAssets } from './assets.ts';
+import { GameId, SemVer } from './ids.ts';
 
 /** Current Game Contract protocol version. See docs/contracts/game-contract-v1.md. */
 export const PROTOCOL_VERSION = 1;
 
-export const GameId = z
-  .string()
-  .regex(/^[a-z][a-z0-9-]{1,38}[a-z0-9]$/, 'lowercase letters, digits and dashes; 3-40 chars');
-
-export const SemVer = z.string().regex(/^\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?$/, 'semantic version, e.g. 1.2.0');
+export { GameId, SemVer } from './ids.ts';
 
 /**
  * What a game uses: `save`, `scores`, `rooms` (online tables, ADR 0016), `shell` (it draws its own main menu and
@@ -260,6 +258,9 @@ export const GameManifest = z
       .describe(
         'Kinds of entry the game opens itself (ADR 0045); with "share", the build ships entries/share.json',
       ),
+    assets: GameAssets.optional().describe(
+      'Asset packs the game pins (ADR 0053): pack id → exact version and delivery; the build ships them in studio/',
+    ),
   })
   .strict()
   .superRefine((manifest, context) => {
