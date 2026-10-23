@@ -7,7 +7,7 @@ sidebar:
 
 Tò He is for children and their parents in Việt Nam. It should feel like a toy someone made, not a template. Research
 behind this page: `plans/launch-review/research/R-07-ai-style.md` (the tells of machine-made interfaces and copy, and
-what products for children do instead). Decision: `plans/launch-review/items/D-07-visual-direction-and-voice.md`.
+what products for children do instead). Decision: [ADR 0049](../decisions/0049-a-crafted-toy-voice-and-look.md).
 
 ## Voice
 

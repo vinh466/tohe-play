@@ -12,7 +12,10 @@ sidebar:
   ([Hosts and paths](../architecture/hosts-and-paths.md)) ends.
 - **Refined:** 2026-10-23, after the launch review's surface round (plans/launch-review, F1): a public page opened from
   the app shows no link out of Tò He (below, *Ways across both directions* and the consequences), *Chơi ngay* is built in
-  every header, and *Chơi tiếp* means the device has opened a game.
+  every header, and *Chơi tiếp* means the device has opened a game. Refined again 2026-10-24 by the owner's answers to
+  E-07 ("chốt theo đề xuất"): updates also apply while the app is out of sight on a frame screen (below, *Updates
+  wait*); the splash screen takes the brand colour; the turn-the-phone layer stays the answer to portrait games held
+  sideways.
 - **Decided by:** the owner, 2026-10-22, in the launch review (plans/launch-review D-02, D-04, D-05): "D-02 D-04 chọn
   B"; "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi … nên nếu
   lên vấn đề này như 1 topic và nói tình hình hiện tại". Points the agent proposed are marked *(agent)*;
@@ -136,9 +139,13 @@ A layout route wraps every screen of the Play zone except a game in play.
   an account's profiles; a device profile, which has none, joins by code or link *(agent)*.
 - **An ended session says so** ("your session has ended — sign in again to play on your account") instead of falling
   back to the device's profile in silence.
-- **Updates wait** *(agent)*: a new version takes over at the next cold start; in a long session, *A new version —
-  Reload* shows on the frame's screens, never during a game, at a table or in a replay. The router already reloads once if
-  a screen's file is missing; this removes even that.
+- **Updates wait** *(agent; refined 2026-10-24)*: a new version takes over at the next cold start, or when the app goes
+  out of sight (`visibilitychange` to hidden) while it shows a screen of the frame — never in a game, at a table or in a
+  replay — so the player comes back to the same screen in the new version and never sees it happen; in a long session in
+  sight, *A new version — Reload* shows on the frame's screens with a visible *Để sau* / *Later*. The router already
+  reloads once if a screen's file is missing; this removes even that.
+- **The splash screen** an installed app shows while it starts takes the brand colour (`background_color` in the
+  manifest), in light and dark alike: Android draws it from the manifest before any page exists *(agent; 2026-10-24)*.
 - **Links when installed**: `launch_handler` `focus-existing` where supported (Chromium); on iPhone, where a link opens
   Safari and not the installed app, entry pages say "Installed Tò He? Open it → Enter the code ABCD-EFGH".
 - The installed app asks for persistent storage (`navigator.storage.persist()`); returning visits are counted as totals,

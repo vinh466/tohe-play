@@ -62,3 +62,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0046](0046-player-surfaces-two-zones-one-frame.md) | Lay out the players' surfaces as two zones in one frame, and name the planes | Accepted; arrives in steps |
 | [0047](0047-two-languages-and-an-introduction-surface-that-grows.md) | Speak Vietnamese first and English second, and grow the introduction surface from one source per game | Accepted; arrives in steps; game names and descriptions per language settled by 0048 |
 | [0048](0048-a-standard-name-and-words-per-language-for-each-game.md) | Give each game a standard name, and a name and a description per language when it has them | Accepted |
+| [0049](0049-a-crafted-toy-voice-and-look.md) | Make Tò He look and talk like a toy someone made: one icon set, its own type, a tò he palette, drawn pictures | Accepted; S1 in place, S2 building, S3 waits for the pictures |
