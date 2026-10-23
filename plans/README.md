@@ -18,6 +18,7 @@ it goes straight to a doc change or an ADR.
 | public-launch | Tò He ready to open to the public: user-first accounts and profiles, email and OAuth sign-in, a platform admin, an integrity engine for trustworthy leaderboards, and its own Helm chart for production | Close (the rest moved to product-surface) | [PLAN.md](public-launch/PLAN.md) |
 | product-surface | Phase 1 after production: the development, test and environment flow written as spec; every component's place on the domain; public pages people and AI can find; a newcomer plays in seconds and is led to install the app and sign up | Close (E-05 → `launch-review` E-01) | [PLAN.md](product-surface/PLAN.md) |
 | launch-review | Product surfaces before the official launch: wave 1 designs and builds the layout and UX for players, the introduction surface, SEO, GEO and how it scales; wave 2 reviews screens, flows, copy, terms and the gate | Graduate (wave 1) | [PLAN.md](launch-review/PLAN.md) |
+| asset-studio | A Studio where agents (mostly) and people make, review and manage game assets centrally; games declare which packs, versions and delivery mode they use, the platform provides and keeps the guardrails; a farming slice proves it | Graduate (14 of 15 decided, 1 deferred; delivery.md) | [PLAN.md](asset-studio/PLAN.md) |
 
 ## What a plan space is — and is not
 
