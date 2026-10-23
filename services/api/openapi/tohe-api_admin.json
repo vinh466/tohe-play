@@ -1781,6 +1781,94 @@
           }
         }
       }
+    },
+    "/api/admin/studio/members": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Every account with a studio role, reviewers first, then the latest given.",
+        "operationId": "GetAdminStudioMembers",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StudioMemberView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Give a studio role — or change it — to an account named by its email or its id.",
+        "operationId": "GrantAdminStudioRole",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/GrantStudioRoleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioMemberView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/admin/studio/members/{accountId}": {
+      "delete": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Take a studio role away: the account's Studio session ends at its next request.",
+        "operationId": "RevokeAdminStudioRole",
+        "parameters": [
+          {
+            "name": "accountId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "204": {
+            "description": "No Content"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3362,6 +3450,35 @@
           }
         }
       },
+      "GrantStudioRoleRequest": {
+        "required": [
+          "email",
+          "accountId",
+          "role"
+        ],
+        "type": "object",
+        "properties": {
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "accountId": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "role": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "Growth": {
         "required": [
           "total",
@@ -4125,6 +4242,54 @@
           }
         }
       },
+      "StudioMemberView": {
+        "required": [
+          "accountId",
+          "email",
+          "displayName",
+          "role",
+          "twoFactorEnabled",
+          "grantedAt",
+          "grantedBy",
+          "grantedByName"
+        ],
+        "type": "object",
+        "properties": {
+          "accountId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "email": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "role": {
+            "type": "string"
+          },
+          "twoFactorEnabled": {
+            "type": "boolean"
+          },
+          "grantedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "grantedBy": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "grantedByName": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "SuspendRequest": {
         "required": [
           "reason"
@@ -4305,6 +4470,9 @@
     },
     {
       "name": "Agents"
+    },
+    {
+      "name": "Studio"
     }
   ]
 }

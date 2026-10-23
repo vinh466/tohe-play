@@ -13,6 +13,8 @@ const actions: Record<string, string> = {
   'agent.disable': 'Tắt agent',
   'agent.token.create': 'Cấp token cho agent',
   'agent.token.revoke': 'Thu hồi token của agent',
+  'studio.member.grant': 'Cấp vai trò Studio',
+  'studio.member.revoke': 'Gỡ vai trò Studio',
   'console.open': 'Mở bảng quản trị',
   'two-factor.enable': 'Bật xác thực hai lớp',
   'two-factor.disable': 'Tắt xác thực hai lớp',

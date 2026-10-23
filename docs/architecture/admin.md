@@ -8,10 +8,11 @@ sidebar:
 Decisions: [ADR 0027](../decisions/0027-platform-admin-and-the-first-owner.md),
 [ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md),
 [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md),
+[ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md),
 [ADR 0052](../decisions/0052-agent-tokens-and-the-scopes-no-agent-gets.md). This page describes what exists: the
 console's app and API on a host of its own, its sign-in and session, roles and permissions, the first owner's setup,
-two-factor authentication, the audit log, the read-only pages, the users, sign-in and registration with communities, and
-agents with their tokens.
+two-factor authentication, the audit log, the read-only pages, the users, sign-in and registration with communities,
+agents with their tokens, and the Studio's members.
 
 ## Where it lives
 
@@ -28,7 +29,7 @@ flowchart LR
   site -- "/api/admin/* only" --> api["API: Admin module<br/>the console's session alone"]
   api -- "the role, on every request" --> claims[("identity.account_claims")]
   api -- "settings, audit log" --> admin[("admin.settings<br/>admin.audit_log")]
-  api -- "what each module tells" --> modules["Identity, Progress, Rooms,<br/>Registry, Email, Telemetry, Agents"]
+  api -- "what each module tells" --> modules["Identity, Progress, Rooms,<br/>Registry, Email, Telemetry, Agents, Studio"]
 ```
 
 - **`apps/console`** — React with TanStack Router and Query and the design tokens; desktop first, usable on a phone. It
@@ -121,6 +122,7 @@ An account holds at most one platform role — `owner`, `admin`, `moderator` or 
 | `admin.results.review` | Review what the integrity engine held: approve, reject, reopen ([Review](#review)) | owner, admin, moderator |
 | `admin.agents.read` | See agents, their tokens — never a token itself — and each agent's audit ([Agent tokens](agent-tokens.md)) | owner, admin |
 | `admin.agents.write` | Create and disable agents, make and revoke their tokens | owner |
+| `admin.studio.write` | Give and take studio roles ([Asset Studio](asset-studio.md#members-and-the-studios-session)) | owner |
 
 A permission to change something new arrives with the page that changes it, given to the roles that should hold it.
 
@@ -251,6 +253,7 @@ entries.
 | `console.open` | A sign-in to the console, with how: `authenticator` or `recovery-code` |
 | `agent.create`, `agent.disable` | An agent made, or disabled — how many tokens that revoked in the details ([Agent tokens](agent-tokens.md)) |
 | `agent.token.create`, `agent.token.revoke` | A token made for an agent — its id, scopes and expiry in the details, never the token — or revoked |
+| `studio.member.grant`, `studio.member.revoke` | A studio role given or changed — the role, and the one before, in the details — or taken away ([Asset Studio](asset-studio.md#members-and-the-studios-session)) |
 
 ## Users
 
@@ -367,6 +370,7 @@ It exits with 0 when done, 1 when no account signs in with the address, 2 for a 
 | Link chia sẻ, `/links?code=` | A share link found by its code: its game, level, maker, state, uses and every count by day; revoking it | `ShareLinksAdmin` ([Entry links](entry-links.md#the-console)) |
 | Cộng đồng, `/communities` | Communities with how many accounts came with each, their invite codes and links; new ones, revoking | `CommunitiesAdmin` |
 | Đăng nhập & đăng ký, `/settings` | Each sign-in method and who relies on it alone; the registration mode; switching both | `RuntimeSettings`, `IdentityFacts` |
+| Studio, `/studio` | Who holds a studio role — `contributor` or `reviewer` — whether a reviewer can sign in (two-factor on), who gave it and when; giving one by email, changing it, taking it away ([Asset Studio](asset-studio.md#in-the-console)) | `studio.members`, Identity's accounts |
 | Agent, `/agents` | Agents, their tokens and each agent's audit; making and disabling agents, making a token — shown once — and revoking one ([Agent tokens](agent-tokens.md#in-the-console)) | `agents.agents`, `agents.tokens`, `agents.audit` |
 | Nhật ký, `/audit` | The audit log, newest first, a page at a time | `admin.audit_log` |
 | Bảo mật, `/security` | The account's two-factor authentication: until when this console session lasts, recovery codes left; new recovery codes, or turning it off | Identity's two-factor stores |
@@ -434,6 +438,8 @@ three failures in a row without anyone opening the page.
 | `GET /api/admin/agents/{id}/audit?before=&limit=50` | `admin.agents.read` | A page of the agent's audit, newest first |
 | `POST /api/admin/agents` · `POST /api/admin/agents/{id}/disable` | `admin.agents.write`, step-up | A new agent · disable one, revoking its tokens |
 | `POST /api/admin/agents/{id}/tokens` · `POST /api/admin/agents/{id}/tokens/{tokenId}/revoke` | `admin.agents.write`, step-up | A new token, in this answer once · revoke one |
+| `GET /api/admin/studio/members` | `admin.users.read` | Every account with a studio role, reviewers first |
+| `POST /api/admin/studio/members` · `DELETE /api/admin/studio/members/{accountId}` | `admin.studio.write`, step-up | Give a studio role — or change it — to an account named by its email or its id · take it away |
 
 Every one of them answers on the console's host alone; anywhere else, `404`.
 
@@ -441,12 +447,13 @@ In the hub, behind the players' session: `GET /api/account/two-factor` (on or no
 (a new key) and `/enable` (its first code turns it on; the recovery codes once) — for an account with a platform role
 and a password, the last two within step-up level 2.
 
-Refusals: 401 without a console session, or `invalid_credentials` from the sign-in; 403 `admin_required`,
+Refusals: 401 without a console session, or `invalid_credentials` from the sign-in; 404 `account_not_found`,
+`studio_member_not_found`; 403 `admin_required`,
 `step_up_required`, `password_invalid`, `account_suspended`, `account_deleting`, `email_required`, `setup_token_invalid`,
 `setup_email_not_allowed`, `admin_self`, `admin_rank`; 429 `locked_out`;
 409 `setup_closed`, `two_factor_enabled`, `password_required`, `authenticator_not_set_up`, `last_owner`, `settings_last_method`,
 `settings_lockout_self`, `community_exists`, `invite_code_exists`, `review_not_allowed`, `agent_exists`, `agent_disabled`; 400 with field codes `code_invalid`, `code_used`,
 `locked_out`, `reason_required`, `reason_too_long`, `role_invalid`, `registration_invalid`, `method_unknown`,
 `invite_code_invalid`, `max_uses_invalid`, `expires_in_past`, `note_too_long`, `scopes_required`, `scope_unknown`,
-`days_invalid` and the name rules'.
+`days_invalid`, `account_required` and the name rules'.
 Generated reference: [Admin API](/reference/admin-api/).

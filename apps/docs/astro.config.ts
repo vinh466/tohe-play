@@ -60,6 +60,12 @@ export default defineConfig({
             schema: '../../services/api/openapi/tohe-api_admin.json',
             sidebar: { label: 'Admin API (generated)' },
           },
+          {
+            // The Asset Studio's API, a document of its own (ADR 0051).
+            base: 'reference/studio-api',
+            schema: '../../services/api/openapi/tohe-api_studio.json',
+            sidebar: { label: 'Studio API (generated)' },
+          },
         ]),
         starlightLlmsTxt({ projectName: 'Tò He' }),
       ],

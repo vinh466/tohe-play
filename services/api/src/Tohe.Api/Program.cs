@@ -14,6 +14,7 @@ using Tohe.Api.Modules.Platform;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
 using Tohe.Api.Modules.Rooms;
+using Tohe.Api.Modules.Studio;
 using Tohe.Api.Modules.Telemetry;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -46,6 +47,7 @@ builder.AddTelemetryModule();
 builder.AddRoomsModule();
 builder.AddLinksModule();
 builder.AddAgentsModule();
+builder.AddStudioModule();
 builder.AddAdminModule();
 
 var app = builder.Build();
@@ -97,6 +99,7 @@ api.MapIntegrityEndpoints();
 api.MapTelemetryEndpoints();
 api.MapRoomsEndpoints(app);
 api.MapLinksEndpoints();
+api.MapStudioEndpoints();
 api.MapAdminEndpoints();
 
 await app.RunAsync();

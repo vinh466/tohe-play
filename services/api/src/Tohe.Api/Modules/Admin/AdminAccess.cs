@@ -43,15 +43,18 @@ internal static class AdminPermissions
     /// <summary>Make and disable agents, make and revoke their tokens (ADR 0052): the owner alone.</summary>
     public const string AgentsWrite = "admin.agents.write";
 
+    /// <summary>Give and take studio roles (ADR 0051): the owner alone.</summary>
+    public const string StudioWrite = "admin.studio.write";
+
     /// <summary>
-    /// What each role may: owners everything, admins all but roles and changing agents, moderators find accounts and
-    /// rename profiles, viewers read. A permission to change something new arrives with its page, given here to the
-    /// roles that hold it.
+    /// What each role may: owners everything, admins all but roles, changing agents and studio roles, moderators find
+    /// accounts and rename profiles, viewers read. A permission to change something new arrives with its page, given here
+    /// to the roles that hold it.
     /// </summary>
     public static IReadOnlyList<string> Of(PlatformRole? role) => role switch
     {
         null => [],
-        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate, SettingsWrite, ResultsReview, AgentsRead, AgentsWrite],
+        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate, SettingsWrite, ResultsReview, AgentsRead, AgentsWrite, StudioWrite],
         PlatformRole.Admin => [Read, AuditRead, UsersRead, UsersWrite, ProfilesModerate, SettingsWrite, ResultsReview, AgentsRead],
         PlatformRole.Moderator => [Read, UsersRead, ProfilesModerate, ResultsReview],
         _ => [Read],

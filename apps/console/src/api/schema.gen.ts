@@ -742,6 +742,41 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/studio/members": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every account with a studio role, reviewers first, then the latest given. */
+        get: operations["GetAdminStudioMembers"];
+        put?: never;
+        /** Give a studio role — or change it — to an account named by its email or its id. */
+        post: operations["GrantAdminStudioRole"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/studio/members/{accountId}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Take a studio role away: the account's Studio session ends at its next request. */
+        delete: operations["RevokeAdminStudioRole"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -1162,6 +1197,12 @@ export interface components {
             metrics: components["schemas"]["MetricSummary"][];
             counts: components["schemas"]["CountSummary"][];
         };
+        GrantStudioRoleRequest: {
+            email: null | string;
+            /** Format: uuid */
+            accountId: null | string;
+            role: null | string;
+        };
         Growth: {
             /** Format: int32 */
             total: number;
@@ -1366,6 +1407,19 @@ export interface components {
             registration: string;
             email: boolean;
             proofOfWork: boolean;
+        };
+        StudioMemberView: {
+            /** Format: uuid */
+            accountId: string;
+            email: null | string;
+            displayName: string;
+            role: string;
+            twoFactorEnabled: boolean;
+            /** Format: date-time */
+            grantedAt: string;
+            /** Format: uuid */
+            grantedBy: string;
+            grantedByName: null | string;
         };
         SuspendRequest: {
             reason: null | string;
@@ -2845,6 +2899,79 @@ export interface operations {
             };
             /** @description Not Found */
             404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetAdminStudioMembers: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioMemberView"][];
+                };
+            };
+        };
+    };
+    GrantAdminStudioRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["GrantStudioRoleRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioMemberView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    RevokeAdminStudioRole: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                accountId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description No Content */
+            204: {
                 headers: {
                     [name: string]: unknown;
                 };

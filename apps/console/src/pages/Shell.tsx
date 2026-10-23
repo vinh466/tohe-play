@@ -69,6 +69,7 @@ export function Shell() {
               ...(mayUsers ? [{ to: '/links', label: 'Link chia sẻ' } as const] : []),
               { to: '/communities', label: 'Cộng đồng' } as const,
               { to: '/settings', label: 'Đăng nhập & đăng ký' } as const,
+              ...(mayUsers ? [{ to: '/studio', label: 'Studio' } as const] : []),
               ...(mayAgents ? [{ to: '/agents', label: 'Agent' } as const] : []),
               ...(mayAudit ? [{ to: '/audit', label: 'Nhật ký' } as const] : []),
               { to: '/security', label: 'Bảo mật' } as const,

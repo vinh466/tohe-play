@@ -10,6 +10,7 @@ using Tohe.Api.Modules.Links;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
 using Tohe.Api.Modules.Rooms;
+using Tohe.Api.Modules.Studio;
 using Tohe.Api.Modules.Telemetry;
 
 namespace Tohe.Api.Infrastructure.Database;
@@ -85,6 +86,8 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
     public DbSet<AgentToken> AgentTokens => Set<AgentToken>();
 
     public DbSet<AgentAuditEntry> AgentAudit => Set<AgentAuditEntry>();
+
+    public DbSet<StudioMember> StudioMembers => Set<StudioMember>();
 
     /// <summary>Keys that encrypt session cookies; persisted so restarts and deploys keep people signed in.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
