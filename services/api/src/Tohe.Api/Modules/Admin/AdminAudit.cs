@@ -38,6 +38,17 @@ internal static class AuditActions
     /// <summary>A share link revoked from the console (ADR 0044).</summary>
     public const string LinkRevoke = "link.revoke";
 
+    /// <summary>An agent made in the console (ADR 0052).</summary>
+    public const string AgentCreate = "agent.create";
+
+    /// <summary>An agent disabled, every one of its tokens revoked with it.</summary>
+    public const string AgentDisable = "agent.disable";
+
+    /// <summary>A token made for an agent: its id, scopes and expiry in the details — never the token.</summary>
+    public const string AgentTokenCreate = "agent.token.create";
+
+    public const string AgentTokenRevoke = "agent.token.revoke";
+
     /// <summary>The console opened on a device: two-factor authentication passed.</summary>
     public const string ConsoleOpen = "console.open";
 

@@ -65,4 +65,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0049](0049-a-crafted-toy-voice-and-look.md) | Make Tò He look and talk like a toy someone made: one icon set, its own type, a tò he palette, drawn pictures | Accepted; S1 in place, S2 building, S3 waits for the pictures |
 | [0050](0050-a-game-declares-what-it-depends-on.md) | A game declares what it depends on; the platform provides it and keeps the guardrails | Accepted |
 | [0051](0051-an-asset-studio-for-game-assets.md) | Make game assets in a Studio of Tò He's own; games pin them at build time | Accepted; arrives in steps (plans/asset-studio) |
-| [0052](0052-agent-tokens-and-the-scopes-no-agent-gets.md) | Give agents named tokens with scopes, and keep a list of scopes no agent ever gets | Accepted; arrives with the Studio |
+| [0052](0052-agent-tokens-and-the-scopes-no-agent-gets.md) | Give agents named tokens with scopes, and keep a list of scopes no agent ever gets | Accepted; tokens in place, first scope used by the Studio |

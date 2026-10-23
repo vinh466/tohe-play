@@ -272,6 +272,7 @@ describe('the console’s host', () => {
     '/review/12',
     '/communities',
     '/links',
+    '/agents',
     '/settings',
     '/audit',
     '/security',
