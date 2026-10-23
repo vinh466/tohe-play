@@ -2028,6 +2028,141 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("results", "rooms");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioAsset", b =>
+                {
+                    b.Property<Guid>("VersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("version_id");
+
+                    b.Property<string>("AssetId")
+                        .HasMaxLength(100)
+                        .HasColumnType("character varying(100)")
+                        .HasColumnName("asset_id");
+
+                    b.Property<string>("Attribution")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("attribution");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("bytes");
+
+                    b.Property<string>("Ext")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("ext");
+
+                    b.Property<string>("Frames")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("frames");
+
+                    b.Property<int?>("Height")
+                        .HasColumnType("integer")
+                        .HasColumnName("height");
+
+                    b.Property<string>("Kind")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("kind");
+
+                    b.Property<string>("Licence")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("licence");
+
+                    b.Property<string>("Sha256")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sha256");
+
+                    b.Property<string>("Source")
+                        .IsRequired()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("source");
+
+                    b.PrimitiveCollection<string[]>("Tags")
+                        .IsRequired()
+                        .HasColumnType("text[]")
+                        .HasColumnName("tags");
+
+                    b.Property<DateTimeOffset?>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.Property<int?>("Width")
+                        .HasColumnType("integer")
+                        .HasColumnName("width");
+
+                    b.HasKey("VersionId", "AssetId")
+                        .HasName("pk_assets");
+
+                    b.HasIndex("Sha256")
+                        .HasDatabaseName("ix_assets_sha256");
+
+                    b.ToTable("assets", "studio", t =>
+                        {
+                            t.HasCheckConstraint("ck_assets_kind", "kind IN ('image', 'spritesheet', 'tileset', 'audio', 'font', 'palette')");
+                        });
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioAuditEntry", b =>
+                {
+                    b.Property<long>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bigint")
+                        .HasColumnName("id");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
+
+                    b.Property<Guid?>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<string>("Action")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("action");
+
+                    b.Property<Guid?>("AgentId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("agent_id");
+
+                    b.Property<DateTimeOffset>("At")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("at");
+
+                    b.Property<string>("Details")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("details");
+
+                    b.Property<string>("Target")
+                        .IsRequired()
+                        .HasMaxLength(120)
+                        .HasColumnType("character varying(120)")
+                        .HasColumnName("target");
+
+                    b.Property<Guid?>("VersionId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("version_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_studio_audit");
+
+                    b.HasIndex("At")
+                        .HasDatabaseName("ix_audit_at");
+
+                    b.HasIndex("VersionId")
+                        .HasDatabaseName("ix_audit_version_id");
+
+                    b.ToTable("audit", "studio");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioMember", b =>
                 {
                     b.Property<Guid>("AccountId")
@@ -2055,6 +2190,255 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         {
                             t.HasCheckConstraint("ck_members_role", "role IN ('contributor', 'reviewer')");
                         });
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioPack", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByAccount")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_account");
+
+                    b.Property<Guid?>("CreatedByAgent")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_agent");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("description");
+
+                    b.Property<string>("StyleId")
+                        .IsRequired()
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("style_id");
+
+                    b.HasKey("Id")
+                        .HasName("pk_packs");
+
+                    b.HasIndex("StyleId")
+                        .HasDatabaseName("ix_packs_style_id");
+
+                    b.ToTable("packs", "studio", t =>
+                        {
+                            t.HasCheckConstraint("ck_packs_creator", "(created_by_agent IS NULL) <> (created_by_account IS NULL)");
+                        });
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioPackVersion", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByAccount")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_account");
+
+                    b.Property<Guid?>("CreatedByAgent")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_agent");
+
+                    b.Property<DateTimeOffset?>("DeprecatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("deprecated_at");
+
+                    b.Property<Guid?>("DeprecatedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("deprecated_by");
+
+                    b.Property<string>("ManifestSha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("manifest_sha256");
+
+                    b.Property<string>("PackId")
+                        .IsRequired()
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("pack_id");
+
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewed_by");
+
+                    b.Property<string>("Status")
+                        .IsConcurrencyToken()
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<DateTimeOffset?>("SubmittedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("submitted_at");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("Version")
+                        .IsRequired()
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("version");
+
+                    b.Property<string>("WithdrawReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("withdraw_reason");
+
+                    b.Property<DateTimeOffset?>("WithdrawnAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("withdrawn_at");
+
+                    b.Property<Guid?>("WithdrawnBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("withdrawn_by");
+
+                    b.HasKey("Id")
+                        .HasName("pk_pack_versions");
+
+                    b.HasIndex("CreatedByAccount")
+                        .HasDatabaseName("ix_pack_versions_created_by_account");
+
+                    b.HasIndex("CreatedByAgent")
+                        .HasDatabaseName("ix_pack_versions_created_by_agent");
+
+                    b.HasIndex("PackId", "Version")
+                        .IsUnique()
+                        .HasDatabaseName("ix_pack_versions_pack_id_version")
+                        .HasFilter("status IN ('approved', 'deprecated', 'withdrawn')");
+
+                    b.HasIndex("Status", "CreatedAt")
+                        .HasDatabaseName("ix_pack_versions_status_created_at");
+
+                    b.ToTable("pack_versions", "studio", t =>
+                        {
+                            t.HasCheckConstraint("ck_pack_versions_creator", "(created_by_agent IS NULL) <> (created_by_account IS NULL)");
+
+                            t.HasCheckConstraint("ck_pack_versions_status", "status IN ('draft', 'submitted', 'approved', 'rejected', 'deprecated', 'withdrawn')");
+                        });
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioStyle", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("id");
+
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("created_at");
+
+                    b.Property<Guid?>("CreatedByAccount")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_account");
+
+                    b.Property<Guid?>("CreatedByAgent")
+                        .HasColumnType("uuid")
+                        .HasColumnName("created_by_agent");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Outline")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("outline");
+
+                    b.PrimitiveCollection<string[]>("Palette")
+                        .HasColumnType("text[]")
+                        .HasColumnName("palette");
+
+                    b.Property<string>("Status")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("status");
+
+                    b.Property<int?>("TileSize")
+                        .HasColumnType("integer")
+                        .HasColumnName("tile_size");
+
+                    b.Property<DateTimeOffset>("UpdatedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("updated_at");
+
+                    b.Property<string>("View")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("view");
+
+                    b.HasKey("Id")
+                        .HasName("pk_styles");
+
+                    b.ToTable("styles", "studio", t =>
+                        {
+                            t.HasCheckConstraint("ck_styles_creator", "(created_by_agent IS NULL) <> (created_by_account IS NULL)");
+
+                            t.HasCheckConstraint("ck_styles_status", "status IN ('draft', 'approved')");
+
+                            t.HasCheckConstraint("ck_styles_view", "view IN ('top-down', 'side', 'isometric', 'other')");
+                        });
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioStyleSample", b =>
+                {
+                    b.Property<string>("StyleId")
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("style_id");
+
+                    b.Property<string>("Sha256")
+                        .HasMaxLength(64)
+                        .HasColumnType("character varying(64)")
+                        .HasColumnName("sha256");
+
+                    b.Property<long>("Bytes")
+                        .HasColumnType("bigint")
+                        .HasColumnName("bytes");
+
+                    b.Property<string>("Ext")
+                        .IsRequired()
+                        .HasMaxLength(8)
+                        .HasColumnType("character varying(8)")
+                        .HasColumnName("ext");
+
+                    b.Property<DateTimeOffset?>("UploadedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("uploaded_at");
+
+                    b.HasKey("StyleId", "Sha256")
+                        .HasName("pk_style_samples");
+
+                    b.ToTable("style_samples", "studio");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryDay", b =>
@@ -2612,6 +2996,16 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasConstraintName("fk_results_rooms_room_id");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioAsset", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Studio.StudioPackVersion", null)
+                        .WithMany()
+                        .HasForeignKey("VersionId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_assets_studio_pack_versions_version_id");
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioMember", b =>
                 {
                     b.HasOne("Tohe.Api.Modules.Identity.Account", null)
@@ -2620,6 +3014,36 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_members_accounts_account_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioPack", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Studio.StudioStyle", null)
+                        .WithMany()
+                        .HasForeignKey("StyleId")
+                        .OnDelete(DeleteBehavior.Restrict)
+                        .IsRequired()
+                        .HasConstraintName("fk_packs_studio_styles_style_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioPackVersion", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Studio.StudioPack", null)
+                        .WithMany()
+                        .HasForeignKey("PackId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_pack_versions_packs_pack_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioStyleSample", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Studio.StudioStyle", null)
+                        .WithMany()
+                        .HasForeignKey("StyleId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_style_samples_styles_style_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryRecord", b =>

@@ -10,7 +10,8 @@ Decisions: [ADR 0050](../decisions/0050-a-game-declares-what-it-depends-on.md),
 [ADR 0052](../decisions/0052-agent-tokens-and-the-scopes-no-agent-gets.md). This page describes the design; it arrives in
 steps, and each part says when it exists. **What runs** (2026-10-24): the Studio's members, its session and its
 permissions in the API, and giving and taking studio roles in the console ([Members and the Studio's
-session](#members-and-the-studios-session)). Packs, styles, storage, checks and the app come next.
+session](#members-and-the-studios-session)); styles, packs, drafts, review and the library in object storage in the API
+([The library in the API](#the-library-in-the-api)). The server's checks, the app and the CLI come next.
 
 ## The picture
 
@@ -74,9 +75,10 @@ A pack has a `style`, a description, and a **status** per version:
 stateDiagram-v2
   [*] --> draft
   draft --> draft: changed, checked again
-  draft --> approved: reviewer approves
-  draft --> rejected: reviewer rejects, with a reason
-  draft --> [*]: 30 days without review
+  draft --> submitted: its creator submits, checked again
+  draft --> [*]: 30 days without being submitted
+  submitted --> approved: reviewer approves, checked again
+  submitted --> rejected: reviewer rejects, with a reason
   approved --> deprecated: reviewer
   approved --> withdrawn: owner, second factor, reason
   deprecated --> withdrawn: owner, second factor, reason
@@ -108,9 +110,14 @@ generated from its lock.
 | What | Where |
 | --- | --- |
 | Styles, packs, versions, assets, reviews, the audit log | PostgreSQL, schema `studio`, module `Studio` of the API |
-| Draft files | object storage, `drafts/<draft>/<sha256>`, private |
-| Approved files | object storage, `blobs/sha256/<sha256>`, public to read |
-| A version's manifest | object storage, `packs/<id>/<version>.json`, written on approval, never changed |
+| Draft files | object storage, `drafts/<versionId>/<sha256>.<ext>`, private |
+| A style's sample pictures | object storage, `styles/<styleId>/<sha256>.<ext>`, private |
+| Approved files | object storage, `blobs/sha256/<sha256>.<ext>`, public to read |
+| A version's manifest | object storage, `packs/<id>/<version>.json`, public to read, written on approval, never changed |
+
+`blobs/` and `packs/` are the registry layout the build tool reads
+([Use assets in a game](../guides/use-assets-in-a-game.md#2-point-at-the-registry)); whatever serves the bucket to the
+public serves those two prefixes and nothing else of it.
 
 One library serves every environment: builds carry their files and are promoted by tag
 ([ADR 0041](../decisions/0041-promote-one-build-through-the-environments-by-tag.md)). Production's storage is Cloudflare
@@ -248,6 +255,133 @@ The Studio's routes are described by an OpenAPI document of their own, `studio` 
 Refusals: `401` without a Studio session, or `invalid_credentials` from the sign-in; `403 studio_required`,
 `step_up_required`, `account_suspended`, `account_deleting`; `429 locked_out`; `400` with the field codes `code_invalid`,
 `code_used`, `locked_out`, `account_required`, `role_invalid`; `404 account_not_found`, `studio_member_not_found`.
+
+## The library in the API
+
+*Runs.* The `Studio` module keeps styles and packs, takes drafts from agents and contributors, and lets a reviewer
+approve, reject and deprecate a pack version — and the owner withdraw one. Approving publishes the version's files by
+hash and its manifest to object storage, where builds read them ([Use assets in a game](../guides/use-assets-in-a-game.md)).
+The server's checks are a placeholder that passes everything until they arrive (`IStudioChecks`, called on every upload,
+on submitting and on approving).
+
+### Tables
+
+In the schema `studio`:
+
+| Table | Holds |
+| --- | --- |
+| `styles` | `id` (a slug, as a pack's id), `name`, `status` (`draft`, `approved`), `tile_size` (optional), `view` (`top-down`, `side`, `isometric`, `other`), `palette` (hex colours; none for a painted style), `outline` (a note), who made it — an agent or an account — and when |
+| `style_samples` | a style's sample pictures: `sha256`, `ext`, `bytes`, when uploaded |
+| `packs` | `id` (the pack's id), `style_id`, `description`, who made it and when |
+| `pack_versions` | `pack_id`, `version` (semver), `status`, who made it (`created_by_agent` or `created_by_account`), `submitted_at`; `reviewed_by`, `reviewed_at` and `reason` of the approval or rejection; `deprecated_by`/`_at`, `withdrawn_by`/`_at` and `withdraw_reason`; `manifest_sha256` once approved |
+| `assets` | per version and asset id: `kind`, `sha256`, `ext`, `bytes`, `width`, `height`, `frames` (`{width, height, count}`), `tags`, `licence` (SPDX), `attribution`, `source` (JSON) and when its file was uploaded |
+| `audit` | every action (below), with who: an agent or an account |
+
+**A draft belongs to who made it** — an agent (any of its tokens) or an account — and only they change it, upload its
+files or submit it. A pack is shared: anyone who may draft starts a version of any pack; the pack's style is fixed by
+its first draft. Two versions of a pack may be drafted with the same number; only one is ever published. No endpoint
+approves a style yet: a pack names a style in either status.
+
+### A version's life
+
+| Step | Who | What happens |
+| --- | --- | --- |
+| Draft | its creator | `POST /drafts` names the pack (and, for a new pack, its style and description), the version and every asset's metadata; `PUT /drafts/{versionId}` replaces them. A file is uploaded once its asset names it: `PUT /drafts/{versionId}/files/{sha256}`, the body the file itself — the server checks its sha256, its size against the asset's `bytes`, the limit per file and the creator's quota, then runs the checks |
+| Submit | its creator | Every asset's file uploaded, at least one asset, the version greater than every version of the pack ever approved (semver precedence; the patch, minor and major rule is one of the checks), the checks pass: `submitted`, and nobody changes it again |
+| Approve | a reviewer, step-up | `submitted` only; the version still greater than every one approved meanwhile; the checks again. Every file is copied from `drafts/` to `blobs/sha256/<sha256>.<ext>` (a blob already there stays as it is), the manifest is written to `packs/<id>/<version>.json`, and the version is `approved` with who and when. The draft copies are deleted |
+| Reject | a reviewer, step-up | `submitted` only, with a reason (at most 1000 characters): `rejected`; its draft files are deleted, its metadata kept. A fix is a new draft |
+| Deprecate | a reviewer, step-up | `approved` only, an optional reason: `deprecated`. Its files and manifest stay |
+| Withdraw | a reviewer who holds the platform role `owner` | `approved` or `deprecated`, a reason, and a fresh code from the authenticator in the request: the manifest and every blob of the version no other approved or deprecated version uses are deleted, and it is `withdrawn` |
+| Expire | the API, once a day | a version still `draft` 30 days after it was made: its files and its rows are deleted, and its pack too when it has no version left |
+
+**The manifest** is the build tool's format exactly — `manifestVersion: 1`, `id`, `version`, `files[]` with `id`,
+`kind`, `sha256`, `ext`, `bytes`, `licence` and, when they are set, `attribution`, `width`, `height` and `frames`
+([The manifest](../guides/use-assets-in-a-game.md#the-manifest)) — with its files sorted by id and every object's keys in
+ordinal order, indented by two spaces, UTF-8, so the same version always makes the same bytes. Its sha256 is the
+version's `manifest_sha256`. It is written once and never overwritten: when one is already there, approving goes on only
+if it holds exactly the same bytes (a retry after a failure), and otherwise answers `409 manifest_exists`.
+
+**Drafts' limits** (configuration, [below](#configuration)): at most `Studio:MaxFileBytes` per file, and at most
+`Studio:DraftQuotaBytes` of uploaded files across the versions a creator has in `draft` or `submitted`.
+
+**The audit** — `studio.audit` — records `style.create`, `style.update`, `style.sample.upload`, `draft.create`,
+`draft.update`, `draft.file.upload`, `version.submit`, `version.approve`, `version.reject`, `version.deprecate`,
+`version.withdraw` and `draft.expire`, with the agent or the account, the target (`farm-crops@1.0.0`, a style's id) and
+the details, in the same transaction as the change. An agent's every call is also in the agents' own audit
+([Agent tokens](agent-tokens.md)).
+
+### Who calls
+
+- **Reading** — styles, packs, versions with their assets and status, and their files — takes a Studio session with
+  `studio.read`, or an agent token with `studio.draft`.
+- **Drafting** — styles, versions, uploads, submitting — takes a Studio session with `studio.contribute`, or an agent
+  token with `studio.draft`. A request with an `Authorization` header is an agent's: the token is checked
+  (`AgentTokens.AuthenticateAsync`) and the session, if any, is not read; without one it is a person's.
+- **Reviewing** takes a Studio session with `studio.review` and step-up; withdrawing takes `studio.review`, the platform
+  role `owner` (read through Identity's `PlatformRoles`, as the console reads it) and a code in the request instead of
+  step-up. No agent token reaches either.
+- **Without storage** (no `Studio:Storage:*`), every endpoint below answers `503 studio_storage_not_configured` once the
+  caller is known, and the rest of the API runs: production runs before its bucket exists.
+
+### Endpoints
+
+| Endpoint | Who | Answers |
+| --- | --- | --- |
+| `GET /api/studio/styles` · `GET /api/studio/styles/{id}` | read | The styles, newest first · one, with its samples |
+| `GET /api/studio/styles/{id}/samples/{sha256}` | read | A sample picture |
+| `POST /api/studio/styles` · `PUT /api/studio/styles/{id}` | draft | Make a style draft — id, name, tile size, view, palette, outline, samples' metadata · change it (its creator, while `draft`) |
+| `PUT /api/studio/styles/{id}/samples/{sha256}` | draft | Upload a sample its metadata names |
+| `GET /api/studio/packs` · `GET /api/studio/packs/{id}` | read | The packs with their versions' status · one |
+| `GET /api/studio/versions/{versionId}` | read | A version, its assets, status, review and manifest |
+| `GET /api/studio/versions/{versionId}/files/{sha256}` | read | One of its files: from `drafts/` until approved, from `blobs/` after |
+| `POST /api/studio/drafts` · `PUT /api/studio/drafts/{versionId}` | draft | Make a draft version, creating its pack when new · change it |
+| `PUT /api/studio/drafts/{versionId}/files/{sha256}` | draft | Upload a file of the draft: `204` |
+| `POST /api/studio/drafts/{versionId}/submit` | draft | Submit it for review |
+| `POST /api/studio/versions/{versionId}/approve` · `…/reject` · `…/deprecate` | `studio.review`, step-up | Approve and publish · reject, with a reason · deprecate |
+| `POST /api/studio/versions/{versionId}/withdraw` | `studio.review`, owner | Withdraw: a reason and a code |
+
+They are in the Studio's OpenAPI document, `studio`. Refusals: `401` (no session, or `agent_token_invalid`);
+`403 studio_required`, `step_up_required`, `agent_scope_missing`, `not_yours` (a draft or style someone else made),
+`owner_required`; `404 style_not_found`, `pack_not_found`, `version_not_found`, `file_not_found`, `file_not_in_draft`;
+`409 style_exists`, `pack_exists` (made by someone else that moment: send again), `not_a_draft`, `style_mismatch`,
+`files_missing` (with the `assets`), `version_not_greater`, `version_not_submitted`, `version_not_approved`,
+`version_changed`, `manifest_exists`, `drafts_quota_exceeded`; `413 file_too_large` (with `maxBytes`);
+`422 checks_failed` (with `failures`); `503 studio_storage_not_configured`; `400` with field codes for the metadata
+(`id_invalid`, `version_invalid`, `asset_id_invalid`, `asset_id_repeated`, `kind_invalid`, `sha256_invalid`,
+`ext_invalid`, `bytes_invalid`, `file_conflict`, `licence_invalid`, `attribution_invalid`, `size_invalid`,
+`frames_invalid`, `tags_invalid`, `source_invalid`, `assets_required`, `too_many_assets`, `name_required`,
+`view_invalid`, `palette_invalid`, `outline_too_long`, `too_many_samples`, `style_required`, `description_too_long`,
+`reason_required`, `reason_too_long`, `sha256_mismatch`, `bytes_mismatch`) and for a code (`code_invalid`, `code_used`,
+`locked_out`).
+
+### Object storage
+
+Object storage through the S3 API (the AWS SDK for .NET, path-style, so Cloudflare R2 and SeaweedFS alike), behind an
+interface of the module's own (`IStudioStorage`): put, copy, read, check and delete an object, and list a prefix. One
+bucket holds the layout in [Storage](#storage) above. Published objects carry `Cache-Control: public, max-age=31536000,
+immutable`.
+
+The bucket's public side is the storage's, not the API's: in production a public address that serves `blobs/` and
+`packs/` alone; locally, SeaweedFS lets anyone read those two prefixes and nothing else
+([Local development](../guides/local-development.md)).
+
+### Configuration
+
+| Key | What | Default |
+| --- | --- | --- |
+| `Studio:Storage:ServiceUrl` | The S3 endpoint, e.g. `https://<account>.r2.cloudflarestorage.com` | unset: no storage |
+| `Studio:Storage:Bucket` | The bucket | unset: no storage |
+| `Studio:Storage:AccessKey`, `Studio:Storage:SecretKey` | Its credentials, from the secret store | unset: no storage |
+| `Studio:Storage:PublicBaseUrl` | The registry's public address (`TOHE_ASSETS_REGISTRY` of the build tool): the API names manifests' and files' public URLs under it | unset: no public URLs in the answers |
+| `Studio:MaxFileBytes` | The most bytes of one uploaded file | `8388608` (8 MiB) |
+| `Studio:DraftQuotaBytes` | The most bytes of uploaded files one creator keeps in `draft` and `submitted` versions | `268435456` (256 MiB) |
+| `Studio:DraftCleanupEnabled` | Remove, once a day, drafts not submitted within 30 days | `true` |
+
+Storage counts as configured with the first four. Locally, `compose.yaml` runs SeaweedFS with a bucket `tohe-studio`;
+`appsettings.Development.json` and the compose API point at it ([Local development](../guides/local-development.md#the-asset-studios-storage)).
+The Helm chart reads the five `Studio:Storage:*` from optional keys of its Secret (`studio-storage-service-url`…,
+[Configuration](../guides/configuration.md#in-the-helm-chart)), so in production they live in the secret store and no
+value is in the repository; without them the chart runs the API with no storage.
 
 ## Checks
 

@@ -4,7 +4,7 @@ namespace Tohe.Api.Infrastructure;
 
 /// <summary>The last run of one background worker.</summary>
 /// <param name="Name">The worker: <c>catalog-sync</c>, <c>email-delivery</c>, <c>telemetry-maintenance</c>,
-/// <c>ranked-replays</c>, <c>audit-retention</c> or <c>device-cleanup</c>.</param>
+/// <c>ranked-replays</c>, <c>audit-retention</c>, <c>device-cleanup</c> or <c>studio-draft-cleanup</c>.</param>
 /// <param name="LastRunAt">When a run last ended, well or not.</param>
 /// <param name="LastSuccessAt">When a run last went well.</param>
 /// <param name="LastError">What went wrong, while the last run failed.</param>

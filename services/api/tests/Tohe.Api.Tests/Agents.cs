@@ -13,8 +13,8 @@ using Tohe.Api.Modules.Agents;
 namespace Tohe.Api.Tests;
 
 /// <summary>
-/// Agents and their tokens as tests need them (ADR 0052). No endpoint of the API names a scope yet, so tests add their
-/// own: <see cref="WithProbe"/> hosts the API with probe endpoints that do, which nothing outside tests ever maps.
+/// Agents and their tokens as tests need them (ADR 0052). <see cref="WithProbe"/> hosts the API with probe endpoints that
+/// name a scope through <c>RequireAgentScope</c> alone, which nothing outside tests ever maps.
 /// </summary>
 internal static class Agents
 {

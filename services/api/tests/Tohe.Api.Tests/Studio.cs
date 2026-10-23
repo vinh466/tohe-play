@@ -15,9 +15,9 @@ using Tohe.Api.Modules.Studio;
 namespace Tohe.Api.Tests;
 
 /// <summary>
-/// The Studio's people, as tests need them (ADR 0051). No endpoint of the Studio asks for <c>studio.read</c>,
-/// <c>studio.contribute</c> or step-up yet, so <see cref="WithProbe"/> hosts the API with probe endpoints that do,
-/// behind the Studio's session as every Studio endpoint is; nothing outside tests ever maps them.
+/// The Studio's people, as tests need them (ADR 0051). <see cref="WithProbe"/> hosts the API with probe endpoints that
+/// each ask for one permission alone — <c>studio.read</c>, <c>studio.contribute</c>, or <c>studio.review</c> with
+/// step-up — behind the Studio's session as every Studio endpoint is; nothing outside tests ever maps them.
 /// </summary>
 internal static class Studio
 {

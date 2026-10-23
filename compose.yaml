@@ -1,5 +1,5 @@
 # Tò He — local stack. Three ways to use it (see docs/guides/local-development.md):
-#   docker compose up -d postgres     -> database only, then `pnpm dev` for hot reload
+#   docker compose up -d postgres     -> database only, then `pnpm dev` for hot reload (add seaweedfs for the Studio)
 #   docker compose up --build -d      -> everything in containers, production-like images
 #   pnpm stack:image <tag|commit>     -> the images CI published for a commit (compose.image.yaml)
 # Set TOHE_PUBLIC_HOST to this machine's LAN IP to try it from a phone on the same network.
@@ -48,10 +48,18 @@ services:
       Dev__SeedAllowed: "true"
       # Scalar at http://localhost:4720/api/docs; off by default outside Development (ADR 0042).
       Api__Reference__Enabled: "true"
+      # The Studio's object storage: SeaweedFS below, with its development-only key (ADR 0051).
+      Studio__Storage__ServiceUrl: http://seaweedfs:8333
+      Studio__Storage__Bucket: tohe-studio
+      Studio__Storage__AccessKey: tohe
+      Studio__Storage__SecretKey: tohe-dev-only
+      Studio__Storage__PublicBaseUrl: http://${TOHE_PUBLIC_HOST:-localhost}:4770/tohe-studio
     depends_on:
       postgres:
         condition: service_healthy
       mailpit:
+        condition: service_started
+      seaweedfs:
         condition: service_started
     ports:
       - "4740:8080"
@@ -108,5 +116,34 @@ services:
       - "127.0.0.1:4760:8025"
       - "127.0.0.1:4761:1025"
 
+  # The Asset Studio's object storage (ADR 0051): SeaweedFS (Apache-2.0) with its S3 gateway on 4770 and a bucket
+  # `tohe-studio`. Anyone may read blobs/ and packs/ — the registry builds read, TOHE_ASSETS_REGISTRY=
+  # http://localhost:4770/tohe-studio — and everything else takes the development-only key.
+  seaweedfs:
+    image: chrislusf/seaweedfs:4.48
+    command: ["mini", "-dir=/data", "-bucket=tohe-studio", "-admin.ui=false", "-s3.config=/etc/seaweedfs/s3.json"]
+    configs:
+      - source: seaweedfs-s3
+        target: /etc/seaweedfs/s3.json
+    ports:
+      - "127.0.0.1:4770:8333"
+    volumes:
+      - seaweedfs-data:/data
+
+configs:
+  seaweedfs-s3:
+    content: |
+      {
+        "identities": [
+          {
+            "name": "tohe",
+            "credentials": [{ "accessKey": "tohe", "secretKey": "tohe-dev-only" }],
+            "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+          },
+          { "name": "anonymous", "actions": ["Read:tohe-studio/blobs/*", "Read:tohe-studio/packs/*"] }
+        ]
+      }
+
 volumes:
   postgres-data:
+  seaweedfs-data:

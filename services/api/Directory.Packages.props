@@ -3,6 +3,8 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
   <ItemGroup Label="API">
+    <!-- The Studio's object storage over the S3 API (ADR 0051): Cloudflare R2 in production, SeaweedFS locally. Apache-2.0. -->
+    <PackageVersion Include="AWSSDK.S3" Version="4.0.104.1" />
     <PackageVersion Include="EFCore.NamingConventions" Version="10.0.1" />
     <PackageVersion Include="Jint" Version="4.17.0" />
     <PackageVersion Include="MailKit" Version="4.18.1" />

@@ -89,6 +89,18 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
 
     public DbSet<StudioMember> StudioMembers => Set<StudioMember>();
 
+    public DbSet<StudioStyle> StudioStyles => Set<StudioStyle>();
+
+    public DbSet<StudioStyleSample> StudioStyleSamples => Set<StudioStyleSample>();
+
+    public DbSet<StudioPack> StudioPacks => Set<StudioPack>();
+
+    public DbSet<StudioPackVersion> StudioPackVersions => Set<StudioPackVersion>();
+
+    public DbSet<StudioAsset> StudioAssets => Set<StudioAsset>();
+
+    public DbSet<StudioAuditEntry> StudioAudit => Set<StudioAuditEntry>();
+
     /// <summary>Keys that encrypt session cookies; persisted so restarts and deploys keep people signed in.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

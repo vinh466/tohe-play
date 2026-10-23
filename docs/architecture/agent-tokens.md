@@ -7,8 +7,8 @@ sidebar:
 
 Decision: [ADR 0052](../decisions/0052-agent-tokens-and-the-scopes-no-agent-gets.md). This page describes what exists:
 agents and their tokens in the `Agents` module (`services/api/src/Tohe.Api/Modules/Agents`), the scope check endpoints
-opt in to, the test of the forbidden areas, and the console's page. No endpoint names a scope yet: the Studio's, which
-name `studio.draft`, arrive with the [Asset Studio](asset-studio.md).
+opt in to, the test of the forbidden areas, and the console's page. The [Asset Studio](asset-studio.md)'s draft and
+read endpoints name `studio.draft`; they take an agent or a person.
 
 ## Model
 

@@ -111,10 +111,1015 @@
           }
         }
       }
+    },
+    "/api/studio/styles": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Every style, newest first, with its samples.",
+        "operationId": "GetStudioStyles",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/StyleView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Make a style draft: id, name, tile size, view, palette, outline and its samples' metadata.",
+        "operationId": "CreateStudioStyle",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StyleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/styles/{id}": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "One style, with its samples.",
+        "operationId": "GetStudioStyle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleView"
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Change a style draft: only who made it, while it is a draft.",
+        "operationId": "UpdateStudioStyle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/StyleRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/styles/{id}/samples/{sha256}": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "A sample picture of a style.",
+        "operationId": "GetStudioStyleSample",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      },
+      "put": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Upload a sample picture its style's metadata names; the body is the file.",
+        "operationId": "UploadStudioStyleSample",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          },
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/Stream"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/packs": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Every pack with its versions and their status.",
+        "operationId": "GetStudioPacks",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/components/schemas/PackView"
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/packs/{id}": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "One pack with its versions and their status.",
+        "operationId": "GetStudioPack",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/versions/{versionId}": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "A pack version: its assets, status, review and manifest.",
+        "operationId": "GetStudioPackVersion",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/versions/{versionId}/files/{sha256}": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "One file of a pack version: from the drafts until it is approved, from the library after.",
+        "operationId": "GetStudioPackVersionFile",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK"
+          }
+        }
+      }
+    },
+    "/api/studio/drafts": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Make a draft version of a pack — the pack too when it is new — with every asset's metadata.",
+        "operationId": "CreateStudioDraft",
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/drafts/{versionId}": {
+      "put": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Replace a draft's version and assets: only who made it, while it is a draft.",
+        "operationId": "UpdateStudioDraft",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DraftUpdateRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/drafts/{versionId}/files/{sha256}": {
+      "put": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Upload a file an asset of the draft names; the body is the file, checked against its sha256 and size.",
+        "operationId": "UploadStudioDraftFile",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "sha256",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/octet-stream": {
+              "schema": {
+                "$ref": "#/components/schemas/Stream"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "204": {
+            "description": "No Content"
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/drafts/{versionId}/submit": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Submit a draft for review: every file uploaded, a version above every one approved, the checks passed.",
+        "operationId": "SubmitStudioDraft",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/versions/{versionId}/approve": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Approve a submitted version: its files are published by hash and its manifest written, once.",
+        "operationId": "ApproveStudioPackVersion",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/versions/{versionId}/reject": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Reject a submitted version, with a reason.",
+        "operationId": "RejectStudioPackVersion",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/versions/{versionId}/deprecate": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Deprecate an approved version: games that pinned it keep working.",
+        "operationId": "DeprecateStudioPackVersion",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/versions/{versionId}/withdraw": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "The owner withdraws a published version, with a reason and a fresh code: its manifest and files are deleted.",
+        "operationId": "WithdrawStudioPackVersion",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/WithdrawRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
     }
   },
   "components": {
     "schemas": {
+      "AssetFrames": {
+        "required": [
+          "width",
+          "height",
+          "count"
+        ],
+        "type": "object",
+        "properties": {
+          "width": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "height": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "count": {
+            "type": "integer",
+            "format": "int32"
+          }
+        }
+      },
+      "AssetInput": {
+        "required": [
+          "id",
+          "kind",
+          "sha256",
+          "ext",
+          "bytes",
+          "width",
+          "height",
+          "frames",
+          "tags",
+          "licence",
+          "attribution",
+          "source"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "kind": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ext": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          },
+          "width": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "height": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "frames": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AssetFrames"
+              }
+            ]
+          },
+          "tags": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "licence": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "attribution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/JsonElement"
+              }
+            ]
+          }
+        }
+      },
+      "AssetView": {
+        "required": [
+          "id",
+          "kind",
+          "sha256",
+          "ext",
+          "bytes",
+          "width",
+          "height",
+          "frames",
+          "tags",
+          "licence",
+          "attribution",
+          "source",
+          "uploaded",
+          "publicUrl"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "kind": {
+            "type": "string"
+          },
+          "sha256": {
+            "type": "string"
+          },
+          "ext": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "width": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "height": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "frames": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AssetFrames"
+              }
+            ]
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "licence": {
+            "type": "string"
+          },
+          "attribution": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "source": {
+            "$ref": "#/components/schemas/JsonElement"
+          },
+          "uploaded": {
+            "type": "boolean"
+          },
+          "publicUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "DraftRequest": {
+        "required": [
+          "packId",
+          "version",
+          "styleId",
+          "description",
+          "assets"
+        ],
+        "type": "object",
+        "properties": {
+          "packId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "styleId": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assets": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AssetInput"
+            }
+          }
+        }
+      },
+      "DraftUpdateRequest": {
+        "required": [
+          "version",
+          "assets"
+        ],
+        "type": "object",
+        "properties": {
+          "version": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assets": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/AssetInput"
+            }
+          }
+        }
+      },
       "HttpValidationProblemDetails": {
         "type": "object",
         "properties": {
@@ -157,6 +1162,237 @@
                 "type": "string"
               }
             }
+          }
+        }
+      },
+      "JsonElement": { },
+      "PackVersionSummaryView": {
+        "required": [
+          "id",
+          "version",
+          "status",
+          "createdBy",
+          "createdAt",
+          "submittedAt",
+          "reviewedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "version": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/StudioCreatorView"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reviewedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          }
+        }
+      },
+      "PackVersionView": {
+        "required": [
+          "id",
+          "packId",
+          "version",
+          "status",
+          "createdBy",
+          "createdAt",
+          "updatedAt",
+          "submittedAt",
+          "reviewedBy",
+          "reviewedAt",
+          "reason",
+          "deprecatedAt",
+          "withdrawnAt",
+          "withdrawReason",
+          "manifestSha256",
+          "manifestUrl",
+          "assets"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "packId": {
+            "type": "string"
+          },
+          "version": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/StudioCreatorView"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "submittedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reviewedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "reviewedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "deprecatedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "withdrawnAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "withdrawReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manifestSha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "manifestUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "assets": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/AssetView"
+            }
+          }
+        }
+      },
+      "PackView": {
+        "required": [
+          "id",
+          "styleId",
+          "description",
+          "createdBy",
+          "createdAt",
+          "versions"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "styleId": {
+            "type": "string"
+          },
+          "description": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/StudioCreatorView"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "versions": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PackVersionSummaryView"
+            }
+          }
+        }
+      },
+      "ReviewReasonRequest": {
+        "required": [
+          "reason"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "Stream": {
+        "type": "string",
+        "format": "binary"
+      },
+      "StudioCreatorView": {
+        "required": [
+          "kind",
+          "id"
+        ],
+        "type": "object",
+        "properties": {
+          "kind": {
+            "type": "string"
+          },
+          "id": {
+            "type": "string",
+            "format": "uuid"
           }
         }
       },
@@ -241,6 +1477,212 @@
       "StudioStepUpRequest": {
         "type": "object",
         "properties": {
+          "code": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
+      "StyleRequest": {
+        "required": [
+          "id",
+          "name",
+          "tileSize",
+          "view",
+          "palette",
+          "outline",
+          "samples"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "name": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "tileSize": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "view": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "palette": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "outline": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "samples": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "$ref": "#/components/schemas/StyleSampleInput"
+            }
+          }
+        }
+      },
+      "StyleSampleInput": {
+        "required": [
+          "sha256",
+          "ext",
+          "bytes"
+        ],
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "ext": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "bytes": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int64"
+          }
+        }
+      },
+      "StyleSampleView": {
+        "required": [
+          "sha256",
+          "ext",
+          "bytes",
+          "uploaded"
+        ],
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "string"
+          },
+          "ext": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "uploaded": {
+            "type": "boolean"
+          }
+        }
+      },
+      "StyleView": {
+        "required": [
+          "id",
+          "name",
+          "status",
+          "tileSize",
+          "view",
+          "palette",
+          "outline",
+          "samples",
+          "createdBy",
+          "createdAt",
+          "updatedAt"
+        ],
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string"
+          },
+          "tileSize": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "view": {
+            "type": "string"
+          },
+          "palette": {
+            "type": [
+              "null",
+              "array"
+            ],
+            "items": {
+              "type": "string"
+            }
+          },
+          "outline": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "samples": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StyleSampleView"
+            }
+          },
+          "createdBy": {
+            "$ref": "#/components/schemas/StudioCreatorView"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        }
+      },
+      "WithdrawRequest": {
+        "required": [
+          "reason",
+          "code"
+        ],
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "code": {
             "type": [
               "null",
