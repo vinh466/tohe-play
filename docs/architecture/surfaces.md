@@ -19,7 +19,7 @@ flowchart LR
   end
   G["Games — games.<br/>sandboxed, level L1"]
   O["Operators — console.<br/>own session, Access"]
-  V["Developers — docs.<br/>(later studio.)"]
+  V["Developers — docs.<br/>studio. (decided)"]
   E["Edge — status., notify."]
   A -- "iframe, Game Contract" --> G
   A --> API
@@ -31,7 +31,7 @@ flowchart LR
 | Players | high: sessions, profiles, children's data | no third-party script; a CSP per namespace |
 | Games | low | sandboxed iframe, an origin of its own, the games' CSP; speaks only the Game Contract |
 | Operators | highest | Cloudflare Access in front (on since 2026-10-22), then its own session and second factor |
-| Developers | public | no session |
+| Developers | `docs.`: public · `studio.`: people and agents who make game assets | `docs.`: no session · `studio.`: its own session and studio roles, a second factor to approve, agent tokens with scopes ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md), [ADR 0052](../decisions/0052-agent-tokens-and-the-scopes-no-agent-gets.md)) |
 | Edge | — | no code of Tò He's |
 
 **The game plane's isolation.** Today **L1**: an origin of its own. Every game is added to this repository by the owner,

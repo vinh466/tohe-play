@@ -63,7 +63,12 @@ export const hosts: readonly Host[] = [
     state: 'reserved',
     purpose: 'One sign-in shared by three or more origins',
   },
-  { role: 'studio', label: 'studio', state: 'reserved', purpose: 'Tools for making games' },
+  {
+    role: 'studio',
+    label: 'studio',
+    state: 'decided',
+    purpose: 'The Asset Studio: game assets made, checked and approved, with its own session (ADR 0051)',
+  },
   { role: 'media', label: 'media', state: 'reserved', purpose: 'Files people upload' },
   { role: 'uat', label: 'uat', state: 'reserved', purpose: 'UAT’s names, once it has HTTPS' },
 ];
