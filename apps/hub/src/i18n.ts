@@ -429,6 +429,7 @@ const vi = {
     continue: 'Chơi tiếp',
     recent: 'Gần đây',
     table: '{{game}} · bàn của {{host}}',
+    tableCode: '{{game}} · bàn {{code}}',
     backToTable: 'Vào lại',
   },
   sessionEnded: {
@@ -449,6 +450,7 @@ const vi = {
     tablesTitle: 'Bàn đang ngồi',
     tablesEmpty: 'Chưa ngồi bàn nào.',
     tableLine: '{{host}} · {{taken}}/{{seats}} chỗ',
+    tableLineCode: 'Bàn {{code}} · {{host}} · {{taken}}/{{seats}} chỗ',
     invitesTitle: 'Lời mời',
     invitesEmpty: 'Chưa có lời mời nào.',
     linksTitle: 'Link đã gửi',
@@ -1309,6 +1311,7 @@ const en: typeof vi = {
     continue: 'Continue',
     recent: 'Recent',
     table: '{{game}} · {{host}}’s table',
+    tableCode: '{{game}} · table {{code}}',
     backToTable: 'Go back',
   },
   sessionEnded: {
@@ -1329,6 +1332,7 @@ const en: typeof vi = {
     tablesTitle: 'Your tables',
     tablesEmpty: 'Not at a table yet.',
     tableLine: '{{host}} · {{taken}}/{{seats}} seats',
+    tableLineCode: 'Table {{code}} · {{host}} · {{taken}}/{{seats}} seats',
     invitesTitle: 'Invitations',
     invitesEmpty: 'No invitations yet.',
     linksTitle: 'Links you sent',

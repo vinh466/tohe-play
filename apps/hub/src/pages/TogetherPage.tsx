@@ -8,7 +8,7 @@ import { asksForCodeBox, formatEntryCode } from '../entry/codes.ts';
 import { EnterCodeForm } from '../entry/EnterCode.tsx';
 import { TabHeader } from '../frame/AppFrame.tsx';
 import { byShownName, nameOf } from '../launcher/gameWords.ts';
-import { myTablesQuery, useTablePlayer } from '../rooms/myTables.ts';
+import { myTablesQuery, tableCode, useTablePlayer } from '../rooms/myTables.ts';
 import { RoomInvites } from '../rooms/RoomInvites.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player, SessionState } from '../session/session.ts';
@@ -182,7 +182,14 @@ function TableRow({ room, game }: { room: RoomSummary; game?: GameSummary }) {
           <span className="flex items-center gap-1.5 text-ink-soft text-sm">
             <Avatar avatar={room.hostAvatar || '🙂'} size="sm" />
             <span>
-              {t('together.tableLine', { host: room.hostName, taken: room.taken, seats: room.seats })}
+              {room.code
+                ? t('together.tableLineCode', {
+                    code: tableCode(room.code),
+                    host: room.hostName,
+                    taken: room.taken,
+                    seats: room.seats,
+                  })
+                : t('together.tableLine', { host: room.hostName, taken: room.taken, seats: room.seats })}
             </span>
           </span>
         </span>

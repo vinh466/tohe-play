@@ -146,9 +146,17 @@ function Picker({ me }: { me: MeView }) {
       await setMe(next);
       await goOn(profile.id);
     },
-    onError: (error, { profile }) => {
+    onError: async (error, { profile }) => {
       if (error instanceof ApiError && error.code === 'pin_required') setPinFor(profile);
       if (error instanceof ApiError && error.code === 'pin_invalid') setPinErrors((n) => n + 1);
+      // The API holds a child to the parent gate when it moves up (identity.md): the gate ran out between opening it and
+      // choosing, or this device's clock disagrees. Management is closed as far as the API knows, so the session says so
+      // first (else the gate would close itself again at once) and the parent is asked again.
+      if (error instanceof ApiError && error.code === 'parent_gate_required') {
+        setPinFor(null);
+        await setMe({ ...me, parentUnlockedUntil: null });
+        setGateFor(profile);
+      }
     },
   });
 

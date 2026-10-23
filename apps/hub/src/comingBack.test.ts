@@ -20,6 +20,7 @@ import {
   recordOpened,
   withOpened,
 } from './launcher/recent.ts';
+import { tableCode } from './rooms/myTables.ts';
 import { createSessionEnded, SESSION_ENDED_KEY, sessionEndedBy } from './session/ended.ts';
 import {
   asksWhoIsPlaying,
@@ -523,5 +524,12 @@ describe('"Chơi tiếp" on the public pages: the device has opened a game', () 
       }),
     ).not.toThrow();
     expect(() => markReturning(undefined)).not.toThrow();
+  });
+});
+
+describe('a table’s code, as people read it out', () => {
+  it('splits six digits in two, and leaves anything else as it is', () => {
+    expect(tableCode('482113')).toBe('482 113');
+    expect(tableCode('48211')).toBe('48211');
   });
 });
