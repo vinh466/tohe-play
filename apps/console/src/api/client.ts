@@ -28,6 +28,10 @@ export type ReviewDetail = Schemas['ReviewDetail'];
 export type ProfileCard = Schemas['ProfileCard'];
 export type RunReplay = Schemas['RunReplay'];
 export type AdminShareLink = Schemas['AdminShareLinkView'];
+export type Agent = Schemas['AgentView'];
+export type AgentToken = Schemas['AgentTokenView'];
+export type AgentScope = Schemas['AgentScope'];
+export type NewAgentToken = Schemas['NewAgentTokenView'];
 /** What a person decides about a result (ADR 0029). */
 export type ReviewDecision = 'approve' | 'reject' | 'reopen';
 
@@ -187,4 +191,22 @@ export const admin = {
     ),
   revokeInviteCode: (code: string) =>
     call(api.DELETE('/api/admin/invite-codes/{code}', { params: { path: { code } } })),
+  /** Agents and their tokens (ADR 0052). */
+  agents: () => call(api.GET('/api/admin/agents')),
+  agentScopes: () => call(api.GET('/api/admin/agents/scopes')),
+  createAgent: (name: string, note: string | null) =>
+    call(api.POST('/api/admin/agents', { body: { name, note } })),
+  disableAgent: (id: string) =>
+    call(api.POST('/api/admin/agents/{id}/disable', { params: { path: { id } } })),
+  /** The token is in this answer once, never again. */
+  createAgentToken: (id: string, scopes: string[], days: number) =>
+    call(api.POST('/api/admin/agents/{id}/tokens', { params: { path: { id } }, body: { scopes, days } })),
+  revokeAgentToken: (id: string, tokenId: string) =>
+    call(api.POST('/api/admin/agents/{id}/tokens/{tokenId}/revoke', { params: { path: { id, tokenId } } })),
+  agentAudit: (id: string, before?: number) =>
+    call(
+      api.GET('/api/admin/agents/{id}/audit', {
+        params: { path: { id }, query: before === undefined ? {} : { before } },
+      }),
+    ),
 };

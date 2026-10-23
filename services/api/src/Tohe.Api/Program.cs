@@ -4,6 +4,7 @@ using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Infrastructure.Security;
 using Tohe.Api.Modules.Admin;
+using Tohe.Api.Modules.Agents;
 using Tohe.Api.Modules.Dev;
 using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
@@ -44,6 +45,7 @@ builder.AddIntegrityModule();
 builder.AddTelemetryModule();
 builder.AddRoomsModule();
 builder.AddLinksModule();
+builder.AddAgentsModule();
 builder.AddAdminModule();
 
 var app = builder.Build();

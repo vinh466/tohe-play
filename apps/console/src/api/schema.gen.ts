@@ -639,6 +639,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/admin/agents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every agent and its tokens — scopes, made, expiry, revoked, last used — never a token itself. */
+        get: operations["GetAdminAgents"];
+        put?: never;
+        /** A new agent: a unique name and a note. */
+        post: operations["CreateAdminAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/agents/scopes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** The scopes an agent token may hold, and what each allows. */
+        get: operations["GetAdminAgentScopes"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/agents/{id}/disable": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Disable an agent: every one of its tokens is revoked at once, and it gets no new one. */
+        post: operations["DisableAdminAgent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/agents/{id}/tokens": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** A new token for the agent, with scopes and an expiry: shown in this answer once, never again. */
+        post: operations["CreateAdminAgentToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/agents/{id}/tokens/{tokenId}/revoke": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke a token: its next request is refused. */
+        post: operations["RevokeAdminAgentToken"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/admin/agents/{id}/audit": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Every use of the agent's tokens, refusals too, newest first, a page at a time. */
+        get: operations["GetAdminAgentAudit"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -830,6 +933,51 @@ export interface components {
             workers: components["schemas"]["WorkerStatus"][];
             settings: components["schemas"]["AdminSettings"];
         };
+        AgentAuditEntryView: {
+            /** Format: int64 */
+            id: number;
+            /** Format: date-time */
+            at: string;
+            /** Format: uuid */
+            tokenId: string;
+            scope: string;
+            action: string;
+            /** Format: int32 */
+            result: number;
+        };
+        AgentAuditPage: {
+            entries: components["schemas"]["AgentAuditEntryView"][];
+            /** Format: int64 */
+            before: null | number;
+        };
+        AgentScope: {
+            name: string;
+            description: string;
+        };
+        AgentTokenView: {
+            /** Format: uuid */
+            id: string;
+            scopes: string[];
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            expiresAt: string;
+            /** Format: date-time */
+            revokedAt: null | string;
+            /** Format: date-time */
+            lastUsedAt: null | string;
+        };
+        AgentView: {
+            /** Format: uuid */
+            id: string;
+            name: string;
+            note: null | string;
+            /** Format: date-time */
+            createdAt: string;
+            /** Format: date-time */
+            disabledAt: null | string;
+            tokens: components["schemas"]["AgentTokenView"][];
+        };
         AuditEntryView: {
             /** Format: int64 */
             id: number;
@@ -880,6 +1028,15 @@ export interface components {
             total: number;
             /** Format: int32 */
             sessions: number;
+        };
+        CreateAgentRequest: {
+            name: null | string;
+            note: null | string;
+        };
+        CreateAgentTokenRequest: {
+            scopes: null | string[];
+            /** Format: int32 */
+            days: null | number;
         };
         CreateCommunityRequest: {
             name: null | string;
@@ -1059,6 +1216,11 @@ export interface components {
             at: string;
             /** @default rename */
             kind: string;
+        };
+        NewAgentTokenView: {
+            token: string;
+            details: components["schemas"]["AgentTokenView"];
+            agent: components["schemas"]["AgentView"];
         };
         OutboxState: {
             enabled: boolean;
@@ -2473,6 +2635,212 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["AdminShareLinkView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetAdminAgents: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentView"][];
+                };
+            };
+        };
+    };
+    CreateAdminAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAgentRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    GetAdminAgentScopes: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentScope"][];
+                };
+            };
+        };
+    };
+    DisableAdminAgent: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    CreateAdminAgentToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateAgentTokenRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["NewAgentTokenView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    RevokeAdminAgentToken: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+                tokenId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentView"];
+                };
+            };
+            /** @description Not Found */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    GetAdminAgentAudit: {
+        parameters: {
+            query?: {
+                before?: number;
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AgentAuditPage"];
                 };
             };
             /** @description Not Found */

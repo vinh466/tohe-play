@@ -231,7 +231,7 @@ moves from now on moves with every link to it, in the same pull request.
 
 | Namespace | Component | Served | Indexed |
 | --- | --- | --- | --- |
-| `/`, `/games`, `/health`, `/system`, `/users/…`, `/review/…`, `/communities`, `/links`, `/settings`, `/audit`, `/security`, `/setup` | the console (`apps/console`) | the console's page | no |
+| `/`, `/games`, `/health`, `/system`, `/users/…`, `/review/…`, `/communities`, `/links`, `/agents`, `/settings`, `/audit`, `/security`, `/setup` | the console (`apps/console`) | the console's page | no |
 | `/assets/…`, `/index.html`, `/theme-init.js`, `/favicon.svg` | the console | static | no |
 | `/api/admin/…` | the API's console routes — and no other route of the API | proxied | — |
 | anything else — the hub's pages, `/admin`, `/robots.txt` | — | a real `404` | — |

@@ -37,15 +37,22 @@ internal static class AdminPermissions
     /// <summary>Review the results the integrity engine held: approve, reject, reopen (ADR 0029).</summary>
     public const string ResultsReview = "admin.results.review";
 
+    /// <summary>See agents, their tokens — never a token itself — and each agent's audit (ADR 0052).</summary>
+    public const string AgentsRead = "admin.agents.read";
+
+    /// <summary>Make and disable agents, make and revoke their tokens (ADR 0052): the owner alone.</summary>
+    public const string AgentsWrite = "admin.agents.write";
+
     /// <summary>
-    /// What each role may: owners everything, admins all but roles, moderators find accounts and rename profiles,
-    /// viewers read. A permission to change something new arrives with its page, given here to the roles that hold it.
+    /// What each role may: owners everything, admins all but roles and changing agents, moderators find accounts and
+    /// rename profiles, viewers read. A permission to change something new arrives with its page, given here to the
+    /// roles that hold it.
     /// </summary>
     public static IReadOnlyList<string> Of(PlatformRole? role) => role switch
     {
         null => [],
-        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate, SettingsWrite, ResultsReview],
-        PlatformRole.Admin => [Read, AuditRead, UsersRead, UsersWrite, ProfilesModerate, SettingsWrite, ResultsReview],
+        PlatformRole.Owner => [Read, AuditRead, UsersRead, UsersWrite, RolesWrite, ProfilesModerate, SettingsWrite, ResultsReview, AgentsRead, AgentsWrite],
+        PlatformRole.Admin => [Read, AuditRead, UsersRead, UsersWrite, ProfilesModerate, SettingsWrite, ResultsReview, AgentsRead],
         PlatformRole.Moderator => [Read, UsersRead, ProfilesModerate, ResultsReview],
         _ => [Read],
     };

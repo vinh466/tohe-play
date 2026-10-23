@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.DataProtection.EntityFrameworkCore;
 using Microsoft.AspNetCore.Identity.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore;
 using Tohe.Api.Modules.Admin;
+using Tohe.Api.Modules.Agents;
 using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
@@ -78,6 +79,12 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
     public DbSet<PlatformSetting> PlatformSettings => Set<PlatformSetting>();
 
     public DbSet<AuditEntry> AuditLog => Set<AuditEntry>();
+
+    public DbSet<Agent> Agents => Set<Agent>();
+
+    public DbSet<AgentToken> AgentTokens => Set<AgentToken>();
+
+    public DbSet<AgentAuditEntry> AgentAudit => Set<AgentAuditEntry>();
 
     /// <summary>Keys that encrypt session cookies; persisted so restarts and deploys keep people signed in.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();

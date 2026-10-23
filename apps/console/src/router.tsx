@@ -1,4 +1,5 @@
 import { createRootRoute, createRoute, createRouter, Outlet } from '@tanstack/react-router';
+import { AgentsPage } from './pages/AgentsPage.tsx';
 import { AuditPage } from './pages/AuditPage.tsx';
 import { CommunitiesPage } from './pages/CommunitiesPage.tsx';
 import { GamesPage } from './pages/GamesPage.tsx';
@@ -42,6 +43,11 @@ const systemRoute = createRoute({
   getParentRoute: () => sessionRoute,
   path: '/system',
   component: SystemPage,
+});
+const agentsRoute = createRoute({
+  getParentRoute: () => sessionRoute,
+  path: '/agents',
+  component: AgentsPage,
 });
 const auditRoute = createRoute({ getParentRoute: () => sessionRoute, path: '/audit', component: AuditPage });
 const securityRoute = createRoute({
@@ -115,6 +121,7 @@ export const routeTree = rootRoute.addChildren([
     communitiesRoute,
     linksRoute,
     settingsRoute,
+    agentsRoute,
     auditRoute,
     securityRoute,
   ]),

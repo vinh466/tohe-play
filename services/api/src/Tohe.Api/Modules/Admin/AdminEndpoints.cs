@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure;
 using Tohe.Api.Infrastructure.Database;
+using Tohe.Api.Modules.Agents;
 using Tohe.Api.Modules.Email;
 using Tohe.Api.Modules.Identity;
 using Tohe.Api.Modules.Integrity;
@@ -185,6 +186,8 @@ internal static class AdminEndpoints
         SettingsEndpoints.Map(admin);
         ReviewEndpoints.Map(admin);
         LinksEndpoints.Map(admin);
+        // Agents and their tokens (ADR 0052): the Agents module's, behind the console's session like every page.
+        AgentsConsoleEndpoints.Map(admin);
     }
 
     /// <summary>The account, its role and what the role may do, and the console session.</summary>

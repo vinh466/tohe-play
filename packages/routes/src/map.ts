@@ -397,6 +397,7 @@ export const consoleNamespaces: readonly Namespace[] = [
   consolePage('communities', '/communities', 'Communities and their invite codes'),
   consolePage('links', '/links', 'A share link found by its code, to revoke it (ADR 0044)'),
   consolePage('settings', '/settings', 'Sign-in methods and the registration mode'),
+  consolePage('agents', '/agents', 'Agents, their tokens and each agent’s audit (ADR 0052)'),
   consolePage('audit', '/audit', 'The audit log'),
   consolePage('security', '/security', 'The operator’s own two-factor authentication'),
   consolePage('setup', '/setup', 'Where a new deployment’s first owner claims it'),
