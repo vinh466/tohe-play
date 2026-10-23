@@ -48,15 +48,16 @@ flowchart TB
 | `docs.toheplay.io.vn` | Developer docs at the root of the host, generated API references, `llms.txt` | none | yes | the docs image (`apps/docs`) |
 | `status.toheplay.io.vn` | Status and incidents | none | yes | a service outside Tò He's infrastructure |
 | `notify.toheplay.io.vn` | Sends transactional mail; no web | — | — | the mail provider |
+| `studio.toheplay.io.vn` | The [Asset Studio](asset-studio.md): game assets made, checked and approved; the API's Studio routes. Decided ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)), serving once its DNS, ingress and storage exist | `__Host-tohe.studio`, its own sign-in; agents use [tokens](agent-tokens.md) | no | the hub image's Caddy, a third site |
 | `www.toheplay.io.vn` | Redirects to the root | — | — | Cloudflare |
 
 Mail to people: `hello@` and `security@toheplay.io.vn`, forwarded by Cloudflare Email Routing. `send.toheplay.io.vn` is
 the mail provider's return path.
 
-Kept for later, without DNS: `api.`, `account.`, `studio.`, `media.`, `uat.` ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)).
+Kept for later, without DNS: `api.`, `account.`, `media.`, `uat.` ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)).
 
 **The hosts as planes** ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)): players (the root), games
-(`games.`), operators (`console.`), developers (`docs.`, later `studio.`), edge (`status.`, `notify.`). The games plane is
+(`games.`), operators (`console.`), developers (`docs.`, and `studio.` with a session of its own — [ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)), edge (`status.`, `notify.`). The games plane is
 at isolation level **L1** — an origin of its own, enough while every game is one the owner adds to this repository.
 **Before the first game the owner did not add**, the owner chooses L2 (a registrable domain of its own) or L3 (a site per
 game); the games origin is configuration (`publicUrls.games`), so L2 is a change of configuration and DNS, while L3 also
