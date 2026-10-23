@@ -330,10 +330,10 @@ try {
   const end = Date.now() + 17_000;
   const margin = 24;
   const top = 96;
-  await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
+  await frame.getByRole('button', { name: 'Chơi', exact: true }).tap();
   // The first round starts from the how-to.
-  await frame.getByRole('button', { name: '▶ Bắt đầu' }).tap();
-  const again = frame.getByRole('button', { name: '▶ Chơi lại', exact: true });
+  await frame.getByRole('button', { name: 'Bắt đầu', exact: true }).tap();
+  const again = frame.getByRole('button', { name: 'Chơi lại', exact: true });
   while (Date.now() < end && !(await again.isVisible())) {
     const x = Math.round(box.x + margin + Math.random() * (box.width - 2 * margin));
     const y = Math.round(box.y + top + Math.random() * (box.height - top - margin));
@@ -341,7 +341,7 @@ try {
     await page.touchscreen.tap(x, y);
     await page.waitForTimeout(150);
   }
-  await frame.getByRole('button', { name: '▶ Chơi lại' }).waitFor({ timeout: 10_000 });
+  await frame.getByRole('button', { name: 'Chơi lại', exact: true }).waitFor({ timeout: 10_000 });
   await shot('game-over');
 
   step('the game follows the hub live: the device turns dark, "Theo máy" passes it on as settings.theme');
@@ -390,23 +390,23 @@ try {
   }
 
   step("the game's title screen opens the hub's leaderboard over the game");
-  await frame.getByRole('button', { name: '🏠 Menu chính' }).tap();
+  await frame.getByRole('button', { name: 'Menu chính', exact: true }).tap();
   await frame.getByRole('button', { name: 'Bảng xếp hạng' }).tap();
   const board = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await board.getByText('Bé Na (bạn)').waitFor();
   await board.getByRole('button', { name: 'Đóng' }).tap();
 
   step('phone Back opens the menu (the round waits), Back again goes on playing');
-  await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
+  await frame.getByRole('button', { name: 'Chơi', exact: true }).tap();
   // The play stage is up once its loading view is gone (Back while it loads goes back to the title, ADR 0020).
   await frame.locator('[data-tohe-menu]').waitFor();
   await frame.locator('.tohe-overlay-loading').waitFor({ state: 'hidden' });
   await page.evaluate(() => history.back());
-  await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor();
+  await frame.getByRole('button', { name: 'Tiếp tục', exact: true }).waitFor();
   if (!/\/play\/hello$/.test(page.url())) throw new Error(`Back left the game: ${page.url()}`);
   await shot('in-game-menu');
   await page.evaluate(() => history.back());
-  await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor({ state: 'hidden' });
+  await frame.getByRole('button', { name: 'Tiếp tục', exact: true }).waitFor({ state: 'hidden' });
 
   step('the hub hiding the game (another app, a locked phone) opens its menu, and play waits there');
   const setHidden = (hidden: boolean) =>
@@ -417,13 +417,13 @@ try {
   // Going on counts 3, 2, 1 first (a game against the clock): wait until play is back before hiding it.
   await frame.locator('.tohe-overlay:not(.tohe-menu-stage)').waitFor({ state: 'hidden' });
   await setHidden(true);
-  await frame.getByRole('button', { name: '▶ Tiếp tục' }).waitFor();
+  await frame.getByRole('button', { name: 'Tiếp tục', exact: true }).waitFor();
   await setHidden(false);
   await page.waitForTimeout(500);
-  if (!(await frame.getByRole('button', { name: '▶ Tiếp tục' }).isVisible())) {
+  if (!(await frame.getByRole('button', { name: 'Tiếp tục', exact: true }).isVisible())) {
     throw new Error('the menu closed by itself when the game came back');
   }
-  await frame.getByRole('button', { name: '▶ Tiếp tục' }).tap();
+  await frame.getByRole('button', { name: 'Tiếp tục', exact: true }).tap();
   await frame.locator('.tohe-overlay:not(.tohe-menu-stage)').waitFor({ state: 'hidden' });
 
   step(
@@ -435,7 +435,7 @@ try {
     throw new Error('the in-game menu offers a way out to Tò He');
   }
   await frame.getByRole('button', { name: 'Menu chính' }).tap();
-  await frame.getByRole('button', { name: '▶ Chơi', exact: true }).waitFor();
+  await frame.getByRole('button', { name: 'Chơi', exact: true }).waitFor();
   await frame.getByRole('button', { name: 'Về Tò He' }).tap();
   await page.waitForURL(catalogUrl);
   const leftTo = await historyIndex(page);

@@ -194,7 +194,7 @@ try {
   await host.waitForURL(/\/play\/tien-len$/);
   const gameEntry = await historyIndex(host);
   let menu = await gameFrame(host);
-  await menu.getByRole('button', { name: '🌐 Chơi online' }).tap();
+  await menu.getByRole('button', { name: 'Chơi online', exact: true }).tap();
   await host.waitForURL(/\/play\/tien-len\/rooms$/);
   await shot(host, 'lobby');
 
@@ -205,7 +205,7 @@ try {
   if (backAt !== gameEntry)
     throw new Error(`the lobby's ← stacked the game again (entry ${backAt}, not ${gameEntry})`);
   menu = await gameFrame(host);
-  await menu.getByRole('button', { name: '🌐 Chơi online' }).tap();
+  await menu.getByRole('button', { name: 'Chơi online', exact: true }).tap();
   await host.waitForURL(/\/play\/tien-len\/rooms$/);
 
   step('the host creates a room: easy bots, 15 s a turn, spectators welcome');

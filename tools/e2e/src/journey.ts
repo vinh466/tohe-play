@@ -143,12 +143,12 @@ async function playOneRound(page: Page) {
   const frame = await gameFrame(page);
   const box = await page.locator('iframe').boundingBox();
   if (!box) throw new Error('game iframe has no layout box');
-  await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
-  await frame.getByRole('button', { name: '▶ Bắt đầu' }).tap();
+  await frame.getByRole('button', { name: 'Chơi', exact: true }).tap();
+  await frame.getByRole('button', { name: 'Bắt đầu', exact: true }).tap();
   // Taps stay in the playfield, below the HUD: they must never reach the menu (☰, top left). As in smoke.ts, the
   // deadline is taken before the round starts.
   const end = Date.now() + 17_000;
-  const again = frame.getByRole('button', { name: '▶ Chơi lại', exact: true });
+  const again = frame.getByRole('button', { name: 'Chơi lại', exact: true });
   while (Date.now() < end && !(await again.isVisible())) {
     const x = Math.round(box.x + 24 + Math.random() * (box.width - 48));
     const y = Math.round(box.y + 96 + Math.random() * (box.height - 96 - 24));
@@ -157,7 +157,7 @@ async function playOneRound(page: Page) {
   }
   await again.waitFor({ timeout: 10_000 });
   await page.waitForTimeout(500); // the hub takes the final score in
-  await frame.getByRole('button', { name: '🏠 Menu chính' }).tap();
+  await frame.getByRole('button', { name: 'Menu chính', exact: true }).tap();
   await frame.getByRole('button', { name: 'Về Tò He' }).tap();
   await page.waitForURL(catalogUrl);
 }
