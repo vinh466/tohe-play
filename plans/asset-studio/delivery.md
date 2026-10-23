@@ -14,8 +14,13 @@ Luật chung:
 
 | PR | Trạng thái |
 |---|---|
-| N1–N3 | **merged** — [#134](https://github.com/vinh466/tohe-play/pull/134) (2026-10-24), một PR vì ba ADR trỏ lẫn nhau |
-| B1, B4, B2, B3, C1, K2, K3, T1, T2, S1 | chờ: worker của phiên `launch-review` đang giữ `services/api/src`, file sinh, `packages/game-kit/src`, `tools/conformance` và lockfile |
+| N1–N3 | **merged** — [#134](https://github.com/vinh466/tohe-play/pull/134), một PR vì ba ADR trỏ lẫn nhau |
+| B1 | **trên prod** — [#140](https://github.com/vinh466/tohe-play/pull/140), `prod-2026-10-24.1` (phiên `launch-review` tag) |
+| K3a | **trên prod** — [#141](https://github.com/vinh466/tohe-play/pull/141): helper bố cục; phần conformance (K3b) để sau |
+| C1 | **merged** — [#143](https://github.com/vinh466/tohe-play/pull/143): ADR 0053, `assets`, `studio/`, luật folder trong conformance |
+| K2 | **merged** — [#144](https://github.com/vinh466/tohe-play/pull/144): xuất từ entry chính của kit, không đụng `package.json` |
+| B4, T2 | đang xây |
+| B2, B3, S1, S2, T1, K1, K3b, W1, V1, V2 | chờ |
 
 ## Điều chỉnh khi graduate (2026-10-24)
 

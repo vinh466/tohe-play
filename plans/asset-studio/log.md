@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-24 (3) — agent
+
+- Merged: #140 (B1), #141 (K3a), #143 (C1), #144 (K2). B1 và K3a lên prod trong `prod-2026-10-24.1` (phiên
+  `launch-review` tag, `check:prod` 23/23).
+- Builder chạy bằng `isolation: worktree` và tự mở claim; không resume builder đã dừng; fetch trước khi giao.
+- Test `RoomsTests…time_limit` (Jint) vấp khi máy tải nặng, luôn qua trên CI: ghi lại, không nới.
+- Đang xây: B4, T2.
+
 ## 2026-10-24 (2) — agent
 
 - #113 (plan) và #134 (ADR 0050–0052, `asset-studio.md`, `agent-tokens.md`) merged. Phiên surface giữ 0049, dùng 0054+.
