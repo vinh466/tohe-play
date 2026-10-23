@@ -275,11 +275,11 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     quick: () => [
       {
         kind: 'card',
-        icon: '🎨',
+        icon: 'palette',
         label: t.colours,
         value: t.palettes[store.palette],
         card: () => ({
-          icon: '🎨',
+          icon: 'palette',
           title: t.colours,
           content: choiceList(
             PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id, theme) })),

@@ -214,7 +214,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     const final = state.score;
     ctx.gameOver(
       {
-        icon: record ? '🏆' : '🧱',
+        icon: record ? 'trophy' : { src: 'icon.svg' },
         title: record ? t.record : t.over,
         body: t.result(score(final), score(store.best)),
       },
@@ -232,7 +232,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     const name = played.from?.name ?? null;
     ctx.gameOver(
       {
-        icon: beaten ? '🏆' : '🎯',
+        icon: beaten ? 'trophy' : 'target',
         title: beaten ? t.challenge.beaten(score(played.target), name) : t.challenge.short(score(short)),
         body: t.result(score(final), score(store.best)),
       },
@@ -309,10 +309,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   if (opening && state.moves === 0) {
     const name = opening.from?.name ?? null;
     ctx.overlay.show({
-      icon: '🎯',
+      icon: 'target',
       title: t.challenge.target(score(opening.target), name),
       body: t.challenge.intro(score(opening.target), name),
-      actions: [{ label: shellStrings(session.locale).start, onClick: () => ctx.overlay.hide() }],
+      actions: [
+        { label: shellStrings(session.locale).start, icon: 'play', onClick: () => ctx.overlay.hide() },
+      ],
     });
   }
   void save();
@@ -325,15 +327,15 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       sfx.play('click');
       void startNewGame();
     },
-    // 🎨 Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
+    // Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
     quick: () => [
       {
         kind: 'card',
-        icon: '🎨',
+        icon: 'palette',
         label: t.colours,
         value: t.palettes[store.palette],
         card: () => ({
-          icon: '🎨',
+          icon: 'palette',
           title: t.colours,
           content: choiceList(
             PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id, theme) })),

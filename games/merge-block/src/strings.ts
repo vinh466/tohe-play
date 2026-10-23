@@ -22,7 +22,7 @@ export const strings = {
     record: 'Kỷ lục mới!',
     result: (score: string, best: string) => `Điểm ${score} · Kỷ lục ${best}`,
     inProgress: (score: string) => `Ván đang chơi dở: ${score} điểm.`,
-    bestLine: (score: string) => `👑 Kỷ lục ${score}`,
+    bestLine: (score: string) => `Kỷ lục ${score}`,
     // "Thách bạn" (ADR 0045): a challenge on the same blocks, by a share link. The score is the sender's claim.
     challenge: {
       button: 'Thách bạn',
@@ -77,7 +77,7 @@ export const strings = {
     record: 'New record!',
     result: (score: string, best: string) => `Score ${score} · Best ${best}`,
     inProgress: (score: string) => `A game in progress: ${score} points.`,
-    bestLine: (score: string) => `👑 Best ${score}`,
+    bestLine: (score: string) => `Best ${score}`,
     challenge: {
       button: 'Challenge a friend',
       again: 'Challenge back',

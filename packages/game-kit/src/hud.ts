@@ -1,12 +1,13 @@
-// The HUD at the top of every game (ADR 0019): ☰ first, always in the same place and look, then the game's numbers.
+// The HUD at the top of every game (ADR 0019): the Menu button first, always in the same place and look, then the game's numbers.
 // A game fills the start (its score), the centre (its own: the next block, a rescue button) and the end (the best
 // score, a button); the kit draws the boxes, counts scores up, shortens one that does not fit and lights up a record.
 // The sides share the row equally; a game whose sides differ in width (a score on one, buttons on the other) sets its
 // own `grid-template-columns` on `.tohe-hud` (Tiến Lên does).
 import { formatCompact, formatScore } from './format.ts';
+import { shape } from './icons.ts';
 
 export interface StatOptions {
-  /** Where the box goes: the start (after ☰) or the end. Default: the start. */
+  /** Where the box goes: the start (after the Menu button) or the end. Default: the start. */
   place?: 'start' | 'end';
   /** Writes the value (e.g. "+3"); by default the locale's digits, shortened ("56,4M") when the box is too narrow. */
   format?(value: number): string;
@@ -42,7 +43,7 @@ export interface Hud {
 }
 
 export interface HudOptions {
-  /** ☰, from the play stage's context (`ctx.menuButton()`): always first. */
+  /** The Menu button, from the play stage's context (`ctx.menuButton()`): always first. */
   menu: HTMLButtonElement;
   /** The game's root: the HUD goes first in it. */
   parent: HTMLElement;
@@ -66,9 +67,7 @@ export function createHud({ menu, parent, locale }: HudOptions): Hud {
     const labelNode = node('span', 'tohe-stat-label');
     const text = node('span', 'tohe-stat-label-text', label);
     if (best) {
-      const crown = node('span', 'tohe-stat-crown', '👑');
-      crown.setAttribute('aria-hidden', 'true');
-      labelNode.append(crown);
+      labelNode.append(shape('crown', 'tohe-svg tohe-stat-crown'));
     }
     labelNode.append(text);
     const value = node('span', 'tohe-stat-value', '0');

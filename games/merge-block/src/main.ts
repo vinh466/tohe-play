@@ -1,4 +1,5 @@
-// The menu stage (ADR 0020): Ghép Khối's own first screen — title, play, ⚙️ (block colours), ❓, 🏆 — with no engine
+// The menu stage (ADR 0020): Ghép Khối's own first screen — title, play, settings (block colours), how to play, the
+// leaderboard — with no engine
 // running. Play loads stage.ts (fetched in the background meanwhile). Shared state lives in app.ts. Watching a ranked
 // run (ADR 0032) has no menu stage: the game opens straight into replay.ts. A challenge link ("Thách bạn", ADR 0045)
 // opens play at once, the title screen behind it.
@@ -27,8 +28,15 @@ followTheme(session, (next) => {
 const shell = createShell({
   session,
   root: document.querySelector<HTMLElement>('#app') as HTMLElement,
-  icon: '🧱',
-  decor: ['🧱', '🟧', '🟨', '🟩', '🟦'],
+  logo: 'icon.svg',
+  // Blocks in the colours of its board (palette.ts).
+  decor: [
+    { shape: 'square', colour: '#fb923c' },
+    { shape: 'square', colour: '#dc2626' },
+    { shape: 'square', colour: '#9333ea' },
+    { shape: 'square', colour: '#2563eb' },
+    { shape: 'square', colour: '#14b8a6' },
+  ],
   title: t.title,
   inProgress: () => {
     const game = store.game;
@@ -37,7 +45,7 @@ const shell = createShell({
       : null;
   },
   best: () => (store.best > 0 ? t.bestLine(formatScore(store.best, session.locale)) : null),
-  howTo: () => ({ icon: '🧱', title: t.title, content: hintList(t.hints) }),
+  howTo: () => ({ icon: { src: 'icon.svg' }, title: t.title, content: hintList(t.hints) }),
   tutorial: {
     seen: () => store.tutorialSeen,
     done: () => {
@@ -49,7 +57,8 @@ const shell = createShell({
   },
   settings: [
     {
-      label: `🎨 ${t.colours}`,
+      label: t.colours,
+      icon: 'palette',
       when: 'any-time',
       content: () =>
         choiceList(

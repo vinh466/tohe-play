@@ -1,15 +1,26 @@
 // DOM screens with one look shared by every game: the game shell's menu stage (title screen and its full screens)
 // and the panels over play (the in-game menu, the game's own cards, the end of a game). Big rounded buttons,
-// safe-area aware, on the design tokens. Styles: import '@tohe/game-kit/overlay.css' once.
+// safe-area aware, on the design tokens. Styles: import '@tohe/game-kit/overlay.css' once. Pictures are the kit's SVG
+// icons (icons.ts) or the game's own art, never emoji (ADR 0049): every icon sits beside a visible label.
+import { icon as drawIcon, shape as drawShape, type IconName, type ShapeName } from './icons.ts';
+
+/** A card's picture: an icon of the kit's set, or an image of the game's own — its logo, `{ src: 'icon.svg' }`. */
+export type Picture = IconName | { src: string };
+
+/** A shape drifting behind a title screen, in a colour of the game's art (default: the accent token), faint. */
+export interface DecorShape {
+  shape: ShapeName;
+  colour?: string;
+}
 
 export interface OverlayAction {
   label: string;
   onClick(): void;
   /** `quiet`: a low-key button, e.g. the seat's way out at the bottom of a table's menu. */
   variant?: 'primary' | 'secondary' | 'quiet';
-  /** A tool's picture (⚙️), shown large above its label. */
-  icon?: string;
-  /** The accessible name when the visible label is short (a tool's caption, a screen's ←). */
+  /** An icon before the label (a button) or large above it (a tool). */
+  icon?: IconName;
+  /** The accessible name when the visible label is short (a tool's caption, e.g. "Âm thanh: bật"). */
   ariaLabel?: string;
   /** Extra attributes for the button, e.g. `data-tohe-exit` (what conformance looks for, ADR 0018). */
   attributes?: Record<string, string>;
@@ -17,22 +28,24 @@ export interface OverlayAction {
 
 /**
  * A row of a panel or a screen (ADR 0020): a switch that changes something at once, or a link that opens a card —
- * with the current choice (`value`) shown before ›, e.g. "🎨 Màu khối · Hoàng hôn ›".
+ * with the current choice (`value`) shown before its arrow, e.g. "Màu khối · Hoàng hôn".
  */
 export type OverlayRow =
-  | { kind: 'switch'; label: string; icon?: string; on: boolean; onChange(on: boolean): void }
-  | { kind: 'link'; label: string; icon?: string; value?: string; onClick(): void };
+  | { kind: 'switch'; label: string; icon?: IconName; on: boolean; onChange(on: boolean): void }
+  | { kind: 'link'; label: string; icon?: IconName; value?: string; onClick(): void };
 
 export interface OverlaySection {
   title: string;
+  /** An icon before the title. */
+  icon?: IconName;
   /** Under the title, e.g. "Đổi ở menu chính, áp dụng từ ván sau." */
   note?: string;
   content: HTMLElement;
 }
 
 export interface OverlayCard {
-  /** Emoji or short text shown large above the title. */
-  icon?: string;
+  /** The picture shown large above the title: an icon, or the game's own art (its logo on the title screen). */
+  icon?: Picture;
   title: string;
   body?: string;
   /** Extra content between the body and the buttons (e.g. a score table or hints). */
@@ -40,20 +53,20 @@ export interface OverlayCard {
   actions: OverlayAction[];
   /** Rows: switches that change something at once, links to cards (a list to choose from, rules to read). */
   rows?: OverlayRow[];
-  /** A screen's sections (⚙️ Cài đặt: one per setting), each with a title over its content. */
+  /** A screen's sections (Cài đặt: one per setting), each with a title over its content. */
   sections?: OverlaySection[];
   /** Round picture buttons in a row: sound, settings, leaderboard, how to play. */
   tools?: OverlayAction[];
   /** The last button, under the tools: the way out (back to Tò He on the title screen, the seat's at a table). */
   footer?: OverlayAction;
-  /** A screen's ← back, in its header. */
+  /** A screen's way back, in its header. */
   corner?: OverlayAction;
-  /** A few emoji drifting behind the title screen, in the game's spirit. */
-  decor?: string[];
+  /** A few shapes drifting behind the title screen, in the game's spirit. */
+  decor?: DecorShape[];
   /**
    * `card` (default): a card over the game. `menu`: the in-game panel. `title`: a game's title screen.
-   * `screen`: a full screen of the menu stage (⚙️, ❓) with ← in its header. `count`: a big number alone (3, 2, 1).
-   * `loading`: the game's picture and a few dots while play gets ready.
+   * `screen`: a full screen of the menu stage (settings, how to play) with a way back in its header. `count`: a big
+   * number alone (3, 2, 1). `loading`: the game's logo and a few dots while play gets ready.
    */
   layout?: 'card' | 'menu' | 'title' | 'screen' | 'count' | 'loading';
 }
@@ -85,7 +98,7 @@ export function createOverlay(root: HTMLElement, { stage = false }: { stage?: bo
       box.setAttribute('aria-labelledby', title.id);
       if (layout === 'count' || layout === 'loading') {
         box.setAttribute('role', 'status');
-        if (card.icon) box.append(element('div', 'tohe-card-icon', card.icon));
+        if (card.icon) box.append(picture(card.icon, 'tohe-card-icon'));
         box.append(title);
         if (layout === 'loading') box.append(dots());
         layer.replaceChildren(box);
@@ -99,12 +112,12 @@ export function createOverlay(root: HTMLElement, { stage = false }: { stage?: bo
       if (layout === 'screen') {
         const head = element('header', 'tohe-screen-head');
         if (card.corner) head.append(button({ variant: 'quiet', ...card.corner }, false, 'tohe-screen-back'));
-        if (card.icon) head.append(element('span', 'tohe-screen-icon', card.icon));
+        if (card.icon) head.append(picture(card.icon, 'tohe-screen-icon'));
         head.append(title);
         box.append(head);
       } else {
         const hero = layout === 'title' ? element('div', 'tohe-title-hero') : box;
-        if (card.icon) hero.append(element('div', 'tohe-card-icon', card.icon));
+        if (card.icon) hero.append(picture(card.icon, 'tohe-card-icon'));
         hero.append(title);
         if (hero !== box) box.append(hero);
       }
@@ -112,7 +125,7 @@ export function createOverlay(root: HTMLElement, { stage = false }: { stage?: bo
       if (body !== box) box.append(body);
       if (card.body) body.append(element('p', 'tohe-card-body', card.body));
       if (card.content) body.append(card.content);
-      // A screen (⚙️) puts its switches first, then its sections; a panel puts its actions (▶ Tiếp tục) first.
+      // A screen (settings) puts its switches first, then its sections; a panel puts its actions (Tiếp tục) first.
       const rows = card.rows?.length ? rowsOf(card.rows) : null;
       if (rows && layout === 'screen') body.append(rows);
       for (const section of card.sections ?? []) body.append(sectionOf(section));
@@ -142,9 +155,32 @@ export function createOverlay(root: HTMLElement, { stage = false }: { stage?: bo
   };
 }
 
+/** A picture in a box of `className`: an icon, or the game's own image (decoration: the title beside it names it). */
+function picture(source: Picture, className: string): HTMLElement {
+  const box = element('div', className);
+  box.setAttribute('aria-hidden', 'true');
+  if (typeof source === 'string') box.append(drawIcon(source));
+  else {
+    box.classList.add('is-picture');
+    const image = document.createElement('img');
+    image.src = source.src;
+    image.alt = '';
+    image.draggable = false;
+    box.append(image);
+  }
+  return box;
+}
+
+/** A label with its icon before it; the icon is hidden from screen readers, the words name the control. */
+function labelled(node: HTMLElement, label: string, name?: IconName) {
+  if (name) node.append(drawIcon(name));
+  node.append(element('span', 'tohe-label', label));
+}
+
 function button(action: OverlayAction, hero: boolean, extra?: string): HTMLButtonElement {
   const variant = action.variant ?? 'primary';
-  const node = element('button', `tohe-button tohe-button-${variant}`, action.label);
+  const node = element('button', `tohe-button tohe-button-${variant}`);
+  labelled(node, action.label, action.icon);
   if (hero && variant === 'primary') node.classList.add('tohe-button-hero');
   if (extra) node.classList.add(extra);
   node.type = 'button';
@@ -158,8 +194,9 @@ function button(action: OverlayAction, hero: boolean, extra?: string): HTMLButto
 function toolButton(action: OverlayAction): HTMLButtonElement {
   const node = element('button', 'tohe-tool');
   node.type = 'button';
-  const icon = element('span', 'tohe-tool-icon', action.icon ?? '•');
+  const icon = element('span', 'tohe-tool-icon');
   icon.setAttribute('aria-hidden', 'true');
+  if (action.icon) icon.append(drawIcon(action.icon));
   node.append(icon, element('span', 'tohe-tool-label', action.label));
   if (action.ariaLabel) node.setAttribute('aria-label', action.ariaLabel);
   for (const [name, value] of Object.entries(action.attributes ?? {})) node.setAttribute(name, value);
@@ -170,7 +207,8 @@ function toolButton(action: OverlayAction): HTMLButtonElement {
 function rowsOf(rows: OverlayRow[]): HTMLElement {
   const list = element('div', 'tohe-rows');
   for (const row of rows) {
-    const label = element('span', 'tohe-row-label', row.icon ? `${row.icon} ${row.label}` : row.label);
+    const label = element('span', 'tohe-row-label');
+    labelled(label, row.label, row.icon);
     if (row.kind === 'switch') {
       const node = element('button', 'tohe-row tohe-row-switch');
       node.type = 'button';
@@ -186,9 +224,7 @@ function rowsOf(rows: OverlayRow[]): HTMLElement {
       node.type = 'button';
       const end = element('span', 'tohe-row-end');
       if (row.value) end.append(element('span', 'tohe-row-value', row.value));
-      const chevron = element('span', 'tohe-row-chevron', '›');
-      chevron.setAttribute('aria-hidden', 'true');
-      end.append(chevron);
+      end.append(drawIcon('caret-right', 'tohe-svg tohe-row-chevron'));
       node.append(label, end);
       node.addEventListener('click', row.onClick);
       list.append(node);
@@ -199,14 +235,16 @@ function rowsOf(rows: OverlayRow[]): HTMLElement {
 
 function sectionOf(section: OverlaySection): HTMLElement {
   const node = element('section', 'tohe-section');
-  node.append(element('h3', 'tohe-section-title', section.title));
+  const title = element('h3', 'tohe-section-title');
+  labelled(title, section.title, section.icon);
+  node.append(title);
   if (section.note) node.append(element('p', 'tohe-section-note', section.note));
   node.append(section.content);
   return node;
 }
 
-/** Emoji spread over the title screen at fixed places (no randomness: the screen looks the same each time). */
-function decor(items: string[]): HTMLElement {
+/** Shapes spread over the title screen at fixed places (no randomness: the screen looks the same each time). */
+function decor(items: DecorShape[]): HTMLElement {
   const layer = element('div', 'tohe-decor');
   layer.setAttribute('aria-hidden', 'true');
   const spots = [
@@ -220,7 +258,9 @@ function decor(items: string[]): HTMLElement {
     [52, 88],
   ];
   spots.forEach(([left, top], index) => {
-    const item = element('span', 'tohe-decor-item', items[index % items.length]);
+    const { shape, colour } = items[index % items.length] as DecorShape;
+    const item = drawShape(shape, 'tohe-svg tohe-decor-item');
+    if (colour) item.style.color = colour;
     item.style.left = `${left}%`;
     item.style.top = `${top}%`;
     item.style.animationDelay = `${-index * 1.3}s`;

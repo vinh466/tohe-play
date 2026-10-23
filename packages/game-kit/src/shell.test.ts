@@ -1,5 +1,6 @@
 import type { ShellInfo } from '@tohe/game-sdk';
 import { afterEach, describe, expect, it, vi } from 'vitest';
+import { iconNames } from './icons.ts';
 import type { Overlay, OverlayAction, OverlayCard, OverlayRow } from './overlay.ts';
 import {
   createShell,
@@ -67,7 +68,7 @@ function setup(overrides: Partial<ShellOptions> = {}, can: ShellInfo = { leaderb
         quick: (): QuickRow[] => [
           {
             kind: 'card',
-            icon: '🎨',
+            icon: 'palette',
             label: 'Màu khối',
             value: colour.toUpperCase(),
             card: () => ({ title: 'Chọn màu khối' }),
@@ -81,7 +82,7 @@ function setup(overrides: Partial<ShellOptions> = {}, can: ShellInfo = { leaderb
     root: {} as HTMLElement,
     layers: { menu: menu.overlay, play: play.overlay, stage: stageElement },
     title: 'Ghép Khối',
-    icon: '🧱',
+    logo: 'icon.svg',
     inProgress: () => null,
     howTo: () => ({ title: 'Cách chơi' }),
     stage: async () => module,
@@ -142,11 +143,11 @@ describe('the menu stage (ADR 0020)', () => {
     shell.start();
     expect(menu()?.layout).toBe('title');
     expect(play()).toBeNull();
-    expect(labels()).toEqual(['▶ Chơi']);
+    expect(labels()).toEqual(['Chơi']);
     expect(menu()?.actions[0]?.attributes).toEqual({ 'data-tohe-play': '' });
     expect(tools()).toEqual(['Âm thanh: bật', 'Cài đặt', 'Cách chơi']);
     // The way back to Tò He is the last of the title's buttons, not a corner.
-    expect(menu()?.footer).toMatchObject({ label: '← Về Tò He', attributes: { 'data-tohe-exit': '' } });
+    expect(menu()?.footer).toMatchObject({ label: 'Về Tò He', attributes: { 'data-tohe-exit': '' } });
     expect(menu()?.corner).toBeUndefined();
     expect(calls).toEqual([]);
     expect(reported()).toEqual([true]);
@@ -156,26 +157,26 @@ describe('the menu stage (ADR 0020)', () => {
     const { shell, menu, labels, tools, tap, session } = setup(
       {
         inProgress: () => 'Ván đang chơi dở: 1.234 điểm.',
-        best: () => '👑 Kỷ lục 5.678',
+        best: () => 'Kỷ lục 5.678',
         online: true,
         leaderboard: true,
       },
       { leaderboard: true, rooms: true },
     );
     shell.start();
-    expect(menu()?.body).toBe('Ván đang chơi dở: 1.234 điểm. · 👑 Kỷ lục 5.678');
-    expect(labels()).toEqual(['▶ Chơi tiếp', '🔄 Ván mới', '🌐 Chơi online']);
+    expect(menu()?.body).toBe('Ván đang chơi dở: 1.234 điểm. · Kỷ lục 5.678');
+    expect(labels()).toEqual(['Chơi tiếp', 'Ván mới', 'Chơi online']);
     expect(tools()).toEqual(['Âm thanh: bật', 'Cài đặt', 'Bảng xếp hạng', 'Cách chơi']);
     tap('Bảng xếp hạng');
     expect(session.shell.open).toHaveBeenCalledWith('leaderboard');
-    tap('🌐 Chơi online');
+    tap('Chơi online');
     expect(session.shell.open).toHaveBeenCalledWith('rooms');
   });
 
   it('leaves out online play and the board when the hub cannot open them (a guest)', () => {
     const { shell, labels, tools } = setup({ online: true, leaderboard: true });
     shell.start();
-    expect(labels()).toEqual(['▶ Chơi']);
+    expect(labels()).toEqual(['Chơi']);
     expect(tools()).toEqual(['Âm thanh: bật', 'Cài đặt', 'Cách chơi']);
   });
 
@@ -212,12 +213,12 @@ describe('the menu stage (ADR 0020)', () => {
   it('asks before a new game over the one in progress, then starts the play stage fresh', async () => {
     const { shell, menu, tap, calls } = setup({ inProgress: () => 'Ván dở' });
     shell.start();
-    tap('🔄 Ván mới');
+    tap('Ván mới');
     expect(menu()?.title).toBe('Bắt đầu ván mới?');
     tap('Quay lại');
     expect(menu()?.layout).toBe('title');
-    tap('🔄 Ván mới');
-    tap('🔄 Ván mới');
+    tap('Ván mới');
+    tap('Ván mới');
     await settle();
     expect(calls).toEqual(['start fresh']);
   });
@@ -234,14 +235,14 @@ describe('the menu stage (ADR 0020)', () => {
       },
     });
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     expect(menu()?.layout).toBe('screen');
-    expect(labels()).toEqual(['▶ Bắt đầu']);
+    expect(labels()).toEqual(['Bắt đầu']);
     expect(menu()?.actions[0]?.attributes).toEqual({ 'data-tohe-play': '' });
     back();
     expect(menu()?.layout).toBe('title');
-    tap('▶ Chơi');
-    tap('▶ Bắt đầu');
+    tap('Chơi');
+    tap('Bắt đầu');
     await settle();
     expect(calls).toEqual(['done', 'start first']);
   });
@@ -251,7 +252,7 @@ describe('the play stage (ADR 0020)', () => {
   it('is created on play: loading, then the game alone, the menu stage gone', async () => {
     const { shell, menu, play, tap, reported, stageElement } = setup();
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     expect(play()?.layout).toBe('loading');
     expect(menu()).toBeNull();
     await settle();
@@ -263,12 +264,12 @@ describe('the play stage (ADR 0020)', () => {
   it('pauses into a quick panel with no way out to Tò He; Back goes on playing', async () => {
     const { shell, play, tap, back, labels, tools, rows, every, calls } = setup();
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     back();
     expect(play()?.layout).toBe('menu');
     expect(play()?.title).toBe('Tạm dừng');
-    expect(labels()).toEqual(['▶ Tiếp tục']);
+    expect(labels()).toEqual(['Tiếp tục']);
     expect(rows().map((row) => row.label)).toEqual(['Âm thanh', 'Màu khối']);
     expect(tools()).toEqual(['Ván mới', 'Cách chơi', 'Menu chính']);
     expect(every().some((action) => action.attributes?.['data-tohe-exit'] !== undefined)).toBe(false);
@@ -282,11 +283,11 @@ describe('the play stage (ADR 0020)', () => {
   it("opens the game's looks as a list over the panel; a choice applies at once, Back returns", async () => {
     const { shell, tap, back, rows, play, calls, choose } = setup();
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     back();
     const colours = rows()[1] as Extract<OverlayRow, { kind: 'link' }>;
-    expect(colours).toMatchObject({ kind: 'link', icon: '🎨', label: 'Màu khối', value: 'A' });
+    expect(colours).toMatchObject({ kind: 'link', icon: 'palette', label: 'Màu khối', value: 'A' });
     colours.onClick();
     expect(play()?.title).toBe('Chọn màu khối');
     expect(play()?.actions.map((action) => action.label)).toEqual(['Quay lại']);
@@ -300,7 +301,7 @@ describe('the play stage (ADR 0020)', () => {
   it('goes back to the menu stage from the panel: the title at once, the stage left and its element emptied', async () => {
     const { shell, session, menu, play, tap, back, calls, stageElement } = setup();
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     back();
     tap('Menu chính');
@@ -319,7 +320,7 @@ describe('the play stage (ADR 0020)', () => {
     shell.start();
     hidden();
     expect(menu()?.layout).toBe('title');
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     hidden();
     expect(play()?.title).toBe('Tạm dừng');
@@ -329,11 +330,11 @@ describe('the play stage (ADR 0020)', () => {
   it('counts 3, 2, 1 before a game against the clock goes on', async () => {
     const { shell, calls, tap, back, play } = setup({ countdown: true });
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     vi.useFakeTimers();
     back();
-    tap('▶ Tiếp tục');
+    tap('Tiếp tục');
     expect(play()).toMatchObject({ layout: 'count', title: '3' });
     expect(calls.at(-1)).toBe('pause');
     vi.advanceTimersByTime(650);
@@ -352,7 +353,7 @@ describe('the play stage (ADR 0020)', () => {
   it('starts a new game in place from the panel, after asking', async () => {
     const { shell, play, tap, back, calls } = setup();
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     back();
     tap('Ván mới');
@@ -360,7 +361,7 @@ describe('the play stage (ADR 0020)', () => {
     back();
     expect(play()?.title).toBe('Tạm dừng');
     tap('Ván mới');
-    tap('🔄 Ván mới');
+    tap('Ván mới');
     expect(calls.slice(-2)).toEqual(['resume', 'newGame']);
     expect(shell.playing).toBe(true);
   });
@@ -368,7 +369,7 @@ describe('the play stage (ADR 0020)', () => {
   it("brings the game's own card back when the panel closes", async () => {
     const { shell, back, play, tap, ctx } = setup();
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     ctx().overlay.show({ title: 'Mẹo', actions: [] });
     expect(play()?.title).toBe('Mẹo');
@@ -383,12 +384,12 @@ describe('the play stage (ADR 0020)', () => {
   it('ends a game with play again (in place) and the main menu; Back goes to the menu stage', async () => {
     const { shell, calls, tap, labels, back, menu, play, ctx } = setup();
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     ctx().gameOver({ title: 'Hết ván' });
-    expect(labels()).toEqual(['▶ Chơi lại', '🏠 Menu chính']);
+    expect(labels()).toEqual(['Chơi lại', 'Menu chính']);
     expect(play()?.actions[1]?.attributes).toEqual({ 'data-tohe-main-menu': '' });
-    tap('▶ Chơi lại');
+    tap('Chơi lại');
     expect(calls).toEqual(['start', 'newGame']);
     ctx().gameOver({ title: 'Hết ván' });
     back();
@@ -400,12 +401,12 @@ describe('the play stage (ADR 0020)', () => {
   it('shows a game that ended while the panel was open once play would go on', async () => {
     const { shell, tap, back, play, ctx } = setup();
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     back();
     ctx().gameOver({ title: 'Hết ván' });
     expect(play()?.title).toBe('Tạm dừng');
-    tap('▶ Tiếp tục');
+    tap('Tiếp tục');
     expect(play()?.title).toBe('Hết ván');
   });
 
@@ -417,7 +418,7 @@ describe('the play stage (ADR 0020)', () => {
     const started: string[] = [];
     const { shell, tap, back, menu } = setup({ stage: () => slow });
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     back();
     expect(menu()?.layout).toBe('title');
     deliver({
@@ -447,7 +448,7 @@ describe('the play stage (ADR 0020)', () => {
       }),
     });
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     expect(play()?.layout).toBe('loading');
     back();
@@ -459,7 +460,7 @@ describe('the play stage (ADR 0020)', () => {
   it('says so when the play stage cannot start, and goes back to the menu', async () => {
     const { shell, session, tap, play, menu } = setup({ stage: () => Promise.reject(new Error('offline')) });
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     expect(play()?.body).toBe('Chưa mở được ván chơi. Thử lại nhé.');
     expect(session.log).toHaveBeenCalled();
@@ -480,14 +481,14 @@ describe('the panel’s cards to read', () => {
             newGame: () => {},
             leave: () => {},
             quick: () => [
-              { kind: 'card', icon: '📜', label: 'Luật của bàn', card: () => ({ title: 'Luật' }) },
+              { kind: 'card', icon: 'scroll', label: 'Luật của bàn', card: () => ({ title: 'Luật' }) },
             ],
           };
         },
       }),
     });
     shell.start();
-    tap('▶ Chơi');
+    tap('Chơi');
     await settle();
     back();
     const link = rows()[1] as Extract<OverlayRow, { kind: 'link' }>;
@@ -514,7 +515,7 @@ describe('a table and a replay: no menu stage', () => {
     back();
     expect(play()?.title).toBe('Menu');
     expect(play()?.body).toBe('Bàn vẫn tiếp tục khi bạn mở menu.');
-    expect(labels()).toEqual(['▶ Tiếp tục']);
+    expect(labels()).toEqual(['Tiếp tục']);
     expect(tools()).toEqual(['Cách chơi']);
     expect(play()?.footer?.attributes).toEqual({ 'data-tohe-exit': '' });
     tap('Rời bàn');
@@ -534,7 +535,7 @@ describe('a table and a replay: no menu stage', () => {
     back();
     expect(play()?.title).toBe('Tạm dừng');
     expect(play()?.footer?.label).toBe('Về sảnh');
-    tap('▶ Tiếp tục');
+    tap('Tiếp tục');
     expect(play()?.title).toBe('Hết ván');
     tap('Xem lại từ đầu');
     expect(again).toHaveBeenCalled();
@@ -576,7 +577,7 @@ describe('opened by an entry (ADR 0045)', () => {
     test.back();
     test.tap('Menu chính');
     expect(test.menu()?.layout).toBe('title');
-    test.tap('▶ Chơi');
+    test.tap('Chơi');
     await settle();
     expect(test.ctx().entry).toBeNull();
   });
@@ -590,7 +591,7 @@ describe('opened by an entry (ADR 0045)', () => {
     // Not the title screen: the first-time how-to, whose start plays.
     expect(test.menu()?.layout).toBe('screen');
     expect(test.menu()?.footer).toBeUndefined();
-    test.tap('▶ Bắt đầu');
+    test.tap('Bắt đầu');
     await settle();
     expect(seen).toBe(true);
     expect(test.ctx().entry).toBe(entry);
@@ -628,17 +629,115 @@ describe('opened by an entry (ADR 0045)', () => {
     const again = vi.fn();
     const test = setup();
     test.shell.start();
-    test.tap('▶ Chơi');
+    test.tap('Chơi');
     await settle();
     test.ctx().gameOver({ title: 'Hết ván' }, undefined, [
       { label: 'Thách bạn', onClick: share },
       { label: 'Thách lại', onClick: again },
     ]);
-    expect(test.labels()).toEqual(['▶ Chơi lại', 'Thách bạn', 'Thách lại', '🏠 Menu chính']);
+    expect(test.labels()).toEqual(['Chơi lại', 'Thách bạn', 'Thách lại', 'Menu chính']);
     expect(test.play()?.actions[1]?.variant).toBe('secondary');
     test.tap('Thách bạn');
     expect(share).toHaveBeenCalled();
     expect(test.play()?.title).toBe('Hết ván');
     expect(test.shell.playing).toBe(false);
+  });
+});
+
+describe('no emoji as interface (ADR 0049)', () => {
+  /** An emoji, or a character drawn as a control's picture (an arrow, ☰, a tick). */
+  const glyph = /\p{Extended_Pictographic}|[←→▶◀☰›✓⏸]/u;
+  const known = new Set<string>(iconNames);
+  /** The words of a card's controls (what a player reads, what a screen reader says) and the icons they carry. */
+  const controlsOf = (card: OverlayCard) => {
+    const actions: OverlayAction[] = [
+      ...card.actions,
+      ...(card.tools ?? []),
+      ...(card.footer ? [card.footer] : []),
+      ...(card.corner ? [card.corner] : []),
+    ];
+    return {
+      words: [
+        ...actions.flatMap((action) => [action.label, action.ariaLabel ?? '']),
+        ...(card.rows ?? []).flatMap((row) => [row.label, row.kind === 'link' ? (row.value ?? '') : '']),
+        ...(card.sections ?? []).map((section) => section.title),
+      ],
+      icons: [
+        ...actions.map((action) => action.icon),
+        ...(card.rows ?? []).map((row) => row.icon),
+        ...(card.sections ?? []).map((section) => section.icon),
+      ].filter((name) => name !== undefined),
+    };
+  };
+
+  it('draws every control of the title, its screens, the panel and the end card with an icon and words', async () => {
+    const test = setup(
+      {
+        inProgress: () => 'Ván dở',
+        best: () => 'Kỷ lục 5.678',
+        online: true,
+        leaderboard: true,
+        settings: [
+          { label: 'Màu khối', icon: 'palette', when: 'any-time', content: () => ({}) as HTMLElement },
+        ],
+      },
+      { leaderboard: true, rooms: true },
+    );
+    const seen: OverlayCard[] = [];
+    const look = () => {
+      const card = test.play() ?? test.menu();
+      if (card) seen.push(card);
+    };
+    test.shell.start();
+    look();
+    test.tap('Cài đặt');
+    look();
+    test.back();
+    test.tap('Cách chơi');
+    look();
+    test.back();
+    test.tap('Ván mới');
+    look();
+    test.tap('Quay lại');
+    test.tap('Chơi tiếp');
+    look();
+    await settle();
+    test.back();
+    look();
+    (test.rows()[1] as Extract<OverlayRow, { kind: 'link' }>).onClick();
+    look();
+    test.back();
+    test.tap('Ván mới');
+    look();
+    test.tap('Quay lại');
+    test.back();
+    test.ctx().gameOver({ title: 'Hết ván' });
+    look();
+    expect(seen.map((card) => card.layout ?? 'card')).toEqual([
+      'title',
+      'screen',
+      'screen',
+      'screen',
+      'loading',
+      'menu',
+      'card',
+      'card',
+      'card',
+    ]);
+    for (const card of seen) {
+      const { words, icons } = controlsOf(card);
+      expect(
+        words.filter((word) => glyph.test(word)),
+        card.title,
+      ).toEqual([]);
+      expect(
+        icons.filter((name) => !known.has(name)),
+        card.title,
+      ).toEqual([]);
+      if (typeof card.icon === 'string') expect(known.has(card.icon), card.title).toBe(true);
+    }
+    // The title screen and the loading view show the game's own logo, not an emoji.
+    expect(seen[0]?.icon).toEqual({ src: 'icon.svg' });
+    expect(seen[4]?.icon).toEqual({ src: 'icon.svg' });
   });
 });

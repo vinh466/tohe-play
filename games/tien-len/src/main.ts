@@ -1,5 +1,5 @@
-// The menu stage (ADR 0020) against bots: Tiến Lên's own first screen — title, 🤖 play, 🔄 a new table, 🌐 online,
-// ⚙️ (house rules, players and level, the deck), ❓ — with no table running. Play loads stage.ts (fetched in the
+// The menu stage (ADR 0020) against bots: Tiến Lên's own first screen — title, play against the bots, a new table,
+// online, settings (house rules, players and level, the deck), how to play — with no table running. Play loads stage.ts (fetched in the
 // background meanwhile). At an online table or in a replay there is no menu stage: the game opens straight into play.
 import '@tohe/game-kit/overlay.css';
 import './style.css';
@@ -13,18 +13,25 @@ followTheme(session);
 const shell = createShell({
   session,
   root: document.querySelector<HTMLElement>('#app') as HTMLElement,
-  icon: '🃏',
-  decor: ['🃏', '♠️', '♥️', '♣️', '♦️'],
+  logo: 'icon.svg',
+  // The four suits of its cards (cardArt.ts): black ones in the page's ink, so they show in light and dark.
+  decor: [
+    { shape: 'spade', colour: 'var(--tohe-ink)' },
+    { shape: 'heart', colour: '#dc2626' },
+    { shape: 'club', colour: 'var(--tohe-ink)' },
+    { shape: 'diamond', colour: '#dc2626' },
+  ],
+  playIcon: 'robot',
   title: t.title,
   strings: {
     play: t.playBots,
-    newGame: `🔄 ${t.newTable}`,
+    newGame: t.newTable,
     newGameShort: t.newTable,
     confirmTitle: t.newTableTitle,
     confirmBody: t.newTableBody,
   },
   inProgress: () => (store.dealt && !store.state.over ? t.handInProgress : null),
-  howTo: () => ({ icon: '🃏', title: t.title, content: hintList(t.hints) }),
+  howTo: () => ({ icon: { src: 'icon.svg' }, title: t.title, content: hintList(t.hints) }),
   tutorial: {
     seen: () => store.tutorialSeen,
     done: () => {
@@ -35,9 +42,9 @@ const shell = createShell({
     },
   },
   settings: [
-    { label: `📜 ${t.menu.rules}`, when: 'between-games', content: houseRules },
-    { label: `🪑 ${t.menu.table}`, when: 'between-games', content: tableSettings },
-    { label: `🎴 ${t.menu.deck}`, when: 'any-time', content: deckPicker },
+    { label: t.menu.rules, icon: 'scroll', when: 'between-games', content: houseRules },
+    { label: t.menu.table, icon: 'chair', when: 'between-games', content: tableSettings },
+    { label: t.menu.deck, icon: 'cards', when: 'any-time', content: deckPicker },
   ],
   online: true,
   stage: () => import('./stage.ts'),

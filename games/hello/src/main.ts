@@ -1,4 +1,4 @@
-// The menu stage (ADR 0020) of the minimal game: Chạm Chấm's title screen, its how-to and 🏆, on the kit's engine-free
+// The menu stage (ADR 0020) of the minimal game: Chạm Chấm's title screen, its how-to and leaderboard, on the kit's engine-free
 // shell like every other game. Play loads stage.ts: a Canvas 2D board and its 20-second rounds.
 import '@tohe/game-kit/overlay.css';
 import './style.css';
@@ -11,13 +11,19 @@ followTheme(session);
 const shell = createShell({
   session,
   root: document.querySelector<HTMLElement>('#app') as HTMLElement,
-  icon: '🟠',
-  decor: ['🟠', '🟡', '🔴', '⭐'],
+  logo: 'icon.svg',
+  // The dots of its board and the star of a record.
+  decor: [
+    { shape: 'circle', colour: '#f97316' },
+    { shape: 'circle', colour: '#fbbf24' },
+    { shape: 'circle', colour: '#ef4444' },
+    { shape: 'star', colour: '#f59e0b' },
+  ],
   title: t.title,
   // A 20-second round is not worth continuing later: the title screen always starts a fresh one.
   inProgress: () => null,
   best: () => (store.best > 0 ? t.bestLine(store.best) : null),
-  howTo: () => ({ icon: '🟠', title: t.title, body: `${t.intro} ${t.hints}` }),
+  howTo: () => ({ icon: { src: 'icon.svg' }, title: t.title, body: `${t.intro} ${t.hints}` }),
   tutorial: {
     seen: () => store.tutorialSeen,
     done: () => {

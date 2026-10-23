@@ -3,7 +3,7 @@
   "id": "tap-merge",
   "name": "Tap Merge",
   "names": { "vi": "Chạm Ghép" },
-  "version": "0.8.3",
+  "version": "0.8.4",
   "protocol": 1,
   "description": "Tap a number block: every matching block joined to it, diagonals too, merges into it. The more you gather, the bigger the number!",
   "descriptions": {

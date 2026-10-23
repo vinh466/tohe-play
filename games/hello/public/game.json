@@ -3,7 +3,7 @@
   "id": "hello",
   "name": "Tap Dot",
   "names": { "vi": "Chạm Chấm" },
-  "version": "1.4.4",
+  "version": "1.4.5",
   "protocol": 1,
   "description": "Tap the dot as fast as you can for 20 seconds.",
   "descriptions": {
