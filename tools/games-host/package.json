@@ -20,6 +20,6 @@
     "@tohe/game-tap-merge": "workspace:*",
     "@tohe/game-tien-len": "workspace:*",
     "@types/node": "^24.0.0",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.5"
   }
 }
