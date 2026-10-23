@@ -1,0 +1,27 @@
+{
+  "name": "@tohe/assets",
+  "version": "0.1.0",
+  "description": "Builds a game with asset packs (ADR 0053): resolves game.json's assets into assets.lock.json and src/assets.gen.ts, and a Vite plugin that ships the files by hash, the lock and the credits in studio/.",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "tohe-assets": "./src/cli.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts",
+    "./vite": "./src/vite.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@tohe/contract": "workspace:*",
+    "zod": "^4.6.0"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "vite": "^8.3.0",
+    "vitest": "^5.0.0"
+  }
+}

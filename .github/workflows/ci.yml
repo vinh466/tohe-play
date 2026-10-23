@@ -26,6 +26,9 @@ env:
   # jobs, and on main pushed as they are.
   IMAGES: ghcr.io/${{ github.repository }}
   TOHE_IMAGE_TAG: sha-${{ github.sha }}
+  # The Asset Studio's public storage, which a game with assets builds from (docs/guides/use-assets-in-a-game.md). No
+  # game uses assets yet and the bucket does not exist: until the variable is set, a build that must fetch fails naming it.
+  TOHE_ASSETS_REGISTRY: ${{ vars.TOHE_ASSETS_REGISTRY }}
 
 # A pull request runs what it touches (docs/guides/environments.md#continuous-integration): nothing for notes only, the
 # docs app and its link check for docs, every job otherwise. A push to main runs every job, every task without reading a
@@ -69,14 +72,34 @@ jobs:
       - name: Docs only — Biome, and the docs app with its link check
         if: needs.changes.outputs.scope == 'docs'
         run: pnpm exec biome check . && pnpm exec turbo run build --filter=@tohe/docs
-      - name: Biome, then typecheck, test and build every package but the API's
+      # The games' asset files by hash, kept between runs under the hash of every game's lock; only when a game has one.
+      - name: Where the asset cache is
+        id: assets-cache
+        if: needs.changes.outputs.scope == 'all' && hashFiles('games/*/assets.lock.json') != ''
+        run: echo "path=${XDG_CACHE_HOME:-$HOME/.cache}/tohe/assets" >> "$GITHUB_OUTPUT"
+      - id: assets-restore
+        if: steps.assets-cache.outputs.path != ''
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.assets-cache.outputs.path }}
+          key: tohe-assets-${{ hashFiles('games/*/assets.lock.json') }}
+          restore-keys: tohe-assets-
+      - name: Biome, the games' generated asset files, then typecheck, test and build every package but the API's
         if: needs.changes.outputs.scope == 'all'
-        run: pnpm exec biome check . && pnpm exec turbo run typecheck test build --filter='!@tohe/api'
+        run: |
+          pnpm exec biome check .
+          node tools/assets/src/cli.ts check
+          pnpm exec turbo run typecheck test build --filter='!@tohe/api'
       - if: github.event_name == 'push'
         uses: ./.github/actions/save-caches
         with:
           turbo-cache: verify
           pnpm-store: true
+      - if: github.event_name == 'push' && steps.assets-cache.outputs.path != '' && steps.assets-restore.outputs.cache-hit != 'true'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ steps.assets-cache.outputs.path }}
+          key: tohe-assets-${{ hashFiles('games/*/assets.lock.json') }}
 
   api:
     name: API (build, test on PostgreSQL, generated files)
@@ -122,6 +145,17 @@ jobs:
       - uses: ./.github/actions/setup
         with:
           turbo-cache: conformance-${{ matrix.game }}
+      # The asset cache the verify job saves on main (docs/guides/use-assets-in-a-game.md); only when a game has a lock.
+      - name: Where the asset cache is
+        id: assets-cache
+        if: hashFiles('games/*/assets.lock.json') != ''
+        run: echo "path=${XDG_CACHE_HOME:-$HOME/.cache}/tohe/assets" >> "$GITHUB_OUTPUT"
+      - if: steps.assets-cache.outputs.path != ''
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ steps.assets-cache.outputs.path }}
+          key: tohe-assets-${{ hashFiles('games/*/assets.lock.json') }}
+          restore-keys: tohe-assets-
       - name: Install Chromium for the conformance kit
         run: pnpm --filter @tohe/conformance exec playwright install --with-deps chromium
       - name: The conformance kit

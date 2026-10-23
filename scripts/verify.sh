@@ -6,5 +6,8 @@
 # check added here goes there too.
 set -e
 biome check .
+# A game's assets.gen.ts and lock against its game.json and the pinned manifests (ADR 0053); not a turbo task, whose
+# cache would not notice a change to a game's lock.
+node tools/assets/src/cli.ts check
 turbo run typecheck test build "$@"
 turbo run conformance --concurrency=1 "$@"

@@ -245,7 +245,7 @@ about a built game changes afterwards ([ADR 0051](../decisions/0051-an-asset-stu
 | `delivery` | `bundle`: the files are in the build and count against `sizeBudgetKb`. The only value for now; `precache` and `on-demand` come later as new values (ADR 0051) |
 | `include` | optional: 1–50 globs of asset ids (each 1–100 chars); without it, the whole pack |
 
-- **The lock** — `assets.lock.json`, next to `game.json` — pins, per pack, its version, the sha256 of its manifest in
+- **The lock** — `assets.lock.json`, in the game's folder next to its `package.json` (not in `public/`, which the build copies) — pins, per pack, its version, the sha256 of its manifest in
   the Studio, and for each file its asset id, kind, sha256, extension, bytes, SPDX licence and attribution. It is
   generated (`pnpm assets:resolve`) and committed; the build reads only the lock, never resolves anew. JSON Schema:
   [`assets-lock.schema.json`](../../packages/contract/schema/assets-lock.schema.json).
