@@ -17,43 +17,20 @@
 
 ## Next — one item
 
-**Owner review buổi sáng 2026-10-23** (owner: "sáng mai tôi review 1 thể"): prod `prod-2026-10-23.2` có F1, F2, S1a, S1b — xem
-[D-07](items/D-07-visual-direction-and-voice.md) Q1–Q6 và [E-07](items/E-07-installed-app-and-return.md) Q1–Q4 (agent đã
-đi theo đề xuất ở những chỗ đổi lại được), rồi thử máy thật. Sau đó: S2 (menu trong game) và S3 (Xưởng tò he, cần người vẽ).
+**S3 chờ tranh của hoạ sĩ** ([brief](illustrator-brief.md), owner thuê). Prod `prod-2026-10-24.1` có D-07 S1 + S2 và E-07 đầy đủ
+(2026-10-24, owner: "chốt theo đề xuất … hoàn thành và lên prod luôn"). Trong lúc chờ: E-03 (luồng đầu–cuối) và các mục
+còn mở ở *Waiting on the owner*.
 
 ## Waiting on the owner
 
-1. **[D-07](items/D-07-visual-direction-and-voice.md) Q1–Q6**: hướng (đề xuất A làm đích, đi qua S1 → S2 → S3), ai vẽ cho S3
-   (đề xuất thuê hoạ sĩ người Việt theo brief), màu gấc, font, icon, giọng văn. **S1 đã làm theo đề xuất** (Be Vietnam
-   Pro, Phosphor, `docs/conventions/voice-and-look.md`) — owner xem trên prod, đổi được nếu không ưng.
-   Thêm: "bàn" (Chơi cùng) và "phòng" (sảnh, trang bàn) — thống nhất về "bàn"?
-2. **[E-07](items/E-07-installed-app-and-return.md) Q1–Q4**: giữ không khoá xoay + lớp "xoay dọc"; cập nhật im lặng khi app
-   vào nền (sửa ADR 0046); màu splash; "Vẫn là An? Chơi tiếp".
-3. **Tắt Cloudflare Web Analytics** cho `toheplay.io.vn` (Analytics & Logs → Web Analytics → bỏ automatic setup): beacon bị
-   CSP chặn, lỗi console mọi trang, ngược lời hứa "không theo dõi".
-4. **Thử trên máy thật (G7)** — danh sách 12 bước ở [R-08 §3](research/R-08-installed-app-and-return.md#3-danh-sách-thử-trên-máy-thật-owner-một-android-một-iphone);
-   nên đợi F1, F2 lên UAT/prod rồi thử một lần.
-5. Hai quyết định agent đã tạm theo đề xuất (2026-10-23, owner chưa trả lời riêng): trang công khai mở từ app ẩn link ra
-   ngoài; *Chơi tiếp* chỉ hiện sau khi máy đã mở một game. Owner muốn khác thì nói.
-6. Đọc chữ do agent viết: trang game (`games/*/page/vi.md`), trang chủ, `/promise/`, thẻ xem trước tiếng Anh;
-   **Tiến Lên "khoảng 3–5 phút"** là ước lượng — xác nhận hay sửa.
-7. Thuộc Cổng (E-01):
-   - **Better Stack** theo #114: đăng ký, bốn monitor, status page với domain `status.toheplay.io.vn`, `CNAME` `status`
-     → `statuspage.betteruptime.com` (DNS only). Xong thì báo — agent đổi host `status` sang `serving`, thêm kiểm tra.
-   - **Alertmanager trên prod** (Telegram): Infisical `platform/prod` `/monitoring`, khoá `telegram-bot-token` **và**
-     `telegram-chat-id` (chat id để ở Infisical được: Secret dựng bằng template như
-     `platform-infra/apps/platform/base/ghcr-secret.yaml`). Báo agent → agent mở PR `platform-infra`.
-   - **Resend `notify.`** ([guide](../../docs/guides/mail-and-status.md)): 2026-10-22 DNS chưa có
-     `resend._domainkey.notify`, `send.notify`.
-   - **Khôi phục bản sao lưu DB prod** một lần: khi owner báo launch "chín".
-8. Phiên 2026-10-22: owner cho agent merge PR đã ổn và deploy UAT; ngoài phiên đó vẫn là
-   `! gh pr merge <n> --repo vinh466/tohe-play --merge` khi agent báo "sẵn sàng".
-
-Xong (2026-10-22): Cloudflare Access trước `console.` (kiểm từ ngoài: 302 sang `vinh466.cloudflareaccess.com`);
-Cloudflare: AI Crawl Control, Bot Fight Mode / Under Attack / WAF challenge; thư thử `hello@`, `security@` nhận được.
-Điểm 2 chốt: **bỏ hẳn** — "triệt để bỏ đi, làm như mới, prod hiện chỉ có tôi dùng thôi" (bỏ cả 301 của đường cũ, #118).
-ADR 0048: owner giao agent ("bạn đề xuất và xử đi") → giữ nguyên đề xuất. #114, #115, #116, #117, #118 merged;
-UAT `uat-2026-10-22.4` (G0–G6). #119 G4, #120 G2b, #121 G6, #122 G5 merged.
+1. **Thuê hoạ sĩ** theo [illustrator-brief.md](illustrator-brief.md) (16 avatar tò he, 4 ảnh bìa, linh vật 4 tư thế, sáng
+   + tối). Có tranh là agent làm S3 (bảng màu nhuộm, avatar, ảnh bìa, chuyển động, âm thanh, icon và ảnh khởi động iOS).
+2. **Tắt Cloudflare Web Analytics** cho `toheplay.io.vn` (beacon bị CSP chặn, lỗi console mọi trang).
+3. **Thử trên máy thật** — 12 bước ở [R-08 §3](research/R-08-installed-app-and-return.md#3-danh-sách-thử-trên-máy-thật-owner-một-android-một-iphone),
+   trên `prod-2026-10-24.1`.
+4. Đọc chữ do agent viết khi tiện; **Tiến Lên "khoảng 3–5 phút"** là ước lượng.
+5. Thuộc Cổng (E-01): Better Stack + CNAME `status`; Alertmanager Telegram trong Infisical; DNS Resend `notify.`; thử
+   khôi phục bản sao lưu DB prod khi launch "chín".
 
 ## Board
 
@@ -121,7 +98,9 @@ dựng, tách ra là sửa cùng màn hai lần.
 | **F1** ✓ [#127](https://github.com/vinh466/tohe-play/pull/127) | Sửa lỗi bề mặt: `?lang=vi`, header *Chơi ngay*/*Chơi tiếp*, link ra ngoài khi mở từ app, *Chơi tiếp* sau game đầu, "Chơi trên máy này" → `/play`, not-found của app, lịch sử tab, ← ở mọi màn không khung, tên khớp hình, mất mạng, nhấn giữ/kéo-tải-lại, theme-color, Zod jitless, 404 hai thứ tiếng, ảnh JSON-LD, chữ sai ngôn ngữ, docs cũ | R-09, R-08 | prod `prod-2026-10-23.1` |
 | **F2** ✓ [#128](https://github.com/vinh466/tohe-play/pull/128) | Xoay ngang (menu game vừa chiều cao, lớp "xoay dọc", rail khi màn thấp), icon đặc + maskable, shortcuts, skeleton + timeout `/me`, safe-area thanh game, hướng dẫn cài iOS/iPad | R-08 | prod `prod-2026-10-23.1` |
 | **S1** ✓ [#129](https://github.com/vinh466/tohe-play/pull/129) (S1b trang công khai) + [#130](https://github.com/vinh466/tohe-play/pull/130) (S1a hub) | Nền: `docs/conventions/voice-and-look.md`, viết lại câu chữ, icon SVG có nhãn thay emoji, danh mục và trang chủ gọn, Be Vietnam Pro tự host, app nhớ ngôn ngữ của trang dẫn vào | D-07 | prod `prod-2026-10-23.2` (agent theo đề xuất, owner duyệt) |
-| **S2** | Menu trong game (`game-kit`): icon SVG, logo vẽ của game | D-07 | chờ owner |
-| **S3** | Xưởng tò he: avatar, ảnh bìa, linh vật, token màu nhuộm, chuyển động/âm thanh | D-07 Q2 (người vẽ) | chờ owner |
+| **S2** ✓ [#138](https://github.com/vinh466/tohe-play/pull/138) + [#142](https://github.com/vinh466/tohe-play/pull/142) | Menu trong game (`game-kit` 0.3.0): icon SVG có chữ, logo vẽ của game; nút riêng của từng game; Be Vietnam Pro trong kit | D-07 | prod `prod-2026-10-24.1` |
+| **S3** | Xưởng tò he: avatar, ảnh bìa, linh vật, token màu nhuộm, chuyển động/âm thanh, icon + ảnh khởi động iOS vẽ lại | D-07 Q2 (người vẽ) | chờ tranh |
+| **E-07** ✓ [#137](https://github.com/vinh466/tohe-play/pull/137) | Cập nhật khi app khuất (màn của khung, không việc dở), "Để sau" có chữ, splash màu thương hiệu, "bàn" thay "phòng" | E-07 | prod |
+| **G5+** ✓ [#136](https://github.com/vinh466/tohe-play/pull/136) + [#139](https://github.com/vinh466/tohe-play/pull/139) | Mã bàn trong "bàn của tôi" ("Tiến Lên · bàn 482 113"); server giữ cổng phụ huynh khi trẻ lên người lớn (cả khi xoá hồ sơ đang chơi) | G5 | prod |
 
 Sau đó: E-03 → E-05 → E-01.
