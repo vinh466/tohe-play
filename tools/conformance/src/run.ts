@@ -4,6 +4,8 @@
 // Then it shows the game in every theme it declares and checks its text contrast (ADR 0013). A game with the
 // `shell` capability (ADR 0018) is checked for its main menu, its answer to Back and its way out. Every game is opened
 // with an entry (ADR 0045); a game that declares `entries` is opened with each payload it ships, and with hostile ones.
+// The build is served under its folder, `/<id>/<version>/`, as the games origin serves it, and a request outside that
+// folder fails (ADR 0053); a game that declares `assets` is checked for its `studio/` folder.
 
 import {
   existsSync,
@@ -11,7 +13,10 @@ import {
   mkdtempSync,
   readdirSync,
   readFileSync,
+  rmSync,
   statSync,
+  symlinkSync,
+  unlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
@@ -33,6 +38,7 @@ import { createHost, type Transport } from '@tohe/game-sdk/host';
 import { type Browser, type BrowserContext, chromium, type Frame, type Page } from 'playwright';
 import { checkRules, defaultOptions, loadRules, pure } from './rules.ts';
 import { serveStatic } from './static-server.ts';
+import { checkStudio } from './studio.ts';
 import { checkVerify, loadVerify, playRanked, replayRanked } from './verify.ts';
 
 export interface Check {
@@ -106,19 +112,37 @@ export async function runConformance(
   if (samples)
     check(`${entrySamplesPath('share')} holds the payloads its share makes`, samples.ok, samples.detail);
 
+  // A game that pins asset packs (ADR 0053) ships them in studio/, by hash, with the lock and the credits.
+  if (manifest.assets) {
+    for (const result of checkStudio(dist, manifest.assets)) check(result.name, result.ok, result.detail);
+  }
+
   // ---------------------------------------------------------------- runtime checks
   const hostDir = mkdtempSync(join(tmpdir(), 'tohe-conformance-'));
   const hostServer = await serveStatic({ root: hostDir });
+  // The games origin serves each build under its folder (ADR 0007): the build is linked at <root>/<id>/<version>.
+  const gamesRoot = mkdtempSync(join(tmpdir(), 'tohe-conformance-games-'));
+  const folderPath = `/${manifest.id}/${manifest.version}/`;
+  const buildLink = join(gamesRoot, manifest.id, manifest.version);
+  mkdirSync(join(gamesRoot, manifest.id));
+  symlinkSync(dist, buildLink, 'dir');
   const gameServer = await serveStatic({
-    root: dist,
+    root: gamesRoot,
     headers: () => ({ 'content-security-policy': gameContentSecurityPolicy([hostServer.url]) }),
   });
+  /** Where the build is served; every page of the game's frame starts with it. */
+  const gameFolder = `${gameServer.url}${folderPath}`;
   writeFileSync(
     join(hostDir, 'index.html'),
-    hostPage(new URL(manifest.entry, `${gameServer.url}/`).href, gameServer.url),
+    hostPage(new URL(manifest.entry, gameFolder).href, gameServer.url),
   );
 
-  const allowedOrigins = new Set([hostServer.url, gameServer.url]);
+  // The host page's origin, data: and blob:, and the game origin only under the game's own folder (ADR 0053).
+  const mayRequest = (url: string) => {
+    if (url.startsWith('data:') || url.startsWith('blob:')) return true;
+    const { origin, pathname } = new URL(url);
+    return origin === hostServer.url || (origin === gameServer.url && pathname.startsWith(folderPath));
+  };
   const foreignRequests: string[] = [];
   const errors: string[] = [];
   const protocolErrors: string[] = [];
@@ -147,8 +171,7 @@ export async function runConformance(
     });
     await context.route('**/*', (route) => {
       const url = route.request().url();
-      if (url.startsWith('data:') || url.startsWith('blob:') || allowedOrigins.has(new URL(url).origin))
-        return route.continue();
+      if (mayRequest(url)) return route.continue();
       foreignRequests.push(url);
       return route.abort();
     });
@@ -219,7 +242,7 @@ export async function runConformance(
     check('handshake: ready -> init within 10 s', handshake === null, handshake ?? undefined);
 
     if (handshake === null) {
-      const frame = await gameFrame(page, gameServer.url);
+      const frame = await gameFrame(page, gameFolder);
       // A shell game opens on its title screen: play first (and through the first-time how-to), so the random input
       // reaches the game itself.
       if (hasShell(manifest)) await playFromTitle(frame);
@@ -298,7 +321,7 @@ export async function runConformance(
         context,
         manifest,
         hostUrl: hostServer.url,
-        gameUrl: gameServer.url,
+        gameUrl: gameFolder,
         errors,
         protocolErrors,
         screenshot: join(resolve(options.outDir ?? 'test-results/conformance'), `${manifest.id}-shell.png`),
@@ -314,7 +337,7 @@ export async function runConformance(
         manifest,
         dist,
         hostUrl: hostServer.url,
-        gameUrl: gameServer.url,
+        gameUrl: gameFolder,
         errors,
         protocolErrors,
         monkeyMs: options.monkeyMs ?? 4000,
@@ -327,7 +350,7 @@ export async function runConformance(
         manifest,
         dist,
         hostUrl: hostServer.url,
-        gameUrl: gameServer.url,
+        gameUrl: gameFolder,
         errors,
         protocolErrors,
         screenshot: join(outDir, `${manifest.id}-replay.png`),
@@ -341,7 +364,7 @@ export async function runConformance(
         context,
         manifest,
         hostUrl: hostServer.url,
-        gameUrl: gameServer.url,
+        gameUrl: gameFolder,
         errors,
         protocolErrors,
         samples: samples?.ok ? samples.payloads : [],
@@ -358,7 +381,7 @@ export async function runConformance(
         manifest,
         dist,
         hostUrl: hostServer.url,
-        gameUrl: gameServer.url,
+        gameUrl: gameFolder,
         errors,
         protocolErrors,
         screenshot: join(outDir, `${manifest.id}-ranked-replay.png`),
@@ -369,7 +392,7 @@ export async function runConformance(
 
     check('no console errors or uncaught exceptions', errors.length === 0, errors.slice(0, 5).join('\n'));
     check(
-      'no requests outside the game origin',
+      "no requests outside the game's folder",
       foreignRequests.length === 0,
       foreignRequests.slice(0, 5).join('\n'),
     );
@@ -391,6 +414,9 @@ export async function runConformance(
     await browser?.close();
     await gameServer.close();
     await hostServer.close();
+    // The link first: removing the folder must never reach the build it points to.
+    unlinkSync(buildLink);
+    rmSync(gamesRoot, { recursive: true, force: true });
   }
   return done(manifest.id, screenshots);
 }
@@ -1282,9 +1308,10 @@ async function launch(): Promise<Browser> {
   }
 }
 
-async function gameFrame(page: Page, origin: string): Promise<Frame> {
+/** The game's frame: the one whose page lies under the game's folder (`<games origin>/<id>/<version>/`). */
+async function gameFrame(page: Page, folder: string): Promise<Frame> {
   for (let i = 0; i < 50; i++) {
-    const frame = page.frames().find((f) => f.url().startsWith(origin));
+    const frame = page.frames().find((f) => f.url().startsWith(folder));
     if (frame) return frame;
     await page.waitForTimeout(100);
   }
