@@ -9,7 +9,7 @@ body {
   height: 100%;
   overflow: hidden;
   background: var(--tohe-page);
-  font-family: system-ui, sans-serif;
+  font-family: var(--tohe-font);
   color: var(--tohe-ink);
   touch-action: none;
   user-select: none;
@@ -26,7 +26,7 @@ body {
     env(safe-area-inset-left);
 }
 
-/* 🎯 the next milestone and the value it retires (SPEC.md, "Rising floor"). */
+/* The goal: the next milestone and the value it retires (SPEC.md, "Rising floor"). */
 .goal {
   display: flex;
   align-items: center;
@@ -48,6 +48,9 @@ body {
 }
 
 .goal-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   color: var(--tohe-accent);
 }
 
@@ -81,7 +84,8 @@ body {
   padding-top: 0.2rem;
 }
 
-/* 🔀 and how many are left. Only enabled when nothing can merge (SPEC.md): then it pulses. */
+/* Xáo trộn: the kit's shuffle icon and how many are left, the word over it. Only enabled when nothing can merge
+   (SPEC.md): then it pulses. */
 .shuffle {
   display: inline-flex;
   align-items: center;
@@ -93,12 +97,14 @@ body {
   border-radius: 0.9rem;
   background: var(--tohe-surface);
   color: var(--tohe-ink);
-  font:
-    900 1.25rem / 1 system-ui,
-    sans-serif;
+  font: 900 1.25rem / 1 var(--tohe-font);
   font-variant-numeric: tabular-nums;
   box-shadow: inset 0 -0.2rem 0 var(--tohe-line);
   cursor: pointer;
+}
+
+.shuffle .tohe-svg {
+  color: var(--tohe-accent);
 }
 
 .shuffle:disabled {

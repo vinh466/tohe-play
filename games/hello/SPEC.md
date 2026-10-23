@@ -24,8 +24,8 @@ the game's own logo, `public/icon.svg`, the picture the catalog shows.
    tools Âm thanh, Cài đặt, Xếp hạng (signed-in players: the hub's board over the game) and Cách chơi, **Về Tò He** last, under the tools.
 2. **How to play** (before the first round only, then from Cách chơi): tap the dot as often as you can in 20 seconds; it
    shrinks as you score; missed taps cost nothing. **Bắt đầu** starts the round.
-3. **Playing** (the play stage, created on play): the kit's HUD — Menu, score, seconds left (⏱, glowing for the last
-   five), best; the progress bar and the playfield.
+3. **Playing** (the play stage, created on play): the kit's HUD — Menu, score, seconds left (the kit's timer icon
+   beside them, glowing for the last five), best; the progress bar and the playfield.
 4. **Quick panel** (Menu, phone Back, Esc, or the hub hiding the game): **Tiếp tục** (3, 2, 1 first), Âm thanh
    as a switch, Ván mới · Cách chơi · Menu chính. Time does not run while it is open.
 5. **Round over:** "Hết giờ!" (or "Kỷ lục mới!"), score and best, **Chơi lại**, **Menu chính**; Back goes to the

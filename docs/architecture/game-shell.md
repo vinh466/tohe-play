@@ -132,14 +132,18 @@ title screen → Tò He.
 
 | Game | Title screen (logo · decor) | Cài đặt | Quick panel rows | HUD (start · middle · end) |
 | --- | --- | --- | --- | --- |
-| Chạm Chấm (`hello`) | its dot · dots and a star; Chơi, Kỷ lục, Âm thanh, Cài đặt, Xếp hạng, Cách chơi | sound | sound | score · ⏱ seconds · best; 3-2-1 before a round goes on |
+| Chạm Chấm (`hello`) | its dot · dots and a star; Chơi, Kỷ lục, Âm thanh, Cài đặt, Xếp hạng, Cách chơi | sound | sound | score · `timer` seconds · best; 3-2-1 before a round goes on |
 | Ghép Khối (`merge-block`) | its blocks · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | score · next block · best |
-| Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | score · 🔀 · best, the goal row under it |
-| Tiến Lên (`tien-len`) | its cards · the four suits; `robot` Chơi với máy / Chơi tiếp, Bàn mới, Chơi online, Âm thanh, Cài đặt, Cách chơi | sound, `scroll` Luật nhà, `chair` Bàn chơi (from the next hand), `cards` Bộ bài | sound, `cards` Bộ bài (the decks); at a table also `scroll` Luật của bàn | table score · hand number · (😀) sort |
+| Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu) under it |
+| Tiến Lên (`tien-len`) | its cards · the four suits; `robot` Chơi với máy / Chơi tiếp, Bàn mới, Chơi online, Âm thanh, Cài đặt, Cách chơi | sound, `scroll` Luật nhà, `chair` Bàn chơi (from the next hand), `cards` Bộ bài | sound, `cards` Bộ bài (the decks); at a table also `scroll` Luật của bàn | table score · hand number · (`smiley` Cảm xúc) `arrows-down-up` Xếp số / Xếp bộ |
 
-The buttons a game draws on its own board and in the HUD's middle and end (Chạm Ghép's 🔀, Tiến Lên's 😀, Gợi ý and
-sort, a replay's step buttons) are the game's, not yet the kit's icons; the how-to's picture hints are the game's
-content.
+What a game draws itself, on its board and in the HUD's middle and end, follows the same rule with the kit's
+`icon()` and `shape()` (ADR 0049, step S2): Chạm Ghép's `shuffle` Xáo trộn and its `target` goal, Tiến Lên's `smiley`
+Cảm xúc, `lightbulb` Gợi ý and `arrows-down-up` sort, the replays' `caret-left` Lùi, `caret-right` Tới and `play` Phát /
+`pause` Dừng, Chạm Chấm's `timer`, and the first-time hint's pointing hand (`hand-pointing`, drawn into a Phaser texture
+in the board's colours). A word sits beside every icon; where a short word stands for a longer name (Lùi for "Lùi một
+nước"), the name holds the word. Emoji stay only as content a person chose (an avatar, a reaction they send); the
+how-to's picture hints, a cheer on a banner and the results' medals are the game's content, not controls.
 
 At an online table and in a replay Tiến Lên has no menu stage: it opens straight into play (`direct`), and its panel
 keeps the seat's way out. Tiến Lên's catalog card opens the game; **Chơi online** leads to the hub's lobby, whose back arrow
@@ -238,6 +242,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   up and lights up a record; `hud.stat(label, { place, format })` is one number; scores shorten to fit.
 - `bump(element)`, `newRunId()`, `choiceList`, `hintList`, `followTheme`; looks in `overlay.css` on the design tokens,
   light and dark, animations off for `prefers-reduced-motion`.
+- **Type:** `overlay.css` imports `@tohe/design-tokens/fonts.css` and sets `--tohe-font` (Be Vietnam Pro, ADR 0049) on
+  the overlay and the HUD; a game sets it on its page too. The bundler copies the woff2 files into the game's own
+  `dist/assets/` (about 100 kB for the six, of which a page loads only the weights and subsets it draws), so the letters
+  come from the game's folder like everything else and the games' CSP (`font-src 'self' data:`) holds. Text a game
+  draws on a canvas (block numbers, card indexes) keeps the system font: a canvas does not redraw when a web font
+  arrives.
 
 ## Tests
 
@@ -246,6 +256,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 | Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, the settings and how-to screens, a new game asked first, the first-time how-to); the play stage (loading, playing, the panel without a way out, looks changed in place, Menu chính leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
 | Kit (`kit.test.ts`) | The HUD's count-up and shortened scores, run ids |
 | Kit (`shell.test.ts`, `voiceAndLook.test.ts`) | No emoji as interface (ADR 0049): every control of the title screen, its screens, the panel and the end card has words without emoji or arrow characters and an icon of the set; the title and loading show the game's logo; the kit's code and CSS hold no such glyph |
+| Each game (`src/voiceAndLook.test.ts`) | The game's own control code (stage, view, replay, settings, CSS, `index.html`) and the words of its controls hold no emoji or glyph; content (avatars, the how-to's hints, medals, suits and arrows inside data) is named and left out |
 | SDK | `init.shell`, `menu` both ways, `open`, `settings`, and refusal without the capability |
 | Conformance | The shell checks above, for every `shell` game — the title screen's reach on six screen sizes among them, and no emoji or arrow character in the text or accessible name of any control on the title screen, in the panel or on the HUD's Menu; random input starts from **Chơi** and the how-to |
 | Hub | `shell` kept from the API view; the trail of history entries behind a page |

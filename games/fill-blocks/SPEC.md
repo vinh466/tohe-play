@@ -49,19 +49,21 @@ The game ends when **none of the pieces left in the tray fits anywhere** on the 
 ## Screens
 
 The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020): the title
-screen and its screens, the play stage's ☰ and quick panel, the end card and phone Back come with the kit; this game
-brings its content (`main.ts`, `stage.ts`).
+screen and its screens, the play stage's **Menu** and quick panel, the end card and phone Back come with the kit; this
+game brings its content (`main.ts`, `stage.ts`). The kit draws every control with an icon of its set beside its words
+(Phosphor, ADR 0049); the title screen shows the game's own logo, `public/icon.svg`. A control the game draws itself
+uses the kit's `icon()` beside a word, never an emoji.
 
-1. **How to play** (before the first **Chơi**, then from ❓), with three picture hints:
+1. **How to play** (before the first **Chơi**, then from **Cách chơi**), with three picture hints:
    - drag or tap a piece onto the board;
    - a full row or column clears;
    - clear again and again for a streak.
 2. **Playing:**
-   - the kit's HUD: ☰, the score (counts up) and the best;
+   - the kit's HUD: **Menu**, the score (counts up) and the best;
    - the board;
    - the tray, with pieces that fit nowhere dimmed, so a child sees what is still possible.
 3. **Game over:** the board settles and greys, then the shell's end card with score and best, confetti for a
-   record, **▶ Chơi lại** and **☰ Menu chính**.
+   record, **Chơi lại** and **Menu chính**, each with the kit's icon beside its word.
 
 ## Feel (juice), in tiers
 

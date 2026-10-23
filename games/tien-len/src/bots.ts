@@ -69,7 +69,7 @@ export function burden(hand: readonly Card[]): number {
   return total;
 }
 
-/** The normal bot's choices, best first (pass included when the table is not clear). Also the order of 💡 hints. */
+/** The normal bot's choices, best first (pass included when the table is not clear). Also the order of the Gợi ý hints. */
 export function rank(v: View, legal: Combo[]): Action[] {
   const hand = v.hand;
   const seat = v.seat as number;

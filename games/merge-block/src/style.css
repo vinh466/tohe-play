@@ -9,7 +9,7 @@ body {
   height: 100%;
   overflow: hidden;
   background: var(--tohe-page);
-  font-family: system-ui, sans-serif;
+  font-family: var(--tohe-font);
   color: var(--tohe-ink);
   touch-action: none;
   user-select: none;
@@ -111,6 +111,17 @@ body {
   min-height: 3rem;
   padding: 0 0.5rem;
   font-size: 1.1rem;
+}
+
+/* A step back or on: the kit's icon over its word, so both fit the narrow column of a phone. */
+.replay-buttons .replay-step {
+  flex-direction: column;
+  gap: 0.1rem;
+  font-size: 0.85rem;
+}
+
+.replay-buttons .replay-step .tohe-svg {
+  font-size: 1.25rem;
 }
 
 .replay-buttons .tohe-button:disabled {

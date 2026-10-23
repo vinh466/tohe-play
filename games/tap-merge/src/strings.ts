@@ -4,7 +4,7 @@ export const strings = {
     score: 'Điểm',
     best: 'Kỷ lục',
     shuffle: 'Xáo trộn',
-    shuffleNow: 'Chạm 🔀!',
+    shuffleNow: 'Chạm để xáo!',
     shuffleLabel: (left: number) => `Xáo trộn, còn ${left}`,
     hints: [
       { icon: '👆', text: 'Chạm vào một khối số.' },
@@ -13,7 +13,7 @@ export const strings = {
         text: 'Cả chuỗi khối giống nó nối liền nhau, cả đường chéo, nhập vào: gom càng nhiều, số càng to.',
       },
       { icon: '🎯', text: 'Làm ra khối mục tiêu (4K, 16K, …): khối nhỏ nhất biến mất và được cộng điểm.' },
-      { icon: '🔀', text: 'Khi không còn khối nào ghép được, chạm 🔀 để xáo trộn.' },
+      { icon: '🔀', text: 'Khi không còn khối nào ghép được, chạm Xáo trộn.' },
     ],
     colours: 'Màu khối',
     palettes: {
@@ -25,7 +25,7 @@ export const strings = {
     },
     gathered: (n: number) => `Gom ${n}!`,
     newTop: (value: string) => `Khối mới: ${value}!`,
-    earned: '+1 🔀',
+    earned: '+1 lượt xáo trộn',
     farewell: (values: string[]) => `Tạm biệt khối ${values.join(' và ')}!`,
     passedBest: 'Vượt kỷ lục! 👑',
     goal: 'Mục tiêu',
@@ -44,7 +44,7 @@ export const strings = {
     score: 'Score',
     best: 'Best',
     shuffle: 'Shuffle',
-    shuffleNow: 'Tap 🔀!',
+    shuffleNow: 'Tap to shuffle!',
     shuffleLabel: (left: number) => `Shuffle, ${left} left`,
     hints: [
       { icon: '👆', text: 'Tap a number block.' },
@@ -53,7 +53,7 @@ export const strings = {
         text: 'Every equal block connected to it, diagonals too, merges into it: the more you gather, the bigger it gets.',
       },
       { icon: '🎯', text: 'Make the goal block (4K, 16K, …): the smallest blocks leave, and score.' },
-      { icon: '🔀', text: 'When nothing can merge, tap 🔀 to shuffle.' },
+      { icon: '🔀', text: 'When nothing can merge, tap Shuffle.' },
     ],
     colours: 'Block colours',
     palettes: {
@@ -65,7 +65,7 @@ export const strings = {
     },
     gathered: (n: number) => `${n} at once!`,
     newTop: (value: string) => `New block: ${value}!`,
-    earned: '+1 🔀',
+    earned: '+1 shuffle',
     farewell: (values: string[]) => `Bye-bye ${values.join(' and ')}!`,
     passedBest: 'New best! 👑',
     goal: 'Goal',

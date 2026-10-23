@@ -7,6 +7,8 @@ import {
   choiceList,
   createHud,
   haptics,
+  type IconName,
+  icon,
   type PlayStage,
   type StageContext,
   shellStrings,
@@ -15,6 +17,7 @@ import {
 import { createGame } from '@tohe/game-kit/phaser';
 import { type JsonValue, REACTIONS, type Reaction, type RoomSeat, type RoomUpdate } from '@tohe/game-sdk';
 import { ME, replay, persist as saveStore, session, sfx, store, t, room as table } from './app.ts';
+import { BOT_AVATAR, GUEST_AVATAR } from './avatars.ts';
 import { type Level, rank } from './bots.ts';
 import { cardName, RANK_LABELS } from './cardArt.ts';
 import { type Card, type Combo, classify, rankOf } from './cards.ts';
@@ -81,18 +84,24 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   function players(): Player[] {
     if (replay) return replay.seats.map(seatPlayer);
     if (room) return room.seats.map(seatPlayer);
-    const me: Player = { name: session.profile.name || t.you, avatar: session.profile.avatar || '🙂' };
+    const me: Player = {
+      name: session.profile.name || t.you,
+      avatar: session.profile.avatar || GUEST_AVATAR,
+    };
     return [me, ...t.bots.slice(0, state.seats - 1)];
   }
 
-  /** A seat at an online table: a person (🤖 while a bot plays for them, … while their phone is gone), or a bot. */
+  /**
+   * A seat at an online table: a person (the bot's avatar after the name while a bot plays for them, … while their
+   * phone is gone), or a bot.
+   */
   function seatPlayer(seat: RoomSeat): Player {
     if (seat.profile) {
-      const mark = seat.bot ? ' 🤖' : seat.connected ? '' : ' …';
-      return { name: `${seat.profile.name || t.you}${mark}`, avatar: seat.profile.avatar || '🙂' };
+      const mark = seat.bot ? ` ${BOT_AVATAR}` : seat.connected ? '' : ' …';
+      return { name: `${seat.profile.name || t.you}${mark}`, avatar: seat.profile.avatar || GUEST_AVATAR };
     }
     const level = seat.bot && seat.bot in t.menu.levels ? t.menu.levels[seat.bot as Level] : (seat.bot ?? '');
-    return { name: t.botSeat(level), avatar: '🤖' };
+    return { name: t.botSeat(level), avatar: BOT_AVATAR };
   }
 
   /** This phone's seat: always 0 against bots; online, the seat the server gave it. */
@@ -112,8 +121,16 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const passButton = ctx.root.querySelector('#pass') as HTMLButtonElement;
   const hintButton = ctx.root.querySelector('#hint') as HTMLButtonElement;
   const playButton = ctx.root.querySelector('#play') as HTMLButtonElement;
-  passButton.textContent = t.pass;
-  hintButton.textContent = `💡 ${t.hint}`;
+  /** A button's word with the kit's icon before it, or after it for a step on (ADR 0049). */
+  const label = (button: HTMLElement, word: string, picture?: IconName, after = false) => {
+    const text = document.createElement('span');
+    text.textContent = word;
+    if (!picture) button.replaceChildren(text);
+    else if (after) button.replaceChildren(text, icon(picture));
+    else button.replaceChildren(icon(picture), text);
+  };
+  label(passButton, t.pass);
+  label(hintButton, t.hint, 'lightbulb');
 
   const signed = (n: number) => (n > 0 ? `+${n}` : String(n));
 
@@ -127,7 +144,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
           ? t.watching
           : t.online
         : t.handNo(handsPlayed + (state.over ? 0 : 1));
-    sortButton.textContent = sortBy === 'rank' ? t.sortCombos : t.sortRank;
+    label(sortButton, sortBy === 'rank' ? t.sortCombos : t.sortRank, 'arrows-down-up');
   }
 
   /** "đôi 7", "sảnh 5→9", "7♥". */
@@ -151,9 +168,9 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     if (replay) {
       // The three buttons drive the replay: back, forward, play / pause.
       const total = replay.actions.length;
-      passButton.textContent = `◀ ${t.replay.back}`;
-      hintButton.textContent = `${t.replay.forward} ▶`;
-      playButton.textContent = replayPlaying ? `⏸ ${t.replay.pause}` : `▶ ${t.replay.play}`;
+      label(passButton, t.replay.back, 'caret-left');
+      label(hintButton, t.replay.forward, 'caret-right', true);
+      label(playButton, replayPlaying ? t.replay.pause : t.replay.play, replayPlaying ? 'pause' : 'play');
       passButton.disabled = busy || replayStep === 0;
       hintButton.disabled = busy || replayStep >= total;
       playButton.disabled = replayStep >= total && !replayPlaying;
@@ -282,7 +299,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   const overlay = ctx.overlay;
 
-  // ☰ | table score | hand number | (😀) sort — the kit's HUD.
+  // Menu | table score | hand number | (Cảm xúc) sort: the kit's HUD.
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const tableScore = hud.stat(t.tableScore, { format: signed });
   const handNo = document.createElement('span');
@@ -429,7 +446,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     showControls();
   }
 
-  /** 💡 cycles through the plays the normal bot would make, best first. */
+  /** Gợi ý cycles through the plays the normal bot would make, best first. */
   function hint() {
     if (replay) {
       replayPlaying = false;
@@ -691,7 +708,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     showResults();
   }
 
-  /** 😀: a preset reaction for the table (no typed text). */
+  /** Cảm xúc: a preset reaction for the table (no typed text). */
   function openReactions() {
     if (!room || overlay.visible) return;
     const grid = document.createElement('div');
@@ -802,9 +819,13 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     if (meSeat() < 0) document.body.classList.add('is-watching');
     const reactButton = document.createElement('button');
     reactButton.type = 'button';
-    reactButton.className = 'tohe-icon-button';
+    // Drawn like the kit's Menu: its icon with the word under it.
+    reactButton.className = 'tohe-icon-button tohe-menu-button react';
     reactButton.setAttribute('aria-label', t.react);
-    reactButton.textContent = '😀';
+    const reactWord = document.createElement('span');
+    reactWord.className = 'tohe-menu-button-label';
+    reactWord.textContent = t.reactShort;
+    reactButton.append(icon('smiley'), reactWord);
     reactButton.addEventListener('click', () => openReactions());
     // Spectators watch: they have no seat to react from.
     if (meSeat() >= 0) sortButton.before(reactButton);

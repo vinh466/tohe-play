@@ -2,8 +2,13 @@
  * Shared look of Tò He game screens, on the platform's design tokens (ADR 0013): the cards and buttons match the hub
  * in light and dark. A game switches theme with followTheme() (data-theme on <html>); it can still override any
  * --tohe-* token for its own art.
+ *
+ * The type is Be Vietnam Pro (--tohe-font, ADR 0049), from the design tokens' fonts.css: the bundler copies its woff2
+ * files into the game's own build, so a game loads its letters from its own folder like everything else (font-src
+ * 'self'). A game sets `font-family: var(--tohe-font)` on its page for its own controls.
  */
 @import "@tohe/design-tokens/tokens.css";
+@import "@tohe/design-tokens/fonts.css";
 
 .tohe-overlay {
   position: fixed;
@@ -15,7 +20,7 @@
   background: var(--tohe-scrim);
   backdrop-filter: blur(3px);
   -webkit-backdrop-filter: blur(3px);
-  font-family: system-ui, sans-serif;
+  font-family: var(--tohe-font);
 }
 
 .tohe-overlay[hidden] {
@@ -885,6 +890,7 @@
    centre stays between the sides whatever their width: they never grow past their share. */
 .tohe-hud {
   display: grid;
+  font-family: var(--tohe-font);
   grid-template-columns: auto minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: start;
   gap: clamp(0.4rem, 2vw, 0.75rem);

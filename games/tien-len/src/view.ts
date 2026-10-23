@@ -17,6 +17,7 @@ import {
   tweenAsync,
 } from '@tohe/game-kit/phaser';
 import Phaser from 'phaser';
+import { GUEST_AVATAR } from './avatars.ts';
 import { CARD_RATIO, drawBack, drawFace } from './cardArt.ts';
 import { type Card, rankOf, sortHand, TWO } from './cards.ts';
 import { type Deck, TABLE } from './palette.ts';
@@ -160,7 +161,7 @@ export class TableScene extends Phaser.Scene {
     this.layoutHand(true);
   }
 
-  /** Cards the hint points at (practice mode and 💡). */
+  /** Cards the hint points at (practice mode and Gợi ý). */
   setHint(cards: Iterable<Card>) {
     this.hinted = new Set(cards);
     this.layoutHand(true);
@@ -329,7 +330,7 @@ export class TableScene extends Phaser.Scene {
     const { avatar, cardW } = this.layoutInfo;
     for (let seat = 0; seat < v.seats; seat++) {
       const spot = this.spotOf(seat);
-      const player = this.players[seat] ?? { name: '', avatar: '🙂' };
+      const player = this.players[seat] ?? { name: '', avatar: GUEST_AVATAR };
       const container = this.add.container(spot.x, spot.y).setDepth(DEPTH.seat);
       const ring = crispImage(this, 0, 0, this.ringTexture(avatar)).setAlpha(0);
       container.add(ring);
