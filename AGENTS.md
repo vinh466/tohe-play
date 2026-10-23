@@ -22,7 +22,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `apps/docs` | The developer docs (en), rendered from `docs/`, at the root of their own host |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
 | `deploy/` | Helm chart (`deploy/helm/tohe`), Caddyfiles and Dockerfiles, UAT scripts (`deploy/uat`) |
-| `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report, claims (which worker changes what) |
+| `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report, claims (which worker changes what), assets (a game's asset packs: lock, typed module, `studio/` in its build) |
 
 ## Rules that are easy to break
 
@@ -30,8 +30,9 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - Changing `packages/contract` changes the Game Contract: ADR + docs + conformance in the same PR.
 - Games never call the API, never use their own storage, never make network requests outside their folder.
 - Never edit generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/*/src/api/schema.gen.ts`,
-  and from `@tohe/routes`: `deploy/docker/hub-routes.caddy`, `deploy/docker/console-routes.caddy`,
-  `apps/hub/public/robots.txt`, `services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs`); regenerate them.
+  from `@tohe/routes`: `deploy/docker/hub-routes.caddy`, `deploy/docker/console-routes.caddy`,
+  `apps/hub/public/robots.txt`, `services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs`, and from `@tohe/assets`:
+  a game's `assets.lock.json` and `src/assets.gen.ts`, written by `pnpm assets:resolve`); regenerate them.
 - A new page or path on the hub's host — or the console's — is a namespace in `packages/routes` first (ADR 0042).
 - Never weaken a check (tests, conformance, CSP, pnpm's minimum release age) to make it pass.
 - UI colours come from the design tokens (`bg-surface`, `text-ink`…), never raw palette classes like

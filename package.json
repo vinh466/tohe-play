@@ -20,6 +20,8 @@
     "check:prod": "node tools/env-check/src/prod.ts",
     "release:check": "node tools/env-check/src/release.ts",
     "claims": "node tools/claims/src/cli.ts",
+    "assets:resolve": "node tools/assets/src/cli.ts resolve",
+    "assets:check": "node tools/assets/src/cli.ts check",
     "verify": "sh scripts/verify.sh"
   },
   "devDependencies": {
