@@ -11,6 +11,13 @@ export {
   type SchemaProblem,
   type SchemaValidator,
 } from './content/index.ts';
+export {
+  type AssetCredits,
+  type CreditBlock,
+  formatCredits,
+  parseCredits,
+  readCredits,
+} from './credits.ts';
 export { formatCompact, formatScore, formatValue } from './format.ts';
 export { type Haptic, haptics } from './haptics.ts';
 export {

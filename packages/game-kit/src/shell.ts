@@ -18,6 +18,7 @@
 // A game brings its content; the kit owns the stages, their screens, words and look. The words are only words: the kit
 // draws each control's icon beside them (icons.ts, ADR 0049), and a game's logo is its own art.
 import type { EntryResult, GameSession, SessionEntry } from '@tohe/game-sdk';
+import { type AssetCredits, formatCredits, readCredits } from './credits.ts';
 import { icon as drawIcon, type IconName } from './icons.ts';
 import {
   createOverlay,
@@ -62,6 +63,10 @@ export interface ShellStrings {
   betweenGames: string;
   /** In the menu at an online table, which does not stop for anyone. */
   goesOn: string;
+  /** Who made the game's pictures, sounds and fonts: the title screen's tool and its screen (ADR 0053). */
+  credits: string;
+  /** The word before a pack's licences on that screen. */
+  licences: string;
 }
 
 const STRINGS: Record<'vi' | 'en', ShellStrings> = {
@@ -93,6 +98,8 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     failed: 'Chưa mở được ván chơi. Thử lại nhé.',
     betweenGames: 'Đang có ván dở: áp dụng từ ván sau.',
     goesOn: 'Bàn vẫn tiếp tục khi bạn mở menu.',
+    credits: 'Ghi công',
+    licences: 'Giấy phép',
   },
   en: {
     play: 'Play',
@@ -122,6 +129,8 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     failed: 'The game could not start. Please try again.',
     betweenGames: 'A game is in progress: this applies from the next one.',
     goesOn: 'The table goes on while your menu is open.',
+    credits: 'Credits',
+    licences: 'Licences',
   },
 };
 
@@ -300,6 +309,8 @@ export function createShell(options: ShellOptions): Shell {
   let shownOver: OverlayCard | null = null;
   let counting: ReturnType<typeof setTimeout> | null = null;
   let warmed = false;
+  /** Who made the game's assets (ADR 0053), once read: the title screen's Ghi công shows only with them. */
+  let credits: AssetCredits | null = null;
 
   /** Tells the hub whether a menu or screen is up; every step answers its Back, so the hub knows the game is alive. */
   const report = (open: boolean) => session.shell.menuChanged(open);
@@ -363,6 +374,23 @@ export function createShell(options: ShellOptions): Shell {
           icon: setting.icon,
           note: setting.when === 'between-games' && inProgress ? t.betweenGames : undefined,
           content: setting.content(),
+        })),
+      },
+      titleScreen,
+    );
+  }
+
+  /** Ghi công: one section per asset pack, its licences and attributions as lines. */
+  function creditsScreen() {
+    if (!credits) return;
+    menuScreen(
+      {
+        icon: 'scroll',
+        title: t.credits,
+        actions: [],
+        sections: formatCredits(credits, t).map((block) => ({
+          title: block.title,
+          content: lineList(block.lines),
         })),
       },
       titleScreen,
@@ -437,6 +465,7 @@ export function createShell(options: ShellOptions): Shell {
             ]
           : []),
         { icon: 'question', label: t.howTo, onClick: () => howToScreen(titleScreen) },
+        ...(credits ? [{ icon: 'scroll' as const, label: t.credits, onClick: creditsScreen }] : []),
       ],
     });
     report(true);
@@ -822,6 +851,12 @@ export function createShell(options: ShellOptions): Shell {
   return {
     start() {
       if (screen !== 'boot') return;
+      // A game with asset packs gets Ghi công on its title screen once their credits are read; the screen does not wait.
+      if (!direct)
+        void readCredits().then((read) => {
+          credits = read;
+          if (read && screen === 'title') titleScreen();
+        });
       const opened = answerEntry();
       if (direct) void enterPlay(false, false);
       // Opened by an entry the game handles: play at once — after the how-to, the first time — the title screen behind.
@@ -832,6 +867,13 @@ export function createShell(options: ShellOptions): Shell {
       return screen === 'playing' && !playLayer.visible;
     },
   };
+}
+
+/** Lines to read, one under the other (a pack's credits). */
+function lineList(lines: string[]): HTMLElement {
+  const list = element('ul', 'tohe-lines');
+  for (const line of lines) list.append(element('li', 'tohe-line', line));
+  return list;
 }
 
 function element<K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) {

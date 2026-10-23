@@ -68,8 +68,8 @@ and destroyed on the way back. "Vòng đời này giúp rõ ràng về luồng c
 │  ┗━━━━━━━━━━━━━━━━━━━━━━━━┛  │
 │  [ [again] Ván mới ]         │  with a game in progress; asks first
 │  [ [people] Chơi online ]    │  games with rooms, signed-in profiles: the hub's lobby
-│ [sound] [gear] [cup] [?]     │  Âm thanh · Cài đặt · Xếp hạng (signed-in, games with scores) · Cách chơi,
-│                              │  each a round icon with its word under it
+│ [sound][gear][cup][?][scroll]│  Âm thanh · Cài đặt · Xếp hạng (signed-in, games with scores) · Cách chơi ·
+│                              │  Ghi công (games with asset packs), each a round icon with its word under it
 │     ( [←] Về Tò He )         │  the last of the buttons: leaves the game (data-tohe-exit)
 └──────────────────────────────┘
 ```
@@ -88,6 +88,17 @@ checked). Scrolling inside the card stays the last resort. Every game built on t
 return: Cài đặt starts with the Âm thanh switch, then one section per setting of the game, each with its icon (block
 colours; Tiến Lên's house rules, players and level, deck). A section that changes how a game plays says "Đang có ván dở: áp dụng từ ván sau." while
 one is in progress.
+
+**Ghi công** *(agent)* — who made the game's pictures, sounds and fonts, under which licence
+([ADR 0053](../decisions/0053-assets-in-the-game-contract.md)). The tool shows **only** in a game that declares asset
+packs: the shell reads the game's own `game.json` and, when it has `assets`, `studio/credits.json`, both from the
+game's folder; a game without `assets` asks for nothing more, and its title screen does not change. Until the credits
+are read the tool is not there; it appears in place, with no new entrance. Ghi công is a full screen of the menu stage
+like Cài đặt: one section per pack — its id and version, a line with its licences (`Giấy phép: CC-BY-4.0, CC0-1.0`),
+then each attribution's text. A game does nothing to get it; a missing or malformed `credits.json` hides the tool.
+Five tools stay in one row: up to 420 px wide and on a short screen their pictures and words get smaller, and in the
+short screen's column a word goes to a second line (never cut), so the title screen is no taller than with four. A
+screen with four tools or fewer looks as before.
 
 **How to play, the first time:** the how-to screen with **Bắt đầu** before the first game (`data-tohe-play`);
 afterwards it is Cách chơi. Games point at a first move on the board after it (`ctx.firstTime`).
@@ -238,6 +249,11 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   engine, listeners, timers — the shell empties the root), `quick()` (rows: a `switch` applied at once, or a `card`
   with its current `value` that opens over the panel — a `choiceList` that applies as the player taps, or text to
   read — and goes back to it).
+- **Credits** (`credits.ts`): `readCredits()` → the game's `AssetCredits`, or null for a game without `assets` (or
+  with a credits file it cannot read); `formatCredits(credits, { licences })` → per pack a title and its lines. The
+  shell uses both for Ghi công; a game may use them to show credits elsewhere.
+- **Asset packs** (`@tohe/game-kit/phaser`): `loadPack(scene, assets.farmCrops)` and `loadPacks(scene, …)` load what
+  `src/assets.gen.ts` lists, by key ([Use assets in a game](../guides/use-assets-in-a-game.md#5-load-them-in-the-game)).
 - `createHud({ menu, parent, locale })`: Menu first, then `start`, `center`, `end`; `hud.score({ score, best })` counts
   up and lights up a record; `hud.stat(label, { place, format })` is one number; scores shorten to fit.
 - `bump(element)`, `newRunId()`, `choiceList`, `hintList`, `followTheme`; looks in `overlay.css` on the design tokens,
@@ -254,6 +270,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 | Where | What |
 | --- | --- |
 | Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, the settings and how-to screens, a new game asked first, the first-time how-to); the play stage (loading, playing, the panel without a way out, looks changed in place, Menu chính leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
+| Kit (`credits.test.ts`) | Ghi công: shown only once a game's credits are read, nothing more asked for and nothing changed without `assets`, none at a table; its screen and Back; the credits file's shape checked, its lines per pack |
+| Kit (`phaser/assets.test.ts`) | `loadPack`: each kind queued as it should be, keys already loaded skipped, a failed file named, fonts |
 | Kit (`kit.test.ts`) | The HUD's count-up and shortened scores, run ids |
 | Kit (`shell.test.ts`, `voiceAndLook.test.ts`) | No emoji as interface (ADR 0049): every control of the title screen, its screens, the panel and the end card has words without emoji or arrow characters and an icon of the set; the title and loading show the game's logo; the kit's code and CSS hold no such glyph |
 | Each game (`src/voiceAndLook.test.ts`) | The game's own control code (stage, view, replay, settings, CSS, `index.html`) and the words of its controls hold no emoji or glyph; content (avatars, the how-to's hints, medals, suits and arrows inside data) is named and left out |
