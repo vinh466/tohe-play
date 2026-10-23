@@ -90,7 +90,8 @@ style that suits it, and a later change of Tò He's style does not touch a game 
   each version's **manifest**, `packs/<id>/<version>.json` (its files and their hashes), which never changes after.
 - **One library for every environment**, like a package registry: a build carries its files, and builds are promoted
   from UAT to production by tag, so the library is not split by environment. Production uses Cloudflare R2; the dev
-  stack runs MinIO for work on the Studio itself.
+  stack and the tests run SeaweedFS, an S3-compatible server under Apache-2.0 (MinIO's community edition stopped
+  shipping images in 2025).
 - **A build needs only the bucket**, never the API: it reads the manifest, fetches files by hash, checks every hash. A
   shared cache by hash (one folder for every worktree on a machine, and CI's cache) means a file is fetched once;
   `--offline` fails naming what is missing. A build with a cold cache while storage is down fails, and says so.

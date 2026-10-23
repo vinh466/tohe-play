@@ -112,7 +112,8 @@ generated from its lock.
 
 One library serves every environment: builds carry their files and are promoted by tag
 ([ADR 0041](../decisions/0041-promote-one-build-through-the-environments-by-tag.md)). Production's storage is Cloudflare
-R2; the dev stack runs MinIO for work on the Studio itself.
+R2; the dev stack and the API's tests run SeaweedFS (Apache-2.0, S3-compatible) — MinIO's community edition stopped
+shipping images in 2025.
 
 ## Building a game with assets
 
