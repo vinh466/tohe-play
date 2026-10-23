@@ -9,6 +9,17 @@ export type StyleView = components['schemas']['StyleView'];
 export type PackView = components['schemas']['PackView'];
 export type PackVersionView = components['schemas']['PackVersionView'];
 export type AssetInput = components['schemas']['AssetInput'];
+export type StudioUploadView = components['schemas']['StudioUploadView'];
+export type StudioCheckReport = components['schemas']['StudioCheckReport'];
+export type StudioCheckProblem = components['schemas']['StudioCheckProblem'];
+
+/** The checks' problems in the CLI's shape: the server's `asset` becomes `assetId`. */
+export const fromReport = (problems: readonly StudioCheckProblem[]): Problem[] =>
+  problems.map((problem) => ({
+    code: problem.code,
+    message: problem.message,
+    assetId: problem.asset ?? null,
+  }));
 
 export type StudioClient = ReturnType<typeof createClient<paths>>;
 
@@ -30,12 +41,13 @@ export function studioClient(settings: Settings, fetchImpl: typeof fetch = globa
   });
 }
 
-/** What the API answers when it refuses: RFC 9457 with a `code`, field errors, or the checks' failures. */
+/** What the API answers when it refuses: RFC 9457 with a `code`, field errors, or the checks' problems. */
 interface ProblemBody {
   title?: string | null;
   code?: string;
   errors?: Record<string, string[]>;
-  failures?: { code: string; message: string; assetId?: string | null }[];
+  /** `422 checks_failed`: the report's problems (docs/architecture/asset-studio.md#checks). */
+  problems?: StudioCheckProblem[];
   assets?: string[];
   maxBytes?: number;
 }
@@ -52,12 +64,7 @@ const WHY: Record<number, string> = {
  */
 export function describeRefusal(status: number, body: unknown, assetIds: readonly string[] = []): Problem[] {
   const problem = (typeof body === 'object' && body !== null ? body : {}) as ProblemBody;
-  if (problem.failures && problem.failures.length > 0)
-    return problem.failures.map((failure) => ({
-      code: failure.code,
-      message: failure.message,
-      assetId: failure.assetId ?? null,
-    }));
+  if (Array.isArray(problem.problems) && problem.problems.length > 0) return fromReport(problem.problems);
   if (problem.errors && Object.keys(problem.errors).length > 0)
     return Object.entries(problem.errors).flatMap(([field, codes]) => {
       const index = /^assets\[(\d+)\]\.?(.*)$/.exec(field);

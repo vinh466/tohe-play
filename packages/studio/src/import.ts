@@ -110,7 +110,7 @@ export async function importSource(
       tags: [...source.tags],
       licence: source.licence,
       attribution: source.attribution,
-      source: { kind: 'pack', name: source.title, url: source.page, author: source.author, file: name },
+      source: { type: 'pack', name: source.title, url: source.page, author: source.author, file: name },
     };
     pack = putAsset(pack, asset);
     added.push(id);

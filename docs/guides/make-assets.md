@@ -18,8 +18,11 @@ The CLI reads two variables:
 
 | Variable | Holds |
 | --- | --- |
-| `TOHE_STUDIO_URL` | The API's base URL: `http://localhost:4720` on the dev stack |
+| `TOHE_STUDIO_URL` | The Studio's host: `https://studio.toheplay.io.vn` in production, `http://localhost:4722` in development (the Studio app's dev server, which passes `/api/studio` to the API) |
 | `TOHE_STUDIO_TOKEN` | An agent token, `tohe_at_…`, holding the scope `studio.draft` |
+
+Until the Studio has a host of its own, `/api/studio` still answers on the hub's host: `http://localhost:4720` in
+development.
 
 The owner makes the token on the console's **Agents** page (`/agents`) and gives it to you; it shows once, expires (30
 days by default) and can be revoked at any moment ([Agent tokens](../architecture/agent-tokens.md)). Keep it in the
@@ -87,7 +90,7 @@ the files:
       "licence": "CC0-1.0",
       "attribution": null,
       "source": {
-        "kind": "pack",
+        "type": "pack",
         "name": "Tiny Farm",
         "url": "https://kenney.nl/assets/tiny-farm",
         "author": "Kenney (www.kenney.nl)",
@@ -149,7 +152,7 @@ tohe-studio draw .studio-work/scripts/carrot.mjs .studio-work/farm-crops
 
 The script gets `createCanvas` and `loadImage` of [`@napi-rs/canvas`](https://github.com/Brooooooklyn/canvas) and
 `save(id, canvas, { kind, tags, frames })`, which writes a PNG without metadata. Every saved picture becomes an asset under
-`LicenseRef-Tohe-Internal`, with `source: { "kind": "code", "file", "script" }` — the script's whole text, so the asset
+`LicenseRef-Tohe-Internal`, with `source: { "type": "code", "file", "script" }` — the script's whole text, so the asset
 can be drawn again. The Studio keeps at most 8000 characters of a source: keep a drawing script short.
 
 ### 5. Fit it to the style
@@ -172,7 +175,7 @@ It prints what changed in each asset. Run it again before every `check` after yo
 ### 6. Check it with the Studio
 
 ```sh
-tohe-studio check .studio-work/farm-crops
+tohe-studio check .studio-work/farm-crops    # --dry-run says the same: check never submits
 ```
 
 `check` first looks at the pack itself: every file there, every licence one the Studio accepts, a credit where one is
@@ -181,13 +184,31 @@ needed. Then it makes the pack's draft on the server — or replaces the one thi
 each file as it arrives** and refuses one that fails, naming the asset and the code:
 
 ```text
-  asset crops/carrot: not_in_palette — 12 pixels are not in the palette
+  asset crops/carrot: colour_not_in_palette — 12 opaque pixels are not colours of the palette
 farm-crops@1.0.0 failed its checks: 1 problem(s)
 ```
 
-The checks of the whole version — the version against the last one approved — run on submit. The API has no dry run
-yet, so `check` saves the draft: it stays yours and only you can change it; a draft not submitted within 30 days is
+Then `check` asks the server for a **dry run**: every check a submission runs — the metadata, every file uploaded so
+far, the version against the last one approved — on the draft as it stands, with nothing more saved. It prints the
+report and exits `1` when it has a problem:
+
+```text
+farm-crops@1.0.0: the server's checks pass; tohe-studio submit sends it for review
+```
+
+The draft itself stays on the server: it is yours and only you can change it; a draft not submitted within 30 days is
 removed.
+
+**Stripped files.** The server keeps a picture without its metadata (text, time, EXIF; never its pixels,
+[Checks](../architecture/asset-studio.md#checks)). A file that had some is kept under a new sha256, which the upload
+answers. `check` remembers it in `.studio-draft.json` and sends the server's sha256 for that asset from then on, so the
+file is not uploaded again, and prints one line:
+
+```text
+  asset crops/carrot: the server stripped its metadata (now 2f6c…); tohe-studio prepare writes it without, so the hashes match
+```
+
+Run `prepare` and the file you have is the one the server keeps.
 
 ### 7. Submit it for review
 
@@ -214,7 +235,7 @@ before sending.
 
 | Group | What it asks |
 | --- | --- |
-| Files | PNG or WebP, the bytes the format says they are, no metadata, within the limits of size per file and per pack |
+| Files | PNG or WebP, not animated, the bytes the format says they are, within the limits of size and pixels per file and of size per pack; metadata is stripped, not refused |
 | Pictures | Sizes in multiples of the style's tile; a sprite sheet's grid matching its `frames`; for a pixel-art style, every opaque pixel in the palette and alpha only 0 or 255 |
 | Metadata | Ids unique, the style known, tags valid, the source complete |
 | Licence | One the Studio accepts, a credit where it is needed |
@@ -225,12 +246,17 @@ before sending.
 | `assets_required` | The pack has no asset |
 | `file_missing`, `file_outside` | `file` names nothing, or a path outside the folder |
 | `licence_not_accepted` | Not a licence the Studio accepts |
-| `attribution_required` | The licence asks for a credit and `attribution` is empty |
+| `attribution_missing` | The licence asks for a credit and `attribution` is empty |
 | `source_too_long` | The source is longer than the Studio keeps (8000 characters) |
 | `frames_required` | A sprite sheet without `frames` |
 
-Every other code comes from the server; [The library in the API](../architecture/asset-studio.md#endpoints) lists
-them.
+Every other code comes from the server. A problem of the checks — of an upload, the dry run or a submission — names its
+asset, when it is about one, and one of the stable codes in the [table of checks](../architecture/asset-studio.md#checks):
+`format_not_allowed`, `magic_mismatch`, `too_large`, `too_many_pixels`, `size_not_tile_multiple`, `frames_mismatch`,
+`colour_not_in_palette`, `alpha_not_binary`, `tile_edges_differ`, `id_duplicate`, `style_unknown`, `style_not_approved`,
+`source_incomplete`, `licence_not_accepted`, `attribution_missing`, `vendor_not_checked`, `semver_too_small`. The
+server's other refusals — a field it does not accept, a draft no longer yours — are listed in
+[Endpoints](../architecture/asset-studio.md#endpoints).
 
 ## Licences and sources
 
@@ -243,12 +269,15 @@ them.
 
 Every asset says where it came from:
 
-| `source.kind` | Holds | Made by |
+| `source.type` | Holds | Made by |
 | --- | --- | --- |
-| `pack` | `name`, `url` (the page that names the licence), `author` | `import` |
+| `pack` | `name`, `url` (the http(s) page that names the licence), `author` | `import` |
 | `code` | `script`, the drawing script's text | `draw` |
 | `upload` | `by`: who made it | by hand |
-| `ai` | `vendor`, `model`, `prompt`, `date`, `seed` | not yet: no generator is allowed until the owner sets a budget |
+| `ai` | `vendor`, `model`, `prompt`, `seed` (a number or text), `date` (an ISO date) | not yet: no generator is allowed until the owner sets a budget |
+
+The server refuses a source without its `type` or one of its fields (`source_incomplete`); `check` finds the same before
+sending: it reads `pack.json` and names the field that is wrong. Further fields, such as `file`, are kept as they are.
 
 A reviewer checks that the source is plausible, that the pictures suit children — no gore, nothing frightening, no text,
 logos or real people — that they are not a near copy of a known character or game, that they fit the style, and that

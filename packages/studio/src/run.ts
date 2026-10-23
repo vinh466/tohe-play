@@ -10,7 +10,7 @@ import { formatProblem, type Problem, Refused, UsageError } from './errors.ts';
 import { importSource } from './import.ts';
 import { packPath, readPack, writePack } from './pack.ts';
 import { parseColour, preparePack } from './prepare.ts';
-import { getStyle, listStyles, submitDraft, syncDraft, versionStatus } from './remote.ts';
+import { checkDraft, getStyle, listStyles, submitDraft, syncDraft, versionStatus } from './remote.ts';
 import { type Io, readSettings, redactingIo, type Settings, TOKEN_ENV } from './settings.ts';
 import { KNOWN_SOURCES, knownSource } from './sources.ts';
 
@@ -23,11 +23,13 @@ export const USAGE = `tohe-studio — make asset packs for the Tò He Studio (do
   import <source> <dir> [--include <glob>]... [--from <zip or URL>]
   draw <script> <dir>                      run a drawing script; each picture it saves becomes an asset
   prepare <dir> [--palette] [--binary-alpha] [--trim]
-  check <dir>                              send the draft and its files; the server checks each file
+  check <dir> [--dry-run]                  send the draft and its files, then the server's checks, nothing submitted
   submit <dir>                             the same, then submit it for review
   status <pack>@<version> [--json]         where a version is; why, when it was rejected
 
-Environment: TOHE_STUDIO_URL (the API, e.g. http://localhost:4720) and TOHE_STUDIO_TOKEN (an agent token, tohe_at_…).
+Environment: TOHE_STUDIO_URL (the Studio's host: https://studio.toheplay.io.vn, or http://localhost:4722 in development;
+until the Studio has a host of its own, /api/studio answers on the hub's, http://localhost:4720 in development) and
+TOHE_STUDIO_TOKEN (an agent token, tohe_at_…).
 Exit codes: 0 ok, 1 a check failed or the server refused, 2 usage or configuration.`;
 
 export interface RunContext {
@@ -221,7 +223,9 @@ export async function run(argv: string[], context: RunContext): Promise<number> 
 
       case 'check':
       case 'submit': {
-        const [target] = positionals(parse(args), ['dir']) as [string];
+        // `check` is always a dry run; `--dry-run` says so, as docs/architecture/asset-studio.md writes it.
+        const parsed = parse(args, command === 'check' ? { 'dry-run': { type: 'boolean' } } : {});
+        const [target] = positionals(parsed, ['dir']) as [string];
         const folder = dir(target);
         const { settings: current, client } = connect();
         const outcome = await syncDraft(client, current.url, folder);
@@ -229,13 +233,21 @@ export async function run(argv: string[], context: RunContext): Promise<number> 
         if (!outcome.version) return reportProblems(io, outcome.problems, `${name} refused`);
         io.out(`${name}: draft ${outcome.version.id} on ${current.url}`);
         io.out(`  ${outcome.version.assets.length} asset(s); ${outcome.uploaded} file(s) uploaded now`);
-        if (outcome.problems.length > 0)
-          return reportProblems(io, outcome.problems, `${name} failed its checks`);
+        for (const file of outcome.stripped)
+          io.out(
+            `  asset ${file.assetId}: the server stripped its metadata (now ${file.sha256.slice(0, 12)}…); tohe-studio prepare writes it without, so the hashes match`,
+          );
         if (command === 'check') {
-          io.out("  every file is on the server and passed the server's checks as it was uploaded");
-          io.out(`  the whole version's checks — the version against the last approved one — run on submit`);
+          // The dry run: every check of a submission on the files uploaded so far, nothing more saved.
+          const report = await checkDraft(client, outcome.version);
+          const problems = [...outcome.problems, ...report.problems];
+          if (problems.length > 0 || !report.ok)
+            return reportProblems(io, problems, `${name} failed its checks`);
+          io.out(`${name}: the server's checks pass; tohe-studio submit sends it for review`);
           return 0;
         }
+        if (outcome.problems.length > 0)
+          return reportProblems(io, outcome.problems, `${name} failed its checks`);
         const submitted = await submitDraft(client, outcome.version);
         if (!submitted.version) return reportProblems(io, submitted.problems, `${name} was not submitted`);
         io.out(`${name} submitted for review. A person reviews every pack before a game may use it.`);

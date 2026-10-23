@@ -29,19 +29,25 @@ const Text = z.string().refine((text) => text.trim().length > 0, 'must not be bl
 
 /**
  * Where an asset came from (docs/architecture/asset-studio.md#packs): `pack` (name, URL, author), `upload` (who), `ai`
- * (vendor, model, prompt, seed, date) or `code` (the script). Further keys are kept as they are.
+ * (vendor, model, prompt, seed, date) or `code` (the script), named by `type` — the fields the server's
+ * `source_incomplete` check asks for. Further keys are kept as they are.
  */
-export const AssetSource = z.discriminatedUnion('kind', [
-  z.looseObject({ kind: z.literal('pack'), name: Text, url: z.url(), author: Text }),
-  z.looseObject({ kind: z.literal('code'), script: Text }),
-  z.looseObject({ kind: z.literal('upload'), by: Text }),
+export const AssetSource = z.discriminatedUnion('type', [
   z.looseObject({
-    kind: z.literal('ai'),
+    type: z.literal('pack'),
+    name: Text,
+    url: z.url({ protocol: /^https?$/ }),
+    author: Text,
+  }),
+  z.looseObject({ type: z.literal('code'), script: Text }),
+  z.looseObject({ type: z.literal('upload'), by: Text }),
+  z.looseObject({
+    type: z.literal('ai'),
     vendor: Text,
     model: Text,
     prompt: Text,
-    date: Text,
-    seed: z.union([z.string(), z.number()]).optional(),
+    seed: z.union([Text, z.number()]),
+    date: z.union([z.iso.date(), z.iso.datetime({ offset: true })]),
   }),
 ]);
 export type AssetSource = z.infer<typeof AssetSource>;
@@ -154,7 +160,7 @@ export function lintPack(dir: string, pack: PackFile): Problem[] {
     else if (licenceNeedsAttribution(asset.licence) && !asset.attribution)
       problems.push({
         ...at,
-        code: 'attribution_required',
+        code: 'attribution_missing',
         message: `${asset.licence} asks for a credit: set the asset's attribution`,
       });
     if (JSON.stringify(asset.source).length > MAX_SOURCE_CHARS)

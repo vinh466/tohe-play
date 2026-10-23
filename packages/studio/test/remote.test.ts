@@ -1,5 +1,5 @@
 // The commands that talk to the Studio — style, check, submit, status — against a fake of its API.
-import { readFileSync } from 'node:fs';
+import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
@@ -79,7 +79,12 @@ describe('check', () => {
       ['shapes/square', 16, 16, 'LicenseRef-Tohe-Internal'],
     ]);
     expect(version?.assets[0]?.frames).toEqual({ width: 8, height: 8, count: 2 });
-    expect(version?.assets[1]?.source).toMatchObject({ kind: 'code', file: 'draw-squares.mjs' });
+    expect(version?.assets[1]?.source).toMatchObject({ type: 'code', file: 'draw-squares.mjs' });
+    expect(checked.out.join('\n')).toContain(
+      "farm-shapes@1.0.0: the server's checks pass; tohe-studio submit sends it for review",
+    );
+    expect(studio.requests).toContain(`POST /api/studio/drafts/${version?.id}/check`);
+    expect(version?.status).toBe('draft');
     const record = JSON.parse(readFileSync(join(work.dir, 'farm', DRAFT_FILE), 'utf8'));
     expect(record[studio.url]).toEqual({ versionId: version?.id, version: '1.0.0' });
 
@@ -96,13 +101,80 @@ describe('check', () => {
   it("prints the server's checks of a file, naming the asset and the code, exit 1", async () => {
     studio.checkFile = (asset) =>
       asset.id === 'shapes/square'
-        ? [{ code: 'not_in_palette', message: '12 pixels are not in the palette', assetId: 'shapes/square' }]
+        ? [
+            {
+              asset: 'shapes/square',
+              code: 'colour_not_in_palette',
+              message: '12 opaque pixels are not colours of the palette',
+            },
+          ]
         : [];
     const checked = await tohe('check', 'farm');
     expect(checked.code).toBe(1);
     expect(checked.err.join('\n')).toContain(
-      'asset shapes/square: not_in_palette — 12 pixels are not in the palette',
+      'asset shapes/square: colour_not_in_palette — 12 opaque pixels are not colours of the palette',
     );
+  });
+
+  it("prints the dry run's report, of an asset and of the whole version, exit 1, and submits nothing", async () => {
+    studio.checkVersion = () => [
+      { asset: 'shapes/blink', code: 'frames_mismatch', message: 'Its size is not a grid of its frames' },
+      { asset: null, code: 'semver_too_small', message: 'An asset was removed: a new major version' },
+    ];
+    const checked = await tohe('check', 'farm', '--dry-run');
+    expect(checked.code).toBe(1);
+    const err = checked.err.join('\n');
+    expect(err).toContain('asset shapes/blink: frames_mismatch — Its size is not a grid of its frames');
+    expect(err).toMatch(/^ {2}semver_too_small — An asset was removed: a new major version$/m);
+    expect(err).toContain('farm-shapes@1.0.0 failed its checks: 2 problem(s)');
+    expect([...studio.versions.values()][0]?.status).toBe('draft');
+    expect(studio.requests.some((request) => request.endsWith('/submit'))).toBe(false);
+  });
+
+  it("remembers the server's sha256 of a file it stripped, and sends it in the draft's later updates", async () => {
+    // The server strips something: the file it keeps is another one, with another sha256.
+    const keep = (content: Buffer) => Buffer.concat([content, Buffer.from('kept')]);
+    studio.strip = keep;
+    const checked = await tohe('check', 'farm');
+    expect(checked.code).toBe(0);
+    const out = checked.out.join('\n');
+    expect(out).toMatch(/asset shapes\/blink: the server stripped its metadata \(now [0-9a-f]{12}…\)/);
+    expect(out).toContain('tohe-studio prepare writes it without');
+    const [version] = [...studio.versions.values()];
+    const kept = version?.assets.map((asset) => asset.sha256);
+    const record = JSON.parse(readFileSync(join(work.dir, 'farm', DRAFT_FILE), 'utf8'))[studio.url];
+    expect(
+      Object.values(record.stripped)
+        .map((file) => (file as { sha256: string }).sha256)
+        .sort(),
+    ).toEqual([...(kept ?? [])].sort());
+
+    const again = await tohe('check', 'farm');
+    expect(again.code).toBe(0);
+    expect(again.out.join('\n')).toContain('0 file(s) uploaded now');
+    expect(again.out.join('\n')).not.toContain('stripped');
+    expect(version?.assets.map((asset) => asset.sha256)).toEqual(kept);
+    expect(studio.uploads).toHaveLength(2);
+
+    // prepare would write the file as the server keeps it: the hashes match, and nothing is remembered for it.
+    const pack = readPack(join(work.dir, 'farm'));
+    const square = pack.assets.find((asset) => asset.id === 'shapes/square');
+    const path = join(work.dir, 'farm', square?.file ?? '');
+    writeFileSync(path, keep(readFileSync(path)));
+    expect((await tohe('check', 'farm')).out.join('\n')).toContain('0 file(s) uploaded now');
+    const after = JSON.parse(readFileSync(join(work.dir, 'farm', DRAFT_FILE), 'utf8'))[studio.url];
+    expect(Object.keys(after.stripped)).toHaveLength(1);
+  });
+
+  it('uploads a stripped file again when the server no longer has it', async () => {
+    studio.strip = (content) => Buffer.concat([content, Buffer.from('kept')]);
+    expect((await tohe('check', 'farm')).code).toBe(0);
+    const [version] = [...studio.versions.values()];
+    version?.uploaded.clear();
+    const again = await tohe('check', 'farm');
+    expect(again.code).toBe(0);
+    expect(again.out.join('\n')).toContain('2 file(s) uploaded now');
+    expect(studio.uploads).toHaveLength(4);
   });
 
   it("names the asset a field error is about, from the server's index", async () => {
@@ -204,10 +276,29 @@ describe('submit and status', () => {
 
   it('does not submit while a file is refused by the checks', async () => {
     studio.checkFile = (asset) =>
-      asset.id === 'shapes/blink' ? [{ code: 'frames_mismatch', message: 'the grid does not match' }] : [];
+      asset.id === 'shapes/blink'
+        ? [{ asset: null, code: 'frames_mismatch', message: 'the grid does not match' }]
+        : [];
     const submitted = await tohe('submit', 'farm');
     expect(submitted.code).toBe(1);
     expect(submitted.err.join('\n')).toContain('asset shapes/blink: frames_mismatch');
+    expect([...studio.versions.values()][0]?.status).toBe('draft');
+  });
+
+  it('is refused by the checks of the whole version, naming the problems', async () => {
+    studio.checkVersion = () => [
+      {
+        asset: 'shapes/square',
+        code: 'licence_not_accepted',
+        message: 'X is not a licence the Studio accepts',
+      },
+    ];
+    const submitted = await tohe('submit', 'farm');
+    expect(submitted.code).toBe(1);
+    expect(submitted.err.join('\n')).toContain(
+      'asset shapes/square: licence_not_accepted — X is not a licence the Studio accepts',
+    );
+    expect(submitted.err.join('\n')).toContain('farm-shapes@1.0.0 was not submitted: 1 problem(s)');
     expect([...studio.versions.values()][0]?.status).toBe('draft');
   });
 
@@ -248,6 +339,20 @@ describe('refusals', () => {
     expect(
       describeRefusal(413, { code: 'file_too_large', title: 'The file is too large', maxBytes: 8 }),
     ).toEqual([{ code: 'file_too_large', message: 'The file is too large (at most 8 bytes)' }]);
+    expect(
+      describeRefusal(422, {
+        code: 'checks_failed',
+        title: "The Studio's checks refused it",
+        ok: false,
+        problems: [
+          { asset: 'a', code: 'too_large', message: 'It is too large' },
+          { asset: null, code: 'style_unknown', message: 'No style has this id' },
+        ],
+      }),
+    ).toEqual([
+      { code: 'too_large', message: 'It is too large', assetId: 'a' },
+      { code: 'style_unknown', message: 'No style has this id', assetId: null },
+    ]);
     expect(describeRefusal(503, null)).toEqual([
       { code: 'http_503', message: 'the Studio has no storage on this server' },
     ]);
