@@ -76,7 +76,8 @@ function TabNav({ current, className, item }: { current: TabId | null; className
 
 /**
  * "Có bản mới — Tải lại" (ADR 0046): a new version waits, and only the frame's screens say so — never a game, a table
- * or a replay, which are outside the frame. It sits above the bar; "Để sau" hides it until the next start.
+ * or a replay, which are outside the frame. It sits above the bar; "Để sau", a labelled button, hides it until the next
+ * start. Going out of sight may still apply the new version unseen (update/register.ts).
  */
 function UpdateNotice({ pathname }: { pathname: string }) {
   const { t } = useTranslation();
@@ -103,11 +104,10 @@ function UpdateNotice({ pathname }: { pathname: string }) {
       </button>
       <button
         type="button"
-        aria-label={t('update.later')}
         onClick={() => setLater(true)}
-        className="grid size-11 shrink-0 place-items-center rounded-full text-xl active:bg-soft"
+        className="min-h-11 shrink-0 rounded-full px-3 font-semibold active:bg-soft"
       >
-        <Icon name="x" />
+        {t('update.later')}
       </button>
     </div>
   );

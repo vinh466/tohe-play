@@ -1,6 +1,9 @@
 /// <reference types="vitest/config" />
+import { readFileSync } from 'node:fs';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
+import { parseTokens, token } from '@tohe/design-tokens';
 import { covers, hubNamespaces, navigationAllowlist } from '@tohe/routes';
 import react from '@vitejs/plugin-react';
 import { defineConfig, type Plugin } from 'vite';
@@ -57,14 +60,24 @@ function publicPagesAreTheirOwnServer(): Plugin {
   };
 }
 
+/**
+ * The brand colour of the light theme (`--tohe-brand` in the design tokens): the installed app's splash screen, which
+ * Android draws from the manifest before any page exists, in light and dark alike (ADR 0046).
+ */
+const tokensCss = readFileSync(
+  createRequire(import.meta.url).resolve('@tohe/design-tokens/tokens.css'),
+  'utf8',
+);
+const brand = token(parseTokens(tokensCss).light, 'brand');
+
 export default defineConfig({
   plugins: [
     publicPagesAreTheirOwnServer(),
     react(),
     tailwindcss(),
     VitePWA({
-      // A new version waits for the next cold start and never reloads an open page by itself; the frame's screens offer
-      // "Tải lại" (ADR 0046, src/update/). Registered from src/update/register.ts.
+      // A new version waits for the next cold start, or for the app to go out of sight on a screen of the frame; in
+      // sight, the frame's screens offer "Tải lại" (ADR 0046, src/update/). Registered from src/update/register.ts.
       registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
@@ -83,7 +96,8 @@ export default defineConfig({
         launch_handler: { client_mode: ['focus-existing', 'auto'] },
         // No `orientation` (ADR 0046): the app neither rotates nor locks the screen; a game fits the orientation its
         // game.json prefers inside the screen it gets.
-        background_color: '#fff7ed',
+        // The splash screen: the brand colour, with the opaque icon in the middle.
+        background_color: brand,
         theme_color: '#f97316',
         // Opaque, the brand colour in the corners (iOS paints transparency black); the maskable one is its own file, its
         // art inside the 80% safe zone. Made by `pnpm --filter @tohe/hub generate:icons`.
