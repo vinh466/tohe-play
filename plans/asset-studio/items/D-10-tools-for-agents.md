@@ -1,9 +1,9 @@
 # D-10 — Agent làm asset bằng công cụ gì?
 
-- Status: **proposed** phần kỹ thuật · ngân sách **deferred** (open → researching → proposed → decided · deferred · dropped)
+- Status: **decided** phần kỹ thuật · ngân sách **deferred** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
 - Blocks: — · Blocked by: D-07, D-08
-- Decided: ngân sách để sau tới P2 (owner, chat 2026-10-23: "ok chốt theo đề xuất ổn")
+- Decided: phần kỹ thuật B (owner, chat 2026-10-24: "ok chốt theo đề xuất, hướng review đã ổn"); ngân sách để sau tới P2 (owner, chat 2026-10-23)
 
 ## Why it matters
 
@@ -57,4 +57,4 @@ Chi phí chấp nhận:
 ## Decision
 
 - **Ngân sách generator:** để sau tới P2. Owner: "ok chốt theo đề xuất ổn" (2026-10-23).
-- **Phần kỹ thuật:** —
+- **Phần kỹ thuật:** B, owner, chat 2026-10-24: "ok chốt theo đề xuất, hướng review đã ổn".

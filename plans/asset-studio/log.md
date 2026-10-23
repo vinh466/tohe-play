@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-24 — agent
+
+- Owner: "ok chốt theo đề xuất, hướng review đã ổn, bạn hãy theo đề xuất làm việc đi, bạn đc merge PRs và deploy prod
+  giúp tôi nhé" → D-09, D-10 (kỹ thuật), D-12 decided; delivery được duyệt; plan sang **Graduate**.
+- Merge `origin/main` vào nhánh plan (có `tools/claims`, `/packet`). ADR 0046 ghi `studio.` là "public, no session":
+  N2 sẽ sửa hàng đó. Phiên `launch-review` gọi hướng hình ảnh là "Xưởng tò he", nên app này giữ tên "Studio".
+- Chờ owner: S2 (R2, Infisical, DNS `studio.`).
+
 ## 2026-10-23 (2) — agent
 
 - Owner: "ok chốt theo đề xuất ổn, sau khi ra luồng thì tôi tối ưu chi tiết sau" → D-13 deferred; ngân sách của D-10 và

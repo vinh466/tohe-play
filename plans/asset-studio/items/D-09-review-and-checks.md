@@ -1,9 +1,9 @@
 # D-09 — Duyệt asset theo tiêu chí gì, và máy kiểm những gì?
 
-- Status: **proposed** (open → researching → proposed → decided · deferred · dropped)
+- Status: **decided** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
 - Blocks: E-05, E-07 · Blocked by: D-05, D-07, D-08
-- Decided: —
+- Decided: owner, chat 2026-10-24: "ok chốt theo đề xuất, hướng review đã ổn"
 
 ## Why it matters
 
@@ -72,4 +72,4 @@ Chi phí chấp nhận:
 
 ## Decision
 
-—
+**B**, owner (2026-10-24: "ok chốt theo đề xuất, hướng review đã ổn").

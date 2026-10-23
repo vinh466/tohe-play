@@ -1,7 +1,8 @@
 # Delivery — Asset Studio: thứ tự xây, theo pull request
 
-**Bản nháp** của danh sách graduate (phase Converge), viết ngày 2026-10-23 khi D-09, D-10 (phần kỹ thuật) và D-12 còn
-`proposed`. Khi chúng được chốt khác đi thì sửa trang này.
+Danh sách graduate, owner duyệt 2026-10-24 ("ok chốt theo đề xuất, hướng review đã ổn, bạn hãy theo đề xuất làm việc
+đi"). Owner giao agent merge và deploy prod cho các PR này. Số ADR dự kiến: 0049 (N1), 0050 (N2), 0051 (N3), 0052 (C1);
+nếu phiên khác lấy số trước thì dùng số trống kế tiếp.
 
 Luật chung:
 

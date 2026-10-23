@@ -1,9 +1,9 @@
 # D-12 — Game khai báo, khoá và dùng asset ra sao trong Game Contract?
 
-- Status: **proposed** (open → researching → proposed → decided · deferred · dropped)
+- Status: **decided** (open → researching → proposed → decided · deferred · dropped)
 - Kind: decision
 - Blocks: E-01, E-02, E-03 · Blocked by: D-01, D-02, D-05
-- Decided: —
+- Decided: owner, chat 2026-10-24: "ok chốt theo đề xuất, hướng review đã ổn"
 
 ## Why it matters
 
@@ -96,4 +96,4 @@ Chi phí chấp nhận:
 
 ## Decision
 
-—
+**B**, owner (2026-10-24: "ok chốt theo đề xuất, hướng review đã ổn").
