@@ -159,6 +159,8 @@ export async function runConformance(
   // The game starts in its first declared theme; a settings change to the other one must not break it.
   const startTheme: Theme = manifest.themes[0] ?? 'light';
   const otherTheme: Theme = startTheme === 'light' ? 'dark' : 'light';
+  /** Whether a shell game says its menu (the title screen or the panel over play) is up: its last `menu` message. */
+  let menuOpen = false;
 
   try {
     browser = await launch();
@@ -231,6 +233,9 @@ export async function runConformance(
       onLog: () => void traffic.logs++,
       onTelemetry: (events) =>
         void telemetry.push({ events: events.length, bytes: JSON.stringify(events).length }),
+      onMenu: (open) => {
+        menuOpen = open;
+      },
       onProtocolError: (error) => protocolErrors.push(error),
     });
 
@@ -312,6 +317,26 @@ export async function runConformance(
         );
       }
       host.resume();
+
+      // Every orientation the game declares beyond an upright phone: the play stage at that size (ADR 0050).
+      const sizes = PLAY_VIEWPORTS[manifest.orientation];
+      if (sizes.length > 0) {
+        const playing = await backToPlay(frame, host, () => menuOpen);
+        for (const { label, size } of sizes) {
+          const result = await playsAt(page, frame, size, {
+            errors,
+            protocolErrors,
+            playing,
+            screenshot: join(outDir, `${manifest.id}-play-${sizeName(size)}.png`),
+          });
+          if (result.screenshot) screenshots.push(result.screenshot);
+          check(
+            `plays ${label} (${size.width}×${size.height})`,
+            result.problems.length === 0,
+            result.problems.join('\n'),
+          );
+        }
+      }
     }
     host.dispose();
     await page.close();
@@ -1062,6 +1087,127 @@ async function titleReach(page: Page, frame: Frame, screenshot: string): Promise
   if (original) await page.setViewportSize(original);
   await page.waitForTimeout(300);
   return lines;
+}
+
+/**
+ * The sizes the play stage is checked at beyond the main run's upright phone, per declared `orientation` (ADR 0050):
+ * a phone held sideways for `landscape`, and also a desktop window for `any`.
+ */
+const PLAY_VIEWPORTS: Record<
+  GameManifest['orientation'],
+  { label: string; size: { width: number; height: number } }[]
+> = {
+  portrait: [],
+  landscape: [{ label: 'sideways', size: { width: 844, height: 390 } }],
+  any: [
+    { label: 'sideways', size: { width: 844, height: 390 } },
+    { label: 'in a desktop window', size: { width: 1280, height: 800 } },
+  ],
+};
+
+/**
+ * After the random input, back to the play stage: a shell game left on its title screen plays again, and one with its
+ * panel open over play closes it with `menu`. Returns what is wrong when play could not be reached, or null.
+ */
+async function backToPlay(
+  frame: Frame,
+  host: ReturnType<typeof createHost>,
+  menuOpen: () => boolean,
+): Promise<string | null> {
+  if (!menuOpen()) return null;
+  const onTitle = await frame
+    .locator('[data-tohe-play]:visible')
+    .count()
+    .catch(() => 0);
+  if (onTitle > 0) {
+    const pressed = await playFromTitle(frame);
+    if (pressed !== 'pressed') return `could not play from the title screen: ${pressed}`;
+  } else {
+    host.menu();
+  }
+  return (await until(() => !menuOpen(), 3000)) ? null : 'the game stayed in its menu, not in play';
+}
+
+/**
+ * Resizes the page to `size`, lets the game settle, and checks the play stage there: no errors since the resize, and
+ * the play area — the kit's play stage, else the largest canvas, else the page's body — fills the frame's viewport
+ * within 1 px. Writes a screenshot, puts the page back, and returns what was wrong, one line each.
+ */
+async function playsAt(
+  page: Page,
+  frame: Frame,
+  size: { width: number; height: number },
+  run: { errors: string[]; protocolErrors: string[]; playing: string | null; screenshot: string },
+): Promise<{ problems: string[]; screenshot?: string }> {
+  const original = page.viewportSize();
+  const errorsBefore = run.errors.length;
+  const protocolBefore = run.protocolErrors.length;
+  await page.setViewportSize(size);
+  type Fit = {
+    what: string;
+    box: { x: number; y: number; width: number; height: number };
+    view: { width: number; height: number };
+  } | null;
+  const measure = () =>
+    frame
+      .evaluate((): Fit => {
+        const visible = (node: Element) => {
+          const box = node.getBoundingClientRect();
+          return box.width > 0 && box.height > 0;
+        };
+        const stage = document.querySelector('.tohe-play-stage:not([hidden])');
+        const canvases = [...document.querySelectorAll('canvas')].filter(visible);
+        const largest = canvases.sort((a, b) => {
+          const area = (c: Element) => c.getBoundingClientRect().width * c.getBoundingClientRect().height;
+          return area(b) - area(a);
+        })[0];
+        const [what, node] =
+          stage && visible(stage)
+            ? ['the play stage', stage]
+            : largest
+              ? ['the canvas', largest]
+              : ['the page', document.body];
+        const { x, y, width, height } = node.getBoundingClientRect();
+        return {
+          what,
+          box: { x, y, width, height },
+          view: { width: window.innerWidth, height: window.innerHeight },
+        };
+      })
+      .catch((): Fit => null);
+  const fills = (fit: Fit) =>
+    fit !== null &&
+    Math.abs(fit.box.x) <= 1 &&
+    Math.abs(fit.box.y) <= 1 &&
+    Math.abs(fit.box.width - fit.view.width) <= 1 &&
+    Math.abs(fit.box.height - fit.view.height) <= 1;
+  // The resize and the game's own relayout (a ResizeObserver, a debounce) settle first.
+  let fit: Fit = null;
+  for (let attempt = 0; attempt < 12; attempt++) {
+    await page.waitForTimeout(attempt === 0 ? 700 : 250);
+    fit = await measure();
+    if (fills(fit)) break;
+  }
+  await page.waitForTimeout(300);
+  mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
+  const shot = await page.screenshot({ path: run.screenshot }).then(
+    () => run.screenshot,
+    () => undefined,
+  );
+  const problems: string[] = [];
+  if (run.playing) problems.push(run.playing);
+  if (fit === null) problems.push('the page could not be read');
+  else if (!fills(fit)) {
+    const { box, view } = fit;
+    problems.push(
+      `${fit.what} is ${Math.round(box.width)}×${Math.round(box.height)} at ${Math.round(box.x)},${Math.round(box.y)} in a ${view.width}×${view.height} frame`,
+    );
+  }
+  problems.push(...run.errors.slice(errorsBefore, errorsBefore + 5));
+  problems.push(...run.protocolErrors.slice(protocolBefore, protocolBefore + 5));
+  if (original) await page.setViewportSize(original);
+  await page.waitForTimeout(300);
+  return { problems, screenshot: shot };
 }
 
 /**
