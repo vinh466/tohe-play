@@ -74,7 +74,7 @@ flowchart LR
 | Nguyên tắc khai báo | Game chọn trong những gì nền tảng mở; nền tảng giữ rào; conformance kiểm điều đã khai báo | `capabilities`, `identity` (ADR 0045) | ADR mới | D-01 |
 | Pack | Bộ asset cùng style, semver, mỗi file một sha256; `style` trỏ tới art bible | Pack Kenney; semver | Schema trong `packages/studio` *(proposed)* | D-05 |
 | State | Pack, version, trạng thái, nguồn gốc, người duyệt, nhật ký | — | PostgreSQL, module `Studio` | D-06 |
-| File | Nháp riêng tư; đã duyệt thì bất biến, đọc công khai, kèm manifest mỗi version | Content-addressed storage; registry kiểu npm | R2 (prod) · MinIO (dev) *(proposed)* | D-06 |
+| File | Nháp riêng tư; đã duyệt thì bất biến, đọc công khai, kèm manifest mỗi version | Content-addressed storage; registry kiểu npm | R2 (prod) · SeaweedFS (dev, test) *(proposed)* | D-06 |
 | License và nguồn gốc | Danh sách SPDX cho phép; `source` bắt buộc; asset AI có đủ nguồn gốc; credits sinh từ lock | SPDX; USCO Part 2 | Metadata của pack; màn credits trong kit | D-07 |
 | Art bible | Nhiều style. Style Tò He là mặc định, không bắt buộc; game tự chọn hoặc tạo style | Style model của Scenario (R-01) | Bản ghi trong Studio | D-08 |
 | Hậu xử lý | Ép palette của style, căn lưới pixel, cắt viền, kiểm mép tile, đóng atlas, nén | — | `packages/studio` CLI | D-10 |
