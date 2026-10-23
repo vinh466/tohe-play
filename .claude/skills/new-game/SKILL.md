@@ -15,6 +15,17 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
 2. Write `games/<id>/SPEC.md` in the shape of `games/merge-block/SPEC.md`: board/world, a move, scoring, how it
    ends, screens, feel (juice) per event in tiers, what is saved, invariants the bot must check, and **themes**:
    light + dark following the hub (default), or one look if the game has one by nature (say why).
+   For a game with pictures, a world or a lot of content, the spec also says:
+   - **orientation**: `portrait`, `landscape` or `any` (the game decides; with `any`, how the screen splits sideways
+     and on a desktop window — `docs/guides/create-a-game.md`, "Portrait, landscape, desktop");
+   - **style**: a style of the Asset Studio (Tò He's own is the default) or a new one, and why it suits the game
+     (ADR 0051);
+   - **assets**: the packs it needs, from the Studio or still to make, and their licences;
+   - **content**: its catalogs (items, levels, dialogue) as data with ids (`docs/guides/create-a-game.md`, "Content as
+     data").
+   Rules and mechanics of known games are written up already — read them before inventing: Pagat (card games, with
+   regional variants), the Ludii Games Database (traditional board games, CC BY 4.0), Simon Tatham's Puzzles (puzzles
+   with generators and solvers, MIT). Write the spec in your own words and name the source.
 3. **Stop and ask the user to review the spec.** Do not write code before they agree.
 
 ## 2. Build
@@ -72,7 +83,14 @@ implementation** (Phaser 4 + `@tohe/game-kit`); `games/hello` is the minimal Can
    **Its tests check** that the share makes payloads like those in `entries/share.json` and that each one opens
    (`handled`), and that hostile ones do not. Ask for more only through `session.identity.require(level, reason)` —
    save first when asking for `account`.
-8. Themes (with both): `followTheme(session, theme => { scene.setTheme(theme); kit.setBackground(...) })`; art
+8. Assets and content (when the spec has them; `docs/guides/use-assets-in-a-game.md`): declare the packs in
+   `public/game.json`'s `assets`, run `pnpm assets:resolve` (commit `assets.lock.json` and `src/assets.gen.ts`, both
+   generated), add `toheAssets()` from `@tohe/assets/vite` to `vite.config.ts`, and load with `loadPack(scene,
+   assets.<pack>)` from `@tohe/game-kit/phaser`; the credits screen appears by itself. Content lives in
+   `src/content/` as `defineCatalog` lists from `@tohe/game-kit`, checked in the tests (`checkReferences`,
+   `checkSchema` with Zod as a devDependency); numbers that decide the rules stay in the logic. With `orientation:
+   "any"`, lay out with `onLayout`, `splitLayout` and `fitWorld` from `@tohe/game-kit/phaser`.
+9. Themes (with both): `followTheme(session, theme => { scene.setTheme(theme); kit.setBackground(...) })`; art
    colours in a per-theme palette (`palette.ts`), DOM colours from the design tokens (`var(--tohe-*)`); every text
    at least 4.5:1 on its background (3:1 if large and bold).
 
