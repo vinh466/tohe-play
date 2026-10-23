@@ -11,17 +11,27 @@ export {
   type Stat,
   type StatOptions,
 } from './hud.ts';
+export {
+  type IconName,
+  icon,
+  iconNames,
+  type ShapeName,
+  shape,
+  shapeNames,
+} from './icons.ts';
 export { prefersReducedMotion } from './motion.ts';
 export {
   type Choice,
   choiceList,
   createOverlay,
+  type DecorShape,
   hintList,
   type Overlay,
   type OverlayAction,
   type OverlayCard,
   type OverlayRow,
   type OverlaySection,
+  type Picture,
 } from './overlay.ts';
 export { createSfx, noteFrequency, type Sfx, type SoundName } from './sfx.ts';
 export {

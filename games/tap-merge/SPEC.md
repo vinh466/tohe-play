@@ -143,26 +143,28 @@ ending; the sum rounded down to a power of two, about 6,000; **rounded up (0.3.0
 
 The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020); this game
 brings its content:
+The kit draws every control with an icon of its set beside the words (Phosphor, ADR 0049); the title screen shows
+the game's own logo, `public/icon.svg`, the picture the catalog shows.
 
-1. **Title screen** (the menu stage, every time the game opens, no board running): 👆 **Chạm Ghép**, the chip "Ván
-   đang chơi dở: n điểm. · 👑 Kỷ lục m", **▶ Chơi** or **▶ Chơi tiếp** and **🔄 Ván mới** (asks first; the run
-   ends); tools 🔊 ⚙️ 🏆 (signed-in players) ❓; **← Về Tò He** last, under the tools. **⚙️ Cài đặt**: 🔊 and **🎨 Màu khối**
+1. **Title screen** (the menu stage, every time the game opens, no board running): its logo and **Chạm Ghép** over drifting blocks, the chip "Ván
+   đang chơi dở: n điểm. · Kỷ lục m", **Chơi** or **Chơi tiếp** and **Ván mới** (asks first; the run
+   ends); tools Âm thanh, Cài đặt, Xếp hạng (signed-in players) and Cách chơi; **Về Tò He** last, under the tools. **Cài đặt**: Âm thanh and **Màu khối**
    — one row per [preset](#block-colours), with sample blocks 2 … 256 (the numbers on the board most of the time).
 2. **How to play** (before the first **Chơi** only): four picture hints — tap a block; equal blocks connected to it,
    diagonals too, merge into it; making the goal block (4K, 16K, …) retires the smallest blocks, with points; when
-   nothing merges, 🔀 shuffles. **▶ Bắt đầu** starts, and a hand points at a first move.
-3. **Playing** (the play stage, created on play from the save): the kit's HUD — ☰, score (counts up), the 🔀 button
-   with how many are left, best (lights up 👑 once the score passes it); under it the goal, "🎯 Mục tiêu [4K] tạm
+   nothing merges, 🔀 shuffles. **Bắt đầu** starts, and a hand points at a first move.
+3. **Playing** (the play stage, created on play from the save): the kit's HUD — Menu, score (counts up), the 🔀 button
+   with how many are left, best (its crown lights up once the score passes it); under it the goal, "🎯 Mục tiêu [4K] tạm
    biệt [2]" with both blocks drawn small in the player's colours; the board below.
    - **Scores never cover the HUD:** each score box keeps its share of the row; the kit shows a score in full while
      it fits ("812.345") and otherwise in its own unit with as many decimals as fit ("812,3K", "23,45M"), cut and
      never rounded up (`formatCompact`). The game-over card shows scores in full.
-4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**; 🔊 Âm thanh as a switch;
-   **🎨 Màu khối · (the preset) ›**, which opens the presets with their sample blocks over the panel — a tap repaints
-   the board and the goal behind it at once, **Quay lại** returns to the panel; 🔄 Ván mới (asks) ·
-   ❓ Cách chơi · 🏠 Menu chính (saves; the title then offers Chơi tiếp).
+4. **Quick panel** (Menu, phone Back, Esc, or the hub hiding the game): **Tiếp tục**; Âm thanh as a switch;
+   **Màu khối · (the preset)**, which opens the presets with their sample blocks over the panel — a tap repaints
+   the board and the goal behind it at once, **Quay lại** returns to the panel; Ván mới (asks) ·
+   Cách chơi · Menu chính (saves; the title then offers Chơi tiếp).
 5. **Game over:** board dims, card with score/best and the largest block made ("Khối lớn nhất [512K]"),
-   confetti for a record, **▶ Chơi lại**, **🏠 Menu chính**; Back goes to the title screen.
+   confetti for a record, **Chơi lại**, **Menu chính**; Back goes to the title screen.
 
 ## Feel (juice), in tiers
 
@@ -202,7 +204,7 @@ Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013), lik
 
 ## Block colours
 
-Each player picks how the blocks look (**⚙️ Cài đặt → Màu khối**). The choice belongs to the player: it is kept in the
+Each player picks how the blocks look (**Cài đặt → Màu khối**). The choice belongs to the player: it is kept in the
 game's save, so it follows the profile to other devices, and a new player starts with **Hoàng hôn**.
 
 | Preset | Look |

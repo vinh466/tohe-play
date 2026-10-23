@@ -97,7 +97,7 @@ export function start(ctx: StageContext): PlayStage {
     store.best = state.best;
     sfx.play(record ? 'fanfare' : 'drop');
     ctx.gameOver({
-      icon: record ? '🏆' : '🟠',
+      icon: record ? 'trophy' : { src: 'icon.svg' },
       title: record ? t.record : t.over,
       body: t.result(state.score, state.best),
     });

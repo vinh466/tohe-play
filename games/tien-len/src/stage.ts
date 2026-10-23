@@ -554,7 +554,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       },
     };
     const card = {
-      icon: won ? '🏆' : '🃏',
+      icon: won ? ('trophy' as const) : { src: 'icon.svg' },
       title: result.instant ? `${t.instant}` : t.results,
       body: result.instant ? t.instantWins[result.instant.win] : undefined,
       content: table,
@@ -709,7 +709,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       grid.append(button);
     }
     overlay.show({
-      icon: '😀',
+      icon: 'smiley',
       title: t.react,
       content: grid,
       actions: [
@@ -869,15 +869,15 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       sfx.play('click');
       void newTable();
     },
-    // 🎴 Bộ bài opens the decks over the panel; a tap redraws the cards behind it at once.
+    // Bộ bài opens the decks over the panel; a tap redraws the cards behind it at once.
     quick: () => [
       {
         kind: 'card',
-        icon: '🎴',
+        icon: 'cards',
         label: t.menu.deck,
         value: t.menu.decks[deck],
         card: () => ({
-          icon: '🎴',
+          icon: 'cards',
           title: t.menu.deck,
           content: choiceList(
             DECKS.map((id) => ({ id, label: t.menu.decks[id] })),
@@ -895,10 +895,10 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         ? [
             {
               kind: 'card' as const,
-              icon: '📜',
+              icon: 'scroll' as const,
               label: t.menu.tableRules,
               card: () => ({
-                icon: '📜',
+                icon: 'scroll' as const,
                 title: t.menu.tableRules,
                 content: tableRules(normalizeOptions(room.options)),
               }),

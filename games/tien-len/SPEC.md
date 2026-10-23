@@ -68,7 +68,7 @@ A combination is compared by its **top card**: its highest card, rank first, the
 
 ## House rules
 
-Chosen per table: against bots from the main menu (**⚙️ Cài đặt → Luật nhà**; during a hand the menu shows them
+Chosen per table: against bots from the main menu (**Cài đặt → Luật nhà**; during a hand the menu shows them
 read only), online when the room is created. A change applies from the next hand.
 
 | # | Rule | Default |
@@ -166,26 +166,26 @@ a ring while it is their turn; the table in the middle.
 The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020). The
 catalog card opens the game:
 
-0. **Title screen** (the menu stage against bots, every time; no table running): 🃏 **Tiến Lên** on a hint of the
-   felt, **🤖 Chơi với máy**, or the chip "Ván đang chơi dở." with **▶ Chơi tiếp** and **🔄 Bàn mới** (the series
-   restarts at 0, asks first); **🌐 Chơi online** (signed-in players: the hub's lobby, whose ← comes back here); tools
-   🔊 ⚙️ ❓; **← Về Tò He** last, under the tools. **⚙️ Cài đặt**: 🔊, **📜 Luật nhà** (H1–H9) and **🪑 Bàn chơi** (2–4 players
-   and the bots' level) — from the next hand, said so while a hand is in progress — and **🎴 Bộ bài** (two or four
+0. **Title screen** (the menu stage against bots, every time; no table running): its logo and **Tiến Lên** on a hint of the
+   felt with the four suits drifting, **Chơi với máy** (a robot's icon), or the chip "Ván đang chơi dở." with **Chơi tiếp** and **Bàn mới** (the series
+   restarts at 0, asks first); **Chơi online** (signed-in players: the hub's lobby, whose way back comes back here); tools
+   Âm thanh, Cài đặt and Cách chơi; **Về Tò He** last, under the tools. **Cài đặt**: Âm thanh, **Luật nhà** (H1–H9) and **Bàn chơi** (2–4 players
+   and the bots' level) — from the next hand, said so while a hand is in progress — and **Bộ bài** (two or four
    colours).
-1. **How to play** (before the first **Chơi** only, then from ❓): picture hints — the card order (3 lowest, 2
+1. **How to play** (before the first **Chơi** only, then from Cách chơi): picture hints — the card order (3 lowest, 2
    highest; ♠ ♣ ♦ ♥), beat with the same kind but higher, pass if you cannot or do not want to, bombs chop 2s, first
-   out wins. **▶ Bắt đầu** deals a practice hand: the suggestion is shown on every turn with a sentence saying why.
-2. **Table** (the play stage, created on play from the save): the kit's HUD — ☰, the series score, the hand's
+   out wins. **Bắt đầu** deals a practice hand: the suggestion is shown on every turn with a sentence saying why.
+2. **Table** (the play stage, created on play from the save): the kit's HUD — Menu, the series score, the hand's
    number, (😀 at a table) and a sort toggle (by rank / by combinations); buttons **Bỏ lượt**, **Gợi ý**, **Đánh**.
    Tapping a card lifts it (selected); sliding a finger along the hand selects a run. Tapping one card when nothing is
    selected suggests the smallest play with it that beats the table. **Đánh** is enabled only for a selection that
    may be played; otherwise the reason is shown ("Phải lớn hơn đôi 7").
 3. **Hand results:** places with avatars, the points of the hand line by line (places, chops, thối, cóng), the series
-   score, **Ván tiếp** and **🏠 Menu chính** (the shell's end card: Back goes to the title screen).
-4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**; 🔊 Âm thanh as a switch;
-   **🎴 Bộ bài · (the deck) ›**, which opens the two decks over the panel (a tap redraws the cards behind it); 🔄 Bàn mới (asks) · ❓ Cách chơi · 🏠 Menu chính
+   score, **Ván tiếp** and **Menu chính** (the shell's end card: Back goes to the title screen).
+4. **Quick panel** (Menu, phone Back, Esc, or the hub hiding the game): **Tiếp tục**; Âm thanh as a switch;
+   **Bộ bài · (the deck)**, which opens the two decks over the panel (a tap redraws the cards behind it); Bàn mới (asks) · Cách chơi · Menu chính
    (the hand waits: **Chơi tiếp**). Bots stop while it is open. At an online table (no title screen): "Bàn vẫn tiếp
-   tục khi bạn mở menu.", 🔊, 🎴, **📜 Luật của bàn** (read only), ❓, and **Rời bàn** / **Thôi xem**; in a replay,
+   tục khi bạn mở menu.", Âm thanh, Bộ bài, **Luật của bàn** (read only), Cách chơi, and **Rời bàn** / **Thôi xem**; in a replay,
    **Về sảnh**.
 
 ## Feel (juice in tiers)
@@ -222,8 +222,8 @@ the server referees with this module: the game sends actions (`session.room.act`
 - **Results** come from the hand's view; **Ván tiếp** tells the room this phone is ready and shows "Đang chờ mọi
   người…" until the next hand is dealt (when everyone is ready, or after 30 s).
 - **😀** sends one of the eight preset reactions; others' appear as bubbles at their seats.
-- **☰** at a table (phone Back, Esc): "Bàn vẫn tiếp tục khi bạn mở menu." — **▶ Tiếp tục**, **🔊 Âm thanh**, **❓ Cách
-  chơi**, **⚙️ Cài đặt** (Luật của bàn, the host's house rules, read only; Bộ bài), **Rời bàn** (the hub asks whether to
+- **Menu** at a table (phone Back, Esc): "Bàn vẫn tiếp tục khi bạn mở menu." — **Tiếp tục**, **Âm thanh**, **Cách
+  chơi**, **Cài đặt** (Luật của bàn, the host's house rules, read only; Bộ bài), **Rời bàn** (the hub asks whether to
   give the seat up). There is no main menu at a table and nothing pauses: the table goes on, and so do its
   animations.
 - The practice hints of the first hand also show online.
@@ -267,6 +267,9 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 
 ## Changelog
 
+- **0.6.4** — the kit's menus draw their controls with icons beside the words, no emoji (kit 0.3.0, ADR 0049): the
+  title screen shows the game's own logo, the suits drift behind it as shapes, and **Chơi với máy** carries a robot's
+  icon. The game itself is unchanged.
 - **0.6.3** — the kit's title screen fits a phone held sideways (kit 0.2.1): the picture and name beside the
   buttons, so play, the tools and ← Về Tò He stay in reach down to 320 px of height. The game itself is unchanged.
 - **0.6.2** — game.json gains an English description beside the Vietnamese one (`descriptions`, ADR 0048); the

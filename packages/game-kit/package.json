@@ -1,6 +1,6 @@
 {
   "name": "@tohe/game-kit",
-  "version": "0.2.1",
+  "version": "0.3.0",
   "description": "Shared building blocks for Tò He games: crisp Phaser setup, synthesized sounds, haptics, juice, overlay screens.",
   "private": true,
   "type": "module",

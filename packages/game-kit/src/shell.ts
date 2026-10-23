@@ -3,22 +3,25 @@
 // - the MENU STAGE, its own first screen: the title, play, its options as full screens, the leaderboard and online
 //   play, and the only way back to Tò He. It runs no engine and draws no board;
 // - the PLAY STAGE, created when the player presses play (its module is fetched in the background while the menu is
-//   up), saved and destroyed when the player goes back to the menu. Over it, one ☰ opens a quick panel with what fits
-//   a game in progress — resume, sound and the game's looks applied in place, a new game, how to play, the menu.
+//   up), saved and destroyed when the player goes back to the menu. Over it, one Menu button opens a quick panel with
+//   what fits a game in progress — resume, sound and the game's looks applied in place, a new game, how to play, the menu.
 //
 //   menu stage                                        play stage
-//   title ─⚙️/❓/🔄─▶ full screen (Back ◀)              loading ─▶ playing ◀─▶ panel (☰, Back, the hub hiding it;
+//   title ─settings/how-to/new game─▶ full screen      loading ─▶ playing ◀─▶ panel (Menu, Back, the hub hiding it;
 //     │ Chơi (the how-to first, the first time) ─────▶   │                    3-2-1 before a timed game goes on)
-//     ◀──────────── 🏠 Menu chính / the end of a game ───┘
-//     └─ Back / ← Về Tò He ─▶ Tò He
+//     ◀──────────── Menu chính / the end of a game ──────┘
+//     └─ Back / Về Tò He ─▶ Tò He
 //
 // Opened by an entry the game handles (a share link's payload, ADR 0045), play opens at once with the title screen
-// behind it, reached from the panel's 🏠 as usual; any other answer opens the title screen.
+// behind it, reached from the panel's Menu chính as usual; any other answer opens the title screen.
 //
-// A game brings its content; the kit owns the stages, their screens, words and look.
+// A game brings its content; the kit owns the stages, their screens, words and look. The words are only words: the kit
+// draws each control's icon beside them (icons.ts, ADR 0049), and a game's logo is its own art.
 import type { EntryResult, GameSession, SessionEntry } from '@tohe/game-sdk';
+import { icon as drawIcon, type IconName } from './icons.ts';
 import {
   createOverlay,
+  type DecorShape,
   type Overlay,
   type OverlayAction,
   type OverlayCard,
@@ -31,7 +34,7 @@ export interface ShellStrings {
   /** The first-time how-to's button. */
   start: string;
   newGame: string;
-  /** The caption of 🔄 in the in-game panel. */
+  /** The caption of the new-game tool in the in-game panel. */
   newGameShort: string;
   confirmTitle: string;
   confirmBody: string;
@@ -50,7 +53,7 @@ export interface ShellStrings {
   resume: string;
   menu: string;
   mainMenu: string;
-  /** The caption of 🏠 in the in-game panel. */
+  /** The caption of the main-menu tool in the in-game panel. */
   mainMenuShort: string;
   again: string;
   loading: string;
@@ -63,15 +66,15 @@ export interface ShellStrings {
 
 const STRINGS: Record<'vi' | 'en', ShellStrings> = {
   vi: {
-    play: '▶ Chơi',
-    continue: '▶ Chơi tiếp',
-    start: '▶ Bắt đầu',
-    newGame: '🔄 Ván mới',
+    play: 'Chơi',
+    continue: 'Chơi tiếp',
+    start: 'Bắt đầu',
+    newGame: 'Ván mới',
     newGameShort: 'Ván mới',
     confirmTitle: 'Bắt đầu ván mới?',
     confirmBody: 'Ván đang chơi sẽ kết thúc. Điểm đã đạt vẫn được tính.',
     back: 'Quay lại',
-    online: '🌐 Chơi online',
+    online: 'Chơi online',
     settings: 'Cài đặt',
     leaderboard: 'Bảng xếp hạng',
     leaderboardShort: 'Xếp hạng',
@@ -79,28 +82,28 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     sound: 'Âm thanh',
     soundOn: 'Âm thanh: bật',
     soundOff: 'Âm thanh: tắt',
-    exit: '← Về Tò He',
+    exit: 'Về Tò He',
     paused: 'Tạm dừng',
-    resume: '▶ Tiếp tục',
+    resume: 'Tiếp tục',
     menu: 'Menu',
-    mainMenu: '🏠 Menu chính',
+    mainMenu: 'Menu chính',
     mainMenuShort: 'Menu chính',
-    again: '▶ Chơi lại',
+    again: 'Chơi lại',
     loading: 'Đang vào ván…',
     failed: 'Chưa mở được ván chơi. Thử lại nhé.',
     betweenGames: 'Đang có ván dở: áp dụng từ ván sau.',
     goesOn: 'Bàn vẫn tiếp tục khi bạn mở menu.',
   },
   en: {
-    play: '▶ Play',
-    continue: '▶ Continue',
-    start: '▶ Start',
-    newGame: '🔄 New game',
+    play: 'Play',
+    continue: 'Continue',
+    start: 'Start',
+    newGame: 'New game',
     newGameShort: 'New game',
     confirmTitle: 'Start a new game?',
     confirmBody: 'The game in progress will end. The points you scored still count.',
     back: 'Back',
-    online: '🌐 Play online',
+    online: 'Play online',
     settings: 'Settings',
     leaderboard: 'Leaderboard',
     leaderboardShort: 'Scores',
@@ -108,13 +111,13 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     sound: 'Sound',
     soundOn: 'Sound: on',
     soundOff: 'Sound: off',
-    exit: '← Back to Tò He',
+    exit: 'Back to Tò He',
     paused: 'Paused',
-    resume: '▶ Resume',
+    resume: 'Resume',
     menu: 'Menu',
-    mainMenu: '🏠 Main menu',
+    mainMenu: 'Main menu',
     mainMenuShort: 'Main menu',
-    again: '▶ Play again',
+    again: 'Play again',
     loading: 'Getting the game ready…',
     failed: 'The game could not start. Please try again.',
     betweenGames: 'A game is in progress: this applies from the next one.',
@@ -125,9 +128,11 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
 export const shellStrings = (locale: string): ShellStrings =>
   locale.startsWith('vi') ? STRINGS.vi : STRINGS.en;
 
-/** A section of the menu stage's ⚙️ Cài đặt screen. */
+/** A section of the menu stage's Cài đặt screen. */
 export interface ShellSetting {
   label: string;
+  /** An icon before the label. */
+  icon?: IconName;
   /** `between-games` changes how a game plays: it applies from the next game. `any-time`: looks, at once. */
   when: 'between-games' | 'any-time';
   /** The section's controls (toggles, a `choiceList`), built each time the screen opens. */
@@ -138,7 +143,7 @@ export interface ShellSetting {
 export interface StageContext {
   /** The stage's own element, empty, filling the game's root: the stage builds its HUD and board in it. */
   readonly root: HTMLElement;
-  /** The player asked for a fresh game (🔄 Ván mới on the title screen); otherwise continue the saved one. */
+  /** The player asked for a fresh game (Ván mới on the title screen); otherwise continue the saved one. */
   readonly fresh: boolean;
   /** The how-to was just shown: point at a first move. */
   readonly firstTime: boolean;
@@ -147,13 +152,13 @@ export interface StageContext {
    * play the shell opens at once (after the how-to, the first time). Null for every other play, a later one included.
    */
   readonly entry: SessionEntry | null;
-  /** ☰ for the HUD (`createHud` puts it first). */
+  /** The Menu button for the HUD (`createHud` puts it first). */
   menuButton(): HTMLButtonElement;
   /** The game's own cards over play (hints, a hand's results): they come back after the panel closes. */
   readonly overlay: Overlay;
   /**
-   * A finished game: its card with ▶ Chơi lại (or `again`), the game's `more` actions — which keep the card up, e.g. a
-   * share — and 🏠 Menu chính; Back goes to the menu.
+   * A finished game: its card with Chơi lại (or `again`), the game's `more` actions — which keep the card up, e.g. a
+   * share — and Menu chính; Back goes to the menu.
    */
   gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction, more?: OverlayAction[]): void;
   /** The board is drawn: the loading view lifts. Call it once, after the first frame's state is set. */
@@ -167,14 +172,14 @@ export interface StageContext {
  */
 export type QuickRow =
   | Extract<OverlayRow, { kind: 'switch' }>
-  | { kind: 'card'; label: string; icon?: string; value?: string; card(): Omit<OverlayCard, 'actions'> };
+  | { kind: 'card'; label: string; icon?: IconName; value?: string; card(): Omit<OverlayCard, 'actions'> };
 
 /** A running play stage, as the game's `start(ctx)` returns it. */
 export interface PlayStage {
   /** Stop what runs (clock, bots, animations): the panel or the hub is over it. */
   pause(): void;
   resume(): void;
-  /** 🔄 Ván mới / ▶ Chơi lại: a fresh game in place. */
+  /** Ván mới / Chơi lại: a fresh game in place. */
   newGame(): void;
   /** Back to the menu: save, then stop timers and listeners and free the engine. The shell empties the root after. */
   leave(): void | Promise<void>;
@@ -198,19 +203,24 @@ export interface ShellOptions {
   /** The game's root element: the shell puts its two stages and its panels in it. */
   root: HTMLElement;
   title: string;
-  /** Emoji shown large on the title screen and the loading view. */
-  icon: string;
-  /** A few emoji drifting behind the title screen, in the game's spirit (default: the icon). */
-  decor?: string[];
+  /**
+   * The game's logo on the title screen and the loading view: its own icon art, the picture the catalog shows, as a URL
+   * in the game's folder (`'icon.svg'`, the manifest's `icon`). Never an emoji (ADR 0049).
+   */
+  logo: string;
+  /** A few shapes drifting behind the title screen, in the colours of the game's art (default: none). */
+  decor?: DecorShape[];
+  /** The icon of the title screen's play button (default `play`; Tiến Lên's "Chơi với máy": `robot`). */
+  playIcon?: IconName;
   strings?: Partial<ShellStrings>;
   /** The game in progress in a few words (e.g. "Ván đang chơi dở: 1.234 điểm."), or null: "Chơi" or "Chơi tiếp". */
   inProgress(): string | null;
-  /** The best result in a few words (e.g. "👑 Kỷ lục 12.345"), shown under the title. */
+  /** The best result in a few words (e.g. "Kỷ lục 12.345"), shown under the title. */
   best?(): string | null;
   howTo(): Omit<OverlayCard, 'actions'>;
   /** First-time help: the how-to screen shows before the first game until `seen()`; `done()` when it is passed. */
   tutorial?: { seen(): boolean; done(): void };
-  /** The sections of ⚙️ Cài đặt (sound comes first by itself). */
+  /** The sections of Cài đặt (sound comes first by itself). */
   settings?: ShellSetting[];
   /** The game has online rooms: "Chơi online" when the hub can open the lobby. */
   online?: boolean;
@@ -263,6 +273,7 @@ export function createShell(options: ShellOptions): Shell {
   const { session, direct } = options;
   const t: ShellStrings = { ...shellStrings(session.locale), ...options.strings };
   const embedded = session.mode === 'embedded';
+  const logo = { src: options.logo };
   const stageRoot = options.layers?.stage ?? element('div', 'tohe-play-stage');
   if (!options.layers) {
     stageRoot.hidden = true;
@@ -311,6 +322,7 @@ export function createShell(options: ShellOptions): Shell {
 
   const exitAction = (): OverlayAction => ({
     label: direct?.exitLabel ?? t.exit,
+    icon: 'arrow-left',
     variant: 'quiet',
     attributes: { 'data-tohe-exit': '' },
     onClick: () => session.exit(),
@@ -321,16 +333,20 @@ export function createShell(options: ShellOptions): Shell {
   };
   const soundRow = (again: () => void): OverlayRow => ({
     kind: 'switch',
-    icon: session.settings.muted ? '🔇' : '🔊',
+    icon: session.settings.muted ? 'speaker-slash' : 'speaker-high',
     label: t.sound,
     on: !session.settings.muted,
     onChange: () => toggleSound(again),
   });
-  /** A full screen of the menu stage, with ← back in its header. */
+  /** A full screen of the menu stage, with its way back in its header. */
   const menuScreen = (card: Omit<OverlayCard, 'layout' | 'corner'>, back: () => void) => {
     parent = back;
     screen = 'screen';
-    menuLayer.show({ ...card, layout: 'screen', corner: { label: '←', ariaLabel: t.back, onClick: back } });
+    menuLayer.show({
+      ...card,
+      layout: 'screen',
+      corner: { label: t.back, icon: 'arrow-left', onClick: back },
+    });
     report(true);
   };
   const howToScreen = (back: () => void) => menuScreen({ ...options.howTo(), actions: [] }, back);
@@ -338,12 +354,13 @@ export function createShell(options: ShellOptions): Shell {
     const inProgress = options.inProgress() !== null;
     menuScreen(
       {
-        icon: '⚙️',
+        icon: 'gear-six',
         title: t.settings,
         actions: [],
         rows: [soundRow(settingsScreen)],
         sections: (options.settings ?? []).map((setting) => ({
           title: setting.label,
+          icon: setting.icon,
           note: setting.when === 'between-games' && inProgress ? t.betweenGames : undefined,
           content: setting.content(),
         })),
@@ -368,43 +385,58 @@ export function createShell(options: ShellOptions): Shell {
     const can = session.shell.can;
     menuLayer.show({
       layout: 'title',
-      icon: options.icon,
+      icon: logo,
       title: options.title,
       body: [summary, options.best?.()].filter(Boolean).join(' · ') || undefined,
-      decor: options.decor ?? [options.icon],
+      decor: options.decor,
       footer: embedded ? exitAction() : undefined,
       actions: [
         {
           label: summary ? t.continue : t.play,
+          icon: options.playIcon ?? 'play',
           attributes: { 'data-tohe-play': '' },
           onClick: () => begin(false),
         },
         ...(summary
-          ? [{ label: t.newGame, variant: 'secondary' as const, onClick: () => confirmFromTitle() }]
+          ? [
+              {
+                label: t.newGame,
+                icon: 'arrow-counter-clockwise' as const,
+                variant: 'secondary' as const,
+                onClick: () => confirmFromTitle(),
+              },
+            ]
           : []),
         ...(options.online && can.rooms
-          ? [{ label: t.online, variant: 'secondary' as const, onClick: () => session.shell.open('rooms') }]
+          ? [
+              {
+                label: t.online,
+                icon: 'users-three' as const,
+                variant: 'secondary' as const,
+                onClick: () => session.shell.open('rooms'),
+              },
+            ]
           : []),
       ],
       tools: [
         {
-          icon: session.settings.muted ? '🔇' : '🔊',
+          icon: session.settings.muted ? 'speaker-slash' : 'speaker-high',
           label: t.sound,
           ariaLabel: session.settings.muted ? t.soundOff : t.soundOn,
           onClick: () => toggleSound(titleScreen),
         },
-        { icon: '⚙️', label: t.settings, onClick: settingsScreen },
+        { icon: 'gear-six', label: t.settings, onClick: settingsScreen },
         ...(options.leaderboard && can.leaderboard
           ? [
               {
-                icon: '🏆',
+                icon: 'trophy' as const,
                 label: t.leaderboardShort,
                 ariaLabel: t.leaderboard,
                 onClick: () => session.shell.open('leaderboard'),
               },
             ]
           : []),
-        { icon: '❓', label: t.howTo, onClick: () => howToScreen(titleScreen) },
+        { icon: 'question', label: t.howTo, onClick: () => howToScreen(titleScreen) },
       ],
     });
     report(true);
@@ -414,12 +446,17 @@ export function createShell(options: ShellOptions): Shell {
   const confirmFromTitle = () =>
     menuScreen(
       {
-        icon: '🔄',
+        icon: 'arrow-counter-clockwise',
         title: t.confirmTitle,
         body: t.confirmBody,
         actions: [
           { label: t.back, onClick: titleScreen },
-          { label: t.newGame, variant: 'secondary', onClick: () => begin(true) },
+          {
+            label: t.newGame,
+            icon: 'arrow-counter-clockwise',
+            variant: 'secondary',
+            onClick: () => begin(true),
+          },
         ],
       },
       titleScreen,
@@ -435,6 +472,7 @@ export function createShell(options: ShellOptions): Shell {
           actions: [
             {
               label: t.start,
+              icon: 'play',
               attributes: { 'data-tohe-play': '' },
               onClick: () => {
                 tutorial.done();
@@ -467,9 +505,10 @@ export function createShell(options: ShellOptions): Shell {
   };
 
   const menuButton = () => {
-    const button = element('button', 'tohe-icon-button tohe-menu-button', '☰');
+    // Its picture with its name under it, like every control of the kit: the name is the button's accessible name.
+    const button = element('button', 'tohe-icon-button tohe-menu-button');
     button.type = 'button';
-    button.setAttribute('aria-label', t.menu);
+    button.append(drawIcon('list'), element('span', 'tohe-menu-button-label', t.menu));
     button.dataset.toheMenu = '';
     button.addEventListener('click', () => {
       if (screen === 'playing' || screen === 'count') panel();
@@ -481,7 +520,7 @@ export function createShell(options: ShellOptions): Shell {
     const mine = ++entry;
     screen = 'loading';
     menuLayer.hide();
-    playLayer.show({ layout: 'loading', icon: options.icon, title: t.loading, actions: [] });
+    playLayer.show({ layout: 'loading', icon: logo, title: t.loading, actions: [] });
     report(true);
     // The previous stage may still be cleaning up its element.
     await leaving;
@@ -520,7 +559,7 @@ export function createShell(options: ShellOptions): Shell {
       session.log('error', `play stage failed: ${String(error)}`);
       screen = 'failed';
       playLayer.show({
-        icon: '😕',
+        icon: 'smiley-sad',
         title: options.title,
         body: t.failed,
         actions: [{ label: t.back, onClick: () => void leavePlay() }],
@@ -628,27 +667,28 @@ export function createShell(options: ShellOptions): Shell {
     );
     playLayer.show({
       layout: 'menu',
-      icon: goesOn ? '☰' : '⏸️',
+      icon: goesOn ? 'list' : 'pause',
       title: goesOn ? t.menu : t.paused,
       body: goesOn ? t.goesOn : undefined,
-      actions: [{ label: t.resume, onClick: goOn }],
+      actions: [{ label: t.resume, icon: 'play', onClick: goOn }],
       rows: [soundRow(panel), ...quick],
       tools: [
         ...(direct
           ? []
           : [
               {
-                icon: '🔄',
+                icon: 'arrow-counter-clockwise' as const,
                 label: t.newGameShort,
                 onClick: () =>
                   panelCard({
-                    icon: '🔄',
+                    icon: 'arrow-counter-clockwise',
                     title: t.confirmTitle,
                     body: t.confirmBody,
                     actions: [
                       { label: t.back, onClick: panel },
                       {
                         label: t.newGame,
+                        icon: 'arrow-counter-clockwise',
                         variant: 'secondary',
                         onClick: () => {
                           gameCard = null;
@@ -662,7 +702,7 @@ export function createShell(options: ShellOptions): Shell {
               },
             ]),
         {
-          icon: '❓',
+          icon: 'question',
           label: t.howTo,
           onClick: () => panelCard({ ...options.howTo(), actions: [{ label: t.back, onClick: panel }] }),
         },
@@ -670,7 +710,7 @@ export function createShell(options: ShellOptions): Shell {
           ? []
           : [
               {
-                icon: '🏠',
+                icon: 'house' as const,
                 label: t.mainMenuShort,
                 attributes: { 'data-tohe-main-menu': '' },
                 onClick: () => void leavePlay(),
@@ -697,6 +737,7 @@ export function createShell(options: ShellOptions): Shell {
             }
           : {
               label: t.again,
+              icon: 'play',
               onClick: () => {
                 enterPlaying();
                 stage?.newGame();
@@ -708,6 +749,7 @@ export function createShell(options: ShellOptions): Shell {
           ? { ...exitAction(), variant: 'secondary' }
           : {
               label: t.mainMenu,
+              icon: 'house',
               variant: 'secondary',
               attributes: { 'data-tohe-main-menu': '' },
               onClick: () => void leavePlay(),

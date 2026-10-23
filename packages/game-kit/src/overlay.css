@@ -22,6 +22,14 @@
   display: none;
 }
 
+/* An icon of the kit's set (icons.ts, Phosphor): the text's colour and size, always beside a visible label. */
+.tohe-svg {
+  display: inline-block;
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
+
 .tohe-card {
   width: min(22rem, 100%);
   max-height: 100%;
@@ -36,9 +44,29 @@
 }
 
 .tohe-card-icon {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 0.5rem;
+  color: var(--tohe-accent);
   font-size: 3.25rem;
   line-height: 1;
-  margin-bottom: 0.5rem;
+}
+
+/* The game's own art (its logo), in place of an icon: a rounded picture. */
+.tohe-card-icon.is-picture,
+.tohe-screen-icon.is-picture {
+  width: 4rem;
+  height: 4rem;
+  margin-inline: auto;
+  overflow: hidden;
+  border-radius: 23%;
+}
+
+.is-picture img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 .tohe-card-title {
@@ -60,8 +88,12 @@
   margin-top: 1.25rem;
 }
 
-/* 1.25rem bold: white on brand meets WCAG AA as large text only (tokens.css). */
+/* 1.25rem bold: white on brand meets WCAG AA as large text only (tokens.css). An icon sits before the label. */
 .tohe-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
   min-height: 3.5rem;
   border: 0;
   border-radius: 1.1rem;
@@ -157,6 +189,7 @@
   box-shadow:
     0 3px 0 var(--tohe-line),
     0 6px 14px rgb(0 0 0 / 0.08);
+  color: var(--tohe-accent);
   font-size: 1.6rem;
   line-height: 1;
   transition: transform 0.08s ease;
@@ -232,6 +265,13 @@
     0 16px 36px var(--tohe-glow);
   font-size: 4.75rem;
   animation: tohe-bob 3s ease-in-out infinite;
+}
+
+/* The game's logo: its own art, with its own rounded background, under the same glow. */
+.tohe-layout-title .tohe-card-icon.is-picture {
+  border-radius: 23%;
+  background: none;
+  box-shadow: 0 16px 36px var(--tohe-glow);
 }
 
 .tohe-layout-title .tohe-card-title {
@@ -341,6 +381,10 @@
     margin-bottom: 0.2rem;
     border-radius: 1.5rem;
     font-size: 2.9rem;
+  }
+
+  .tohe-layout-title .tohe-card-icon.is-picture {
+    border-radius: 23%;
   }
 
   .tohe-layout-title .tohe-card-title {
@@ -456,7 +500,7 @@
   backdrop-filter: none;
 }
 
-/* A few of the game's emoji drifting behind the title screen; decoration only. */
+/* A few shapes in the colours of the game's art drifting behind the title screen; decoration only. */
 .tohe-decor {
   position: absolute;
   inset: 0;
@@ -466,12 +510,13 @@
 
 .tohe-decor-item {
   position: absolute;
+  color: var(--tohe-accent);
   font-size: 2.2rem;
-  opacity: 0.2;
+  opacity: 0.22;
   animation: tohe-drift 9s ease-in-out infinite;
 }
 
-/* A full screen of the menu stage (⚙️ Cài đặt, ❓ Cách chơi): ← and the title on top, the content scrolling. */
+/* A full screen of the menu stage (Cài đặt, Cách chơi): the way back and the title on top, the content scrolling. */
 .tohe-overlay-screen {
   place-items: stretch;
   padding: max(0.6rem, env(safe-area-inset-top)) max(1rem, env(safe-area-inset-right))
@@ -501,19 +546,34 @@
 }
 
 .tohe-screen-back {
+  flex: none;
+  gap: 0.35rem;
   width: auto;
   min-width: 2.75rem;
   min-height: 2.75rem;
   margin: 0;
-  padding: 0 0.9rem;
+  padding: 0 1rem 0 0.75rem;
   border-radius: 999px;
   background: var(--tohe-surface);
   box-shadow: 0 1px 3px rgb(0 0 0 / 0.15);
+  font-size: 1rem;
+}
+
+.tohe-screen-back .tohe-svg {
   font-size: 1.25rem;
 }
 
 .tohe-screen-icon {
+  display: flex;
+  flex: none;
+  color: var(--tohe-accent);
   font-size: 1.6rem;
+}
+
+.tohe-screen-icon.is-picture {
+  width: 2.25rem;
+  height: 2.25rem;
+  margin: 0;
 }
 
 .tohe-layout-screen .tohe-card-title {
@@ -539,7 +599,7 @@
   margin-top: auto;
 }
 
-/* ⚙️ Cài đặt: one section per setting. */
+/* Cài đặt: one section per setting. */
 .tohe-section {
   padding: 0.9rem 1rem;
   border-radius: 1.25rem;
@@ -548,6 +608,9 @@
 }
 
 .tohe-section-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
   margin: 0;
   color: var(--tohe-ink);
   font-size: 1.1rem;
@@ -603,7 +666,16 @@
 }
 
 .tohe-row-label {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
   font-size: 1.05rem;
+}
+
+.tohe-row-label .tohe-svg,
+.tohe-section-title .tohe-svg {
+  color: var(--tohe-accent);
+  font-size: 1.3rem;
 }
 
 .tohe-switch {
@@ -656,7 +728,7 @@
 
 .tohe-row-chevron {
   color: var(--tohe-accent);
-  font-size: 1.4rem;
+  font-size: 1.2rem;
 }
 
 /* While play gets ready: the game's picture and three dots on the page, covering the board until its first frame.
@@ -682,6 +754,11 @@
 .tohe-layout-loading .tohe-card-icon {
   font-size: 4rem;
   animation: tohe-bob 3s ease-in-out infinite;
+}
+
+.tohe-layout-loading .tohe-card-icon.is-picture {
+  width: 5rem;
+  height: 5rem;
 }
 
 .tohe-layout-loading .tohe-card-title {
@@ -754,7 +831,7 @@
   animation: tohe-count 0.65s ease-out both;
 }
 
-/* Round icon button for the game's HUD, e.g. the shell's ☰ menu. */
+/* Round icon button for the game's HUD. */
 .tohe-icon-button {
   display: grid;
   place-items: center;
@@ -771,6 +848,30 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* The shell's Menu button, first in the HUD: its picture with its name under it, as tall as a score's box. */
+.tohe-menu-button {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  width: auto;
+  min-width: 3.25rem;
+  height: auto;
+  min-height: 2.75rem;
+  padding: 0.35rem 0.5rem 0.3rem;
+  border-radius: 1rem;
+}
+
+.tohe-menu-button .tohe-svg {
+  font-size: 1.4rem;
+}
+
+.tohe-menu-button-label {
+  color: var(--tohe-ink);
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
 .tohe-icon-button:active {
   transform: scale(0.94);
 }
@@ -780,7 +881,7 @@
   outline-offset: 2px;
 }
 
-/* The HUD (hud.ts): ☰ | the start (a score) | the centre (the game's own) | the end (the best score, a button). The
+/* The HUD (hud.ts): Menu | the start (a score) | the centre (the game's own) | the end (the best score, a button). The
    centre stays between the sides whatever their width: they never grow past their share. */
 .tohe-hud {
   display: grid;
@@ -841,8 +942,9 @@
 }
 
 .tohe-stat-crown {
-  display: inline-block;
   margin-right: 0.25rem;
+  font-size: 1.1em;
+  vertical-align: -0.2em;
 }
 
 .is-record .tohe-stat-crown {
@@ -896,7 +998,8 @@
   font-weight: 600;
 }
 
-/* choiceList(): pick one row; the chosen one gets a brand border and a tick. */
+/* choiceList(): pick one row; the chosen one gets a brand border and a tick (Phosphor's check, MIT, as a mask so any
+   .tohe-choice gets it). */
 .tohe-choices {
   display: flex;
   flex-direction: column;
@@ -934,14 +1037,25 @@
 
 .tohe-choice-label {
   display: flex;
+  align-items: center;
   justify-content: space-between;
+  gap: 0.5rem;
   font-size: 1rem;
   font-weight: 700;
 }
 
 .tohe-choice[aria-pressed="true"] .tohe-choice-label::after {
-  content: "✓";
-  color: var(--tohe-accent);
+  content: "";
+  flex: none;
+  width: 1.2em;
+  height: 1.2em;
+  background: var(--tohe-accent);
+  -webkit-mask: var(--tohe-check) center / contain no-repeat;
+  mask: var(--tohe-check) center / contain no-repeat;
+}
+
+:root {
+  --tohe-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 256 256'%3E%3Cpath d='M229.66,77.66l-128,128a8,8,0,0,1-11.32,0l-56-56a8,8,0,0,1,11.32-11.32L96,188.69,218.34,66.34a8,8,0,0,1,11.32,11.32Z'/%3E%3C/svg%3E");
 }
 
 @keyframes tohe-pop {

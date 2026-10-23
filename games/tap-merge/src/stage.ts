@@ -227,7 +227,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     largest.className = 'largest';
     largest.append(t.largest(''), miniBlock(state.top, theme, store.palette));
     ctx.gameOver({
-      icon: record ? '🏆' : '👆',
+      icon: record ? 'trophy' : { src: 'icon.svg' },
       title: record ? t.record : t.over,
       body: t.result(formatScore(state.score, session.locale), formatScore(store.best, session.locale)),
       content: largest,
@@ -289,15 +289,15 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       sfx.play('click');
       startNewGame();
     },
-    // 🎨 Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
+    // Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
     quick: () => [
       {
         kind: 'card',
-        icon: '🎨',
+        icon: 'palette',
         label: t.colours,
         value: t.palettes[store.palette],
         card: () => ({
-          icon: '🎨',
+          icon: 'palette',
           title: t.colours,
           content: choiceList(
             PALETTE_IDS.map((id) => ({ id, label: t.palettes[id], preview: samples(id, theme) })),

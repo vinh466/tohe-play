@@ -42,28 +42,28 @@ The game ends when **every column is full**. Then: score, best, "Kỷ lục mớ
 The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020); this game
 brings its content:
 
-1. **Title screen** (the menu stage, every time the game opens, no board running): 🧱 **Ghép Khối** over drifting
-   blocks, the chip "Ván đang chơi dở: n điểm. · 👑 Kỷ lục m", **▶ Chơi** or **▶ Chơi tiếp** and **🔄 Ván mới**
-   (asks first; the run ends); tools 🔊 ⚙️ 🏆 (signed-in players) ❓; **← Về Tò He** last, under the tools. **⚙️ Cài đặt**:
-   🔊 and **🎨 Màu khối** — one row per [preset](#block-colours), with its name and sample blocks 2 … 256 in its
-   colours. **❓ Cách chơi**: the three picture hints.
+1. **Title screen** (the menu stage, every time the game opens, no board running): its logo and **Ghép Khối** over drifting
+   blocks, the chip "Ván đang chơi dở: n điểm. · Kỷ lục m", **Chơi** or **Chơi tiếp** and **Ván mới**
+   (asks first; the run ends); tools Âm thanh, Cài đặt, Xếp hạng (signed-in players) and Cách chơi; **Về Tò He** last, under the tools. **Cài đặt**:
+   Âm thanh and **Màu khối** — one row per [preset](#block-colours), with its name and sample blocks 2 … 256 in its
+   colours. **Cách chơi**: the three picture hints.
 2. **How to play** (before the first **Chơi** only): three picture hints — tap a column; equal blocks merge; chains
-   multiply points. **▶ Bắt đầu** starts, and the first move shows a pulsing hint over the columns.
-3. **Playing** (the play stage, created on play from the save): the kit's HUD — ☰, score (counts up), the next
-   block, best (lights up 👑 once the score passes it); the board with the current block above it.
-4. **Quick panel** (☰, phone Back, Esc, or the hub hiding the game): **▶ Tiếp tục**; 🔊 Âm thanh as a switch;
-   **🎨 Màu khối · (the preset) ›**, which opens the presets with their sample blocks over the panel — a tap repaints
-   the board, the current block and the next block behind it at once, **Quay lại** returns to the panel; 🔄 Ván mới (asks) · ❓ Cách chơi · 🏠 Menu chính (saves; the title then offers Chơi tiếp).
-5. **Game over:** board dims and settles, card with score/best, confetti for a record, **▶ Chơi lại**, **Thách bạn**
-   (when the hub can share and the game knows its seed), **🏠 Menu chính**; Back goes to the title screen.
+   multiply points. **Bắt đầu** starts, and the first move shows a pulsing hint over the columns.
+3. **Playing** (the play stage, created on play from the save): the kit's HUD — Menu, score (counts up), the next
+   block, best (its crown lights up once the score passes it); the board with the current block above it.
+4. **Quick panel** (Menu, phone Back, Esc, or the hub hiding the game): **Tiếp tục**; Âm thanh as a switch;
+   **Màu khối · (the preset)**, which opens the presets with their sample blocks over the panel — a tap repaints
+   the board, the current block and the next block behind it at once, **Quay lại** returns to the panel; Ván mới (asks) · Cách chơi · Menu chính (saves; the title then offers Chơi tiếp).
+5. **Game over:** board dims and settles, card with score/best, confetti for a record, **Chơi lại**, **Thách bạn**
+   (when the hub can share and the game knows its seed), **Menu chính**; Back goes to the title screen.
 6. **Watching a ranked run** (the admin console, ADR 0032): no title screen. The board starts from the run's seed and
-   plays at once, like a video, with the kit's HUD — ☰, score, the next block, **Nước n/m** — and a bar under it: a
+   plays at once, like a video, with the kit's HUD — Menu, score, the next block, **Nước n/m** — and a bar under it: a
    slider to any move, **◀** one back, **▶ Phát / ⏸ Dừng**, **▶** one on (stepping and the slider wait for ⏸), and
    the speed: **×1** shows where each block goes, then drops it; **×4**
    drops them one after another; **×20** only draws the boards. The board takes no taps. At the end the bar says how
    the run ended — "Hết ván: n điểm.", "Run dừng ở đây, ván chưa hết.", or for a run with a move that is not legal
-   "Nước k không hợp lệ: chiếu đến trước nó." (it plays up to that move). The panel: ▶ Tiếp tục (playing stops when
-   it opens), 🔊, 🎨 Màu khối (not saved), ❓, **Thoát xem lại**. Nothing is saved, scored or handed in.
+   "Nước k không hợp lệ: chiếu đến trước nó." (it plays up to that move). The panel: Tiếp tục (playing stops when
+   it opens), Âm thanh, Màu khối (not saved), Cách chơi, **Thoát xem lại**. Nothing is saved, scored or handed in.
 
 ## Challenge a friend ("Thách bạn")
 
@@ -84,10 +84,10 @@ brings its content:
   signing in, or the same link), it continues; another challenge replaces the slot. First a card: "Vượt {score} của
   {name}" and "Cùng bộ khối với {name}. {score} là điểm {name} gửi kèm link." (without a sender: "Vượt {score}", "Cùng
   bộ khối với người gửi…"): the score is the sender's claim, shown as such. Under the HUD, the target line.
-  🔄 Ván mới in the panel starts the challenge again on the same blocks.
+  Ván mới in the panel starts the challenge again on the same blocks.
 - **Its end**: "Bạn đã vượt {name}! 🎉" or "Còn thiếu {diff} điểm nữa thôi!", then **Về ván thường** (the regular game
   in place: the one in progress, or a new one, ranked when the hub deals a run), **Thách lại** (shares this score on
-  the same seed) and 🏠 Menu chính.
+  the same seed) and Menu chính.
 
 ## Feel (juice), in tiers
 
@@ -114,7 +114,7 @@ Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013):
 
 ## Block colours
 
-Each player picks how the blocks look (**⚙️ Cài đặt → Màu khối**), with the same five presets as Chạm Ghép, so the two games
+Each player picks how the blocks look (**Cài đặt → Màu khối**), with the same five presets as Chạm Ghép, so the two games
 still look like a family. The owner asked for them on 2026-10-15, after trying them in Chạm Ghép. The choice belongs
 to the player: it is kept in the game's save, so it follows the profile to other devices, and a new player starts
 with **Hoàng hôn**. Each game keeps its own choice (games do not share saves).

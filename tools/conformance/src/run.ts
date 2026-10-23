@@ -865,6 +865,7 @@ async function shellRun(run: {
     mkdirSync(resolve(run.screenshot, '..'), { recursive: true });
     await page.screenshot({ path: run.screenshot.replace(/\.png$/, '-title.png') }).catch(() => {});
     checks.push({ name: 'shell: opens on its title screen, with play and the way back to Tò He', ok: opens });
+    const glyphs = opens ? await glyphControls(frame) : [];
     if (opens) {
       const reach = await titleReach(
         page,
@@ -896,6 +897,12 @@ async function shellRun(run: {
       detail: answered
         ? undefined
         : `${played}; menu states after Back: ${JSON.stringify(menus.slice(before))}, exits: ${exits}`,
+    });
+    if (answered) glyphs.push(...(await glyphControls(frame)));
+    checks.push({
+      name: 'shell: its title screen and menu draw their controls with icons and words, no emoji (ADR 0049)',
+      ok: opens && glyphs.length === 0,
+      detail: glyphs.length === 0 ? undefined : glyphs.map((text) => JSON.stringify(text)).join(', '),
     });
     before = menus.length;
     host.menu();
@@ -959,6 +966,29 @@ const TITLE_VIEWPORTS = [
   { width: 568, height: 320 },
 ];
 const sizeName = (size: { width: number; height: number }) => `${size.width}x${size.height}`;
+
+/**
+ * The words of the kit's controls on screen — the buttons of the menu stage and of the panel over play, and the HUD's
+ * Menu button — that hold an emoji or a character drawn as a control's picture (an arrow, ☰, a tick): those are SVG
+ * icons beside words (ADR 0049, docs/conventions/voice-and-look.md). Both the visible text and the accessible name.
+ */
+async function glyphControls(frame: Frame): Promise<string[]> {
+  return frame
+    .evaluate(() => {
+      const glyph = /\p{Extended_Pictographic}|[←→▶◀☰›✓⏸]/u;
+      const found: string[] = [];
+      const controls = document.querySelectorAll<HTMLElement>(
+        '.tohe-overlay:not([hidden]) button, [data-tohe-menu]',
+      );
+      for (const control of controls) {
+        for (const text of [control.textContent ?? '', control.getAttribute('aria-label') ?? '']) {
+          if (glyph.test(text)) found.push(text.trim());
+        }
+      }
+      return found;
+    })
+    .catch((error: unknown) => [`could not read the controls: ${String(error)}`]);
+}
 
 /**
  * Resizes the page to each of TITLE_VIEWPORTS and asks whether play (`data-tohe-play`), the way back to Tò He
