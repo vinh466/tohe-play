@@ -5,6 +5,8 @@ import {
   choiceList,
   createHud,
   formatScore,
+  type IconName,
+  icon,
   type PlayStage,
   type StageContext,
   type Theme,
@@ -47,7 +49,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   ctx.root.append(template.content.cloneNode(true));
   const stage = ctx.root.querySelector<HTMLElement>('#stage') as HTMLElement;
 
-  // ------------------------------------------------------------------ HUD: ☰ | score | next block | move
+  // ------------------------------------------------------------------ HUD: Menu | score | next block | move
 
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const score = hud.stat(t.score);
@@ -68,19 +70,26 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   scrub.setAttribute('aria-label', t.replay.scrub);
   const buttons = document.createElement('div');
   buttons.className = 'replay-buttons';
-  const button = (className: string, label: string, name?: string) => {
+  const button = (className: string, name?: string) => {
     const element = document.createElement('button');
     element.type = 'button';
     element.className = `tohe-button ${className}`;
-    element.textContent = label;
     if (name) element.setAttribute('aria-label', name);
     buttons.append(element);
     return element;
   };
-  const backButton = button('tohe-button-secondary', '◀', t.replay.back);
-  const playButton = button('tohe-button-primary replay-play', '');
-  const forwardButton = button('tohe-button-secondary', '▶', t.replay.forward);
-  const speedButton = button('tohe-button-secondary', '');
+  /** The kit's icon beside the button's word (ADR 0049); the word is in the button's name. */
+  const label = (element: HTMLElement, picture: IconName, word: string) => {
+    const text = document.createElement('span');
+    text.textContent = word;
+    element.replaceChildren(icon(picture), text);
+  };
+  const backButton = button('tohe-button-secondary replay-step', t.replay.back);
+  label(backButton, 'caret-left', t.replay.backShort);
+  const playButton = button('tohe-button-primary replay-play');
+  const forwardButton = button('tohe-button-secondary replay-step', t.replay.forward);
+  label(forwardButton, 'caret-right', t.replay.forwardShort);
+  const speedButton = button('tohe-button-secondary');
   const status = document.createElement('p');
   status.className = 'replay-status';
   status.setAttribute('aria-live', 'polite');
@@ -104,7 +113,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     scrub.disabled = playing || moving;
     backButton.disabled = playing || moving || step === 0;
     forwardButton.disabled = playing || moving || step >= total;
-    playButton.textContent = playing ? `⏸ ${t.replay.pause}` : `▶ ${t.replay.play}`;
+    label(playButton, playing ? 'pause' : 'play', playing ? t.replay.pause : t.replay.play);
     playButton.disabled = !playing && step >= total;
     speedButton.textContent = `×${speed}`;
     speedButton.setAttribute('aria-label', t.replay.speed(speed));
@@ -253,7 +262,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   score.set(0, false);
   show();
   ctx.ready();
-  // It plays from the start as it opens, like a video: ⏸ stops it to step or jump.
+  // It plays from the start as it opens, like a video: Dừng stops it to step or jump.
   if (total > 0) {
     playing = true;
     show();
@@ -261,7 +270,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   }
 
   return {
-    // The panel or the hub is over it: playing stops, and the player goes on with ▶.
+    // The panel or the hub is over it: playing stops, and the player goes on with Phát.
     pause: () => {
       playing = false;
       show();

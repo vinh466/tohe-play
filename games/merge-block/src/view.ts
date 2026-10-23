@@ -9,7 +9,6 @@ import {
   burst,
   confetti,
   crispImage,
-  crispText,
   cssHex,
   delay,
   dprOf,
@@ -23,6 +22,7 @@ import {
   tweenAsync,
 } from '@tohe/game-kit/phaser';
 import Phaser from 'phaser';
+import { handTexture } from './hand.ts';
 import {
   blocks,
   type Cell,
@@ -69,7 +69,8 @@ export class BoardScene extends Phaser.Scene {
   private highlight!: Phaser.GameObjects.Graphics;
   private ghost!: Phaser.GameObjects.Graphics;
   private dimmer!: Phaser.GameObjects.Rectangle;
-  private hint: Phaser.GameObjects.Text | null = null;
+  private hint: Phaser.GameObjects.Image | null = null;
+  private hintOn = false;
   private cells = new Map<number, Block>();
   private current: Block | null = null;
   private state: State | null = null;
@@ -157,6 +158,8 @@ export class BoardScene extends Phaser.Scene {
       this.paint(this.current, this.current.exp, cell);
     }
     this.drawGuides();
+    // The hand follows the layout and the theme's colours.
+    if (this.hintOn) this.showHint(true);
     // Blocks still finishing an animation may show an old texture for a moment; remove them afterwards.
     this.time.delayedCall(1000, () => this.removeUnusedTextures());
   }
@@ -319,14 +322,21 @@ export class BoardScene extends Phaser.Scene {
     if (animate) void popIn(this, this.current, 180);
   }
 
+  /** A pointing hand under the hovering block, until the first drop: the kit's hand in the board's colours. */
   showHint(on: boolean) {
     this.hint?.destroy();
     this.hint = null;
-    if (!on) return;
+    this.hintOn = on;
+    if (!on || !this.layoutInfo) return;
+    const key = handTexture(this, this.colors.scoreText, this.colors.scoreStroke, () =>
+      this.showHint(this.hintOn),
+    );
+    if (!key) return;
     const { cell, previewY } = this.layoutInfo;
-    this.hint = crispText(this, this.columnX(2), previewY + cell * 0.95, '👆', {
-      fontSize: `${Math.round(cell * 0.6)}px`,
-    })
+    const size = Math.round(cell * 0.6);
+    this.hint = this.add
+      .image(this.columnX(2), previewY + cell * 0.95, key)
+      .setDisplaySize(size, size)
       .setOrigin(0.5)
       .setDepth(25);
     this.tweens.add({

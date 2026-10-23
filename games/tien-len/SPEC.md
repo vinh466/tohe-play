@@ -176,7 +176,9 @@ catalog card opens the game:
    highest; ♠ ♣ ♦ ♥), beat with the same kind but higher, pass if you cannot or do not want to, bombs chop 2s, first
    out wins. **Bắt đầu** deals a practice hand: the suggestion is shown on every turn with a sentence saying why.
 2. **Table** (the play stage, created on play from the save): the kit's HUD — Menu, the series score, the hand's
-   number, (😀 at a table) and a sort toggle (by rank / by combinations); buttons **Bỏ lượt**, **Gợi ý**, **Đánh**.
+   number, (**Cảm xúc** at a table) and a sort toggle, **Xếp số** / **Xếp bộ** (by rank / by combinations); buttons
+   **Bỏ lượt**, **Gợi ý**, **Đánh**. The game's own controls carry the kit's icons beside their words (a smiley, two
+   arrows, a light bulb; ADR 0049).
    Tapping a card lifts it (selected); sliding a finger along the hand selects a run. Tapping one card when nothing is
    selected suggests the smallest play with it that beats the table. **Đánh** is enabled only for a selection that
    may be played; otherwise the reason is shown ("Phải lớn hơn đôi 7").
@@ -211,7 +213,7 @@ catalog card opens the game:
 At a table ([Online rooms](../../docs/architecture/rooms.md), ADR 0016) the hub opens the game with `init.room`, and
 the server referees with this module: the game sends actions (`session.room.act`) and draws the views it receives.
 
-- **Seats** come from the room: people with their name and avatar (🤖 after the name while a bot plays for them, "…"
+- **Seats** come from the room: people with their name and avatar (the bot's avatar after the name while a bot plays for them, "…"
   while their phone is gone), and bots as "Máy · Vừa". The HUD shows "Bàn online" and this seat's table score from
   the room's score sheet.
 - **Views** are drawn one at a time in the order they came, each with its events animated as against bots; a view
@@ -221,23 +223,23 @@ the server referees with this module: the game sends actions (`session.room.act`
 - **The turn timer** counts down on the status line.
 - **Results** come from the hand's view; **Ván tiếp** tells the room this phone is ready and shows "Đang chờ mọi
   người…" until the next hand is dealt (when everyone is ready, or after 30 s).
-- **😀** sends one of the eight preset reactions; others' appear as bubbles at their seats.
+- **Cảm xúc** (a smiley over the word) sends one of the eight preset reactions, each its emoji and its word; others' appear as bubbles at their seats.
 - **Menu** at a table (phone Back, Esc): "Bàn vẫn tiếp tục khi bạn mở menu." — **Tiếp tục**, **Âm thanh**, **Cách
   chơi**, **Cài đặt** (Luật của bàn, the host's house rules, read only; Bộ bài), **Rời bàn** (the hub asks whether to
   give the seat up). There is no main menu at a table and nothing pauses: the table goes on, and so do its
   animations.
 - The practice hints of the first hand also show online.
 - **Watching** (seat -1, when the room allows spectators): the HUD says "Đang xem" without a score or the sort
-  button, the table shows card counts and plays but no hand, and there are no buttons and no 😀. The results show
+  button, the table shows card counts and plays but no hand, and there are no buttons and no **Cảm xúc**. The results show
   the room's score sheet, without **Ván tiếp**.
 
 ## Replay
 
 Opened with `init.replay` ([ADR 0017](../../docs/decisions/0017-replays-of-finished-online-hands.md)), the game deals
 the hand again from its seed, options and carry with this module and plays the recorded actions back from the
-asking seat, animated as they were played. The HUD says "Xem lại", without a score; the three buttons become **◀ Lùi** (one action
-back: the hand is rebuilt from its deal), **Tới ▶** (one action forward) and **▶ Phát / ⏸ Dừng** (one action every
-0.65 s); the status line says "Xem lại ván · bước 3/23". At the end the hand's results show (its points only: a
+asking seat, animated as they were played. The HUD says "Xem lại", without a score; the three buttons become **Lùi** (one action
+back: the hand is rebuilt from its deal), **Tới** (one action forward) and **Phát / Dừng** (one action every
+0.65 s), each with the kit's caret, play or pause icon; the status line says "Xem lại ván · bước 3/23". At the end the hand's results show (its points only: a
 replay has no score sheet) with **Xem lại từ đầu**.
 Nothing is saved and nothing goes to the room.
 
@@ -267,6 +269,9 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 
 ## Changelog
 
+- **0.6.5** — the game's own controls draw the kit's icons beside their words, no emoji (ADR 0049): **Gợi ý**, the
+  sort (**Xếp số** / **Xếp bộ**), **Cảm xúc** at a table, a replay's **Lùi**, **Tới**, **Phát** and **Dừng**, and a table's
+  rules with a check or a dash; the type is Be Vietnam Pro, bundled with the game. The description says "mở bàn".
 - **0.6.4** — the kit's menus draw their controls with icons beside the words, no emoji (kit 0.3.0, ADR 0049): the
   title screen shows the game's own logo, the suits drift behind it as shapes, and **Chơi với máy** carries a robot's
   icon. The game itself is unchanged.

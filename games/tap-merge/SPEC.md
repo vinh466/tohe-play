@@ -78,7 +78,7 @@ game (`floorOf` in `logic.ts`):
   largest blocks widens the range of values on the board as the game goes, so every game still ends.
 - The floor is computed from the largest block made, which saves already hold: games saved before 0.5.0 need no
   migration. Blocks they still have under the floor leave at their next tap, the same way.
-- The HUD shows the next milestone and the value it retires, "🎯 Mục tiêu **4K** tạm biệt **2**", lit up when one
+- The HUD shows the next milestone and the value it retires, "Mục tiêu **4K** tạm biệt **2**" after the kit's target icon, lit up when one
   more new largest block reaches it ([Screens](#screens)).
 
 ## New blocks
@@ -89,18 +89,19 @@ exponent of the largest block on the board, new blocks have exponents *F* … *F
 the board, up to 64; each time the floor rises, the whole range moves up one value (from 4 to 128 after the first
 4K). A new game is a full board drawn the same way, drawn again until it has a move.
 
-## 🔀 Shuffle (the rescue)
+## Xáo trộn: the shuffle (the rescue)
 
-- A game starts with **one 🔀**, and earns **one more for each new largest block** made in that game, holding
+- A game starts with **one shuffle**, and earns **one more for each new largest block** made in that game, holding
   **at most 3**.
-- 🔀 can only be used **when no block has an equal neighbour** *(default)*, so a child cannot spend it by
-  accident. Its button pulses at that moment and the label says "Chạm 🔀!".
+- A shuffle can only be used **when no block has an equal neighbour** *(default)*, so a child cannot spend it by
+  accident. Its button (the kit's shuffle icon and how many are left, the word **Xáo trộn** over it)
+  pulses at that moment and the word becomes "Chạm để xáo!".
 - It rearranges the same blocks at random; if that still leaves no move, one block is moved next to an equal one.
   The score does not change.
 
 ## End
 
-The game ends when **no block has an equal neighbour and no 🔀 is left**. Then: score, best, "Kỷ lục mới!" if it is
+The game ends when **no block has an equal neighbour and no shuffle is left**. Then: score, best, "Kỷ lục mới!" if it is
 a record, and **Chơi lại**.
 
 ## Game length
@@ -152,10 +153,11 @@ the game's own logo, `public/icon.svg`, the picture the catalog shows.
    — one row per [preset](#block-colours), with sample blocks 2 … 256 (the numbers on the board most of the time).
 2. **How to play** (before the first **Chơi** only): four picture hints — tap a block; equal blocks connected to it,
    diagonals too, merge into it; making the goal block (4K, 16K, …) retires the smallest blocks, with points; when
-   nothing merges, 🔀 shuffles. **Bắt đầu** starts, and a hand points at a first move.
-3. **Playing** (the play stage, created on play from the save): the kit's HUD — Menu, score (counts up), the 🔀 button
-   with how many are left, best (its crown lights up once the score passes it); under it the goal, "🎯 Mục tiêu [4K] tạm
-   biệt [2]" with both blocks drawn small in the player's colours; the board below.
+   nothing merges, **Xáo trộn**. **Bắt đầu** starts, and a hand (the kit's, in the board's colours) points at a first
+   move.
+3. **Playing** (the play stage, created on play from the save): the kit's HUD — Menu, score (counts up), the **Xáo trộn**
+   button (the kit's shuffle icon) with how many are left, best (its crown lights up once the score passes it); under it the goal, the kit's target icon and
+   "Mục tiêu [4K] tạm biệt [2]" with both blocks drawn small in the player's colours; the board below.
    - **Scores never cover the HUD:** each score box keeps its share of the row; the kit shows a score in full while
      it fits ("812.345") and otherwise in its own unit with as many decimals as fit ("812,3K", "23,45M"), cut and
      never rounded up (`formatCompact`). The game-over card shows scores in full.
@@ -179,13 +181,13 @@ noise by the hundredth. Shakes are skipped with reduced motion; vibrations work 
 | Merge | every tap | The group is pulled into the tapped block like a ripple, nearest first; the block pops and changes colour, particle burst in its colour, "+points" floats up (shortened like the HUD), a note that climbs with the value, counted from the floor so it stays pleasant | a bump |
 | Big merge (6 or more absorbed) | 1 tap in 20 to 50 | "Gom n!" banner, a combo sound | a double pulse |
 | Huge merge (9 or more absorbed) | rarer | The banner in the bright colour, a small camera shake | a double pulse |
-| New largest block | from 64 on, a dozen times a game | "Khối mới: 4K!" banner, a combo sound; with a 🔀 earned, "+1 🔀" and the button pops; from 512 on a small shake | from 512 on, a double pulse |
+| New largest block | from 64 on, a dozen times a game | "Khối mới: 4K!" banner, a combo sound; with a shuffle earned, "+1 lượt xáo trộn" and the button pops; from 512 on a small shake | from 512 on, a double pulse |
 | The goal is one new largest block away | | The goal lights up and pops | none |
 | **Milestone: the floor rises** | four or five times a game | "Tạm biệt khối 2!" and the bonus in big letters over the board, a run up the scale, a medium shake; the retired blocks pop one after another to a rising run of notes, each in a burst of its colour; the goal pops and moves on | a long celebration pattern |
 | **The score passes the best**, while playing | once a game at most | "Vượt kỷ lục! 👑" in big letters, a fanfare, a little confetti; the best box lights up | the celebration pattern |
 | Fall and refill | every tap | Blocks fall with a small bounce; new blocks fade in as they slide down from above the board | none |
 | No equal neighbour | | The block wobbles, soft error sound | an error buzz |
-| Stuck | | The 🔀 button pulses, "Chạm 🔀!" | none |
+| Stuck | | The **Xáo trộn** button pulses, "Chạm để xáo!" | none |
 | Shuffle | | Every block flies to its new place | a double pulse |
 | Game over | | The board dims and wobbles; a record brings confetti and a fanfare | a double pulse for a record |
 
@@ -228,7 +230,7 @@ game's save, so it follows the profile to other devices, and a new player starts
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game, tutorialSeen, run, palette }` where `game` is the full state (board, score, 🔀, largest block made, PRNG), `run` its leaderboard id and `palette` the player's colour preset (also saved when it changes). Opening the game resumes it; the floor is computed from the largest block, so saves from before 0.5.0 still open. |
+| `save` | After every move: `{ best, game, tutorialSeen, run, palette }` where `game` is the full state (board, score, shuffles left, largest block made, PRNG), `run` its leaderboard id and `palette` the player's colour preset (also saved when it changes). Opening the game resumes it; the floor is computed from the largest block, so saves from before 0.5.0 still open. |
 | `scores` | A live run (ADR 0014): `session.run(id).update(score)` after every move, `finish(score)` at game over or when the player starts a new game. One run id per game, kept in the save. |
 | settings | Respects `muted`; follows `theme`. |
 | seed | Seeds the PRNG of a new game. |
@@ -242,10 +244,10 @@ game's save, so it follows the profile to other devices, and a new player starts
 - A tap raises the score by exactly what its merge and its floor bonus gained.
 - A merged block holds at least the sum of its group, and less than twice it.
 - The score never decreases, and every move raises it.
-- 🔀 stays between 0 and 3; a shuffle keeps the same blocks, leaves a move, and costs one.
+- Shuffles left stay between 0 and 3; a shuffle keeps the same blocks, leaves a move, and costs one.
 - No block is larger than the largest block made in the game.
-- The game is over exactly when no block has an equal neighbour and no 🔀 is left; it waits for 🔀 exactly when no
-  block has an equal neighbour and one is left.
+- The game is over exactly when no block has an equal neighbour and no shuffle is left; it waits for a shuffle
+  exactly when no block has an equal neighbour and one is left.
 - A save restores an identical game: replaying the same moves from a restored state gives the same result.
 
 ## Technology

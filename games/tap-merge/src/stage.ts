@@ -7,6 +7,7 @@ import {
   createHud,
   formatScore,
   formatValue,
+  icon,
   newRunId,
   type PlayStage,
   type StageContext,
@@ -66,7 +67,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     return persist();
   };
 
-  // ------------------------------------------------------------------ HUD: ☰ | score | 🔀 | best, then the goal
+  // ------------------------------------------------------------------ HUD: Menu | score | Xáo trộn | best, then the goal
 
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const scores = hud.score({ score: t.score, best: t.best });
@@ -79,11 +80,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   shuffleButton.type = 'button';
   shuffleButton.className = 'shuffle';
   shuffleButton.disabled = true;
-  const shuffleIcon = document.createElement('span');
-  shuffleIcon.setAttribute('aria-hidden', 'true');
-  shuffleIcon.textContent = '🔀';
   const shuffleCount = document.createElement('span');
-  shuffleButton.append(shuffleIcon, shuffleCount);
+  shuffleButton.append(icon('shuffle'), shuffleCount);
   rescueBox.append(shuffleLabel, shuffleButton);
   hud.center.append(rescueBox);
 
@@ -91,7 +89,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const showScore = (score: number, animate = true) => scores.set(score, animate);
 
   /**
-   * 🎯 The next milestone and the value it retires: "Mục tiêu [4K] tạm biệt [2]". It lights up when one more new
+   * The goal: the next milestone and the value it retires: "Mục tiêu [4K] tạm biệt [2]". It lights up when one more new
    * largest block reaches it, and pops when it moves on (SPEC.md, "Rising floor").
    */
   function showGoal(reached = false) {
@@ -99,7 +97,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     const retired = floorOf(state.top);
     const label = document.createElement('span');
     label.className = 'goal-label';
-    label.textContent = `🎯 ${t.goal}`;
+    label.append(icon('target'), t.goal);
     const then = document.createElement('span');
     then.textContent = t.goalThen;
     goal.replaceChildren(
@@ -120,7 +118,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   /** Set by leave(): moves still animating stop there. */
   let left = false;
 
-  /** 🔀 shows how many are left; it only works, and pulses, when nothing can merge (SPEC.md). */
+  /** Xáo trộn shows how many are left; it only works, and pulses, when nothing can merge (SPEC.md). */
   function showShuffle() {
     const stuck = isStuck(state);
     shuffleCount.textContent = String(state.shuffles);
@@ -258,7 +256,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   }
 
   const onKey = (event: KeyboardEvent) => {
-    // A focused button (🔀, ☰) handles Enter and Space itself.
+    // A focused button (Xáo trộn, Menu) handles Enter and Space itself.
     if (ctx.overlay.visible || event.target instanceof HTMLButtonElement) return;
     if (event.key === 'ArrowLeft') board.nudge(-1, 0);
     else if (event.key === 'ArrowRight') board.nudge(1, 0);

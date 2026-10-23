@@ -1,6 +1,6 @@
 // The play stage (ADR 0020): a Canvas 2D playfield, the kit's HUD and 20-second rounds. Pointer input becomes logic
 // actions; the state is drawn every frame. leave() stops the frame loop and the listeners start() added.
-import { createHud, type PlayStage, type StageContext } from '@tohe/game-kit';
+import { createHud, icon, type PlayStage, type StageContext } from '@tohe/game-kit';
 import { persist, rng, session, sfx, store, t } from './app.ts';
 import { createState, ROUND_MS, type State, start as startRound, tap, tick } from './logic.ts';
 
@@ -18,15 +18,17 @@ export function start(ctx: StageContext): PlayStage {
   let last = performance.now();
   let frameId = 0;
 
-  // ☰ | score | seconds left | best.
+  // Menu | score | seconds left | best. The clock is the kit's timer icon beside the seconds (ADR 0049).
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const scores = hud.score({ score: t.score, best: t.best });
   scores.setBest(state.best);
   const clock = document.createElement('span');
   clock.className = 'clock';
+  const seconds = document.createElement('span');
+  clock.append(icon('timer'), seconds);
   hud.center.append(clock);
   function showClock() {
-    clock.textContent = `⏱ ${Math.ceil(state.timeLeftMs / 1000)}`;
+    seconds.textContent = String(Math.ceil(state.timeLeftMs / 1000));
     clock.classList.toggle('is-low', state.phase === 'playing' && state.timeLeftMs <= 5000);
   }
 

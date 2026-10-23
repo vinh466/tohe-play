@@ -9,7 +9,6 @@ import {
   burst,
   confetti,
   crispImage,
-  crispText,
   cssHex,
   delay,
   dprOf,
@@ -21,6 +20,7 @@ import {
   tweenAsync,
 } from '@tohe/game-kit/phaser';
 import Phaser from 'phaser';
+import { handTexture } from './hand.ts';
 import {
   blocks,
   type Cell,
@@ -80,7 +80,7 @@ export class BoardScene extends Phaser.Scene {
   private drawn = new Set<string>();
   private press!: Phaser.GameObjects.Graphics;
   private dimmer!: Phaser.GameObjects.Rectangle;
-  private hint: Phaser.GameObjects.Text | null = null;
+  private hint: Phaser.GameObjects.Image | null = null;
   private hintCell: Cell | null = null;
   private cells = new Map<number, Block>();
   private state: State | null = null;
@@ -335,17 +335,22 @@ export class BoardScene extends Phaser.Scene {
     this.busy = false;
   }
 
-  /** A pointing hand over a block that merges, until the first tap. */
+  /** A pointing hand over a block that merges, until the first tap: the kit's hand in the board's colours. */
   showHint(cell: Cell | null) {
     this.hint?.destroy();
     this.hint = null;
     this.hintCell = cell;
     if (!cell || !this.layoutInfo) return;
+    const key = handTexture(this, this.colors.scoreText, this.colors.scoreStroke, () =>
+      this.showHint(this.hintCell),
+    );
+    if (!key) return;
     const { x, y } = this.cellCenter(cell);
     const size = this.layoutInfo.cell;
-    this.hint = crispText(this, x + size * 0.2, y + size * 0.35, '👆', {
-      fontSize: `${Math.round(size * 0.6)}px`,
-    })
+    const hand = Math.round(size * 0.6);
+    this.hint = this.add
+      .image(x + size * 0.2, y + size * 0.35, key)
+      .setDisplaySize(hand, hand)
       .setOrigin(0.5, 0)
       .setDepth(25);
     this.tweens.add({

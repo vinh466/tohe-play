@@ -10,7 +10,7 @@ body {
   overflow: hidden;
   background: var(--tohe-page);
   color: var(--tohe-ink);
-  font-family: system-ui, sans-serif;
+  font-family: var(--tohe-font);
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
@@ -36,6 +36,9 @@ body {
 
 /* Seconds left, between the scores; the last five glow. */
 .clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
   padding: 0.35rem 0.8rem;
   border-radius: 999px;
   background: var(--tohe-surface);

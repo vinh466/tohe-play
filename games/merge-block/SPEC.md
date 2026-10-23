@@ -48,7 +48,8 @@ brings its content:
    Âm thanh and **Màu khối** — one row per [preset](#block-colours), with its name and sample blocks 2 … 256 in its
    colours. **Cách chơi**: the three picture hints.
 2. **How to play** (before the first **Chơi** only): three picture hints — tap a column; equal blocks merge; chains
-   multiply points. **Bắt đầu** starts, and the first move shows a pulsing hint over the columns.
+   multiply points. **Bắt đầu** starts, and the first move shows a pulsing hint over the columns: the kit's pointing hand, in the
+   board's colours.
 3. **Playing** (the play stage, created on play from the save): the kit's HUD — Menu, score (counts up), the next
    block, best (its crown lights up once the score passes it); the board with the current block above it.
 4. **Quick panel** (Menu, phone Back, Esc, or the hub hiding the game): **Tiếp tục**; Âm thanh as a switch;
@@ -58,7 +59,8 @@ brings its content:
    (when the hub can share and the game knows its seed), **Menu chính**; Back goes to the title screen.
 6. **Watching a ranked run** (the admin console, ADR 0032): no title screen. The board starts from the run's seed and
    plays at once, like a video, with the kit's HUD — Menu, score, the next block, **Nước n/m** — and a bar under it: a
-   slider to any move, **◀** one back, **▶ Phát / ⏸ Dừng**, **▶** one on (stepping and the slider wait for ⏸), and
+   slider to any move, **Lùi** one back, **Phát / Dừng**, **Tới** one on (stepping and the slider wait for **Dừng**),
+   each with the kit's caret, play or pause icon beside its word, and
    the speed: **×1** shows where each block goes, then drops it; **×4**
    drops them one after another; **×20** only draws the boards. The board takes no taps. At the end the bar says how
    the run ended — "Hết ván: n điểm.", "Run dừng ở đây, ván chưa hết.", or for a run with a move that is not legal

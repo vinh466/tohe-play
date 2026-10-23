@@ -1,6 +1,6 @@
 // The table's settings as controls: the menu stage's ⚙️ Cài đặt (house rules, players and level, the deck) and, read
 // only, a room's rules in the in-game panel. They change the save in app.ts; the play stage reads it when it starts.
-import { type Choice, choiceList, hintList } from '@tohe/game-kit';
+import { type Choice, choiceList, hintList, icon } from '@tohe/game-kit';
 import { persist, sfx, store, t } from './app.ts';
 import { LEVELS, type Level } from './bots.ts';
 import { DECKS, type Deck } from './palette.ts';
@@ -23,7 +23,16 @@ export function tableRules(rules: Options): HTMLElement {
       rules.instantWins.includes(win),
     ]),
   ];
-  return hintList(rows.map(([text, on]) => ({ icon: on ? '✅' : '➖', text })));
+  // The kit's check or dash in each row's picture, its word for screen readers (ADR 0049).
+  const list = hintList(rows.map(([text]) => ({ icon: '', text })));
+  list.querySelectorAll<HTMLElement>('.tohe-hint-icon').forEach((picture, index) => {
+    const on = rows[index]?.[1] ?? false;
+    picture.setAttribute('role', 'img');
+    picture.setAttribute('aria-label', on ? t.ruleOn : t.ruleOff);
+    picture.classList.toggle('is-off', !on);
+    picture.append(icon(on ? 'check' : 'minus'));
+  });
+  return list;
 }
 
 /** A row that switches on and off. */

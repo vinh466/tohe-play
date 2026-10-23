@@ -86,7 +86,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     return persist();
   };
 
-  // ------------------------------------------------------------------ HUD: ☰ | score | next block | best
+  // ------------------------------------------------------------------ HUD: Menu | score | next block | best
 
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const scores = hud.score({ score: t.score, best: t.best });
