@@ -10,6 +10,24 @@ Luật chung:
 - Owner review và merge từng PR. Số ADR được cấp khi PR mở (tiếp sau 0045).
 - Lên UAT và prod theo luồng hiện có: owner nói "deploy" thì tag `uat-…`; nói "lên prod" thì tag `prod-…` (ADR 0041).
 
+## Tiến độ
+
+| PR | Trạng thái |
+|---|---|
+| N1–N3 | **merged** — [#134](https://github.com/vinh466/tohe-play/pull/134) (2026-10-24), một PR vì ba ADR trỏ lẫn nhau |
+| B1, B4, B2, B3, C1, K2, K3, T1, T2, S1 | chờ: worker của phiên `launch-review` đang giữ `services/api/src`, file sinh, `packages/game-kit/src`, `tools/conformance` và lockfile |
+
+## Điều chỉnh khi graduate (2026-10-24)
+
+- **N1–N3 gộp một PR** (#134): ADR 0050, 0051, 0052 trỏ lẫn nhau, tách ra thì kiểm link không qua.
+- **B4 trước B2**: endpoint duyệt của B2 cần session và studio role của B4. Thứ tự backend: B1 → B4 → B2 → B3. Các PR
+  backend chạy lần lượt vì cùng sửa `ToheDbContext.cs`, `Program.cs` và migrations.
+- **SeaweedFS thay MinIO** cho dev và test: MinIO bản community ngừng phát hành image năm 2025 và bị archive năm 2026.
+  ADR 0051 đã ghi.
+- **P0 chưa đóng atlas**: build chép file theo hash vào `dist/studio/`, để conformance đối chiếu từng file với lock.
+  Đóng atlas là tối ưu về sau (owner: "tối ưu chi tiết sau"). Ghi trong ADR 0053.
+- **Studio role nằm trong schema `studio`** (`studio.members`), không nằm trong `identity`, để module giữ bảng của mình.
+
 ## Các lane và PR
 
 | PR | Lane | Nội dung | ADR | Cần trước | Items |
@@ -18,7 +36,7 @@ Luật chung:
 | N2 | Nền | `docs/architecture/asset-studio.md`: pack, kho (bucket + DB), license, style, duyệt, đường rút khẩn cấp, app `studio.`, quyền. Host `studio` trong `@tohe/routes` chuyển từ `reserved` sang `decided`. `AGENTS.md`: ngoại lệ "agent tạo bản nháp", hàng `apps/studio` và `packages/studio` | **Asset Studio** | N1 | D-02, D-05–D-09, D-11, D-14 |
 | N3 | Nền | `docs/architecture/agent-tokens.md`: principal, scope, danh sách cấm, hạn dùng, thu hồi, audit | **Agent tokens and the scopes no agent gets** | — | D-15 |
 | **B1** | Backend | Token cho agent: bảng principal và token (lưu hash), middleware kiểm scope, danh sách cấm trong code có test, audit, trang cấp và thu hồi trong console | (N3) | N3 | D-15 |
-| B2 | Backend | Module `Studio`: schema `studio` (style, pack, version, file, trạng thái); tải bản nháp bằng `studio.draft`; duyệt và rút (reviewer, 2FA); ghi file và manifest bất biến lên bucket (API S3: MinIO trong compose, R2 trong chart); OpenAPI `studio` | (N2) | N2, B1 | D-05, D-06, D-11 |
+| B2 | Backend | Module `Studio`: schema `studio` (style, pack, version, file, trạng thái); tải bản nháp bằng `studio.draft`; duyệt và rút (reviewer, 2FA); ghi file và manifest bất biến lên bucket (API S3: SeaweedFS trong compose, R2 trong chart); OpenAPI `studio` | (N2) | N2, B1, B4 | D-05, D-06, D-11 |
 | B3 | Backend | Máy kiểm asset phía server (SkiaSharp), bộ file mẫu tốt và xấu, endpoint `--dry-run` | (N2) | B2 | D-09 |
 | B4 | Backend | Studio role (claim riêng); trang cấp role trong console | (N2) | N2 | D-14 |
 | **C1** | Contract | `assets` trong `GameManifest` (chỉ `bundle`), schema của lock; conformance: lock, hash, SPDX, `credits.json`, request chỉ tới folder của game, module luật không dùng asset; docs Game Contract | **Assets in the Game Contract** | N2 | D-12, E-01 |
@@ -41,6 +59,7 @@ flowchart LR
   N1 --> N2 --> B2 --> B3 --> S1
   N3 --> B1 --> B2
   N2 --> B4 --> S1
+  B4 --> B2
   N2 --> C1 --> T2 --> K1 --> W1
   B3 --> T1 --> W1
   N2 --> S2
