@@ -35,14 +35,24 @@ sidebar:
    rows). Honour `muted`, `save` after every move and `submitScore` at the end of a round (a run saved mid-way reports
    with `session.run(id)`, ADR 0014). With both themes, follow `settings.theme` (`followTheme` from the kit) and keep
    a palette per theme for your art. [Game shell](../architecture/game-shell.md#kit) has the skeleton.
-6. **Verify**:
+6. **Portrait, landscape, desktop.** The game decides its layout and declares it in `orientation` in game.json
+   ([Game Contract](../contracts/game-contract-v1.md)). The hub never rotates the screen for the game, and iOS cannot
+   lock the orientation of a web page; on a phone held sideways it covers a `portrait` game with a layer asking the
+   player to turn the phone upright. A game that targets portrait only may stay so. With `any`, lay the game out
+   from what the kit tells it (`@tohe/game-kit/phaser`): `onLayout(kitGame, layout => …)` calls back at once and after
+   every resize or rotation with the orientation, the form (`phone`, `tablet` or `desktop`) and the safe area;
+   `splitLayout(layout, { panel, maxPanel })` gives the world view and a panel (at the bottom in portrait, at the
+   right in landscape), both inside the safe area; `fitWorld(world, view, 'contain' | 'cover')` gives the zoom and
+   scroll for a camera of the game's own that shows the world centred in the view. Keep every touch target inside
+   the safe area.
+7. **Verify**:
    ```sh
    pnpm --filter @tohe/game-<id> test
    pnpm --filter @tohe/game-<id> typecheck
    pnpm --filter @tohe/game-<id> build
    pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>*.png (one per theme)
    ```
-7. **Give it its public pages.** `/games/<id>/` and its English page `/en/games/<id>/` are made from the game's folder
+8. **Give it its public pages.** `/games/<id>/` and its English page `/en/games/<id>/` are made from the game's folder
    ([Surfaces](../architecture/surfaces.md#the-introduction-surface)). In `public/game.json`, write the descriptions for
    someone who has never heard of the game (`descriptions.vi` is the Vietnamese page's search description,
    `description` the English page's), and give `minAge`, `orientation` and `tags`. Beside `public/`, write
@@ -56,8 +66,8 @@ sidebar:
    a missing or broken file or a picture out of date
    ([Hosts and paths](../architecture/hosts-and-paths.md#adding-or-changing-a-public-page)). Look at both pages in
    light and dark. Change the name or the `kind` later, and the build asks you to run `generate:og` again.
-8. **Play it** in the hub (`pnpm dev`, then rebuild `@tohe/games-host`) on a phone-sized window, then on a phone.
-   Add `?perf` to the play page's address to see the frame rate there (the kit's `#perf` readout).
+9. **Play it** in the hub (`pnpm dev`, then rebuild `@tohe/games-host`) on a phone-sized window, then on a phone —
+   with `any`, upright and sideways, and in a desktop window too. Add `?perf` to the play page's address to see the frame rate there (the kit's `#perf` readout).
 
 ## Choosing technology
 
