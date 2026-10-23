@@ -2,6 +2,7 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tohe.Api.Infrastructure.Database;
@@ -105,6 +106,88 @@ public sealed class StepUpTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     [Fact]
+    public async Task A_child_moves_up_to_an_adults_profile_only_through_the_parent_gate()
+    {
+        var client = factory.CreateClient();
+        var me = await Accounts.SignUpAsync(factory, client, "Bố");
+        var bo = me.Profiles[0].Id;
+        await Accounts.StepUpAsync(client);
+        await SetPinAsync(client, Pin);
+        var mum = await AddAsync(client, new { name = "Mẹ", avatar = ProfileOptions.Avatars[2], pin = "1357" }, "Mẹ");
+        var na = await AddAsync(client, NewChild("Na"), "Na");
+        var bin = await AddAsync(client, NewChild("Bin"), "Bin");
+
+        // Down, and between children, asks nothing.
+        Assert.Equal(HttpStatusCode.OK, (await PlayAsync(client, na)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PlayAsync(client, bin)).StatusCode);
+
+        // Up asks for the gate first — before the adult's own PIN, and the profile's PIN is no way around it.
+        var refused = await PlayAsync(client, bo);
+        Assert.Equal((HttpStatusCode.Forbidden, "parent_gate_required"), (refused.StatusCode, await CodeOfAsync(refused)));
+        Assert.Equal("parent_gate_required", await CodeOfAsync(await PlayAsync(client, mum)));
+        Assert.Equal("parent_gate_required", await CodeOfAsync(await PlayAsync(client, mum, "1357")));
+        Assert.Equal(bin, (await client.GetFromJsonAsync<MeView>(Url("/api/auth/me"), Ct))!.ActiveProfileId);
+
+        // The manage PIN opens it; choosing locks it again, so the child cannot come back up alone.
+        Assert.Equal(HttpStatusCode.OK, (await UnlockAsync(client, Pin)).StatusCode);
+        Assert.Equal("pin_required", await CodeOfAsync(await PlayAsync(client, mum)));
+        var up = await PlayAsync(client, mum, "1357");
+        Assert.Equal(HttpStatusCode.OK, up.StatusCode);
+        Assert.Null((await up.Content.ReadFromJsonAsync<MeView>(Ct))!.ParentUnlockedUntil);
+
+        // Between adults asks nothing more than the adult's own PIN.
+        Assert.Equal(HttpStatusCode.OK, (await PlayAsync(client, bo)).StatusCode);
+
+        // Level 2 opens the gate too.
+        Assert.Equal(HttpStatusCode.OK, (await PlayAsync(client, na)).StatusCode);
+        Assert.Equal("parent_gate_required", await CodeOfAsync(await PlayAsync(client, bo)));
+        await Accounts.StepUpAsync(client);
+        Assert.Equal(HttpStatusCode.OK, (await PlayAsync(client, bo)).StatusCode);
+    }
+
+    [Fact]
+    public async Task A_child_cannot_clear_its_profile_to_get_round_the_parent_gate()
+    {
+        var client = factory.CreateClient();
+        var me = await Accounts.SignUpAsync(factory, client, "Bố");
+        await Accounts.StepUpAsync(client);
+        await SetPinAsync(client, Pin);
+        var na = await AddAsync(client, NewChild("Na"), "Na");
+        Assert.Equal(HttpStatusCode.OK, (await PlayAsync(client, na)).StatusCode);
+
+        // Clearing would leave nobody playing, from where an adult's profile asks nothing.
+        var refused = await client.DeleteAsync(Url("/api/session/profile"), Ct);
+        Assert.Equal((HttpStatusCode.Forbidden, "parent_gate_required"), (refused.StatusCode, await CodeOfAsync(refused)));
+        Assert.Equal(na, (await client.GetFromJsonAsync<MeView>(Url("/api/auth/me"), Ct))!.ActiveProfileId);
+
+        // Through the gate it clears, as it does for an adult.
+        Assert.Equal(HttpStatusCode.OK, (await UnlockAsync(client, Pin)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.DeleteAsync(Url("/api/session/profile"), Ct)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await PlayAsync(client, me.Profiles[0].Id)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await client.DeleteAsync(Url("/api/session/profile"), Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task An_expired_parent_gate_does_not_let_a_child_move_up()
+    {
+        var clock = new ShiftedClock();
+        await using var app = factory.WithWebHostBuilder(builder =>
+            builder.ConfigureTestServices(services => services.AddSingleton<TimeProvider>(clock)));
+        var client = app.CreateClient();
+        var me = await Accounts.SignUpAsync(factory, client, "Bố");
+        await Accounts.StepUpAsync(client);
+        await SetPinAsync(client, Pin);
+        var na = await AddAsync(client, NewChild("Na"), "Na");
+        Assert.Equal(HttpStatusCode.OK, (await PlayAsync(client, na)).StatusCode);
+
+        Assert.Equal(HttpStatusCode.OK, (await UnlockAsync(client, Pin)).StatusCode);
+        clock.Offset = SessionClaims.ParentGateDuration + TimeSpan.FromMinutes(1);
+
+        var refused = await PlayAsync(client, me.Profiles[0].Id);
+        Assert.Equal((HttpStatusCode.Forbidden, "parent_gate_required"), (refused.StatusCode, await CodeOfAsync(refused)));
+    }
+
+    [Fact]
     public async Task A_new_password_needs_level_two_and_ends_every_other_session()
     {
         await using var strict = factory.WithWebHostBuilder(builder => builder.UseSetting("Identity:SessionCheckInterval", "00:00:00"));
@@ -157,6 +240,17 @@ public sealed class StepUpTests(ApiFactory factory) : IClassFixture<ApiFactory>
 
     private static object NewChild(string name) => new { name, avatar = ProfileOptions.Avatars[1], ageBand = "6-8" };
 
+    /// <summary>Adds a profile with management open; returns its id.</summary>
+    private static async Task<Guid> AddAsync(HttpClient client, object profile, string name)
+    {
+        var response = await client.PostAsJsonAsync(Url("/api/profiles"), profile, Ct);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        return (await response.Content.ReadFromJsonAsync<MeView>(Ct))!.Profiles.Single(p => p.Name == name).Id;
+    }
+
+    private static Task<HttpResponseMessage> PlayAsync(HttpClient client, Guid profileId, string? pin = null) =>
+        client.PutAsJsonAsync(Url("/api/session/profile"), new { profileId, pin }, Ct);
+
     /// <summary>Moves the address's attempts two minutes back, past the minute between codes.</summary>
     private Task AgeAttemptsAsync(string email) => WithDbAsync(db => db.AuthAttempts
         .Where(a => a.NormalizedEmail == email.ToUpperInvariant())
@@ -182,4 +276,12 @@ public sealed class StepUpTests(ApiFactory factory) : IClassFixture<ApiFactory>
     }
 
     private static Uri Url(string path) => new(path, UriKind.Relative);
+
+    /// <summary>The system's clock, moved on by <see cref="Offset"/>: how a test lets the parent gate run out.</summary>
+    private sealed class ShiftedClock : TimeProvider
+    {
+        public TimeSpan Offset { get; set; }
+
+        public override DateTimeOffset GetUtcNow() => base.GetUtcNow() + Offset;
+    }
 }

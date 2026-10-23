@@ -132,11 +132,11 @@ internal static class RoomsModule
                 var player = PlayerOf(http);
                 return registry.All
                     .Where(room => !room.IsClosed && room.SeatOf(player.ProfileId) is not null)
-                    .Select(room => room.Summary(player.ProfileId))
+                    .Select(room => room.Summary(player.ProfileId, withCode: true))
                     .ToList();
             })
             .WithName("ListMyRooms")
-            .WithSummary("Open rooms the active profile sits at, to go back to one.");
+            .WithSummary("Open rooms the active profile sits at, each with its code, to go back to one.");
 
         RoomStats.Map(rooms, PlayerOf);
 

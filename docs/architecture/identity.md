@@ -464,7 +464,11 @@ carry `?from=app` and show no link out of Tò He at all, so a child reading them
 in the picker, while an account's child profile plays, choosing an adult's profile opens the same parent gate first,
 unless management is open on this device already; the adult's own PIN, if it has one, follows. Choosing locks management
 again, so the child cannot come back up alone. Moving to a child's profile, or between adults, asks nothing. The hub asks
-it; `PUT /api/session/profile` does not check it yet.
+it, and `PUT /api/session/profile` checks it too: from an account's child profile to an adult's, without management
+open on this device, it answers `403 parent_gate_required` — before the adult's own PIN — so a child cannot move up
+by calling the API itself. The `pin` it takes is the profile's own, never the manage PIN: the gate opens with
+`POST /api/session/parent-gate` (or level 2) first. Clearing the active profile (`DELETE /api/session/profile`) from a
+child's profile needs the gate open too, since with nobody playing an adult's profile asks nothing.
 
 ## Sessions
 
@@ -612,6 +616,7 @@ are matched through a table of Latin letters with marks (`ProfileNames`). The hu
 | Every way an account is made obeys the registration mode and checks it again when the account is made; an invite code is counted in that transaction, so its limit holds when people use it at the same moment | `Invites`, `AuthEndpoints`, `ExternalEndpoints` |
 | Every name a profile had is kept, whoever renamed it | The `profiles_name_history` trigger on `identity.profiles` |
 | Managing the account's profiles needs step-up level 1: the manage PIN within the last 10 minutes, or level 2 | The parent-gate endpoint filter on `/api/account` and `/api/profiles/*` (`ProfileEndpoints.Gated`) |
+| Moving from an account's child profile to an adult's — or clearing a child's active profile — needs step-up level 1 open on the device | `SessionEndpoints` (`parent_gate_required`) |
 | The manage PIN is six digits, hashed; five wrong in a row lock it for five minutes | `SessionEndpoints`, `ManagePins` |
 | The email, the password and the manage PIN change within step-up level 2: the password or a code by email, in the last 10 minutes | `AccountSecurityEndpoints`, `AccountEmailEndpoints` |
 | Signing up needs 16 or older and the terms; the account keeps their version, and accepts newer ones again | `AuthEndpoints`, `AccountSecurityEndpoints`; the hub's `legal/documents.ts` |
@@ -964,7 +969,7 @@ merge; the alias keeps the old id reachable for what still names it:
 | `POST /api/auth/external/pending/signup` | the browser that came back | A name, the terms and an invite code when needed create the account — with the device profile sent, as by email; its first profile plays at once; `entryCode` as by email |
 | `DELETE /api/auth/external/pending` | the browser that came back | Forget the sign-in that waits |
 | `GET /api/auth/me` | session | Account (with its email, linked providers, platform role — [Admin console](admin.md) — and community), its profiles (with public IDs, whether each is on public boards, whether a moderator hid it from them, and who may invite it), active profile, step-up expiries |
-| `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set) / clear the active profile |
+| `PUT /api/session/profile` / `DELETE` | session | Choose (PIN if set; from a child's profile to an adult's, level 1 open: `403 parent_gate_required`) / clear the active profile (from a child's, level 1 open) |
 | `POST /api/session/parent-gate` / `DELETE` | session | The manage PIN opens profile management / lock both levels |
 | `POST /api/session/step-up` | session | Level 2 with the password (opens level 1 too) |
 | `POST /api/session/step-up/code` · `/confirm` | session | Level 2 with a code to the account's email |
