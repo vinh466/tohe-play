@@ -1,6 +1,6 @@
 ---
 title: Use assets in a game
-description: Declare asset packs in game.json, resolve them into a lock, and build a game that ships its files by hash with their credits.
+description: Declare asset packs in game.json, resolve them into a lock, build a game that ships its files by hash with their credits, and load them in Phaser with the kit.
 sidebar:
   order: 10
 ---
@@ -71,11 +71,7 @@ never edited by hand:
   has them, `width`, `height` and `frames`. `key` is `<pack>/<asset id>`, unique in the game, for a loader's cache;
   `url` is relative to the build, `./studio/<sha256>.<ext>`.
 
-```ts
-import { assets } from './assets.gen.ts';
-
-this.load.image(assets.farmCrops['crops/carrot'].key, assets.farmCrops['crops/carrot'].url);
-```
+The game loads them with the kit's `loadPack` ([below](#5-load-them-in-the-game)) and draws them by `key`.
 
 Resolve again after changing `assets` in `game.json`. It fails, before writing anything, on a version with no manifest
 (it does not exist, or it was withdrawn), on a licence the Studio does not accept and on a file whose licence needs an
@@ -105,6 +101,41 @@ At build time it reads **only the lock** — it never resolves anew — and:
    `dist/studio/credits.json`, the credits built from the lock — every pack with its licences and every attribution.
 
 A failed download fails the build naming the file and its URL. A game without `assets` is left as it was.
+
+## 5. Load them in the game
+
+`@tohe/game-kit/phaser` loads a pack of `src/assets.gen.ts` in one call:
+
+```ts
+import { loadPack, loadPacks } from '@tohe/game-kit/phaser';
+import { assets } from './assets.gen.ts';
+
+// in a scene's create() (or preload(): the loader starts either way)
+await loadPack(this, assets.farmCrops);              // or loadPacks(this, assets.farmCrops, assets.farmTiles)
+this.add.image(x, y, assets.farmCrops['crops/carrot'].key);
+```
+
+Each asset is queued by its kind:
+
+| Kind | Loaded as |
+| --- | --- |
+| `image`, `tileset` | `scene.load.image(key, url)` |
+| `spritesheet` | `scene.load.spritesheet(key, url, { frameWidth, frameHeight, endFrame: count - 1 })` from its `frames`; one without `frames` is an error |
+| `audio` | `scene.load.audio(key, url)` |
+| `font` | a `FontFace` whose family is the key, added to `document.fonts`: draw with `fontFamily: '"farm-fonts/title"'`, quoted, since a key holds a `/` |
+| `palette` | nothing: the game reads the file's colours itself |
+
+A key already in Phaser's textures or audio cache, or a font the kit already added, is skipped, so loading a pack twice
+costs nothing. The promise resolves when the loader has finished, and rejects naming every asset whose file failed
+(`farm-crops/crops/carrot (./studio/3f8a….png)`). The kit's games run Phaser with its own audio off (they synthesize
+their sounds, `createSfx`), so Phaser skips `audio` files there.
+
+## 6. Credits
+
+Nothing to write: the shell's title screen shows **Ghi công** by itself in a game whose `game.json` declares `assets`.
+It reads `studio/credits.json` from the game's folder and lists, per pack, its version, its licences and every
+attribution ([Game shell](../architecture/game-shell.md#menu-stage)). A game that wants the credits elsewhere uses
+`readCredits()` and `formatCredits()` from `@tohe/game-kit`.
 
 ## The cache
 

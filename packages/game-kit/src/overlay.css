@@ -470,6 +470,32 @@
   }
 }
 
+/* Five tools on the title screen — Ghi công beside the four, in a game with asset packs (ADR 0053) — keep one row on a
+   narrow phone and in the short screen's column: smaller pictures and words, tighter gaps, so play, the tools and the
+   way back stay in reach. A screen with four tools or fewer never matches. */
+@media (max-width: 420px), (max-height: 560px) {
+  .tohe-layout-title .tohe-tools:has(> .tohe-tool:nth-child(5)) {
+    gap: clamp(0.15rem, 1.5vw, 0.6rem);
+  }
+
+  .tohe-layout-title .tohe-tools:has(> .tohe-tool:nth-child(5)) .tohe-tool {
+    min-width: 0;
+  }
+
+  .tohe-layout-title .tohe-tools:has(> .tohe-tool:nth-child(5)) .tohe-tool-icon {
+    width: 2.75rem;
+    height: 2.75rem;
+    font-size: 1.3rem;
+  }
+
+  /* Where even that is too wide (the short screen's column), a word goes to a second line; none is ever cut. */
+  .tohe-layout-title .tohe-tools:has(> .tohe-tool:nth-child(5)) .tohe-tool-label {
+    font-size: 0.7rem;
+    line-height: 1.15;
+    text-align: center;
+  }
+}
+
 /* The in-game panel and a card over play on a short screen: a little tighter; it scrolls if it still does not fit. */
 @media (max-height: 500px) {
   .tohe-layout-menu {
@@ -626,6 +652,19 @@
   margin: 0.25rem 0 0;
   color: var(--tohe-ink-soft);
   font-size: 0.9rem;
+}
+
+/* Lines to read under a section's title: Ghi công's licences and attributions. */
+.tohe-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin: 0.5rem 0 0;
+  padding: 0;
+  list-style: none;
+  color: var(--tohe-ink-soft);
+  font-size: 0.95rem;
+  overflow-wrap: anywhere;
 }
 
 /* Rows that change something in place: a switch, chips to choose from, a link to a card. */

@@ -1,3 +1,11 @@
+export {
+  type AssetPack,
+  type AssetRef,
+  type FontLoader,
+  loadPack,
+  loadPacks,
+  type PackScene,
+} from './assets.ts';
 export { createGame, crispText, type KitGame, type KitGameOptions, type Size, webglWorks } from './game.ts';
 export {
   burst,
