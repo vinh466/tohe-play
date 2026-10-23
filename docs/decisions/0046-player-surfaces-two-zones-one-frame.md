@@ -140,8 +140,10 @@ A layout route wraps every screen of the Play zone except a game in play.
 - **An ended session says so** ("your session has ended — sign in again to play on your account") instead of falling
   back to the device's profile in silence.
 - **Updates wait** *(agent; refined 2026-10-24)*: a new version takes over at the next cold start, or when the app goes
-  out of sight (`visibilitychange` to hidden) while it shows a screen of the frame — never in a game, at a table or in a
-  replay — so the player comes back to the same screen in the new version and never sees it happen; in a long session in
+  out of sight (`visibilitychange` to hidden) while it shows one of the frame's own screens (Trò chơi, Chơi cùng, Tôi, the
+  links sent) with nothing in progress — no dialog open, no field typed in — never in a game, at a table, in a replay or
+  in a step that lives only in the page, such as a code sent by mail — so the player comes back to the same screen in the
+  new version and never sees it happen; in a long session in
   sight, *A new version — Reload* shows on the frame's screens with a visible *Để sau* / *Later*. The router already
   reloads once if a screen's file is missing; this removes even that.
 - **The splash screen** an installed app shows while it starts takes the brand colour (`background_color` in the
