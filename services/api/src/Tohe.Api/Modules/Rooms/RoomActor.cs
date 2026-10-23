@@ -203,7 +203,8 @@ internal sealed class RoomActor
         .. _watchers.Where(watcher => watcher.Value.AccountId is not null).Select(watcher => watcher.Key),
     ];
 
-    public RoomSummary Summary(Guid viewer)
+    /// <param name="withCode">The room's code too — only for a table the viewer sits at (<c>GET /api/rooms/mine</c>).</param>
+    public RoomSummary Summary(Guid viewer, bool withCode = false)
     {
         var host = _seats.FirstOrDefault(seat => seat.ProfileId == Room.HostProfileId);
         return new RoomSummary(
@@ -217,7 +218,8 @@ internal sealed class RoomActor
             Room.Locked,
             Room.TurnSeconds,
             SeatOf(viewer) is not null || _watchers.ContainsKey(viewer),
-            Room.AllowSpectators);
+            Room.AllowSpectators,
+            withCode && SeatOf(viewer) is not null ? Room.Code : null);
     }
 
     // ------------------------------------------------------------------ joining and leaving

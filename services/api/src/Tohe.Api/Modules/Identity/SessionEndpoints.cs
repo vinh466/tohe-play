@@ -7,7 +7,8 @@ using Tohe.Api.Modules.Email;
 
 namespace Tohe.Api.Modules.Identity;
 
-/// <param name="Pin">Required when the profile has a PIN.</param>
+/// <param name="Pin">The chosen profile's own four-digit PIN, required when it has one — never the manage PIN: moving
+/// from a child's profile to an adult's opens the parent gate first.</param>
 public sealed record SelectProfileRequest(Guid ProfileId, [StringLength(4)] string? Pin = null);
 
 /// <param name="Pin">The account's six-digit manage PIN.</param>
@@ -25,9 +26,9 @@ internal static class SessionEndpoints
         session.MapPut("/profile", SelectProfileAsync)
             .RequireRateLimiting(IdentityModule.GateRateLimit)
             .WithName("SelectProfile")
-            .WithSummary("Choose who plays on this device. Locks the parent gate.");
+            .WithSummary("Choose who plays on this device; from a child's profile to an adult's, the parent gate must be open. Locks the parent gate.");
 
-        session.MapDelete("/profile", async (HttpContext http, UserManager<Account> users, SessionWriter writer, MeQueries me, CancellationToken ct) =>
+        session.MapDelete("/profile", async (HttpContext http, UserManager<Account> users, ToheDbContext db, SessionWriter writer, MeQueries me, TimeProvider clock, CancellationToken ct) =>
             {
                 var account = await users.GetUserAsync(http.User);
                 if (account is null)
@@ -35,13 +36,23 @@ internal static class SessionEndpoints
                     return Results.Unauthorized();
                 }
 
+                // A child's profile leaves only through the parent gate: with nobody playing, choosing an adult's profile
+                // asks nothing, so clearing first would be the way round the move-up rule above.
+                if (SessionClaims.ProfileId(http.User) is { } playing
+                    && !SessionClaims.IsParentUnlocked(http.User, clock.GetUtcNow())
+                    && await db.Profiles.AnyAsync(p => p.Id == playing && p.AccountId == account.Id && p.Kind == ProfileKind.Child, ct))
+                {
+                    return Problems.ParentGateRequired();
+                }
+
                 var state = new DeviceSession(null);
                 await writer.WriteAsync(account, state);
                 return Results.Ok(await me.LoadAsync(account.Id, state, ct));
             })
             .Produces<MeView>()
+            .ProducesProblem(StatusCodes.Status403Forbidden)
             .WithName("ClearProfile")
-            .WithSummary("Back to the profile picker.");
+            .WithSummary("Back to the profile picker; from a child's profile, the parent gate must be open.");
 
         session.MapPost("/parent-gate", UnlockParentGateAsync)
             .RequireRateLimiting(IdentityModule.GateRateLimit)
@@ -87,6 +98,7 @@ internal static class SessionEndpoints
         ToheDbContext db,
         SessionWriter writer,
         MeQueries me,
+        TimeProvider clock,
         CancellationToken ct)
     {
         var account = await users.GetUserAsync(http.User);
@@ -100,6 +112,17 @@ internal static class SessionEndpoints
         if (profile is null)
         {
             return TypedResults.NotFound();
+        }
+
+        // Moving up, from a child's profile to an adult's, needs the parent gate open on this device (ADR 0046): the
+        // hub asks for the manage PIN first, and the API holds it to that, before the adult's own PIN.
+        if (profile.Kind == ProfileKind.Adult
+            && SessionClaims.ProfileId(http.User) is { } playing
+            && playing != profile.Id
+            && !SessionClaims.IsParentUnlocked(http.User, clock.GetUtcNow())
+            && await db.Profiles.AnyAsync(p => p.Id == playing && p.AccountId == account.Id && p.Kind == ProfileKind.Child, ct))
+        {
+            return Problems.ParentGateRequired();
         }
 
         if (profile.PinHash is { } pinHash)

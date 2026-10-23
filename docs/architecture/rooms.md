@@ -418,7 +418,7 @@ device profile — the device key alone ([Who may sit](#who-may-sit)). "The acti
 | Endpoint | Purpose |
 | --- | --- |
 | `GET /api/rooms?game=` | Rooms the active profile may see: public ones it may join, and the ones it sits at |
-| `GET /api/rooms/mine` | Open rooms it sits at |
+| `GET /api/rooms/mine` | Open rooms it sits at — the host always sits — each with its six-digit `code`, to say which table and go back to it; the lobby list leaves `code` empty |
 | `POST /api/rooms` | Open a room; the host takes seat 1. Options are checked against the game's `rooms.options`. `language` — `vi` by default, or `en`, the hub's — is kept with the table for its link preview ([Entry links](entry-links.md#link-previews)); anything else is `400 options_invalid` |
 | `GET /api/rooms/code/{code}` | Preview by code, spaces ignored; 20 lookups a minute per profile |
 | `GET /api/rooms/{id}` | A room it sits at, or may see |

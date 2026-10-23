@@ -105,7 +105,9 @@ public sealed record RoomView(
     IReadOnlyList<Guid> Watchers,
     bool AccountOnly);
 
-/// <summary>A room in the lobby list.</summary>
+/// <summary>A room in the lobby list, or one of the active profile's own tables.</summary>
+/// <param name="Code">The room's six-digit code: only in <c>GET /api/rooms/mine</c>, the tables the active profile sits
+/// at, so the hub can name the table it goes back to; null in the lobby list.</param>
 public sealed record RoomSummary(
     Guid Id,
     string GameId,
@@ -117,7 +119,8 @@ public sealed record RoomSummary(
     bool Locked,
     int TurnSeconds,
     bool Mine,
-    bool Spectators);
+    bool Spectators,
+    string? Code);
 
 /// <param name="ProfileId">Another profile of the inviting player's account, or one of another account found by its
 /// public ID (<c>GET /api/profiles/by-id/{publicId}</c>, ADR 0033).</param>

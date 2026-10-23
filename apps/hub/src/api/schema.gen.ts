@@ -439,10 +439,10 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Choose who plays on this device. Locks the parent gate. */
+        /** Choose who plays on this device; from a child's profile to an adult's, the parent gate must be open. Locks the parent gate. */
         put: operations["SelectProfile"];
         post?: never;
-        /** Back to the profile picker. */
+        /** Back to the profile picker; from a child's profile, the parent gate must be open. */
         delete: operations["ClearProfile"];
         options?: never;
         head?: never;
@@ -937,7 +937,7 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Open rooms the active profile sits at, to go back to one. */
+        /** Open rooms the active profile sits at, each with its code, to go back to one. */
         get: operations["ListMyRooms"];
         put?: never;
         post?: never;
@@ -1942,6 +1942,7 @@ export interface components {
             turnSeconds: number;
             mine: boolean;
             spectators: boolean;
+            code: null | string;
         };
         RoomView: {
             /** Format: uuid */
@@ -2971,6 +2972,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["MeView"];
+                };
+            };
+            /** @description Forbidden */
+            403: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["ProblemDetails"];
                 };
             };
         };
