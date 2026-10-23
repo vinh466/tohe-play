@@ -2028,6 +2028,35 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.ToTable("results", "rooms");
                 });
 
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioMember", b =>
+                {
+                    b.Property<Guid>("AccountId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("account_id");
+
+                    b.Property<DateTimeOffset>("GrantedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("granted_at");
+
+                    b.Property<Guid>("GrantedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("granted_by");
+
+                    b.Property<string>("Role")
+                        .IsRequired()
+                        .HasMaxLength(16)
+                        .HasColumnType("character varying(16)")
+                        .HasColumnName("role");
+
+                    b.HasKey("AccountId")
+                        .HasName("pk_members");
+
+                    b.ToTable("members", "studio", t =>
+                        {
+                            t.HasCheckConstraint("ck_members_role", "role IN ('contributor', 'reviewer')");
+                        });
+                });
+
             modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryDay", b =>
                 {
                     b.Property<long>("Id")
@@ -2581,6 +2610,16 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired()
                         .HasConstraintName("fk_results_rooms_room_id");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioMember", b =>
+                {
+                    b.HasOne("Tohe.Api.Modules.Identity.Account", null)
+                        .WithOne()
+                        .HasForeignKey("Tohe.Api.Modules.Studio.StudioMember", "AccountId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired()
+                        .HasConstraintName("fk_members_accounts_account_id");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryRecord", b =>

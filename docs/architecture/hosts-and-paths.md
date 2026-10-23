@@ -48,7 +48,7 @@ flowchart TB
 | `docs.toheplay.io.vn` | Developer docs at the root of the host, generated API references, `llms.txt` | none | yes | the docs image (`apps/docs`) |
 | `status.toheplay.io.vn` | Status and incidents | none | yes | a service outside Tò He's infrastructure |
 | `notify.toheplay.io.vn` | Sends transactional mail; no web | — | — | the mail provider |
-| `studio.toheplay.io.vn` | The [Asset Studio](asset-studio.md): game assets made, checked and approved; the API's Studio routes. Decided ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)), serving once its DNS, ingress and storage exist | `__Host-tohe.studio`, its own sign-in; agents use [tokens](agent-tokens.md) | no | the hub image's Caddy, a third site |
+| `studio.toheplay.io.vn` | The [Asset Studio](asset-studio.md): game assets made, checked and approved; the API's Studio routes. Decided ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)), serving once its DNS, ingress and storage exist | `__Host-tohe.studio`, `SameSite=Strict`, its own sign-in (the API's side runs); agents use [tokens](agent-tokens.md) | no | the hub image's Caddy, a third site |
 | `www.toheplay.io.vn` | Redirects to the root | — | — | Cloudflare |
 
 Mail to people: `hello@` and `security@toheplay.io.vn`, forwarded by Cloudflare Email Routing. `send.toheplay.io.vn` is
@@ -231,7 +231,7 @@ moves from now on moves with every link to it, in the same pull request.
 
 | Namespace | Component | Served | Indexed |
 | --- | --- | --- | --- |
-| `/`, `/games`, `/health`, `/system`, `/users/…`, `/review/…`, `/communities`, `/links`, `/agents`, `/settings`, `/audit`, `/security`, `/setup` | the console (`apps/console`) | the console's page | no |
+| `/`, `/games`, `/health`, `/system`, `/users/…`, `/review/…`, `/communities`, `/links`, `/studio`, `/agents`, `/settings`, `/audit`, `/security`, `/setup` | the console (`apps/console`) | the console's page | no |
 | `/assets/…`, `/index.html`, `/theme-init.js`, `/favicon.svg` | the console | static | no |
 | `/api/admin/…` | the API's console routes — and no other route of the API | proxied | — |
 | anything else — the hub's pages, `/admin`, `/robots.txt` | — | a real `404` | — |

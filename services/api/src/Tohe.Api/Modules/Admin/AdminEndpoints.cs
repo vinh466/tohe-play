@@ -14,6 +14,7 @@ using Tohe.Api.Modules.Platform;
 using Tohe.Api.Modules.Progress;
 using Tohe.Api.Modules.Registry;
 using Tohe.Api.Modules.Rooms;
+using Tohe.Api.Modules.Studio;
 using Tohe.Api.Modules.Telemetry;
 
 namespace Tohe.Api.Modules.Admin;
@@ -188,6 +189,8 @@ internal static class AdminEndpoints
         LinksEndpoints.Map(admin);
         // Agents and their tokens (ADR 0052): the Agents module's, behind the console's session like every page.
         AgentsConsoleEndpoints.Map(admin);
+        // Studio roles (ADR 0051): the Studio module's, behind the console's session like every page.
+        StudioConsoleEndpoints.Map(admin);
     }
 
     /// <summary>The account, its role and what the role may do, and the console session.</summary>

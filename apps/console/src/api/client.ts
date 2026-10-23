@@ -32,6 +32,9 @@ export type Agent = Schemas['AgentView'];
 export type AgentToken = Schemas['AgentTokenView'];
 export type AgentScope = Schemas['AgentScope'];
 export type NewAgentToken = Schemas['NewAgentTokenView'];
+export type StudioMember = Schemas['StudioMemberView'];
+/** The roles of the Asset Studio (ADR 0051): not platform roles. */
+export type StudioRole = 'contributor' | 'reviewer';
 /** What a person decides about a result (ADR 0029). */
 export type ReviewDecision = 'approve' | 'reject' | 'reopen';
 
@@ -209,4 +212,19 @@ export const admin = {
         params: { path: { id }, query: before === undefined ? {} : { before } },
       }),
     ),
+  /** Accounts with a studio role (ADR 0051), reviewers first. */
+  studioMembers: () => call(api.GET('/api/admin/studio/members')),
+  /** Gives a studio role — or changes it — to the account with this email, or this id. */
+  grantStudioRole: (account: { email: string } | { accountId: string }, role: StudioRole) =>
+    call(
+      api.POST('/api/admin/studio/members', {
+        body:
+          'email' in account
+            ? { email: account.email, accountId: null, role }
+            : { email: null, accountId: account.accountId, role },
+      }),
+    ),
+  /** Takes it away: the account's Studio session ends at its next request. */
+  revokeStudioRole: (accountId: string) =>
+    call(api.DELETE('/api/admin/studio/members/{accountId}', { params: { path: { accountId } } })),
 };

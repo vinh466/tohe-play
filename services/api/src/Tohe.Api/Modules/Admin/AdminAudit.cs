@@ -49,6 +49,12 @@ internal static class AuditActions
 
     public const string AgentTokenRevoke = "agent.token.revoke";
 
+    /// <summary>A studio role given or changed (ADR 0051): the role, and the one before, in the details.</summary>
+    public const string StudioMemberGrant = "studio.member.grant";
+
+    /// <summary>A studio role taken away.</summary>
+    public const string StudioMemberRevoke = "studio.member.revoke";
+
     /// <summary>The console opened on a device: two-factor authentication passed.</summary>
     public const string ConsoleOpen = "console.open";
 

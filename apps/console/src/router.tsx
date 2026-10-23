@@ -11,6 +11,7 @@ import { ReviewResultPage } from './pages/ReviewResultPage.tsx';
 import { SecurityPage } from './pages/SecurityPage.tsx';
 import { SettingsPage } from './pages/SettingsPage.tsx';
 import { Shell } from './pages/Shell.tsx';
+import { StudioPage } from './pages/StudioPage.tsx';
 import { SystemPage } from './pages/SystemPage.tsx';
 import { UserPage } from './pages/UserPage.tsx';
 import { UsersPage } from './pages/UsersPage.tsx';
@@ -48,6 +49,11 @@ const agentsRoute = createRoute({
   getParentRoute: () => sessionRoute,
   path: '/agents',
   component: AgentsPage,
+});
+const studioRoute = createRoute({
+  getParentRoute: () => sessionRoute,
+  path: '/studio',
+  component: StudioPage,
 });
 const auditRoute = createRoute({ getParentRoute: () => sessionRoute, path: '/audit', component: AuditPage });
 const securityRoute = createRoute({
@@ -121,6 +127,7 @@ export const routeTree = rootRoute.addChildren([
     communitiesRoute,
     linksRoute,
     settingsRoute,
+    studioRoute,
     agentsRoute,
     auditRoute,
     securityRoute,
