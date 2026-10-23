@@ -155,6 +155,7 @@ that can run apart runs apart:
 | Verify | Biome, then typecheck, test and build every package but the API's | — |
 | API | The API's build and its tests on PostgreSQL (Testcontainers), then the generated files are up to date | — |
 | Conformance (*game*) | The conformance kit for one game. The games are the folders in `games/` with a `conformance` script, found by `scripts/ci-scope.sh`: a new game gets its job without a change to the workflow | — |
+| Updates | Two builds of the hub served by the test itself: a page on the first survives the second's deploy with no reload, and the next cold start runs the second (`pnpm --filter @tohe/hub updates`, [Surfaces](../architecture/surfaces.md#coming-back)) | — |
 | Images | The release's images (`deploy/docker/docker-bake.hcl`), built once for the run, tagged `sha-<commit>` | — |
 | Helm chart | Lint, every profile, every guard; then an install and an upgrade on kind, with the run's images | Images |
 | E2E (*suite*) | `routes`, then one e2e suite, on a compose stack of its own with the run's images (`compose.image.yaml`, as Mode C) | Images |

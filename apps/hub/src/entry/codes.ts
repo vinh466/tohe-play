@@ -112,3 +112,6 @@ export function highestLevel(...levels: Level[]): Level {
     'any',
   );
 }
+
+/** Whether the address asks for the code box at once (`/together?code=1`, the manifest's "Nhập mã" shortcut). */
+export const asksForCodeBox = (search: string): boolean => new URLSearchParams(search).get('code') === '1';

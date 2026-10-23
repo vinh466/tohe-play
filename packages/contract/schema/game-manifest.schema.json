@@ -12,7 +12,21 @@
     "name": {
       "type": "string",
       "minLength": 1,
-      "maxLength": 40
+      "maxLength": 40,
+      "description": "The standard name: English, or a proper name such as Tiến Lên (ADR 0048)"
+    },
+    "names": {
+      "description": "The name per language tag, when it differs from the standard one (ADR 0048)",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 40
+      }
     },
     "version": {
       "type": "string",
@@ -24,8 +38,22 @@
     },
     "description": {
       "default": "",
+      "description": "The standard description, in the language of the standard name (ADR 0048)",
       "type": "string",
       "maxLength": 200
+    },
+    "descriptions": {
+      "description": "The description per language tag (ADR 0048)",
+      "type": "object",
+      "propertyNames": {
+        "type": "string",
+        "pattern": "^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?$"
+      },
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 200
+      }
     },
     "entry": {
       "default": "index.html",

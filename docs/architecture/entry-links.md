@@ -51,6 +51,7 @@ own, never carrying a free path (no open redirect).
 | Maximum uses | Optional, 1 to 1000. A use is a resolve that opens the game, never a crawler's fetch |
 | Uses | Taken atomically: two players at the same moment never take the last use twice |
 | Revoked | By its maker, or by the console; a revoked link stays revoked |
+| Language | `vi` or `en` (`links.share_links.language`, `vi` by default and for every link made before it was kept): the language the maker's hub spoke when it made the link, sent as `language` (anything else, `400 invalid_options`). Its [preview card](#link-previews) speaks it ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)); the link itself carries none — whoever opens it reads the app in their own language |
 
 ### Who may make one
 
@@ -157,24 +158,40 @@ flowchart LR
   `Links:PreviewsPerMinuteGlobal`), which then reads nothing from the database. `X-Robots-Tag: noindex`.
 - **The payload never appears** (ADR 0045), nor anything but what the table below lists.
 
-| Address | Card |
-| --- | --- |
-| `/r/<code>` of a table listed publicly (public, and not kept to its host's account) | "Lời mời vào bàn {game}" — the game only |
-| `/r/<code>` of any other table, closed or unknown | "Lời mời vào bàn chơi Tò He" — the same for all, so a card never confirms that a private table's code exists, nor whose it is |
-| `/s/<code>` of an `ok` link | "{maker} mời bạn chơi {game}" — the maker's **current** name on the server, so a name a moderator changed is the one shown |
-| `/s/<code>` of an `ok` link made by a child's profile | "Lời mời chơi {game}" — no name, no avatar (the owner's opt-in arrives later) |
-| `/s/<code>` of any other link | The hub's generic card |
+| Address | Card (Vietnamese · English) | Language |
+| --- | --- | --- |
+| `/r/<code>` of a table listed publicly (public, and not kept to its host's account) | "Lời mời vào bàn {game}" · "An invite to a {game} table" — the game only | the table's |
+| `/r/<code>` of any other table, closed or unknown | "Lời mời vào bàn chơi Tò He" — the same for all, so a card never confirms that a private table's code exists, nor whose it is | Vietnamese, always: not even its language tells a private table from no table |
+| `/s/<code>` of an `ok` link | "{maker} mời bạn chơi {game}" · "{maker} invites you to play {game}" — the maker's **current** name on the server, so a name a moderator changed is the one shown | the link's |
+| `/s/<code>` of an `ok` link made by a child's profile | "Lời mời chơi {game}" · "An invite to play {game}" — no name, no avatar (the owner's opt-in arrives later) | the link's |
+| `/s/<code>` of any other link | The hub's generic card ("Tò He") | Vietnamese, always |
+
+**A card speaks the language of the link's maker, or of the table's host**
+([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)): a card is read before anyone
+opens the app, beside the maker's own message. The hub sends its language (`vi` or `en`, the app's current one) as
+`language` when it makes a link (`POST /api/links`) or opens a table (`POST /api/rooms`); the API keeps it with the link
+(`links.share_links.language`) or the table (`rooms.rooms.language`, so it outlives a restart) — `vi` when none is sent,
+and for everything made before it was kept — and the card takes its words, `<html lang>` and `og:locale` (`vi_VN`,
+`en_US`) from it. A table keeps the language it was opened in when the host role passes to another player. Only a card
+that names a game speaks it; every other card is Vietnamese. The words live in `CardWords` (the API's
+`Modules/Links/CardWords.cs`); the description is the app's own, in its language — `apps/hub/index.html` and the
+English home page's (`apps/web/src/content/home.ts`). A link or a code carries no language: whoever opens it reads
+the app in their own.
+
+`{game}` is the game's name in the card's language — the lookup of
+[ADR 0048](../decisions/0048-a-standard-name-and-words-per-language-for-each-game.md) (`GameWords`): `names.vi`, else the
+standard `name`, on a Vietnamese card; `names.en`, else the standard `name`, on an English one.
 
 Each card has `og:title`, `og:description`, `og:url` (the link itself), `og:image` (the hub's `/og.png`),
-`og:site_name`, `og:locale` and the matching `twitter:` tags, and one link to the app. A card Zalo or Facebook already
-cached cannot be called back: revoking or deleting stops new cards only.
+`og:site_name`, `og:locale` and the matching `twitter:` tags, and one link to the app ("Mở Tò He" · "Open Tò He"). A
+card Zalo or Facebook already cached cannot be called back: revoking or deleting stops new cards only.
 
 ## The API
 
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
-| `POST /api/links` | a player (session, or device key naming a device profile) | Make a link: `kind`, `gameId`, `level`, `expiresInHours`, `maxUses`; for `entry`, `payload` — and `text`, the message the player would send, checked and answered as `message` when it may go (below), never stored |
-| `GET /api/links/mine` | a player | Its links, newest first (100 at most), with their state and totals |
+| `POST /api/links` | a player (session, or device key naming a device profile) | Make a link: `kind`, `gameId`, `level`, `expiresInHours`, `maxUses`, `language` (`vi` by default, or `en`: its card's); for `entry`, `payload` — and `text`, the message the player would send, checked and answered as `message` when it may go (below), never stored |
+| `GET /api/links/mine` | a player | Its links, newest first (100 at most), with their state, totals and language |
 | `PATCH /api/links/{code}` | its maker | A new expiry, from now (`expiresInHours`) |
 | `POST /api/links/{code}/revoke` | its maker | Revoke it |
 | `POST /api/links/{code}/open` | — | Resolve to a typed intent; counts `opened` |
@@ -182,9 +199,10 @@ cached cannot be called back: revoking or deleting stops new cards only.
 | `GET`/`HEAD /api/previews/r/{code}` · `GET`/`HEAD /api/previews/s/{code}` | — | The crawler's card, HTML (not in the OpenAPI document) |
 | `GET /api/admin/links/{code}` · `POST /api/admin/links/{code}/revoke` | the console | Find · revoke |
 
-The intent is `{ code, state, kind, gameId, gameName, level, makerName }`: for `unknown`, only the state; for `expired`,
-`revoked` and `used_up`, the kind and the game too, so the hub can offer the game's menu as a way out; the maker's name
-only for `ok`, and never a child's. Resolving is public and limited per client address — the address the trusted proxy
+The intent is `{ code, state, kind, gameId, gameName, gameNames, level, makerName }`: for `unknown`, only the state; for
+`expired`, `revoked` and `used_up`, the kind and the game too — its standard name and its names per language, which the
+hub shows in its own language (ADR 0048) — so the hub can offer the game's menu as a way out; the maker's name only for
+`ok`, and never a child's. Resolving is public and limited per client address — the address the trusted proxy
 chain gives, an IPv6 address by its /64 (`ClientAddress`), `Links:ResolvesPerMinute`; past it, `429`. There is no limit
 for the whole server: a handful of addresses could use it up and switch every link off for everyone.
 
@@ -310,7 +328,8 @@ game này" — and the game plays as usual; a `handled` that comes later takes t
 
 | Screen | Where | What |
 | --- | --- | --- |
-| **"Nhập mã"** | A button beside the catalog's "Trò chơi" heading, and an item of the ⋯ menu | Six digits or eight characters, read as the API reads them, or a pasted link; it says which it found ("Bàn chơi 482 913", "Link mời 7KQ2 M9XA") and opens it. The catalog is the first screen of a newcomer and of the installed app on an iPhone, which cannot follow a link: the button is in sight there, without opening a menu |
-| **"Chia sẻ"** | 🔗 in the top corner of each game card (🏆 has the other) | A sheet: a device profile first gets the `named` screen in it ("Trước khi chia sẻ"); then the link, its QR code, its code, "Chia sẻ" (the system's share, where the browser has one) and "Chép link", how long it lasts, and "Xem link của tôi". The profile's own live `game` link to that game — asking nothing, no maximum of uses, a day or more left — is shown again rather than a new one made: opening the sheet twice is not sharing twice, and a profile makes 30 a day. `link_limit`, `play_with_others_off`, `too_young`, offline: said in words, with "Thử lại" |
-| **"Link của tôi"** | `/account/links`, from the ⋯ menu and the share sheet | The profile's links, newest first: the game, the code, the state, opened, played and new accounts (`—` below three, with a line saying why), until when; "Chép link", "Đổi hạn" (1 hour to 90 days, from now) and "Thu hồi" (confirmed; a revoked link stays revoked). A device profile with no copy on the server has made none, and is not asked for a name to see that |
+| **"Nhập mã"** | A button at the top of Trò chơi (the catalog), and a one-line box in Chơi cùng (`/together`, [Surfaces](surfaces.md)): "Có mã? Gõ mã hoặc dán link." — the 6 and 8 rule is only in the error | Six digits or eight characters, read as the API reads them, or a pasted link; it says which it found ("Bàn chơi 482 913", "Link mời 7KQ2 M9XA") and opens it. The catalog is the first screen of a newcomer and of the installed app on an iPhone, which cannot follow a link: the button is in sight there, without opening anything |
+| **"Rủ bạn"** | A labelled button under each game's name in the catalog (*Bảng điểm* has the other) | A sheet: a device profile first gets the `named` screen in it ("Trước khi chia sẻ"); then the link, its QR code, its code, "Chia sẻ" (the system's share, where the browser has one) and "Chép link", how long it lasts, and "Xem link của tôi". The profile's own live `game` link to that game — asking nothing, no maximum of uses, a day or more left, made in the app's language now (its card speaks that one) — is shown again rather than a new one made: opening the sheet twice is not sharing twice, and a profile makes 30 a day. `link_limit`, `play_with_others_off`, `too_young`, offline: said in words, with "Thử lại" |
+| **"Link của tôi"** | `/account/links`, from Chơi cùng — which shows the newest three and "Xem tất cả" — and the share sheet | The profile's links, newest first: the game, the code, the state, opened, played and new accounts (`—` below three, with a line saying why), until when; "Chép link", "Đổi hạn" (1 hour to 90 days, from now) and "Thu hồi" (confirmed; a revoked link stays revoked). A device profile with no copy on the server has made none, and is not asked for a name to see that |
 | **Dead ends** | `/r/…`, `/s/…` | As in step 2 |
+| **"Đã cài app Tò He?"** | The screens of `/r/…` and `/s/…` (the table's preview, the `named` screen), on an iPhone or an iPad outside the installed app | One line: "Đã cài app Tò He? Mở app, bấm Nhập mã rồi gõ 482 913." A link there opens in Safari or a chat app's browser, whose storage the installed app does not share; Chromium hands it to the open app instead (`launch_handler`, [Surfaces](surfaces.md#coming-back)). Not on a dead end |

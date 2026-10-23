@@ -2,6 +2,7 @@
 // docs/architecture/hosts-and-paths.md). It is the one place a path prefix is given to a component: the Caddy routes of
 // both hosts, the service worker's list of app pages, robots.txt and the API's links to the hub and the console are
 // generated from it (scripts/generate.ts). A new namespace is one entry here, reviewed; a new host needs an ADR.
+import { englishPrefix, pathInLanguage, vietnameseOnlyPages } from './languages.ts';
 
 /** A host's role. Hosts come from configuration (`publicUrls`), never from code: this names roles, not addresses. */
 export type HostRole =
@@ -75,11 +76,9 @@ export type Component = 'public' | 'app' | 'console' | 'api' | 'platform';
  * - `page`: a single-page app's page (its index.html), whatever the path under the namespace;
  * - `static`: files from the image, as they are;
  * - `proxy`: passed to a service behind the hub (the API);
- * - `generated`: written by the platform — at build time (robots.txt) or by Caddy at run time (security.txt);
- * - `redirect`: answered with a temporary redirect to `redirectTo` (a placeholder until a page of its own arrives; no
- *   namespace is one today).
+ * - `generated`: written by the platform — at build time (robots.txt) or by Caddy at run time (security.txt).
  */
-export type Served = 'page' | 'static' | 'proxy' | 'generated' | 'redirect';
+export type Served = 'page' | 'static' | 'proxy' | 'generated';
 
 /**
  * Which paths a namespace covers:
@@ -107,8 +106,6 @@ export interface Namespace {
   navigation: 'app-shell' | 'network';
   /** Static files only: `immutable` for hashed names, cached for a year; `revalidate` for the rest. */
   cache?: 'immutable' | 'revalidate';
-  /** Redirects only: where the namespace's path leads, with a 302 (the query is kept). */
-  redirectTo?: string;
   /**
    * App pages only: `/<path>/<code>` asked by a link-preview crawler (`linkPreviewCrawlers`) is answered by the API's
    * card for it, `/api/previews/<path>/<code>`, rather than the app's page (ADR 0044).
@@ -205,18 +202,28 @@ export const hubNamespaces: readonly Namespace[] = [
     crawl: true,
     navigation: 'network',
     cache: 'revalidate',
-    note: 'The public home page (Vietnamese); a browser that has played here is sent on to /play',
+    note: 'The public home page (Vietnamese; the English one is /en/): the catalog first; it never redirects — a browser that has played here gets Chơi tiếp to /play (ADR 0046)',
   },
   publicPage(
     'game-pages',
     '/games',
-    'The games (/games/) and one page for each (/games/<gameId>/), made from game.json',
+    'The games (/games/) and one page for each (/games/<gameId>/) with its link-preview picture (/games/<gameId>/og.png), made from the game’s folder: game.json and page/ (ADR 0047)',
   ),
   publicPage('guides', '/guides', 'Guides: /guides/ and how to install the app, /guides/install/'),
   publicPage('faq', '/faq', 'Short answers to what people ask first'),
   publicPage('about', '/about', 'What Tò He is, who runs it, how to reach them'),
+  publicPage(
+    'promise',
+    '/promise',
+    'The promise: no ads, no tracking, nothing to buy, no coins — never (ADR 0047)',
+  ),
   publicPage('terms', '/terms', 'The terms of use, rendered from apps/hub/src/legal/documents.ts'),
   publicPage('privacy', '/privacy', 'The privacy notice, rendered from apps/hub/src/legal/documents.ts'),
+  publicPage(
+    'en',
+    englishPrefix,
+    'The public pages in English (ADR 0047): /en/, /en/games/, /en/games/<gameId>/, /en/guides/… — the Vietnamese pages’ paths under /en, but for the Vietnamese-only ones (vietnameseOnlyPages)',
+  ),
   publicFile(
     'og-image',
     '/og.png',
@@ -243,6 +250,11 @@ export const hubNamespaces: readonly Namespace[] = [
     'The catalog (/play), a game (/play/<gameId>), its online rooms (/play/<gameId>/rooms), a room (…/rooms/<roomId>) and a hand played again (…/rooms/<roomId>/replay/<hand>)',
   ),
   appPage(
+    'together',
+    '/together',
+    'Chơi cùng, the app frame’s second tab (ADR 0046): the code box, the tables a person sits at, the invitations to them and the links they sent',
+  ),
+  appPage(
     'account',
     '/account',
     'A person’s pages: /account/sign-in (and /continue), /register (and /confirm), /password/forgot, /password/reset, /profiles, /data, /transfer, the share links a profile made at /links (ADR 0044); the account itself at /account and /account/email',
@@ -264,13 +276,19 @@ export const hubNamespaces: readonly Namespace[] = [
   ),
   appFile('manifest', '/manifest.webmanifest', 'exact', 'revalidate', 'The web app manifest'),
   appFile('service-worker', '/sw.js', 'exact', 'revalidate', 'The service worker'),
-  appFile('register-sw', '/registerSW.js', 'exact', 'revalidate', 'Registers the service worker'),
   appFile('workbox', '/workbox-', 'prefix', 'revalidate', 'The service worker’s runtime, /workbox-<hash>.js'),
   appFile('theme-init', '/theme-init.js', 'exact', 'revalidate', 'Light or dark before the first paint'),
   appFile('favicon', '/favicon.svg', 'exact', 'revalidate', 'The icon in browser tabs'),
   appFile('apple-touch-icon', '/apple-touch-icon.png', 'exact', 'revalidate', 'The home-screen icon on iOS'),
   appFile('icon-192', '/icon-192.png', 'exact', 'revalidate', 'The app icon'),
-  appFile('icon-512', '/icon-512.png', 'exact', 'revalidate', 'The app icon, large and maskable'),
+  appFile('icon-512', '/icon-512.png', 'exact', 'revalidate', 'The app icon, large'),
+  appFile(
+    'icon-maskable-512',
+    '/icon-maskable-512.png',
+    'exact',
+    'revalidate',
+    'The app icon for masks: its art inside the 80% safe zone',
+  ),
   appFile(
     'screenshots',
     '/screenshots',
@@ -403,17 +421,24 @@ export const consoleLinks = {
 /**
  * The pages of each indexed tree namespace of the hub's host, with the games' pages from the ids in
  * games/<id>/public/game.json. The sitemap lists them and apps/web's build must write exactly these (its check-build
- * compares); a tree that is indexed and has no entry here is refused by the sitemap generator.
+ * compares); a tree that is indexed and has no entry here is refused by the sitemap generator. The English pages
+ * (`en`, ADR 0047) are the Vietnamese ones under /en — the home page among them — but for those declared
+ * Vietnamese-only (`vietnameseOnlyPages`).
  */
 export function publicPages(gameIds: readonly string[]): Record<string, readonly string[]> {
-  return {
+  const vietnamese = {
     'game-pages': ['/games/', ...gameIds.map((id) => `/games/${id}/`)],
     guides: ['/guides/', '/guides/install/'],
     faq: ['/faq/'],
     about: ['/about/'],
+    promise: ['/promise/'],
     terms: ['/terms/'],
     privacy: ['/privacy/'],
   };
+  const english = ['/', ...Object.values(vietnamese).flat()]
+    .filter((path) => !vietnameseOnlyPages.includes(path))
+    .map((path) => pathInLanguage(path, 'en'));
+  return { ...vietnamese, en: english };
 }
 
 /**
@@ -438,66 +463,11 @@ export const hubLinks = {
   Account: { path: '/account', note: 'The account page; ?linked= or ?link_error= after linking a provider' },
   Profiles: {
     path: '/account/profiles',
-    note: 'The profile picker; ?auto=true goes straight on with one profile',
+    note: 'The profile picker; ?auto=true goes straight on with one profile; ?ask=true asks "Ai đang chơi?" after a cold start that follows 30 minutes unused',
   },
   RoomLink: { path: '/r', note: 'A room’s short link, /r/<code>: a link preview’s way to the app' },
   ShareLink: { path: '/s', note: 'A share link, /s/<code>: a link preview’s way to the app (ADR 0044)' },
 } as const satisfies Record<string, { path: string; note: string }>;
-
-/**
- * An old path of the app that answers 301 to its new one, the query kept. `from` and `to` may share `:name` segments
- * (one path segment each); with `tree`, `from` also covers what follows it (`/register/confirm`) and `to` takes it over.
- */
-export interface Redirect {
-  /** A short name, unique in the map: it names the Caddy matcher. */
-  id: string;
-  from: string;
-  to: string;
-  tree: boolean;
-  note: string;
-}
-
-/**
- * The paths the app had at the root before ADR 0042 moved it under /play and /account. They are kept for the links in
- * emails already sent and for bookmarks; no date is set for removing them. /room/<id> and /replay/… are not here: they
- * are only reached from inside the app and need a game id that an old link does not carry, so they are a 404.
- * No `from` may lie in a namespace of the map (a test checks it).
- */
-export const hubRedirects: readonly Redirect[] = [
-  { id: 'welcome', from: '/welcome', to: '/account/sign-in', tree: false, note: 'Signing in' },
-  {
-    id: 'signIn',
-    from: '/sign-in',
-    to: '/account/sign-in',
-    tree: true,
-    note: 'Back from a provider: /sign-in/continue',
-  },
-  {
-    id: 'register',
-    from: '/register',
-    to: '/account/register',
-    tree: true,
-    note: 'Signing up, and the link in the sign-up email: /register/confirm',
-  },
-  {
-    id: 'password',
-    from: '/password',
-    to: '/account/password',
-    tree: true,
-    note: 'A forgotten password, and the link in the password email: /password/reset',
-  },
-  { id: 'profiles', from: '/profiles', to: '/account/profiles', tree: false, note: 'The profile picker' },
-  { id: 'data', from: '/data', to: '/account/data', tree: false, note: 'What telemetry sends' },
-  { id: 'terms', from: '/legal/terms', to: '/terms/', tree: false, note: 'The terms of use' },
-  { id: 'privacy', from: '/legal/privacy', to: '/privacy/', tree: false, note: 'The privacy notice' },
-  {
-    id: 'rooms',
-    from: '/rooms/:gameId',
-    to: '/play/:gameId/rooms',
-    tree: false,
-    note: 'A game’s online rooms',
-  },
-];
 
 /**
  * The link-preview crawlers (ADR 0044): a `User-Agent` with one of these, compared without case, asking for a link of a
@@ -533,3 +503,31 @@ export const linkPreviewAppQuery = 'app';
 
 /** The characters a code in a previewed link may have, and how many: anything else is the app's page. */
 export const linkPreviewCode = '[0-9A-Za-z-]{1,20}';
+
+/**
+ * Crawlers that fetch for search and for answers that cite the page (ADR 0047): robots.txt names them in a group of
+ * their own that allows what every crawler may fetch, so a later rule for one of them cannot shut search out by mistake.
+ * OpenAI's, Anthropic's and Perplexity's search crawlers are distinct from their training crawlers.
+ */
+export const searchCrawlers: readonly string[] = [
+  'Googlebot',
+  'Bingbot',
+  'OAI-SearchBot',
+  'Claude-SearchBot',
+  'PerplexityBot',
+  'Applebot',
+  'coccocbot-web',
+];
+
+/**
+ * Crawlers that fetch only to train models (ADR 0047): robots.txt keeps them out of everything, as the content signal
+ * `ai-train=no` asks of those that read it. `Google-Extended` and `Applebot-Extended` are tokens, not crawlers of their
+ * own: they say whether what Googlebot and Applebot fetch may train Gemini and Apple's models, and leave search alone.
+ */
+export const trainingCrawlers: readonly string[] = [
+  'GPTBot',
+  'ClaudeBot',
+  'Google-Extended',
+  'Applebot-Extended',
+  'CCBot',
+];

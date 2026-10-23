@@ -439,11 +439,13 @@ describe('"Chia sẻ"', () => {
     uses: 0,
     revokedAt: null,
     counts: { opened: 0, played: 0, accountsMade: null },
+    language: 'vi',
     ...overrides,
   });
 
   it('shows the profile’s live link to the game again', () => {
-    expect(reusableLink([view()], 'merge-block', now)?.code).toBe('7KQ2M9XA');
+    expect(reusableLink([view()], 'merge-block', now, 'vi')?.code).toBe('7KQ2M9XA');
+    expect(reusableLink([view({ language: 'en' })], 'merge-block', now, 'en')?.code).toBe('7KQ2M9XA');
   });
 
   it('makes a new one when none fits', () => {
@@ -454,8 +456,10 @@ describe('"Chia sẻ"', () => {
       view({ maxUses: 5 }),
       view({ kind: 'entry' }),
       view({ expiresAt: new Date(now + REUSE_MIN_LEFT_MS - 1).toISOString() }),
+      // Made in the other language: its card speaks that one (ADR 0047).
+      view({ language: 'en' }),
     ]) {
-      expect(reusableLink([other], 'merge-block', now)).toBeNull();
+      expect(reusableLink([other], 'merge-block', now, 'vi')).toBeNull();
     }
   });
 

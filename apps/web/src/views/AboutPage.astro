@@ -1,0 +1,45 @@
+---
+// /about/ and /en/about/: what Tò He is, who runs it, how to reach them. The words are in ../content/about.ts.
+import { about } from '../content/about.ts';
+import { absolute, docsUrl } from '../content/site.ts';
+import { localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = about[lang];
+const path = localPath(lang, '/about/');
+const jsonLd = [
+  {
+    '@type': 'AboutPage',
+    name: words.heading,
+    description: words.description,
+    url: absolute(path),
+    inLanguage: lang,
+    isPartOf: { '@id': absolute(`${localPath(lang, '/')}#website`) },
+    about: { '@id': absolute('/#organization') },
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
+  <main id="main" class="narrow">
+    <h1>{words.heading}</h1>
+    {
+      words.sections.map((section) => (
+        <section>
+          <h2>{section.heading}</h2>
+          {section.paragraphs.map((paragraph) => <p>{paragraph}</p>)}
+        </section>
+      ))
+    }
+    {/* The links out of Tò He carry data-out, and the label with the mailto goes with it (from-app.js). */}
+    <p data-out>
+      {words.contact.label}: <a href={`mailto:${words.contact.email}`} data-out>{words.contact.email}</a>
+    </p>
+    <p class="page-links">
+      <a href={localPath(lang, '/games/')}>{words.links.games}</a>
+      <a href={localPath(lang, '/faq/')}>{words.links.faq}</a>
+      <a href={`${docsUrl}/`} data-out>{words.links.dev}</a>
+    </p>
+  </main>
+</Page>

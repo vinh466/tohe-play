@@ -9,14 +9,7 @@
 // Runs against the hub's Caddy (docker compose up, CI's stack job), not `pnpm dev`, whose Vite answers every path
 // with the app. Usage: HUB_URL=http://localhost:4720 CONSOLE_URL=http://localhost:4721 pnpm --filter @tohe/e2e routes
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
-import {
-  consoleNamespaces,
-  hubNamespaces,
-  hubRedirects,
-  redirectTarget,
-  robotsTxt,
-  sitemapPaths,
-} from '@tohe/routes';
+import { consoleNamespaces, hubNamespaces, robotsTxt, sitemapPaths } from '@tohe/routes';
 
 const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 // The hub's own public URL as its container knows it (TOHE_HUB_URL: robots.txt and the sitemap write it).
@@ -71,19 +64,18 @@ for (const path of appPages) {
 }
 
 // The root is the public home page (apps/web): HTML that search engines may index, with a CSP that allows no inline
-// script or style, a link to the app and its assets under /_web/. The query changes nothing there (a returning device
-// is sent on by a script, in the browser: the smoke test); the app's old paths answer 301 to the new ones, the query
-// kept, for the links in emails already sent.
+// script or style, a link to the app and its assets under /_web/. It never redirects (ADR 0046): a device that has
+// played gets "Chơi tiếp" there, shown by a script in the browser (the smoke test).
 {
-  const { response, body } = await get('/?stay');
+  const { response, body } = await get('/');
   const csp = response.headers.get('content-security-policy') ?? '';
   check(
     response.status === 200 &&
       (response.headers.get('content-type') ?? '').startsWith('text/html') &&
       !body.includes('<div id="root">') &&
-      body.includes('href="/play"') &&
+      body.includes('href="/play?lang=vi"') &&
       body.includes('Chơi ngay'),
-    `/: the public home page, with "Chơi ngay" to /play (${response.status})`,
+    `/: the public home page, with "Chơi ngay" to /play, in its language (${response.status})`,
   );
   check(
     response.headers.get('x-robots-tag') === null && !/name="robots"/.test(body),
@@ -103,15 +95,29 @@ for (const path of appPages) {
   );
   const assets = [...body.matchAll(/(?:src|href)="(\/_web\/[^"]+)"/g)].map((match) => match[1] ?? '');
   check(assets.length >= 3, `/: its scripts and styles are files under /_web/ (${assets.length})`);
+  // The build's scripts and styles are not indexed; its pictures — a game's icon, which the pages' structured data
+  // names — are: a search engine told "noindex" on an image drops the markup that names it.
   for (const path of assets) {
     const asset = await get(path);
+    const picture = /\.(png|svg|jpe?g|webp|avif)$/.test(path);
+    const noindex = (asset.response.headers.get('x-robots-tag') ?? '').includes('noindex');
     check(
       asset.response.status === 200 &&
         (asset.response.headers.get('cache-control') ?? '').includes('immutable') &&
-        (asset.response.headers.get('x-robots-tag') ?? '').includes('noindex'),
-      `${path}: served, cached for good, not indexed (${asset.response.status})`,
+        noindex === !picture,
+      `${path}: served, cached for good, ${picture ? 'indexable (a picture)' : 'not indexed'} (${asset.response.status})`,
     );
   }
+  // The Organization's logo in the structured data: the app's own icon, indexable; the app's other files are not.
+  const logo = await get('/icon-512.png');
+  const other = await get('/icon-192.png');
+  check(
+    logo.response.status === 200 &&
+      !(logo.response.headers.get('x-robots-tag') ?? '').includes('noindex') &&
+      other.response.status === 200 &&
+      (other.response.headers.get('x-robots-tag') ?? '').includes('noindex'),
+    `/icon-512.png: the logo of the structured data, indexable (${logo.response.status}); /icon-192.png still is not`,
+  );
   // A JSON-LD block is data, which the CSP leaves alone; any other script without a src runs, and is refused.
   const inline = /<script(?![^>]*\ssrc=)(?![^>]*type="application\/ld\+json")[^>]*>|<style[\s>]/.test(body);
   check(!inline, '/: no inline script or style in the page (JSON-LD data aside)');
@@ -119,7 +125,7 @@ for (const path of appPages) {
 
 // Every public page the map lists — the sitemap's own list, the games' pages from their game.json: HTML that is no
 // page of the app, indexed, with the pages' CSP, its own title and description, the canonical link, a link preview with
-// the shared picture, one h1 and no placeholder left. A path without its closing slash leads to the one with it.
+// its picture (a game's page its own, served beside it; the others the shared one), one h1 and no placeholder left. A path without its closing slash leads to the one with it.
 const pageTitles = new Set<string>();
 for (const path of sitemapPaths(undefined, gameIds)) {
   const { response, body } = await get(path);
@@ -128,6 +134,10 @@ for (const path of sitemapPaths(undefined, gameIds)) {
   const meta = (name: string) =>
     new RegExp(`<meta (?:name|property)="${name}" content="([^"]*)"`).exec(body)?.[1];
   const canonical = /<link rel="canonical" href="([^"]*)"/.exec(body)?.[1] ?? '';
+  // A game's page has its own picture, in its language (ADR 0047); the others the shared one.
+  const picture = /^(\/en)?\/games\/[^/]+\/$/.test(path)
+    ? `${publicHubUrl}${path}og.png`
+    : `${publicHubUrl}/og.png`;
   check(
     response.status === 200 &&
       (response.headers.get('content-type') ?? '').startsWith('text/html') &&
@@ -145,13 +155,20 @@ for (const path of sitemapPaths(undefined, gameIds)) {
       (meta('description') ?? '') !== '' &&
       canonical === `${publicHubUrl}${path}` &&
       meta('og:url') === `${publicHubUrl}${path}` &&
-      meta('og:image') === `${publicHubUrl}/og.png` &&
+      meta('og:image') === picture &&
       meta('twitter:card') === 'summary_large_image' &&
       (body.match(/<h1[\s>]/g) ?? []).length === 1 &&
       !body.includes('.invalid') &&
       !body.includes('[[['),
     `${path}: its own title and description, the canonical link, the link preview with the hub's URL, one h1 (${title})`,
   );
+  if (picture !== `${publicHubUrl}/og.png`) {
+    const own = await get(`${path}og.png`);
+    check(
+      own.response.status === 200 && (own.response.headers.get('content-type') ?? '').startsWith('image/png'),
+      `${path}og.png: the game's own link-preview picture (${own.response.status})`,
+    );
+  }
   pageTitles.add(title);
   if (path !== '/') {
     const bare = await get(path.slice(0, -1));
@@ -197,29 +214,19 @@ for (const path of sitemapPaths(undefined, gameIds)) {
     `/llms.txt: text, lists every public page with absolute URLs (${llms.response.status})`,
   );
 }
-for (const redirect of hubRedirects) {
-  const from = redirect.from.replace(/:\w+/g, 'tien-len');
-  const to = redirectTarget(from);
-  const { response } = await get(`${from}?attempt=A&code=123456`);
-  check(
-    response.status === 301 && response.headers.get('location') === `${to}?attempt=A&code=123456`,
-    `${from}: 301 to ${to}, the query kept (${response.status} ${response.headers.get('location')})`,
-  );
-}
-{
-  const { response } = await get('/register/confirm?attempt=A&code=123456');
-  check(
-    response.status === 301 &&
-      response.headers.get('location') === '/account/register/confirm?attempt=A&code=123456',
-    `/register/confirm: 301 to /account/register/confirm, the query kept (${response.status})`,
-  );
-}
-
 for (const path of [
+  // The app's paths before ADR 0042 answer nothing any more (no redirect since 2026-10-22).
+  '/welcome',
+  '/register/confirm',
+  '/legal/terms',
+  '/rooms/tien-len',
   '/room/0b7c',
   '/replay/0b7c/3',
   '/nope',
   '/games/nope/',
+  '/en/games/nope/',
+  // The terms and the privacy notice have no English page yet (vietnameseOnlyPages in @tohe/routes).
+  '/en/terms/',
   '/guides/nope/',
   '/faq/x/',
   '/terms/x',
@@ -243,6 +250,18 @@ for (const path of [
   );
 }
 
+{
+  // The 404 page speaks both languages, with a way to each home page (it cannot know which one the visitor reads).
+  const { body } = await get('/nope');
+  check(
+    body.includes('Không tìm thấy trang này') &&
+      body.includes('Page not found') &&
+      body.includes('href="/"') &&
+      body.includes('href="/en/"'),
+    '/nope: the 404 page in Vietnamese and in English, with links to / and /en/',
+  );
+}
+
 const robots = await get('/robots.txt');
 check(
   robots.response.status === 200 &&
@@ -261,6 +280,12 @@ check(
       sitemap.body.includes(`<loc>${publicHubUrl}${path}</loc>`),
     ),
   `/sitemap.xml: XML, the indexed pages with absolute URLs (${sitemap.response.status})`,
+);
+// Each page of a language pair names its alternates there, the one place hreflang is declared (ADR 0047).
+check(
+  sitemap.body.includes(`<xhtml:link rel="alternate" hreflang="en" href="${publicHubUrl}/en/"/>`) &&
+    sitemap.body.includes(`<xhtml:link rel="alternate" hreflang="x-default" href="${publicHubUrl}/en/"/>`),
+  '/sitemap.xml: the pages’ language alternates, x-default the English page',
 );
 
 const contact = process.env.TOHE_SECURITY_CONTACT;

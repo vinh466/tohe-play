@@ -1,0 +1,62 @@
+---
+// /games/ and /en/games/: every game, from its own game.json (../content/games.ts). A new game appears here by itself.
+import { gamesPage, loadGames } from '../content/games.ts';
+import { absolute } from '../content/site.ts';
+import { appPath, localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = gamesPage[lang];
+const path = localPath(lang, '/games/');
+const games = loadGames(lang);
+const jsonLd = [
+  {
+    '@type': 'CollectionPage',
+    name: words.heading,
+    description: words.description,
+    url: absolute(path),
+    inLanguage: lang,
+    isPartOf: { '@id': absolute(`${localPath(lang, '/')}#website`) },
+    mainEntity: {
+      '@type': 'ItemList',
+      itemListElement: games.map((game, index) => ({
+        '@type': 'ListItem',
+        position: index + 1,
+        url: absolute(localPath(lang, `/games/${game.id}/`)),
+        name: game.name,
+      })),
+    },
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
+  <main id="main">
+    <h1>{words.heading}</h1>
+    <p class="lead">{words.lead}</p>
+    <ul class="cards">
+      {
+        games.map((game) => (
+          <li>
+            <div class="card">
+              <div class="card-head">
+                <img class="card-icon" src={game.icon} alt="" width="64" height="64" />
+                <h2 class="card-title">
+                  <a href={localPath(lang, `/games/${game.id}/`)}>{game.name}</a>
+                </h2>
+              </div>
+              <p>{game.description}</p>
+              <ul class="chips">{game.chips.map((chip) => <li>{chip}</li>)}</ul>
+              <p class="card-play">
+                <a href={appPath(lang, `/play/${game.id}`)} aria-label={`${words.play} ${game.name}`}>
+                  {words.play}
+                </a>
+              </p>
+            </div>
+          </li>
+        ))
+      }
+    </ul>
+    <p><a href={localPath(lang, '/guides/install/')}>{words.install}</a></p>
+  </main>
+</Page>

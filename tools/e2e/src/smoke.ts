@@ -100,11 +100,29 @@ try {
     `open ${hubUrl} — a new device sees the public page; "Chơi ngay" plays as a device profile, and signing in is a choice`,
   );
   await page.goto(hubUrl);
-  await page.getByRole('link', { name: 'Chơi ngay' }).waitFor();
+  // The header's button, on a phone, to the app in the page's language; "Chơi tiếp" waits for a device that has opened a game.
+  const play = page.getByRole('link', { name: 'Chơi ngay', exact: true });
+  await play.waitFor();
+  if (!(await play.getAttribute('href'))?.endsWith('/play?lang=vi'))
+    throw new Error(
+      `the header's "Chơi ngay" does not carry the page's language: ${await play.getAttribute('href')}`,
+    );
+  if (await page.getByRole('link', { name: 'Chơi tiếp', exact: true }).isVisible())
+    throw new Error('a new device is offered "Chơi tiếp"');
+  // A plain visit shows the links out of Tò He, in the footer.
+  await page.getByRole('link', { name: 'Làm game? Tài liệu (tiếng Anh)' }).waitFor();
   await shot('landing');
-  await page.getByRole('link', { name: 'Chơi ngay' }).tap();
+  await play.tap();
   await page.waitForURL((url) => url.pathname === '/play');
-  await page.getByRole('link', { name: 'Đăng nhập' }).tap(); // the slim strip of a device profile
+  // Opening the app is not opening a game: the public pages still take this device for a newcomer's.
+  if ((await page.evaluate(() => localStorage.getItem('tohe:returning'))) !== null)
+    throw new Error('the app wrote tohe:returning before any game was opened');
+  // A device profile signs in from Tôi, where the account's section says so (the catalog has no strip for it).
+  await page
+    .getByRole('navigation', { name: 'Mục chính' })
+    .getByRole('link', { name: 'Tôi', exact: true })
+    .tap();
+  await page.getByRole('link', { name: 'Đăng nhập' }).tap();
   await page.waitForURL(/\/account\/sign-in$/);
   await shot('welcome');
 
@@ -124,24 +142,93 @@ try {
   await page.getByRole('button', { name: 'Tạo tài khoản' }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
 
-  step('choose the dark theme in "Giao diện": it applies at once and survives a reload');
-  await page.getByRole('button', { name: /^Giao diện/ }).tap();
-  const themes = page.getByRole('dialog', { name: 'Giao diện' });
-  await themes.getByRole('button', { name: /^Tối/ }).tap();
+  step('the frame: three tabs at the bottom; Chơi cùng has the box for a code (ADR 0046)');
+  const tabs = page.getByRole('navigation', { name: 'Mục chính' });
+  const current = await tabs.locator('[aria-current="page"]').innerText();
+  if (!current.includes('Trò chơi'))
+    throw new Error(`the catalog's tab is not the current one: "${current}"`);
+  await tabs.getByRole('link', { name: 'Chơi cùng', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/together');
+  await page.getByLabel('Có mã? Gõ mã hoặc dán link.').waitFor();
+  await page.getByRole('heading', { name: 'Bàn đang ngồi' }).waitFor();
+  await shot('together');
+
+  step('Tôi: choose the dark theme — it applies at once and survives a reload');
+  await tabs.getByRole('link', { name: 'Tôi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/account');
+  const themes = page.getByRole('group', { name: 'Giao diện' });
+  await themes.getByRole('button', { name: 'Tối', exact: true }).tap();
   await expectTheme('dark');
-  await shot('theme-sheet');
-  await themes.getByRole('button', { name: '✕' }).tap();
+  await shot('me');
   await page.reload();
   await expectTheme('dark');
 
   step('"Theo máy" follows the device, live');
-  await page.getByRole('button', { name: /^Giao diện/ }).tap();
-  await themes.getByRole('button', { name: /^Theo máy/ }).tap();
+  await themes.getByRole('button', { name: 'Theo máy' }).tap();
   await page.emulateMedia({ colorScheme: 'dark' });
   await expectTheme('dark');
   await page.emulateMedia({ colorScheme: 'light' });
   await expectTheme('light');
-  await themes.getByRole('button', { name: '✕' }).tap();
+
+  step('Tôi → Ngôn ngữ: English at once, without a reload, kept under the key the public pages share');
+  const languages = page.getByRole('group', { name: 'Ngôn ngữ' });
+  await languages.getByRole('button', { name: 'English' }).tap();
+  await page
+    .getByRole('navigation', { name: 'Main sections' })
+    .getByRole('link', { name: 'Me', exact: true })
+    .waitFor();
+  const kept = await page.evaluate(() => localStorage.getItem('tohe:language'));
+  if (kept !== 'en') throw new Error(`the language setting kept "${kept}", not "en", under tohe:language`);
+  if ((await page.evaluate(() => document.documentElement.lang)) !== 'en') {
+    throw new Error('the page does not say it is in English');
+  }
+  await page.getByRole('group', { name: 'Language' }).getByRole('button', { name: 'Tiếng Việt' }).tap();
+  await tabs.getByRole('link', { name: 'Tôi', exact: true }).waitFor();
+
+  step(
+    'Tôi → Hỏi đáp: a public page the app opens shows no link out of Tò He, and the visit remembers it (ADR 0046)',
+  );
+  await page.getByRole('link', { name: /Hỏi đáp/ }).tap();
+  await page.waitForURL((url) => url.pathname === '/faq/' && url.searchParams.get('from') === 'app');
+  await page.getByRole('link', { name: 'Hỏi đáp', exact: true }).first().waitFor();
+  const linksOut = async () => {
+    let shown = 0;
+    for (const link of await page.locator('a[data-out]').all()) if (await link.isVisible()) shown++;
+    return { shown, total: await page.locator('a[data-out]').count() };
+  };
+  const onFaq = await linksOut();
+  if (onFaq.total === 0 || onFaq.shown !== 0)
+    throw new Error(`a page the app opened shows ${onFaq.shown} of ${onFaq.total} links out of Tò He`);
+  // The next page the child reads carries no ?from=app, and still has none.
+  await page
+    .getByRole('navigation', { name: 'Các trang chính' })
+    .getByRole('link', { name: 'Hướng dẫn' })
+    .tap();
+  await page.waitForURL((url) => url.pathname === '/guides/');
+  const onGuides = await linksOut();
+  if (onGuides.total === 0 || onGuides.shown !== 0)
+    throw new Error(`the next page shows ${onGuides.shown} of ${onGuides.total} links out of Tò He`);
+  // The header's button is the way back into the app (this device has not opened a game: "Chơi ngay").
+  await page.getByRole('link', { name: 'Chơi ngay', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/play');
+
+  step(
+    'a tab already behind in the history steps back to it: /play → avatar → Trò chơi leaves no extra entry, so Back leaves the app (ADR 0046)',
+  );
+  const playEntry = await historyIndex(page);
+  await page.getByRole('link', { name: 'Đổi người chơi' }).tap();
+  await page.waitForURL((url) => url.pathname === '/account/profiles');
+  await shot('profiles-from-games');
+  if (!(await page.getByRole('link', { name: 'Quay lại' }).isVisible()))
+    throw new Error('the profile picker has no ← of its own');
+  await tabs.getByRole('link', { name: 'Trò chơi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/play');
+  if ((await historyIndex(page)) !== playEntry)
+    throw new Error(
+      `the Trò chơi tab stacked a new entry on top (${await historyIndex(page)}, not ${playEntry})`,
+    );
+  await tabs.getByRole('link', { name: 'Tôi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/account');
 
   step(
     '"Đổi người chơi" opens the picker, where a child profile with a PIN is added (the owner confirms with the password)',
@@ -176,8 +263,22 @@ try {
     async () => (await (await fetch('/api/auth/me')).json()).activeProfileId as string,
   );
 
+  step("on a child's profile, a link out of Tò He (feedback's mail) asks a parent first (ADR 0046)");
+  await tabs.getByRole('link', { name: 'Tôi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/account');
+  await page.getByRole('link', { name: /Góp ý \/ báo lỗi/ }).tap();
+  const parent = page.getByRole('dialog', { name: 'Mở trang ngoài Tò He' });
+  await parent.getByRole('heading', { name: 'Nhờ bố mẹ nhé' }).waitFor();
+  await shot('outbound-gate');
+  await parent.getByRole('button', { name: 'Đóng' }).tap();
+  if (new URL(page.url()).pathname !== '/account')
+    throw new Error(`the link out was followed: ${page.url()}`);
+  await tabs.getByRole('link', { name: 'Trò chơi', exact: true }).tap();
+  await page.waitForURL((url) => url.pathname === '/play');
+
   step('wait for the catalog to list the sample game (the API syncs it from the games origin)');
-  const card = page.getByRole('link', { name: /Chạm Chấm/ });
+  // Its tile among every game: once opened, "Chơi tiếp" holds it too (ADR 0046).
+  const card = page.getByRole('region', { name: 'Tất cả trò chơi' }).getByRole('link', { name: /Chạm Chấm/ });
   for (let attempt = 0; ; attempt++) {
     const visible = await card.waitFor({ timeout: 3000 }).then(
       () => true,
@@ -293,7 +394,7 @@ try {
   await frame.getByRole('button', { name: 'Bảng xếp hạng' }).tap();
   const board = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await board.getByText('Bé Na (bạn)').waitFor();
-  await board.getByRole('button', { name: '✕' }).tap();
+  await board.getByRole('button', { name: 'Đóng' }).tap();
 
   step('phone Back opens the menu (the round waits), Back again goes on playing');
   await frame.getByRole('button', { name: '▶ Chơi', exact: true }).tap();
@@ -362,31 +463,70 @@ try {
   }
 
   step("the account's leaderboard lists the child");
-  await page.getByRole('button', { name: 'Bảng xếp hạng Chạm Chấm' }).tap();
+  await page.getByRole('button', { name: 'Bảng điểm Chạm Chấm' }).tap();
   const leaderboard = page.getByRole('dialog', { name: /Chạm Chấm/ });
   await leaderboard.getByText('Bé Na (bạn)').waitFor();
   await shot('leaderboard');
-  await leaderboard.getByRole('button', { name: '✕' }).tap();
+  await leaderboard.getByRole('button', { name: 'Đóng' }).tap();
+
+  step('coming back: Trò chơi starts with "Chơi tiếp", the game this profile opened last (ADR 0046)');
+  await page
+    .getByRole('region', { name: 'Chơi tiếp' })
+    .getByRole('link', { name: /Chạm Chấm/ })
+    .waitFor();
+  await shot('continue');
 
   step(
-    `the public page (${hubUrl}/?stay) and the docs (${docsUrl}) share the app's light/dark choice; a device that has played here goes on from the root to the app`,
+    '"Ai đang chơi?" at a cold start after 30 minutes unused; the child moving up to the adult asks a parent first',
   );
-  await page.goto(`${hubUrl}/?stay`);
+  // The app last used 31 minutes ago, once, before the app starts on the next load of this tab.
+  await context.addInitScript(() => {
+    if (sessionStorage.getItem('e2e:idle')) return;
+    sessionStorage.setItem('e2e:idle', '1');
+    localStorage.setItem('tohe:last-used', String(Date.now() - 31 * 60 * 1000));
+  });
+  await page.reload();
+  await page.waitForURL((url) => url.pathname === '/account/profiles');
+  await page.getByRole('heading', { name: 'Ai đang chơi?' }).waitFor();
+  await shot('who-is-playing');
+  await page.getByRole('button', { name: /Bố E2E/ }).tap();
+  const up = page.getByRole('dialog', { name: 'Đổi sang hồ sơ người lớn' });
+  // The account has no manage PIN yet: its password.
+  await up.getByLabel('Mật khẩu').fill(password);
+  await up.getByRole('button', { name: 'Xác nhận' }).tap();
+  await page.waitForURL(catalogUrl);
+  const adult = await page.evaluate(
+    async () => (await (await fetch('/api/auth/me')).json()).activeProfileId as string,
+  );
+  if (adult === kidId) throw new Error('the adult’s profile was not chosen after the parent’s password');
+  await page.reload();
+  await page.waitForTimeout(300);
+  if (new URL(page.url()).pathname !== '/play')
+    throw new Error(`a reload asked who is playing again: ${page.url()}`);
+
+  step(
+    `the public page (${hubUrl}/) and the docs (${docsUrl}) share the app's light/dark choice; a device that has played here stays on the root, which offers "Chơi tiếp" to the app (ADR 0046)`,
+  );
+  await page.goto(hubUrl);
   await page.getByRole('button', { name: 'Tối' }).tap();
   await expectTheme('dark');
   await page.goto(docsUrl);
   await expectTheme('dark');
   await shot('docs');
-  await page.goto(`${hubUrl}/?stay`);
-  await expectTheme('dark');
-  await page.waitForTimeout(300);
-  if (new URL(page.url()).pathname !== '/') throw new Error(`/?stay was redirected to ${page.url()}`);
-  // The app keeps `tohe:guest` on a device that plays as its device profiles; the page's script reads it (and the
-  // telemetry's device id) from the same origin's localStorage.
-  await page.evaluate(() => localStorage.setItem('tohe:guest', '1'));
+  // This device has played (the app wrote its keys above): / never redirects, it shows Chơi tiếp at the top.
   await page.goto(hubUrl);
-  await page.waitForURL(catalogUrl);
-  await page.evaluate(() => localStorage.removeItem('tohe:guest'));
+  await expectTheme('dark');
+  // The header's button: "Chơi tiếp" in place of "Chơi ngay" on a device that has opened a game. The home page's own
+  // "Chơi tiếp" button at the top of the page says the same, so the first of the two is the one tapped.
+  if (await page.getByRole('link', { name: 'Chơi ngay', exact: true }).isVisible())
+    throw new Error('a device that has opened a game is still offered "Chơi ngay" in the header');
+  const continueLink = page.getByRole('link', { name: 'Chơi tiếp', exact: true }).first();
+  await continueLink.waitFor();
+  if (new URL(page.url()).pathname !== '/') throw new Error(`/ was redirected to ${page.url()}`);
+  await shot('landing-returning');
+  await continueLink.tap();
+  // A public page's links into the app carry its language (?lang=vi, ADR 0047).
+  await page.waitForURL((url) => url.pathname === '/play');
   await expectTheme('dark');
 
   step(
@@ -429,7 +569,7 @@ try {
     step(
       'the authenticator is added in the hub, on the account page: step-up, then a new key and its first code',
     );
-    await page.goto(`${hubUrl}/account`);
+    await page.goto(`${hubUrl}/account?manage=true`);
     await page.getByLabel('Mật khẩu').fill(password);
     await page.getByRole('button', { name: 'Xác nhận' }).tap();
     await page.getByRole('button', { name: 'Thêm ứng dụng xác thực' }).tap();
@@ -475,7 +615,7 @@ try {
     await page.getByRole('button', { name: 'Đăng xuất' }).click();
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).waitFor();
   }
-  await page.goto(`${hubUrl}/account`);
+  await page.goto(`${hubUrl}/account?manage=true`);
   await page.getByRole('heading', { name: 'Quản lý tài khoản' }).waitFor();
 
   if (errors.length > 0) throw new Error(`console errors:\n${errors.join('\n')}`);

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import "@tohe/design-tokens/tokens.css";
+@import "@tohe/design-tokens/fonts.css";
 
 /*
  * Colours come only from the design tokens (ADR 0013, docs/architecture/theming.md). The default palette is
@@ -37,6 +38,7 @@
 @theme {
   --animate-shake: shake 0.4s ease-in-out;
   --animate-pop-in: pop-in 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-turn-phone: turn-phone 3.6s ease-in-out infinite;
 
   @keyframes shake {
     0%,
@@ -50,6 +52,18 @@
     40%,
     80% {
       transform: translateX(10px);
+    }
+  }
+
+  /* The phone of "Xoay dọc máy để chơi": sideways, a pause, upright, a pause (RotateHint). */
+  @keyframes turn-phone {
+    0%,
+    20% {
+      transform: rotate(0deg);
+    }
+    55%,
+    100% {
+      transform: rotate(-90deg);
     }
   }
 
@@ -70,6 +84,13 @@
   background-image: linear-gradient(to bottom, var(--tohe-avatar-from), var(--tohe-avatar-to));
 }
 
+/*
+ * A short screen — a phone held sideways (src/frame/short.ts): `short:` is for the frame (the rail instead of the bar, a
+ * compact header), `turn:` for the layer that asks to turn a phone upright for a portrait game, on touch screens only.
+ */
+@custom-variant short (@media (max-height: 499px) and (orientation: landscape));
+@custom-variant turn (@media (max-height: 499px) and (orientation: landscape) and (pointer: coarse));
+
 @layer base {
   html {
     background: var(--tohe-page);
@@ -78,8 +99,35 @@
     overscroll-behavior: none;
   }
 
+  /* The app's root never pulls to refresh, so an installed app (or a game in it) is not reloaded by a drag. */
+  html,
   body {
-    font-family: system-ui, sans-serif;
+    overscroll-behavior-y: none;
+  }
+
+  /* Be Vietnam Pro, self-hosted (fonts.css of the design tokens): drawn for Vietnamese, so its marks sit right. The
+     system font stands in until the file arrives and wherever it does not load. */
+  body {
+    font-family: var(--tohe-font, system-ui, sans-serif);
+  }
+
+  /*
+   * What a finger presses is no text to select and no picture to drag or to long-press for a menu: the nav bar and
+   * rail, the tiles (data-tile), the buttons (chips and avatars among them). Readable content keeps its selection.
+   */
+  button,
+  nav,
+  summary,
+  [data-tile] {
+    -webkit-touch-callout: none;
+    -webkit-user-select: none;
+    user-select: none;
+  }
+
+  nav img,
+  button img,
+  [data-tile] img {
+    -webkit-user-drag: none;
   }
 
   /* Keyboard focus is visible in both themes (pointer and touch do not show it). */

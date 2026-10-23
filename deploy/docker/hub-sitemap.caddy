@@ -1,6 +1,7 @@
 # Generated from @tohe/routes (packages/routes/src/map.ts) by `pnpm --filter @tohe/routes build`.
 # Do not edit: change the map and regenerate (ADR 0042, docs/architecture/hosts-and-paths.md).
-# The sitemap: the public pages the map marks as indexed, with absolute URLs from the hub’s own public URL.
+# The sitemap: the public pages the map marks as indexed, with absolute URLs from the hub’s own public URL, and
+# each page’s language alternates (hreflang, ADR 0047).
 (hubSitemap) {
 	@noHubUrl expression `{env.TOHE_HUB_URL} == ""`
 	error @noHubUrl 404
@@ -11,19 +12,119 @@
 	}
 	respond <<XML
 		<?xml version="1.0" encoding="UTF-8"?>
-		<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/hello/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/merge-block/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/tap-merge/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/tien-len/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/guides/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/guides/install/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/faq/</loc></url>
-		  <url><loc>{{ env "TOHE_HUB_URL" }}/about/</loc></url>
+		<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/hello/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/hello/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/hello/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/hello/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/merge-block/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/merge-block/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/merge-block/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/merge-block/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/tap-merge/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/tap-merge/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/tap-merge/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/tap-merge/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/tien-len/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/tien-len/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/tien-len/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/tien-len/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/guides/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/guides/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/guides/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/guides/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/guides/install/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/guides/install/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/guides/install/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/guides/install/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/faq/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/faq/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/faq/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/faq/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/about/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/about/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/about/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/about/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/promise/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/promise/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/promise/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/promise/"/>
+		  </url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/terms/</loc></url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/privacy/</loc></url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/games/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/games/hello/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/hello/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/hello/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/hello/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/games/merge-block/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/merge-block/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/merge-block/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/merge-block/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/games/tap-merge/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/tap-merge/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/tap-merge/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/tap-merge/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/games/tien-len/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/tien-len/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/tien-len/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/tien-len/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/guides/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/guides/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/guides/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/guides/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/guides/install/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/guides/install/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/guides/install/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/guides/install/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/faq/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/faq/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/faq/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/faq/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/about/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/about/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/about/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/about/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/promise/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/promise/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/promise/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/promise/"/>
+		  </url>
 		</urlset>
 		XML 200
 }

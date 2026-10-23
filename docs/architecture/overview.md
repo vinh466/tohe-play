@@ -37,7 +37,7 @@ flowchart TB
 | Hub | `apps/hub` | Profiles, catalog, launcher, host side of the contract, local-first storage and (M2) sync. |
 | Platform API | `services/api` | Identity (M1), registry, saves and scores (M2), parental settings. The only writer to the database. |
 | Games origin | `games/*` → `tools/games-host` | Immutable static builds under `/<id>/<version>/` plus `catalog.json`. |
-| Public pages | `apps/web` | The home page, the games' pages, the install guide, the FAQ, about, the terms and the privacy notice (Vietnamese), built into the hub image and served by its Caddy at the root of the hub's host ([Hosts and paths](hosts-and-paths.md#the-public-pages)). |
+| Public pages | `apps/web` | The home page, the games' pages, the install guide, the FAQ, about, the terms and the privacy notice, in Vietnamese at the root and in English under `/en/` (the terms and the privacy notice in Vietnamese only for now), built into the hub image and served by its Caddy at the root of the hub's host ([Hosts and paths](hosts-and-paths.md#the-public-pages)). |
 | Docs | `apps/docs` + `docs/` | The developer docs (English), at the root of their own host. |
 | Admin console | `apps/console` | The operator's pages on a host of its own with its own sign-in, served by the hub image's server on a second site ([Admin console](admin.md)). |
 
@@ -122,15 +122,18 @@ Opening the hub is playing ([vision](../vision.md)); nothing stands between a li
   | Where | What | When |
   | --- | --- | --- |
   | Android, Chrome, Edge (`beforeinstallprompt`, kept from the start of the page) | The card "Cài Tò He" on the catalog; its button calls `prompt()` | After the first finished game, once per visit |
-  | Safari on iPhone and iPad (User-Agent) | A sheet with the steps of iOS 26: ⋯ → Chia sẻ → Thêm vào Màn hình chính → "Mở dưới dạng ứng dụng web" | After the first finished game, once per visit |
+  | Safari on iPhone and iPad (User-Agent) | A sheet with three steps that name the buttons, not their place (the bar differs on iPad and with Safari's layouts): the Share button (⋯ first if it is not in sight) → Thêm vào Màn hình chính → "Mở dưới dạng ứng dụng web" *(agent)* | After the first finished game, once per visit |
   | The in-app browser of Zalo, Messenger, Facebook (User-Agent) | A strip "Mở bằng trình duyệt" with "Chép link" and a hint | On arrival, on every screen until dismissed |
 
   A finished game is a final `score` (or a ranked finish) from the Game Contract's host side — no contract change.
   Never when running as the installed app (`display-mode: standalone`, `navigator.standalone`). "Để sau" and closing
-  are silent for 14 days (`localStorage` `tohe:install-dismissed`). The catalog's "⋯" menu has "Cài app", which opens the
-  same prompt or sheet at any time (and says how by hand where none fits), and "Góp ý / báo lỗi", a `mailto:` to
-  `hello@toheplay.io.vn` with the app's version and the browser in the body.
-- **The manifest** (`apps/hub/vite.config.ts`): user-first description, `start_url` `/play`, a shortcut to Ghép Khối,
+  are silent for 14 days (`localStorage` `tohe:install-dismissed`). Tôi, the app frame's third tab
+  ([Surfaces](surfaces.md)), has "Cài app", which opens the same prompt or sheet at any time (and says how by hand where
+  none fits), and "Góp ý / báo lỗi", a `mailto:` to `hello@toheplay.io.vn` with the app's version and the browser in the
+  body.
+- **The manifest** (`apps/hub/vite.config.ts`): user-first description, `start_url` `/play`, no `orientation` (each game
+  declares its own, ADR 0046), opaque icons and a maskable one of its own, shortcuts to Ghép Khối, Chơi cùng and the code
+  box (`/together?code=1`) ([Surfaces](surfaces.md)),
   screenshots made by `pnpm --filter @tohe/hub generate:screenshots`. `index.html` carries static `og:` and `twitter:`
   tags (title, description) for link previews; the preview image and `og:url` must be absolute and wait for the hub's
   public URL at run time.

@@ -31,6 +31,26 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 | `avatar-from`, `avatar-to` | Backdrop of emoji avatars |
 | `bar` | Browser UI colour (`theme-color`) |
 
+## Type and icons
+
+Tò He's look is more than its colours; the rest is in [Voice and look](../conventions/voice-and-look.md). Two parts are
+shared code:
+
+- **Font.** Be Vietnam Pro (SIL Open Font License; drawn for Vietnamese, so its marks sit right), self-hosted: the
+  `.woff2` files and the licence are in `packages/design-tokens/fonts/`, `fonts.css` declares weights 400, 600 and 700 for
+  the Vietnamese and the Latin subsets with `font-display: swap`, and `tokens.css` defines `--tohe-font` as
+  `"Be Vietnam Pro", system-ui, sans-serif`. An app imports `@tohe/design-tokens/fonts.css` beside `tokens.css` and sets
+  `font-family: var(--tohe-font)` (the hub does in `styles.css` and in the 404 page; the public pages use
+  `var(--tohe-font, …)`). The bundler puts the files under the app's own `/assets/` (immutable, already in the map of
+  `@tohe/routes`), so the CSP's `font-src` falls back to `'self'`; the hub's service worker precaches them, so a first
+  paint offline has the same letters. Heavier weights (the hub's `font-black`) fall to 700.
+- **Icons.** One set, Phosphor (MIT), as SVG: `apps/hub/src/ui/iconShapes.ts` holds the shapes used (the regular and the
+  fill weight, copied from `@phosphor-icons/core` rather than a 30 MB dependency, with its licence), `ui/Icon.tsx` draws
+  one in the text's colour and size (`1em`; `text-xl` on it sizes it). The weight `fill` is for what is on (the tab
+  shown). An icon is a decoration beside a visible label and is hidden from screen readers; a control never has only an
+  icon. No emoji as interface: `src/voiceAndLook.test.ts` fails on one in a screen's code (the avatars are content) or in
+  a string of either language.
+
 ## Rules for UI code
 
 - **Hub:** use the Tailwind classes generated from the tokens, for example `bg-page`, `bg-surface`, `text-ink`,
@@ -47,8 +67,10 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 
 - **Choices:** *Theo máy* (system, the default), *Sáng* (light) and *Tối* (dark). Picking one applies it at once,
   everywhere:
-  - in the hub, from the round 🌗 / ☀️ / 🌙 button in the top corner of its screens;
-  - on the public home page, from the three buttons in the top corner;
+  - in the hub, from Tôi → Giao diện (the app frame's third tab), and from the *Giao diện* button (its icon shows the
+    current look: half circle, sun or moon) in the top corner of some other screens (signing in, the profile picker,
+    account management);
+  - on the public pages, from the three buttons in the footer: an icon and a word each (*Sáng*, *Tối*, *Theo máy*);
   - in the docs, from Starlight's own theme menu (*Auto / Light / Dark*).
 - **Storage:** the choice belongs to the device and lives in the `tohe-theme` cookie:
   - values `light` or `dark`; no cookie means system;
@@ -56,7 +78,7 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
   - cookies are per host, not per port, so the hub, the public pages and the docs on one host share the choice.
 - **The code** lives in `@tohe/design-tokens`:
   - `theme` reads and saves the choice, resolves *Theo máy* against the device, and applies a theme: `<html>` gets
-    `data-theme` and `color-scheme` (for native controls and scrollbars), and `<meta name="theme-color">` gets
+    `data-theme` and `color-scheme` (for native controls and scrollbars), and every `<meta name="theme-color">` gets
     the `bar` colour;
   - `theme-init.js` does the same before the first paint, as a blocking script in `<head>`.
     `src/theme.test.ts` runs it against `theme.ts` for every cookie and device setting.
@@ -99,12 +121,16 @@ Games opt in; some games have one look by nature ([Game Contract](../contracts/g
 - `packages/design-tokens`:
   - both themes define the same tokens, and the token pairs meet WCAG AA in both themes;
   - `theme-init.js` agrees with `theme.ts`;
-  - the `theme-color` values equal the `bar` tokens.
+  - the `theme-color` values equal the `bar` tokens;
+  - the hub's page, its 404 page and the public pages carry two `theme-color` tags, one per scheme
+    (`media="(prefers-color-scheme: light|dark)"`) with the `bar` colours, so the browser's bars are right before the
+    script runs; the script (and `applyTheme`) then sets every tag to the chosen theme's colour, so a choice that differs
+    from the device's wins.
 - `apps/hub`: no raw palette classes; the copy of `theme-init.js` is identical to the original.
 - Games: conformance in every declared theme (above); `games/merge-block` also tests that every number is readable
   on its block.
 - E2E smoke test (`tools/e2e`):
   - every hub screen, the public home page and the docs are screenshotted in light and dark, with axe-core's
     colour-contrast rule in both;
-  - the hub picker: dark survives a reload, and *Theo máy* follows the device live;
+  - the hub's choice in Tôi: dark survives a reload, and *Theo máy* follows the device live;
   - a choice made on the public home page also applies to the docs and the hub.

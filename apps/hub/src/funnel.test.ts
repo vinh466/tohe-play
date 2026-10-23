@@ -134,6 +134,23 @@ describe('the app opened as an installed app', () => {
   });
 });
 
+describe('coming back in a browser tab (ADR 0046)', () => {
+  it('is counted once a day, under its own name, beside the installed app’s', () => {
+    const { funnel, counted, state } = setup();
+    funnel.browserReturn();
+    funnel.browserReturn();
+    funnel.standaloneOpen();
+    expect(counted).toEqual(['hub.funnel.browser-return', 'hub.funnel.standalone-open']);
+    state.now = Date.parse('2026-10-21T09:00:00Z');
+    funnel.browserReturn();
+    expect(counted).toEqual([
+      'hub.funnel.browser-return',
+      'hub.funnel.standalone-open',
+      'hub.funnel.browser-return',
+    ]);
+  });
+});
+
 describe('with telemetry off', () => {
   it('counts nothing, and does not use up a "once" so that turning telemetry on later still counts it', () => {
     const { funnel, counted, state, storage } = setup(false);
@@ -145,6 +162,7 @@ describe('with telemetry off', () => {
     funnel.signInOpened();
     funnel.accountCreated();
     funnel.standaloneOpen();
+    funnel.browserReturn();
     expect(counted).toEqual([]);
     expect(storage.getItem(FUNNEL_KEY)).toBeNull();
 
@@ -231,6 +249,7 @@ describe('through the collector', () => {
       FUNNEL.signInOpened,
       FUNNEL.accountCreated,
       FUNNEL.standaloneOpen,
+      FUNNEL.browserReturn,
     ];
     for (const name of names) {
       expect(name).toMatch(/^[a-z][a-z0-9-]*(\.[a-z0-9-]+){0,5}$/);

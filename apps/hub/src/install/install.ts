@@ -8,7 +8,7 @@ export type InApp = 'zalo' | 'messenger' | 'facebook' | 'instagram';
  * - `prompt`: Android, Chrome, Edge — the browser handed over `beforeinstallprompt`; a button calls `prompt()`.
  * - `ios`: Safari on iPhone and iPad has no prompt — the steps of iOS 26.
  * - `open-in-browser`: Zalo, Messenger, Facebook, Instagram — copy the link and open it in the browser.
- * - `generic`: only from the menu, when none of the above fits (a desktop browser without a prompt).
+ * - `generic`: only from Tôi (`menu`), when none of the above fits (a desktop browser without a prompt).
  */
 export type InstallVariant = 'prompt' | 'ios' | 'open-in-browser' | 'generic';
 
@@ -52,10 +52,14 @@ export function detectInApp(userAgent: string): InApp | null {
   return null;
 }
 
-/** Safari on iPhone or iPad (iPadOS 13+ says "Macintosh", with a touch screen), not another browser or a WebView. */
+/** An iPhone or an iPad (iPadOS 13+ says "Macintosh", with a touch screen), in any browser or app. */
+export function isIos(userAgent: string, maxTouchPoints: number): boolean {
+  return /iPhone|iPad|iPod/.test(userAgent) || (/Macintosh/.test(userAgent) && maxTouchPoints > 1);
+}
+
+/** Safari on iPhone or iPad, not another browser or a WebView. */
 export function isIosSafari(userAgent: string, maxTouchPoints: number): boolean {
-  const ios = /iPhone|iPad|iPod/.test(userAgent) || (/Macintosh/.test(userAgent) && maxTouchPoints > 1);
-  if (!ios || detectInApp(userAgent)) return false;
+  if (!isIos(userAgent, maxTouchPoints) || detectInApp(userAgent)) return false;
   return /Safari\//.test(userAgent) && !/CriOS|FxiOS|EdgiOS|OPiOS|OPT\/|GSA\/|DuckDuckGo/.test(userAgent);
 }
 
@@ -76,7 +80,7 @@ export function readEnvironment(): Environment {
  * Which way to install to show now, or null for nothing.
  *
  * - Never when already running as the app.
- * - From the menu: always, whatever was said before — the way that fits, else `generic`.
+ * - From Tôi (`menu`): always, whatever was said before — the way that fits, else `generic`.
  * - By itself: not for 14 days after a "no"; the in-app browser's strip at once, on arrival; the card or the sheet once
  *   per visit, after the first finished game.
  */

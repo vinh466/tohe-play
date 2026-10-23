@@ -45,9 +45,8 @@ import /etc/caddy/hub-sitemap.caddy
 	header @notLinkPreview Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: {$GAMES_ORIGIN}; frame-src {$GAMES_ORIGIN}; connect-src 'self' ws://{http.request.hostport} wss://{http.request.hostport}; worker-src 'self'; manifest-src 'self'; frame-ancestors 'none'"
 
 	# @apiProxy, @publicStaticRevalidate, @publicStaticImmutable, @appPage, @appStaticImmutable, @appStaticRevalidate,
-	# @platformGenerated, and the redirects as `redir` directives (the app's old paths answer 301 for the links in
-	# emails already sent), which Caddy runs before any `handle` below. Then link previews (ADR 0044): a known crawler
-	# asking for /r/<code> or /s/<code> is rewritten to the API's card, /api/previews/<r|s>/<code>, which @apiProxy passes
+	# @platformGenerated. Then link previews (ADR 0044): a known crawler asking for /r/<code> or /s/<code> is rewritten
+	# to the API's card, /api/previews/<r|s>/<code>, which Caddy runs before any `handle` below and @apiProxy passes
 	# through untouched — never into a template; people get the app's page, unchanged.
 	import /etc/caddy/hub-routes.caddy
 
@@ -73,9 +72,14 @@ import /etc/caddy/hub-sitemap.caddy
 		}
 		file_server
 	}
+	# The build's own files are not pages and are not indexed — but for the pictures the pages' structured data names
+	# (a game's icon, the VideoGame's `image`): a search engine that is told "noindex" on the image drops the markup.
 	handle @publicStaticImmutable {
 		root * /srv/web
-		header X-Robots-Tag "noindex"
+		@notPicture {
+			not path *.png *.svg *.jpg *.jpeg *.webp *.avif
+		}
+		header @notPicture X-Robots-Tag "noindex"
 		header Cache-Control "public, max-age=31536000, immutable"
 		file_server
 	}
@@ -105,7 +109,12 @@ import /etc/caddy/hub-sitemap.caddy
 	}
 	handle @appStaticRevalidate {
 		root * /srv
-		header X-Robots-Tag "noindex"
+		# Not /icon-512.png: the Organization's `logo` in the home pages' structured data (a search engine needs it
+		# indexable); the rest of the app's files are not.
+		@notLogo {
+			not path /icon-512.png
+		}
+		header @notLogo X-Robots-Tag "noindex"
 		header Cache-Control "no-cache"
 		# /index.html, which the service worker caches, is the same page as @appPage's: its link preview is filled in too.
 		templates {

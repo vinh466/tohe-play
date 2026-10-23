@@ -1,0 +1,125 @@
+---
+// The public home page, / in Vietnamese and /en/ in English (ADR 0042, 0046, 0047): one line under the name, then the
+// games — a tile for each, leading to its page — as the main action; one strip for playing together; three questions
+// parents ask, each a link into the FAQ; and the day it was last revised. Installing, the story and the promise are
+// links in the footer. It never redirects: a browser that has opened a game here gets *Chơi tiếp* at the top
+// (../scripts/returning.js marks it before the first paint), and every page's header has *Chơi ngay* or *Chơi tiếp*.
+// The developer docs are linked from the footer only, so a page the app opens shows no link out of Tò He.
+// The words are in ../content/home.ts.
+import { faq } from '../content/faq.ts';
+import { latestDay } from '../content/game-page.ts';
+import { loadGames } from '../content/games.ts';
+import { home, homeQuestionIds } from '../content/home.ts';
+import { absolute, site } from '../content/site.ts';
+import { appPath, localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+import UpdatedOn from './UpdatedOn.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = home[lang];
+const path = localPath(lang, '/');
+const games = loadGames(lang);
+const together = games.filter((game) => game.together);
+const asked = homeQuestionIds.map((id) => {
+  const question = faq[lang].questions.find((item) => item.id === id);
+  if (!question) throw new Error(`the home page asks the FAQ's question "${id}", which is not there`);
+  return question;
+});
+const updated = latestDay([words.updated, ...games.map((game) => game.page.updated)]);
+const gamePath = (id: string) => localPath(lang, `/games/${id}/`);
+const jsonLd = [
+  {
+    '@type': 'WebSite',
+    '@id': absolute(`${path}#website`),
+    url: absolute(path),
+    name: site.name,
+    description: words.description,
+    inLanguage: lang,
+    dateModified: updated,
+    publisher: { '@id': absolute('/#organization') },
+  },
+  {
+    '@type': 'Organization',
+    '@id': absolute('/#organization'),
+    name: site.name,
+    url: absolute('/'),
+    logo: absolute('/icon-512.png'),
+    description: words.organization.description,
+    email: site.email,
+    sameAs: [site.github],
+  },
+  {
+    '@type': 'ItemList',
+    name: words.games.heading,
+    inLanguage: lang,
+    itemListElement: games.map((game, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: absolute(gamePath(game.id)),
+      name: game.name,
+    })),
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
+  <main id="main">
+    <div class="hero">
+      <p class="continue"><a class="button primary" href={appPath(lang, '/play')}>{words.continue}</a></p>
+      <h1>{site.name}</h1>
+      <p class="lead">{words.line}</p>
+    </div>
+
+    <section class="home-games" aria-labelledby="games">
+      <h2 id="games">{words.games.heading}</h2>
+      <ul class="tiles">
+        {
+          games.map((game) => (
+            <li>
+              <a class="tile" href={gamePath(game.id)}>
+                <img src={game.icon} alt="" width="96" height="96" />
+                <span class="tile-name">{game.name}</span>
+                <span class="tile-kind">{game.page.kind}</span>
+              </a>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="all-games"><a href={localPath(lang, '/games/')}>{words.games.all}</a></p>
+    </section>
+
+    {
+      together.length > 0 && (
+        <section class="strip" aria-labelledby="together">
+          <h2 id="together">{words.friends.heading}</h2>
+          <p>
+            {words.friends.text} {words.friends.tryWith}{' '}
+            {together.map((game, index) => (
+              <>
+                {index > 0 && ', '}
+                <a href={gamePath(game.id)}>{game.name}</a>
+              </>
+            ))}
+            .
+          </p>
+        </section>
+      )
+    }
+
+    <section class="band" aria-labelledby="asks">
+      <h2 id="asks">{words.questions.heading}</h2>
+      <ul class="asks">
+        {
+          asked.map(({ id, q }) => (
+            <li class="ask">
+              <a href={`${localPath(lang, '/faq/')}#${id}`}>{q}</a>
+            </li>
+          ))
+        }
+      </ul>
+      <p class="asks-all"><a href={localPath(lang, '/faq/')}>{words.questions.all}</a></p>
+    </section>
+
+    <UpdatedOn day={updated} />
+  </main>
+</Page>

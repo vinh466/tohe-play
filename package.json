@@ -19,6 +19,7 @@
     "check:uat": "node tools/env-check/src/uat.ts",
     "check:prod": "node tools/env-check/src/prod.ts",
     "release:check": "node tools/env-check/src/release.ts",
+    "claims": "node tools/claims/src/cli.ts",
     "verify": "sh scripts/verify.sh"
   },
   "devDependencies": {

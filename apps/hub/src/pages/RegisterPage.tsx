@@ -31,6 +31,7 @@ import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
 import { db } from '../storage/db.ts';
 import { reIdDeviceProfile } from '../storage/deviceProfiles.ts';
 import { funnel } from '../telemetry/telemetry.ts';
+import { AnotherName } from '../ui/AnotherName.tsx';
 import { Button } from '../ui/Button.tsx';
 import { CodeStep } from '../ui/CodeStep.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
@@ -84,7 +85,7 @@ function Register() {
   const device = useQuery(signingUpDeviceQuery).data ?? null;
   const [answer, setAnswer] = useState<SignUpAnswer>(defaultAnswer);
   const [deviceId, setDeviceId] = useState<string | null>(null);
-  const { invite: linked } = useSearch({ from: '/account/register' });
+  const { invite: linked } = useSearch({ from: '/_frame/account/register' });
   // A code from an invite link survives a trip to a sign-in provider (ADR 0028).
   useEffect(() => {
     if (linked) invite.remember(linked);
@@ -330,14 +331,7 @@ function Register() {
                 onChange={set('displayName')}
                 error={(showErrors && local.displayName) || fieldError('displayName')}
               />
-              <Button
-                variant="secondary"
-                aria-label={t('register.anotherName')}
-                title={t('register.anotherName')}
-                onClick={() => setForm((f) => ({ ...f, displayName: funName(i18n.language) }))}
-              >
-                🎲
-              </Button>
+              <AnotherName onClick={() => setForm((f) => ({ ...f, displayName: funName(i18n.language) }))} />
             </div>
             <TextField
               label={t('register.password')}
@@ -396,7 +390,7 @@ function Register() {
 
 function ConfirmFromLink() {
   const { t } = useTranslation();
-  const { attempt, code } = useSearch({ from: '/account/register/confirm' });
+  const { attempt, code } = useSearch({ from: '/_frame/account/register/confirm' });
   const signedUp = useSignedUp();
   // Opened in this browser, the sign-up started here: its device profile goes along. Elsewhere, the usual account.
   const pending = pendingSignUp.find(attempt);

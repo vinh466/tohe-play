@@ -4033,6 +4033,12 @@
               "null",
               "boolean"
             ]
+          },
+          "language": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },
@@ -4654,8 +4660,10 @@
         "required": [
           "id",
           "name",
+          "names",
           "version",
           "description",
+          "descriptions",
           "entryUrl",
           "iconUrl",
           "orientation",
@@ -4675,11 +4683,23 @@
           "name": {
             "type": "string"
           },
+          "names": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
+          },
           "version": {
             "type": "string"
           },
           "description": {
             "type": "string"
+          },
+          "descriptions": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "string"
+            }
           },
           "entryUrl": {
             "type": "string"
@@ -5034,6 +5054,15 @@
                 "$ref": "#/components/schemas/LinkEntry"
               }
             ]
+          },
+          "gameNames": {
+            "type": [
+              "null",
+              "object"
+            ],
+            "additionalProperties": {
+              "type": "string"
+            }
           }
         }
       },
@@ -5104,6 +5133,12 @@
           },
           "payload": { },
           "text": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "language": {
             "type": [
               "null",
               "string"
@@ -6171,7 +6206,8 @@
           "maxUses",
           "uses",
           "revokedAt",
-          "counts"
+          "counts",
+          "language"
         ],
         "type": "object",
         "properties": {
@@ -6221,6 +6257,9 @@
           },
           "counts": {
             "$ref": "#/components/schemas/LinkCounts"
+          },
+          "language": {
+            "type": "string"
           },
           "message": {
             "type": [

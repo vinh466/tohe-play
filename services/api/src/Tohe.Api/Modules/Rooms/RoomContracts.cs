@@ -14,6 +14,8 @@ namespace Tohe.Api.Modules.Rooms;
 /// <param name="Options">The game's options (house rules) by id; missing ones take the game's defaults.</param>
 /// <param name="AccountOnly">Deprecated — a hub from before ADR 0043 still sends it; remove after the next release. Read
 /// only when <paramref name="Entry"/> is left out: <c>true</c> is <c>own</c>, <c>false</c> is <c>account</c>.</param>
+/// <param name="Language">The language the host's hub speaks: <c>vi</c> (the default) or <c>en</c> (ADR 0047). A listed
+/// table's preview card speaks it; the table's code carries none.</param>
 public sealed record CreateRoomRequest(
     [Required, StringLength(40)] string GameId,
     [Range(2, 8)] int Seats = 4,
@@ -25,7 +27,8 @@ public sealed record CreateRoomRequest(
     [Range(0, 120)] int TurnSeconds = 20,
     JsonElement? Options = null,
     bool Spectators = false,
-    bool? AccountOnly = null)
+    bool? AccountOnly = null,
+    string? Language = null)
 {
     /// <summary>The entry asked for: <see cref="Entry"/>, else the old hub's <see cref="AccountOnly"/>, else <c>named</c>.</summary>
     public string EntryAsked() => Entry ?? RoomEntries.FromAccountOnly(AccountOnly) ?? "named";

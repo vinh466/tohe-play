@@ -6,9 +6,12 @@ import { ApiError, type GameSummary, type RoomSummary, rooms } from '../api/clie
 import { errorKey } from '../api/errors.ts';
 import { gamesQuery } from '../api/queries.ts';
 import { AccountNeeded } from '../entry/EntryGate.tsx';
+import { nameOf } from '../launcher/gameWords.ts';
 import { hasShell } from '../launcher/manifest.ts';
+import { useOpened } from '../launcher/recent.ts';
 import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
+import { useOnline } from '../net/online.ts';
 import { ensureConnected, onReconnected } from '../rooms/connection.ts';
 import { formatCode, normalizeCode, quickPick } from '../rooms/model.ts';
 import { RoomResults } from '../rooms/RoomResults.tsx';
@@ -18,8 +21,9 @@ import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
-import { Screen } from '../ui/Screen.tsx';
+import { backPill, Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
 
 /**
@@ -85,6 +89,8 @@ function Lobby({
   const queryClient = useQueryClient();
   const games = useQuery(gamesQuery(player.id));
   const game = games.data?.find((g) => g.id === gameId);
+  // "Chơi tiếp" on Trò chơi's first screen: a game played at tables is opened at its lobby (ADR 0046).
+  useOpened(player.id, gameId, Boolean(game));
   const list = useQuery({
     queryKey: ['rooms', gameId, player.id],
     queryFn: () => rooms.list(gameId),
@@ -92,7 +98,7 @@ function Lobby({
   });
   const [creating, setCreating] = useState(false);
   const [entering, setEntering] = useState(false);
-  const [online, setOnline] = useState(navigator.onLine);
+  const online = useOnline();
 
   // The lobby is live: the rooms hub says when it changed, and the list is fetched again.
   useEffect(() => {
@@ -113,14 +119,9 @@ function Lobby({
       void watch();
       refresh();
     });
-    const goOnline = () => setOnline(navigator.onLine);
-    window.addEventListener('online', goOnline);
-    window.addEventListener('offline', goOnline);
     return () => {
       stopped = true;
       off();
-      window.removeEventListener('online', goOnline);
-      window.removeEventListener('offline', goOnline);
       void ensureConnected()
         .then((hub) => {
           hub.off('LobbyChanged', refresh);
@@ -164,22 +165,22 @@ function Lobby({
           <BackLink
             to="/play/$gameId"
             params={{ gameId }}
-            aria-label={t('rooms.backToGame', { game: game.name })}
-            className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
+            aria-label={t('rooms.backToGame', { game: nameOf(game) })}
+            className={backPill}
           >
-            ←
+            <Icon name="arrow-left" className="text-xl" />
+            {t('rooms.backToMenu')}
           </BackLink>
         ) : (
-          <BackLink
-            to="/play"
-            aria-label={t('backToGames')}
-            className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
-          >
-            ←
+          <BackLink to="/play" className={backPill}>
+            <Icon name="arrow-left" className="text-xl" />
+            {t('backToGames')}
           </BackLink>
         )}
         {game?.iconUrl ? <img src={game.iconUrl} alt="" className="size-12 rounded-2xl" /> : null}
-        <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink">{game?.name ?? gameId}</h1>
+        <h1 className="min-w-0 truncate font-black text-3xl text-brand-ink">
+          {game ? nameOf(game) : gameId}
+        </h1>
       </header>
 
       {!online ? (
@@ -193,12 +194,15 @@ function Lobby({
           disabled={!online || !game}
           onClick={() => quick.mutate()}
         >
+          <Icon name="lightning" weight="fill" />
           {t('rooms.quickPlay')}
         </Button>
         <Button variant="secondary" disabled={!online || !game} onClick={() => setCreating(true)}>
+          <Icon name="plus" />
           {t('rooms.create')}
         </Button>
         <Button variant="secondary" disabled={!online} onClick={() => setEntering(true)}>
+          <Icon name="ticket" />
           {t('rooms.enterCode')}
         </Button>
         <BackLink
@@ -206,6 +210,7 @@ function Lobby({
           params={{ gameId }}
           className="col-span-2 flex min-h-12 items-center justify-center rounded-2xl bg-surface px-5 font-bold text-accent text-xl active:scale-[0.97]"
         >
+          <Icon name="robot" />
           {t('rooms.playBots')}
         </BackLink>
       </div>
@@ -230,19 +235,16 @@ function Lobby({
               >
                 <Avatar avatar={room.hostAvatar || '🙂'} size="sm" />
                 <span className="flex min-w-0 flex-1 flex-col">
-                  <span className="truncate font-bold text-ink">
-                    {room.hostName} {room.locked ? t('rooms.locked') : ''}
-                  </span>
+                  <span className="truncate font-bold text-ink">{room.hostName}</span>
                   <span className="text-ink-soft text-sm">
                     {t('rooms.seatsTaken', { taken: room.taken, seats: room.seats })} ·{' '}
                     {t(`rooms.status.${room.status}`)}
                     {room.mine ? ` · ${t('rooms.yours')}` : ''}
-                    {room.spectators ? ' · 👁' : ''}
+                    {room.locked ? ` · ${t('rooms.locked')}` : ''}
+                    {room.spectators ? ` · ${t('rooms.canWatch')}` : ''}
                   </span>
                 </span>
-                <span aria-hidden className="text-accent text-xl">
-                  ›
-                </span>
+                <Icon name="caret-right" className="text-accent text-xl" />
               </button>
             </li>
           ))}

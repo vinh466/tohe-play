@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Tohe.Api.Infrastructure;
 
 namespace Tohe.Api.Modules.Rooms;
 
@@ -84,6 +85,12 @@ public sealed class Room
     public required string RulesPath { get; set; }
 
     public Guid HostProfileId { get; set; }
+
+    /// <summary>
+    /// The language the hub of the profile that opened it spoke (<c>vi</c> or <c>en</c>, ADR 0047): a listed table's
+    /// preview card speaks it. It stays when the host role passes to another player.
+    /// </summary>
+    public string Language { get; set; } = Languages.Vietnamese;
 
     /// <summary>The host's account; null while a device profile hosts (ADR 0043).</summary>
     public Guid? HostAccountId { get; set; }
@@ -202,6 +209,8 @@ internal sealed class RoomConfiguration : IEntityTypeConfiguration<Room>
         builder.Property(room => room.BotLevel).HasMaxLength(16);
         builder.Property(room => room.Status).HasConversion<string>().HasMaxLength(10);
         builder.Property(room => room.Entry).HasConversion<string>().HasMaxLength(8).HasDefaultValue(RoomEntry.Named);
+        // Tables opened before hosts' languages were kept were opened in Vietnamese: the cards spoke nothing else.
+        builder.Property(room => room.Language).HasMaxLength(Languages.MaxLength).HasDefaultValue(Languages.Vietnamese);
         builder.Property(room => room.Options).HasColumnType("jsonb");
         builder.Property(room => room.SeatList).HasColumnType("jsonb");
         builder.Property(room => room.HandSeats).HasColumnType("jsonb");

@@ -28,6 +28,7 @@ public sealed record LinkCounts(int Opened, int Played, int? AccountsMade);
 /// <param name="State">What it resolves to now: <c>ok</c>, <c>expired</c>, <c>revoked</c> or <c>used_up</c>.</param>
 /// <param name="Message">Only in the answer to making a link with a <c>text</c>: that text, when it passed the checks
 /// of ADR 0045 (one line, 120 characters, no address, no phone number, the name filter); otherwise null.</param>
+/// <param name="Language"><c>vi</c> or <c>en</c>: the language it was made in, which its preview card speaks (ADR 0047).</param>
 public sealed record ShareLinkView(
     string Code,
     string Kind,
@@ -41,6 +42,7 @@ public sealed record ShareLinkView(
     int Uses,
     DateTimeOffset? RevokedAt,
     LinkCounts Counts,
+    string Language,
     string? Message = null);
 
 /// <summary>
@@ -56,8 +58,10 @@ public sealed record LinkEntry(JsonElement Payload, string Version, string? Make
 /// the maker's current name only for <c>ok</c>, and never a child's.
 /// </summary>
 /// <param name="Code">The code in its canonical form; empty when what was asked is no code.</param>
-/// <param name="GameName">The game's name as the registry lists it now; null when it is not listed.</param>
+/// <param name="GameName">The game's standard name as the registry lists it now; null when it is not listed.</param>
 /// <param name="Entry">For an <c>entry</c> link that <c>play</c> opened: its payload and version (ADR 0045).</param>
+/// <param name="GameNames">The game's name per language tag (ADR 0048), for the hub to show its own language's; null
+/// when it has none or is not listed.</param>
 public sealed record LinkIntent(
     string Code,
     string State,
@@ -66,7 +70,8 @@ public sealed record LinkIntent(
     string? GameName = null,
     string? Level = null,
     string? MakerName = null,
-    LinkEntry? Entry = null);
+    LinkEntry? Entry = null,
+    IReadOnlyDictionary<string, string>? GameNames = null);
 
 /// <summary>A share link found by its code, with its maker as strangers may see it (null: the maker is gone).</summary>
 internal sealed record ResolvedLink(ShareLink Link, ProfileStanding? Maker, string State);
@@ -133,7 +138,8 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
             ? new LinkEntry(JsonSerializer.Deserialize<JsonElement>(payload), link.GameVersion, named ? maker!.Avatar : null)
             : null;
         return new LinkIntent(
-            link.Code, state, LinkNames.Of(link.Kind), link.GameId, game?.Name, LinkNames.Of(link.Level), named ? maker!.Name : null, entry);
+            link.Code, state, LinkNames.Of(link.Kind), link.GameId, game?.Name, LinkNames.Of(link.Level), named ? maker!.Name : null, entry,
+            game?.Names is { Count: > 0 } names ? names : null);
     }
 
     /// <summary>
@@ -263,5 +269,6 @@ internal sealed class ShareLinks(ToheDbContext db, IProfileStandings standings, 
         link.MaxUses,
         link.Uses,
         link.RevokedAt,
-        new LinkCounts(opened, played, made >= AccountsMadeShownFrom ? made : null));
+        new LinkCounts(opened, played, made >= AccountsMadeShownFrom ? made : null),
+        link.Language);
 }

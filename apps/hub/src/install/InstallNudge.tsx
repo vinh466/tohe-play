@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { funnel } from '../telemetry/telemetry.ts';
 import { Button } from '../ui/Button.tsx';
 import { copyText } from '../ui/copyText.ts';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { chooseInstall, type InstallVariant, installStore } from './install.ts';
 
@@ -12,7 +13,7 @@ export function useInstallVariant(trigger: 'auto' | 'menu'): InstallVariant | nu
   return chooseInstall({ ...state, trigger, now: Date.now() });
 }
 
-/** True when running as the installed app: there is nothing to install, and no menu item says so. */
+/** True when running as the installed app: there is nothing to install, and Tôi offers nothing. */
 export function useStandalone(): boolean {
   return useSyncExternalStore(installStore.subscribe, installStore.snapshot).env.standalone;
 }
@@ -100,9 +101,9 @@ export function InAppStrip() {
         type="button"
         onClick={() => installStore.dismiss()}
         aria-label={t('install.inApp.dismiss')}
-        className="grid size-8 shrink-0 place-items-center rounded-full active:scale-95"
+        className="grid size-11 shrink-0 place-items-center rounded-full text-xl active:scale-95"
       >
-        ✕
+        <Icon name="x" />
       </button>
     </section>
   );
@@ -128,7 +129,7 @@ function InAppContent({ zalo }: { zalo: boolean }) {
   );
 }
 
-/** "Cài app" in the menu: the sheet or the prompt, any time, whatever was said before. */
+/** "Cài app" in Tôi: the sheet or the prompt, any time, whatever was said before. */
 export function InstallSheet({ open, onClose }: { open: boolean; onClose(): void }) {
   const { t } = useTranslation();
   const variant = useInstallVariant('menu');
@@ -139,7 +140,7 @@ export function InstallSheet({ open, onClose }: { open: boolean; onClose(): void
   );
 }
 
-/** What a way of installing says and offers; the same in the nudge and in the menu. */
+/** What a way of installing says and offers; the same in the nudge and in Tôi. */
 function InstallPanel({ variant, onDone }: { variant: InstallVariant; onDone(): void }) {
   const { t } = useTranslation();
   const inApp = installStore.snapshot().env.inApp;
@@ -163,7 +164,7 @@ function InstallPanel({ variant, onDone }: { variant: InstallVariant; onDone(): 
         <div className="flex flex-col gap-4">
           <p className="text-ink">{t('install.iosIntro')}</p>
           <ol className="flex list-decimal flex-col gap-2 pl-6 text-ink">
-            {(['iosStep1', 'iosStep2', 'iosStep3', 'iosStep4'] as const).map((step) => (
+            {(['iosStep1', 'iosStep2', 'iosStep3'] as const).map((step) => (
               <li key={step}>{t(`install.${step}`)}</li>
             ))}
           </ol>

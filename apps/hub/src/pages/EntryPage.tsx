@@ -18,13 +18,16 @@ import { linkDeadEnds } from '../entry/deadEnds.ts';
 import { EntryGate } from '../entry/EntryGate.tsx';
 import { entryOfLink, gameEntry } from '../entry/gameEntry.ts';
 import { entry, once } from '../entry/intent.ts';
+import { EntryCodeContext } from '../install/InstalledAppHint.tsx';
+import { linkGameName, nameOf } from '../launcher/gameWords.ts';
 import { tableLevel } from '../launcher/requests.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { rememberNext } from '../session/next.ts';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
-import { Loading, Screen } from '../ui/Screen.tsx';
+import { Icon } from '../ui/Icon.tsx';
+import { backPill, Loading, Screen } from '../ui/Screen.tsx';
 
 // The entry pipeline's pages (ADR 0044): a table's link /r/<code> and a share link /s/<code>. A typed code ("Nhập mã")
 // comes here too, and a game's own address /play/<gameId> goes through the same gate (PlayPage).
@@ -45,11 +48,13 @@ export function RoomEntryPage() {
   const intent = useMemo(() => readCodeOf('room', raw), [raw]);
   if (!intent) return <DeadEnd reason="unknown" />;
   return (
-    <EntryGate key={intent.code} intent={intent} level={highestLevel(GAME_LEVEL, 'named')}>
-      {(player, session) => (
-        <RoomPreview intent={intent} player={player} device={session.status === 'device'} />
-      )}
-    </EntryGate>
+    <EntryCodeContext.Provider value={formatEntryCode(intent)}>
+      <EntryGate key={intent.code} intent={intent} level={highestLevel(GAME_LEVEL, 'named')}>
+        {(player, session) => (
+          <RoomPreview intent={intent} player={player} device={session.status === 'device'} />
+        )}
+      </EntryGate>
+    </EntryCodeContext.Provider>
   );
 }
 
@@ -92,8 +97,9 @@ function RoomPreview({ intent, player, device }: { intent: EntryIntent; player: 
 
   return (
     <Screen narrow>
-      <BackLink to="/play" className="font-semibold text-accent">
-        ← {t('backToGames')}
+      <BackLink to="/play" className={backPill}>
+        <Icon name="arrow-left" className="text-xl" />
+        {t('backToGames')}
       </BackLink>
       <h1 className="text-center font-black text-3xl text-brand-ink">
         {t('rooms.room', { code: formatEntryCode(intent) })}
@@ -112,7 +118,7 @@ function RoomPreview({ intent, player, device }: { intent: EntryIntent; player: 
       {view ? (
         <section className="flex flex-col items-center gap-4 rounded-3xl bg-surface p-6 text-center shadow-sm">
           {game?.iconUrl ? <img src={game.iconUrl} alt="" className="size-20 rounded-2xl" /> : null}
-          <p className="font-bold text-ink text-xl">{game?.name ?? view.gameId}</p>
+          <p className="font-bold text-ink text-xl">{game ? nameOf(game) : view.gameId}</p>
           <div className="flex items-center gap-2">
             <Avatar avatar={host?.avatar ?? '🙂'} size="sm" />
             <span className="font-semibold text-ink">{t('rooms.preview', { host: host?.name ?? '' })}</span>
@@ -179,7 +185,11 @@ export function ShareEntryPage() {
   const { code: raw } = useParams({ from: '/s/$code' });
   const intent = useMemo(() => readCodeOf('share', raw), [raw]);
   if (!intent) return <DeadEnd reason="unknown" />;
-  return <ShareResolve key={intent.code} intent={intent} />;
+  return (
+    <EntryCodeContext.Provider value={formatEntryCode(intent)}>
+      <ShareResolve key={intent.code} intent={intent} />
+    </EntryCodeContext.Provider>
+  );
 }
 
 function ShareResolve({ intent }: { intent: EntryIntent }) {
@@ -213,7 +223,7 @@ function ShareResolve({ intent }: { intent: EntryIntent }) {
       <DeadEnd
         reason={link.state as 'expired' | 'revoked' | 'used_up'}
         gameId={link.gameId}
-        gameName={link.gameName}
+        gameName={linkGameName(link)}
       />
     ) : (
       <DeadEnd reason="unknown" />
@@ -294,7 +304,7 @@ function OpenShare({
 
   if (higher) return <Loading label={t('loading')} />;
   if (missing)
-    return <DeadEnd reason="not-for-profile" gameName={link.gameName} child={player.kind === 'child'} />;
+    return <DeadEnd reason="not-for-profile" gameName={linkGameName(link)} child={player.kind === 'child'} />;
   if (games.isError) return <EntryTrouble message={t('loadFailed')} onRetry={() => void games.refetch()} />;
   if (play.isError)
     return <EntryTrouble message={t(errorKey(play.error))} onRetry={() => void play.refetch()} />;
@@ -303,7 +313,7 @@ function OpenShare({
       <DeadEnd
         reason={result.state as 'expired' | 'revoked' | 'used_up'}
         gameId={result.gameId ?? link.gameId}
-        gameName={result.gameName ?? link.gameName}
+        gameName={linkGameName(result) ?? linkGameName(link)}
       />
     ) : (
       <DeadEnd reason="unknown" />

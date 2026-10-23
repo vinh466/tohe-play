@@ -1,5 +1,6 @@
 // The newcomer funnel (docs/architecture/telemetry.md, "Newcomer funnel"): a few fixed `hub.funnel.*` counts that say
-// how far newcomers get — a guest arrives, plays a first game, is offered the app, signs in — without following anyone.
+// how far newcomers get — a guest arrives, plays a first game, is offered the app, signs in — and how often they come
+// back (the installed app, a browser tab), without following anyone.
 // They are ordinary telemetry counts: no identifier, no new event kind, and nothing is sent when telemetry is off.
 //
 // A step that happens "once" is remembered on the device (localStorage `tohe:funnel`) so it is counted once per
@@ -22,9 +23,10 @@ export const FUNNEL = {
   signInOpened: 'hub.funnel.sign-in-opened',
   accountCreated: 'hub.funnel.account-created',
   standaloneOpen: 'hub.funnel.standalone-open',
+  browserReturn: 'hub.funnel.browser-return',
 } as const;
 
-/** An `InstallVariant` of install/install.ts; `generic` (only from the menu, never offered by itself) is not counted. */
+/** An `InstallVariant` of install/install.ts; `generic` (only from Tôi, never offered by itself) is not counted. */
 export type OfferedVariant = 'prompt' | 'ios' | 'open-in-browser' | 'generic';
 
 export interface FunnelDeps {
@@ -53,6 +55,8 @@ export interface Funnel {
   accountCreated(): void;
   /** The app started in standalone display mode. Once per day. */
   standaloneOpen(): void;
+  /** The app started in a browser tab on a device that had started it before (ADR 0046). Once per day. */
+  browserReturn(): void;
 }
 
 /** What is remembered: a step's name and the UTC day it was last counted. */
@@ -109,5 +113,6 @@ export function createFunnel(deps: FunnelDeps): Funnel {
     signInOpened: () => step(FUNNEL.signInOpened, 'each'),
     accountCreated: () => step(FUNNEL.accountCreated, 'each'),
     standaloneOpen: () => step(FUNNEL.standaloneOpen, 'daily'),
+    browserReturn: () => step(FUNNEL.browserReturn, 'daily'),
   };
 }

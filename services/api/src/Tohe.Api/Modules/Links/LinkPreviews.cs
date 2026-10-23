@@ -9,28 +9,26 @@ using Tohe.Api.Modules.Rooms;
 
 namespace Tohe.Api.Modules.Links;
 
-/// <summary>What a link preview card says: every value plain text, escaped when the card is rendered.</summary>
-internal sealed record PreviewCard(string Title, string Description);
+/// <summary>
+/// What a link preview card says, in the words of its language: every value plain text, escaped when the card is
+/// rendered.
+/// </summary>
+internal sealed record PreviewCard(string Title, string Description, CardWords Words);
 
 /// <summary>
 /// Link previews of room and share links, for crawlers only (ADR 0044): the hub's Caddy rewrites a known crawler's
 /// <c>/r/&lt;code&gt;</c> and <c>/s/&lt;code&gt;</c> here and passes the answer through, never into a template. This renders
 /// and escapes every value itself, answers 200 every time — the generic card for anything unknown, dead, or past the
-/// limits — and never names anyone at a table, nor a child. A person who lands here anyway — a crawler's name in an
-/// in-app browser — is sent on to the app at once by the card's one script, or by its "Mở Tò He" link with scripts off:
-/// <c>?app=1</c> keeps Caddy from sending them here again.
+/// limits — and never names anyone at a table, nor a child. A card that names a game speaks the language of the link's
+/// maker or of the table's host (ADR 0047); the others speak Vietnamese. A person who lands here anyway — a crawler's
+/// name in an in-app browser — is sent on to the app at once by the card's one script, or by its "Mở Tò He" link with
+/// scripts off: <c>?app=1</c> keeps Caddy from sending them here again.
 /// </summary>
 internal sealed partial class LinkPreviews(
     ShareLinks links, IRoomPreviews rooms, IRegistryGames games, IOptions<AppOptions> app, LinkLimits limits)
 {
-    /// <summary>
-    /// What the app's own page says: the generic card. Its source is the description in apps/hub/index.html — keep the
-    /// two in step.
-    /// </summary>
-    public const string Description =
-        "Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link.";
-
-    public static readonly PreviewCard Generic = new("Tò He", Description);
+    /// <summary>What the app's own page says (apps/hub/index.html): the generic card, in Vietnamese.</summary>
+    public static readonly PreviewCard Generic = new("Tò He", CardWords.Vietnamese.Description, CardWords.Vietnamese);
 
     /// <summary>The query that marks a person sent on to the app: Caddy never answers it with a card (@tohe/routes).</summary>
     public const string AppQuery = "app=1";
@@ -50,8 +48,11 @@ internal sealed partial class LinkPreviews(
         $"default-src 'none'; script-src 'sha256-{Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(SendOnScript)))}'; "
         + "base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 
-    /// <summary>A table's card when it is not listed publicly, or not there: the same for all, naming no one.</summary>
-    public static readonly PreviewCard Table = new("Lời mời vào bàn chơi Tò He", Description);
+    /// <summary>
+    /// A table's card when it is not listed publicly, or not there: the same for all, naming no one — in Vietnamese
+    /// whatever its host speaks, so not even its language tells a private table from no table.
+    /// </summary>
+    public static readonly PreviewCard Table = new(CardWords.Vietnamese.AnyTable, CardWords.Vietnamese.Description, CardWords.Vietnamese);
 
     public static void Map(IEndpointRouteBuilder api)
     {
@@ -72,7 +73,9 @@ internal sealed partial class LinkPreviews(
             && rooms.FindByCode(code) is { Listed: true } room
             && await games.GetAsync(room.GameId, ct) is { } game)
         {
-            card = new PreviewCard($"Lời mời vào bàn {game.Name}", Description);
+            // In the language the table was opened in, the game's name too (ADR 0047, 0048).
+            var words = CardWords.In(room.Language);
+            card = new PreviewCard(words.TableOf(game.NameIn(words.Language)), words.Description, words);
         }
 
         return Answer(http, card, HubPaths.RoomLink, code);
@@ -85,10 +88,13 @@ internal sealed partial class LinkPreviews(
             && await links.ResolveAsync(code, ct) is { State: LinkStates.Ok, Maker: { } maker } resolved
             && await games.GetAsync(resolved.Link.GameId, ct) is { } game)
         {
-            // The maker's current name on the server — a moderator's when one renamed it — never a child's.
+            // The maker's current name on the server — a moderator's when one renamed it — never a child's. In the
+            // language the link was made in, the game's name too (ADR 0047, 0048).
+            var words = CardWords.In(resolved.Link.Language);
+            var name = game.NameIn(words.Language);
             card = maker.Child
-                ? new PreviewCard($"Lời mời chơi {game.Name}", Description)
-                : new PreviewCard($"{maker.Name} mời bạn chơi {game.Name}", Description);
+                ? new PreviewCard(words.InviteTo(name), words.Description, words)
+                : new PreviewCard(words.Invites(maker.Name, name), words.Description, words);
         }
 
         return Answer(http, card, HubPaths.ShareLink, code);
@@ -117,9 +123,10 @@ internal sealed partial class LinkPreviews(
         var description = Escape(card.Description);
         var href = Escape(url);
         var picture = Escape(image);
+        var words = card.Words;
         return $"""
             <!doctype html>
-            <html lang="vi">
+            <html lang="{Escape(words.Language)}">
             <head>
             <meta charset="utf-8">
             <title>{title}</title>
@@ -127,7 +134,7 @@ internal sealed partial class LinkPreviews(
             <meta name="description" content="{description}">
             <meta property="og:type" content="website">
             <meta property="og:site_name" content="Tò He">
-            <meta property="og:locale" content="vi_VN">
+            <meta property="og:locale" content="{Escape(words.Locale)}">
             <meta property="og:url" content="{href}">
             <meta property="og:title" content="{title}">
             <meta property="og:description" content="{description}">
@@ -141,7 +148,7 @@ internal sealed partial class LinkPreviews(
             </head>
             <body>
             <p>{title}</p>
-            <p><a href="{Escape(url + "?" + AppQuery)}">Mở Tò He</a></p>
+            <p><a href="{Escape(url + "?" + AppQuery)}">{Escape(words.Open)}</a></p>
             <script>{SendOnScript}</script>
             </body>
             </html>

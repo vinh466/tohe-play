@@ -1,12 +1,18 @@
-import { Navigate } from '@tanstack/react-router';
-import { type ReactNode, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Navigate, useNavigate } from '@tanstack/react-router';
+import { type ReactNode, useEffect, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+import { deviceProfilesQuery } from '../api/queries.ts';
 import { TermsPrompt } from '../legal/Consent.tsx';
 import { TERMS_VERSION } from '../legal/documents.ts';
-import { Loading } from '../ui/Screen.tsx';
+import { Button } from '../ui/Button.tsx';
+import { Icon } from '../ui/Icon.tsx';
+import { Loading, Screen } from '../ui/Screen.tsx';
+import { sessionEnded } from './ended.ts';
 import { rememberNext } from './next.ts';
 import { deviceMode, type Player, playerGate, type SessionState } from './session.ts';
 import { useSession } from './useSession.ts';
+import { asksWhoIsPlaying, whoIsPlaying } from './whoIsPlaying.ts';
 
 type AccountSession = Extract<SessionState, { status: 'account' }>;
 type DeviceSession = Extract<SessionState, { status: 'device' }>;
@@ -34,11 +40,15 @@ type Props =
  * first (E-03, ADR 0043; `/account/sign-in` opens only when chosen, or for what needs an account); signed-in devices
  * without a chosen player go to the profile picker, and away from the sign-in screens once signed in. The picker is
  * asked to choose by itself (`auto`) when the account leaves nothing to choose. An account that has not accepted the
- * terms the hub shows accepts them first (ADR 0025).
+ * terms the hub shows accepts them first (ADR 0025). Coming back (ADR 0046): an account's session that ended says so
+ * instead of playing on as a device profile, and a cold start after 30 minutes unused asks "Ai đang chơi?" on a device
+ * with more than one profile.
  */
 export function RequireSession(props: Props) {
   const { t } = useTranslation();
   const session = useSession();
+  const ended = useSyncExternalStore(sessionEnded.subscribe, sessionEnded.get);
+  const ask = useWhoIsPlayingAsk(props.need === 'player' ? session : null);
   if (session.status === 'loading') return <Loading label={t('loading')} />;
   if (
     props.need !== 'signedOut' &&
@@ -68,8 +78,11 @@ export function RequireSession(props: Props) {
         props.children(session)
       );
     case 'player': {
+      if (ended && session.status !== 'account') return <SessionEnded returnTo={props.returnTo} />;
       const gate = playerGate(session, { device: props.device ?? true });
       if (gate !== 'play' && props.returnTo) rememberNext(props.returnTo);
+      if (gate === 'play' && ask === 'loading') return <Loading label={t('loading')} />;
+      if (gate === 'play' && ask === 'ask') return <AskWhoIsPlaying returnTo={props.returnTo} />;
       switch (gate) {
         case 'enter-as-device':
           return <EnterAsDevice label={t('loading')} />;
@@ -93,4 +106,67 @@ function EnterAsDevice({ label }: { label: string }) {
     deviceMode.enable();
   }, []);
   return <Loading label={label} />;
+}
+
+/**
+ * Whether this screen asks "Ai đang chơi?" first: the cold start followed 30 minutes unused (whoIsPlaying.ts) and the
+ * device has someone else to choose — the account's profiles, or this device's own.
+ */
+function useWhoIsPlayingAsk(session: SessionState | { status: 'loading' } | null): 'ask' | 'no' | 'loading' {
+  const pending = whoIsPlaying.pending() && session !== null;
+  const device = useQuery({ ...deviceProfilesQuery, enabled: pending && session?.status === 'device' });
+  if (!pending || !session) return 'no';
+  if (session.status === 'account') return asksWhoIsPlaying(true, session.me.profiles.length) ? 'ask' : 'no';
+  if (session.status !== 'device') return 'no';
+  if (!device.data) return device.isError ? 'no' : 'loading';
+  return asksWhoIsPlaying(true, device.data.length) ? 'ask' : 'no';
+}
+
+/**
+ * The picker, asked to show (`ask`): whoever taps their avatar plays, and the screen that asked opens after it — a link
+ * or a table goes on as the entry pipeline keeps it.
+ */
+function AskWhoIsPlaying({ returnTo }: { returnTo?: string }) {
+  const { t } = useTranslation();
+  useState(() => rememberNext(returnTo ?? `${window.location.pathname}${window.location.search}`));
+  return (
+    <>
+      <Loading label={t('loading')} />
+      <Navigate to="/account/profiles" search={{ ask: true }} replace />
+    </>
+  );
+}
+
+/**
+ * The account's session ended (session/ended.ts): said, with a way to sign in that comes back here — and this device's
+ * own profiles only if the player chooses them.
+ */
+function SessionEnded({ returnTo }: { returnTo?: string }) {
+  const { t } = useTranslation();
+  const navigate = useNavigate();
+  return (
+    <Screen narrow back="/play">
+      <section
+        aria-labelledby="session-ended"
+        className="mt-8 flex flex-col gap-4 rounded-3xl bg-surface p-5 text-center shadow-sm"
+      >
+        <Icon name="key" weight="fill" className="mx-auto text-5xl text-accent" />
+        <h1 id="session-ended" className="font-black text-2xl text-brand-ink">
+          {t('sessionEnded.title')}
+        </h1>
+        <p className="text-ink">{t('sessionEnded.body')}</p>
+        <Button
+          onClick={() => {
+            rememberNext(returnTo ?? `${window.location.pathname}${window.location.search}`);
+            void navigate({ to: '/account/sign-in' });
+          }}
+        >
+          {t('sessionEnded.signIn')}
+        </Button>
+        <Button variant="secondary" onClick={() => deviceMode.enable()}>
+          {t('sessionEnded.onDevice')}
+        </Button>
+      </section>
+    </Screen>
+  );
 }

@@ -1,58 +1,63 @@
-// The words of the home page, /. The owner reviews them in the pull request: change them here, not in the page.
+// The words of the home page, / and /en/ (ADR 0046, 0047): one line under the name, the games as the main action, one
+// strip for playing together, three questions parents ask, and the day it was revised. Installing, the story and the
+// promise are linked from the footer and the About page, not repeated here (docs/conventions/voice-and-look.md).
+// The owner reviews the words in the pull request: change them here, not in the page.
+import type { Lang } from '../i18n.ts';
 
-export const home = {
-  title: 'Tò He — game nhỏ, mở ra là chơi',
+const vi = {
+  title: 'Tò He — mấy trò chơi nhỏ cho cả nhà',
   description:
-    'Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link.',
-  lead: 'Những trò chơi nhỏ, nhanh, gọn. Mở link là chơi trên điện thoại hay máy tính — không quảng cáo, không phải đăng ký.',
-  play: 'Chơi ngay — không cần tài khoản',
-  installHint: 'Cài lên màn hình chính',
-  features: [
-    {
-      icon: '📱',
-      title: 'Mở là chơi',
-      text: 'Bấm vào link là vào chơi ngay trên trình duyệt. Không phải tải về, không phải đăng ký trước.',
-    },
-    {
-      icon: '🚫',
-      title: 'Không quảng cáo',
-      text: 'Chơi liền mạch, không bị cắt ngang. Không bán gì trong game, không theo dõi bạn.',
-    },
-    {
-      icon: '🔗',
-      title: 'Rủ bạn bằng một link',
-      text: 'Mở phòng chơi, gửi link qua Zalo hay Messenger là bạn vào cùng bàn.',
-    },
-    {
-      icon: '💾',
-      title: 'Giữ tiến độ khi bạn muốn',
-      text: 'Chơi trước, đăng nhập sau: tạo tài khoản khi bạn muốn giữ điểm, chơi trên máy khác hay lên bảng xếp hạng.',
-    },
-  ],
+    'Mấy trò chơi nhỏ cho cả nhà. Mở là chơi, không quảng cáo, không cần tài khoản. Muốn thì giữ tiến độ, hoặc gửi link rủ cả nhà vào chơi cùng.',
+  /** The one line under the name: what Tò He is, in five seconds (ADR 0047). */
+  line: 'Mấy trò chơi nhỏ cho cả nhà. Mở là chơi, không quảng cáo.',
+  /** Only on a device that has played here (src/scripts/returning.js): to the app, at the top of the page. */
+  continue: 'Chơi tiếp',
   games: {
     heading: 'Chơi gì hôm nay?',
-    all: 'Xem tất cả trò chơi →',
+    all: 'Xem tất cả trò chơi',
   },
-  install: {
-    heading: 'Như một ứng dụng trên điện thoại',
-    text: 'Thêm Tò He vào màn hình chính để mở nhanh, chạy toàn màn hình và chơi được cả khi mất mạng. Android, iPhone hay máy tính đều được.',
-    link: 'Xem cách cài →',
-  },
-  story: {
-    heading: 'Vì sao lại là "Tò He"?',
-    text: 'Tò he là món đồ chơi nặn bằng bột màu của trẻ em Việt: nhỏ xinh, nhiều màu và được nặn rất nhanh. Mỗi trò chơi ở đây cũng vậy — một con tò he nhỏ, nặn nhanh từ cùng một "bột nền" kỹ thuật chung.',
+  friends: {
+    heading: 'Chơi cùng',
+    text: 'Mở bàn, gửi link qua Zalo là cả nhà vào chơi, mỗi người một máy.',
+    tryWith: 'Thử với',
   },
   questions: {
-    heading: 'Còn thắc mắc?',
-    text: 'Miễn phí không, dữ liệu để đâu, bé chơi có ổn không — câu trả lời ngắn ở trang Hỏi đáp.',
-    link: 'Đọc Hỏi đáp →',
-  },
-  dev: {
-    heading: 'Dành cho người làm game',
-    text: 'Mỗi trò chơi là một gói độc lập, giao tiếp với nền tảng qua một hợp đồng nhỏ và ổn định. Tài liệu kỹ thuật (tiếng Anh) mô tả kiến trúc, hợp đồng và cách tạo game mới — cho cả người lẫn AI.',
-    link: 'Đọc tài liệu →',
+    heading: 'Bố mẹ hay hỏi',
+    all: 'Xem tất cả câu hỏi',
   },
   organization: {
-    description: 'Tò He là một góc chơi nhỏ gồm những trò chơi đơn giản trên trình duyệt, không quảng cáo.',
+    description: 'Tò He là mấy trò chơi nhỏ chơi ngay trên trình duyệt, không quảng cáo.',
   },
+  /** The day these words were last revised; the page shows the latest of it and its games' (YYYY-MM-DD). */
+  updated: '2026-10-23',
 };
+
+const en: typeof vi = {
+  title: 'Tò He — small games for the whole family',
+  description:
+    'Small games for the whole family. Open and play, no ads, no account needed. Keep your progress if you like, or send a link and play together.',
+  line: 'Small games for the whole family. Open and play, no ads.',
+  continue: 'Continue',
+  games: {
+    heading: 'What to play today?',
+    all: 'See all games',
+  },
+  friends: {
+    heading: 'Play together',
+    text: 'Open a table and send the link over Zalo. The whole family can join, each on their own phone.',
+    tryWith: 'Try it with',
+  },
+  questions: {
+    heading: 'Parents often ask',
+    all: 'See all questions',
+  },
+  organization: {
+    description: 'Tò He is a handful of small games that play right in the browser, with no ads.',
+  },
+  updated: '2026-10-23',
+};
+
+export const home: Record<Lang, typeof vi> = { vi, en };
+
+/** The questions the home page links to, by id (src/content/faq.ts): the three a parent asks first. */
+export const homeQuestionIds = ['mien-phi', 'tre-em', 'du-lieu'] as const;

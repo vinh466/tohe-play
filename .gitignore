@@ -30,5 +30,6 @@ TestResults/
 !.vscode/extensions.json
 *.swp
 
-# agent worktrees
+# agent worktrees, and the claims the master writes into one (pnpm claims)
 .claude/worktrees/
+.agent-claims

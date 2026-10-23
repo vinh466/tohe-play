@@ -1258,6 +1258,14 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(8)")
                         .HasColumnName("kind");
 
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasDefaultValue("vi")
+                        .HasColumnName("language");
+
                     b.Property<string>("Level")
                         .IsRequired()
                         .HasMaxLength(8)
@@ -1441,6 +1449,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("character varying(200)")
                         .HasColumnName("description");
 
+                    b.Property<string>("Descriptions")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("descriptions")
+                        .HasDefaultValueSql("'{}'::jsonb");
+
                     b.PrimitiveCollection<string[]>("Entries")
                         .IsRequired()
                         .ValueGeneratedOnAdd()
@@ -1489,6 +1504,13 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasMaxLength(40)
                         .HasColumnType("character varying(40)")
                         .HasColumnName("name");
+
+                    b.Property<string>("Names")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("jsonb")
+                        .HasColumnName("names")
+                        .HasDefaultValueSql("'{}'::jsonb");
 
                     b.Property<string>("Orientation")
                         .IsRequired()
@@ -1622,6 +1644,14 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                     b.Property<bool>("IsPublic")
                         .HasColumnType("boolean")
                         .HasColumnName("is_public");
+
+                    b.Property<string>("Language")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(2)
+                        .HasColumnType("character varying(2)")
+                        .HasDefaultValue("vi")
+                        .HasColumnName("language");
 
                     b.Property<bool>("Locked")
                         .HasColumnType("boolean")

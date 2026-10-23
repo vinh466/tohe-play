@@ -11,6 +11,7 @@ import { ProviderButtons } from '../session/ProviderButtons.tsx';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { deviceMode } from '../session/session.ts';
 import { useSetMe } from '../session/useSession.ts';
+import { db } from '../storage/db.ts';
 import { Button } from '../ui/Button.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
 import { Screen } from '../ui/Screen.tsx';
@@ -46,7 +47,7 @@ function SignIn() {
   const queryClient = useQueryClient();
   const setMe = useSetMe();
   const config = useQuery(configQuery);
-  const { external, deleting } = useSearch({ from: '/account/sign-in' });
+  const { external, deleting } = useSearch({ from: '/_frame/account/sign-in' });
   // The console's switches (ADR 0028).
   const passwordOn = config.data?.passwordSignIn ?? true;
   const registration = config.data?.registration ?? 'open';
@@ -71,9 +72,11 @@ function SignIn() {
 
   const signOut = useMutation({
     mutationFn: () => auth.logout(),
-    onSettled: () => {
+    onSettled: async () => {
       // Whoever signs in next on this device did not come for this tab's entry (ADR 0044).
       entry.forget();
+      // Signing out is a choice, not a session that ended (session/ended.ts): what the hub kept of it goes first.
+      await db.cache.delete('me');
       setNeedsEmail(false);
       setPassword('');
     },
@@ -88,7 +91,7 @@ function SignIn() {
   const playOnDevice = async () => {
     deviceMode.enable();
     await queryClient.invalidateQueries({ queryKey: ['me'] });
-    await navigate({ to: '/', replace: true });
+    await navigate({ to: '/play', replace: true });
   };
 
   if (needsEmail) {

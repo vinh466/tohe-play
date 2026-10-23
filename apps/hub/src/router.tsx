@@ -8,14 +8,17 @@ import {
   redirect,
 } from '@tanstack/react-router';
 import { canonicalEntry } from './entry/codes.ts';
+import { AppFrame } from './frame/AppFrame.tsx';
 import { AccountEmailPage } from './pages/AccountEmailPage.tsx';
-import { AccountPage } from './pages/AccountPage.tsx';
+import { AccountPage, type AccountSearch } from './pages/AccountPage.tsx';
 import { CatalogPage } from './pages/CatalogPage.tsx';
 import { ContinueSignInPage } from './pages/ContinueSignInPage.tsx';
 import { DataPage } from './pages/DataPage.tsx';
+import { NotFoundPage } from './pages/NotFoundPage.tsx';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordPage.tsx';
 import { ProfilesPage } from './pages/ProfilesPage.tsx';
 import { ConfirmRegistrationPage, RegisterPage } from './pages/RegisterPage.tsx';
+import { TogetherPage } from './pages/TogetherPage.tsx';
 import { WelcomePage } from './pages/WelcomePage.tsx';
 
 interface RouterContext {
@@ -26,9 +29,21 @@ const rootRoute = createRootRouteWithContext<RouterContext>()({
   component: () => <Outlet />,
 });
 
-const catalogRoute = createRoute({ getParentRoute: () => rootRoute, path: '/play', component: CatalogPage });
+/**
+ * The app's frame (ADR 0046): the three tabs — Trò chơi, Chơi cùng, Tôi — around every screen of the Play zone but a
+ * game in play, its lobby, a table, a replay and the links into them, which stay full screen (ADR 0020).
+ */
+const frameRoute = createRoute({ getParentRoute: () => rootRoute, id: '_frame', component: AppFrame });
+
+const catalogRoute = createRoute({ getParentRoute: () => frameRoute, path: '/play', component: CatalogPage });
+/** Chơi cùng: a code, the tables the player sits at, the invitations to them, the links they sent (ADR 0046). */
+const togetherRoute = createRoute({
+  getParentRoute: () => frameRoute,
+  path: '/together',
+  component: TogetherPage,
+});
 const welcomeRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/sign-in',
   // ?external=failed: back from a provider that refused, or was cancelled (ADR 0026). ?deleting=<when>: the account
   // just asked to be deleted, and goes then (ADR 0034).
@@ -40,12 +55,12 @@ const welcomeRoute = createRoute({
 });
 /** Back from a provider for the first time: one more step on this browser (ADR 0026). */
 const continueSignInRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/sign-in/continue',
   component: ContinueSignInPage,
 });
 const registerRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/register',
   // ?invite=CODE: a community's invite link (ADR 0028).
   validateSearch: (search: Record<string, unknown>): { invite?: string } => ({
@@ -64,47 +79,52 @@ const codeLink = (search: Record<string, unknown>): { attempt: string; code: str
 });
 
 const confirmRegistrationRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/register/confirm',
   validateSearch: codeLink,
   component: ConfirmRegistrationPage,
 });
 const forgotPasswordRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/password/forgot',
   component: ForgotPasswordPage,
 });
 const resetPasswordRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/password/reset',
   validateSearch: codeLink,
   component: ResetPasswordPage,
 });
 const accountEmailRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/email',
   validateSearch: codeLink,
   component: AccountEmailPage,
 });
 const profilesRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/profiles',
   // ?auto=true when the hub sent someone here to pick a player: an account with one profile and no PIN plays at once
   // (D-01). Opened by hand ("Đổi người chơi"), the picker always shows, to add profiles or manage the account.
-  validateSearch: (search: Record<string, unknown>): { auto?: boolean } => ({
+  // ?ask=true: "Ai đang chơi?" at a cold start after 30 minutes unused (ADR 0046) — it shows, and the screen that asked
+  // opens after it, the entry this tab keeps with it.
+  validateSearch: (search: Record<string, unknown>): { auto?: boolean; ask?: boolean } => ({
     auto: search.auto === true || search.auto === 'true' ? true : undefined,
+    ask: search.ask === true || search.ask === 'true' ? true : undefined,
   }),
   component: ProfilesPage,
 });
+/**
+ * Tôi (ADR 0046), and Quản lý tài khoản behind the parent gate with `?manage=true`. ?add=true opens the "new profile"
+ * form right after the gate; ?linked= and ?link_error= come back from linking a provider (ADR 0026) — both are
+ * Quản lý tài khoản's too.
+ */
 const accountRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account',
-  // ?add=true opens the "new profile" form right after the parent gate. ?linked= and ?link_error= come back from
-  // linking a provider (ADR 0026).
-  validateSearch: (
-    search: Record<string, unknown>,
-  ): { add: boolean; linked?: string; link_error?: string } => ({
-    add: search.add === true || search.add === 'true',
+  validateSearch: (search: Record<string, unknown>): AccountSearch => ({
+    manage: search.manage === true || search.manage === 'true' ? true : undefined,
+    add: search.add === true || search.add === 'true' ? true : undefined,
     linked: typeof search.linked === 'string' ? search.linked : undefined,
     link_error: typeof search.link_error === 'string' ? search.link_error : undefined,
   }),
@@ -120,12 +140,12 @@ const accountRoute = createRoute({
  * codes, the camera).
  */
 const transferRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/transfer',
   component: lazyRouteComponent(() => import('./pages/TransferPage.tsx'), 'TransferReceivePage'),
 });
 const transferSendRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/transfer/send',
   validateSearch: (search: Record<string, unknown>): { profile: string } => ({
     profile: typeof search.profile === 'string' ? search.profile : '',
@@ -135,14 +155,14 @@ const transferSendRoute = createRoute({
 
 /** "Link của tôi" (ADR 0044): the share links the profile playing made, their counts, a new expiry, revoking. */
 const linksRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/links',
   component: lazyRouteComponent(() => import('./pages/LinksPage.tsx'), 'LinksPage'),
 });
 
 /** What telemetry sends, this device's switch and the last batch (ADR 0015); open to everyone. */
 const dataRoute = createRoute({
-  getParentRoute: () => rootRoute,
+  getParentRoute: () => frameRoute,
   path: '/account/data',
   component: DataPage,
 });
@@ -200,29 +220,34 @@ const replayRoute = createRoute({
 export function createAppRouter(queryClient: QueryClient) {
   return createRouter({
     routeTree: rootRoute.addChildren([
-      catalogRoute,
-      welcomeRoute,
-      continueSignInRoute,
-      registerRoute,
-      confirmRegistrationRoute,
-      forgotPasswordRoute,
-      resetPasswordRoute,
-      profilesRoute,
-      accountRoute,
-      accountEmailRoute,
-      dataRoute,
-      transferRoute,
-      transferSendRoute,
+      frameRoute.addChildren([
+        catalogRoute,
+        togetherRoute,
+        welcomeRoute,
+        continueSignInRoute,
+        registerRoute,
+        confirmRegistrationRoute,
+        forgotPasswordRoute,
+        resetPasswordRoute,
+        profilesRoute,
+        accountRoute,
+        accountEmailRoute,
+        dataRoute,
+        transferRoute,
+        transferSendRoute,
+        linksRoute,
+      ]),
       playRoute,
       roomsRoute,
       roomLinkRoute,
       shareLinkRoute,
-      linksRoute,
       roomRoute,
       replayRoute,
     ]),
     context: { queryClient },
     defaultPreload: 'intent',
+    // A path that is no screen: in the app's language, with a way to Trò chơi (never TanStack's bare "Not Found").
+    defaultNotFoundComponent: NotFoundPage,
   });
 }
 

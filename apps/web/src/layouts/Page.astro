@@ -1,102 +1,172 @@
 ---
-// The frame of every public page (ADR 0042): head with the title, description, canonical and link-preview tags, the
-// structured data a page brings, the header with its navigation and light/dark buttons, and the footer.
-// Colours come from the design tokens (ADR 0013). The page's CSP allows no inline script and no inline style: the
-// scripts below are files under /_web/, and a JSON-LD block is data, not a script that runs.
+// The frame of every public page (ADR 0042, 0047): head with the language, title, description, canonical and
+// link-preview tags, the structured data a page brings, the header with its navigation, the VI | EN switch and the
+// way into the app, the suggestion to read in English, and the footer with its links and the light/dark buttons. The page's language is Astro's i18n routing's
+// (astro.config.ts: Vietnamese at the root, English under /en/); its pair in the other language comes from
+// @tohe/routes, which declares the pages that have none yet. Colours come from the design tokens (ADR 0013). The page's
+// CSP allows no inline script and no inline style: the scripts below are files under /_web/, and a JSON-LD block is
+// data, not a script that runs.
 import '@tohe/design-tokens/tokens.css';
+import '@tohe/design-tokens/fonts.css';
 import themeInitUrl from '@tohe/design-tokens/theme-init.js?url';
 import '../styles/site.css';
-import { absolute, docsUrl, site } from '../content/site.ts';
+import {
+  absolute,
+  docsUrl,
+  languageNames,
+  noEnglishPage,
+  site,
+  siteWords,
+  suggestion,
+} from '../content/site.ts';
+import { appPath, languages, localPath, ogLocales, otherLanguage, pageLanguage, pairOf } from '../i18n.ts';
+import fromAppUrl from '../scripts/from-app.js?url';
 import returningUrl from '../scripts/returning.js?url';
+import ThemeIcon from './ThemeIcon.astro';
 
 interface Props {
   title: string;
   description: string;
   /** The page's own path, with its closing slash: the canonical link and og:url. */
   path: string;
-  /** Only the home page: a browser that has played here goes on to the app. */
-  returning?: boolean;
-  /** Structured data: one JSON-LD block each. */
+  /** The link-preview picture, 1200×630: the shared one, or a game page's own (made by scripts/render-og.ts). */
+  image?: { path: string; alt: string };
+  /** Structured data: one JSON-LD block each, with the page's `inLanguage` (the build checks it). */
   jsonLd?: Record<string, unknown>[];
 }
 
-const { title, description, path, returning = false, jsonLd = [] } = Astro.props;
+const { title, description, path, image: picture, jsonLd = [] } = Astro.props;
+const lang = pageLanguage(Astro.currentLocale);
+const words = siteWords[lang];
+const other = otherLanguage(lang);
+/** The same page in the other language; none for a page declared Vietnamese-only (the terms, the privacy notice). */
+const pair = pairOf(path);
 const url = absolute(path);
-const image = absolute(site.ogImage.path);
+const image = absolute(picture?.path ?? site.ogImage.path);
+const imageAlt = picture?.alt ?? words.imageAlt;
 // "<" is escaped so no text in the data can close the block.
 const blocks = jsonLd.map((data) =>
   JSON.stringify({ '@context': 'https://schema.org', ...data }).replace(/</g, '\\u003c'),
 );
 const current = (href: string) => (path === href || path.startsWith(href) ? 'page' : undefined);
+/** Where the switch's button for `language` leads: this page, its pair, or — with no pair — that language's home. */
+const switchTo = (language: typeof lang) => (language === lang ? path : (pair ?? localPath(language, '/')));
+// The terms and the privacy notice are in Vietnamese only: an English page's links say so in their label and hreflang.
+const legalHreflang = lang === 'vi' ? undefined : 'vi';
 ---
 
 <!doctype html>
-<html lang="vi">
+<html lang={lang}>
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
     <title>{title}</title>
     <meta name="description" content={description} />
-    <meta name="theme-color" content="#f97316" />
+    <meta name="theme-color" media="(prefers-color-scheme: light)" content="#f97316" />
+    <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#17110e" />
     <link rel="canonical" href={url} />
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content={site.name} />
-    <meta property="og:locale" content="vi_VN" />
+    <meta property="og:locale" content={ogLocales[lang]} />
+    {pair && <meta property="og:locale:alternate" content={ogLocales[other]} />}
     <meta property="og:title" content={title} />
     <meta property="og:description" content={description} />
     <meta property="og:url" content={url} />
     <meta property="og:image" content={image} />
     <meta property="og:image:width" content={String(site.ogImage.width)} />
     <meta property="og:image:height" content={String(site.ogImage.height)} />
-    <meta property="og:image:alt" content={site.ogImage.alt} />
+    <meta property="og:image:alt" content={imageAlt} />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content={title} />
     <meta name="twitter:description" content={description} />
     <meta name="twitter:image" content={image} />
     {blocks.map((block) => <script is:inline type="application/ld+json" set:html={block} />)}
-    {/* Blocking, before the first paint. On the home page a browser that has played here goes to the app; the saved light/dark choice applies everywhere. */}
-    {returning && <script is:inline src={returningUrl}></script>}
+    {/* Blocking, before the first paint, on every page: whether this browser has opened a game here (Chơi tiếp replaces Chơi ngay at once, without a jump); whether the visit came from the app (no link out of Tò He shows); the saved light/dark choice. */}
+    <script is:inline src={returningUrl}></script>
+    <script is:inline src={fromAppUrl}></script>
     <script is:inline src={themeInitUrl}></script>
   </head>
   <body>
-    <a class="skip" href="#main">{site.skip}</a>
+    <a class="skip" href="#main">{words.skip}</a>
     <header class="site-header">
-      <a class="brand" href="/" aria-label={`${site.name} — trang chủ`}>
+      <a class="brand" href={localPath(lang, '/')} aria-label={`${site.name} — ${words.home}`}>
         <img src="/favicon.svg" alt="" width="40" height="40" />
         <span>{site.name}</span>
       </a>
-      <nav aria-label={site.navLabel}>
+      <nav class="site-nav" aria-label={words.navLabel}>
         {
-          site.nav.map(({ label, href }) => (
-            <a href={href} aria-current={current(href)}>
-              {label}
+          words.nav.map(({ label, path: target }) => {
+            const href = localPath(lang, target);
+            return (
+              <a href={href} aria-current={current(href)}>
+                {label}
+              </a>
+            );
+          })
+        }
+      </nav>
+      <nav class="languages" aria-label={words.switch.label}>
+        {
+          languages.map((language) => (
+            <a
+              href={switchTo(language)}
+              hreflang={language}
+              lang={language}
+              data-language={language}
+              aria-current={language === lang ? 'true' : undefined}
+              aria-label={language !== lang && !pair ? noEnglishPage : languageNames[language].full}
+              title={language !== lang && !pair ? noEnglishPage : languageNames[language].full}
+            >
+              {languageNames[language].short}
             </a>
           ))
         }
       </nav>
-      <div class="themes" role="group" aria-label={site.themeLabel}>
-        {
-          site.themes.map(({ choice, icon, label }) => (
-            <button type="button" data-choice={choice} aria-label={label} title={label} aria-pressed="false">
-              <span aria-hidden="true">{icon}</span>
-            </button>
-          ))
-        }
-      </div>
+      {/* Into the app, on phones too (ADR 0046): "Chơi ngay", or "Chơi tiếp" on a device that has opened a game (returning.js sets data-returning; the stylesheet shows one of the two). */}
+      <a class="header-play new" href={appPath(lang, '/play')}>{words.play}</a>
+      <a class="header-play again" href={appPath(lang, '/play')}>{words.continue}</a>
     </header>
+
+    {
+      lang === 'vi' && pair && (
+        <aside class="language-suggestion" lang="en" data-language-suggestion hidden>
+          <a href={pair} hreflang="en" data-language="en">
+            {suggestion.text}
+          </a>
+          <button type="button" data-language="vi">
+            {suggestion.stay}
+          </button>
+        </aside>
+      )
+    }
 
     <slot />
 
     <footer class="site-footer">
-      <p>{site.footer.line}</p>
       <p class="links">
-        <a href="/terms/">{site.footer.terms}</a>
-        <a href="/privacy/">{site.footer.privacy}</a>
-        <a href={`${docsUrl}/`}>{site.footer.docs}</a>
-        <a href={site.github}>{site.footer.github}</a>
-        <a href={`mailto:${site.email}`}>{site.email}</a>
+        <a href={localPath(lang, '/about/')}>{words.footer.about}</a>
+        <a href={localPath(lang, '/promise/')}>{words.footer.promise}</a>
+        <a href={localPath(lang, '/guides/install/')}>{words.footer.install}</a>
+        <a href="/terms/" hreflang={legalHreflang}>{words.footer.terms}</a>
+        <a href="/privacy/" hreflang={legalHreflang}>{words.footer.privacy}</a>
+        {/* The links out of Tò He carry data-out: a visit that came from the app shows none (from-app.js). */}
+        <a href={`${docsUrl}/`} data-out>{words.footer.docs}</a>
+        <a href={site.github} data-out>{words.footer.github}</a>
+        <a href={`mailto:${site.email}`} data-out>{site.email}</a>
       </p>
+      {/* Light, dark or the device's: three buttons with a word each; the script below keeps them true. */}
+      <div class="themes" role="group" aria-label={words.themeLabel}>
+        {
+          words.themes.map(({ choice, label }) => (
+            <button type="button" data-choice={choice} aria-pressed="false">
+              <ThemeIcon choice={choice} />
+              <span>{label}</span>
+            </button>
+          ))
+        }
+      </div>
+      <p class="line">{words.footer.line}</p>
     </footer>
   </body>
 </html>
@@ -110,8 +180,9 @@ const current = (href: string) => (path === href || path.startsWith(href) ? 'pag
     savedChoice,
     type ThemeChoice,
   } from '@tohe/design-tokens/theme';
+  import { localStorageOrNothing, startLanguage } from '../scripts/language.ts';
 
-  // The three buttons show and change the choice; "Theo máy" follows the device live.
+  // The three buttons in the footer show and change the choice; "Theo máy" follows the device live.
   const buttons = [...document.querySelectorAll<HTMLButtonElement>('.themes button')];
   const device = deviceScheme();
   const show = () => {
@@ -127,4 +198,11 @@ const current = (href: string) => (path === href || path.startsWith(href) ? 'pag
   }
   device.addEventListener('change', show);
   show();
+
+  // The VI | EN switch remembers the choice; a Vietnamese page suggests its English one to a reader it is for.
+  startLanguage(
+    document,
+    localStorageOrNothing(),
+    navigator.languages.length > 0 ? navigator.languages : [navigator.language],
+  );
 </script>

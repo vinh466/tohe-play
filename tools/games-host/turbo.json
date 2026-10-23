@@ -1,6 +1,9 @@
 {
   "extends": ["//"],
   "tasks": {
-    "build": { "cache": false }
+    "build": { "cache": false },
+    "test": {
+      "inputs": ["$TURBO_DEFAULT$", "$TURBO_ROOT$/games/*/public/**", "$TURBO_ROOT$/games/*/page/**"]
+    }
   }
 }

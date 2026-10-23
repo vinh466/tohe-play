@@ -1,38 +1,58 @@
-// /llms.txt: the public pages as a list for AI readers (llmstxt.org). Cheap and no promise that anyone reads it
-// (plans/product-surface R-02). Written from the same content as the pages, so it never lists a page that is not there.
+// /llms.txt: the public pages as a list for AI readers (llmstxt.org), in both languages in one file (ADR 0047). Cheap
+// and no promise that anyone reads it (plans/product-surface R-02). Written from the same content as the pages, so it
+// never lists a page that is not there.
 import type { APIRoute } from 'astro';
 import { about } from '../content/about.ts';
 import { faq } from '../content/faq.ts';
 import { loadGames } from '../content/games.ts';
 import { home } from '../content/home.ts';
 import { guides, install } from '../content/install.ts';
+import { legal } from '../content/legal.ts';
+import { promise } from '../content/promise.ts';
 import { absolute, docsUrl, site } from '../content/site.ts';
+import { type Lang, localPath } from '../i18n.ts';
+
+const link = (name: string, path: string, text: string) => `- [${name}](${absolute(path)}): ${text}`;
+
+/** The pages of one language: the main ones, then the games. */
+const pages = (lang: Lang) => [
+  link(site.name, localPath(lang, '/'), home[lang].line),
+  link(guides[lang].heading, localPath(lang, '/guides/'), guides[lang].lead),
+  link(install[lang].heading, localPath(lang, '/guides/install/'), install[lang].description),
+  link(faq[lang].heading, localPath(lang, '/faq/'), faq[lang].description),
+  link(about[lang].heading, localPath(lang, '/about/'), about[lang].description),
+  link(promise[lang].heading, localPath(lang, '/promise/'), promise[lang].description),
+];
+const games = (lang: Lang) =>
+  loadGames(lang).map((game) => link(game.name, localPath(lang, `/games/${game.id}/`), game.metaDescription));
 
 export const GET: APIRoute = () => {
-  const link = (name: string, path: string, text: string) => `- [${name}](${absolute(path)}): ${text}`;
   const lines = [
     `# ${site.name}`,
     '',
-    `> ${home.description}`,
+    `> ${home.vi.description}`,
     '',
-    'Tiếng Việt. Không quảng cáo, không theo dõi; chơi không cần tài khoản.',
+    'Tiếng Việt tại /, English at /en/. Không quảng cáo, không theo dõi; chơi không cần tài khoản. No ads, no tracking; no account needed to play.',
     '',
     '## Trang chính',
-    link(site.name, '/', home.lead),
-    link(guides.heading, '/guides/', guides.lead),
-    link(install.heading, '/guides/install/', install.description),
-    link(faq.heading, '/faq/', faq.description),
-    link(about.heading, '/about/', about.description),
+    ...pages('vi'),
     '',
     '## Trò chơi',
     link('Tất cả trò chơi', '/games/', 'Danh sách các trò chơi.'),
-    ...loadGames().map((game) => link(game.name, `/games/${game.id}/`, game.metaDescription)),
+    ...games('vi'),
     '',
-    '## Pháp lý',
-    link('Điều khoản sử dụng', '/terms/', 'Điều khoản sử dụng Tò He.'),
-    link('Chính sách quyền riêng tư', '/privacy/', 'Tò He lưu những gì, ai thấy gì, quyền của bạn.'),
+    '## Pháp lý (chỉ có tiếng Việt / in Vietnamese only)',
+    link(legal.other.terms, '/terms/', 'Điều khoản sử dụng Tò He.'),
+    link(legal.other.privacy, '/privacy/', 'Tò He lưu những gì, ai thấy gì, quyền của bạn.'),
     '',
-    '## Tài liệu kỹ thuật (tiếng Anh)',
+    '## English',
+    ...pages('en'),
+    '',
+    '## Games (English)',
+    link('All games', '/en/games/', 'The list of games.'),
+    ...games('en'),
+    '',
+    '## Tài liệu kỹ thuật / Developer docs (English)',
     `- [Tò He docs](${docsUrl}/): architecture, the Game Contract and how to add a game.`,
     '',
   ];

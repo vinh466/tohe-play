@@ -2,31 +2,12 @@
 # Do not edit: change the map and regenerate (ADR 0042, docs/architecture/hosts-and-paths.md).
 # The namespaces of the hub’s host as named matchers; Caddyfile.hub serves each and answers 404 to the rest.
 @apiProxy path /api /api/*
-@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /terms /terms/* /privacy /privacy/* /og.png /llms.txt
+@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /promise /promise/* /terms /terms/* /privacy /privacy/* /en /en/* /og.png /llms.txt
 @publicStaticImmutable path /_web /_web/*
-@appPage path /play /play/* /account /account/* /r /r/* /s /s/*
+@appPage path /play /play/* /together /together/* /account /account/* /r /r/* /s /s/*
 @appStaticImmutable path /assets /assets/*
-@appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /registerSW.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png /screenshots /screenshots/*
+@appStaticRevalidate path /index.html /manifest.webmanifest /sw.js /workbox-* /theme-init.js /favicon.svg /apple-touch-icon.png /icon-192.png /icon-512.png /icon-maskable-512.png /screenshots /screenshots/*
 @platformGenerated path /robots.txt /sitemap.xml /.well-known /.well-known/*
-# The app’s old paths, kept for the links in emails already sent: 301 to the new path, the query kept.
-@legacyWelcome path_regexp legacyWelcome ^/welcome$
-redir @legacyWelcome /account/sign-in?{query} 301
-@legacySignIn path_regexp legacySignIn ^/sign-in(/.*)?$
-redir @legacySignIn /account/sign-in{re.legacySignIn.1}?{query} 301
-@legacyRegister path_regexp legacyRegister ^/register(/.*)?$
-redir @legacyRegister /account/register{re.legacyRegister.1}?{query} 301
-@legacyPassword path_regexp legacyPassword ^/password(/.*)?$
-redir @legacyPassword /account/password{re.legacyPassword.1}?{query} 301
-@legacyProfiles path_regexp legacyProfiles ^/profiles$
-redir @legacyProfiles /account/profiles?{query} 301
-@legacyData path_regexp legacyData ^/data$
-redir @legacyData /account/data?{query} 301
-@legacyTerms path_regexp legacyTerms ^/legal/terms$
-redir @legacyTerms /terms/?{query} 301
-@legacyPrivacy path_regexp legacyPrivacy ^/legal/privacy$
-redir @legacyPrivacy /privacy/?{query} 301
-@legacyRooms path_regexp legacyRooms ^/rooms/([^/]+)$
-redir @legacyRooms /play/{re.legacyRooms.1}/rooms?{query} 301
 # Link previews: a crawler asking for a link of a previewed namespace gets the API’s card for it; people the app.
 @linkPreview {
 	path_regexp linkPreview ^/(r|s)/([0-9A-Za-z-]{1,20})$

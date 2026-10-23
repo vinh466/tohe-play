@@ -10,7 +10,8 @@
 }
 body {
   margin: 0;
-  font-family: system-ui, sans-serif;
+  /* --tohe-font is the design tokens' own face (Be Vietnam Pro, self-hosted); until it is there, the device's. */
+  font-family: var(--tohe-font, system-ui, sans-serif);
   background: var(--tohe-page);
   color: var(--tohe-ink);
   line-height: 1.6;
@@ -78,16 +79,6 @@ main {
   margin: 0 auto;
   padding: 0 1rem 3rem;
 }
-/* The home page: the hero runs the full width, the rest sits in a container. */
-main.full {
-  max-width: none;
-  padding: 0;
-}
-main.full .container {
-  max-width: 60rem;
-  margin: 0 auto;
-  padding: 0 1rem 3rem;
-}
 main.narrow {
   max-width: 44rem;
 }
@@ -121,58 +112,128 @@ section > h2 {
   text-decoration: none;
 }
 
-/* The home page */
+/* The home page: one line under the name, the games, one strip for playing together, three questions.
+   *Chơi tiếp* only on a browser that has played here. */
 .hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.75rem;
-  padding: 2rem 1.5rem 3rem;
-  text-align: center;
-  background: linear-gradient(180deg, var(--tohe-soft-strong) 0%, var(--tohe-page) 100%);
-}
-.hero img {
-  border-radius: 24px;
+  padding: 1rem 0 0.5rem;
 }
 .hero h1 {
   margin: 0;
-  font-size: clamp(2.5rem, 8vw, 4rem);
+  font-size: clamp(2.25rem, 8vw, 3.25rem);
   font-weight: 900;
   color: var(--tohe-brand-ink);
 }
 .hero .lead {
-  max-width: 34rem;
-  margin: 0;
+  max-width: 36rem;
+  margin: 0.25rem 0 0;
   font-size: 1.2rem;
   color: var(--tohe-ink);
 }
-.hero .hint {
-  margin: 0.5rem 0 0;
+/* src/scripts/returning.js sets data-returning on <html> before the first paint. */
+.continue {
+  display: none;
+  margin: 0 0 1rem;
 }
-.features {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(13rem, 1fr));
-  gap: 1rem;
+.continue .button {
+  display: block;
+}
+:root[data-returning] .continue {
+  display: block;
+}
+@media (min-width: 48rem) {
+  .continue .button {
+    display: inline-block;
+  }
+}
+/* src/scripts/from-app.js sets data-from-app on <html> when the app opened the page: no link leaves Tò He (the ones
+   marked data-out), so a child reading Help or the papers has nowhere to go but back to the app or on in the site. */
+:root[data-from-app] [data-out] {
+  display: none;
+}
+.home-games {
   margin-top: 1.5rem;
 }
-.features article {
-  padding: 1.25rem;
+.home-games > h2 {
+  margin-bottom: 0.75rem;
+}
+.tiles {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9.5rem, 1fr));
+  gap: 0.75rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.tile {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.25rem;
+  height: 100%;
+  padding: 1rem 0.75rem 1.1rem;
   border-radius: 1.25rem;
   background: var(--tohe-surface);
+  border: 1px solid var(--tohe-line);
+  color: var(--tohe-ink);
+  text-align: center;
+  text-decoration: none;
 }
-.features h2 {
-  margin: 0.5rem 0 0.25rem;
+.tile:hover {
+  border-color: var(--tohe-brand);
+}
+.tile img {
+  margin-bottom: 0.35rem;
+  border-radius: 22px;
+}
+.tile-name {
   font-size: 1.15rem;
+  font-weight: 800;
+  line-height: 1.25;
+  color: var(--tohe-ink);
 }
-.features p {
-  margin: 0;
+.tile-kind {
+  font-size: 0.95rem;
+  line-height: 1.35;
   color: var(--tohe-ink-soft);
 }
-.features .icon {
-  font-size: 1.75rem;
+.all-games {
+  margin: 1rem 0 0;
+  font-weight: 700;
+}
+/* Playing together: a tinted strip with one sentence, not a card. */
+.strip {
+  margin-top: 2rem;
+  padding: 1rem 1.25rem;
+  border-radius: 1.25rem;
+  background: var(--tohe-soft);
+}
+.strip h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.15rem;
+}
+.strip p {
+  margin: 0;
+}
+/* The three questions: plain rows, each a link into the FAQ. */
+.asks {
+  margin: 0.25rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.ask + .ask {
+  border-top: 1px solid var(--tohe-line);
+}
+.asks a {
+  display: block;
+  padding: 0.75rem 0;
+  font-weight: 600;
+}
+.asks-all {
+  margin: 0.5rem 0 0;
+  font-weight: 700;
 }
 .band {
-  margin-top: 2.5rem;
+  margin-top: 2rem;
 }
 
 /* Steps and lists of words */
@@ -257,6 +318,14 @@ section > h2 {
   margin-top: 0;
 }
 
+/* The links at the foot of a page's text (about) */
+.page-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1.25rem;
+  font-weight: 700;
+}
+
 /* Footer */
 .site-footer {
   padding: 2rem 1rem max(2rem, env(safe-area-inset-bottom));
@@ -264,7 +333,11 @@ section > h2 {
   color: var(--tohe-ink-soft);
 }
 .site-footer p {
-  margin: 0 0 0.5rem;
+  margin: 0 0 0.75rem;
+}
+.site-footer .line {
+  margin: 1rem 0 0;
+  font-size: 0.95rem;
 }
 .site-footer .links {
   display: flex;
@@ -348,7 +421,6 @@ section > h2 {
 /* A game's page */
 .game-head {
   display: flex;
-  flex-wrap: wrap;
   align-items: center;
   gap: 1rem;
   margin-top: 1rem;
@@ -363,23 +435,102 @@ section > h2 {
   font-weight: 900;
   color: var(--tohe-brand-ink);
 }
-.game-head .chips {
-  margin-top: 0.5rem;
+.game-kind {
+  margin: 0.25rem 0 0;
+  color: var(--tohe-ink-soft);
 }
 .game-intro {
   margin: 1rem 0;
   font-size: 1.15rem;
 }
 
-/* Header */
+/* A game's *Chơi*: big, and the first thing under the name. Chơi cùng is smaller beside it. */
+.actions.start {
+  justify-content: flex-start;
+  margin-top: 1.25rem;
+}
+.actions.start .button.primary {
+  flex: 1 1 14rem;
+  padding: 1rem 1.5rem;
+  font-size: 1.6rem;
+}
+.actions.start .button.secondary {
+  flex: 0 1 auto;
+  padding: 0.9rem 1.25rem;
+  font-size: 1.1rem;
+}
+/* The facts table: a fact a row, its name on the left. */
+.facts {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  border-radius: 1.25rem;
+  background: var(--tohe-surface);
+  overflow: hidden;
+}
+.facts th,
+.facts td {
+  padding: 0.6rem 1rem;
+  text-align: left;
+  vertical-align: top;
+}
+.facts th {
+  width: 36%;
+  font-weight: 700;
+  color: var(--tohe-ink-soft);
+}
+.facts tr + tr th,
+.facts tr + tr td {
+  border-top: 1px solid var(--tohe-line);
+}
+.question + .question {
+  margin-top: 0.75rem;
+}
+.question h3 {
+  margin: 0 0 0.25rem;
+  font-size: 1.05rem;
+}
+.pictures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(12rem, 1fr));
+  gap: 1rem;
+}
+.pictures img {
+  width: 100%;
+  height: auto;
+  border-radius: 1rem;
+}
+/* The day a page's words were last revised. */
+.updated {
+  margin: 2rem 0 0;
+  font-size: 0.9rem;
+  color: var(--tohe-ink-soft);
+}
+/* The promise */
+.promises {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin: 0 0 1.5rem;
+  padding: 0;
+  list-style: none;
+}
+.promises h2 {
+  margin: 0 0 0.25rem;
+  font-size: 1.2rem;
+  color: var(--tohe-brand-ink);
+}
+
+/* Header: on a phone the brand, the VI | EN switch and the way into the app on one row, the three pages under them;
+   from 48rem all of it on one row. Every target is 2.75rem (44 px) high. */
 .site-header {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: 0.25rem 1rem;
+  gap: 0 0.5rem;
   max-width: 60rem;
   margin: 0 auto;
-  padding: max(0.75rem, env(safe-area-inset-top)) 1rem 0.5rem;
+  padding: max(0.5rem, env(safe-area-inset-top)) 0.75rem 0.25rem;
 }
 .brand {
   display: flex;
@@ -387,61 +538,200 @@ section > h2 {
   gap: 0.5rem;
   margin-right: auto;
   color: var(--tohe-brand-ink);
-  font-size: 1.35rem;
+  font-size: 1.2rem;
   font-weight: 900;
   text-decoration: none;
 }
 .brand img {
-  border-radius: 12px;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 10px;
 }
-.site-header nav {
+.site-nav {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0 0.25rem;
+  flex-wrap: nowrap;
   order: 3;
   width: 100%;
 }
-.site-header nav a {
-  padding: 0.6rem 0.75rem;
+.site-nav a {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.6rem;
   border-radius: 0.75rem;
   color: var(--tohe-accent);
+  font-size: 0.95rem;
   font-weight: 600;
   text-decoration: none;
+  white-space: nowrap;
 }
-.site-header nav a:hover,
-.site-header nav a[aria-current="page"] {
+.site-nav a:first-child {
+  margin-left: -0.6rem;
+}
+.site-nav a:hover,
+.site-nav a[aria-current="page"] {
   background: var(--tohe-soft);
 }
+
+/* The VI | EN switch: two words, the page's own language marked. Smaller than *Chơi ngay*: no fill but the mark. */
+.languages {
+  display: flex;
+  order: 1;
+}
+.languages a {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 2.75rem;
+  min-height: 2.75rem;
+  border-radius: 999px;
+  color: var(--tohe-accent);
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+  text-decoration: none;
+}
+.languages a:hover {
+  background: var(--tohe-soft);
+}
+.languages a[aria-current="true"] {
+  background: var(--tohe-soft-strong);
+  color: var(--tohe-ink);
+}
+
+/* Into the app, on every page and on phones too: "Chơi ngay", or "Chơi tiếp" once the device has opened a game. */
+.header-play {
+  order: 2;
+  align-items: center;
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
+  border-radius: 999px;
+  /* brand-strong, not brand: on-brand reaches 4.5:1 only there, and this label is not large text (tokens.css). */
+  background: var(--tohe-brand-strong);
+  color: var(--tohe-on-brand);
+  font-size: 1rem;
+  font-weight: 700;
+  text-decoration: none;
+  white-space: nowrap;
+}
+.header-play.new {
+  display: inline-flex;
+}
+.header-play.again,
+:root[data-returning] .header-play.new {
+  display: none;
+}
+:root[data-returning] .header-play.again {
+  display: inline-flex;
+}
+/* The smallest phones (320 px): the brand, VI | EN and Chơi ngay still share the first row in Be Vietnam Pro, which is
+   wider than the system face — tighter gaps and type, the 44 px targets kept. */
+@media (max-width: 21.5rem) {
+  .site-header {
+    gap: 0 0.25rem;
+  }
+  .brand {
+    gap: 0.35rem;
+    font-size: 1.1rem;
+  }
+  .brand img {
+    width: 1.75rem;
+    height: 1.75rem;
+  }
+  .header-play {
+    padding: 0 0.6rem;
+    font-size: 0.95rem;
+  }
+}
 @media (min-width: 48rem) {
-  .site-header nav {
-    order: 0;
-    width: auto;
+  .site-header {
+    gap: 0 1rem;
+    padding: max(0.75rem, env(safe-area-inset-top)) 1rem 0.5rem;
   }
   .brand {
     margin-right: 0;
   }
-  .themes {
+  .brand img {
+    width: 2.5rem;
+    height: 2.5rem;
+  }
+  .site-nav {
+    order: 0;
+    width: auto;
+  }
+  .site-nav a {
+    padding: 0 0.75rem;
+    font-size: 1rem;
+  }
+  .site-nav a:first-child {
+    margin-left: 0;
+  }
+  .languages {
     margin-left: auto;
   }
+  .header-play {
+    padding: 0 1.1rem;
+  }
 }
-.themes {
+
+/* The suggestion to read a Vietnamese page in English: shown by its script, for readers it is for. */
+.language-suggestion {
   display: flex;
-  gap: 0.25rem;
-  padding: 0.25rem;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem 1rem;
+  width: calc(100% - 2rem);
+  max-width: 58rem;
+  margin: 0.5rem auto 0;
+  padding: 0.6rem 1rem;
+  border-radius: 1rem;
+  background: var(--tohe-notice);
+  color: var(--tohe-notice-ink);
+}
+.language-suggestion[hidden] {
+  display: none;
+}
+.language-suggestion a {
+  color: var(--tohe-notice-ink);
+  font-weight: 700;
+}
+.language-suggestion button {
+  min-height: 2.75rem;
+  padding: 0 0.9rem;
   border: 1px solid var(--tohe-line);
   border-radius: 999px;
   background: var(--tohe-surface);
+  color: var(--tohe-accent);
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+/* Light, dark or the device's, in the footer: an icon and a word on each button. */
+.themes {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.5rem;
 }
 .themes button {
-  width: 2.5rem;
-  height: 2.5rem;
-  border: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 2.75rem;
+  padding: 0 0.8rem;
+  border: 1px solid var(--tohe-line);
   border-radius: 999px;
-  background: transparent;
-  font-size: 1.15rem;
+  background: var(--tohe-surface);
+  color: var(--tohe-accent);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 600;
   cursor: pointer;
 }
 .themes button[aria-pressed="true"] {
   background: var(--tohe-soft-strong);
   box-shadow: inset 0 0 0 2px var(--tohe-brand);
+  color: var(--tohe-ink);
 }

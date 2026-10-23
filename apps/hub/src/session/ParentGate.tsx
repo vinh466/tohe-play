@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, type MeView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { Button } from '../ui/Button.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { PinPad } from '../ui/PinPad.tsx';
 import { StepUp } from './StepUp.tsx';
 import { useSetMe } from './useSession.ts';
@@ -32,7 +33,7 @@ export function ParentGate({ me, title, body }: { me: MeView; title?: string; bo
   const usePin = me.account.hasManagePin && !forgot;
   return (
     <section className="mx-auto flex w-full max-w-md flex-col gap-4 rounded-3xl bg-surface p-6 shadow-sm">
-      <div className="text-center text-5xl">🔐</div>
+      <Icon name="lock-key" weight="fill" className="mx-auto text-5xl text-accent" />
       <h2 className="text-center font-black text-2xl text-ink">{title ?? t('account.gateTitle')}</h2>
       {usePin ? (
         <>

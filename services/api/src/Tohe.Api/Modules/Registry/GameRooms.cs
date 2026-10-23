@@ -106,6 +106,7 @@ public sealed record GameRanked(string Verify, string Board, int MinMsPerMove, i
 /// <param name="IdentityPlay">What opening the game asks for (ADR 0045).</param>
 /// <param name="IdentityRooms">The least a table of it asks for; null without rooms.</param>
 /// <param name="Entries">The kinds of entry the current build opens itself (ADR 0045).</param>
+/// <param name="Names">The name per language tag (ADR 0048); <see cref="Name"/> is the standard one.</param>
 public sealed record RegistryGame(
     string Id,
     string Name,
@@ -116,8 +117,12 @@ public sealed record RegistryGame(
     GameRanked? Ranked = null,
     string IdentityPlay = GameLevels.Any,
     string? IdentityRooms = null,
-    IReadOnlyList<string>? Entries = null)
+    IReadOnlyList<string>? Entries = null,
+    IReadOnlyDictionary<string, string>? Names = null)
 {
+    /// <summary>The game's name in <paramref name="language"/>, else its standard name (ADR 0048).</summary>
+    public string NameIn(string language) => GameWords.InLanguage(Names, language, Name);
+
     /// <summary>What a table of this game asks for at least (ADR 0045): the highest of <c>play</c> and <c>rooms</c>.</summary>
     public string TableLevel => GameLevels.Highest(IdentityPlay, IdentityRooms ?? GameLevels.Named);
 
@@ -152,7 +157,8 @@ internal sealed class RegistryGames(ToheDbContext db) : IRegistryGames
                 game.Ranked is { } ranked ? GameRanked.Parse(ranked) : null,
                 game.IdentityPlay,
                 game.IdentityRooms,
-                game.Entries);
+                game.Entries,
+                GameWords.Parse(game.Names));
     }
 
     public Task<bool> KnowsAsync(string id, CancellationToken cancellationToken) =>

@@ -4,6 +4,7 @@
 import Dexie from 'dexie';
 import type { DeviceProfileData } from '../api/client.ts';
 import { entry } from '../entry/intent.ts';
+import { openedKey } from '../launcher/recent.ts';
 import { type LocalProfile, type LocalSave, type LocalScore, newId, type ToheDb } from './db.ts';
 
 /** A device holds at most this many device profiles (ADR 0043). */
@@ -35,8 +36,6 @@ export const MAX_UPLOAD_SCORES = 1000;
 
 const CURRENT = 'tohe:device-profile';
 
-export const randomAvatar = () => AVATARS[Math.floor(Math.random() * AVATARS.length)] ?? '🦊';
-
 /** Which device profile plays on this device, remembered across visits. */
 export const currentDeviceProfile = {
   get: (): string | null => localStorage.getItem(CURRENT),
@@ -50,12 +49,13 @@ export function listDeviceProfiles(db: ToheDb): Promise<LocalProfile[]> {
 }
 
 /**
- * The device profile that plays: the one chosen last, else the oldest — or a new one, made silently with the name
- * given (the `any` level of ADR 0043). `made` says the device had none before.
+ * The device profile that plays: the one chosen last, else the oldest — or a new one, made silently with the name and
+ * avatar `suggest` gives (one animal for both: `funIdentity`; the `any` level of ADR 0043). `made` says the device had
+ * none before.
  */
 export async function ensureDeviceProfile(
   db: ToheDb,
-  suggestName: () => string,
+  suggest: () => { name: string; avatar: string },
 ): Promise<{ profile: LocalProfile; made: boolean }> {
   const chosen = currentDeviceProfile.get();
   const current = chosen ? await db.profiles.get(chosen) : undefined;
@@ -65,7 +65,7 @@ export async function ensureDeviceProfile(
     currentDeviceProfile.set(oldest.id);
     return { profile: oldest, made: false };
   }
-  const profile = await createDeviceProfile(db, { name: suggestName(), avatar: randomAvatar() });
+  const profile = await createDeviceProfile(db, suggest());
   return { profile, made: true };
 }
 
@@ -115,11 +115,15 @@ const ofProfile = (id: string) => [
  * someone to play as.
  */
 export async function deleteDeviceProfile(db: ToheDb, id: string): Promise<boolean> {
-  const deleted = await db.transaction('rw', db.profiles, db.saves, db.scores, db.ranked, async () => {
-    if ((await db.profiles.count()) <= 1 || !(await db.profiles.get(id))) return false;
-    await removeEverything(db, id);
-    return true;
-  });
+  const deleted = await db.transaction(
+    'rw',
+    [db.profiles, db.saves, db.scores, db.ranked, db.cache],
+    async () => {
+      if ((await db.profiles.count()) <= 1 || !(await db.profiles.get(id))) return false;
+      await removeEverything(db, id);
+      return true;
+    },
+  );
   if (deleted && currentDeviceProfile.get() === id) {
     currentDeviceProfile.clear();
     // The player of this tab's entry is gone: the entry with it (ADR 0044).
@@ -133,6 +137,8 @@ async function removeEverything(db: ToheDb, id: string) {
   await db.saves.where('[profileId+gameId]').between(from, to).delete();
   await db.scores.where('[profileId+gameId]').between(from, to).delete();
   await db.ranked.filter((ranked) => ranked.profileId === id).delete();
+  // What it opened last ("Chơi tiếp", launcher/recent.ts) goes with it.
+  await db.cache.delete(openedKey(id));
   await db.profiles.delete(id);
 }
 
@@ -142,7 +148,7 @@ async function removeEverything(db: ToheDb, id: string) {
  */
 export async function reIdDeviceProfile(db: ToheDb, id: string): Promise<string> {
   const next = newId();
-  await db.transaction('rw', db.profiles, db.saves, db.scores, db.ranked, async () => {
+  await db.transaction('rw', [db.profiles, db.saves, db.scores, db.ranked, db.cache], async () => {
     const profile = await db.profiles.get(id);
     if (!profile) return;
     const [from, to] = ofProfile(id);
@@ -151,6 +157,11 @@ export async function reIdDeviceProfile(db: ToheDb, id: string): Promise<string>
     await db.saves.where('[profileId+gameId]').between(from, to).delete();
     await db.scores.where('[profileId+gameId]').between(from, to).modify({ profileId: next });
     await db.ranked.filter((ranked) => ranked.profileId === id).modify({ profileId: next });
+    const opened = await db.cache.get(openedKey(id));
+    if (opened) {
+      await db.cache.put({ ...opened, key: openedKey(next) });
+      await db.cache.delete(openedKey(id));
+    }
     await db.profiles.delete(id);
     const { server: _server, termsVersion: _terms, ...rest } = profile;
     await db.profiles.add({ ...rest, id: next });
@@ -235,13 +246,20 @@ export async function mergedOnDevice(
   sentSaves: string[],
 ): Promise<number> {
   const [from, to] = ofProfile(id);
-  const left = await db.transaction('rw', db.profiles, db.saves, db.scores, db.ranked, async () => {
-    await db.scores.where('[profileId+gameId]').between(from, to).modify({ profileId: targetId, synced: 1 });
-    for (const gameId of sentSaves) await db.saves.delete([id, gameId]);
-    const remaining = await db.saves.where('[profileId+gameId]').between(from, to).count();
-    if (remaining === 0) await removeEverything(db, id);
-    return remaining;
-  });
+  const left = await db.transaction(
+    'rw',
+    [db.profiles, db.saves, db.scores, db.ranked, db.cache],
+    async () => {
+      await db.scores
+        .where('[profileId+gameId]')
+        .between(from, to)
+        .modify({ profileId: targetId, synced: 1 });
+      for (const gameId of sentSaves) await db.saves.delete([id, gameId]);
+      const remaining = await db.saves.where('[profileId+gameId]').between(from, to).count();
+      if (remaining === 0) await removeEverything(db, id);
+      return remaining;
+    },
+  );
   if (left === 0 && currentDeviceProfile.get() === id) currentDeviceProfile.clear();
   return left;
 }
@@ -372,25 +390,29 @@ export async function movedAway(
   id: string,
 ): Promise<{ name: string; kept: string | null } | null> {
   const [from, to] = ofProfile(id);
-  const outcome = await db.transaction('rw', db.profiles, db.saves, db.scores, db.ranked, async () => {
-    const profile = await db.profiles.get(id);
-    if (!profile) return null;
-    await db.saves
-      .where('[profileId+gameId]')
-      .between(from, to)
-      .filter((save) => save.synced === 1)
-      .delete();
-    await db.scores
-      .where('[profileId+gameId]')
-      .between(from, to)
-      .filter((score) => score.synced === 1)
-      .delete();
-    const left =
-      (await db.saves.where('[profileId+gameId]').between(from, to).count()) +
-      (await db.scores.where('[profileId+gameId]').between(from, to).count());
-    if (left === 0) await removeEverything(db, id);
-    return { name: profile.name, left };
-  });
+  const outcome = await db.transaction(
+    'rw',
+    [db.profiles, db.saves, db.scores, db.ranked, db.cache],
+    async () => {
+      const profile = await db.profiles.get(id);
+      if (!profile) return null;
+      await db.saves
+        .where('[profileId+gameId]')
+        .between(from, to)
+        .filter((save) => save.synced === 1)
+        .delete();
+      await db.scores
+        .where('[profileId+gameId]')
+        .between(from, to)
+        .filter((score) => score.synced === 1)
+        .delete();
+      const left =
+        (await db.saves.where('[profileId+gameId]').between(from, to).count()) +
+        (await db.scores.where('[profileId+gameId]').between(from, to).count());
+      if (left === 0) await removeEverything(db, id);
+      return { name: profile.name, left };
+    },
+  );
   if (!outcome) return null;
   if (outcome.left === 0) {
     if (currentDeviceProfile.get() === id) currentDeviceProfile.clear();

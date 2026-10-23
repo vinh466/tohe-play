@@ -1,16 +1,19 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
+import type { ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
 import { rooms } from '../api/client.ts';
 import { gamesQuery } from '../api/queries.ts';
+import { nameOf } from '../launcher/gameWords.ts';
 import type { Player } from '../session/session.ts';
 import { Avatar } from '../ui/AvatarGrid.tsx';
 
 /**
- * Tables another profile of the account asked this profile to (ADR 0016, phase 3): a banner on the catalog with one tap to the
- * room's preview. Checked every 20 s while the catalog shows; an invitation lasts 10 minutes.
+ * Tables another profile asked this profile to (ADR 0016 phase 3, ADR 0033): a banner on the catalog and in Chơi cùng
+ * with one tap to the room's preview. Checked every 20 s while the screen shows; an invitation lasts 10 minutes. With
+ * none, `empty` (Chơi cùng says so; the catalog says nothing).
  */
-export function RoomInvites({ player }: { player: Player }) {
+export function RoomInvites({ player, empty = null }: { player: Player; empty?: ReactNode }) {
   const { t } = useTranslation();
   const games = useQuery(gamesQuery(player.id));
   const invites = useQuery({
@@ -19,7 +22,7 @@ export function RoomInvites({ player }: { player: Player }) {
     refetchInterval: 20_000,
     refetchIntervalInBackground: false,
   });
-  if (!invites.data || invites.data.length === 0) return null;
+  if (!invites.data || invites.data.length === 0) return invites.isPending ? null : empty;
   return (
     <ul className="flex flex-col gap-2" aria-live="polite">
       {invites.data.map((invite) => {
@@ -31,7 +34,7 @@ export function RoomInvites({ player }: { player: Player }) {
           >
             <Avatar avatar={invite.fromAvatar || '🙂'} size="sm" />
             <span className="min-w-0 flex-1 font-semibold">
-              {t('rooms.inviteBanner', { from: invite.fromName, game: game?.name ?? invite.gameId })}
+              {t('rooms.inviteBanner', { from: invite.fromName, game: game ? nameOf(game) : invite.gameId })}
             </span>
             <Link
               to="/r/$code"

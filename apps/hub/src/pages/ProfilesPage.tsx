@@ -12,11 +12,13 @@ import { BringIn } from '../session/BringIn.tsx';
 import { withProgress } from '../session/bringInChoices.ts';
 import { MovedNotice } from '../session/MovedNotice.tsx';
 import { takeNext } from '../session/next.ts';
-import { cleanName, funName, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
+import { ParentGate } from '../session/ParentGate.tsx';
+import { cleanName, funIdentity, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { deleteEverywhere } from '../session/serverCopy.ts';
 import { deviceMode } from '../session/session.ts';
 import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
+import { switchNeedsGate, whoIsPlaying } from '../session/whoIsPlaying.ts';
 import { db, type LocalProfile } from '../storage/db.ts';
 import {
   AVATARS,
@@ -24,14 +26,15 @@ import {
   currentDeviceProfile,
   listDeviceProfiles,
   MAX_DEVICE_PROFILES,
-  randomAvatar,
   updateDeviceProfile,
 } from '../storage/deviceProfiles.ts';
 import { funnel } from '../telemetry/telemetry.ts';
+import { AnotherName } from '../ui/AnotherName.tsx';
 import { Avatar, AvatarGrid } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { PinPad } from '../ui/PinPad.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
@@ -72,6 +75,13 @@ function useGoOn() {
   );
 }
 
+/** "Ai đang chơi?" asked at a cold start (whoIsPlaying.ts): shown, so not asked again until the next one. */
+function useAsked(ask: boolean | undefined) {
+  useEffect(() => {
+    if (ask) whoIsPlaying.asked();
+  }, [ask]);
+}
+
 /**
  * Right after signing in, a device that played as its device profiles is asked once what to bring into the account
  * (ADR 0043); then it plays as the account's profiles.
@@ -109,11 +119,14 @@ function useBringInOffer() {
 
 function Picker({ me }: { me: MeView }) {
   const { t } = useTranslation();
-  const { auto } = useSearch({ from: '/account/profiles' });
+  const { auto, ask } = useSearch({ from: '/_frame/account/profiles' });
+  useAsked(ask);
   const navigate = useNavigate();
   const setMe = useSetMe();
   const goOn = useGoOn();
   const [pinFor, setPinFor] = useState<ProfileView | null>(null);
+  // A child's profile moving up to an adult's: the account's manage PIN first (ADR 0046).
+  const [gateFor, setGateFor] = useState<ProfileView | null>(null);
   const [pinErrors, setPinErrors] = useState(0);
   const { offer, finish, playNext } = useBringInOffer();
   // Device profiles left on this device with progress: each can still come into the account (ADR 0043).
@@ -127,7 +140,8 @@ function Picker({ me }: { me: MeView }) {
     mutationFn: ({ profile, pin }: { profile: ProfileView; pin?: string }) =>
       session.selectProfile(profile.id, pin),
     onSuccess: async (next, { profile }) => {
-      entry.switched({ auto, from: me.activeProfileId, to: profile.id });
+      // Asked at a cold start, the choice is the way on to what this tab came for, as when the hub sent someone here.
+      entry.switched({ auto: auto || ask, from: me.activeProfileId, to: profile.id });
       setPinFor(null);
       await setMe(next);
       await goOn(profile.id);
@@ -149,7 +163,9 @@ function Picker({ me }: { me: MeView }) {
   });
 
   const choose = (profile: ProfileView) => {
-    if (profile.hasPin) {
+    if (switchNeedsGate(me, profile)) {
+      setGateFor(profile);
+    } else if (profile.hasPin) {
       setPinErrors(0);
       setPinFor(profile);
     } else {
@@ -163,6 +179,16 @@ function Picker({ me }: { me: MeView }) {
   const handled = useRef(!auto);
   const [moving, setMoving] = useState(!!auto);
   const play = select.mutate;
+  // The gate opened (the parent typed the manage PIN, or proved it is them): on to the adult's profile — its own PIN
+  // too, if it has one. Choosing locks management again (the API), so the child cannot come back up by itself.
+  useEffect(() => {
+    if (!gateFor || switchNeedsGate(me, gateFor)) return;
+    setGateFor(null);
+    if (gateFor.hasPin) {
+      setPinErrors(0);
+      setPinFor(gateFor);
+    } else play({ profile: gateFor });
+  }, [gateFor, me, play]);
   const switched = useRef(false);
   useEffect(() => {
     if (offer !== 'none') return;
@@ -199,19 +225,28 @@ function Picker({ me }: { me: MeView }) {
   }
   if (moving && !select.isError) return <Loading label={t('loading')} />;
 
+  // The profile this device played last comes first and large; the others are below it (docs/architecture/surfaces.md).
+  const last = me.profiles.find((profile) => profile.id === me.activeProfileId);
+  const others = me.profiles.filter((profile) => profile !== last);
+
   return (
     <Screen>
-      {/* Three columns keep the title centred next to the theme button. */}
-      <header className="grid grid-cols-[2.75rem_1fr_2.75rem] items-start gap-2 text-center">
-        <div className="col-start-2 pt-6">
-          <p className="font-semibold text-ink-soft">{me.account.displayName}</p>
-          <h1 className="font-black text-4xl text-brand-ink">{t('profiles.title')}</h1>
-        </div>
-        <ThemeButton />
-      </header>
+      <PickerHeader context={me.account.displayName} lead={last !== undefined} />
 
+      {last ? (
+        <LastPlayer
+          name={last.name}
+          avatar={last.avatar}
+          disabled={select.isPending}
+          onChoose={() => choose(last)}
+        />
+      ) : null}
+
+      {last && (others.length > 0 || !full) ? (
+        <h2 className="font-bold text-ink text-lg">{t('profiles.others')}</h2>
+      ) : null}
       <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {me.profiles.map((profile, index) => (
+        {others.map((profile, index) => (
           <li key={profile.id} className="animate-pop-in" style={{ animationDelay: `${index * 40}ms` }}>
             <button
               type="button"
@@ -219,29 +254,18 @@ function Picker({ me }: { me: MeView }) {
               disabled={select.isPending}
               className="flex w-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 shadow-sm transition active:scale-95 disabled:opacity-60"
             >
-              <Avatar avatar={profile.avatar} />
+              <Avatar avatar={profile.avatar} size={last ? 'md' : 'lg'} />
               <span className="font-bold text-ink text-lg">{profile.name}</span>
               <span className="text-ink-soft text-sm">
                 {profile.kind === 'adult'
                   ? t('profiles.adult')
                   : t('account.years', { band: profile.ageBand })}
-                {profile.hasPin ? ' · 🔒' : ''}
+                {profile.hasPin ? ` · ${t('account.hasPin')}` : ''}
               </span>
             </button>
           </li>
         ))}
-        {full ? null : (
-          <li>
-            <button
-              type="button"
-              onClick={() => void navigate({ to: '/account', search: { add: true } })}
-              className="flex size-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-line-strong border-dashed p-4 text-brand-ink transition active:scale-95"
-            >
-              <span className="grid size-16 place-items-center rounded-full bg-soft text-4xl">+</span>
-              <span className="font-bold">{t('profiles.add')}</span>
-            </button>
-          </li>
-        )}
+        {full ? null : <AddTile onClick={() => void navigate({ to: '/account', search: { add: true } })} />}
       </ul>
 
       {select.isError && !(select.error instanceof ApiError && select.error.code?.startsWith('pin_')) ? (
@@ -275,8 +299,12 @@ function Picker({ me }: { me: MeView }) {
       ) : null}
 
       <footer className="mt-auto flex flex-wrap justify-center gap-3">
-        <Button variant="secondary" onClick={() => void navigate({ to: '/account', search: { add: false } })}>
-          ⚙️ {t('profiles.manage')}
+        <Button
+          variant="secondary"
+          onClick={() => void navigate({ to: '/account', search: { manage: true } })}
+        >
+          <Icon name="gear-six" />
+          {t('profiles.manage')}
         </Button>
         <Button variant="ghost" busy={signOut.isPending} onClick={() => signOut.mutate()}>
           {t('profiles.signOut')}
@@ -296,6 +324,14 @@ function Picker({ me }: { me: MeView }) {
           onComplete={(pin) => pinFor && select.mutate({ profile: pinFor, pin })}
         />
       </Modal>
+      <Modal open={gateFor !== null} title={t('profiles.upTitle')} onClose={() => setGateFor(null)}>
+        {/* Without a manage PIN yet, the gate asks the owner to prove it is them, in its own words. */}
+        <ParentGate
+          me={me}
+          title={t('outbound.gateTitle')}
+          body={me.account.hasManagePin ? t('profiles.upBody', { name: gateFor?.name ?? '' }) : undefined}
+        />
+      </Modal>
     </Screen>
   );
 }
@@ -306,7 +342,8 @@ function Picker({ me }: { me: MeView }) {
  */
 function DevicePicker() {
   const { t } = useTranslation();
-  const { auto } = useSearch({ from: '/account/profiles' });
+  const { auto, ask } = useSearch({ from: '/_frame/account/profiles' });
+  useAsked(ask);
   const goOn = useGoOn();
   const changed = useDeviceProfilesChanged();
   const profiles = useQuery(deviceProfilesQuery);
@@ -315,68 +352,54 @@ function DevicePicker() {
   const list = profiles.data ?? [];
 
   const choose = async (profile: LocalProfile) => {
-    entry.switched({ auto, from: current, to: profile.id });
+    entry.switched({ auto: auto || ask, from: current, to: profile.id });
     currentDeviceProfile.set(profile.id);
     await changed();
     await goOn(profile.id);
   };
 
   if (profiles.isPending) return <Loading label={t('loading')} />;
+  const last = list.find((profile) => profile.id === current);
+  const others = list.filter((profile) => profile !== last);
+  const tile = (profile: LocalProfile, index: number) => (
+    <li key={profile.id} className="relative animate-pop-in" style={{ animationDelay: `${index * 40}ms` }}>
+      <button
+        type="button"
+        onClick={() => void choose(profile)}
+        className="flex w-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 pb-3 shadow-sm transition active:scale-95"
+      >
+        <Avatar avatar={profile.avatar} size={last ? 'md' : 'lg'} />
+        <span className="max-w-full font-bold text-ink text-lg">{profile.name}</span>
+        <span className="text-ink-soft text-sm">{t('device.onDevice')}</span>
+      </button>
+      <EditButton name={profile.name} onClick={() => setEditing(profile)} />
+    </li>
+  );
+
   return (
     <Screen>
-      <header className="grid grid-cols-[2.75rem_1fr_2.75rem] items-start gap-2 text-center">
-        <div className="col-start-2 pt-6">
-          <p className="font-semibold text-ink-soft">{t('device.title')}</p>
-          <h1 className="font-black text-4xl text-brand-ink">{t('profiles.title')}</h1>
-        </div>
-        <ThemeButton />
-      </header>
+      <PickerHeader context={t('device.title')} lead={last !== undefined} />
 
       <MovedNotice />
 
+      {last ? (
+        <div className="flex flex-col gap-2">
+          <LastPlayer
+            name={last.name}
+            avatar={last.avatar}
+            onChoose={() => void choose(last)}
+            // Renaming or deleting the one playing is as near as the others': one labelled button.
+          />
+          <EditButton name={last.name} onClick={() => setEditing(last)} inline />
+        </div>
+      ) : null}
+
+      {last && (others.length > 0 || list.length < MAX_DEVICE_PROFILES) ? (
+        <h2 className="font-bold text-ink text-lg">{t('profiles.others')}</h2>
+      ) : null}
       <ul className="grid grid-cols-2 gap-4 sm:grid-cols-3">
-        {list.map((profile, index) => (
-          <li
-            key={profile.id}
-            className="relative animate-pop-in"
-            style={{ animationDelay: `${index * 40}ms` }}
-          >
-            <button
-              type="button"
-              onClick={() => void choose(profile)}
-              aria-current={profile.id === current ? true : undefined}
-              className={`flex w-full flex-col items-center gap-2 rounded-3xl bg-surface p-4 shadow-sm transition active:scale-95 ${
-                profile.id === current ? 'ring-4 ring-brand' : ''
-              }`}
-            >
-              <Avatar avatar={profile.avatar} />
-              <span className="max-w-full truncate font-bold text-ink text-lg">{profile.name}</span>
-              <span className="text-ink-soft text-sm">
-                {profile.id === current ? t('device.playing') : t('device.onDevice')}
-              </span>
-            </button>
-            <button
-              type="button"
-              onClick={() => setEditing(profile)}
-              aria-label={t('device.editOf', { name: profile.name })}
-              className="absolute top-2 right-2 grid size-10 place-items-center rounded-full bg-soft text-accent active:scale-95"
-            >
-              ✏️
-            </button>
-          </li>
-        ))}
-        {list.length < MAX_DEVICE_PROFILES ? (
-          <li>
-            <button
-              type="button"
-              onClick={() => setEditing('new')}
-              className="flex size-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-line-strong border-dashed p-4 text-brand-ink transition active:scale-95"
-            >
-              <span className="grid size-16 place-items-center rounded-full bg-soft text-4xl">+</span>
-              <span className="font-bold">{t('profiles.add')}</span>
-            </button>
-          </li>
-        ) : null}
+        {others.map(tile)}
+        {list.length < MAX_DEVICE_PROFILES ? <AddTile onClick={() => setEditing('new')} /> : null}
       </ul>
       <p className="text-center text-ink-soft text-sm">{t('device.hint', { max: MAX_DEVICE_PROFILES })}</p>
       {/* ADR 0043: a device profile never on the server is lost with the browser's data — the hub says so here. */}
@@ -416,6 +439,94 @@ function DevicePicker() {
   );
 }
 
+/**
+ * The top of "Ai đang chơi?": who the profiles belong to, the theme choice at the other end, and the title — a heading to
+ * read when nothing else asks the question, and only for screen readers when the last player's card does ("Vẫn là …?").
+ */
+function PickerHeader({ context, lead }: { context: string; lead: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <header className="flex items-start justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-1 pt-1">
+        <p className="font-semibold text-ink-soft">{context}</p>
+        <h1 className={lead ? 'sr-only' : 'font-black text-3xl text-brand-ink'}>{t('profiles.title')}</h1>
+      </div>
+      <ThemeButton />
+    </header>
+  );
+}
+
+/**
+ * "Vẫn là {{name}}? Chơi tiếp": the profile played last, big and first, one tap to go on as it. Most opens of the hub
+ * are the same player again, so the common case is a single press; anyone else is below.
+ */
+function LastPlayer({
+  name,
+  avatar,
+  disabled = false,
+  onChoose,
+}: {
+  name: string;
+  avatar: string;
+  disabled?: boolean;
+  onChoose(): void;
+}) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onChoose}
+      disabled={disabled}
+      className="flex w-full flex-col items-center gap-4 rounded-3xl bg-surface p-6 text-center shadow-sm transition active:scale-[0.98] disabled:opacity-60 sm:flex-row sm:gap-6 sm:text-left"
+    >
+      <Avatar avatar={avatar} size="lg" />
+      <span className="flex min-w-0 flex-1 flex-col gap-1">
+        <span className="font-black text-2xl text-ink leading-tight">{t('profiles.stillYou', { name })}</span>
+      </span>
+      <span className="shrink-0 rounded-full bg-brand px-6 py-2.5 font-bold text-on-brand text-xl">
+        {t('comingBack.continue')}
+      </span>
+    </button>
+  );
+}
+
+/** "Thêm hồ sơ": the dashed tile after the profiles. */
+function AddTile({ onClick }: { onClick(): void }) {
+  const { t } = useTranslation();
+  return (
+    <li>
+      <button
+        type="button"
+        onClick={onClick}
+        className="flex size-full min-h-44 flex-col items-center justify-center gap-2 rounded-3xl border-2 border-line-strong border-dashed p-4 text-brand-ink transition active:scale-95"
+      >
+        <span className="grid size-14 place-items-center rounded-full bg-soft text-3xl">
+          <Icon name="plus" />
+        </span>
+        <span className="font-bold">{t('profiles.add')}</span>
+      </button>
+    </li>
+  );
+}
+
+/** "Sửa" with its pencil: renames or deletes a device profile. Inside a tile at its corner, or on a row of its own. */
+function EditButton({ name, onClick, inline = false }: { name: string; onClick(): void; inline?: boolean }) {
+  const { t } = useTranslation();
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={t('device.editOf', { name })}
+      className={`flex min-h-11 items-center justify-center gap-1.5 rounded-full px-4 font-semibold text-accent text-sm active:bg-soft ${
+        inline ? 'self-center' : 'mx-auto'
+      }`}
+    >
+      <Icon name="pencil-simple" className="text-lg" />
+      {t('device.editShort')}
+    </button>
+  );
+}
+
 /** Make, rename or delete a device profile; a new one plays at once. */
 function DeviceProfileForm({
   profile,
@@ -429,8 +540,10 @@ function DeviceProfileForm({
   const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const changed = useDeviceProfilesChanged();
-  const [name, setName] = useState(() => profile?.name ?? funName(i18n.language));
-  const [avatar, setAvatar] = useState(() => profile?.avatar ?? randomAvatar());
+  // A new profile starts as one animal: its name and its avatar match.
+  const [start] = useState(() => funIdentity(i18n.language));
+  const [name, setName] = useState(() => profile?.name ?? start.name);
+  const [avatar, setAvatar] = useState(() => profile?.avatar ?? start.avatar);
   const [showErrors, setShowErrors] = useState(false);
   const [confirmDelete, setConfirmDelete] = useState(false);
   const clean = cleanName(name);
@@ -484,14 +597,14 @@ function DeviceProfileForm({
           onChange={(event) => setName(event.target.value)}
           error={showErrors ? nameError : null}
         />
-        <Button
-          variant="secondary"
-          aria-label={t('register.anotherName')}
-          title={t('register.anotherName')}
-          onClick={() => setName(funName(i18n.language))}
-        >
-          🎲
-        </Button>
+        <AnotherName
+          onClick={() => {
+            // Another animal: the avatar follows the name.
+            const next = funIdentity(i18n.language);
+            setName(next.name);
+            setAvatar(next.avatar);
+          }}
+        />
       </div>
       <AvatarGrid avatars={AVATARS} value={avatar} onChange={setAvatar} label={t('account.avatar')} />
       {save.isError ? (
@@ -508,7 +621,8 @@ function DeviceProfileForm({
           variant="secondary"
           onClick={() => void navigate({ to: '/account/transfer/send', search: { profile: profile.id } })}
         >
-          📲 {t('transfer.send')}
+          <Icon name="device-mobile" />
+          {t('transfer.send')}
         </Button>
       ) : null}
       {profile && canDelete ? (

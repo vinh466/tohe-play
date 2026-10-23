@@ -267,6 +267,10 @@ Light and dark, following the hub. The felt and the HUD follow the theme; card f
 
 ## Changelog
 
+- **0.6.3** — the kit's title screen fits a phone held sideways (kit 0.2.1): the picture and name beside the
+  buttons, so play, the tools and ← Về Tò He stay in reach down to 320 px of height. The game itself is unchanged.
+- **0.6.2** — game.json gains an English description beside the Vietnamese one (`descriptions`, ADR 0048); the
+  standard name stays *Tiến Lên*. The game itself is unchanged.
 - **0.6.1** — 🎴 Bộ bài in the panel opens the decks as a list (the chips cut the long names); the title screen's
   way back to Tò He is its last button; the play button's ring hugs it.
 - **0.6.0** — two stages (ADR 0020): the title screen runs no table; the table is built on play (its code

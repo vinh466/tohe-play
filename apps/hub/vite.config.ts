@@ -1,9 +1,9 @@
 /// <reference types="vitest/config" />
 import { fileURLToPath } from 'node:url';
 import tailwindcss from '@tailwindcss/vite';
-import { covers, hubNamespaces, navigationAllowlist, redirectTarget } from '@tohe/routes';
+import { covers, hubNamespaces, navigationAllowlist } from '@tohe/routes';
 import react from '@vitejs/plugin-react';
-import { type Connect, defineConfig, type Plugin } from 'vite';
+import { defineConfig, type Plugin } from 'vite';
 import { VitePWA } from 'vite-plugin-pwa';
 
 /**
@@ -27,32 +27,11 @@ function notFoundIsNotTheApp(): Plugin {
 }
 
 /**
- * What the hub's Caddy answers before the app: the root leads to the catalog (302) and the app's old paths to the new
- * ones (301), both from the map in @tohe/routes (ADR 0042). `pnpm dev` and `vite preview` have no Caddy, so this does
- * it, and http://localhost:4720 still opens the catalog.
- */
-function redirectsLikeTheHub(): Plugin {
-  const middleware: Connect.NextHandleFunction = (request, response, next) => {
-    const url = new URL(request.url ?? '/', 'http://localhost');
-    const root = hubNamespaces.find((n) => n.served === 'redirect' && n.path === url.pathname);
-    const moved = redirectTarget(url.pathname);
-    const to = root?.redirectTo ?? moved;
-    if (to === undefined) return next();
-    response.statusCode = root ? 302 : 301;
-    response.setHeader('Location', `${to}${url.search}`);
-    response.end();
-  };
-  return {
-    name: 'tohe:redirects-like-the-hub',
-    configureServer: (server) => void server.middlewares.use(middleware),
-    configurePreviewServer: (server) => void server.middlewares.use(middleware),
-  };
-}
-
-/**
- * The public pages (apps/web) are the hub's Caddy's in the image; under `pnpm dev` they are their own dev server's,
- * http://localhost:4711. A link of the app to /terms (the sign-up's consent) would be a page the app does not have, so
- * this sends the public pages' paths there. The root stays the app's catalog, as before.
+ * The public pages (apps/web) are the hub's Caddy's in the image — its home page is the root, and the app has no route
+ * for "/" (ADR 0046); under `pnpm dev` they are their own dev server's, http://localhost:4711. A link of the app to
+ * /terms (the sign-up's consent) would be a page the app does not have, so this sends the public pages' paths there.
+ * The root has nothing of the app's either: `/` on :4720 goes to the app's first screen, /play, as the home screen's
+ * icon does (the manifest's `start_url`); the public home page is at :4711.
  */
 function publicPagesAreTheirOwnServer(): Plugin {
   const pages = hubNamespaces.filter(
@@ -63,6 +42,12 @@ function publicPagesAreTheirOwnServer(): Plugin {
     configureServer: (server) =>
       void server.middlewares.use((request, response, next) => {
         const url = new URL(request.url ?? '/', 'http://localhost');
+        if (url.pathname === '/') {
+          response.statusCode = 302;
+          response.setHeader('Location', `/play${url.search}`);
+          response.end();
+          return;
+        }
         if (!pages.some((namespace) => covers(namespace, url.pathname))) return next();
         const path = url.pathname.endsWith('/') ? url.pathname : `${url.pathname}/`;
         response.statusCode = 302;
@@ -74,18 +59,18 @@ function publicPagesAreTheirOwnServer(): Plugin {
 
 export default defineConfig({
   plugins: [
-    redirectsLikeTheHub(),
     publicPagesAreTheirOwnServer(),
     react(),
     tailwindcss(),
     VitePWA({
-      registerType: 'autoUpdate',
+      // A new version waits for the next cold start and never reloads an open page by itself; the frame's screens offer
+      // "Tải lại" (ADR 0046, src/update/). Registered from src/update/register.ts.
+      registerType: 'prompt',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Tò He',
         short_name: 'Tò He',
-        description:
-          'Game nhỏ, mở ra là chơi: không quảng cáo, không cần tài khoản. Giữ tiến độ khi bạn muốn, rủ bạn vào cùng bàn bằng một link.',
+        description: 'Mấy trò chơi nhỏ cho cả nhà. Mở là chơi, không quảng cáo.',
         lang: 'vi',
         // The app's identity stays "/" whatever its start page; it starts at the catalog and is scoped to the whole
         // origin, whose pages the service worker answers only inside the map's namespaces (ADR 0042).
@@ -93,20 +78,39 @@ export default defineConfig({
         start_url: '/play',
         scope: '/',
         display: 'standalone',
-        orientation: 'portrait',
+        // A link opened while the app runs goes to the open app (Chromium), which navigates to it through
+        // `launchQueue` (src/install/launch.ts); elsewhere the browser's own way ("auto") (ADR 0046).
+        launch_handler: { client_mode: ['focus-existing', 'auto'] },
+        // No `orientation` (ADR 0046): the app neither rotates nor locks the screen; a game fits the orientation its
+        // game.json prefers inside the screen it gets.
         background_color: '#fff7ed',
         theme_color: '#f97316',
+        // Opaque, the brand colour in the corners (iOS paints transparency black); the maskable one is its own file, its
+        // art inside the 80% safe zone. Made by `pnpm --filter @tohe/hub generate:icons`.
         icons: [
-          { src: 'icon-192.png', sizes: '192x192', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png' },
-          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
+          { src: 'icon-192.png', sizes: '192x192', type: 'image/png', purpose: 'any' },
+          { src: 'icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' },
+          { src: 'icon-maskable-512.png', sizes: '512x512', type: 'image/png', purpose: 'maskable' },
         ],
-        // Long-press on the home-screen icon: straight into the reference game.
+        // Long-press on the home-screen icon: the reference game, Chơi cùng, and the box for a code (`?code=1` opens
+        // Chơi cùng with the box focused — the way in for a code read aloud, ADR 0044).
         shortcuts: [
           {
             name: 'Ghép Khối',
             short_name: 'Ghép Khối',
             url: '/play/merge-block',
+            icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Chơi cùng',
+            short_name: 'Chơi cùng',
+            url: '/together',
+            icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
+          },
+          {
+            name: 'Nhập mã',
+            short_name: 'Nhập mã',
+            url: '/together?code=1',
             icons: [{ src: 'icon-192.png', sizes: '192x192', type: 'image/png' }],
           },
         ],
@@ -145,6 +149,8 @@ export default defineConfig({
         directoryIndex: null,
         // The 404 page is the hub's Caddy's answer to a path in no namespace, never the app's.
         globIgnores: ['**/node_modules/**/*', '404.html'],
+        // The default (js, css, html) and the self-hosted font's files, so the first paint offline is the one online.
+        globPatterns: ['**/*.{js,css,html,woff2}'],
         runtimeCaching: [
           {
             // Catalog and config stay usable offline; fresh data wins when the API answers.

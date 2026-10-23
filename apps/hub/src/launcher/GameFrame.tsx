@@ -17,20 +17,28 @@ import { useTranslation } from 'react-i18next';
 import { type GameSummary, runs } from '../api/client.ts';
 import { gameEntry } from '../entry/gameEntry.ts';
 import { entry as entryIntent } from '../entry/intent.ts';
+import { asksToTurnUpright } from '../frame/short.ts';
 import { installStore } from '../install/install.ts';
 import { TERMS_VERSION } from '../legal/documents.ts';
+import { BackLink } from '../navigation/leave.tsx';
+import { useOnline } from '../net/online.ts';
 import { tablesStep } from '../session/serverCopy.ts';
 import type { Player } from '../session/session.ts';
 import { syncer, syncsWithServer } from '../session/useBackgroundSync.ts';
+import { readMuted, saveMuted } from '../settings/sound.ts';
 import { db } from '../storage/db.ts';
 import { loadSave, recordRanked, recordScore, storeSave } from '../storage/repository.ts';
 import { durationBucket } from '../telemetry/collector.ts';
 import { funnel, telemetry, telemetryOn } from '../telemetry/telemetry.ts';
 import { useTheme } from '../theme/useTheme.ts';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
+import { Icon } from '../ui/Icon.tsx';
 import { LeaderboardSheet } from '../ui/Leaderboard.tsx';
 import { EntryNotice, type GameAsk, GameAsks, type PlayingSession, Reopening } from './GameAsks.tsx';
+import { nameOf } from './gameWords.ts';
 import { dailySeed, hasShell, isTrustedEntry, manifestFrom } from './manifest.ts';
+import { loadFailure, OFFLINE_GRACE_MS } from './offline.ts';
+import { RotateHint } from './RotateHint.tsx';
 import {
   declines,
   ENTRY_ANSWER_MS,
@@ -42,18 +50,11 @@ import {
   takesEntry,
 } from './requests.ts';
 
-/** `starting`: the game answered, but a shell game has not shown its first screen yet (ADR 0019). */
-type Status = 'loading' | 'starting' | 'ready' | 'failed' | 'untrusted';
-
-/** Sound on or off for this device, whichever game switched it (ADR 0018). */
-const MUTED_KEY = 'tohe:muted';
-const readMuted = () => {
-  try {
-    return localStorage.getItem(MUTED_KEY) === '1';
-  } catch {
-    return false;
-  }
-};
+/**
+ * `starting`: the game answered, but a shell game has not shown its first screen yet (ADR 0019). `offline`: it did not
+ * answer and the device has no connection — a game never opened has nothing in the cache (launcher/offline.ts).
+ */
+type Status = 'loading' | 'starting' | 'ready' | 'failed' | 'offline' | 'untrusted';
 
 /** How long a shell game has to answer Back before the hub offers its own way out. */
 const BACK_ANSWER_MS = 1500;
@@ -143,7 +144,8 @@ export function GameFrame({
   const iframe = useRef<HTMLIFrameElement>(null);
   const host = useRef<HostHandle | null>(null);
   const [status, setStatus] = useState<Status>('loading');
-  const [muted, setMuted] = useState(readMuted);
+  const online = useOnline();
+  const [muted, setMuted] = useState(() => readMuted());
   const { theme } = useTheme();
   const navigate = useNavigate();
   const shell = hasShell(game);
@@ -170,11 +172,7 @@ export function GameFrame({
 
   // The device remembers sound, whichever game or bar switched it.
   useEffect(() => {
-    try {
-      localStorage.setItem(MUTED_KEY, muted ? '1' : '0');
-    } catch {
-      // Private mode: sound stays as it is for this visit.
-    }
+    saveMuted(muted);
   }, [muted]);
 
   // Phone Back (or the browser's) on a shell game opens its menu instead of leaving the page. Leaving the game goes
@@ -498,7 +496,7 @@ export function GameFrame({
         }
       },
       () => {
-        setStatus('failed');
+        setStatus(loadFailure(navigator.onLine));
         telemetry.count('hub.game.failed', scope);
       },
     );
@@ -525,6 +523,14 @@ export function GameFrame({
     };
   }, [buildKey, gamesOrigin, player.id, roomId, canKey]);
 
+  // Offline while the game has not answered: a game never opened has nothing in the cache, so waiting more is no use —
+  // say so, with a way back, instead of an endless "Đang tải…" (launcher/offline.ts).
+  useEffect(() => {
+    if (online || status !== 'loading') return;
+    const timer = setTimeout(() => setStatus('offline'), OFFLINE_GRACE_MS);
+    return () => clearTimeout(timer);
+  }, [online, status]);
+
   // Mute and theme changes reach a running game as `settings` (e.g. "Theo máy" turning dark mid-round).
   useEffect(() => {
     host.current?.setSettings({ muted, theme });
@@ -538,24 +544,29 @@ export function GameFrame({
   return (
     <div className="fixed inset-0 flex flex-col bg-page">
       {shell ? null : (
-        <nav className="flex h-14 shrink-0 items-center justify-between border-line border-b-2 px-2 pt-[env(safe-area-inset-top)]">
+        // 56 px of bar under whatever the notch takes: the height adds the inset rather than sharing it.
+        <nav className="flex min-h-[calc(3.5rem+env(safe-area-inset-top))] shrink-0 items-center justify-between border-line border-b-2 px-2 pt-[env(safe-area-inset-top)]">
           <button
             type="button"
             onClick={leave}
-            className="rounded-full px-3 py-1.5 font-semibold text-accent active:bg-soft"
+            className="flex min-h-11 items-center gap-1.5 rounded-full px-3 font-semibold text-accent active:bg-soft"
           >
-            ← {exitLabel ?? t('exit')}
+            <Icon name="arrow-left" className="text-xl" />
+            {exitLabel ?? t('exit')}
           </button>
-          <span className="truncate font-bold text-ink">{game.name}</span>
+          <span className="min-w-0 flex-1 px-2 text-center font-bold text-ink leading-tight">
+            {nameOf(game)}
+          </span>
           <span className="flex items-center gap-1">
             {topRight}
             <button
               type="button"
               onClick={() => setMuted((value) => !value)}
-              aria-label={muted ? t('unmute') : t('mute')}
-              className="rounded-full px-3 py-1.5 text-xl active:bg-soft"
+              aria-pressed={muted}
+              className="flex min-h-11 items-center gap-1.5 rounded-full px-3 font-semibold text-accent text-sm active:bg-soft"
             >
-              {muted ? '🔇' : '🔊'}
+              <Icon name={muted ? 'speaker-slash' : 'speaker-high'} className="text-xl" />
+              {muted ? t('unmute') : t('mute')}
             </button>
           </span>
         </nav>
@@ -563,7 +574,7 @@ export function GameFrame({
       <div className="relative min-h-0 flex-1">
         <iframe
           ref={iframe}
-          title={game.name}
+          title={nameOf(game)}
           sandbox="allow-scripts allow-same-origin"
           allow="autoplay; fullscreen"
           className="absolute inset-0 size-full border-0"
@@ -582,9 +593,11 @@ export function GameFrame({
               {game.iconUrl ? (
                 <img src={game.iconUrl} alt="" className="size-24 rounded-3xl shadow-sm" />
               ) : (
-                <span className="grid size-24 place-items-center rounded-3xl bg-soft text-5xl">🎲</span>
+                <span className="grid size-24 place-items-center rounded-3xl bg-soft text-5xl text-accent">
+                  <Icon name="dice-five" weight="fill" />
+                </span>
               )}
-              <span className="font-black text-2xl text-brand-ink">{game.name}</span>
+              <span className="font-black text-2xl text-brand-ink">{nameOf(game)}</span>
               {reopened ? <Reopening game={game} /> : null}
               <span role="status" className="flex h-6 items-end gap-1.5">
                 <span className="sr-only">{t('loading')}</span>
@@ -600,6 +613,17 @@ export function GameFrame({
             </div>
           ) : null}
           {status === 'failed' && t('gameFailed')}
+          {status === 'offline' && (
+            <div className="flex flex-col items-center gap-4">
+              <p className="text-lg">{t('offlineGame.body')}</p>
+              <BackLink
+                to="/play"
+                className="inline-flex min-h-12 items-center justify-center rounded-2xl bg-brand px-5 font-bold text-on-brand text-xl active:bg-brand-strong"
+              >
+                {t('offlineGame.leave')}
+              </BackLink>
+            </div>
+          )}
           {status === 'untrusted' && t('untrusted')}
           {/* A shell game holds the way out in its own menu; until it is up (or if it never is), the hub's. */}
           {shell && status !== 'ready' ? (
@@ -612,6 +636,9 @@ export function GameFrame({
             </button>
           ) : null}
         </div>
+        {/* A portrait game on a phone held sideways: a calm layer asks to turn it. The game runs on underneath, and the
+            layer goes when the phone turns back (CSS, no state). The hub still neither locks nor rotates the screen. */}
+        {asksToTurnUpright(game.orientation) ? <RotateHint /> : null}
         {shell && topRight ? (
           <div className="pointer-events-none absolute inset-x-0 top-[max(0.5rem,env(safe-area-inset-top))] flex justify-center">
             <span className="rounded-full bg-notice px-3 py-1 text-notice-ink text-sm">{topRight}</span>

@@ -32,6 +32,7 @@ import { MAX_DEVICE_PROFILES, TooManyDeviceProfiles } from '../storage/devicePro
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { copyText } from '../ui/copyText.ts';
+import { Icon } from '../ui/Icon.tsx';
 import { QrCode } from '../ui/QrCode.tsx';
 import { Loading, Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
@@ -44,7 +45,7 @@ const link = 'text-center font-semibold text-accent';
 /** "Chuyển sang máy khác": the named screen and the copy first when needed, then the code, its QR code and a countdown. */
 export function TransferSendPage() {
   const { t } = useTranslation();
-  const { profile: first } = useSearch({ from: '/account/transfer/send' });
+  const { profile: first } = useSearch({ from: '/_frame/account/transfer/send' });
   // A copy sent under a new id (its old one was taken, or cleaned up) carries on under that one.
   const [id, setId] = useState(first);
   const changed = useDeviceProfilesChanged();
@@ -448,7 +449,8 @@ export function TransferReceivePage() {
             </Button>
             {canScan() ? (
               <Button variant="secondary" onClick={() => setPhase({ step: 'scanning' })}>
-                📷 {t('transfer.scan')}
+                <Icon name="camera" />
+                {t('transfer.scan')}
               </Button>
             ) : null}
           </form>

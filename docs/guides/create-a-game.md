@@ -15,7 +15,11 @@ sidebar:
    it is the source of truth for the game.
 2. **Scaffold** from `games/hello`:
    - `package.json` — name `@tohe/game-<id>`, same scripts;
-   - `public/game.json` — new `id` (= folder name), `name`, `version: 0.1.0`, capabilities, `themes`, size budget;
+   - `public/game.json` — new `id` (= folder name), `name`, `version: 0.1.0`, capabilities, `themes`, size budget.
+     `name` is the **standard name** — English, or a proper name such as *Tiến Lên*; `description` is the English
+     one, `descriptions.vi` the Vietnamese one, and `names.vi` the Vietnamese name if the game has one
+     ([names per language](../contracts/game-contract-v1.md#names-and-descriptions-per-language)); a test of
+     `@tohe/games-host` fails without `descriptions.vi`;
    - `public/icon.svg` — square, with a `<title>`;
    - `vite.config.ts` — keep `base: './'`.
 3. **Register** the game: add `"@tohe/game-<id>": "workspace:*"` to `devDependencies` of
@@ -38,12 +42,20 @@ sidebar:
    pnpm --filter @tohe/game-<id> build
    pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>*.png (one per theme)
    ```
-7. **Give it its public page.** `/games/<id>/` is made from `public/game.json` and the icon, so write the
-   `description` for someone who has never heard of the game (it is the page's text and its search description), and
-   give `minAge` and `tags`. Add the game's how-to (3 to 5 lines), what it is in a few words and who it suits to
-   `gameCopy` in `apps/web/src/content/games.ts` — `pnpm --filter @tohe/web test` fails without it — then run
-   `pnpm --filter @tohe/routes build` (the sitemap lists the page) and `pnpm --filter @tohe/web build`, which checks the
-   page ([Hosts and paths](../architecture/hosts-and-paths.md#adding-or-changing-a-public-page)).
+7. **Give it its public pages.** `/games/<id>/` and its English page `/en/games/<id>/` are made from the game's folder
+   ([Surfaces](../architecture/surfaces.md#the-introduction-surface)). In `public/game.json`, write the descriptions for
+   someone who has never heard of the game (`descriptions.vi` is the Vietnamese page's search description,
+   `description` the English page's), and give `minAge`, `orientation` and `tags`. Beside `public/`, write
+   `page/vi.md` and `page/en.md` — front matter `updated` (today, `YYYY-MM-DD`) and `kind` (what it is in a few words),
+   the answer (one or two sentences: what it is and for whom), then under the page's headings how to play (3 to 5
+   numbered lines), who it suits and, if you have them, the game's own questions — and `page/facts.json` (how long a
+   round lasts; `offline: false` unless playing offline is guaranteed). Copy `games/merge-block/page/` for the shape.
+   Then run `pnpm --filter @tohe/web generate:og` (it draws the game's preview pictures, `page/og.vi.png` and
+   `og.en.png`, with their stamps in `page/og.json` — look at them and commit them; it needs Chromium and Noto Sans),
+   `pnpm --filter @tohe/routes build` (the sitemap lists the pages) and `pnpm --filter @tohe/web build`, which fails on
+   a missing or broken file or a picture out of date
+   ([Hosts and paths](../architecture/hosts-and-paths.md#adding-or-changing-a-public-page)). Look at both pages in
+   light and dark. Change the name or the `kind` later, and the build asks you to run `generate:og` again.
 8. **Play it** in the hub (`pnpm dev`, then rebuild `@tohe/games-host`) on a phone-sized window, then on a phone.
    Add `?perf` to the play page's address to see the frame rate there (the kit's `#perf` readout).
 

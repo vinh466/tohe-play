@@ -62,6 +62,64 @@ export const ENTRY_SAMPLES = { min: 1, max: 5 } as const;
 /** Where a build ships the payloads its share makes, for conformance: `entries/share.json`. */
 export const entrySamplesPath = (kind: EntryKind) => `entries/${kind}.json`;
 
+/**
+ * A language tag as `init.locale` carries it (ADR 0048): BCP 47 limited to a language, an optional script and an
+ * optional region, in canonical case — `vi`, `en`, `en-GB`, `zh-Hant`, `es-419`.
+ */
+export const LANGUAGE_TAG = /^[a-z]{2,3}(?:-[A-Z][a-z]{3})?(?:-(?:[A-Z]{2}|[0-9]{3}))?$/;
+export const LanguageTag = z
+  .string()
+  .regex(LANGUAGE_TAG, 'a language tag such as vi, en, en-GB or zh-Hant, in canonical case');
+export type LanguageTag = z.infer<typeof LanguageTag>;
+
+/** Most languages a manifest's `names` or `descriptions` holds (ADR 0048). */
+export const MAX_LANGUAGES = 10;
+
+/** Most characters of a game's name, standard or per language. */
+export const MAX_NAME_LENGTH = 40;
+/** Most characters of a game's description, standard or per language. */
+export const MAX_DESCRIPTION_LENGTH = 200;
+
+/** Words per language (ADR 0048): a language tag → non-empty text of at most `max` characters. */
+const perLanguage = (max: number) =>
+  z
+    .record(LanguageTag, z.string().min(1).max(max))
+    .refine((byTag) => Object.keys(byTag).length <= MAX_LANGUAGES, `at most ${MAX_LANGUAGES} languages`);
+
+/** Words per language, as a game's manifest or the API's game summary carry them. */
+export type PerLanguage = Partial<Record<string, string>>;
+
+/**
+ * The words of `byTag` for a reader's `language` (ADR 0048): the exact tag, then its primary subtag (`en-GB` → `en`),
+ * then `fallback`. Tags compare without regard to case and `_` reads as `-`.
+ */
+export function inLanguage(
+  byTag: PerLanguage | null | undefined,
+  language: string,
+  fallback: string,
+): string {
+  if (!byTag) return fallback;
+  const wanted = language.trim().replaceAll('_', '-').toLowerCase();
+  const primary = wanted.split('-')[0] ?? '';
+  const keys = Object.keys(byTag);
+  for (const tag of [wanted, primary]) {
+    const key = tag ? keys.find((candidate) => candidate.toLowerCase() === tag) : undefined;
+    const words = key === undefined ? undefined : byTag[key];
+    if (words) return words;
+  }
+  return fallback;
+}
+
+/** A game's name for a reader's language: its name in that language, else its standard `name` (ADR 0048). */
+export const gameName = (game: { name: string; names?: PerLanguage | null }, language: string) =>
+  inLanguage(game.names, language, game.name);
+
+/** A game's description for a reader's language, else its standard `description` (ADR 0048). */
+export const gameDescription = (
+  game: { description: string; descriptions?: PerLanguage | null },
+  language: string,
+) => inLanguage(game.descriptions, language, game.description);
+
 /** Light or dark (ADR 0013). */
 export const Theme = z.enum(['light', 'dark']);
 export type Theme = z.infer<typeof Theme>;
@@ -157,10 +215,24 @@ export const GameManifest = z
     /** Optional, lets editors validate game.json against schema/game-manifest.schema.json. */
     $schema: z.string().optional(),
     id: GameId,
-    name: z.string().min(1).max(40),
+    name: z
+      .string()
+      .min(1)
+      .max(MAX_NAME_LENGTH)
+      .describe('The standard name: English, or a proper name such as Tiến Lên (ADR 0048)'),
+    names: perLanguage(MAX_NAME_LENGTH)
+      .optional()
+      .describe('The name per language tag, when it differs from the standard one (ADR 0048)'),
     version: SemVer,
     protocol: z.literal(PROTOCOL_VERSION),
-    description: z.string().max(200).default(''),
+    description: z
+      .string()
+      .max(MAX_DESCRIPTION_LENGTH)
+      .default('')
+      .describe('The standard description, in the language of the standard name (ADR 0048)'),
+    descriptions: perLanguage(MAX_DESCRIPTION_LENGTH)
+      .optional()
+      .describe('The description per language tag (ADR 0048)'),
     entry: z.string().default('index.html'),
     icon: z.string().optional().describe('Path relative to the game root, e.g. icon.svg'),
     orientation: z.enum(['portrait', 'landscape', 'any']).default('portrait'),

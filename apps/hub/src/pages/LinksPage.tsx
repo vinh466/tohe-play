@@ -6,6 +6,7 @@ import { errorKey } from '../api/errors.ts';
 import { deviceProfileQuery, gamesQuery } from '../api/queries.ts';
 import { formatEntryCode } from '../entry/codes.ts';
 import { EXPIRY_CHOICES, shareUrl } from '../entry/share.ts';
+import { nameOf } from '../launcher/gameWords.ts';
 import { BackLink } from '../navigation/leave.tsx';
 import { actAsDevice } from '../rooms/devicePlayer.ts';
 import { AtTables } from '../session/AtTables.tsx';
@@ -14,8 +15,9 @@ import type { Player, SessionState } from '../session/session.ts';
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { copyText } from '../ui/copyText.ts';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
-import { Loading, Screen } from '../ui/Screen.tsx';
+import { backPill, Loading, Screen } from '../ui/Screen.tsx';
 
 type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
 
@@ -57,8 +59,9 @@ function Frame({ children }: { children: ReactNode }) {
   const { t } = useTranslation();
   return (
     <Screen narrow>
-      <BackLink to="/play" className="font-semibold text-accent">
-        ← {t('backToGames')}
+      <BackLink to="/together" className={backPill}>
+        <Icon name="arrow-left" className="text-xl" />
+        {t('frame.together')}
       </BackLink>
       <div className="flex flex-col gap-1">
         <h1 className="font-black text-3xl text-brand-ink">{t('links.title')}</h1>
@@ -162,10 +165,12 @@ function LinkCard({ link, game, player }: { link: ShareLinkView; game?: GameSumm
         {game?.iconUrl ? (
           <img src={game.iconUrl} alt="" className="size-12 rounded-xl" />
         ) : (
-          <span className="grid size-12 place-items-center rounded-xl bg-soft text-2xl">🎲</span>
+          <span className="grid size-12 place-items-center rounded-xl bg-soft text-2xl text-accent">
+            <Icon name="dice-five" weight="fill" />
+          </span>
         )}
         <div className="flex min-w-0 flex-1 flex-col">
-          <span className="truncate font-bold text-ink text-lg">{game?.name ?? link.gameId}</span>
+          <span className="truncate font-bold text-ink text-lg">{game ? nameOf(game) : link.gameId}</span>
           <span className="font-semibold text-ink-soft tracking-wider">
             {formatEntryCode({ kind: 'share', code: link.code })}
           </span>

@@ -19,7 +19,7 @@
 **Không còn việc ở đây — làm tiếp ở [`plans/product-surface`](../product-surface/PLAN.md)** (2026-10-19, owner đặt hướng
 mới: luồng môi trường trước, rồi bề mặt sản phẩm). Danh sách dưới đây đã được rà và xếp mức ở
 [product-surface R-01](../product-surface/research/R-01-backlog-review.md); E-10 thành
-[product-surface E-05](../product-surface/items/E-05-gate-before-outsiders.md). Plan này đóng (xoá folder) ở PR cuối khi
+[product-surface E-05](../launch-review/items/E-01-gate-before-outsiders.md). Plan này đóng (xoá folder) ở PR cuối khi
 owner muốn.
 
 ## Waiting on the owner (đã chuyển sang `product-surface`)
@@ -67,7 +67,7 @@ owner muốn.
 | E-07 | [Quyền riêng tư, xoá account, kiểm duyệt tên](items/E-07-privacy-deletion-moderation.md) | T7 | enhancement | **decided** (Q7 → F1c #66: chờ admin; thời hạn chờ owner) | D-06, D-17 |
 | E-08 | [Observability](items/E-08-observability.md) | T8 | enhancement | **decided** (Q2 email, cấu hình ở `platform-infra`) | E-04 |
 | E-09 | [Chống bot đăng ký](items/E-09-bot-protection.md) | T7 | enhancement | **decided** | D-12 |
-| E-10 | Checklist ra mắt | — | enhancement | chuyển → [product-surface E-05](../product-surface/items/E-05-gate-before-outsiders.md) | E-07, E-08, E-09, D-13 |
+| E-10 | Checklist ra mắt | — | enhancement | chuyển → [product-surface E-05](../launch-review/items/E-01-gate-before-outsiders.md) | E-07, E-08, E-09, D-13 |
 
 Item chưa có link = chưa mở file; file được tạo khi item rời `open`.
 

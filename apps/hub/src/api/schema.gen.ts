@@ -1434,6 +1434,7 @@ export interface components {
             /** @default false */
             spectators: boolean;
             accountOnly?: null | boolean;
+            language?: null | string;
         };
         DailyPoint: {
             /** Format: date */
@@ -1601,8 +1602,14 @@ export interface components {
         GameSummary: {
             id: string;
             name: string;
+            names: {
+                [key: string]: string;
+            };
             version: string;
             description: string;
+            descriptions: {
+                [key: string]: string;
+            };
             entryUrl: string;
             iconUrl: null | string;
             orientation: string;
@@ -1701,6 +1708,9 @@ export interface components {
             level?: null | string;
             makerName?: null | string;
             entry?: null | components["schemas"]["LinkEntry"];
+            gameNames?: null | {
+                [key: string]: string;
+            };
         };
         LinkProofRequest: {
             code?: null | string;
@@ -1720,6 +1730,7 @@ export interface components {
             maxUses?: null | number;
             payload?: unknown;
             text?: null | string;
+            language?: null | string;
         };
         ManagePinRequest: {
             pin: string;
@@ -2018,6 +2029,7 @@ export interface components {
             /** Format: date-time */
             revokedAt: null | string;
             counts: components["schemas"]["LinkCounts"];
+            language: string;
             message?: null | string;
         };
         SignUpRequest: {

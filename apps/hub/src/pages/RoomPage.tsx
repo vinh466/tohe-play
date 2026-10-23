@@ -9,6 +9,7 @@ import { type GameSummary, type ProfileView, type RoomView, rooms } from '../api
 import { errorKey } from '../api/errors.ts';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { GameFrame, type RoomBridge, type RoomUpdate } from '../launcher/GameFrame.tsx';
+import { nameOf } from '../launcher/gameWords.ts';
 import { BackLink, useLeaveTo } from '../navigation/leave.tsx';
 import { ensureConnected, onReconnected, roomsHub } from '../rooms/connection.ts';
 import { hubRefusal, reportTrouble } from '../rooms/devicePlayer.ts';
@@ -23,9 +24,10 @@ import { Avatar } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
 import { ConfirmDialog } from '../ui/ConfirmDialog.tsx';
 import { copyText } from '../ui/copyText.ts';
+import { Icon } from '../ui/Icon.tsx';
 import { Modal } from '../ui/Modal.tsx';
 import { QrCode } from '../ui/QrCode.tsx';
-import { Screen } from '../ui/Screen.tsx';
+import { backPill, Screen } from '../ui/Screen.tsx';
 import { settingsBody } from './RoomsPage.tsx';
 
 export function RoomPage() {
@@ -331,10 +333,10 @@ function WaitingRoom({
   });
 
   const share = async () => {
-    const text = t('rooms.shareText', { game: game.name, code: formatCode(room.code) });
+    const text = t('rooms.shareText', { game: nameOf(game), code: formatCode(room.code) });
     if (navigator.share && window.isSecureContext) {
       try {
-        await navigator.share({ title: game.name, text, url: link });
+        await navigator.share({ title: nameOf(game), text, url: link });
         return;
       } catch {
         // dismissed: nothing to do
@@ -348,15 +350,11 @@ function WaitingRoom({
   return (
     <Screen narrow>
       <header className="flex items-center justify-between gap-3">
-        <BackLink
-          to="/play/$gameId/rooms"
-          params={{ gameId: room.gameId }}
-          aria-label={t('rooms.backToLobby')}
-          className="rounded-full bg-surface px-3 py-2 font-bold text-accent"
-        >
-          ←
+        <BackLink to="/play/$gameId/rooms" params={{ gameId: room.gameId }} className={backPill}>
+          <Icon name="arrow-left" className="text-xl" />
+          {t('rooms.backToLobby')}
         </BackLink>
-        <h1 className="font-bold text-ink text-xl">{game.name}</h1>
+        <h1 className="font-bold text-ink text-xl">{nameOf(game)}</h1>
         <Button variant="secondary" onClick={() => void share()}>
           {t('rooms.share')}
         </Button>
@@ -465,7 +463,14 @@ function WaitingRoom({
                 <Avatar avatar={profile.avatar} size="sm" />
                 <span className="flex-1 font-bold text-ink">{profile.name}</span>
                 <span className="font-semibold text-accent text-sm">
-                  {invited.has(profile.id) ? `✓ ${t('rooms.invited')}` : t('rooms.inviteOne')}
+                  {invited.has(profile.id) ? (
+                    <span className="inline-flex items-center gap-1">
+                      <Icon name="check" />
+                      {t('rooms.invited')}
+                    </span>
+                  ) : (
+                    t('rooms.inviteOne')
+                  )}
                 </span>
               </button>
             </li>

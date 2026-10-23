@@ -37,6 +37,7 @@ across many sessions. `AGENTS.md` at the repository root points here; keep that 
 | `/new-adr` | Record a decision with the next free number. |
 | `/verify` | Run the full Definition of Done locally and report. |
 | `/health-report` | Read the device telemetry report (ADR 0015) and turn it into findings and proposed fixes. |
+| `/packet` | Hand work to a worker: choose it and its effort, claim the paths, open its worktree, check its diff. |
 
 ## Environment rules
 
@@ -66,8 +67,8 @@ requests, and tags and deploys on the owner's word.
 
 | Worker | Model | Effort | Does | May |
 | --- | --- | --- | --- | --- |
-| `scout` | Claude Opus 5.5 | low | Searches code, logs, docs and the web | Read only |
-| `builder` | Claude Opus 5.5 | high | Builds one pull request from a work packet | Edit files in its worktree; never commits |
+| `scout` | Claude Opus 5.5 | low | Searches code, logs, docs and the web; reads CI and test output | Read only |
+| `builder` | Claude Opus 5.5 | medium or high ([below](#choosing-the-effort)) | Builds one pull request from a work packet | Edit files in its worktree; never commits |
 | `chore` | Claude Opus 5.5 | medium | Mechanical changes: renames, regenerating files, CI fixes, dependency bumps | Edit files in its worktree; never commits |
 | `reviewer` | Claude Opus 5.5 | high | Reviews ADRs, specs and diffs against the accepted decisions | Read only |
 
@@ -81,12 +82,15 @@ runs at `xhigh`. Nothing above Claude Opus 5.5, no Claude Fable, no `max`, no fa
 
 - One builder per pull request. Never split one pull request between agents.
 - Small work the master does itself.
-- At most two workers at a time.
-- Never two workers at once on EF Core migrations, generated files, or the hub's router or Caddy.
+- At most four workers at a time, and side by side only when their claims do not touch: `pnpm claims open` decides,
+  and work whose claims touch runs after the other ([Claims](#claims-who-changes-what)).
+- Never two workers at once on EF Core migrations, generated files, the lockfile, the hub's router, Caddy or the dev
+  stack. These are the hot zones in `tools/claims/src/zones.ts`, and `pnpm claims open` refuses the second.
 - Workers never commit, push, open pull requests, merge, deploy, touch UAT or production, or decide a design question.
   They stop and report it.
 - The master checks every report against the diff and the checks.
-- A worker whose checks fail gets its report back once, with the errors. After a second failure the master finishes
+- A worker whose checks fail gets its report back once, with the errors; a builder that ran at `medium` is spawned
+  again at `high` instead ([Choosing the effort](#choosing-the-effort)). After a second failure the master finishes
   the work itself.
 
 **A work packet holds:**
@@ -94,8 +98,85 @@ runs at `xhigh`. Nothing above Claude Opus 5.5, no Claude Fable, no `max`, no fa
 - the goal;
 - the decisions and docs it implements;
 - scope, in and out;
-- the files likely touched;
+- the claims: the narrowest paths it may change, and `@dev-stack` when it runs the stack;
 - done-when: tests, `pnpm verify`, docs;
 - constraints;
-- the worktree;
+- the worktree, and the worker with its effort;
 - the report to return: what changed, check output, deviations, open questions.
+
+### Choosing the effort
+
+The model is fixed, so effort is the lever (the owner, 2026-10-23). Effort sets how much work an agent does: how many
+files it reads, how much it runs and checks. More effort buys fewer missed edge cases, not a better approach.
+
+| Work | Effort |
+| --- | --- |
+| Searching; reading CI logs, test output and long files (`scout`) | `low` |
+| A mechanical change (`chore`) | `medium` |
+| A precise pull request: the packet names the files and the change, or holds the code to write (`builder`) | `medium` |
+| A pull request that needs judgment: parts that must fit together, debugging, security, identity, the Game Contract (`builder`) | `high` |
+| A review (`reviewer`) | `high` |
+| The master's routine turns: plan notes, opening a pull request | `high` |
+| The master's plans, ADRs, work packets for hard pull requests, and its review of every diff | `xhigh` |
+
+- **Name the model and the effort every time a worker is spawned.** A subagent with no effort of its own, such as the
+  built-in `Explore` or `general-purpose`, or a worker spawned before its definition has loaded, runs at the session's
+  effort: the master's `xhigh`, which the ceiling keeps for the master. Search with `scout`, not `Explore`.
+- **Reading goes to the scout.** It reads the CI log, the test output or the long file and returns what matters. The
+  master reads the summary, so its own context stays small; every master turn re-reads that context.
+- **Checkable work runs at `medium` first; a failure runs again at `high`.** A builder that ran at `medium` and whose
+  checks fail is spawned again at `high` in the same worktree, with its report and the errors. A resumed worker keeps the
+  effort it was spawned with, so a resume is not a step up. In Anthropic's runs of SWE-bench Pro on Opus 5.5, running
+  everything at `low` and re-running the failures at `high` solved about 97% for about $0.17 a task, against 95.3% for
+  $0.29 running everything at `high`. This repository starts at `medium`, not `low`, because a failed round here also
+  costs a review by the master.
+- **Price a finished pull request, not a token.** A cheaper run that needs another round costs a second worker run and a
+  second review by the master. The same runs back the rule that every worker runs Opus: Opus 5.5 at `medium` solved
+  92.8% at $0.22 per solved task, and Sonnet 5 solved 77.4% at $0.84.
+- **The owner sets the master's effort** with `/effort`. Changing the effort keeps the prompt cache, but changing the
+  model rebuilds it, so the master does not change model during a session.
+- **Measure.** Each pull request description names every worker that ran, at which effort, and how many rounds it took.
+  `/usage` shows each subagent's share of usage. Change this table when those numbers say so.
+
+Sources: Anthropic,
+[Optimizing for cost and intelligence](https://platform.claude.com/docs/en/about-claude/models/optimizing-for-cost-and-intelligence)
+and [Effort](https://platform.claude.com/docs/en/build-with-claude/effort); Claude Code,
+[Subagents](https://code.claude.com/docs/en/sub-agents) and [Model configuration](https://code.claude.com/docs/en/model-config);
+the model selection section of the
+[subagent-driven-development](https://github.com/obra/superpowers/blob/main/skills/subagent-driven-development/SKILL.md)
+skill in obra/superpowers. The figures are Anthropic's, at list prices, as of October 2026: they show a direction, not
+what this repository will see.
+
+### Claims: who changes what
+
+A claim names the paths one worker may change: `dir/` for everything under it, a file, or a pattern with `*`, `**` or
+`?`. `@dev-stack` claims the one dev stack, which the e2e suites and `docker compose` share. The master writes the
+claims into the packet and opens the worker's worktree with them, so two workers run side by side only when their
+claims do not touch.
+
+1. `git fetch origin`, then `git worktree add .claude/worktrees/<name> -b <branch> origin/main`.
+2. `pnpm claims open .claude/worktrees/<name> <claim>...` writes `.agent-claims` into the worktree's root. It refuses
+   when a claim touches one of an open worktree: two claims that can name the same file, or two that reach the same hot
+   zone. The master then runs the work after that worktree, or splits it so the claims do not touch. `open` on the same
+   worktree again widens its claims, with the same check.
+3. The worker's hooks keep it inside its claims. An edit outside them, in another worktree or in the main checkout is
+   blocked, and so are the commands a worker may not run: commit, push, `gh pr`, `kubectl`, deploys, the UAT and
+   production hosts. The hooks match what the worker writes, so they prevent accidents; they are not a security
+   boundary.
+4. Before committing a worker's diff, the master runs `pnpm claims check .claude/worktrees/<name>`. It lists the files
+   changed outside the claims (through Bash or a generator), the files another open worktree also changed, and the
+   files `origin/main` changed since the worktree started, which need `origin/main` merged first. Each finding is the
+   master's call: widen the claims, move the change, or run the work after the other.
+5. A worktree's claims stop counting once its branch is in `origin/main`; `pnpm claims status` shows them as merged.
+   `pnpm claims close` drops them sooner, when the work is dropped.
+
+**Claim narrowly.** `apps/hub/src/features/play/` runs beside `apps/hub/src/features/account/`, but `apps/hub/`
+touches both, and it reaches the lockfile through `apps/hub/package.json`. Two claims with wildcards are compared
+segment by segment, and when they could meet the tool says they touch.
+
+**Four at most**, because the master reviews every diff and re-runs its checks, and more workers use up the plan's
+usage window sooner without making the work cheaper.
+
+**The hooks and the definitions load from the master's checkout**: `${CLAUDE_PROJECT_DIR}/tools/claims` and
+`.claude/agents/`. Start the master in a checkout of `main`: on an older branch it spawns the older workers, and
+without `tools/claims` they run unguarded. A worker spawned as `general-purpose`, not by its name, has no hooks either.

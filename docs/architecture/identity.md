@@ -453,6 +453,19 @@ flowchart TD
 Both levels are claims of this device's session: they close when someone is chosen to play, or the owner locks the
 page. Signing in, the password just typed counts as level 2 for adding a first email.
 
+**A link out of Tò He** (feedback's mail today; any other origin or scheme) asks for level 1 too when an account's child
+profile plays ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md), [Surfaces](surfaces.md)): the same
+parent gate, in a sheet in Tôi, and the link opens once the gate does — the parent who typed the PIN leaves management
+open for its ten minutes, as anywhere else. An adult's profile follows it at once; so does a device profile, whose device
+has no manage PIN. The PIN guards the links out *inside the app*; the public pages the app opens (help, about, papers)
+carry `?from=app` and show no link out of Tò He at all, so a child reading them has no way out the PIN did not guard.
+
+**Moving up to an adult's profile** asks for level 1 too ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)):
+in the picker, while an account's child profile plays, choosing an adult's profile opens the same parent gate first,
+unless management is open on this device already; the adult's own PIN, if it has one, follows. Choosing locks management
+again, so the child cannot come back up alone. Moving to a child's profile, or between adults, asks nothing. The hub asks
+it; `PUT /api/session/profile` does not check it yet.
+
 ## Sessions
 
 | What | How |
@@ -497,6 +510,17 @@ else to choose, and one sign-in request fewer. The hub then sends the device thr
 have progress, [Device profiles](#bringing-one-into-an-account)), and
 which also chooses a lone PIN-less profile by itself when a page needs a player and none is chosen. Opened by hand
 ("Đổi người chơi"), the picker always shows, so a one-profile account can still add a profile or manage the account.
+
+**Coming back** ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md), [Surfaces](surfaces.md#coming-back)):
+
+- **Who is playing.** On a device with more than one profile — the account's, or the device's own — a cold start that
+  follows 30 minutes unused opens the picker once (`/account/profiles?ask=true`); one tap, and the screen or the link
+  that was opening goes on as that player. With one profile, or within 30 minutes, the last player stays.
+- **An ended session says so.** The 90-day session can end — it ran out, the password changed elsewhere, an admin signed
+  the account out. The hub keeps a copy of the session for playing offline; when the API says nobody is signed in while
+  that copy is there, the screens that need a player say "Phiên đăng nhập đã hết — đăng nhập lại để chơi tiếp bằng tài
+  khoản", with *Đăng nhập lại* and *Chơi trên máy này*. The device never plays on as a device profile in
+  silence. Signing out is a choice, and leads to the sign-in screen as before.
 
 ## Deleting
 
@@ -628,7 +652,8 @@ key, the `named` screen and its terms line, tables open to `named` device profil
   chooses; "Chơi luôn" on the sign-in screen goes back to the device profiles. The catalog shows the device profile's
   name. A room link, the rooms lobby, a room and a replay play as the device profile too, after the `named` screen the
   first time ([below](#device-profiles-on-the-server)); signing out of an account leads to the sign-in screen, and the
-  device profiles stay. A link — a table's or a share link — is kept on the tab for an hour through signing in and the
+  device profiles stay; an account's session that ended says so, and the device profiles play only when chosen
+  ([above](#a-devices-life)). A link — a table's or a share link — is kept on the tab for an hour through signing in and the
   picker, and forgotten when another profile is chosen by hand ([Entry links](entry-links.md#the-hubs-entry-pipeline)).
 - **Up to five per device** (`MAX_DEVICE_PROFILES`), in `/account/profiles` while no account is signed in: switch, make
   one (a suggested name, an avatar), rename, delete; the last one stays. Deleting removes its saves and scores from the

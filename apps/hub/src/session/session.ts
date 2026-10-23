@@ -1,6 +1,7 @@
 // Who is using this device, and who is playing. Pure functions here; hooks in useSession.ts.
 import type { MeView } from '../api/client.ts';
 import type { LocalProfile } from '../storage/db.ts';
+import { sessionEnded } from './ended.ts';
 
 /** What the hub hands to a game as `profile` in its init message. */
 export interface Player {
@@ -33,6 +34,8 @@ export const deviceMode = {
   enabled: () => localStorage.getItem(DEVICE_FLAG) === '1',
   enable: () => {
     localStorage.setItem(DEVICE_FLAG, '1');
+    // Choosing this device's profiles answers an ended session's notice (ended.ts): the player chose them.
+    sessionEnded.clear();
     deviceChanged();
   },
   disable: () => {
