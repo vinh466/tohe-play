@@ -2094,6 +2094,10 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("uploaded_at");
 
+                    b.Property<string>("Wang")
+                        .HasColumnType("jsonb")
+                        .HasColumnName("wang");
+
                     b.Property<int?>("Width")
                         .HasColumnType("integer")
                         .HasColumnName("width");
@@ -2284,6 +2288,15 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("uuid")
                         .HasColumnName("reviewed_by");
 
+                    b.Property<bool>("ShareAlikeAllowed")
+                        .HasColumnType("boolean")
+                        .HasColumnName("share_alike_allowed");
+
+                    b.Property<string>("ShareAlikeReason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("share_alike_reason");
+
                     b.Property<string>("Status")
                         .IsConcurrencyToken()
                         .IsRequired()
@@ -2377,6 +2390,19 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("text[]")
                         .HasColumnName("palette");
 
+                    b.Property<string>("Reason")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("reason");
+
+                    b.Property<DateTimeOffset?>("ReviewedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("reviewed_at");
+
+                    b.Property<Guid?>("ReviewedBy")
+                        .HasColumnType("uuid")
+                        .HasColumnName("reviewed_by");
+
                     b.Property<string>("Status")
                         .IsRequired()
                         .HasMaxLength(16)
@@ -2388,6 +2414,7 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnName("tile_size");
 
                     b.Property<DateTimeOffset>("UpdatedAt")
+                        .IsConcurrencyToken()
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("updated_at");
 
@@ -2404,7 +2431,7 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         {
                             t.HasCheckConstraint("ck_styles_creator", "(created_by_agent IS NULL) <> (created_by_account IS NULL)");
 
-                            t.HasCheckConstraint("ck_styles_status", "status IN ('draft', 'approved')");
+                            t.HasCheckConstraint("ck_styles_status", "status IN ('draft', 'approved', 'rejected')");
 
                             t.HasCheckConstraint("ck_styles_view", "view IN ('top-down', 'side', 'isometric', 'other')");
                         });
@@ -2439,6 +2466,39 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasName("pk_style_samples");
 
                     b.ToTable("style_samples", "studio");
+                });
+
+            modelBuilder.Entity("Tohe.Api.Modules.Studio.StudioVendor", b =>
+                {
+                    b.Property<string>("Id")
+                        .HasMaxLength(40)
+                        .HasColumnType("character varying(40)")
+                        .HasColumnName("id");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(80)
+                        .HasColumnType("character varying(80)")
+                        .HasColumnName("name");
+
+                    b.Property<string>("Note")
+                        .HasMaxLength(1000)
+                        .HasColumnType("character varying(1000)")
+                        .HasColumnName("note");
+
+                    b.Property<DateTimeOffset?>("TermsCheckedAt")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("terms_checked_at");
+
+                    b.Property<string>("TermsUrl")
+                        .HasMaxLength(500)
+                        .HasColumnType("character varying(500)")
+                        .HasColumnName("terms_url");
+
+                    b.HasKey("Id")
+                        .HasName("pk_vendors");
+
+                    b.ToTable("vendors", "studio");
                 });
 
             modelBuilder.Entity("Tohe.Api.Modules.Telemetry.TelemetryDay", b =>

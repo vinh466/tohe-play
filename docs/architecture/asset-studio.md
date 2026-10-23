@@ -11,7 +11,8 @@ Decisions: [ADR 0050](../decisions/0050-a-game-declares-what-it-depends-on.md),
 steps, and each part says when it exists. **What runs** (2026-10-24): the Studio's members, its session and its
 permissions in the API, and giving and taking studio roles in the console ([Members and the Studio's
 session](#members-and-the-studios-session)); styles, packs, drafts, review and the library in object storage in the API
-([The library in the API](#the-library-in-the-api)). The server's checks, the app and the CLI come next.
+([The library in the API](#the-library-in-the-api)); the server's checks and approving styles ([Checks](#checks)). The
+app and the CLI come next.
 
 ## The picture
 
@@ -63,9 +64,9 @@ Each asset in a pack has:
 | Field | Holds |
 | --- | --- |
 | `id` | unique in the pack, `a-z`, digits, `-`, `/` for folders (`crops/carrot`) |
-| `kind` | `image` · `spritesheet` (frame size, frames, animations) · `tileset` (tile size, optional Wang or autotile rules) · `audio` · `font` · `palette` |
+| `kind` | `image` · `spritesheet` (frame size, frames, animations) · `tileset` (tile size, optional Wang edges — autotile rules later) · `audio` · `font` · `palette` |
 | `file` | its sha256, bytes, format, width and height |
-| `source` | `pack` (name, URL, author) · `upload` (who) · `ai` (vendor, model, prompt, seed, date) · `code` (the script, kept as a file of the draft) |
+| `source` | a JSON object with its `type`: `pack` (`name`, `url`, `author`) · `upload` (`by`) · `ai` (`vendor`, `model`, `prompt`, `seed`, `date`) · `code` (`script`) |
 | `licence` | an SPDX identifier from the [allowed list](#licences), and the attribution when it needs one |
 | `tags` | words to find it by |
 
@@ -93,6 +94,10 @@ A **style** is an art bible kept in the Studio: palette (optional — a painted 
 (top-down, side, isometric), outline, and sample pictures. A pack names one. Tò He's own style is the default for a game
 with no idea of its own; a game may choose or make another, and its `SPEC.md` says which and why.
 
+A style is a draft its creator changes until a reviewer **approves** it — then it never changes — or **rejects** it with a
+reason; a rejected style is changed again by its creator and is a draft again. A pack may be drafted and submitted on a
+style in any status, but a version is approved only once its style is ([Checks](#checks)).
+
 ## Licences
 
 | Licence | Accepted |
@@ -102,8 +107,14 @@ with no idea of its own; a game may choose or make another, and its `SPEC.md` sa
 | `LicenseRef-Tohe-Internal` | for what is made for Tò He, until the repository has a licence |
 | NC, ND, "free for personal use", unknown | never |
 
-An `ai` source also needs a vendor on the Studio's list of vendors whose terms were checked. Credits for a game are
-generated from its lock.
+An `ai` source also needs a vendor on the Studio's list of vendors whose terms were checked (`studio.vendors`, with
+`terms_checked_at` set; empty until the owner checks one, so an `ai` source fails the checks until then). Credits for a
+game are generated from its lock.
+
+The list is `ACCEPTED_ASSET_LICENCES` of `@tohe/contract`; the API keeps a copy (`StudioLicences`), and a test fails when
+the two differ. `CC0-1.0` and `LicenseRef-Tohe-Internal` need no attribution; every other accepted licence does.
+`CC-BY-SA-4.0` passes on submitting and is accepted on approving only when the reviewer allows it for that version, with a
+reason, recorded on the version.
 
 ## Storage
 
@@ -261,8 +272,7 @@ Refusals: `401` without a Studio session, or `invalid_credentials` from the sign
 *Runs.* The `Studio` module keeps styles and packs, takes drafts from agents and contributors, and lets a reviewer
 approve, reject and deprecate a pack version — and the owner withdraw one. Approving publishes the version's files by
 hash and its manifest to object storage, where builds read them ([Use assets in a game](../guides/use-assets-in-a-game.md)).
-The server's checks are a placeholder that passes everything until they arrive (`IStudioChecks`, called on every upload,
-on submitting and on approving).
+The server's [checks](#checks) run on every upload, on submitting, again on approving, and on a dry run.
 
 ### Tables
 
@@ -270,25 +280,32 @@ In the schema `studio`:
 
 | Table | Holds |
 | --- | --- |
-| `styles` | `id` (a slug, as a pack's id), `name`, `status` (`draft`, `approved`), `tile_size` (optional), `view` (`top-down`, `side`, `isometric`, `other`), `palette` (hex colours; none for a painted style), `outline` (a note), who made it — an agent or an account — and when |
+| `styles` | `id` (a slug, as a pack's id), `name`, `status` (`draft`, `approved`, `rejected`), `tile_size` (optional), `view` (`top-down`, `side`, `isometric`, `other`), `palette` (hex colours; none for a painted style), `outline` (a note), who made it — an agent or an account — and when; `reviewed_by`, `reviewed_at` and `reason` of its last review |
 | `style_samples` | a style's sample pictures: `sha256`, `ext`, `bytes`, when uploaded |
 | `packs` | `id` (the pack's id), `style_id`, `description`, who made it and when |
-| `pack_versions` | `pack_id`, `version` (semver), `status`, who made it (`created_by_agent` or `created_by_account`), `submitted_at`; `reviewed_by`, `reviewed_at` and `reason` of the approval or rejection; `deprecated_by`/`_at`, `withdrawn_by`/`_at` and `withdraw_reason`; `manifest_sha256` once approved |
-| `assets` | per version and asset id: `kind`, `sha256`, `ext`, `bytes`, `width`, `height`, `frames` (`{width, height, count}`), `tags`, `licence` (SPDX), `attribution`, `source` (JSON) and when its file was uploaded |
+| `pack_versions` | `pack_id`, `version` (semver), `status`, who made it (`created_by_agent` or `created_by_account`), `submitted_at`; `reviewed_by`, `reviewed_at` and `reason` of the approval or rejection; `deprecated_by`/`_at`, `withdrawn_by`/`_at` and `withdraw_reason`; `manifest_sha256` once approved; `share_alike_allowed` and `share_alike_reason`, when the reviewer allowed `CC-BY-SA-4.0` in it |
+| `assets` | per version and asset id: `kind`, `sha256`, `ext`, `bytes`, `width`, `height`, `frames` (`{width, height, count}`), `wang` (a tileset's Wang edges, below), `tags`, `licence` (SPDX), `attribution`, `source` (JSON) and when its file was uploaded |
+| `vendors` | the AI vendors an `ai` source may name: `id` (what the source's `vendor` holds), `name`, `terms_url`, `terms_checked_at` (null until the owner checked its terms), `note`. Empty for now; no page changes it yet |
 | `audit` | every action (below), with who: an agent or an account |
+
+**A tileset's Wang edges** (`wang`, optional, a `tileset` only): `{"tiles": [["n", "e", "s", "w"], …]}` — per tile, in the
+order of its grid (left to right, then top to bottom), a label for its north, east, south and west edge (`a-z`, digits,
+`-`, up to 32 characters). The tiles are the size of the asset's `frames`, or else the style's tile. Edges with the same
+label meet, so they must hold the same outermost pixels ([Checks](#checks)). The manifest does not carry them.
 
 **A draft belongs to who made it** — an agent (any of its tokens) or an account — and only they change it, upload its
 files or submit it. A pack is shared: anyone who may draft starts a version of any pack; the pack's style is fixed by
-its first draft. Two versions of a pack may be drafted with the same number; only one is ever published. No endpoint
-approves a style yet: a pack names a style in either status.
+its first draft. Two versions of a pack may be drafted with the same number; only one is ever published. A pack names a
+style in any status; its versions are approved only once the style is.
 
 ### A version's life
 
 | Step | Who | What happens |
 | --- | --- | --- |
-| Draft | its creator | `POST /drafts` names the pack (and, for a new pack, its style and description), the version and every asset's metadata; `PUT /drafts/{versionId}` replaces them. A file is uploaded once its asset names it: `PUT /drafts/{versionId}/files/{sha256}`, the body the file itself — the server checks its sha256, its size against the asset's `bytes`, the limit per file and the creator's quota, then runs the checks |
+| Draft | its creator | `POST /drafts` names the pack (and, for a new pack, its style and description), the version and every asset's metadata; `PUT /drafts/{versionId}` replaces them. A file is uploaded once its asset names it: `PUT /drafts/{versionId}/files/{sha256}`, the body the file itself — the server checks its sha256, its size against the asset's `bytes`, the limit per file and the creator's quota, then runs the file's checks and strips its metadata. The answer is the file as kept: its `sha256` and `bytes` — new when metadata was stripped (`stripped: true`), and every asset that named the file names the new ones — and its `width` and `height`, read from the file, which the assets take. The old sha256 is no longer the draft's: a later `PUT /drafts/{versionId}` sends the new one |
+| Check | its creator | `POST /drafts/{versionId}/check`: every check of a submission on the draft as it stands, the files uploaded so far — a dry run that saves nothing. The answer is the report, `{ ok, problems }` |
 | Submit | its creator | Every asset's file uploaded, at least one asset, the version greater than every version of the pack ever approved (semver precedence; the patch, minor and major rule is one of the checks), the checks pass: `submitted`, and nobody changes it again |
-| Approve | a reviewer, step-up | `submitted` only; the version still greater than every one approved meanwhile; the checks again. Every file is copied from `drafts/` to `blobs/sha256/<sha256>.<ext>` (a blob already there stays as it is), the manifest is written to `packs/<id>/<version>.json`, and the version is `approved` with who and when. The draft copies are deleted |
+| Approve | a reviewer, step-up | `submitted` only; the version still greater than every one approved meanwhile; the checks again — the style approved now, and `CC-BY-SA-4.0` only with `allowShareAlike: true` and a `shareAlikeReason` in the request. Every file is copied from `drafts/` to `blobs/sha256/<sha256>.<ext>` (a blob already there stays as it is), the manifest is written to `packs/<id>/<version>.json`, and the version is `approved` with who and when. The draft copies are deleted |
 | Reject | a reviewer, step-up | `submitted` only, with a reason (at most 1000 characters): `rejected`; its draft files are deleted, its metadata kept. A fix is a new draft |
 | Deprecate | a reviewer, step-up | `approved` only, an optional reason: `deprecated`. Its files and manifest stay |
 | Withdraw | a reviewer who holds the platform role `owner` | `approved` or `deprecated`, a reason, and a fresh code from the authenticator in the request: the manifest and every blob of the version no other approved or deprecated version uses are deleted, and it is `withdrawn` |
@@ -304,7 +321,8 @@ if it holds exactly the same bytes (a retry after a failure), and otherwise answ
 **Drafts' limits** (configuration, [below](#configuration)): at most `Studio:MaxFileBytes` per file, and at most
 `Studio:DraftQuotaBytes` of uploaded files across the versions a creator has in `draft` or `submitted`.
 
-**The audit** — `studio.audit` — records `style.create`, `style.update`, `style.sample.upload`, `draft.create`,
+**The audit** — `studio.audit` — records `style.create`, `style.update`, `style.sample.upload`, `style.approve`,
+`style.reject`, `draft.create`,
 `draft.update`, `draft.file.upload`, `version.submit`, `version.approve`, `version.reject`, `version.deprecate`,
 `version.withdraw` and `draft.expire`, with the agent or the account, the target (`farm-crops@1.0.0`, a style's id) and
 the details, in the same transaction as the change. An agent's every call is also in the agents' own audit
@@ -331,25 +349,28 @@ the details, in the same transaction as the change. An agent's every call is als
 | `GET /api/studio/styles/{id}/samples/{sha256}` | read | A sample picture |
 | `POST /api/studio/styles` · `PUT /api/studio/styles/{id}` | draft | Make a style draft — id, name, tile size, view, palette, outline, samples' metadata · change it (its creator, while `draft`) |
 | `PUT /api/studio/styles/{id}/samples/{sha256}` | draft | Upload a sample its metadata names |
+| `POST /api/studio/styles/{id}/approve` · `…/reject` | `studio.review`, step-up | Approve a style draft whose samples are all uploaded · reject it, with a reason (at most 1000 characters) |
 | `GET /api/studio/packs` · `GET /api/studio/packs/{id}` | read | The packs with their versions' status · one |
 | `GET /api/studio/versions/{versionId}` | read | A version, its assets, status, review and manifest |
 | `GET /api/studio/versions/{versionId}/files/{sha256}` | read | One of its files: from `drafts/` until approved, from `blobs/` after |
 | `POST /api/studio/drafts` · `PUT /api/studio/drafts/{versionId}` | draft | Make a draft version, creating its pack when new · change it |
-| `PUT /api/studio/drafts/{versionId}/files/{sha256}` | draft | Upload a file of the draft: `204` |
+| `PUT /api/studio/drafts/{versionId}/files/{sha256}` | draft | Upload a file of the draft: the file as kept — `sha256`, `bytes`, `width`, `height`, `stripped` |
+| `POST /api/studio/drafts/{versionId}/check` | draft | The checks' report, nothing saved |
 | `POST /api/studio/drafts/{versionId}/submit` | draft | Submit it for review |
-| `POST /api/studio/versions/{versionId}/approve` · `…/reject` · `…/deprecate` | `studio.review`, step-up | Approve and publish · reject, with a reason · deprecate |
+| `POST /api/studio/versions/{versionId}/approve` · `…/reject` · `…/deprecate` | `studio.review`, step-up | Approve and publish (optionally `allowShareAlike` and `shareAlikeReason`) · reject, with a reason · deprecate |
 | `POST /api/studio/versions/{versionId}/withdraw` | `studio.review`, owner | Withdraw: a reason and a code |
 
 They are in the Studio's OpenAPI document, `studio`. Refusals: `401` (no session, or `agent_token_invalid`);
 `403 studio_required`, `step_up_required`, `agent_scope_missing`, `not_yours` (a draft or style someone else made),
 `owner_required`; `404 style_not_found`, `pack_not_found`, `version_not_found`, `file_not_found`, `file_not_in_draft`;
 `409 style_exists`, `pack_exists` (made by someone else that moment: send again), `not_a_draft`, `style_mismatch`,
-`files_missing` (with the `assets`), `version_not_greater`, `version_not_submitted`, `version_not_approved`,
-`version_changed`, `manifest_exists`, `drafts_quota_exceeded`; `413 file_too_large` (with `maxBytes`);
-`422 checks_failed` (with `failures`); `503 studio_storage_not_configured`; `400` with field codes for the metadata
+`files_missing` (with the `assets`, or a style's `samples`), `version_not_greater`, `version_not_submitted`,
+`version_not_approved`, `version_changed`, `style_changed`, `manifest_exists`, `drafts_quota_exceeded`;
+`413 file_too_large` (with `maxBytes`); `422 checks_failed` (with the report's `ok` and `problems`,
+[Checks](#checks)); `503 studio_storage_not_configured`; `400` with field codes for the metadata
 (`id_invalid`, `version_invalid`, `asset_id_invalid`, `asset_id_repeated`, `kind_invalid`, `sha256_invalid`,
 `ext_invalid`, `bytes_invalid`, `file_conflict`, `licence_invalid`, `attribution_invalid`, `size_invalid`,
-`frames_invalid`, `tags_invalid`, `source_invalid`, `assets_required`, `too_many_assets`, `name_required`,
+`frames_invalid`, `wang_invalid`, `tags_invalid`, `source_invalid`, `assets_required`, `too_many_assets`, `name_required`,
 `view_invalid`, `palette_invalid`, `outline_too_long`, `too_many_samples`, `style_required`, `description_too_long`,
 `reason_required`, `reason_too_long`, `sha256_mismatch`, `bytes_mismatch`) and for a code (`code_invalid`, `code_used`,
 `locked_out`).
@@ -375,6 +396,8 @@ The bucket's public side is the storage's, not the API's: in production a public
 | `Studio:Storage:PublicBaseUrl` | The registry's public address (`TOHE_ASSETS_REGISTRY` of the build tool): the API names manifests' and files' public URLs under it | unset: no public URLs in the answers |
 | `Studio:MaxFileBytes` | The most bytes of one uploaded file | `8388608` (8 MiB) |
 | `Studio:DraftQuotaBytes` | The most bytes of uploaded files one creator keeps in `draft` and `submitted` versions | `268435456` (256 MiB) |
+| `Studio:MaxPackBytes` | The most bytes of a version's files together (`too_large`) | `67108864` (64 MiB) |
+| `Studio:MaxPixels` | The most pixels of one picture, read from its header before decoding (`too_many_pixels`) | `16777216` (4096×4096) |
 | `Studio:DraftCleanupEnabled` | Remove, once a day, drafts not submitted within 30 days | `true` |
 
 Storage counts as configured with the first four. Locally, `compose.yaml` runs SeaweedFS with a bucket `tohe-studio`;
@@ -385,15 +408,55 @@ value is in the repository; without them the chart runs the API with no storage.
 
 ## Checks
 
-The server runs them on every draft upload and again on approval; `check --dry-run` runs them without saving.
+*Runs.* The server's checks are the gate of every draft (`IStudioChecks`, `StudioFileChecks`, `StudioVersionChecks` in the
+`Studio` module; pictures read with SkiaSharp, MIT):
 
-| Group | Checks |
-| --- | --- |
-| Files | allowed formats (PNG and WebP to begin with); magic bytes match the format; metadata stripped; at most a set number of pixels and bytes per file, and of bytes per pack |
-| Pictures | sizes in multiples of the style's tile; a sprite sheet's frame grid matches its metadata; for a pixel-art style every opaque pixel in the palette and alpha only 0 or 255; a Wang tileset's edges meet |
-| Metadata | ids unique; the style exists; tags valid; source complete |
-| Licence | in the allowed list; an attribution when the licence needs one; an `ai` source from a checked vendor |
-| Semver | the version against the previous approved one |
+| When | What runs | A problem |
+| --- | --- | --- |
+| Every upload of a draft's file | the file's checks, on that file | `422 checks_failed`; nothing kept |
+| `POST /drafts/{versionId}/check` (the CLI's `check --dry-run`) | all of them, on the draft as it stands: its metadata and every file uploaded so far | in the report; nothing saved |
+| Submitting | all of them | `422 checks_failed`; still a draft |
+| Approving | all of them again, the style approved now, `CC-BY-SA-4.0` only with the reviewer's allowance | `422 checks_failed`; still submitted, nothing published |
+
+**The report** is `{ ok, problems: [{ asset, code, message }] }`: `asset` is the asset's id, or none for a problem of the
+whole version; `code` is one of the codes below, stable; `message` says what is wrong, in English. A refusal is a problem
+details with `code: checks_failed`, `ok: false` and the `problems`. A problem of a file names the first asset (by id)
+that names the file.
+
+| Code | Group | The check |
+| --- | --- | --- |
+| `format_not_allowed` | File | PNG or WebP; not animated (APNG, animated WebP: a sprite sheet holds an animation). Audio and fonts come later |
+| `magic_mismatch` | File | the bytes are what the extension says, a whole file that decodes |
+| `too_large` | File, version | a file within `Studio:MaxFileBytes`, a version's files together within `Studio:MaxPackBytes` |
+| `too_many_pixels` | File | width × height within `Studio:MaxPixels`, read from the header before any decoding |
+| `size_not_tile_multiple` | Picture | for a style with a tile size, the width and height multiples of it |
+| `frames_mismatch` | Picture | a sprite sheet names its `frames`, its size is a grid of them, they fit it and its last row is not empty; a Wang tileset's tiles fit its grid |
+| `colour_not_in_palette` | Picture | for a style with a palette, every opaque pixel (alpha 255) one of its colours |
+| `alpha_not_binary` | Picture | for a style with a palette, alpha only 0 or 255 |
+| `tile_edges_differ` | Picture | for a tileset with `wang`, every east and west edge with the same label the same pixels, and every south and north edge |
+| `id_duplicate` | Metadata | the assets' ids unique in the version |
+| `style_unknown` | Metadata | the pack's style exists |
+| `style_not_approved` | Metadata | on approving: the style approved |
+| `source_incomplete` | Metadata | the `source` has a known `type` and its fields ([Packs](#packs)): text, a `url` that is an http(s) address, a `seed` a number or text, a `date` an ISO date |
+| `licence_not_accepted` | Licence | the SPDX id on the [list](#licences); `CC-BY-SA-4.0`, on approving, only with the reviewer's allowance |
+| `attribution_missing` | Licence | an attribution when the licence needs one |
+| `vendor_not_checked` | Licence | an `ai` source's `vendor` in `studio.vendors` with `terms_checked_at` set |
+| `semver_too_small` | Semver | against the version approved last: an asset removed or renamed, resized, its frames or its kind changed needs a new major; an asset added a new minor |
+
+**Metadata stripped.** On upload a PNG keeps only its picture's chunks and those that say how to show its colours
+(`IHDR`, `PLTE`, `IDAT`, `IEND`, `tRNS`, `gAMA`, `cHRM`, `sRGB`, `iCCP`, `sBIT`, `cICP`, `mDCV`, `cLLI`) and nothing after
+`IEND`; a WebP keeps `VP8 `, `VP8L`, `VP8X`, `ALPH` and `ICCP`, its `VP8X` flags for EXIF and XMP cleared. Nothing is
+re-encoded: the pixels stay exactly as sent. A file with nothing to strip is kept byte for byte; one with something gets a
+new sha256, which the upload's answer gives.
+
+**The pixels** are read as they are in the file — unpremultiplied RGBA, no colour conversion — so a palette is matched
+exactly.
+
+**Approving a style.** A reviewer, with step-up, approves a style draft whose sample pictures are all uploaded
+(`POST /api/studio/styles/{id}/approve`), or rejects it with a reason (`…/reject`); both are in the Studio's audit
+(`style.approve`, `style.reject`). An approved style never changes; a rejected one is changed again by its creator and is
+a draft again, its last reason kept until the next review. A review of a style changed meanwhile, or a change of one
+reviewed meanwhile, is `409 style_changed`.
 
 What a reviewer looks at: suitable for children (no gore, nothing frightening, no text, logos or real people's
 likeness), not a near copy of a known character or game, in the style, readable at its real size (previews at 1× and 2×,

@@ -53,8 +53,8 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
             Assert.Equal(HttpStatusCode.NoContent, (await agent.PutAsync(Url($"/api/studio/styles/{styleId}/samples/{sample.Sha256}"), body, Ct)).StatusCode);
         }
 
-        var carrot = NewFile(96);
-        var leaf = NewFile(48);
+        var carrot = NewFile(64, 16);
+        var leaf = NewFile();
         var packId = NewId("farm");
         var made = await CreateDraftAsync(agent, packId, "1.0.0", styleId,
             new
@@ -83,8 +83,8 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
         Assert.Equal(HttpStatusCode.Conflict, early.StatusCode);
         Assert.Equal("files_missing", await CodeOfAsync(early));
 
-        Assert.Equal(HttpStatusCode.NoContent, (await UploadAsync(agent, draft.Id, carrot)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await UploadAsync(agent, draft.Id, leaf)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await UploadAsync(agent, draft.Id, carrot)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await UploadAsync(agent, draft.Id, leaf)).StatusCode);
         Assert.Equal(carrot.Bytes, await storage.ReadAsync($"drafts/{draft.Id}/{carrot.Sha256}.png"));
         var submitted = await agent.PostAsync(Url($"/api/studio/drafts/{draft.Id}/submit"), null, Ct);
         Assert.Equal(HttpStatusCode.OK, submitted.StatusCode);
@@ -94,6 +94,7 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
         Assert.Equal("not_a_draft", await CodeOfAsync(await UploadAsync(agent, draft.Id, leaf)));
 
         var reviewer = await ReviewerAsync(_app, factory);
+        await ApproveStyleAsync(reviewer, styleId);
         var approved = await ApprovedAsync(reviewer, draft.Id);
         Assert.Equal("approved", approved.Status);
         Assert.NotNull(approved.ReviewedBy);
@@ -223,6 +224,7 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
         Assert.Equal("step_up_required", await CodeOfAsync(await ReviewAsync(noStepUp, submitted.Id, "approve")));
 
         var reviewer = await ReviewerAsync(_app, factory);
+        await ApproveStyleAsync(reviewer, styleId);
         var approved = await ApprovedAsync(reviewer, submitted.Id);
         Assert.Equal("version_not_submitted", await CodeOfAsync(await ReviewAsync(reviewer, submitted.Id, "approve")));
 
@@ -239,6 +241,7 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
         var contributor = await Studio.SignInAsync(_app, await Studio.NewAsync(factory, StudioRole.Contributor, twoFactor: false));
         var styleId = await NewStyleAsync(contributor);
         var reviewer = await ReviewerAsync(_app, factory);
+        await ApproveStyleAsync(reviewer, styleId);
 
         // Something else already at the manifest's key: refused, and left as it was.
         var packId = NewId("pack");
@@ -282,6 +285,7 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
         var contributor = await Studio.SignInAsync(_app, await Studio.NewAsync(factory, StudioRole.Contributor, twoFactor: false));
         var styleId = await NewStyleAsync(contributor);
         var reviewer = await ReviewerAsync(_app, factory);
+        await ApproveStyleAsync(reviewer, styleId);
         var only = NewFile();
         var shared = NewFile();
         var packId = NewId("pack");
@@ -324,32 +328,34 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
     [Fact]
     public async Task Uploads_are_checked_against_their_hash_their_size_the_limit_and_the_quota()
     {
+        // Every 16×16 file of the tests has the same length: one file is the limit, and two and a half the quota.
+        var file = NewFile();
+        var length = (int)file.Length;
         await using var app = WithStorage(factory, storage, new Dictionary<string, string>
         {
-            ["Studio:MaxFileBytes"] = "64",
-            ["Studio:DraftQuotaBytes"] = "100",
+            ["Studio:MaxFileBytes"] = $"{length}",
+            ["Studio:DraftQuotaBytes"] = $"{length * 5 / 2}",
         });
         var contributor = await Studio.SignInAsync(app, await Studio.NewAsync(factory, StudioRole.Contributor, twoFactor: false));
         var styleId = await NewStyleAsync(contributor);
-        var file = NewFile(50);
         var made = await CreateDraftAsync(contributor, NewId("pack"), "1.0.0", styleId, Asset("tree", file));
         var draft = (await made.Content.ReadFromJsonAsync<PackVersionView>(Ct))!;
 
-        Assert.Equal("sha256_mismatch", await FieldCodeAsync(await UploadAsync(contributor, draft.Id, file, NewFile(50).Bytes), "file"));
-        Assert.Equal("bytes_mismatch", await FieldCodeAsync(await UploadAsync(contributor, draft.Id, file, NewFile(49).Bytes), "file"));
-        var large = await UploadAsync(contributor, draft.Id, file, NewFile(65).Bytes);
+        Assert.Equal("sha256_mismatch", await FieldCodeAsync(await UploadAsync(contributor, draft.Id, file, NewFile().Bytes), "file"));
+        Assert.Equal("bytes_mismatch", await FieldCodeAsync(await UploadAsync(contributor, draft.Id, file, file.Bytes[..^1]), "file"));
+        var large = await UploadAsync(contributor, draft.Id, file, NewBytes(length + 1).Bytes);
         Assert.Equal(HttpStatusCode.RequestEntityTooLarge, large.StatusCode);
         Assert.Equal("file_too_large", await CodeOfAsync(large));
-        Assert.Equal("file_not_in_draft", await CodeOfAsync(await UploadAsync(contributor, draft.Id, NewFile(50))));
-        Assert.Equal("bytes_invalid", await FieldCodeAsync(await CreateDraftAsync(contributor, NewId("pack"), "1.0.0", styleId, Asset("big", NewFile(65))), "assets[0].bytes"));
+        Assert.Equal("file_not_in_draft", await CodeOfAsync(await UploadAsync(contributor, draft.Id, NewFile())));
+        Assert.Equal("bytes_invalid", await FieldCodeAsync(await CreateDraftAsync(contributor, NewId("pack"), "1.0.0", styleId, Asset("big", NewBytes(length + 1))), "assets[0].bytes"));
         Assert.Equal("asset_id_invalid", await FieldCodeAsync(await CreateDraftAsync(contributor, NewId("pack"), "1.0.0", styleId, Asset("Big Tree", file)), "assets[0].id"));
         Assert.Equal("version_invalid", await FieldCodeAsync(await CreateDraftAsync(contributor, NewId("pack"), "v1", styleId, Asset("tree", file)), "version"));
 
-        // 50 bytes, then 50 more — the same file again changes nothing — then over the 100 of the quota.
-        Assert.Equal(HttpStatusCode.NoContent, (await UploadAsync(contributor, draft.Id, file)).StatusCode);
-        Assert.Equal(HttpStatusCode.NoContent, (await UploadAsync(contributor, draft.Id, file)).StatusCode);
-        var second = await DraftAsync(contributor, NewId("pack"), "1.0.0", styleId, ("tree", NewFile(50)));
-        var third = NewFile(50);
+        // One file, then the same again — which changes nothing — then a second, then a third over the quota.
+        Assert.Equal(HttpStatusCode.OK, (await UploadAsync(contributor, draft.Id, file)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await UploadAsync(contributor, draft.Id, file)).StatusCode);
+        var second = await DraftAsync(contributor, NewId("pack"), "1.0.0", styleId, ("tree", NewFile()));
+        var third = NewFile();
         var full = await CreateDraftAsync(contributor, NewId("pack"), "1.0.0", styleId, Asset("tree", third));
         var over = await UploadAsync(contributor, (await full.Content.ReadFromJsonAsync<PackVersionView>(Ct))!.Id, third);
         Assert.Equal(HttpStatusCode.Conflict, over.StatusCode);

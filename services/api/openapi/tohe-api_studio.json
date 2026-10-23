@@ -337,6 +337,88 @@
         }
       }
     },
+    "/api/studio/styles/{id}/approve": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Approve a style draft whose samples are all uploaded: it never changes again, and its packs' versions may be approved.",
+        "operationId": "ApproveStudioStyle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleView"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/styles/{id}/reject": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Reject a style draft, with a reason: its creator changes it, and it is a draft again.",
+        "operationId": "RejectStudioStyle",
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReviewReasonRequest"
+              }
+            }
+          },
+          "required": true
+        },
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StyleView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/studio/packs": {
       "get": {
         "tags": [
@@ -555,7 +637,7 @@
         "tags": [
           "Studio"
         ],
-        "summary": "Upload a file an asset of the draft names; the body is the file, checked against its sha256 and size.",
+        "summary": "Upload a file an asset of the draft names; the body is the file, checked against its sha256 and size, then by the Studio's checks, its metadata stripped.",
         "operationId": "UploadStudioDraftFile",
         "parameters": [
           {
@@ -587,8 +669,15 @@
           "required": true
         },
         "responses": {
-          "204": {
-            "description": "No Content"
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioUploadView"
+                }
+              }
+            }
           },
           "400": {
             "description": "Bad Request",
@@ -596,6 +685,38 @@
               "application/problem+json": {
                 "schema": {
                   "$ref": "#/components/schemas/HttpValidationProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/api/studio/drafts/{versionId}/check": {
+      "post": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "Run every check of a submission on a draft as it stands — the files uploaded so far — and save nothing.",
+        "operationId": "CheckStudioDraft",
+        "parameters": [
+          {
+            "name": "versionId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioCheckReport"
                 }
               }
             }
@@ -663,6 +784,22 @@
             }
           }
         ],
+        "requestBody": {
+          "content": {
+            "application/json": {
+              "schema": {
+                "oneOf": [
+                  {
+                    "type": "null"
+                  },
+                  {
+                    "$ref": "#/components/schemas/ApproveRequest"
+                  }
+                ]
+              }
+            }
+          }
+        },
         "responses": {
           "200": {
             "description": "OK",
@@ -670,6 +807,16 @@
               "application/json": {
                 "schema": {
                   "$ref": "#/components/schemas/PackVersionView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad Request",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/HttpValidationProblemDetails"
                 }
               }
             }
@@ -836,6 +983,27 @@
   },
   "components": {
     "schemas": {
+      "ApproveRequest": {
+        "required": [
+          "allowShareAlike",
+          "shareAlikeReason"
+        ],
+        "type": "object",
+        "properties": {
+          "allowShareAlike": {
+            "type": [
+              "null",
+              "boolean"
+            ]
+          },
+          "shareAlikeReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          }
+        }
+      },
       "AssetFrames": {
         "required": [
           "width",
@@ -868,6 +1036,7 @@
           "width",
           "height",
           "frames",
+          "wang",
           "tags",
           "licence",
           "attribution",
@@ -930,6 +1099,16 @@
               }
             ]
           },
+          "wang": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AssetWang"
+              }
+            ]
+          },
           "tags": {
             "type": [
               "null",
@@ -973,6 +1152,7 @@
           "width",
           "height",
           "frames",
+          "wang",
           "tags",
           "licence",
           "attribution",
@@ -1022,6 +1202,16 @@
               }
             ]
           },
+          "wang": {
+            "oneOf": [
+              {
+                "type": "null"
+              },
+              {
+                "$ref": "#/components/schemas/AssetWang"
+              }
+            ]
+          },
           "tags": {
             "type": "array",
             "items": {
@@ -1048,6 +1238,23 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "AssetWang": {
+        "required": [
+          "tiles"
+        ],
+        "type": "object",
+        "properties": {
+          "tiles": {
+            "type": "array",
+            "items": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              }
+            }
           }
         }
       },
@@ -1229,6 +1436,8 @@
           "withdrawReason",
           "manifestSha256",
           "manifestUrl",
+          "shareAlikeAllowed",
+          "shareAlikeReason",
           "assets"
         ],
         "type": "object",
@@ -1316,6 +1525,15 @@
               "string"
             ]
           },
+          "shareAlikeAllowed": {
+            "type": "boolean"
+          },
+          "shareAlikeReason": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
           "assets": {
             "type": "array",
             "items": {
@@ -1379,6 +1597,46 @@
       "Stream": {
         "type": "string",
         "format": "binary"
+      },
+      "StudioCheckProblem": {
+        "required": [
+          "asset",
+          "code",
+          "message"
+        ],
+        "type": "object",
+        "properties": {
+          "asset": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "code": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        }
+      },
+      "StudioCheckReport": {
+        "required": [
+          "ok",
+          "problems"
+        ],
+        "type": "object",
+        "properties": {
+          "ok": {
+            "type": "boolean"
+          },
+          "problems": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/StudioCheckProblem"
+            }
+          }
+        }
       },
       "StudioCreatorView": {
         "required": [
@@ -1482,6 +1740,42 @@
               "null",
               "string"
             ]
+          }
+        }
+      },
+      "StudioUploadView": {
+        "required": [
+          "sha256",
+          "bytes",
+          "width",
+          "height",
+          "stripped"
+        ],
+        "type": "object",
+        "properties": {
+          "sha256": {
+            "type": "string"
+          },
+          "bytes": {
+            "type": "integer",
+            "format": "int64"
+          },
+          "width": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "height": {
+            "type": [
+              "null",
+              "integer"
+            ],
+            "format": "int32"
+          },
+          "stripped": {
+            "type": "boolean"
           }
         }
       },
@@ -1613,7 +1907,10 @@
           "samples",
           "createdBy",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "reviewedBy",
+          "reviewedAt",
+          "reason"
         ],
         "type": "object",
         "properties": {
@@ -1667,6 +1964,26 @@
           "updatedAt": {
             "type": "string",
             "format": "date-time"
+          },
+          "reviewedBy": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "uuid"
+          },
+          "reviewedAt": {
+            "type": [
+              "null",
+              "string"
+            ],
+            "format": "date-time"
+          },
+          "reason": {
+            "type": [
+              "null",
+              "string"
+            ]
           }
         }
       },

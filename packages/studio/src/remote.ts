@@ -84,6 +84,8 @@ function assetInputs(dir: string, pack: PackFile): AssetInput[] {
       width: facts.width,
       height: facts.height,
       frames: asset.frames ?? null,
+      // Wang edges (ADR 0051 checks): not written by pack.json yet.
+      wang: null,
       tags: asset.tags,
       licence: asset.licence,
       attribution: asset.attribution,

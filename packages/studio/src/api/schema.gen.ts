@@ -94,6 +94,40 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/studio/styles/{id}/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Approve a style draft whose samples are all uploaded: it never changes again, and its packs' versions may be approved. */
+        post: operations["ApproveStudioStyle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/studio/styles/{id}/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a style draft, with a reason: its creator changes it, and it is a draft again. */
+        post: operations["RejectStudioStyle"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/studio/packs": {
         parameters: {
             query?: never;
@@ -204,9 +238,26 @@ export interface paths {
             cookie?: never;
         };
         get?: never;
-        /** Upload a file an asset of the draft names; the body is the file, checked against its sha256 and size. */
+        /** Upload a file an asset of the draft names; the body is the file, checked against its sha256 and size, then by the Studio's checks, its metadata stripped. */
         put: operations["UploadStudioDraftFile"];
         post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/studio/drafts/{versionId}/check": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Run every check of a submission on a draft as it stands — the files uploaded so far — and save nothing. */
+        post: operations["CheckStudioDraft"];
         delete?: never;
         options?: never;
         head?: never;
@@ -302,6 +353,10 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
+        ApproveRequest: {
+            allowShareAlike: null | boolean;
+            shareAlikeReason: null | string;
+        };
         AssetFrames: {
             /** Format: int32 */
             width: number;
@@ -322,6 +377,7 @@ export interface components {
             /** Format: int32 */
             height: null | number;
             frames: null | components["schemas"]["AssetFrames"];
+            wang: null | components["schemas"]["AssetWang"];
             tags: null | string[];
             licence: null | string;
             attribution: null | string;
@@ -339,12 +395,16 @@ export interface components {
             /** Format: int32 */
             height: null | number;
             frames: null | components["schemas"]["AssetFrames"];
+            wang: null | components["schemas"]["AssetWang"];
             tags: string[];
             licence: string;
             attribution: null | string;
             source: components["schemas"]["JsonElement"];
             uploaded: boolean;
             publicUrl: null | string;
+        };
+        AssetWang: {
+            tiles: string[][];
         };
         DraftRequest: {
             packId: null | string;
@@ -407,6 +467,8 @@ export interface components {
             withdrawReason: null | string;
             manifestSha256: null | string;
             manifestUrl: null | string;
+            shareAlikeAllowed: boolean;
+            shareAlikeReason: null | string;
             assets: components["schemas"]["AssetView"][];
         };
         PackView: {
@@ -423,6 +485,15 @@ export interface components {
         };
         /** Format: binary */
         Stream: string;
+        StudioCheckProblem: {
+            asset: null | string;
+            code: string;
+            message: string;
+        };
+        StudioCheckReport: {
+            ok: boolean;
+            problems: components["schemas"]["StudioCheckProblem"][];
+        };
         StudioCreatorView: {
             kind: string;
             /** Format: uuid */
@@ -449,6 +520,16 @@ export interface components {
         };
         StudioStepUpRequest: {
             code?: null | string;
+        };
+        StudioUploadView: {
+            sha256: string;
+            /** Format: int64 */
+            bytes: number;
+            /** Format: int32 */
+            width: null | number;
+            /** Format: int32 */
+            height: null | number;
+            stripped: boolean;
         };
         StyleRequest: {
             id: null | string;
@@ -488,6 +569,11 @@ export interface components {
             createdAt: string;
             /** Format: date-time */
             updatedAt: string;
+            /** Format: uuid */
+            reviewedBy: null | string;
+            /** Format: date-time */
+            reviewedAt: null | string;
+            reason: null | string;
         };
         WithdrawRequest: {
             reason: null | string;
@@ -769,6 +855,63 @@ export interface operations {
             };
         };
     };
+    ApproveStudioStyle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StyleView"];
+                };
+            };
+        };
+    };
+    RejectStudioStyle: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ReviewReasonRequest"];
+            };
+        };
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StyleView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
     GetStudioPacks: {
         parameters: {
             query?: never;
@@ -938,12 +1081,14 @@ export interface operations {
             };
         };
         responses: {
-            /** @description No Content */
-            204: {
+            /** @description OK */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
-                content?: never;
+                content: {
+                    "application/json": components["schemas"]["StudioUploadView"];
+                };
             };
             /** @description Bad Request */
             400: {
@@ -952,6 +1097,28 @@ export interface operations {
                 };
                 content: {
                     "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
+                };
+            };
+        };
+    };
+    CheckStudioDraft: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                versionId: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioCheckReport"];
                 };
             };
         };
@@ -996,7 +1163,11 @@ export interface operations {
             };
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody?: {
+            content: {
+                "application/json": null | components["schemas"]["ApproveRequest"];
+            };
+        };
         responses: {
             /** @description OK */
             200: {
@@ -1005,6 +1176,15 @@ export interface operations {
                 };
                 content: {
                     "application/json": components["schemas"]["PackVersionView"];
+                };
+            };
+            /** @description Bad Request */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/problem+json": components["schemas"]["HttpValidationProblemDetails"];
                 };
             };
         };

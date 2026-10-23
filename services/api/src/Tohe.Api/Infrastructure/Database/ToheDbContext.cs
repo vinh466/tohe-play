@@ -101,6 +101,8 @@ public sealed class ToheDbContext(DbContextOptions<ToheDbContext> options)
 
     public DbSet<StudioAuditEntry> StudioAudit => Set<StudioAuditEntry>();
 
+    public DbSet<StudioVendor> StudioVendors => Set<StudioVendor>();
+
     /// <summary>Keys that encrypt session cookies; persisted so restarts and deploys keep people signed in.</summary>
     public DbSet<DataProtectionKey> DataProtectionKeys => Set<DataProtectionKey>();
 

@@ -14,6 +14,15 @@ public sealed class StudioOptions
     /// <summary>The most bytes of one uploaded file.</summary>
     public long MaxFileBytes { get; set; } = 8 * 1024 * 1024;
 
+    /// <summary>The most bytes of a pack version's files together (a check, <c>too_large</c>).</summary>
+    public long MaxPackBytes { get; set; } = 64L * 1024 * 1024;
+
+    /// <summary>
+    /// The most pixels of one picture (a check, <c>too_many_pixels</c>), read from its header before it is decoded: a
+    /// small file that unpacks to a huge picture is refused unread.
+    /// </summary>
+    public long MaxPixels { get; set; } = 4096 * 4096;
+
     /// <summary>The most bytes of uploaded files one creator keeps in versions still <c>draft</c> or <c>submitted</c>.</summary>
     public long DraftQuotaBytes { get; set; } = 256L * 1024 * 1024;
 
