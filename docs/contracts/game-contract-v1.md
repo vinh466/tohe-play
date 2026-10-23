@@ -10,6 +10,13 @@ in anything that runs in a browser. The source of truth is
 [`packages/contract/src`](../../packages/contract/src/index.ts); this page explains it. Changing the contract
 requires an [ADR](../decisions/index.md) and a protocol version decision (see [Versioning](#versioning)).
 
+**A game declares what it depends on** ([ADR 0050](../decisions/0050-a-game-declares-what-it-depends-on.md)). Every way a
+game leans on the platform — services (`capabilities`), who may open it (`identity`), ways in (`entries`), screen
+(`orientation`, `themes`), size (`sizeBudgetKb`) — is a field of `game.json` with levels the platform offers. Without a
+declaration a game depends on nothing but the protocol. The platform provides each level, keeps guardrails no
+declaration changes (the sandbox, the CSP, immutable builds, nothing but Tò He's own origins), and conformance checks
+exactly the levels a game declared.
+
 ## 1. Ship a build folder
 
 A game is a folder of static files with a `game.json` next to the entry HTML:

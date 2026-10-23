@@ -88,6 +88,8 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var be = await ChildAsync(chu, "Bé");
         var refused = await be.Client.PostAsync(Url($"/api/rooms/{room.Id}/join"), null, Ct);
         Assert.Equal((HttpStatusCode.Forbidden, "parent_permission"), (refused.StatusCode, await CodeAsync(refused)));
+        // Back up from a child's profile: the parent gate first (ADR 0046).
+        await UnlockAsync(chu);
         await PlayAsAsync(chu, chu.Me.Profiles[0].Id);
         await UnlockAsync(chu);
         var allowed = await chu.Client.PatchAsJsonAsync(Url($"/api/profiles/{be.ProfileId}"), new { playWithOthers = true }, Ct);
@@ -104,6 +106,29 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var door = await co.Client.PostAsync(Url($"/api/rooms/{room.Id}/join"), null, Ct);
         Assert.Equal((HttpStatusCode.Forbidden, "room_locked"), (door.StatusCode, await CodeAsync(door)));
         Assert.Equal(HttpStatusCode.NotFound, (await co.Client.GetAsync(Url("/api/rooms/code/000000x"), Ct)).StatusCode);
+    }
+
+    [Fact]
+    public async Task My_tables_carry_their_codes_and_the_lobby_list_carries_none()
+    {
+        var bo = await PersonAsync("Bố");
+        var room = await CreateAsync(bo, new { gameId = "tien-len", seats = 4 });
+        var chu = await PersonAsync("Chú");
+        await JoinAsync(chu, room.Id);
+        var co = await PersonAsync("Cô");
+
+        // The host and a player at the table each see the code of their own table.
+        Assert.Equal(room.Code, Assert.Single(await MineAsync(bo), r => r.Id == room.Id).Code);
+        Assert.Equal(room.Code, Assert.Single(await MineAsync(chu), r => r.Id == room.Id).Code);
+
+        // Nobody else gets it from a list: not from "mine", not from the lobby — the sitters' lobby included.
+        Assert.DoesNotContain(await MineAsync(co), r => r.Id == room.Id);
+        Assert.Null(Assert.Single(await ListAsync(co), r => r.Id == room.Id).Code);
+        Assert.Null(Assert.Single(await ListAsync(bo), r => r.Id == room.Id).Code);
+
+        // Gone from the table, gone from the list.
+        Assert.Equal(HttpStatusCode.NoContent, (await chu.Client.PostAsync(Url($"/api/rooms/{room.Id}/leave"), null, Ct)).StatusCode);
+        Assert.DoesNotContain(await MineAsync(chu), r => r.Id == room.Id);
     }
 
     [Fact]
@@ -245,6 +270,8 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         }
 
         var na = await ChildAsync(bo, "Na");
+        // Back up from a child's profile: the parent gate first (ADR 0046).
+        await UnlockAsync(bo);
         await PlayAsAsync(bo, bo.ProfileId);
         var chu = await PersonAsync("Chú");
         // Another account's profile may be asked (ADR 0033), but not to a table kept to the account.
@@ -304,6 +331,8 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
         var straight = await InviteAsync(bo, open.Id, bin.ProfileId);
         Assert.Equal((HttpStatusCode.NotFound, "profile_not_found"), (straight.StatusCode, await CodeAsync(straight)));
         // Playing as another profile closes the parent gate: open it again to manage the profiles.
+        // Back up from a child's profile: the parent gate first (ADR 0046).
+        await UnlockAsync(chu);
         await PlayAsAsync(chu, chu.ProfileId);
         await UnlockAsync(chu);
         Assert.Equal(bin.ProfileId, (await FindAsync(chu, binId)).Id);
@@ -777,6 +806,9 @@ public sealed class RoomsTests(ApiFactory factory) : IClassFixture<ApiFactory>, 
 
     private static async Task<List<RoomSummary>> ListAsync(Person person) =>
         (await person.Client.GetFromJsonAsync<List<RoomSummary>>(Url("/api/rooms?game=tien-len"), Ct))!;
+
+    private static async Task<List<RoomSummary>> MineAsync(Person person) =>
+        (await person.Client.GetFromJsonAsync<List<RoomSummary>>(Url("/api/rooms/mine"), Ct))!;
 
     private static Uri Url(string path) => new(path, UriKind.Relative);
 

@@ -39,10 +39,11 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - Develop only on the dev stack: ports 47xx, compose project `tohe`. Never touch other databases or containers.
 - UAT (`tohe-uat`, ports 48xx, 10.100.0.2) holds the family's data: deploy only with `deploy/uat/deploy.sh <tag>`
   (a `uat-` tag on `main`), never wipe its volume or run migrations against it by hand (docs/guides/uat.md).
-- Production (toheplay.io.vn): read it from outside only; never write to its cluster. Pull requests are merged, and
-  `uat-`/`prod-` tags on `main` made, only on the owner's word ("merge", "deploy", "lên prod"). In `platform-infra` an
-  agent may open pull requests; the only one it merges is the one that changes `targetRevision` of `apps/tohe`. See
-  docs/guides/environments.md and ADR 0041.
+- Production (toheplay.io.vn): read it from outside only; never write to its cluster. The one exception: an agent
+  creates drafts in the Asset Studio with its `studio.draft` token, and never approves (ADR 0051, 0052). Pull requests
+  are merged, and `uat-`/`prod-` tags on `main` made, only on the owner's word ("merge", "deploy", "lên prod"). In
+  `platform-infra` an agent may open pull requests; the only one it merges is the one that changes `targetRevision` of
+  `apps/tohe`. See docs/guides/environments.md and ADR 0041.
 - Before merging a dependency upgrade, check `docs/roadmap/upgrade-watchlist.md`. Dependabot PRs listed there
   stay open on purpose as reminders — do not close them or add ignore rules for them.
 

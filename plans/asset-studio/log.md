@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-24 (2) — agent
+
+- #113 (plan) và #134 (ADR 0050–0052, `asset-studio.md`, `agent-tokens.md`) merged. Phiên surface giữ 0049, dùng 0054+.
+- Điều chỉnh khi graduate ghi ở [delivery.md](delivery.md): N1–N3 một PR; B1 → B4 → B2 → B3; SeaweedFS thay MinIO; P0
+  chưa đóng atlas; studio role trong schema `studio`.
+- Các lane code chờ worker của phiên `launch-review` nhả claim (API, file sinh, kit, conformance, lockfile).
+- Chờ owner: S2 (R2, Infisical, DNS `studio.`).
+
 ## 2026-10-24 — agent
 
 - Owner: "ok chốt theo đề xuất, hướng review đã ổn, bạn hãy theo đề xuất làm việc đi, bạn đc merge PRs và deploy prod

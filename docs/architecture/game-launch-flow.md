@@ -81,7 +81,9 @@ other for the same reason.
   and the hub additionally keeps the last good copy in IndexedDB.
 - A new version of the hub never takes over a game in play: its service worker waits until every page of the app is
   closed, and the page keeps the files it started with, so opening a game after a deploy loads the version the page
-  runs, with no reload ([Surfaces](surfaces.md#coming-back); `pnpm --filter @tohe/hub updates`).
+  runs, with no reload. Going out of sight in a game reloads nothing either; only out of sight on a screen of the
+  frame with nothing in progress does the page take the new version ([Surfaces](surfaces.md#coming-back);
+  `pnpm --filter @tohe/hub updates`).
 - Saves and scores are written to IndexedDB first. Nothing waits for the network.
 - Game builds are immutable and served with long cache lifetimes, so a game played once is in the browser cache.
   A dedicated games-origin service worker is a planned spike ([walking skeleton](../roadmap/walking-skeleton.md#spikes)).

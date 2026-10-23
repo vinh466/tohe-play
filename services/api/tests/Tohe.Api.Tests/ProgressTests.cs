@@ -57,6 +57,8 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
         await PlayAsAsync(client, child.Id);
         await PutSaveAsync(client, "hello", new { best = 7 });
 
+        // Back up from a child's profile: the parent gate first (ADR 0046).
+        await UnlockAsync(client);
         await PlayAsAsync(client, me.Profiles[0].Id);
 
         Assert.Empty((await client.GetFromJsonAsync<List<SavedGameView>>(Url("/api/progress/saves"), Ct))!);

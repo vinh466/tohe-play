@@ -80,6 +80,8 @@ public sealed class IntegrityTests(ApiFactory factory) : IClassFixture<ApiFactor
         Assert.Equal((100d, false), (theirs.Value, theirs.UnderReview));
 
         // A run that does not move a board is not looked at more closely.
+        // Back up from a child's profile: the parent gate first (ADR 0046).
+        await Accounts.StepUpAsync(client);
         await PlayAsAsync(client, me.Profiles[0].Id);
         var small = Guid.NewGuid();
         await RecordAsync(client, Run(small, 90));

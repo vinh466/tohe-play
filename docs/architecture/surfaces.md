@@ -19,7 +19,7 @@ flowchart LR
   end
   G["Games — games.<br/>sandboxed, level L1"]
   O["Operators — console.<br/>own session, Access"]
-  V["Developers — docs.<br/>(later studio.)"]
+  V["Developers — docs.<br/>studio. (decided)"]
   E["Edge — status., notify."]
   A -- "iframe, Game Contract" --> G
   A --> API
@@ -31,7 +31,7 @@ flowchart LR
 | Players | high: sessions, profiles, children's data | no third-party script; a CSP per namespace |
 | Games | low | sandboxed iframe, an origin of its own, the games' CSP; speaks only the Game Contract |
 | Operators | highest | Cloudflare Access in front (on since 2026-10-22), then its own session and second factor |
-| Developers | public | no session |
+| Developers | `docs.`: public · `studio.`: people and agents who make game assets | `docs.`: no session · `studio.`: its own session and studio roles, a second factor to approve, agent tokens with scopes ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md), [ADR 0052](../decisions/0052-agent-tokens-and-the-scopes-no-agent-gets.md)) |
 | Edge | — | no code of Tò He's |
 
 **The game plane's isolation.** Today **L1**: an origin of its own. Every game is added to this repository by the owner,
@@ -104,7 +104,10 @@ flowchart LR
 None of the tabs' screens repeats its tab's name as a title: the bar or the rail says where it is, and the name stays as a
 heading for screen readers. The look and the words are those of [Voice and look](../conventions/voice-and-look.md): icons
 are SVG from one set and carry a label; a game's tile is a picture and a name, never a cut description; "Rủ bạn"
-(share) and "Bảng điểm" (leaderboard) are labelled buttons under the name.
+(share) and "Bảng điểm" (leaderboard) are labelled buttons under the name. A table is a **bàn** on every screen — the
+lobby (*Mở bàn*, *Bàn đang mở*), a table (*Rời bàn*, *chủ bàn*), invitations (*Vào bàn*), its errors and the entry pages
+— and a *table* in English, never *phòng* or *room*; `rooms` stays the name in routes (`/play/<id>/rooms`), in code and in
+the API.
 
 - Each level — the app, a table, a game — is an entry in the history, so Android's back steps one level.
 - **A way back on every screen.** An installed app on an iPhone has no Back, so no screen is a dead end that needs the
@@ -166,7 +169,8 @@ are SVG from one set and carry a label; a game's tile is a picture and a name, n
 | Opening the app | the frame's first screen starts from what was left unfinished (above) |
 | A shared device | with several profiles, "who is playing?" — one tap — after a cold start that follows 30 minutes unused; an account's child profile → an adult's asks for the manage PIN |
 | The account's session ended | the app says so and offers to sign in; it does not fall back to the device's profile in silence |
-| A new version | waits for the next cold start; in a long session, *A new version — Reload* on the frame's screens, never during a game, at a table or in a replay |
+| A new version | takes over at the next cold start, or while the app is out of sight on a screen of the frame that holds nothing in progress, so the player comes back to the same screen on the new version without seeing it happen; in a long session in sight, *A new version — Reload* with *Later* on the frame's screens. Never during a game, at a table or in a replay |
+| Starting the installed app | the splash screen is the brand colour, in light and dark alike |
 | A link while installed | `launch_handler` `focus-existing` where supported; on iPhone, entry pages say how to open the app and enter the code |
 | Storage | the installed app asks for persistent storage |
 | Counting | returning visits counted as totals only ([Telemetry](telemetry.md)) |
@@ -178,7 +182,8 @@ are SVG from one set and carry a label; a game's tile is a picture and a name, n
 | Trò chơi's first screen | `pages/CatalogPage.tsx`, `launcher/recent.ts`, `rooms/myTables.ts` | from the top: who is playing and *Nhập mã* (no title, no strip about progress, no technical-data link); **Bàn đang ngồi** — the tables of `GET /api/rooms/mine`, "Tiến Lên · bàn của Bố — Vào lại" (an account's profile, or a device profile with a copy on the server); the invitations, as before; **Chơi tiếp** — the game this profile opened last, one big tile (picture, name, the button); **Gần đây** — up to six it opened before; every game, as tiles of a picture and a name with *Rủ bạn* (and, for an account, *Bảng điểm*) under the name, in columns that grow with the screen (about 150 px on a phone, 240 px on a computer, 290 px on a tablet held upright) and stretch to fill the row. A section with nothing to show is not shown. The hub notes "opened" itself when a game's menu or its tables' lobby opens: per profile, on the device, in IndexedDB's `cache` table (`opened:<profileId>`, a game's id and a time, the last twelve), gone with a device profile that is deleted; the same moment writes `tohe:returning` in `localStorage`, which the public pages read for *Chơi tiếp* (and nothing else does); the Game Contract does not change. Whether a round is left unfinished, the game says on its own title screen |
 | Who is playing | `session/whoIsPlaying.ts`, `RequireSession`, the picker (`pages/ProfilesPage.tsx`) | The picker leads with the profile this device played last — "Vẫn là Mèo? Chơi tiếp", big, one tap — and the other profiles below it under "Người khác"; with no last player (a first start) it is the title and a grid. localStorage `tohe:last-used` holds when the app was last in sight (written each minute while seen and when it leaves sight). A page load is a cold start: if it follows 30 minutes or more since then, and the device has more than one profile — an account's profiles, or this device's own — the first screen that needs a player sends to the picker (`/account/profiles?ask=true`) once; the screen that asked, or the link kept, opens after the tap. A first start, a clock set back, or storage refused asks nothing. On an account, choosing an adult's profile while a child's plays opens the parent gate first (the manage PIN, or the password or an email code without one), unless management is open already; choosing locks it again. Quản lý tài khoản was behind the gate already |
 | The session ended | `session/ended.ts`, `api/queries.ts` | the hub keeps a copy of the account's session for playing offline; when the API answers that nobody is signed in while that copy is there, the session ended (signing out and deleting the account forget the copy first). The device keeps `tohe:session-ended` and every screen that needs a player shows "Phiên đăng nhập đã hết — đăng nhập lại để chơi tiếp bằng tài khoản" with *Đăng nhập lại* (back to the same screen after) and *Chơi trên máy này* — the device's profiles only when chosen. Signing in, or that choice, clears it |
-| A new version | `update/`, `vite.config.ts` | `registerType: 'prompt'`: the new service worker installs and waits, with no `skipWaiting`, `clientsClaim` or reload of its own, and takes over once every page of the app is closed. A long session asks for a new version every hour while in sight; *Có bản mới — Tải lại* shows above the bar on the frame's screens only (a game, a lobby, a table, a replay and the links into them are outside the frame), with *Để sau*. Only a tap reloads. `pnpm --filter @tohe/hub updates` builds the hub twice and checks it, in CI too |
+| A new version | `update/`, `vite.config.ts` | `registerType: 'prompt'`: the new service worker installs and waits, with no `skipWaiting`, `clientsClaim` or reload of its own, and takes over once every page of the app is closed. A long session asks for a new version every hour while in sight; *Có bản mới — Tải lại* shows above the bar on the frame's screens only (a game, a lobby, a table, a replay and the links into them are outside the frame), with a visible *Để sau* that hides it until the next start. **Out of sight** (`visibilitychange` to `hidden`) with a new version waiting, the page takes it — skip waiting, then one reload, at the same address — when it shows a tab's own screen (`/play`, `/together`, `/account` but not Quản lý tài khoản) or `/account/links` and holds no work: no dialog open, no field with text in it (`appliesOutOfSight`, `holdsWork`). Every other screen of the frame keeps what is in progress only in the page — a code sent by email, a step of signing up or of moving a profile, the parent gate — so it waits for the notice or the next cold start, as do a game, a table and a replay. Otherwise only a tap reloads. `pnpm --filter @tohe/hub updates` builds the hub twice and checks it, in CI too: going out of sight on `/play` reloads into the new build, in a game it does not |
+| The splash screen | the manifest (`vite.config.ts`) | `background_color` is the light theme's `--tohe-brand`, read from `tokens.css` when the hub is built: Android draws the start screen of the installed app from the manifest before any page exists, in light and dark alike, with the opaque icon (its own square of a lighter orange, `#f97316`) in the middle |
 | A link while installed | the manifest, `install/launch.ts`, `install/InstalledAppHint.tsx` | `launch_handler: { client_mode: ["focus-existing", "auto"] }`; where the browser has `launchQueue` (Chromium), a link handed to the open app goes there — a screen of the app inside it, a public page as a page. On an iPhone or iPad outside the app, an entry page's screens (`/r/…`, `/s/…`: the table's preview, the named screen) carry "Đã cài app Tò He? Mở app, bấm Nhập mã rồi gõ 482 913."; not a dead end |
 | Storage | `install/launch.ts` | the installed app asks `navigator.storage.persist()` once (`tohe:persist-asked`), unless its storage persists already |
 | Counting | `telemetry/funnel.ts` | `hub.funnel.browser-return`, once a day, beside `hub.funnel.standalone-open` |

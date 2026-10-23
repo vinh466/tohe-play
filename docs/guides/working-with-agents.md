@@ -47,7 +47,10 @@ across many sessions. `AGENTS.md` at the repository root points here; keep that 
 - Tests that need a database use Testcontainers, never a shared instance.
 - UAT holds the family's data. Deploy only with `deploy/uat/deploy.sh <tag>`, a `uat-` tag on `main`, and only when the
   owner says "deploy". Never wipe its volume or run migrations against it by hand ([UAT](uat.md)).
-- Production (`toheplay.io.vn`) is read from outside only; an agent never writes to its cluster. A release is a `prod-`
+- Production (`toheplay.io.vn`) is read from outside only; an agent never writes to its cluster. The one exception: an
+  agent creates drafts in the [Asset Studio](../architecture/asset-studio.md) through the API, with a token holding
+  `studio.draft`; it never approves, deprecates or withdraws, and the owner can revoke the token at any moment
+  ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md), [ADR 0052](../decisions/0052-agent-tokens-and-the-scopes-no-agent-gets.md)). A release is a `prod-`
   tag on a commit that already has a `uat-` tag, made when the owner says "lên prod". In `platform-infra` an agent may
   open pull requests; the only one it merges is the one that changes `targetRevision` of `apps/tohe`. Pull requests in
   this repository are merged when the owner says "merge". The steps, the tag rules and the checks are in

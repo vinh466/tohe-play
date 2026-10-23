@@ -332,10 +332,13 @@ public sealed class ServerDeviceProfilesTests(ApiFactory factory) : IClassFixtur
 
         // …and a table the child sits at, kept to the account, opened by the host to anyone named later, still never
         // seats a device profile.
+        // Back up from a child's profile: the parent gate first (ADR 0046).
+        await Accounts.StepUpAsync(bo.Client);
         await PlayAsAsync(bo, bo.Me.Profiles[0].Id);
         var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, entry = "own" });
         await PlayAsAsync(bo, na.ProfileId);
         await JoinAsync(bo, family.Id);
+        await Accounts.StepUpAsync(bo.Client);
         await PlayAsAsync(bo, bo.Me.Profiles[0].Id);
         var opened = await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{family.Id}"), new { entry = "named" }, Ct);
         Assert.Equal("named", (await opened.Content.ReadFromJsonAsync<RoomView>(Ct))!.Entry);
@@ -575,6 +578,8 @@ public sealed class ServerDeviceProfilesTests(ApiFactory factory) : IClassFixtur
         var family = await CreateAsync(bo, new { gameId = "tien-len", seats = 3, entry = "own", spectators = true });
         var na = await ChildAsync(bo, "Na");
         Assert.Equal(HttpStatusCode.OK, (await na.Client.PostAsync(Url($"/api/rooms/{family.Id}/watch"), null, Ct)).StatusCode);
+        // Back up from a child's profile: the parent gate first (ADR 0046).
+        await Accounts.StepUpAsync(bo.Client);
         await PlayAsAsync(bo, bo.Me.Profiles[0].Id);
         await bo.Client.PatchAsJsonAsync(Url($"/api/rooms/{family.Id}"), new { entry = "named" }, Ct);
 
