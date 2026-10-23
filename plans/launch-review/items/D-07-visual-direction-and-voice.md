@@ -1,9 +1,9 @@
 # D-07 — Tò He nên trông và nói thế nào để không còn như máy làm?
 
-- Status: **proposed**
+- Status: **decided** — A, qua S1 → S2 → S3 ([ADR 0049](../../../docs/decisions/0049-a-crafted-toy-voice-and-look.md))
 - Kind: decision
 - Blocks: E-02 (rà từng màn), E-04 (câu chữ) · Blocked by: —
-- Decided: —
+- Decided: owner, 2026-10-24, chat: "chốt theo đề xuất nha, bạn triển nghiêm túc đi"
 
 ## Why it matters
 
@@ -69,7 +69,14 @@ Cái giá chấp nhận: S1 thay đổi gần như mọi màn một lần nữa 
 
 ## Decision
 
-—
+**Theo đề xuất, cả Q1–Q6** — owner, 2026-10-24: "chốt theo đề xuất nha, bạn triển nghiêm túc đi"; rồi "hoàn thành và
+lên prod luôn giúp tôi". Hệ quả:
+
+- [ADR 0049](../../../docs/decisions/0049-a-crafted-toy-voice-and-look.md) ghi quyết định.
+- S1 đã trên prod (`prod-2026-10-23.2`); S2 (menu trong game) build ngay.
+- Q2: owner thuê hoạ sĩ người Việt; agent viết [brief](../illustrator-brief.md). S3 (bảng màu nhuộm, avatar, ảnh bìa,
+  linh vật, chuyển động, âm thanh) làm khi có tranh.
+- Câu hỏi thêm của agent — "bàn" hay "phòng": theo đề xuất, **"bàn"** ở mọi chỗ của người chơi.
 
 ## Discussion
 

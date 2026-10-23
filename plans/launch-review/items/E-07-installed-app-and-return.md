@@ -1,9 +1,9 @@
 # E-07 — App đã cài và lúc quay lại: thoải mái
 
-- Status: **proposed** (phần chức năng đang build ở F1, F2)
+- Status: **decided** (F1, F2 trên prod; Q2, Q3 build 2026-10-24)
 - Kind: enhancement
 - Blocks: G7 lượt thử máy thật của owner · Blocked by: —
-- Decided: —
+- Decided: owner, 2026-10-24, chat: "chốt theo đề xuất nha"
 
 ## Why it matters
 
@@ -32,7 +32,10 @@ Bảng 14 mục ở [R-08 §2](../research/R-08-installed-app-and-return.md#2-t�
 
 ## Decision
 
-—
+**Theo đề xuất, Q1–Q4** — owner, 2026-10-24. Q1: giữ không khoá xoay + lớp "Xoay dọc máy để chơi" (F2, đã có). Q2: bản mới
+áp dụng khi app khuất (vào nền) lúc đang ở màn của khung, không bao giờ trong ván, ở bàn hay khi xem lại; còn lại vẫn báo,
+"Để sau" có chữ — ADR 0046 sửa theo. Q3: màn khởi động (splash) màu thương hiệu cho cả sáng và tối; ảnh khởi động iOS làm
+ở D-07 S3. Q4: "Vẫn là An? Chơi tiếp" (S1a, đã có).
 
 ## Discussion
 
