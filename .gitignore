@@ -30,6 +30,9 @@ TestResults/
 !.vscode/extensions.json
 *.swp
 
+# asset packs in the making (tohe-studio, docs/guides/make-assets.md)
+.studio-work/
+
 # agent worktrees, and the claims the master writes into one (pnpm claims)
 .claude/worktrees/
 .agent-claims

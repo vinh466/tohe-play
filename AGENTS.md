@@ -15,6 +15,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `packages/game-sdk` | Game side (no runtime deps) and host side (`/host`) of the contract |
 | `packages/game-kit` | Game shell (menu stage, play stage, quick panel, HUD), Phaser setup, sounds, haptics, juice — use it for every new game (ADR 0012, 0020) |
 | `packages/design-tokens` | Light and dark colour tokens shared by the hub, the public pages, the docs and the kit (ADR 0013) |
+| `packages/studio` | `tohe-studio`, the CLI agents make asset packs with: import from a known free pack or draw with code, prepare, check with the Studio and submit for review (ADR 0051, docs/guides/make-assets.md) |
 | `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
 | `apps/console` | The operator's console on a host of its own (`console.`, :4721 locally) with its own sign-in and session, and its own API at `/api/admin` (ADR 0027, 0042) |
@@ -30,6 +31,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - Changing `packages/contract` changes the Game Contract: ADR + docs + conformance in the same PR.
 - Games never call the API, never use their own storage, never make network requests outside their folder.
 - Never edit generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/*/src/api/schema.gen.ts`,
+  `packages/studio/src/api/schema.gen.ts` (`pnpm --filter @tohe/studio generate:api`),
   from `@tohe/routes`: `deploy/docker/hub-routes.caddy`, `deploy/docker/console-routes.caddy`,
   `apps/hub/public/robots.txt`, `services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs`, and from `@tohe/assets`:
   a game's `assets.lock.json` and `src/assets.gen.ts`, written by `pnpm assets:resolve`); regenerate them.
