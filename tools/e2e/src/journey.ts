@@ -181,7 +181,7 @@ try {
   const android = await visitor('android', userAgents.androidChrome, browser, [fakeInstallPrompt]);
   await android.goto(hubUrl);
   // The header's button, on a phone (a Vietnamese page's link carries ?lang=vi: a Vietnamese app on any phone).
-  const play = android.getByRole('link', { name: 'Chơi ngay', exact: true });
+  const play = android.getByRole('banner').getByRole('link', { name: 'Chơi ngay', exact: true });
   if (!(await play.getAttribute('href'))?.endsWith('/play?lang=vi'))
     throw new Error(
       `the header's "Chơi ngay" does not carry the page's language: ${await play.getAttribute('href')}`,
