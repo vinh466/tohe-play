@@ -3,10 +3,15 @@ import { describe, expect, it } from 'vitest';
 import { z } from 'zod';
 import { crops } from './content/crops.ts';
 import { lineFor, lines } from './content/lines.ts';
-import { ground, objects } from './content/map.ts';
+import { ground, objects, TILESET_FRAMES } from './content/map.ts';
 import { dayPart } from './light.ts';
 
-const assetId = z.string().regex(/^tiles\/tile-\d{4}$/);
+/** A frame of farm-tiny's tileset. */
+const frame = z
+  .number()
+  .int()
+  .min(0)
+  .max(TILESET_FRAMES - 1);
 const words = z.object({ vi: z.string().min(1), en: z.string().min(1) });
 
 const Crop = z.object({
@@ -16,7 +21,7 @@ const Crop = z.object({
   sellPrice: z.number().int().positive(),
   stages: z.number().int().min(1),
   ripeMinutes: z.number().positive(),
-  art: z.object({ stages: z.array(assetId), produce: assetId, seed: assetId, crate: assetId }),
+  art: z.object({ stages: z.array(frame), produce: frame, seed: frame, crate: frame }),
 });
 
 const Line = z.object({
@@ -45,9 +50,9 @@ describe('content', () => {
     }
   });
 
-  it('the map names only tiles of the pack', () => {
+  it('the map draws only frames of the tileset', () => {
     for (const placed of [...ground, ...objects]) {
-      for (const id of placed.tiles) expect(assetId.safeParse(id).success, id).toBe(true);
+      for (const n of placed.tiles) expect(frame.safeParse(n).success, String(n)).toBe(true);
     }
   });
 });

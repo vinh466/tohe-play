@@ -1,6 +1,6 @@
 // The crops of the slice (SPEC.md, "Crops"): what a seed costs, what the harvest sells for, how many stages a crop grows
 // through and how long it takes to ripen when every stage is watered at once. The rules (logic.ts) read these numbers;
-// the art is asset ids of the pack farm-tiny (Kenney's Tiny Farm, CC0), one picture per growing stage.
+// the art is frames of the pack farm-tiny's tileset (map.ts, TILESET), one picture per growing stage.
 import { defineCatalog } from '@tohe/game-kit';
 
 export const crops = defineCatalog('crop', [
@@ -12,10 +12,10 @@ export const crops = defineCatalog('crop', [
     stages: 3,
     ripeMinutes: 3,
     art: {
-      stages: ['tiles/tile-0004', 'tiles/tile-0005', 'tiles/tile-0006'],
-      produce: 'tiles/tile-0008',
-      seed: 'tiles/tile-0010',
-      crate: 'tiles/tile-0011',
+      stages: [4, 5, 6],
+      produce: 8,
+      seed: 10,
+      crate: 11,
     },
   },
   {
@@ -26,10 +26,10 @@ export const crops = defineCatalog('crop', [
     stages: 3,
     ripeMinutes: 15,
     art: {
-      stages: ['tiles/tile-0040', 'tiles/tile-0041', 'tiles/tile-0042'],
-      produce: 'tiles/tile-0044',
-      seed: 'tiles/tile-0046',
-      crate: 'tiles/tile-0047',
+      stages: [40, 41, 42],
+      produce: 44,
+      seed: 46,
+      crate: 47,
     },
   },
   {
@@ -39,12 +39,12 @@ export const crops = defineCatalog('crop', [
     sellPrice: 25,
     stages: 4,
     ripeMinutes: 60,
-    // The pack draws wheat in three stages; its first is the pack's seedling (tile 81), as the spec's four need.
+    // The pack draws wheat in three stages; its first is the pack's seedling (frame 81), as the spec's four need.
     art: {
-      stages: ['tiles/tile-0081', 'tiles/tile-0064', 'tiles/tile-0065', 'tiles/tile-0066'],
-      produce: 'tiles/tile-0068',
-      seed: 'tiles/tile-0070',
-      crate: 'tiles/tile-0071',
+      stages: [81, 64, 65, 66],
+      produce: 68,
+      seed: 70,
+      crate: 71,
     },
   },
 ] as const);

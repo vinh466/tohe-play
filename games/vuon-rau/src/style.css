@@ -1,0 +1,177 @@
+/* The page, the HUD and the panel use the design tokens (from the kit's overlay.css); the pixel world keeps its own
+   colours (SPEC.md, "Themes"). */
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--tohe-page);
+  font-family: var(--tohe-font);
+  color: var(--tohe-ink);
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior: none;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  padding: env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom)
+    env(safe-area-inset-left);
+}
+
+#stage {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+/* A frame of the pack's tileset, cut out with CSS (panel.ts). */
+.sprite {
+  display: inline-block;
+  flex: none;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+
+/* The panel: the basket and the seeds, at the bottom in portrait and at the right in landscape (stage.ts places it). */
+.farm-panel {
+  position: absolute;
+  display: flex;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  background: var(--tohe-surface);
+  border-top: 1px solid var(--tohe-line);
+  z-index: 1;
+}
+
+.farm-panel[data-side="bottom"] {
+  flex-direction: row;
+  justify-content: space-around;
+  align-items: center;
+}
+
+.farm-panel[data-side="right"] {
+  flex-direction: column;
+  justify-content: center;
+  border-top: none;
+  border-left: 1px solid var(--tohe-line);
+}
+
+.farm-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  min-width: 0;
+}
+
+.farm-group h2 {
+  margin: 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--tohe-ink-soft);
+}
+
+.farm-group ul {
+  display: flex;
+  gap: 0.35rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.farm-group li {
+  display: flex;
+  align-items: center;
+  gap: 0.15rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.farm-group li.is-empty {
+  color: var(--tohe-ink-soft);
+}
+
+.farm-group li.is-empty .sprite {
+  opacity: 0.45;
+}
+
+.farm-group li.is-bumped {
+  animation: farm-bump 0.35s ease-out;
+}
+
+@keyframes farm-bump {
+  40% {
+    transform: translateY(-6px) scale(1.12);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .farm-group li.is-bumped {
+    animation: none;
+  }
+}
+
+/* The seed picker and the stall: big buttons, a picture, a name and a note. */
+.farm-choices {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+}
+
+.farm-choice {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  min-height: 3.5rem;
+  padding: 0.4rem 0.75rem;
+  border: 2px solid var(--tohe-line);
+  border-radius: 0.9rem;
+  background: var(--tohe-surface);
+  color: var(--tohe-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.farm-choice:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.farm-choice:disabled {
+  cursor: default;
+  color: var(--tohe-ink-soft);
+}
+
+.farm-choice:disabled .sprite {
+  opacity: 0.45;
+}
+
+.farm-choice-words {
+  display: flex;
+  flex-direction: column;
+}
+
+.farm-choice-words small {
+  color: var(--tohe-ink-soft);
+}
+
+.farm-sell {
+  width: 100%;
+}
+
+.farm-subtitle {
+  margin: 0.5rem 0 0;
+  font-size: 0.9rem;
+  color: var(--tohe-ink-soft);
+}

@@ -14,23 +14,23 @@ export interface Cell {
   y: number;
 }
 
-/** A picture of the pack at a cell; `over` draws above the farmer when he walks behind it (a roof, a treetop). */
+/**
+ * The game draws with one picture of the pack, its tileset `tilemap/tilemap-packed` (12 × 11 tiles of 16 px): one file
+ * to load and one texture to draw from. Frame n of it is the pack's tile n (`tiles/tile-000n`).
+ */
+export const TILESET = 'tilemap/tilemap-packed';
+export const TILESET_COLUMNS = 12;
+export const TILESET_FRAMES = 132;
+
+/** A picture of the pack at a cell. */
 export interface Placed extends Cell {
-  /** An asset id of farm-tiny: one tile, or several drawn one over the other. */
-  tiles: readonly string[];
+  /** Frames of the tileset: one, or several drawn one over the other. */
+  tiles: readonly number[];
   /** Nobody walks through it. */
   solid: boolean;
-  over?: boolean;
 }
 
-const tile = (n: number) => `tiles/tile-${String(n).padStart(4, '0')}`;
-const at = (x: number, y: number, tiles: number[], solid = true, over = false): Placed => ({
-  x,
-  y,
-  tiles: tiles.map(tile),
-  solid,
-  ...(over ? { over } : {}),
-});
+const at = (x: number, y: number, tiles: number[], solid = true): Placed => ({ x, y, tiles, solid });
 
 /** The barn, three tiles wide: its roof's peak, the roof, the gable with the hay door, and the wall with the door. */
 function barn(left: number, top: number): Placed[] {
@@ -68,10 +68,15 @@ function pathDown(x: number, y: number, length: number): Placed[] {
  * The soil under a plot: a patch on its own, or a piece of a bed joined to the soil of the plot beside it, on the
  * left, the right or both; dark when watered.
  */
-export function soilTile(left: boolean, right: boolean, wet: boolean): string {
+export function soilTile(left: boolean, right: boolean, wet: boolean): number {
   const light = left && right ? 61 : left ? 62 : right ? 60 : 63;
-  return tile(wet ? light - 12 : light);
+  return wet ? light - 12 : light;
 }
+
+/** The farmer and Cô Ba (the pack's two people), and a hen. */
+export const FARMER = 109;
+export const KEEPER = 108;
+export const HEN = 122;
 
 /** Ground pictures, under everything else. */
 export const ground: readonly Placed[] = [...pathDown(2, 6, 5), ...pathAcross(3, 10, 9)];
