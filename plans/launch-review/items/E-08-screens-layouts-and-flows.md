@@ -1,9 +1,9 @@
 # E-08 — Bố cục từng màn và luồng: dễ chịu, ấn tượng, hiểu cách Tò He vận hành
 
-- Status: **proposed** — theo D-08 A, D-09 A + D, D-10 A ([R-11](../research/R-11-surface-today-and-evaluation.md))
+- Status: **decided** — theo D-08 A, D-09 A + D, D-10 A; graduation ở [PLAN](../PLAN.md#graduation-list--đợt-2b)
 - Kind: enhancement
 - Blocks: E-03 (luồng đầu–cuối có e2e theo luồng mới) · Blocked by: D-08, D-09, D-10
-- Decided: —
+- Decided: owner, 2026-10-25, chat: "duyet r nha" (đề xuất ở #166, owner merge)
 
 ## Why it matters
 
@@ -73,4 +73,4 @@ Sau V3: owner thử trên máy thật; E-03 viết e2e cho luồng mới.
 
 ## Decision
 
-—
+Theo đề xuất — owner, 2026-10-25: "duyet r nha". V0 là ADR 0055; V1–V3 ở graduation list đợt 2b của PLAN.

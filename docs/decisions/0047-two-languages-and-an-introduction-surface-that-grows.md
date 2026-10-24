@@ -6,7 +6,9 @@ sidebar:
 ---
 
 - **Status:** Accepted — game names and descriptions per language, left to their own ADR here, settled by
-  [ADR 0048](0048-a-standard-name-and-words-per-language-for-each-game.md)
+  [ADR 0048](0048-a-standard-name-and-words-per-language-for-each-game.md); the home page's contents amended by
+  [ADR 0055](0055-front-page-explains-greets-and-the-app-asks-once.md) (an introduction in sections with two centred
+  buttons, no list of games — `/games/` holds it)
 - **Date:** 2026-10-22
 - **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespaces `/en/…` and `/promise/` for the
   public pages, and what `robots.txt` says to crawlers

@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-25 (D-08–D-10, E-08 chốt; V0 = ADR 0055) — agent, phiên "ToHe Surface"
+
+- Owner merge #166 rồi: "duyet r nha" → D-08 A, D-09 A + D giữ domain/path, D-10 A (Q1 cho chọn, Q2 không), E-08.
+- V0: ADR 0055 sửa 0046, 0047, ghi chú 0043; `surfaces.md`, `identity.md`, `overview.md`. Agent chỉnh cho khớp vision: "Chơi
+  thử" cho thấy hồ sơ gợi ý, không bắt gõ tên; link tới game, bàn vẫn vào thẳng. Phiên "ToHe Studio" nhường số 0055.
+- Tiếp: V1 trang chủ ∥ V2 cửa vào hub khi V0 merge.
+
 ## 2026-10-24 (owner thử máy thật; bề mặt vòng 2 tới `proposed`) — agent, phiên "ToHe Surface"
 
 - Owner thử máy thật: G7 "các mục này ổn r nha"; màn, câu chữ "nhìn chung ổn"; "về luồng và UI thì cần cải thiện cho xịn

@@ -104,11 +104,14 @@ Generated reference: [Platform API](/reference/api/).
 
 ## A newcomer's first touches
 
-Opening the hub is playing ([vision](../vision.md)); nothing stands between a link and the first game.
+Playing needs no account ([vision](../vision.md)); nothing stands between a link and the first game, and the app's
+front door asks once ([ADR 0055](../decisions/0055-front-page-explains-greets-and-the-app-asks-once.md)).
 
-- **No sign-in before playing.** A device with no session plays as its device profile at once — the first visit makes
-  one silently, with a suggested name (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`);
-  `/account/sign-in` opens only when chosen — from the catalog's slim "Đăng nhập" strip, or for what needs an account.
+- **No sign-in before playing.** A link to a game, a table or a share plays at once as the device profile. Opening the
+  app itself the first time, with no session, asks once: sign in, or *Chơi thử trên máy này* with the suggested
+  profile shown (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`); after that choice the device
+  plays as its device profile at once, and `/account/sign-in` opens only when chosen, or for what needs an account.
+  *Until V2 of plans/launch-review E-08 lands, the first visit makes a device profile silently.*
   A room link (`/r/<code>`), a room, the rooms lobby and a replay play as the device profile too: the `named` screen —
   a name others see, an avatar, the terms line — the first time, then its copy on the server and a seat at any table
   open to anyone named ([Identity](identity.md#device-profiles-on-the-server), ADR 0043). Signing out is a choice and
