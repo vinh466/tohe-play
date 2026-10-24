@@ -16,19 +16,18 @@
 
 ## Next — one item
 
-**Pilot V1 → V2** (phiên mới bắt đầu từ đây):
-1. Nhập Kenney *Tiny Farm* vào Studio prod bằng CLI và token agent owner đã cấp (file `~/.config/tohe-studio/env`,
-   không bao giờ in ra hay commit):
-   `TOHE_STUDIO_URL=https://studio.toheplay.io.vn pnpm studio …` sau khi nạp file env. Đề xuất một style 16 px cho pack
-   (`style` qua API), pack `farm-tiny` 1.0.0, `import kenney-tiny-farm`, `prepare`, `check`, `submit`. Token đã thử được
-   (`style list` trả "no style yet", 2026-10-24).
-2. Owner duyệt style và pack trong `https://studio.toheplay.io.vn` (role reviewer, 2FA).
-3. V2: xây `games/vuon-rau` theo `games/vuon-rau/SPEC.md` (owner đã duyệt cả 5 đề xuất), `assets` khoá `farm-tiny`,
-   `pnpm assets:resolve` (CI có `TOHE_ASSETS_REGISTRY`), rồi đo trên A55 và iPhone.
+**Pilot V2**, sau khi owner duyệt V1:
+1. V1 xong phần agent (2026-10-25): style **`tiny-farm-16`** (bản nháp: 16 px, top-down, palette 44 màu đọc thô từ
+   pixel của pack, 2 ảnh mẫu) và pack **`farm-tiny@1.0.0`** (132 tile + 1 tileset 12×11, CC0, có tag) đã **submit** trên
+   Studio prod; `check` của server qua hết.
+2. V2: xây `games/vuon-rau` theo `games/vuon-rau/SPEC.md` (owner đã duyệt cả 5 đề xuất), `assets` khoá `farm-tiny`,
+   `pnpm assets:resolve` (CI có `TOHE_ASSETS_REGISTRY`), rồi đo trên A55 và iPhone. Pack không có tile cỏ trơn: nền cỏ
+   là màu `#84c669`. Lúa mì cần 4 giai đoạn nhưng pack có 3 (cộng 1 hình héo): V2 chọn cách thể hiện giai đoạn thứ tư.
 
 ## Waiting on the owner
 
-Không có. Owner đã làm S2 (R2, DNS, Infisical), bật Studio (platform-infra #252), cấp token, và duyệt spec.
+1. **Duyệt style `tiny-farm-16` rồi pack `farm-tiny@1.0.0`** trong `https://studio.toheplay.io.vn` (role reviewer, 2FA).
+   Pack chỉ được duyệt sau khi style đã được duyệt.
 
 ## Board
 
