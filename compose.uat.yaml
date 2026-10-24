@@ -2,8 +2,9 @@
 # Do not run by hand: deploy with deploy/uat/deploy.sh, which runs the images CI published for an exact commit
 # (ADR 0021), backs up the database first and supplies the secrets file. See docs/guides/uat.md.
 #
-# Hub (public pages + app) http://${TOHE_UAT_HOST}:4820   ·   Console :4821   ·   Docs http://${TOHE_UAT_HOST}:4810   ·   Games origin :4830
-# The API and PostgreSQL are not published; the hub proxies /api, the console its own routes (/api/admin).
+# Hub (public pages + app) http://${TOHE_UAT_HOST}:4820   ·   Console :4821   ·   Studio :4822   ·   Docs http://${TOHE_UAT_HOST}:4810   ·   Games origin :4830
+# The API and PostgreSQL are not published; the hub proxies /api, the console its own routes (/api/admin), the Studio
+# its own (/api/studio).
 name: tohe-uat
 
 x-restart: &restart
@@ -36,6 +37,8 @@ services:
       App__PublicUrl: http://${TOHE_UAT_HOST:-10.100.0.2}:4820
       # The console's own host: the hub image's second site, published on 4821 (ADR 0042).
       App__ConsoleUrl: http://${TOHE_UAT_HOST:-10.100.0.2}:4821
+      # The Asset Studio's own host: the hub image's third site, published on 4822 (ADR 0051).
+      App__StudioUrl: http://${TOHE_UAT_HOST:-10.100.0.2}:4822
       Games__PublicOrigin: http://${TOHE_UAT_HOST:-10.100.0.2}:4830
       Games__CatalogUrl: http://games:8080/catalog.json
       Registry__SyncInterval: "00:01:00"
@@ -69,6 +72,9 @@ services:
       - "4820:8080"
       # The console (ADR 0042): the same image's second site, at the root of its own host.
       - "4821:8081"
+      # The Asset Studio (ADR 0051): the third site, at the root of its own host. No storage on UAT yet, so no
+      # STUDIO_STORAGE_ORIGIN: its pictures would come from the API alone.
+      - "4822:8082"
 
   games:
     <<: *restart

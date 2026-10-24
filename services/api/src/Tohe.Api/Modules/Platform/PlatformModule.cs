@@ -40,6 +40,12 @@ public sealed class AppOptions
     /// </summary>
     public Uri? ConsoleUrl { get; set; }
 
+    /// <summary>
+    /// The Asset Studio's public URL, e.g. <c>https://studio.tohe.example.org</c> — a host of its own (ADR 0051), whose
+    /// Caddy site proxies the API's Studio routes. Unset, those routes answer on any host but the console's.
+    /// </summary>
+    public Uri? StudioUrl { get; set; }
+
     internal bool HasValidPublicUrl() => IsOrigin(PublicUrl);
 
     /// <param name="gamesOrigin">Where games are served from (<c>Games:PublicOrigin</c>): never the console's host
@@ -48,6 +54,16 @@ public sealed class AppOptions
         IsOrigin(ConsoleUrl)
         && (ConsoleUrl is null || !IsOrigin(PublicUrl) || PublicUrl is null || ConsoleUrl.Authority != PublicUrl.Authority)
         && (ConsoleUrl is null || gamesOrigin is null || ConsoleUrl.Authority != gamesOrigin.Authority);
+
+    /// <param name="gamesOrigin">Where games are served from: never the Studio's host either.</param>
+    internal bool HasValidStudioUrl(Uri? gamesOrigin) =>
+        IsOrigin(StudioUrl)
+        && (StudioUrl is null
+            || (!SameAuthority(StudioUrl, PublicUrl) && !SameAuthority(StudioUrl, ConsoleUrl) && !SameAuthority(StudioUrl, gamesOrigin)));
+
+    /// <summary>The same host and port; a value that is not an absolute URL shares nothing (its own check fails).</summary>
+    private static bool SameAuthority(Uri url, Uri? other) =>
+        other is { IsAbsoluteUri: true } && url.IsAbsoluteUri && url.Authority == other.Authority;
 
     private static bool IsOrigin(Uri? url) =>
         url is null
@@ -95,7 +111,11 @@ internal static class PlatformModule
             .Validate<IConfiguration>(
                 (o, config) => o.HasValidConsoleUrl(
                     Uri.TryCreate(config[$"{GamesOptions.Section}:{nameof(GamesOptions.PublicOrigin)}"], UriKind.Absolute, out var games) ? games : null),
-                "App:ConsoleUrl must be an absolute http(s) URL with no path on a host (or port) of its own — neither the hub's nor the games', e.g. https://console.tohe.example.org");
+                "App:ConsoleUrl must be an absolute http(s) URL with no path on a host (or port) of its own — neither the hub's nor the games', e.g. https://console.tohe.example.org")
+            .Validate<IConfiguration>(
+                (o, config) => o.HasValidStudioUrl(
+                    Uri.TryCreate(config[$"{GamesOptions.Section}:{nameof(GamesOptions.PublicOrigin)}"], UriKind.Absolute, out var games) ? games : null),
+                "App:StudioUrl must be an absolute http(s) URL with no path on a host (or port) of its own — neither the hub's, the console's nor the games', e.g. https://studio.tohe.example.org");
         if (!BuildTime.IsGeneratingOpenApi)
         {
             options.ValidateOnStart();
@@ -142,7 +162,7 @@ internal static class PlatformModule
 
     /// <summary>
     /// Makes every request carry the scheme of <see cref="AppOptions.PublicUrl"/> — or, for the console's routes, of
-    /// <see cref="AppOptions.ConsoleUrl"/>. Behind a TLS-terminating edge (Cloudflare, then an ingress, then the hub
+    /// <see cref="AppOptions.ConsoleUrl"/>, and for the Studio's of <see cref="AppOptions.StudioUrl"/> once it is set. Behind a TLS-terminating edge (Cloudflare, then an ingress, then the hub
     /// image's Caddy) the API sees HTTP whatever the visitor used, and the edge's <c>X-Forwarded-Proto</c> does not
     /// survive every hop. The configured URL decides instead, so cookies, links and redirects use the scheme people
     /// actually see. Unset, requests stay as they arrive.
@@ -150,12 +170,15 @@ internal static class PlatformModule
     public static IApplicationBuilder UsePublicUrl(this IApplicationBuilder app)
     {
         var options = app.ApplicationServices.GetRequiredService<IOptions<AppOptions>>().Value;
-        var (publicUrl, consoleUrl) = (options.PublicUrl, options.ConsoleUrl);
-        return publicUrl is null && consoleUrl is null
+        var (publicUrl, consoleUrl, studioUrl) = (options.PublicUrl, options.ConsoleUrl, options.StudioUrl);
+        return publicUrl is null && consoleUrl is null && studioUrl is null
             ? app
             : app.Use((context, next) =>
             {
-                var url = ConsoleRoutes.Covers(context.Request.Path) ? consoleUrl : publicUrl;
+                var path = context.Request.Path;
+                var url = ConsoleRoutes.Covers(path) ? consoleUrl
+                    : StudioRoutes.Covers(path) ? studioUrl ?? publicUrl
+                    : publicUrl;
                 if (url is not null)
                 {
                     context.Request.Scheme = url.Scheme;

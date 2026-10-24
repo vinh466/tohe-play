@@ -7,6 +7,7 @@ import {
   linkPreviewCrawlers,
   type Match,
   type Namespace,
+  studioNamespaces,
 } from './map.ts';
 
 /** Whether `namespace` covers `pathname` (a URL's path, without its query). */
@@ -32,6 +33,11 @@ export function matchHubPath(
 /** The namespace of the console's host that owns `pathname`, or undefined: the console's site answers 404. */
 export function matchConsolePath(pathname: string): Namespace | undefined {
   return matchHubPath(pathname, consoleNamespaces);
+}
+
+/** The namespace of the Studio's host that owns `pathname`, or undefined: the Studio's site answers 404. */
+export function matchStudioPath(pathname: string): Namespace | undefined {
+  return matchHubPath(pathname, studioNamespaces);
 }
 
 /** Whether some path belongs to both namespaces. */

@@ -4,6 +4,11 @@ publicUrls:
   games: http://tohe-games.example.test
   docs: http://tohe-docs.example.test
   console: http://tohe-console.example.test
+  studio: http://tohe-studio.example.test
+# The Asset Studio on its own host (ADR 0051): off by default, on here so CI installs and tests it.
+studio:
+  enabled: true
+  storageOrigin: http://tohe-assets.example.test
 global:
   image:
     tag: sha-0000000000000000000000000000000000000000

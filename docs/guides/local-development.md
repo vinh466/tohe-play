@@ -32,6 +32,7 @@ Everything uses the 47xx range so it never collides with other stacks on the mac
 | 4711 | The public pages' dev server (`pnpm dev` only). Under compose they are the root of the hub, 4720; under `pnpm dev` the root of 4720 is the app's dev server, which has no public page, and its paths (`/terms`, `/games/`…) are sent on to 4711 |
 | 4720 | Hub (open this) — proxies `/api` to the API |
 | 4721 | The console, on a host of its own with its own sign-in: its dev server under `pnpm dev`, the hub container's second site under `docker compose`. The API answers the console's routes at this address only (`App:ConsoleUrl`) ([Admin console](../architecture/admin.md)). Under `pnpm dev` it answers only at `http://localhost:4721`, not through `127.0.0.1` or a LAN IP: the API tells the console's host by the `Host` header |
+| 4722 | The [Asset Studio](../architecture/asset-studio.md#the-studio-app), on a host of its own with its own sign-in: its dev server under `pnpm dev`, the hub container's third site under `docker compose`. The API answers the Studio's routes at this address only (`App:StudioUrl`) — the CLI's `TOHE_STUDIO_URL` is `http://localhost:4722` — and, like the console, under `pnpm dev` only at `http://localhost:4722` |
 | 4730 | Games origin |
 | 4731 | A single game's standalone dev server (`dev:standalone`) |
 | 4740 | Platform API (direct, for debugging; Scalar at `/api/docs`, on in both modes, off on UAT and production) |
@@ -56,7 +57,9 @@ and "Tạo tài khoản": any email and a password of 8+ characters (the code ar
 
 The Asset Studio's library needs its object storage: `docker compose up -d seaweedfs` as well. Without it the API
 starts all the same, and the Studio's library answers `503` or fails to reach the storage
-([The library in the API](../architecture/asset-studio.md#the-library-in-the-api)).
+([The library in the API](../architecture/asset-studio.md#the-library-in-the-api)). The Studio app is at
+<http://localhost:4722>: an account signs in there once the console gave it a studio role (the console's **Studio**
+page, <http://localhost:4721/studio>).
 
 `pnpm dev` builds the games once at start. After changing a game, rebuild it and the games origin picks it up:
 

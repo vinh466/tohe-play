@@ -78,12 +78,12 @@ public static class StudioSession
         });
 
         // On an HTTPS deployment the cookie is always Secure, and the __Host- prefix forbids a Domain attribute, so no
-        // other host of the domain can set or shadow it. The Studio has no address of its own in the configuration yet
-        // (the Studio's app brings it); a deployment is HTTPS or not as a whole, so the hub's address tells.
+        // other host of the domain can set or shadow it. The Studio's own address tells (App:StudioUrl); until it has
+        // one, its routes answer through the hub, whose address tells.
         services.AddOptions<CookieAuthenticationOptions>(Scheme)
             .Configure<IOptions<AppOptions>>((options, app) =>
             {
-                if (app.Value.PublicUrl?.Scheme == Uri.UriSchemeHttps)
+                if ((app.Value.StudioUrl ?? app.Value.PublicUrl)?.Scheme == Uri.UriSchemeHttps)
                 {
                     options.Cookie.Name = SecureCookieName;
                     options.Cookie.SecurePolicy = CookieSecurePolicy.Always;

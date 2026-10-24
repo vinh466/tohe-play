@@ -2,10 +2,14 @@
 {{- $name := include "tohe.componentName" (dict "root" . "component" "api") }}
 {{- $common := include "tohe.merged" (dict "root" . "values" .Values.api) | fromYaml }}
 {{- $hubHost := include "tohe.host" .Values.publicUrls.hub }}
-{{- /* The hub's Caddy passes the visitor's Host on: the console's requests come with the console's host (ADR 0042). */}}
+{{- /* The hub's Caddy passes the visitor's Host on: the console's requests come with the console's host (ADR 0042), the
+       Studio's with the Studio's (ADR 0051). */}}
 {{- $allowedHosts := $hubHost }}
 {{- with .Values.publicUrls.console }}
-{{- $allowedHosts = printf "%s;%s" $hubHost (include "tohe.host" .) }}
+{{- $allowedHosts = printf "%s;%s" $allowedHosts (include "tohe.host" .) }}
+{{- end }}
+{{- if .Values.studio.enabled }}
+{{- $allowedHosts = printf "%s;%s" $allowedHosts (include "tohe.host" .Values.publicUrls.studio) }}
 {{- end }}
 {{- $pg := .Values.infra.postgres }}
 apiVersion: apps/v1
@@ -75,6 +79,11 @@ spec:
             # The console's own host: the API answers its routes (/api/admin) there alone (ADR 0042).
             - name: App__ConsoleUrl
               value: {{ . | quote }}
+            {{- end }}
+            {{- if .Values.studio.enabled }}
+            # The Studio's own host: the API answers its routes (/api/studio) there alone (ADR 0051).
+            - name: App__StudioUrl
+              value: {{ .Values.publicUrls.studio | quote }}
             {{- end }}
             - name: App__Version
               value: {{ include "tohe.tag" (dict "root" . "image" .Values.api.image) | quote }}

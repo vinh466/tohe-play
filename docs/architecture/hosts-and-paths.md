@@ -29,6 +29,10 @@ flowchart TB
     console["Console"]
     capi["/api/admin → API"]
   end
+  subgraph dev ["studio.toheplay.io.vn — the Asset Studio, its own sign-in"]
+    studio["Studio"]
+    sapi["/api/studio → API"]
+  end
   games["games.toheplay.io.vn<br/>untrusted game code"]
   docs["docs.toheplay.io.vn<br/>developer docs"]
   status["status.toheplay.io.vn<br/>outside service"]
@@ -36,6 +40,7 @@ flowchart TB
   console -- "iframe: watch a run" --> games
   papi --> api[(One API and PostgreSQL)]
   capi --> api
+  sapi --> api
 ```
 
 ## Hosts
@@ -48,7 +53,7 @@ flowchart TB
 | `docs.toheplay.io.vn` | Developer docs at the root of the host, generated API references, `llms.txt` | none | yes | the docs image (`apps/docs`) |
 | `status.toheplay.io.vn` | Status and incidents | none | yes | a service outside Tò He's infrastructure |
 | `notify.toheplay.io.vn` | Sends transactional mail; no web | — | — | the mail provider |
-| `studio.toheplay.io.vn` | The [Asset Studio](asset-studio.md): game assets made, checked and approved; the API's Studio routes. Decided ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)), serving once its DNS, ingress and storage exist | `__Host-tohe.studio`, `SameSite=Strict`, its own sign-in (the API's side runs); agents use [tokens](agent-tokens.md) | no | the hub image's Caddy, a third site |
+| `studio.toheplay.io.vn` | The [Asset Studio](asset-studio.md): game assets made, checked and approved; the Studio app, the API's Studio routes. Decided ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)), serving once its DNS, ingress and storage exist | `__Host-tohe.studio`, `SameSite=Strict`, its own sign-in; agents use [tokens](agent-tokens.md) | no | the hub image's Caddy, a third site |
 | `www.toheplay.io.vn` | Redirects to the root | — | — | Cloudflare |
 
 Mail to people: `hello@` and `security@toheplay.io.vn`, forwarded by Cloudflare Email Routing. `send.toheplay.io.vn` is
@@ -240,12 +245,25 @@ moves from now on moves with every link to it, in the same pull request.
 test checks its router against them. The API answers its console routes on this host alone, and nothing else there
 (`App:ConsoleUrl`).
 
+## Namespaces on the Studio's host
+
+| Namespace | Component | Served | Indexed |
+| --- | --- | --- | --- |
+| `/`, `/packs/…`, `/styles/…`, `/sign-in` | the Studio (`apps/studio`) | the Studio's page | no |
+| `/assets/…`, `/index.html`, `/theme-init.js`, `/favicon.svg` | the Studio | static | no |
+| `/api/studio/…` | the API's Studio routes — and no other route of the API | proxied | — |
+| anything else — the hub's pages, the console's, `/robots.txt` | — | a real `404` | — |
+
+`studioNamespaces` in `@tohe/routes` generates the third site's matchers (`studio-routes.caddy`); the Studio's own test
+checks its router against them. With `App:StudioUrl` set, the API answers its Studio routes on this host alone, and
+nothing else there; unset, it answers them on any host but the console's ([Asset Studio](asset-studio.md#the-studio-app)).
+
 ## Common rules
 
 - **Sessions**: each front door serves `/api` on its own origin (the backend-for-frontend pattern of RFC 10017).
   Cookies are `__Host-`, `HttpOnly`, `Secure`, `Path=/`, never with a `Domain`. No CORS.
 - **The API** is one service with several front doors; it learns its origins from configuration.
-- **No third-party script** on the root or on `console.`; a CSP for each host and namespace.
+- **No third-party script** on the root, on `console.` or on `studio.`; a CSP for each host and namespace.
 - **HSTS** `max-age=31536000; includeSubDomains`; no preload list.
 - **The app**: manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`. The service worker serves the app's page only for
   the app's namespaces.
@@ -283,6 +301,7 @@ stays in force for its part.
 | The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, `/s` (the pages of the entry pipeline, [Entry links](entry-links.md)); manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the old paths are a `404` since 2026-10-22 | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | in place: `apps/web` is built into the hub image and serves the home page, the games' pages, the install guide, the FAQ, about, and the terms and privacy notice at the root, and the same in English under `/en/` but for the terms and the privacy notice (indexed, its own CSP; `/` never redirects, and shows *Chơi tiếp* on a device that has played), with `/sitemap.xml`, `robots.txt`, `llms.txt` and the link-preview picture; `apps/docs` serves the docs at the root of `docs.toheplay.io.vn` (`/docs/<page>` answers `301`); the chart's `site` values are `docs` | the public pages' pull request |
 | The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access is in front, on since 2026-10-22 ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)); the API does not check Access's token yet | the console's pull request |
+| The Studio on `studio.` ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)) | the hub image's third site (port 8082) serves the Studio app — `http://localhost:4722` locally, `http://10.100.0.2:4822` on UAT — with its own sign-in and its `__Host-tohe.studio` session ([Asset Studio](asset-studio.md#the-studio-app)); the chart's `studio.enabled` turns it on. Production waits for its DNS, ingress and bucket: until then `App:StudioUrl` is unset and the Studio's routes answer through the hub | the owner's setup, with `platform-infra` |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |
 | Crawlers by name in `robots.txt` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: `searchCrawlers` and `trainingCrawlers` in the map | the routes' pull request |
 | The English public pages, `/en/…` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: the namespace `en`, the English pages, the sitemap's `hreflang` alternates, the VI \| EN switch and the suggestion; the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages`) | the languages' pull request; the legal texts' English with the review's item for them |

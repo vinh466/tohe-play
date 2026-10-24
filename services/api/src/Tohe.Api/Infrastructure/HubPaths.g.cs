@@ -49,3 +49,12 @@ public static class ConsolePaths
     /// <summary>The API’s console routes, served only on the console’s host.</summary>
     public const string Api = "/api/admin";
 }
+
+/// <summary>
+/// The Studio’s paths on its own host (ADR 0051): its routes.
+/// </summary>
+public static class StudioPaths
+{
+    /// <summary>The API’s Studio routes, served only on the Studio’s host once it has one.</summary>
+    public const string Api = "/api/studio";
+}

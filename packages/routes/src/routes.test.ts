@@ -10,6 +10,7 @@ import {
   robotsTxt,
   sitemapEntries,
   sitemapPaths,
+  studioCaddySnippet,
 } from './generate.ts';
 import { languageOfPath, pairOf, pathInLanguage, vietnameseOnlyPages } from './languages.ts';
 import {
@@ -20,6 +21,8 @@ import {
   hubNamespaces,
   type Namespace,
   searchCrawlers,
+  studioLinks,
+  studioNamespaces,
   trainingCrawlers,
 } from './map.ts';
 import {
@@ -27,6 +30,7 @@ import {
   linkPreviewPattern,
   matchConsolePath,
   matchHubPath,
+  matchStudioPath,
   navigationAllowlist,
   overlap,
 } from './match.ts';
@@ -337,6 +341,84 @@ describe('the console’s host', () => {
   });
 });
 
+describe('the Studio’s host', () => {
+  /** The Studio's pages (apps/studio/src/router.tsx); the Studio's own test reads its router. */
+  const studioPages = [
+    '/',
+    '/packs/farm-crops',
+    '/packs/farm-crops/0b7c5e1a-2f9d-4c1e-9a7b-3d2e1f0a9b8c',
+    '/styles',
+    '/styles/tohe-pixel',
+    '/sign-in',
+  ];
+
+  it('stays decided, not serving: production serves it once its DNS, ingress and storage exist (ADR 0051)', () => {
+    expect(hosts.find((host) => host.role === 'studio')?.state).toBe('decided');
+  });
+
+  it('gives every path to one namespace at most', () => {
+    const clashes = studioNamespaces.flatMap((a, i) =>
+      studioNamespaces.slice(i + 1).flatMap((b) => (overlap(a, b) ? [`${a.id} and ${b.id}`] : [])),
+    );
+    expect(clashes).toEqual([]);
+  });
+
+  it('has unique ids across the hosts, never indexed, no service worker, a cache policy on static files only', () => {
+    const ids = [...hubNamespaces, ...consoleNamespaces, ...studioNamespaces].map((n) => n.id);
+    expect(new Set(ids).size).toBe(ids.length);
+    for (const namespace of studioNamespaces) {
+      expect(namespace.path, namespace.id).toMatch(/^\//);
+      if (namespace.path !== '/') expect(namespace.path, namespace.id).not.toMatch(/\/$/);
+      expect(namespace.indexed, namespace.id).toBe(false);
+      expect(namespace.navigation, namespace.id).toBe('network');
+      expect(namespace.cache !== undefined, namespace.id).toBe(namespace.served === 'static');
+      expect(['page', 'static', 'proxy'], namespace.id).toContain(namespace.served);
+      expect(['studio', 'api'], namespace.id).toContain(namespace.component);
+    }
+  });
+
+  it.each(studioPages)('gives %s to a page of the Studio', (path) => {
+    expect(matchStudioPath(path)).toMatchObject({ component: 'studio', served: 'page' });
+  });
+
+  it('proxies the API’s Studio routes only', () => {
+    expect(matchStudioPath('/api/studio')?.served).toBe('proxy');
+    expect(matchStudioPath('/api/studio/session')?.served).toBe('proxy');
+    expect(matchStudioPath('/api/studio/versions/x/files/y')?.served).toBe('proxy');
+    expect(studioNamespaces.filter((namespace) => namespace.served === 'proxy').map((n) => n.path)).toEqual([
+      studioLinks.Api.path,
+    ]);
+  });
+
+  it.each([
+    '/api',
+    '/api/admin/session',
+    '/api/auth/me',
+    '/api/health',
+    '/api/studios',
+    '/play',
+    '/account/sign-in',
+    '/admin',
+    '/studio',
+    '/users',
+    '/setup',
+    '/robots.txt',
+    '/sw.js',
+    '/manifest.webmanifest',
+    '/.well-known/security.txt',
+    '/packsx',
+    '/nope',
+  ])('gives %s to nobody: a 404', (path) => {
+    expect(matchStudioPath(path)).toBeUndefined();
+  });
+
+  it('is in no namespace of the hub’s host or the console’s', () => {
+    for (const namespace of [...hubNamespaces, ...consoleNamespaces]) {
+      expect(namespace.component, namespace.id).not.toBe('studio');
+    }
+  });
+});
+
 describe('the service worker', () => {
   const allowed = (url: string) => navigationAllowlist().some((pattern) => pattern.test(url));
 
@@ -466,6 +548,18 @@ describe('what the map generates', () => {
     expect(consoleCaddySnippet()).not.toContain('redir');
   });
 
+  it('writes the Studio’s matchers', () => {
+    expect([...caddyMatchers(studioNamespaces).keys()]).toEqual([
+      'apiProxy',
+      'studioPage',
+      'studioStaticImmutable',
+      'studioStaticRevalidate',
+    ]);
+    expect(studioCaddySnippet()).toContain('@apiProxy path /api/studio /api/studio/*\n');
+    expect(studioCaddySnippet()).toContain('@studioPage path / /packs /packs/* /styles /styles/* /sign-in\n');
+    expect(studioCaddySnippet()).not.toContain('redir');
+  });
+
   describe('Caddyfile.hub', () => {
     const caddyfile = readFileSync(new URL('../../../deploy/docker/Caddyfile.hub', import.meta.url), 'utf8');
     // A site block runs from its address at the start of a line to the next one.
@@ -557,6 +651,30 @@ describe('what the map generates', () => {
       expect(console).toContain('import /etc/caddy/console-routes.caddy');
       expect(console).not.toContain('hub-routes.caddy');
       expect(handled(console).sort()).toEqual([...caddyMatchers(consoleNamespaces).keys()].sort());
+    });
+
+    it('serves the Studio’s matchers on :8082: a handler for each, and no other', () => {
+      const studio = site(':8082');
+      expect(studio).toContain('import /etc/caddy/studio-routes.caddy');
+      expect(studio).not.toContain('hub-routes.caddy');
+      expect(studio).not.toContain('console-routes.caddy');
+      expect(handled(studio).sort()).toEqual([...caddyMatchers(studioNamespaces).keys()].sort());
+    });
+
+    it('gives the Studio a CSP of its own: its origin, pictures from the library’s storage, no frame, never indexed', () => {
+      const studio = site(':8082');
+      const csp = /Content-Security-Policy "([^"]*)"/.exec(studio)?.[1] ?? '';
+      expect(csp).toContain("default-src 'self';");
+      expect(csp).toContain("script-src 'self';");
+      expect(csp).toContain("style-src 'self';");
+      expect(csp).toContain("img-src 'self' blob: data: {$STUDIO_STORAGE_ORIGIN};");
+      expect(csp).toContain("connect-src 'self';");
+      expect(csp).toContain("frame-ancestors 'none'");
+      expect(csp).not.toMatch(/unsafe-|\*|frame-src|ws:|wss:|GAMES_ORIGIN/);
+      expect(studio).toContain('X-Robots-Tag "noindex, nofollow"');
+      expect(studio).toContain('Strict-Transport-Security "max-age=31536000; includeSubDomains"');
+      expect(block(studio, 'studioPage')).toContain('root * /srv/studio');
+      expect(block(studio, 'studioPage')).toContain('rewrite * /index.html');
     });
   });
 
@@ -720,5 +838,7 @@ describe('the public pages’ languages', () => {
     expect(cs).toContain('public const string Api = "/api/admin";');
     expect(cs).toContain('public const string ShareLink = "/s";');
     expect(cs).toContain('public const string RoomLink = "/r";');
+    expect(cs).toContain('public static class StudioPaths');
+    expect(cs).toContain('public const string Api = "/api/studio";');
   });
 });

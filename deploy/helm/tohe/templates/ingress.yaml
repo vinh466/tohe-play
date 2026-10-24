@@ -1,7 +1,7 @@
 {{- if .Values.ingress.enabled }}
 {{- /*
-One Ingress, one host per origin: the hub (which also serves /api), the games origin, the docs, and the console — the
-hub's pods on their console port (ADR 0042).
+One Ingress, one host per origin: the hub (which also serves /api), the games origin, the docs, the console — the
+hub's pods on their console port (ADR 0042) — and the Studio, on their studio port (ADR 0051).
 */ -}}
 {{- $routes := list
   (dict "host" (include "tohe.host" .Values.publicUrls.hub) "component" "hub" "port" "http")
@@ -11,6 +11,9 @@ hub's pods on their console port (ADR 0042).
 {{- end }}
 {{- with .Values.publicUrls.console }}
 {{- $routes = append $routes (dict "host" (include "tohe.host" .) "component" "hub" "port" "console") }}
+{{- end }}
+{{- if .Values.studio.enabled }}
+{{- $routes = append $routes (dict "host" (include "tohe.host" .Values.publicUrls.studio) "component" "hub" "port" "studio") }}
 {{- end }}
 apiVersion: networking.k8s.io/v1
 kind: Ingress

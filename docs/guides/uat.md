@@ -15,10 +15,13 @@ production runs only a commit that ran here first: see [Environments and release
 | --- | --- |
 | Hub — the public home page at the root, the app at `/play` | <http://10.100.0.2:4820> |
 | Console | <http://10.100.0.2:4821> — its own sign-in ([Admin console](../architecture/admin.md)) |
+| Studio | <http://10.100.0.2:4822> — the Asset Studio, its own sign-in, for accounts the console gave a studio role ([Asset Studio](../architecture/asset-studio.md#the-studio-app)) |
 | Docs | <http://10.100.0.2:4810> |
 | Games origin | `http://10.100.0.2:4830` (embedded by the hub) |
 
-The API and PostgreSQL are not published; the hub proxies `/api`, the console only its own routes (`/api/admin`). Development uses the separate `tohe` compose
+The API and PostgreSQL are not published; the hub proxies `/api`, the console only its own routes (`/api/admin`), the
+Studio only its own (`/api/studio`). UAT has no object storage for the Studio yet, so its library answers `503`; signing
+in works. Development uses the separate `tohe` compose
 project on ports 47xx ([Local development](local-development.md)); the two never share containers, volumes or ports.
 
 ## First use

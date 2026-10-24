@@ -1,11 +1,14 @@
-# Two sites, one per host (ADR 0042):
+# Three sites, one per host (ADR 0042):
 # - :8080, the hub: the public pages (apps/web, /srv/web) at the root, the PWA (/srv) and a same-origin reverse proxy
 #   to the API, so the session cookie (M1) stays first-party. connect-src names the hub's own WebSocket (the rooms hub, ADR 0016) as well: CSP3's 'self' covers it, older Safari
 #   does not.
 # - :8081, the console (ADR 0027): its app at the root and the API's console routes, on a host of its own with a
 #   session of its own. Nothing else of the hub is served there.
-# Which path goes where comes from the map in @tohe/routes: hub-routes.caddy and console-routes.caddy, generated from
-# it, name each site's namespaces; this file says how each is served. A path in no namespace answers 404.
+# - :8082, the Asset Studio (ADR 0051): its app at the root and the API's Studio routes, on a host of its own with a
+#   session of its own — the same shape as the console. Nothing else of the hub is served there.
+# Which path goes where comes from the map in @tohe/routes: hub-routes.caddy, console-routes.caddy and
+# studio-routes.caddy, generated from it, name each site's namespaces; this file says how each is served. A path in no
+# namespace answers 404.
 # Env: API_UPSTREAM (host:port of the API), GAMES_ORIGIN (where game iframes come from),
 #      TOHE_TRUSTED_PROXIES (CIDRs of proxies in front of this server, e.g. a cluster's ingress; default: none),
 #      TOHE_CLIENT_IP_HEADERS (headers those proxies put the visitor's address in, e.g. CF-Connecting-IP),
@@ -13,7 +16,9 @@
 #      TOHE_HUB_URL (this host's own public URL, e.g. https://toheplay.io.vn: the public pages' canonical and Open
 #      Graph links, the app's own og:url and og:image, the sitemap and robots.txt need absolute URLs; unset:
 #      /sitemap.xml answers 404),
-#      TOHE_DOCS_URL (the docs host's URL, for the public pages' links to the developer docs).
+#      TOHE_DOCS_URL (the docs host's URL, for the public pages' links to the developer docs),
+#      STUDIO_STORAGE_ORIGIN (the origin the Studio's public library is read from, a source of the Studio's pictures;
+#      unset: its pictures come only from its own origin).
 # Both URLs are read when the container starts, so one image serves every environment (ADR 0021): the build writes
 # [[[env "TOHE_HUB_URL"]]] and [[[env "TOHE_DOCS_URL"]]] into the public pages and the app's page (web.Dockerfile).
 {
@@ -216,6 +221,64 @@ import /etc/caddy/hub-sitemap.caddy
 	}
 
 	# Anything else — the hub's pages, the API's other routes, /admin — is in no namespace of this host.
+	handle {
+		error 404
+	}
+
+	handle_errors 404 {
+		header X-Robots-Tag "noindex, nofollow"
+		header Cache-Control "no-cache"
+		header Content-Type "text/plain; charset=utf-8"
+		respond "Không có trang này." 404
+	}
+}
+
+# The Asset Studio (ADR 0051), on its own host: studio.<domain> in production, port 4722 locally and 4822 on UAT. Its
+# own app from /srv/studio, and only the API's Studio routes; with App:StudioUrl set the API answers those on this host
+# alone and authenticates them with the Studio's own session cookie (or an agent's token). Never indexed, no service
+# worker, no robots.txt. Its CSP is the console's but for pictures: a draft's or a style's from the API (its own
+# origin), blob: and data: for previews, and the public library's storage; it frames nothing.
+:8082 {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		Referrer-Policy strict-origin-when-cross-origin
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		Content-Security-Policy "default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' blob: data: {$STUDIO_STORAGE_ORIGIN}; connect-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'"
+		X-Robots-Tag "noindex, nofollow"
+	}
+
+	# @apiProxy (the API's Studio routes), @studioPage, @studioStaticImmutable, @studioStaticRevalidate.
+	import /etc/caddy/studio-routes.caddy
+
+	handle @apiProxy {
+		reverse_proxy {$API_UPSTREAM} {
+			# The API rate-limits sign-in by client address: hand it the one worked out above, not a proxy's.
+			header_up X-Forwarded-For {client_ip}
+		}
+	}
+
+	# The Studio's pages: whatever the path inside its namespaces, its index.html, which routes it.
+	handle @studioPage {
+		root * /srv/studio
+		header Cache-Control "no-cache"
+		rewrite * /index.html
+		file_server
+	}
+
+	handle @studioStaticImmutable {
+		root * /srv/studio
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+	handle @studioStaticRevalidate {
+		root * /srv/studio
+		header Cache-Control "no-cache"
+		file_server
+	}
+
+	# Anything else — the hub's pages, the console's, the API's other routes — is in no namespace of this host.
 	handle {
 		error 404
 	}

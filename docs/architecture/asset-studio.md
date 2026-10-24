@@ -11,8 +11,9 @@ Decisions: [ADR 0050](../decisions/0050-a-game-declares-what-it-depends-on.md),
 steps, and each part says when it exists. **What runs** (2026-10-24): the Studio's members, its session and its
 permissions in the API, and giving and taking studio roles in the console ([Members and the Studio's
 session](#members-and-the-studios-session)); styles, packs, drafts, review and the library in object storage in the API
-([The library in the API](#the-library-in-the-api)); the server's checks and approving styles ([Checks](#checks)). The
-app and the CLI come next.
+([The library in the API](#the-library-in-the-api)); the server's checks and approving styles ([Checks](#checks)); the
+Studio app on a host of its own, with its sign-in and the library to read ([The Studio app](#the-studio-app)). Reviewing
+in the app comes next.
 
 ## The picture
 
@@ -151,8 +152,9 @@ shipping images in 2025.
 ## The Studio app
 
 `apps/studio` on `studio.toheplay.io.vn` (decided in [ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md);
-serving once its DNS, ingress and storage exist). A third site of the hub image's Caddy serves it, with its own CSP, and
-passes on `/api/studio/*` and nothing else of the API.
+serving once its DNS, ingress and storage exist) — `http://localhost:4722` locally, `http://10.100.0.2:4822` on UAT. A
+third site of the hub image's Caddy serves it, with its own CSP, and passes on `/api/studio/*` and nothing else of the
+API — the same shape as the console ([Admin console](admin.md#where-it-lives)).
 
 | Who | Signs in with | May |
 | --- | --- | --- |
@@ -163,6 +165,53 @@ passes on `/api/studio/*` and nothing else of the API.
 | CI, builds | nothing | read approved files and manifests |
 
 Studio roles are an account claim of their own, given and taken in the console; they are not platform roles.
+
+*Runs:* signing in and reading the library. Reviewing in the app — the gallery, approving, rejecting, withdrawing, the
+styles' review — comes next; until then a reviewer reviews through the API.
+
+```mermaid
+flowchart LR
+  browser["Browser at the Studio's host"] -- "page and assets" --> site["The hub image's Caddy, third site (8082)<br/>the apps/studio build at /<br/>own CSP, noindex"]
+  browser -- "fetch /api/studio/*<br/>the Studio's cookie" --> site
+  site -- "/api/studio/* only" --> api["API: Studio module<br/>the Studio's session alone"]
+  cli["tohe-studio (an agent's token)"] -- "/api/studio/*" --> site
+```
+
+- **The app** — React with TanStack Router and Query and the design tokens, light and dark, in Vietnamese; a copy of the
+  console's structure. Built into the hub's image under `/srv/studio` and served at the root of the Studio's host by the
+  third site of the hub's Caddy, on port 8082 (`deploy/docker/Caddyfile.hub`). That site serves the Studio's namespaces
+  of the map in `@tohe/routes` (`studioNamespaces`, generated into `studio-routes.caddy`), proxies `/api/studio/…` and
+  nothing else of the API, and answers any other path with a `404`. Its CSP allows only its own origin — no inline
+  script or style, no frame, no WebSocket — and pictures from its own origin, `blob:`, `data:` and the library's public
+  storage (`STUDIO_STORAGE_ORIGIN`, [Configuration](../guides/configuration.md#hub)); every answer carries
+  `X-Robots-Tag: noindex, nofollow` and HSTS like the hub's. It has no service worker and no `robots.txt`.
+- **Its pages:**
+
+  | Path | Page |
+  | --- | --- |
+  | `/` | The library: every pack, its style, its versions and their status |
+  | `/packs/<packId>` | A pack: its description, style and versions |
+  | `/packs/<packId>/<versionId>` | A version: its status and review, and each asset — its picture, kind, size, file, licence and attribution, source and tags |
+  | `/styles`, `/styles/<styleId>` | The styles, and one: its status, tile size, view, palette, outline and sample pictures |
+  | `/sign-in` | The Studio's sign-in: email, password, and a code or a recovery code; `?redirect=` the page to go back to |
+
+  Every page but `/sign-in` sits behind the Studio's session: without one, the app sends the browser to
+  `/sign-in?redirect=<the page>`, and back there once signed in. Signing out ends the Studio's session only. Pictures
+  come from the API's file endpoints (`/api/studio/versions/{versionId}/files/{sha256}`,
+  `/api/studio/styles/{id}/samples/{sha256}`) with the Studio's cookie, drawn pixel for pixel.
+- **Its links to the hub** are absolute, to the hub's public URL the API tells it (`GET /api/studio/config`,
+  `App:PublicUrl`): "Quên mật khẩu?" leads to the hub's page for it.
+- **Its types** come from the Studio's OpenAPI document, `services/api/openapi/tohe-api_studio.json`, turned into
+  `apps/studio/src/api/schema.gen.ts` by `pnpm --filter @tohe/codegen api-types` (with the hub's and the console's).
+- **The API keeps the host** (`App:StudioUrl`, [Configuration](../guides/configuration.md#api)): set, the Studio's routes
+  answer on the Studio's host alone — the hub's and the console's hosts answer them `404` — and nothing else of the API
+  answers there; a browser's state-changing request to them must come from the Studio's origin, and the Studio's origin
+  reaches nothing else; the Studio's cookie is `__Host-tohe.studio` when the address is HTTPS. **Unset** — production,
+  until the Studio's DNS, ingress and bucket exist — the Studio's routes answer on any host but the console's, as before
+  the app, and the log says so once: an agent's CLI reaches them through the hub's address meanwhile.
+- **Locally** `pnpm dev` starts the Studio's dev server on <http://localhost:4722>, at the root, proxying the API's
+  Studio routes to the API; `docker compose up` publishes the hub container's port 8082 there
+  ([Local development](../guides/local-development.md)).
 
 ## Members and the Studio's session
 
@@ -226,23 +275,24 @@ flowchart TD
   switch of the players' password sign-in ([ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md)) does
   not apply: the Studio signs in with the password.
 - **Its own cookie.** `__Host-tohe.studio` on an HTTPS deployment, `tohe.studio` over plain HTTP (development, UAT) —
-  `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Domain`. Until the Studio has an address of its own in the configuration
-  (with the app), whether the deployment is HTTPS is read from the hub's address (`App:PublicUrl`). It lasts **12 hours
+  `HttpOnly`, `SameSite=Strict`, `Path=/`, no `Domain`. Whether it is HTTPS is read from the Studio's address
+  (`App:StudioUrl`), or from the hub's (`App:PublicUrl`) while that is unset. It lasts **12 hours
   from the sign-in**, never longer: no sliding, and re-issuing it after step-up keeps its end (the `tohe:studio_until`
   claim). Its authentication scheme (`Tohe.Studio`) is its own, and so is the data-protection purpose that seals it.
   `DELETE /api/studio/session` ends the Studio's session only.
 - **Apart, both ways, by scheme.** The Studio's routes authenticate with the Studio's scheme alone: a player's or the
   console's cookie there is a `401`, and the Studio's cookie authenticates nothing outside them. The console's host
-  answers `404` to `/api/studio/…`, as to every route but the console's.
+  answers `404` to `/api/studio/…`, as to every route but the console's. A session refused on a Studio route — an
+  account suspended or waiting to be deleted — ends the Studio's session, never the player's.
 - **Read again on every request** (`StudioAccess`): the security stamp — a new password, a suspension, "sign out
   everywhere" or two-factor authentication turned off end the session — the studio role, and for a reviewer two-factor
   authentication, all from the database. Taking the role away in the console ends the session at the next request.
 - **Step-up** for review actions: `POST /api/studio/session/step-up` with a fresh code from the authenticator — never
   the password — opens 10 minutes inside the Studio's session (`tohe:secure_until` in its cookie); a review action asks
   for it with `403 step_up_required`. The hub's and the console's step-up open nothing here.
-- **Where it answers.** The Studio's routes answer on any host but the console's for now; the Studio's app brings
-  `studio.`'s Caddy site, which passes on `/api/studio/*` and nothing else, and the API's check that they answer on that
-  host alone, as the console's routes do on the console's.
+- **Where it answers.** With `App:StudioUrl` set, on the Studio's host alone, as the console's routes do on the
+  console's; `studio.`'s Caddy site passes on `/api/studio/*` and nothing else. Unset, on any host but the console's
+  ([The Studio app](#the-studio-app)).
 
 ### In the console
 
@@ -255,6 +305,7 @@ the console's audit log: `studio.member.grant` (the role, and the one before) an
 
 | Endpoint | Permission | Answers |
 | --- | --- | --- |
+| `GET /api/studio/config` | — | What the app needs before anyone signs in: the hub's public URL (`hubUrl`, for "Quên mật khẩu?") and the API's version |
 | `GET /api/studio/session` | — | The account signed in to the Studio, its role, its permissions, until when the session lasts and step-up is open; `204` when nobody is |
 | `POST /api/studio/session` · `DELETE /api/studio/session` | — | The Studio's sign-in: email, password, and a code or a recovery code when two-factor is on — its cookie for 12 hours · sign out of the Studio only |
 | `POST /api/studio/session/step-up` | `studio.review` | A code from the authenticator: step-up for 10 minutes in this Studio session |

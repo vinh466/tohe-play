@@ -20,6 +20,7 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Database:MigrateOnStartup` | Apply pending migrations when the API starts | `false` (compose and UAT: `true`) |
 | `App:PublicUrl` | The hub's public URL, e.g. `https://tohe.example.org` — no path. With `https`, every request counts as HTTPS and the session cookie is `Secure`, named `__Host-tohe.session`. Emails link to the hub's pages under it | unset: requests stay as they arrive, emails carry codes without links (development: `http://localhost:4720`) |
 | `App:ConsoleUrl` | The console's public URL, e.g. `https://console.tohe.example.org` — a host (or, locally and on UAT, a port) of its own — neither the hub's (`App:PublicUrl`) nor the games' (`Games:PublicOrigin`), or the API does not start — no path ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)). The API answers its console routes, `/api/admin/…`, on that host alone, and nothing else there; with `https` the console's cookie is `Secure`, named `__Host-tohe.console`. The startup log names `<App:ConsoleUrl>/setup` while a deployment has no owner ([Admin console](../architecture/admin.md#the-consoles-session)) | unset: the console's routes answer 404, and the log says so once (development: `http://localhost:4721`) |
+| `App:StudioUrl` | The Asset Studio's public URL, e.g. `https://studio.tohe.example.org` — a host (or, locally and on UAT, a port) of its own — neither the hub's, the console's nor the games', or the API does not start — no path ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)). The API answers its Studio routes, `/api/studio/…`, on that host alone, and nothing else there; the hub's and the console's hosts answer them 404. With `https` the Studio's cookie is `Secure`, named `__Host-tohe.studio` ([Asset Studio](../architecture/asset-studio.md#the-studio-app)) | unset: the Studio's routes answer on any host but the console's, and the log says so once — production, until the Studio's host exists (development: `http://localhost:4722`) |
 | `App:Version` | The commit the deployment built, shown by `GET /api/config` | the assembly's version, or `dev` |
 | `Api:Reference:Enabled` | Serve the API reference: Scalar at `/api/docs` and the OpenAPI documents under `/api/openapi/`. Off, they answer 404; the docs carry the same reference, generated at build time ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)) | `true` in Development, `false` elsewhere (compose: `true`) |
 | `Games:PublicOrigin` | Origin browsers load game iframes from | — required |
@@ -55,8 +56,8 @@ ASP.NET Core configuration: a key `Section:Key` is the environment variable `Sec
 | `Studio:DraftCleanupEnabled` | Remove, once a day, the Studio's drafts not submitted within 30 days, with their files | `true` |
 
 The API trusts the `X-Forwarded-For` the hub sends, so nothing but the hub may reach it. Its host filtering
-(`AllowedHosts`) must let both the hub's host and the console's through: the hub's Caddy passes the visitor's `Host` on,
-and the API tells the console's requests by it.
+(`AllowedHosts`) must let the hub's host, the console's and the Studio's through: the hub's Caddy passes the visitor's
+`Host` on, and the API tells the console's and the Studio's requests by it.
 
 A provider exists only with both its client ID and secret; the admin console then switches it on and off, as it does
 email and password, and decides who may sign up ([ADR 0028](../decisions/0028-sign-in-and-registration-at-run-time.md),
@@ -86,6 +87,7 @@ over the same key in Infisical.
 | `TOHE_HUB_URL` | The hub's own public URL, e.g. `https://toheplay.io.vn`: the public pages' canonical, Open Graph and structured-data links, the app's own `og:url` and `og:image`, `llms.txt`, the absolute URLs of `/sitemap.xml` and the `Sitemap:` line of `robots.txt`, all written when the container starts | unset: relative links, and `/sitemap.xml` answers `404` |
 | `TOHE_DOCS_URL` | The docs host's URL, for the public pages' links to the developer docs | unset: those links lead nowhere |
 | `TOHE_SECURITY_CONTACT` | The address `/.well-known/security.txt` (RFC 9116) names for reporting vulnerabilities, e.g. `security@toheplay.io.vn`. The file's `Expires` is written on each request, 360 days ahead | unset: no `security.txt` (404) |
+| `STUDIO_STORAGE_ORIGIN` | The origin the Studio's public library is read from (the origin of the API's `Studio:Storage:PublicBaseUrl`), written into the Studio site's CSP as a source of pictures | unset: the Studio's pictures come only from its own origin (the API's file endpoints) |
 
 Keep `TOHE_TRUSTED_PROXIES` narrow: anyone inside a trusted range can claim any address, and the API rate-limits
 sign-in by address.
@@ -102,6 +104,12 @@ namespaces, its files, and the API's console routes `/api/admin/…` proxied to 
 for the rest — with a CSP of its own (`GAMES_ORIGIN` framed only to watch a ranked run) and
 `X-Robots-Tag: noindex, nofollow`. Publish that port where the console's host leads (compose: `4721`; UAT: `4821`; the
 chart: the hub Service's port `console`).
+
+And the Asset Studio on a third site, port **8082**, for the Studio's host: its page at the root of its namespaces, its
+files, and the API's Studio routes `/api/studio/…` proxied to `API_UPSTREAM` — nothing else, a `404` for the rest — with a
+CSP of its own (pictures also from `STUDIO_STORAGE_ORIGIN`) and `X-Robots-Tag: noindex, nofollow`
+([Asset Studio](../architecture/asset-studio.md#the-studio-app)). Publish that port where the Studio's host leads
+(compose: `4722`; UAT: `4822`; the chart: the hub Service's port `studio`).
 
 ## Games
 
@@ -128,6 +136,10 @@ The chart sets all of the above from its values ([Self-hosting](self-hosting.md)
 `App:PublicUrl`, `Games:PublicOrigin`, `GAMES_ORIGIN`, `HUB_ORIGINS`, `PUBLIC_HUB_URL`, `TOHE_HUB_URL` and `TOHE_DOCS_URL` (the last only while `docs.enabled`);
 `publicUrls.console` gives `App:ConsoleUrl`, the console's host in `AllowedHosts` and `HUB_ORIGINS`, the hub's port
 `console` and an Ingress rule for it — empty, none of them (production: `https://console.toheplay.io.vn`);
+`studio.enabled` (default `false`) with `publicUrls.studio` — required while it is on — gives `App:StudioUrl`, the
+Studio's host in `AllowedHosts`, the hub's port `studio` (8082) on its container, Service and NetworkPolicy, and an
+Ingress rule for it, and `studio.storageOrigin` gives `STUDIO_STORAGE_ORIGIN` — off, none of them, and the Studio's
+routes answer through the hub;
 `hub.proxy.*` give `TOHE_TRUSTED_PROXIES` and `TOHE_CLIENT_IP_HEADERS`; `hub.securityContact` gives
 `TOHE_SECURITY_CONTACT`; `api.reference.enabled` gives `Api:Reference:Enabled` (default `false`); `infra.postgres.*`
 and the Secret give `ConnectionStrings:Database`; the Secret's optional keys `studio-storage-service-url`,
@@ -136,7 +148,7 @@ give `Studio:Storage:*` — without them, no storage, the default; `api.config` 
 
 ## Every web origin
 
-The hub, the console, the games origin and the docs send `Strict-Transport-Security: max-age=31536000; includeSubDomains`, and
+The hub, the console, the Studio, the games origin and the docs send `Strict-Transport-Security: max-age=31536000; includeSubDomains`, and
 Tò He is not on the preload list: every host of its domain is Tò He's and served over HTTPS
 ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)). Browsers ignore it over plain HTTP, so it only
 takes effect where the origin is served over HTTPS.

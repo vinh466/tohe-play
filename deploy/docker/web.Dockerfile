@@ -11,11 +11,12 @@ COPY . .
 RUN --mount=type=cache,id=pnpm-store,target=/pnpm/store pnpm install --frozen-lockfile --prefer-offline
 
 FROM workspace AS build-hub
-# The console (ADR 0027) ships in the hub's image, served by its Caddy on a second site, the console's host (ADR 0042).
+# The console (ADR 0027) ships in the hub's image, served by its Caddy on a second site, the console's host (ADR 0042),
+# and so does the Asset Studio's app, on a third site, the Studio's host (ADR 0051).
 # One image for every environment (ADR 0021): the app's page carries its link preview (og:url, og:image) with the hub's
 # placeholder URL and a placeholder for the path asked for; they become template actions that the hub's Caddy fills in
 # from TOHE_HUB_URL and the request when it answers (Caddyfile.hub, @appPage). The build fails if one is left over.
-RUN pnpm turbo run build --filter=@tohe/hub --filter=@tohe/console \
+RUN pnpm turbo run build --filter=@tohe/hub --filter=@tohe/console --filter=@tohe/studio-app \
  && sed -i -e 's#https://tohe-hub\.invalid#[[[env "TOHE_HUB_URL"]]]#g' -e 's#/__request_path__#[[[.OriginalReq.URL.EscapedPath | html]]]#g' apps/hub/dist/index.html \
  && if grep -rlE 'tohe-hub\.invalid|__request_path__' apps/hub/dist; then echo 'URL placeholder left in the app' >&2; exit 1; fi
 
@@ -50,17 +51,19 @@ RUN pnpm turbo run build --filter=@tohe/games-host
 
 FROM caddy:2-alpine AS hub
 COPY deploy/docker/Caddyfile.hub /etc/caddy/Caddyfile
-# The namespaces of the hub's host and the console's, and the sitemap, generated from @tohe/routes and committed
-# (ADR 0042); Caddyfile.hub imports them.
+# The namespaces of the hub's host, the console's and the Studio's, and the sitemap, generated from @tohe/routes and
+# committed (ADR 0042); Caddyfile.hub imports them.
 COPY deploy/docker/hub-routes.caddy /etc/caddy/hub-routes.caddy
 COPY deploy/docker/console-routes.caddy /etc/caddy/console-routes.caddy
+COPY deploy/docker/studio-routes.caddy /etc/caddy/studio-routes.caddy
 COPY deploy/docker/hub-sitemap.caddy /etc/caddy/hub-sitemap.caddy
 COPY --from=build-hub /repo/apps/hub/dist /srv
 COPY --from=build-hub /repo/apps/console/dist /srv/console
+COPY --from=build-hub /repo/apps/studio/dist /srv/studio
 # The public pages, in a folder of their own: their index.html is not the app's.
 COPY --from=build-web /repo/apps/web/dist /srv/web
-# 8080 the hub, 8081 the console.
-EXPOSE 8080 8081
+# 8080 the hub, 8081 the console, 8082 the Studio.
+EXPOSE 8080 8081 8082
 
 FROM caddy:2-alpine AS docs
 COPY deploy/docker/Caddyfile.docs /etc/caddy/Caddyfile

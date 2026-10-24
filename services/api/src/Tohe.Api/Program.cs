@@ -68,8 +68,10 @@ app.UseForwardedHeaders();
 app.UsePublicUrl();
 app.UseExceptionHandler();
 app.UseStatusCodePages();
-// The console's routes on the console's host alone, and nothing else there (ADR 0042).
+// The console's routes on the console's host alone, and nothing else there (ADR 0042); the Studio's on the Studio's
+// host alone once it has one (ADR 0051).
 app.UseConsoleRoutes();
+app.UseStudioRoutes();
 app.UseSameOriginGuard();
 app.UseRoomsOriginGuard();
 app.UseTelemetryBodyLimit();

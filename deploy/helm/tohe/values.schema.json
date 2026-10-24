@@ -146,6 +146,21 @@
         },
         "console": {
           "$ref": "#/definitions/origin"
+        },
+        "studio": {
+          "$ref": "#/definitions/origin"
+        }
+      }
+    },
+    "studio": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "storageOrigin": {
+          "$ref": "#/definitions/origin"
         }
       }
     },

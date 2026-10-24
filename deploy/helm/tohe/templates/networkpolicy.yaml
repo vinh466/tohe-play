@@ -84,6 +84,10 @@ spec:
         # The console's site (ADR 0042).
         - port: console
         {{- end }}
+        {{- if and (eq $component "hub") $.Values.studio.enabled }}
+        # The Studio's site (ADR 0051).
+        - port: studio
+        {{- end }}
 {{- end }}
 {{- end }}
 {{- end }}

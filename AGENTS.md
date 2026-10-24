@@ -11,7 +11,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `docs/` | Spec: overview, architecture, contracts, guides, conventions, ADRs, roadmap |
 | `plans/` | Plan spaces: large changes thought through with the owner before the spec — intent, not spec ([plans/README.md](plans/README.md)) |
 | `packages/contract` | Game Contract v1 (Zod) — source of truth for game.json, catalog, protocol, CSP |
-| `packages/routes` | The map of hosts and of the hub's and the console's path namespaces (ADR 0042) — generates both hosts' Caddy routes, the hub's service worker's app pages, `robots.txt` and the API's `HubPaths` and `ConsolePaths` |
+| `packages/routes` | The map of hosts and of the hub's, the console's and the Studio's path namespaces (ADR 0042) — generates the three hosts' Caddy routes, the hub's service worker's app pages, `robots.txt` and the API's `HubPaths`, `ConsolePaths` and `StudioPaths` |
 | `packages/game-sdk` | Game side (no runtime deps) and host side (`/host`) of the contract |
 | `packages/game-kit` | Game shell (menu stage, play stage, quick panel, HUD), Phaser setup, sounds, haptics, juice — use it for every new game (ADR 0012, 0020) |
 | `packages/design-tokens` | Light and dark colour tokens shared by the hub, the public pages, the docs and the kit (ADR 0013) |
@@ -19,6 +19,7 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `games/<id>` | One game per folder; `games/merge-block` is the reference for real games, `games/hello` the minimal one |
 | `apps/hub` | React PWA: catalog, launcher, local-first storage |
 | `apps/console` | The operator's console on a host of its own (`console.`, :4721 locally) with its own sign-in and session, and its own API at `/api/admin` (ADR 0027, 0042) |
+| `apps/studio` | The Asset Studio app on a host of its own (`studio.`, :4722 locally) with its own sign-in and session, and the API's Studio routes at `/api/studio`: sign in, read the library (ADR 0051) |
 | `apps/web` | The public pages on the players' host (vi at `/`, en at `/en/`): static, built into the hub image, served at its root (ADR 0042, 0047) |
 | `apps/docs` | The developer docs (en), rendered from `docs/`, at the root of their own host |
 | `services/api` | .NET 10 modular monolith + PostgreSQL |
@@ -33,9 +34,10 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 - Never edit generated files (`packages/contract/schema/`, `services/api/openapi/`, `apps/*/src/api/schema.gen.ts`,
   `packages/studio/src/api/schema.gen.ts` (`pnpm --filter @tohe/studio generate:api`),
   from `@tohe/routes`: `deploy/docker/hub-routes.caddy`, `deploy/docker/console-routes.caddy`,
-  `apps/hub/public/robots.txt`, `services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs`, and from `@tohe/assets`:
+  `deploy/docker/studio-routes.caddy`, `apps/hub/public/robots.txt`, `services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs`, and from `@tohe/assets`:
   a game's `assets.lock.json` and `src/assets.gen.ts`, written by `pnpm assets:resolve`); regenerate them.
-- A new page or path on the hub's host — or the console's — is a namespace in `packages/routes` first (ADR 0042).
+- A new page or path on the hub's host — or the console's, or the Studio's — is a namespace in `packages/routes` first
+  (ADR 0042).
 - Never weaken a check (tests, conformance, CSP, pnpm's minimum release age) to make it pass.
 - UI colours come from the design tokens (`bg-surface`, `text-ink`…), never raw palette classes like
   `bg-orange-500`; every screen must work in light and dark (docs/architecture/theming.md).
@@ -60,7 +62,7 @@ pnpm --filter @tohe/e2e smoke                  # against a running stack
 pnpm release:check <ref> --for uat|prod        # before tagging; pnpm check:uat / check:prod after a deploy (read-only)
 ```
 
-Skills: `/new-game`, `/new-adr`, `/verify`, `/health-report` (in `.claude/skills/`). Agents for the master/worker way
+Skills: `/new-game`, `/new-asset`, `/new-adr`, `/verify`, `/health-report` (in `.claude/skills/`). Agents for the master/worker way
 of working: `scout`, `builder`, `chore`, `reviewer` (in `.claude/agents/`; docs/guides/working-with-agents.md).
 
 <!-- BEGIN:turborepo-agent-rules -->
