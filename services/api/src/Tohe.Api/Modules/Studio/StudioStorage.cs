@@ -133,16 +133,25 @@ internal static class StudioKeys
 }
 
 /// <summary>
-/// The storage over the S3 API with the AWS SDK: path-style addressing and checksums only where the API requires them,
-/// so Cloudflare R2 and SeaweedFS answer alike. A published object is cached for a year: it never changes.
+/// The storage over the S3 API with the AWS SDK: path-style addressing, checksums only where the API requires them, and
+/// uploads over HTTPS with an unsigned payload, so Cloudflare R2 and SeaweedFS answer alike. A published object is cached
+/// for a year: it never changes.
 /// </summary>
-internal sealed class S3StudioStorage(IOptions<StudioOptions> options) : IStudioStorage, IDisposable
+/// <param name="options">The Studio's settings: its storage's endpoint, bucket and credentials.</param>
+/// <param name="http">How the SDK reaches the storage: its own by default; tests see what goes on the wire.</param>
+internal sealed class S3StudioStorage(IOptions<StudioOptions> options, HttpClientFactory? http = null) : IStudioStorage, IDisposable
 {
     private const string PublishedCacheControl = "public, max-age=31536000, immutable";
     private const string PrivateCacheControl = "private, no-store";
 
     private readonly StudioStorageOptions _settings = options.Value.Storage;
-    private readonly Lazy<AmazonS3Client> _client = new(() => Create(options.Value.Storage));
+    private readonly Lazy<AmazonS3Client> _client = new(() => Create(options.Value.Storage, http));
+
+    // R2 does not take the streaming SigV4 the SDK signs an upload with by default: over HTTPS the payload goes unsigned
+    // instead — TLS keeps it whole — as Cloudflare's guide for this SDK says. Unsigned needs HTTPS, so SeaweedFS over
+    // HTTP locally keeps the SDK's default.
+    private readonly bool _unsignedPayload =
+        Uri.TryCreate(options.Value.Storage.ServiceUrl, UriKind.Absolute, out var url) && url.Scheme == Uri.UriSchemeHttps;
 
     public bool IsConfigured => _settings.IsConfigured;
 
@@ -158,6 +167,8 @@ internal sealed class S3StudioStorage(IOptions<StudioOptions> options) : IStudio
             InputStream = stream,
             ContentType = contentType,
             AutoCloseStream = false,
+            DisablePayloadSigning = _unsignedPayload,
+            DisableDefaultChecksumValidation = _unsignedPayload,
         };
         request.Headers.CacheControl = published ? PublishedCacheControl : PrivateCacheControl;
         await _client.Value.PutObjectAsync(request, ct);
@@ -231,24 +242,28 @@ internal sealed class S3StudioStorage(IOptions<StudioOptions> options) : IStudio
         }
     }
 
-    private static AmazonS3Client Create(StudioStorageOptions settings)
+    private static AmazonS3Client Create(StudioStorageOptions settings, HttpClientFactory? http)
     {
         if (!settings.IsConfigured)
         {
             throw new InvalidOperationException("The Studio's storage is not configured (Studio:Storage:*)");
         }
 
-        return new AmazonS3Client(
-            new BasicAWSCredentials(settings.AccessKey, settings.SecretKey),
-            new AmazonS3Config
-            {
-                ServiceURL = settings.ServiceUrl,
-                ForcePathStyle = true,
-                // R2 takes "auto"; SeaweedFS takes the region the signature names.
-                AuthenticationRegion = "auto",
-                // Newer SDKs add checksums R2 and SeaweedFS do not all take: only where S3 requires one.
-                RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
-                ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
-            });
+        var config = new AmazonS3Config
+        {
+            ServiceURL = settings.ServiceUrl,
+            ForcePathStyle = true,
+            // R2 takes "auto"; SeaweedFS takes the region the signature names.
+            AuthenticationRegion = "auto",
+            // Newer SDKs add checksums R2 and SeaweedFS do not all take: only where S3 requires one.
+            RequestChecksumCalculation = RequestChecksumCalculation.WHEN_REQUIRED,
+            ResponseChecksumValidation = ResponseChecksumValidation.WHEN_REQUIRED,
+        };
+        if (http is not null)
+        {
+            config.HttpClientFactory = http;
+        }
+
+        return new AmazonS3Client(new BasicAWSCredentials(settings.AccessKey, settings.SecretKey), config);
     }
 }
