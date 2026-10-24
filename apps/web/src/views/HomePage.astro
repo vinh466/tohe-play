@@ -1,11 +1,12 @@
 ---
-// The public home page, / in Vietnamese and /en/ in English (ADR 0042, 0046, 0047): one line under the name, then the
-// games — a tile for each, leading to its page — as the main action; one strip for playing together; three questions
-// parents ask, each a link into the FAQ; and the day it was last revised. Installing, the story and the promise are
-// links in the footer. It never redirects: a browser that has opened a game here gets *Chơi tiếp* at the top
-// (../scripts/returning.js marks it before the first paint), and every page's header has *Chơi ngay* or *Chơi tiếp*.
-// The developer docs are linked from the footer only, so a page the app opens shows no link out of Tò He.
-// The words are in ../content/home.ts.
+// The public home page, / in Vietnamese and /en/ in English (ADR 0055, which amends 0046 and 0047): an introduction
+// that someone new reads by scrolling — a centred hero with *Chơi ngay* and *Tôi đã có tài khoản*; what Tò He is; how it
+// works; playing together, with one card to the list of games; for children and parents; installing it like an app; the
+// questions parents ask, answered in place; and a closing *Chơi ngay*. No list of games here: /games/ and the app hold
+// it. It never redirects: a browser that has played here is greeted in the hero instead of the two buttons —
+// ../scripts/returning.js marks the page before the first paint, ../scripts/greeting.js, right after the card, puts in
+// the name and the game — and every page's header has *Chơi ngay* or *Chơi tiếp*. The developer docs are linked from
+// the footer only, so a page the app opens shows no link out of Tò He. The words are in ../content/home.ts.
 import { faq } from '../content/faq.ts';
 import { latestDay } from '../content/game-page.ts';
 import { loadGames } from '../content/games.ts';
@@ -13,20 +14,29 @@ import { home, homeQuestionIds } from '../content/home.ts';
 import { absolute, site } from '../content/site.ts';
 import { appPath, localPath, pageLanguage } from '../i18n.ts';
 import Page from '../layouts/Page.astro';
+import greetingUrl from '../scripts/greeting.js?url';
+import Icon from './Icon.astro';
 import UpdatedOn from './UpdatedOn.astro';
 
 const lang = pageLanguage(Astro.currentLocale);
 const words = home[lang];
 const path = localPath(lang, '/');
 const games = loadGames(lang);
-const together = games.filter((game) => game.together);
+const tableGame = games.find((game) => game.together);
 const asked = homeQuestionIds.map((id) => {
   const question = faq[lang].questions.find((item) => item.id === id);
-  if (!question) throw new Error(`the home page asks the FAQ's question "${id}", which is not there`);
+  if (!question) throw new Error(`the home page answers the FAQ's question "${id}", which is not there`);
   return question;
 });
 const updated = latestDay([words.updated, ...games.map((game) => game.page.updated)]);
 const gamePath = (id: string) => localPath(lang, `/games/${id}/`);
+const fill = (template: string, values: Record<string, string>) =>
+  template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? '');
+const playUrl = appPath(lang, '/play');
+/** What the greeting needs of each game, by id: its name in this page's language and where it plays in the app. */
+const greetingGames = Object.fromEntries(
+  games.map((game) => [game.id, { name: game.name, href: appPath(lang, `/play/${game.id}`) }]),
+);
 const jsonLd = [
   {
     '@type': 'WebSite',
@@ -48,76 +58,144 @@ const jsonLd = [
     email: site.email,
     sameAs: [site.github],
   },
-  {
-    '@type': 'ItemList',
-    name: words.games.heading,
-    inLanguage: lang,
-    itemListElement: games.map((game, index) => ({
-      '@type': 'ListItem',
-      position: index + 1,
-      url: absolute(gamePath(game.id)),
-      name: game.name,
-    })),
-  },
 ];
 ---
 
 <Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
-  <main id="main">
-    <div class="hero">
-      <p class="continue"><a class="button primary" href={appPath(lang, '/play')}>{words.continue}</a></p>
-      <h1>{site.name}</h1>
+  <main id="main" class="home">
+    <section class="hero" aria-labelledby="hero-title">
+      <img class="hero-picture" src="/favicon.svg" alt="" width="88" height="88" />
+      <h1 id="hero-title">{site.name}</h1>
       <p class="lead">{words.line}</p>
-    </div>
-
-    <section class="home-games" aria-labelledby="games">
-      <h2 id="games">{words.games.heading}</h2>
-      <ul class="tiles">
-        {
-          games.map((game) => (
-            <li>
-              <a class="tile" href={gamePath(game.id)}>
-                <img src={game.icon} alt="" width="96" height="96" />
-                <span class="tile-name">{game.name}</span>
-                <span class="tile-kind">{game.page.kind}</span>
-              </a>
-            </li>
-          ))
-        }
-      </ul>
-      <p class="all-games"><a href={localPath(lang, '/games/')}>{words.games.all}</a></p>
+      <div class="hero-start">
+        <a class="button primary" href={playUrl}>{words.start.play}</a>
+        <a class="button secondary" href={appPath(lang, '/account/sign-in')}>{words.start.account}</a>
+      </div>
+      {/* Shown in place of the two buttons on a browser that has played here; ../scripts/greeting.js fills it in. */}
+      <div
+        class="greet"
+        data-greeting-card
+        data-hello={words.greet.hello}
+        data-play={words.greet.play}
+        data-not-you={words.greet.notYou}
+        data-games={JSON.stringify(greetingGames)}
+      >
+        <span class="greet-avatar" data-greeting="avatar" aria-hidden="true"></span>
+        <p class="greet-hello" data-greeting="hello">{words.greet.helloPlain}</p>
+        <a class="button primary" data-greeting="play" href={playUrl}>{words.greet.playPlain}</a>
+        <a class="button secondary greet-enter" href={playUrl}>{words.greet.enter}</a>
+        <a class="greet-not-you" data-greeting="not-you" href={`/account/profiles?ask=true&lang=${lang}`}></a>
+      </div>
+      <script is:inline src={greetingUrl}></script>
     </section>
 
-    {
-      together.length > 0 && (
-        <section class="strip" aria-labelledby="together">
-          <h2 id="together">{words.friends.heading}</h2>
-          <p>
-            {words.friends.text} {words.friends.tryWith}{' '}
-            {together.map((game, index) => (
-              <>
-                {index > 0 && ', '}
-                <a href={gamePath(game.id)}>{game.name}</a>
-              </>
-            ))}
-            .
-          </p>
-        </section>
-      )
-    }
-
-    <section class="band" aria-labelledby="asks">
-      <h2 id="asks">{words.questions.heading}</h2>
-      <ul class="asks">
+    <section class="what" aria-labelledby="what">
+      <h2 id="what">{words.what.heading}</h2>
+      <ul class="points">
         {
-          asked.map(({ id, q }) => (
-            <li class="ask">
-              <a href={`${localPath(lang, '/faq/')}#${id}`}>{q}</a>
+          words.what.points.map((point) => (
+            <li class="point">
+              <span class="point-icon">
+                <Icon name={point.icon} />
+              </span>
+              <h3>{point.title}</h3>
+              <p>{point.text}</p>
             </li>
           ))
         }
       </ul>
+    </section>
+
+    <section class="how" aria-labelledby="how">
+      <h2 id="how">{words.how.heading}</h2>
+      <ol class="steps">
+        {words.how.steps.map((step) => <li>{step}</li>)}
+      </ol>
+    </section>
+
+    <section class="split" aria-labelledby="together">
+      <div class="split-words">
+        <h2 id="together">{words.together.heading}</h2>
+        <p>{words.together.text}</p>
+        {
+          tableGame && (
+            <p>
+              <a class="button secondary" href={gamePath(tableGame.id)}>
+                {fill(words.together.try, { game: tableGame.name })}
+              </a>
+            </p>
+          )
+        }
+      </div>
+      <a class="games-card" href={localPath(lang, '/games/')}>
+        <span class="point-icon">
+          <Icon name="play" />
+        </span>
+        <span class="games-card-label">{fill(words.together.games, { count: String(games.length) })}</span>
+        <Icon name="caret-right" class="icon caret" />
+      </a>
+    </section>
+
+    <section class="split" aria-labelledby="family">
+      <div class="split-words">
+        <h2 id="family">{words.family.heading}</h2>
+        <p><a class="more" href={localPath(lang, '/promise/')}>{words.family.promise}</a></p>
+      </div>
+      <ul class="points stacked">
+        {
+          words.family.points.map((point) => (
+            <li class="point">
+              <span class="point-icon">
+                <Icon name={point.icon} />
+              </span>
+              <h3>{point.title}</h3>
+              <p>{point.text}</p>
+            </li>
+          ))
+        }
+      </ul>
+    </section>
+
+    <section class="split" aria-labelledby="install">
+      <div class="split-words">
+        <h2 id="install">{words.install.heading}</h2>
+        <p>{words.install.text}</p>
+        <p><a class="more" href={localPath(lang, '/guides/install/')}>{words.install.guide}</a></p>
+      </div>
+      <ul class="points stacked">
+        <li class="point">
+          <span class="point-icon">
+            <Icon name="device-mobile" />
+          </span>
+          <p>{words.install.android}</p>
+        </li>
+        <li class="point">
+          <span class="point-icon">
+            <Icon name="device-mobile" />
+          </span>
+          <p>{words.install.iphone}</p>
+        </li>
+      </ul>
+    </section>
+
+    <section class="asks-section" aria-labelledby="asks">
+      <h2 id="asks">{words.questions.heading}</h2>
+      <div class="asks">
+        {
+          asked.map(({ id, q, a }) => (
+            <details class="ask" id={`hoi-${id}`}>
+              <summary>{q}</summary>
+              <p>{a}</p>
+            </details>
+          ))
+        }
+      </div>
       <p class="asks-all"><a href={localPath(lang, '/faq/')}>{words.questions.all}</a></p>
+    </section>
+
+    <section class="closing" aria-labelledby="closing">
+      <h2 id="closing">{words.closing.heading}</h2>
+      <a class="button primary" href={playUrl}>{words.start.play}</a>
     </section>
 
     <UpdatedOn day={updated} />
