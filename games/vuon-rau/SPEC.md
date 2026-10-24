@@ -98,7 +98,9 @@ clock, not from the hub's theme. The panel and the kit's screens use the design 
 On a Samsung A55 and an iPhone: the build's size, start-up time, frame times (telemetry, ADR 0015) and the save's size —
 reported with a line for the owner to re-check on production.
 
-## Choices for the owner (the agent's proposals, review them)
+## Decided with the owner
+
+The owner approved the spec and the five proposals below as they stand (2026-10-24: "spec ổn, chốt theo đề xuất").
 
 1. The three crops, their prices and growing times (above).
 2. Growth in real time while closed, and the clock left uncheckable (no scores).
