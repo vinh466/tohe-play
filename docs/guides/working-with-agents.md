@@ -37,6 +37,7 @@ across many sessions. `AGENTS.md` at the repository root points here; keep that 
 | `/new-adr` | Record a decision with the next free number. |
 | `/verify` | Run the full Definition of Done locally and report. |
 | `/health-report` | Read the device telemetry report (ADR 0015) and turn it into findings and proposed fixes. |
+| `/new-asset` | Make an asset pack for the Studio: style → import or draw → prepare → check → submit for review. |
 | `/packet` | Hand work to a worker: choose it and its effort, claim the paths, open its worktree, check its diff. |
 
 ## Environment rules
