@@ -3,6 +3,9 @@
 - Date: 2026-10-24 · Feeds: [D-08](../items/D-08-landing-introduces.md), [D-09](../items/D-09-the-way-back-in.md),
   [D-10](../items/D-10-entering-the-hub.md), [E-08](../items/E-08-screens-layouts-and-flows.md)
 - Làm bởi: master, phiên "ToHe Surface". Ảnh chụp Playwright trên prod `prod-2026-10-24.3`, chỉ đọc.
+- Owner duyệt kế hoạch 2026-10-24: "duyệt, kế hoạch ổn, làm đi". Bước 1–3: [R-11](R-11-surface-today-and-evaluation.md),
+  [R-12](R-12-peers-front-door-and-first-run.md); bước 4–5: D-08–D-10, E-08 `proposed`. Giả thuyết dưới đây được R-11
+  xác nhận.
 
 ## Question
 

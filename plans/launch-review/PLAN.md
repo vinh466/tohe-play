@@ -4,7 +4,8 @@
   SEO, GEO và cách nó mở rộng, thiết kế xong rồi build; **đợt 2**: rà màn, luồng, câu chữ, Điều khoản, Cổng. Sau đó tập
   trung làm game.
 - Phase: **đợt 1 Close** (G0–G7; owner thử máy thật 2026-10-24: "các mục này ổn r nha") · **đợt 2 Graduate một phần**
-  (F1, F2, S1, S2, E-07, G5+ trên prod) · **đợt 2b — bề mặt vòng 2: Resolve** (D-08–D-10, E-08, owner 2026-10-24)
+  (F1, F2, S1, S2, E-07, G5+ trên prod) · **đợt 2b — bề mặt vòng 2: Resolve** (D-08–D-10, E-08 `proposed`; owner duyệt
+  kế hoạch R-10 2026-10-24: "duyệt, kế hoạch ổn, làm đi")
   ([process](../README.md#phases))
 - Started: 2026-10-21 · Branch: `plan/launch-review` (#109, merged 2026-10-22); cập nhật là PR nhỏ, lần này
   `plan/launch-review-surface-2`
@@ -14,25 +15,30 @@
   [R-05 học từ miniblox](research/R-05-learning-from-peers.md) · [R-06 SEO, GEO, mở rộng](research/R-06-seo-geo-scale.md) ·
   [R-07 bớt "AI style"](research/R-07-ai-style.md) · [R-08 app đã cài, quay lại](research/R-08-installed-app-and-return.md) ·
   [R-09 khảo sát prod 2026-10-23](research/R-09-survey-2026-10-23.md) ·
-  **[R-10 bề mặt vòng 2: hiện trạng và kế hoạch research](research/R-10-surface-round-2-plan.md)**
+  **[R-10 bề mặt vòng 2: kế hoạch](research/R-10-surface-round-2-plan.md)** ·
+  **[R-11 bề mặt hôm nay: luồng, đánh giá](research/R-11-surface-today-and-evaluation.md)** ·
+  **[R-12 tiền lệ: trang chủ, cửa, lần đầu](research/R-12-peers-front-door-and-first-run.md)**
 - Trước đó: [`product-surface`](../product-surface/PLAN.md) (Phase 1, Close 2026-10-21) · Ý ngoài phạm vi:
   `docs/roadmap/product-backlog.md` (#110, đã merge)
 
 ## Next — one item
 
-**Bề mặt vòng 2 — research theo [R-10](research/R-10-surface-round-2-plan.md)**, khi owner duyệt kế hoạch: bước 1–3
-(ảnh chụp hiện trạng theo ma trận trạng thái, tiền lệ, đánh giá) → R-11, R-12; rồi bước 4–5 đưa D-08, D-09, D-10, E-08
-lên `proposed` có wireframe. S3 vẫn chờ tranh.
+**Owner quyết D-08, D-09, D-10** (đề xuất: D-08 A, D-09 A + D giữ domain/path, D-10 A; D-10 Q1, Q2), rồi V0 — spec
+(sửa ADR 0046, 0047, ghi chú 0043) — theo graduation phác ở [E-08](items/E-08-screens-layouts-and-flows.md#graduation-phác-chốt-sau-khi-owner-quyết-d-08d-10).
+S3 vẫn chờ tranh.
 
 ## Waiting on the owner
 
-1. **Duyệt kế hoạch research R-10** và trả lời D-10 Q1 ("hỏi đăng nhập" là bắt buộc hay cho chọn).
+1. **Quyết D-08, D-09, D-10** và trả lời D-10 Q1 ("hỏi đăng nhập" bắt buộc hay cho chọn), Q2 (người chơi cũ có gặp màn
+   chào không).
 2. **Thuê hoạ sĩ** theo [illustrator-brief.md](illustrator-brief.md) (16 avatar tò he, 4 ảnh bìa, linh vật 4 tư thế, sáng
    + tối). Có tranh là agent làm S3.
-3. Thuộc Cổng (E-01): Better Stack + CNAME `status` và DKIM của Resend `notify.` (kiểm 2026-10-24: cả hai chưa có bản ghi);
+3. **Tắt Cloudflare Web Analytics** cho `toheplay.io.vn`: kiểm lại 2026-10-24 với `Accept: text/html`, beacon vẫn được
+   chèn vào `/`, `/play` và bị CSP chặn (lỗi console mọi trang).
+4. Thuộc Cổng (E-01): Better Stack + CNAME `status` và DKIM của Resend `notify.` (kiểm 2026-10-24: cả hai chưa có bản ghi);
    Alertmanager Telegram trong Infisical; thử khôi phục bản sao lưu DB prod.
 
-Xong 2026-10-24: thử máy thật 12 bước R-08 §3; beacon Cloudflare Web Analytics không còn trong HTML của `/`, `/play`.
+Xong 2026-10-24: thử máy thật 12 bước R-08 §3.
 
 ## Board
 
@@ -55,10 +61,10 @@ lại một phần ở D-08, D-09.
 
 | ID | Item | Status |
 |---|---|---|
-| D-08 | [Trang chủ giới thiệu theo section, không lặp danh sách game](items/D-08-landing-introduces.md) | **researching** |
-| D-09 | [Người quay lại gõ domain: vào hub một chạm, có đổi domain/path?](items/D-09-the-way-back-in.md) | **researching** |
-| D-10 | [Vào hub khi chưa đăng nhập: hỏi đăng nhập hay chơi ngay](items/D-10-entering-the-hub.md) | **researching** — Q1 chờ owner |
-| E-08 | [Bố cục từng màn và luồng dễ chịu, hiểu cách vận hành](items/E-08-screens-layouts-and-flows.md) | **researching** — sau D-08–D-10 |
+| D-08 | [Trang chủ giới thiệu theo section, không lặp danh sách game](items/D-08-landing-introduces.md) | **proposed** — A: khuôn hero + 6 section, danh sách ở `/games/` |
+| D-09 | [Người quay lại gõ domain: vào hub một chạm, có đổi domain/path?](items/D-09-the-way-back-in.md) | **proposed** — A + D: thẻ chào ở `/`, giữ domain/path |
+| D-10 | [Vào hub khi chưa đăng nhập: hỏi đăng nhập hay chơi ngay](items/D-10-entering-the-hub.md) | **proposed** — A: màn chào lần đầu, chơi thử là nút phụ; Q1, Q2 |
+| E-08 | [Bố cục từng màn và luồng dễ chịu, hiểu cách vận hành](items/E-08-screens-layouts-and-flows.md) | **proposed** — bảng màn, luồng, graduation V0–V3 |
 
 **Sang backlog sản phẩm** (owner 2026-10-22): [D-03](items/D-03-features-before-launch.md) (deferred), E-06 → PB-12.
 

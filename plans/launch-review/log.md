@@ -2,16 +2,14 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
-## 2026-10-24 (owner thử máy thật; mở bề mặt vòng 2) — agent, phiên "ToHe Surface"
+## 2026-10-24 (owner thử máy thật; bề mặt vòng 2 tới `proposed`) — agent, phiên "ToHe Surface"
 
-- Owner thử máy thật trên prod: G7 "các mục này ổn r nha"; rà màn và câu chữ "nhìn chung ổn"; chức năng không lỗi.
-- Owner: "về luồng và UI thì cần cải thiện cho xịn hơn nữa" — trang chủ giới thiệu theo section, không lặp danh sách
-  game; người quay lại vào hub một chạm (nghi bố cục domain/path); hỏi đăng nhập khi vào hub. → D-08, D-09, D-10, E-08
-  (researching), kế hoạch ở [R-10](research/R-10-surface-round-2-plan.md); chờ owner duyệt kế hoạch và D-10 Q1.
-- Owner (cùng ngày): tạm gác UAT, owner và tester thử trên prod, dữ liệu prod chưa cần giữ — brief sửa theo; ADR cho
-  luồng release chờ owner.
-- Vẫn mở: HUD bàn online Tiến Lên cắt chữ ở 360–390 px; chữ canvas của kit còn `system-ui`
-  (`packages/game-kit/src/phaser/game.ts:269`).
+- Owner thử máy thật: G7 "các mục này ổn r nha"; màn, câu chữ "nhìn chung ổn"; "về luồng và UI thì cần cải thiện cho xịn
+  hơn nữa" → D-08–D-10, E-08; owner duyệt kế hoạch [R-10](research/R-10-surface-round-2-plan.md): "duyệt, kế hoạch ổn, làm đi".
+- [R-11](research/R-11-surface-today-and-evaluation.md) (10 điểm đau), [R-12](research/R-12-peers-front-door-and-first-run.md)
+  (tiền lệ) → D-08 A, D-09 A + D giữ domain/path, D-10 A, E-08 `proposed`; chờ owner quyết, D-10 Q1, Q2.
+- Owner: tạm gác UAT, thử trên prod, dữ liệu prod chưa cần giữ — brief sửa; ADR cho luồng release chờ owner.
+- Vẫn mở: HUD Tiến Lên cắt chữ ở 360–390 px; chữ canvas của kit còn `system-ui`; beacon Cloudflare vẫn bị CSP chặn.
 
 ## 2026-10-24 (D-07, E-07 chốt; S2, E-07, G5+ lên prod) — agent
 
