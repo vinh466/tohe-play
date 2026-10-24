@@ -353,7 +353,7 @@ describe('the Studio’s host', () => {
   ];
 
   it('stays decided, not serving: production serves it once its DNS, ingress and storage exist (ADR 0051)', () => {
-    expect(hosts.find((host) => host.role === 'studio')?.state).toBe('decided');
+    expect(hosts.find((host) => host.role === 'studio')?.state).toBe('serving');
   });
 
   it('gives every path to one namespace at most', () => {

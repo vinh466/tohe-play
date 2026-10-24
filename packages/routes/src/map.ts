@@ -67,7 +67,7 @@ export const hosts: readonly Host[] = [
   {
     role: 'studio',
     label: 'studio',
-    state: 'decided',
+    state: 'serving',
     purpose: 'The Asset Studio: game assets made, checked and approved, with its own session (ADR 0051)',
   },
   {
