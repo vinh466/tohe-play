@@ -16,19 +16,19 @@
 
 ## Next — one item
 
-**Pilot V1–V2**, khi S2 xong: agent nhập Kenney Tiny Farm bằng `tohe-studio`, owner duyệt trong app Studio, rồi
-`games/vuon-rau/SPEC.md` (owner review) và slice dọc + ngang, đo trên máy thật. Trước đó: S1b lên UAT/prod ở đợt sau.
+**Pilot V1 → V2** (phiên mới bắt đầu từ đây):
+1. Nhập Kenney *Tiny Farm* vào Studio prod bằng CLI và token agent owner đã cấp (file `~/.config/tohe-studio/env`,
+   không bao giờ in ra hay commit):
+   `TOHE_STUDIO_URL=https://studio.toheplay.io.vn pnpm studio …` sau khi nạp file env. Đề xuất một style 16 px cho pack
+   (`style` qua API), pack `farm-tiny` 1.0.0, `import kenney-tiny-farm`, `prepare`, `check`, `submit`. Token đã thử được
+   (`style list` trả "no style yet", 2026-10-24).
+2. Owner duyệt style và pack trong `https://studio.toheplay.io.vn` (role reviewer, 2FA).
+3. V2: xây `games/vuon-rau` theo `games/vuon-rau/SPEC.md` (owner đã duyệt cả 5 đề xuất), `assets` khoá `farm-tiny`,
+   `pnpm assets:resolve` (CI có `TOHE_ASSETS_REGISTRY`), rồi đo trên A55 và iPhone.
 
 ## Waiting on the owner
 
-1. **S2, hạ tầng**:
-   - bucket R2 (chỉ mở công khai `blobs/` và `packs/`, hoặc tách bucket riêng cho bản nháp);
-   - năm khoá `studio-storage-*` trong Infisical `/tohe`;
-   - DNS `studio.toheplay.io.vn`;
-   - biến repo `TOHE_ASSETS_REGISTRY`.
-   Sau đó agent mở PR `platform-infra` bật `studio.enabled`.
-2. **Token agent**: tạo agent và token `studio.draft` trong trang `/agents` của console cho agent làm pilot; cấp cho
-   chính mình studio role `reviewer` trong trang `/studio`.
+Không có. Owner đã làm S2 (R2, DNS, Infisical), bật Studio (platform-infra #252), cấp token, và duyệt spec.
 
 ## Board
 
