@@ -14,7 +14,10 @@ sidebar:
   replays and links naming a merged id no longer break ([Identity](../architecture/identity.md#merge-aliases)). The
   identity gate is one step of the hub's entry pipeline, and making a link is a `named` feature, by
   [ADR 0044](0044-entry-links.md) (step I3); the game's level is `identity` in its manifest, by
-  [ADR 0045](0045-games-declare-identity-and-entries.md) (step I4)
+  [ADR 0045](0045-games-declare-identity-and-entries.md) (step I4). Amended by
+  [ADR 0055](0055-front-page-explains-greets-and-the-app-asks-once.md): a device's first visit to a screen of the app's
+  frame asks once — sign in, or play on this device with the suggested profile shown — before the `any` level makes
+  device profiles silently; links to a game or a table still play at once
 - **Date:** 2026-10-20
 - **Amends:** [ADR 0023](0023-accounts-own-their-profiles.md) — an account's profile, its first one included, may come
   from a device, keeping its id and name; [ADR 0024](0024-email-identifies-an-account.md) — a device profile has no

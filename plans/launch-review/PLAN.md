@@ -4,11 +4,10 @@
   SEO, GEO và cách nó mở rộng, thiết kế xong rồi build; **đợt 2**: rà màn, luồng, câu chữ, Điều khoản, Cổng. Sau đó tập
   trung làm game.
 - Phase: **đợt 1 Close** (G0–G7; owner thử máy thật 2026-10-24: "các mục này ổn r nha") · **đợt 2 Graduate một phần**
-  (F1, F2, S1, S2, E-07, G5+ trên prod) · **đợt 2b — bề mặt vòng 2: Resolve** (D-08–D-10, E-08 `proposed`; owner duyệt
-  kế hoạch R-10 2026-10-24: "duyệt, kế hoạch ổn, làm đi")
-  ([process](../README.md#phases))
+  (F1, F2, S1, S2, E-07, G5+ trên prod) · **đợt 2b — bề mặt vòng 2: Graduate** (D-08–D-10, E-08 **decided** 2026-10-25;
+  V0 = ADR 0055) ([process](../README.md#phases))
 - Started: 2026-10-21 · Branch: `plan/launch-review` (#109, merged 2026-10-22); cập nhật là PR nhỏ, lần này
-  `plan/launch-review-surface-2`
+  `docs/surfaces-v0` (cùng V0)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · **Design: [design.md](design.md)** (bức tranh đầy đủ) · **Route: [routes.md](routes.md)** · Log: [log.md](log.md)
 - Research: [R-01 trang và lối vào](research/R-01-pages-and-ways-in.md) · [R-02 bố cục hiện đại](research/R-02-layout-prior-art.md) ·
   [R-03 quay lại, app đã cài](research/R-03-coming-back.md) · [R-04 host và path](research/R-04-hosts-and-paths-review.md) ·
@@ -23,14 +22,11 @@
 
 ## Next — one item
 
-**Owner quyết D-08, D-09, D-10** (đề xuất: D-08 A, D-09 A + D giữ domain/path, D-10 A; D-10 Q1, Q2), rồi V0 — spec
-(sửa ADR 0046, 0047, ghi chú 0043) — theo graduation phác ở [E-08](items/E-08-screens-layouts-and-flows.md#graduation-phác-chốt-sau-khi-owner-quyết-d-08d-10).
-S3 vẫn chờ tranh.
+**V1 trang chủ ∥ V2 cửa vào hub** ([graduation đợt 2b](#graduation-list--đợt-2b)), khi V0 (ADR 0055) merge. S3 vẫn chờ tranh.
 
 ## Waiting on the owner
 
-1. **Quyết D-08, D-09, D-10** và trả lời D-10 Q1 ("hỏi đăng nhập" bắt buộc hay cho chọn), Q2 (người chơi cũ có gặp màn
-   chào không).
+1. **Merge V0** (ADR 0055 + spec) khi đã đọc.
 2. **Thuê hoạ sĩ** theo [illustrator-brief.md](illustrator-brief.md) (16 avatar tò he, 4 ảnh bìa, linh vật 4 tư thế, sáng
    + tối). Có tranh là agent làm S3.
 3. **Tắt Cloudflare Web Analytics** cho `toheplay.io.vn`: kiểm lại 2026-10-24 với `Accept: text/html`, beacon vẫn được
@@ -61,10 +57,10 @@ lại một phần ở D-08, D-09.
 
 | ID | Item | Status |
 |---|---|---|
-| D-08 | [Trang chủ giới thiệu theo section, không lặp danh sách game](items/D-08-landing-introduces.md) | **proposed** — A: khuôn hero + 6 section, danh sách ở `/games/` |
-| D-09 | [Người quay lại gõ domain: vào hub một chạm, có đổi domain/path?](items/D-09-the-way-back-in.md) | **proposed** — A + D: thẻ chào ở `/`, giữ domain/path |
-| D-10 | [Vào hub khi chưa đăng nhập: hỏi đăng nhập hay chơi ngay](items/D-10-entering-the-hub.md) | **proposed** — A: màn chào lần đầu, chơi thử là nút phụ; Q1, Q2 |
-| E-08 | [Bố cục từng màn và luồng dễ chịu, hiểu cách vận hành](items/E-08-screens-layouts-and-flows.md) | **proposed** — bảng màn, luồng, graduation V0–V3 |
+| D-08 | [Trang chủ giới thiệu theo section, không lặp danh sách game](items/D-08-landing-introduces.md) | **decided** — A (2026-10-25) |
+| D-09 | [Người quay lại gõ domain: vào hub một chạm, có đổi domain/path?](items/D-09-the-way-back-in.md) | **decided** — A + D, giữ domain/path (2026-10-25) |
+| D-10 | [Vào hub khi chưa đăng nhập: hỏi đăng nhập hay chơi ngay](items/D-10-entering-the-hub.md) | **decided** — A; Q1 cho chọn, Q2 không (2026-10-25) |
+| E-08 | [Bố cục từng màn và luồng dễ chịu, hiểu cách vận hành](items/E-08-screens-layouts-and-flows.md) | **decided** (2026-10-25) — graduation đợt 2b |
 
 **Sang backlog sản phẩm** (owner 2026-10-22): [D-03](items/D-03-features-before-launch.md) (deferred), E-06 → PB-12.
 
@@ -89,4 +85,13 @@ G0 ADR 0046, 0047 + `surfaces.md` ([#111](https://github.com/vinh466/tohe-play/p
 | **S3** | Xưởng tò he: avatar, ảnh bìa, linh vật, màu nhuộm, chuyển động/âm thanh, ảnh khởi động iOS | D-07 Q2 | chờ tranh |
 | **E-07** ✓ [#137](https://github.com/vinh466/tohe-play/pull/137) · **G5+** ✓ [#136](https://github.com/vinh466/tohe-play/pull/136), [#139](https://github.com/vinh466/tohe-play/pull/139) | Cập nhật khi app khuất, splash, "bàn"; mã bàn, cổng phụ huynh phía server | E-07, G5 | prod |
 
-Sau đó: bề mặt vòng 2 (D-08–D-10, E-08) → E-03 → E-05 → E-01.
+## Graduation list — đợt 2b
+
+| PR | Nội dung | Từ | Cần trước | Trạng thái |
+|---|---|---|---|---|
+| **V0** | ADR 0055 (sửa 0046, 0047, ghi chú 0043); `surfaces.md`, `identity.md`, `overview.md` | D-08–D-10 | — | PR mở |
+| **V1** | `apps/web`: hero + 6 section vi/en, thẻ chào đọc `tohe:greeting`, `check-build` (`ItemList` sang `/games/`) | D-08, D-09 | V0 | — |
+| **V2** | `apps/hub`: màn chào lần đầu, "Chơi thử trên máy này", ghi/xoá `tohe:greeting`, chip "· trên máy này", e2e smoke | D-09, D-10 | V0 | — |
+| **V3** | Bố cục khung trên tablet và máy tính, nút dính đáy ở `/r/`, đo tải lạnh danh mục | E-08 | V2 | — |
+
+V1 ∥ V2 (`apps/web` và `apps/hub`, không chung khu vực). Sau V3: owner thử máy thật → E-03 → E-05 → E-01.

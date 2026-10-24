@@ -5,7 +5,9 @@ sidebar:
   order: 46
 ---
 
-- **Status:** Accepted
+- **Status:** Accepted — amended by [ADR 0055](0055-front-page-explains-greets-and-the-app-asks-once.md) (`/`
+  introduces Tò He instead of putting the catalog first; *Continue* on `/` becomes a greeting with the player's name and
+  last game; the frame's first visit asks whether to sign in or to play on this device)
 - **Date:** 2026-10-22
 - **Amends:** [ADR 0042](0042-hosts-by-trust-paths-by-component.md) — the namespace `/together` for the app; Cloudflare
   Access in front of `console.` (on since 2026-10-22). The public pages' redirect of a returning player

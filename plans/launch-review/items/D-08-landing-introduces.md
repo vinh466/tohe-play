@@ -1,9 +1,9 @@
 # D-08 — Trang chủ giới thiệu: những section nào để người mới cuộn xuống là hiểu Tò He?
 
-- Status: **proposed** — A ([R-11](../research/R-11-surface-today-and-evaluation.md), [R-12](../research/R-12-peers-front-door-and-first-run.md))
+- Status: **decided** — A ([ADR 0055](../../../docs/decisions/0055-front-page-explains-greets-and-the-app-asks-once.md))
 - Kind: decision
 - Blocks: E-08 · Blocked by: — · Mở lại một phần: [D-06](D-06-introduction-surface.md) ("trang chủ danh mục trước", ADR 0047)
-- Decided: —
+- Decided: owner, 2026-10-25, chat: "duyet r nha" (đề xuất ở #166, owner merge)
 
 ## Why it matters
 
@@ -100,7 +100,7 @@ xen kẽ trái phải; khổ nội dung ~1 100 px thay vì một cột 930 px c�
 
 ## Decision
 
-—
+**A** — owner, 2026-10-25: "duyet r nha", sau khi merge #166. Ghi ở ADR 0055; build ở V1.
 
 ## Discussion
 

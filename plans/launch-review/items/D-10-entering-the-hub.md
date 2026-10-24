@@ -1,10 +1,10 @@
 # D-10 — Vào hub khi chưa đăng nhập: hỏi đăng nhập, hay chơi ngay bằng hồ sơ máy?
 
-- Status: **proposed** — A ([R-11](../research/R-11-surface-today-and-evaluation.md), [R-12](../research/R-12-peers-front-door-and-first-run.md)); Q1 chờ owner
+- Status: **decided** — A; Q1 hỏi và cho chọn, Q2 không ([ADR 0055](../../../docs/decisions/0055-front-page-explains-greets-and-the-app-asks-once.md))
 - Kind: decision
 - Blocks: E-08 · Blocked by: — · Đụng: ADR 0043 (hồ sơ máy: thêm bước hỏi), ADR 0046 (màn đầu của khung); B mở lại
   brief của `product-surface` ("chơi ngay không cần tài khoản")
-- Decided: —
+- Decided: owner, 2026-10-25, chat: "duyet r nha" (đề xuất ở #166 gồm câu trả lời đề xuất cho Q1, Q2; owner merge)
 
 ## Why it matters
 
@@ -85,4 +85,9 @@ trong hub. Cái giá chấp nhận: người mới thêm một màn và một b�
 
 ## Decision
 
-—
+**A** — owner, 2026-10-25: "duyet r nha", sau khi merge #166; Q1 và Q2 theo đề xuất (hỏi và cho chọn; người đã chơi bằng
+hồ sơ máy không gặp màn chào). Ghi ở ADR 0055; build ở V2.
+
+Khi viết ADR, agent chỉnh một điểm cho khớp vision ("a name only when others will see it"): bước "Chơi thử" **cho thấy**
+hồ sơ hub gợi ý (hình, tên, *Đổi tên, hình*) và một nút *Vào chơi* — không bắt gõ tên. Link tới game, bàn, chia sẻ vẫn
+vào thẳng như hôm nay.

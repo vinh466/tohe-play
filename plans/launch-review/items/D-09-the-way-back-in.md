@@ -1,10 +1,10 @@
 # D-09 — Người quay lại gõ domain: vào hub bằng một chạm thế nào cho êm, và có cần đổi domain/path?
 
-- Status: **proposed** — A + D, giữ domain/path ([R-11](../research/R-11-surface-today-and-evaluation.md), [R-12](../research/R-12-peers-front-door-and-first-run.md))
+- Status: **decided** — A + D, giữ domain/path ([ADR 0055](../../../docs/decisions/0055-front-page-explains-greets-and-the-app-asks-once.md))
 - Kind: decision
 - Blocks: E-08 · Blocked by: — · Mở lại một phần: [D-04](D-04-coming-back.md) (ADR 0046, cửa ở `/`);
   [D-05](D-05-hosts-and-paths.md) (ADR 0042) **giữ nguyên** theo đề xuất
-- Decided: —
+- Decided: owner, 2026-10-25, chat: "duyet r nha" (đề xuất ở #166, owner merge)
 
 ## Why it matters
 
@@ -92,4 +92,5 @@ Cái giá chấp nhận: vẫn một chạm (B bớt được), và tên hồ s�
 
 ## Decision
 
-—
+**A + D, domain và path giữ nguyên** — owner, 2026-10-25: "duyet r nha", sau khi merge #166. Ghi ở ADR 0055; thẻ chào
+build ở V1, khoá `tohe:greeting` ở V2.
