@@ -111,7 +111,6 @@ front door asks once ([ADR 0055](../decisions/0055-front-page-explains-greets-an
   app itself the first time, with no session, asks once: sign in, or *Chơi thử trên máy này* with the suggested
   profile shown (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`); after that choice the device
   plays as its device profile at once, and `/account/sign-in` opens only when chosen, or for what needs an account.
-  *Until V2 of plans/launch-review E-08 lands, the first visit makes a device profile silently.*
   A room link (`/r/<code>`), a room, the rooms lobby and a replay play as the device profile too: the `named` screen —
   a name others see, an avatar, the terms line — the first time, then its copy on the server and a seat at any table
   open to anyone named ([Identity](identity.md#device-profiles-on-the-server), ADR 0043). Signing out is a choice and
