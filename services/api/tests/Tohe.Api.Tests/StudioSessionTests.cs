@@ -302,7 +302,7 @@ public sealed class StudioSessionTests(ApiFactory factory) : IClassFixture<ApiFa
 
         var open = endpoints.Where(endpoint => endpoint.Metadata.GetMetadata<StudioPermission>() is null).ToList();
         Assert.Equal(
-            ["GetStudioSession", "SignInToStudio", "SignOutOfStudio"],
+            ["GetStudioConfig", "GetStudioSession", "SignInToStudio", "SignOutOfStudio"],
             open.Select(endpoint => endpoint.Metadata.GetMetadata<IEndpointNameMetadata>()?.EndpointName).Order(StringComparer.Ordinal));
         Assert.All(open, endpoint => Assert.NotNull(endpoint.Metadata.GetMetadata<Microsoft.AspNetCore.Authorization.IAllowAnonymous>()));
     }

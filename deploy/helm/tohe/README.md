@@ -60,8 +60,8 @@ to `defaults.annotations` (it lands on the Deployments themselves, where Reloade
 
 - **One API instance**, `Recreate` updates: rooms live in the API's memory, and its background jobs and start-up
   migrations assume one instance (ADR 0016). `api.replicaCount` other than 1 fails the render.
-- **Host filtering**: `AllowedHosts` is the hub's host, and the console's when set (`api.allowedHosts` to change
-  it); the probes send the hub's as `Host`.
+- **Host filtering**: `AllowedHosts` is the hub's host, the console's when set and the Studio's while
+  `studio.enabled` (`api.allowedHosts` to change it); the probes send the hub's as `Host`.
 - **The hub's public pages** ([ADR 0042](../../../docs/decisions/0042-hosts-by-trust-paths-by-component.md)): the hub
   serves a home page at its root, and `/sitemap.xml` and `robots.txt` with absolute URLs. The chart gives its pods
   `TOHE_HUB_URL` (from `publicUrls.hub`) and, while `docs.enabled`, `TOHE_DOCS_URL` (from `publicUrls.docs`), which the
@@ -80,6 +80,14 @@ to `defaults.annotations` (it lands on the Deployments themselves, where Reloade
   console frame a game (to watch a ranked run), and `helm test` checks the console's page and that its routes ask for
   its session. Empty, none of that: the API answers the console's routes with 404. Put an access proxy in front of the
   host — production uses Cloudflare Access; the API does not check Access's token yet.
+- `studio.enabled` — the Asset Studio's app ([ADR 0051](../../../docs/decisions/0051-an-asset-studio-for-game-assets.md))
+  on `publicUrls.studio`, required while it is on, e.g. `https://studio.tohe.example`: a host of its own with a sign-in
+  and a session of its own. On, the hub's pods open their port 8082 (named `studio`, on the hub's Service and its
+  NetworkPolicy too), the Ingress leads the Studio's host there, the API gets `App__StudioUrl` and accepts the host in
+  `AllowedHosts`, `studio.storageOrigin` (the public library's origin) becomes `STUDIO_STORAGE_ORIGIN`, a source of the
+  Studio's pictures, and `helm test` checks the Studio's page and that the API answers its routes there and not on the
+  hub's host. Off, none of that: the API answers the Studio's routes through the hub's host, where an agent's CLI
+  reaches them.
 
 - `api.reference.enabled` — the API reference on the hub's origin: Scalar at `/api/docs` and the OpenAPI documents
   under `/api/openapi/`. Off, they answer 404; the docs carry the same reference, generated at build time
@@ -97,7 +105,8 @@ On every component (`api`, `hub`, `games`, `docs`, with fallbacks in `defaults`)
 `podAnnotations`, `podLabels`, `nodeSelector`, `tolerations`, `affinity`, `priorityClassName`, `resources`,
 `podSecurityContext`, `securityContext`, `extraEnv`. The API also has `config` (non-secret environment),
 `extraEnvFrom`, `extraVolumes` and `extraVolumeMounts`. `ingress.enabled: false` leaves routing to you; the Services
-are `<release>-hub`, `<release>-games`, `<release>-docs` on port 8080, and the console on `<release>-hub`'s port 8081.
+are `<release>-hub`, `<release>-games`, `<release>-docs` on port 8080, the console on `<release>-hub`'s port 8081 and the
+Studio on its port 8082.
 `networkPolicy.enabled` lets only the hub reach the API and only the API reach the builtin PostgreSQL.
 
 **Metrics** (ADR 0036): the API serves `/metrics` for Prometheus on its port `metrics` (9464), which no ingress

@@ -33,6 +33,8 @@ services:
       App__PublicUrl: http://${TOHE_PUBLIC_HOST:-localhost}:4720
       # The console's own host: the hub image's second site, published on 4721 (ADR 0042).
       App__ConsoleUrl: http://${TOHE_PUBLIC_HOST:-localhost}:4721
+      # The Asset Studio's own host: the hub image's third site, published on 4722 (ADR 0051).
+      App__StudioUrl: http://${TOHE_PUBLIC_HOST:-localhost}:4722
       Games__PublicOrigin: http://${TOHE_PUBLIC_HOST:-localhost}:4730
       Games__CatalogUrl: http://games:8080/catalog.json
       Registry__SyncInterval: "00:00:20"
@@ -78,12 +80,16 @@ services:
       TOHE_DOCS_URL: http://${TOHE_PUBLIC_HOST:-localhost}:4710
       # Set it to try /.well-known/security.txt; unset, that path answers 404.
       TOHE_SECURITY_CONTACT: ${TOHE_SECURITY_CONTACT:-}
+      # The Studio's pictures may come from the public library, SeaweedFS below (ADR 0051).
+      STUDIO_STORAGE_ORIGIN: http://${TOHE_PUBLIC_HOST:-localhost}:4770
     depends_on:
       - api
     ports:
       - "4720:8080"
       # The console (ADR 0042): the same image's second site, at the root of its own host.
       - "4721:8081"
+      # The Asset Studio (ADR 0051): the third site, at the root of its own host.
+      - "4722:8082"
 
   games:
     build:

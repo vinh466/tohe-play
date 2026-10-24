@@ -1,12 +1,20 @@
 using System.ComponentModel.DataAnnotations;
 using Microsoft.AspNetCore.Http.HttpResults;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.Extensions.Options;
 using Tohe.Api.Infrastructure.Database;
 using Tohe.Api.Modules.Admin;
 using Tohe.Api.Modules.Identity;
+using Tohe.Api.Modules.Platform;
 using CodeCheck = Tohe.Api.Modules.Admin.CodeCheck;
 
 namespace Tohe.Api.Modules.Studio;
+
+/// <summary>What the Studio's app needs before anyone signs in.</summary>
+/// <param name="HubUrl">The hub's public URL (<c>App:PublicUrl</c>), for the app's links to it — "Quên mật khẩu?";
+/// none when unset.</param>
+/// <param name="ApiVersion">The build of the API that runs.</param>
+public sealed record StudioConfig(string? HubUrl, string ApiVersion);
 
 /// <summary>The account signed in to the Studio, its studio role and what the role may do.</summary>
 /// <param name="Role"><c>contributor</c> or <c>reviewer</c>.</param>
@@ -50,6 +58,13 @@ internal static class StudioSessionEndpoints
 {
     public static void Map(RouteGroupBuilder studio)
     {
+        studio.MapGet("/config", (IOptions<AppOptions> app) => TypedResults.Ok(new StudioConfig(
+                app.Value.PublicUrl?.GetLeftPart(UriPartial.Authority),
+                PlatformModule.VersionOf(app.Value))))
+            .AllowAnonymous()
+            .WithName("GetStudioConfig")
+            .WithSummary("What the Studio's app needs before anyone signs in: the hub's address and the API's version.");
+
         // "Nobody signed in" is a normal state of the Studio, not an error: 204 rather than 401, as the console's /me.
         studio.MapGet("/session", MeAsync)
             .AllowAnonymous()

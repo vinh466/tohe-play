@@ -7,6 +7,7 @@ import {
   hubPathsCs,
   hubSitemapCaddySnippet,
   robotsTxt,
+  studioCaddySnippet,
 } from '../src/generate.ts';
 
 const root = new URL('../../../', import.meta.url);
@@ -27,6 +28,7 @@ const gameIds = readdirSync(gamesDir, { withFileTypes: true })
 const files = {
   'deploy/docker/hub-routes.caddy': hubCaddySnippet(),
   'deploy/docker/console-routes.caddy': consoleCaddySnippet(),
+  'deploy/docker/studio-routes.caddy': studioCaddySnippet(),
   'deploy/docker/hub-sitemap.caddy': hubSitemapCaddySnippet(undefined, gameIds),
   'apps/hub/public/robots.txt': robotsTxt(),
   'services/api/src/Tohe.Api/Infrastructure/HubPaths.g.cs': hubPathsCs(),

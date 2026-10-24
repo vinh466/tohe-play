@@ -4,6 +4,23 @@
  */
 
 export interface paths {
+    "/api/studio/config": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** What the Studio's app needs before anyone signs in: the hub's address and the API's version. */
+        get: operations["GetStudioConfig"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/api/studio/session": {
         parameters: {
             query?: never;
@@ -494,6 +511,10 @@ export interface components {
             ok: boolean;
             problems: components["schemas"]["StudioCheckProblem"][];
         };
+        StudioConfig: {
+            hubUrl: null | string;
+            apiVersion: string;
+        };
         StudioCreatorView: {
             kind: string;
             /** Format: uuid */
@@ -588,6 +609,26 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    GetStudioConfig: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description OK */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StudioConfig"];
+                };
+            };
+        };
+    };
     GetStudioSession: {
         parameters: {
             query?: never;

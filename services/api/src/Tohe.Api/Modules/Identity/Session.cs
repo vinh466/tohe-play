@@ -4,6 +4,7 @@ using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Diagnostics;
 using Microsoft.AspNetCore.Identity;
 using Tohe.Api.Infrastructure;
+using Tohe.Api.Modules.Studio;
 
 namespace Tohe.Api.Modules.Identity;
 
@@ -147,8 +148,13 @@ internal sealed class SessionRefusedHandler : IExceptionHandler
             return false;
         }
 
-        // The session of the routes that asked: a console route ends the console's, never the player's (ADR 0042).
-        await http.SignOutAsync(ConsoleRoutes.Covers(http.Request.Path) ? ConsoleSession.Scheme : IdentityConstants.ApplicationScheme);
+        // The session of the routes that asked: a console route ends the console's, a Studio route the Studio's, never
+        // the player's (ADR 0042, 0051).
+        var path = http.Request.Path;
+        await http.SignOutAsync(
+            ConsoleRoutes.Covers(path) ? ConsoleSession.Scheme
+            : StudioRoutes.Covers(path) ? StudioSession.Scheme
+            : IdentityConstants.ApplicationScheme);
         await problem.ExecuteAsync(http);
         return true;
     }

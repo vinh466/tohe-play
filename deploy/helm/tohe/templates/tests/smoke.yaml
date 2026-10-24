@@ -1,6 +1,7 @@
 {{- /*
 `helm test`: the hub serves the public home page at its root and its sitemap, serves the app, proxies a healthy API, and the games origin serves its catalog; the console's site
-serves its page, never indexed, and refuses the console's routes without its session (ADR 0042).
+serves its page, never indexed, and refuses the console's routes without its session (ADR 0042); the Studio's site serves
+its page, never indexed, and the API answers the Studio's routes on the Studio's host and not on the hub's (ADR 0051).
 */ -}}
 {{- $hub := include "tohe.componentName" (dict "root" . "component" "hub") }}
 {{- $games := include "tohe.componentName" (dict "root" . "component" "games") }}
@@ -45,5 +46,11 @@ spec:
           {{- with .Values.publicUrls.console }}
           curl -fsSI http://{{ $hub }}:8081/ | grep -qi '^x-robots-tag: noindex'
           test "$(curl -s -o /dev/null -w '%{http_code}' -H "Host: {{ include "tohe.host" . }}" http://{{ $hub }}:8081/api/admin/overview)" = 401
+          {{- end }}
+          {{- if .Values.studio.enabled }}
+          curl -fsSI http://{{ $hub }}:8082/ | grep -qi '^x-robots-tag: noindex'
+          curl -fsS http://{{ $hub }}:8082/sign-in | grep -q '<div id="root">'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H "Host: {{ include "tohe.host" .Values.publicUrls.studio }}" http://{{ $hub }}:8082/api/studio/session)" = 204
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H "Host: {{ include "tohe.host" .Values.publicUrls.hub }}" http://{{ $hub }}:8080/api/studio/session)" = 404
           {{- end }}
           echo smoke test passed

@@ -6,6 +6,27 @@
     "version": "1.0.0"
   },
   "paths": {
+    "/api/studio/config": {
+      "get": {
+        "tags": [
+          "Studio"
+        ],
+        "summary": "What the Studio's app needs before anyone signs in: the hub's address and the API's version.",
+        "operationId": "GetStudioConfig",
+        "responses": {
+          "200": {
+            "description": "OK",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/StudioConfig"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/api/studio/session": {
       "get": {
         "tags": [
@@ -1635,6 +1656,24 @@
             "items": {
               "$ref": "#/components/schemas/StudioCheckProblem"
             }
+          }
+        }
+      },
+      "StudioConfig": {
+        "required": [
+          "hubUrl",
+          "apiVersion"
+        ],
+        "type": "object",
+        "properties": {
+          "hubUrl": {
+            "type": [
+              "null",
+              "string"
+            ]
+          },
+          "apiVersion": {
+            "type": "string"
           }
         }
       },

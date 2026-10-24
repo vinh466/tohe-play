@@ -1,7 +1,7 @@
-// The map of Tò He's hosts and of the namespaces on the hub's host and the console's (ADR 0042,
+// The map of Tò He's hosts and of the namespaces on the hub's host, the console's and the Studio's (ADR 0042, 0051,
 // docs/architecture/hosts-and-paths.md). It is the one place a path prefix is given to a component: the Caddy routes of
-// both hosts, the service worker's list of app pages, robots.txt and the API's links to the hub and the console are
-// generated from it (scripts/generate.ts). A new namespace is one entry here, reviewed; a new host needs an ADR.
+// the three hosts, the service worker's list of app pages, robots.txt and the API's links to the hub, the console and
+// the Studio are generated from it (scripts/generate.ts). A new namespace is one entry here, reviewed; a new host needs an ADR.
 import { englishPrefix, pathInLanguage, vietnameseOnlyPages } from './languages.ts';
 
 /** A host's role. Hosts come from configuration (`publicUrls`), never from code: this names roles, not addresses. */
@@ -73,8 +73,8 @@ export const hosts: readonly Host[] = [
   { role: 'uat', label: 'uat', state: 'reserved', purpose: 'UAT’s names, once it has HTTPS' },
 ];
 
-/** Who owns a namespace on the hub's host or the console's. */
-export type Component = 'public' | 'app' | 'console' | 'api' | 'platform';
+/** Who owns a namespace on the hub's host, the console's or the Studio's. */
+export type Component = 'public' | 'app' | 'console' | 'studio' | 'api' | 'platform';
 
 /**
  * How a namespace is served:
@@ -423,6 +423,87 @@ export const consoleNamespaces: readonly Namespace[] = [
 export const consoleLinks = {
   Setup: { path: '/setup', note: 'Where a new deployment’s first owner claims it' },
   Api: { path: '/api/admin', note: 'The API’s console routes, served only on the console’s host' },
+} as const satisfies Record<string, { path: string; note: string }>;
+
+const studioPage = (id: string, path: string, note: string, match: Match = 'exact'): Namespace => ({
+  id,
+  path,
+  match,
+  component: 'studio',
+  served: 'page',
+  indexed: false,
+  crawl: true,
+  navigation: 'network',
+  note,
+});
+
+const studioFile = (
+  id: string,
+  path: string,
+  match: Match,
+  cache: 'immutable' | 'revalidate',
+  note: string,
+): Namespace => ({
+  id,
+  path,
+  match,
+  component: 'studio',
+  served: 'static',
+  indexed: false,
+  crawl: true,
+  navigation: 'network',
+  cache,
+  note,
+});
+
+/**
+ * The Studio's host (ADR 0051): a third site of the hub image's Caddy, on a port of its own, the same shape as the
+ * console's. Its app at the root, the API's Studio routes and nothing else — no service worker, no robots.txt, never
+ * indexed; any other path is a 404. The API's player and console routes are not served here.
+ */
+export const studioNamespaces: readonly Namespace[] = [
+  {
+    id: 'studio-api',
+    path: '/api/studio',
+    match: 'tree',
+    component: 'api',
+    served: 'proxy',
+    indexed: false,
+    crawl: true,
+    navigation: 'network',
+    note: 'The API’s Studio routes: signing in to the Studio, its session and the library; agents’ tokens too',
+  },
+
+  // The Studio's pages (apps/studio/src/router.tsx).
+  studioPage('studio-library', '/', 'The library: the packs, their styles, versions and status'),
+  studioPage(
+    'studio-packs',
+    '/packs',
+    'A pack (/packs/<packId>) and one of its versions with its assets (/packs/<packId>/<versionId>)',
+    'tree',
+  ),
+  studioPage('studio-styles', '/styles', 'The styles (/styles) and one style (/styles/<styleId>)', 'tree'),
+  studioPage('studio-sign-in', '/sign-in', 'The Studio’s own sign-in; ?redirect= the page to go back to'),
+
+  // The Studio's files (apps/studio/public and what the build adds).
+  studioFile('studio-assets', '/assets', 'tree', 'immutable', 'Scripts and styles with hashed names'),
+  studioFile('studio-index', '/index.html', 'exact', 'revalidate', 'The Studio’s page itself'),
+  studioFile(
+    'studio-theme-init',
+    '/theme-init.js',
+    'exact',
+    'revalidate',
+    'Light or dark before the first paint',
+  ),
+  studioFile('studio-favicon', '/favicon.svg', 'exact', 'revalidate', 'The icon in browser tabs'),
+];
+
+/** The Studio's routes the API names: where it serves them. The C# class StudioPaths is generated from these. */
+export const studioLinks = {
+  Api: {
+    path: '/api/studio',
+    note: 'The API’s Studio routes, served only on the Studio’s host once it has one',
+  },
 } as const satisfies Record<string, { path: string; note: string }>;
 
 /**

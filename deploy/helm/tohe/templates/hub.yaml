@@ -1,6 +1,7 @@
 {{- /*
 The hub: the public pages at its root, the PWA, and /api proxied to the API on the same origin (deploy/docker/Caddyfile.hub). Its Caddy serves the
-console too, on a second site, port 8081, for the console's host (ADR 0027, 0042).
+console too, on a second site, port 8081, for the console's host (ADR 0027, 0042), and the Asset Studio on a third,
+port 8082, for the Studio's host (ADR 0051).
 */ -}}
 {{- $env := list
   (dict "name" "API_UPSTREAM" "value" (printf "%s:8080" (include "tohe.componentName" (dict "root" . "component" "api"))))
@@ -21,6 +22,13 @@ console too, on a second site, port 8081, for the console's host (ADR 0027, 0042
 {{- end }}
 {{- $ports := list }}
 {{- if .Values.publicUrls.console }}
-{{- $ports = list (dict "name" "console" "port" 8081) }}
+{{- $ports = append $ports (dict "name" "console" "port" 8081) }}
+{{- end }}
+{{- if .Values.studio.enabled }}
+{{- $ports = append $ports (dict "name" "studio" "port" 8082) }}
+{{- /* The Studio's CSP takes pictures from the public library's storage too (Caddyfile.hub, :8082). */ -}}
+{{- with .Values.studio.storageOrigin }}
+{{- $env = append $env (dict "name" "STUDIO_STORAGE_ORIGIN" "value" (include "tohe.origin" .)) }}
+{{- end }}
 {{- end }}
 {{ include "tohe.caddyWorkload" (dict "root" . "component" "hub" "values" .Values.hub "env" $env "probePath" "/" "ports" $ports) }}

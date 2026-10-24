@@ -1,6 +1,6 @@
-# Tò He chart values. Required: publicUrls.hub, publicUrls.games (and publicUrls.docs while docs.enabled), and the
-# secrets — secrets.existingSecret, or secrets.values. The chart refuses to render without them, with a message that
-# names the missing value. README.md describes every key; docs/guides/configuration.md what each image reads.
+# Tò He chart values. Required: publicUrls.hub, publicUrls.games (publicUrls.docs while docs.enabled, publicUrls.studio
+# while studio.enabled), and the secrets — secrets.existingSecret, or secrets.values. The chart refuses to render
+# without them, with a message that names the missing value. README.md describes every key; docs/guides/configuration.md what each image reads.
 
 # Release names: <release>-api, <release>-hub… unless overridden.
 nameOverride: ""
@@ -23,6 +23,9 @@ publicUrls:
   # their port 8081 — e.g. https://console.tohe.example beside https://tohe.example. Put an access proxy in front of it
   # (Cloudflare Access). Empty: no console — no ingress rule, and the API answers its routes with 404.
   console: ""
+  # The Asset Studio (ADR 0051): a host of its own with a session of its own, served by the hub's pods on their port
+  # 8082 — e.g. https://studio.tohe.example beside https://tohe.example. Required while studio.enabled.
+  studio: ""
 
 global:
   image:
@@ -138,6 +141,15 @@ games:
       memory: 128Mi
   podSecurityContext: *caddyPod
   securityContext: *caddyContainer
+
+studio:
+  # The Asset Studio's app on its own host, publicUrls.studio (ADR 0051): the hub's pods open their port 8082 (named
+  # studio), the ingress leads the host there and the API answers the Studio's routes (/api/studio) on it alone. Off:
+  # none of that, and the API answers those routes through the hub's host — production, until the Studio's DNS exists.
+  enabled: false
+  # The origin the Studio's public library is read from — the origin of the API's Studio:Storage:PublicBaseUrl, e.g.
+  # https://assets.tohe.example — allowed as a source of pictures in the Studio's CSP. Empty: its own origin only.
+  storageOrigin: ""
 
 docs:
   # The developer docs. Off: no docs workload, no docs host on the ingress.

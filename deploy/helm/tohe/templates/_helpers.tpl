@@ -120,8 +120,17 @@ Everything the chart cannot express in values.schema.json. Each failure names th
 {{- end -}}
 {{- $hosts = append $hosts (include "tohe.host" $urls.console) -}}
 {{- end -}}
+{{- if .Values.studio.enabled -}}
+{{- if not $urls.studio -}}
+{{- fail "publicUrls.studio is required while studio.enabled: the Asset Studio, e.g. https://studio.tohe.example.org (ADR 0051)" -}}
+{{- end -}}
+{{- if not (regexMatch $urlPattern $urls.studio) -}}
+{{- fail (printf "publicUrls.studio must be an http(s) origin with no path, got %q" $urls.studio) -}}
+{{- end -}}
+{{- $hosts = append $hosts (include "tohe.host" $urls.studio) -}}
+{{- end -}}
 {{- if ne (len $hosts) (len (uniq $hosts)) -}}
-{{- fail (printf "publicUrls must use a different host each — the games origin must never share the hub's (ADR 0002), nor the console (ADR 0042); got %s" (join ", " $hosts)) -}}
+{{- fail (printf "publicUrls must use a different host each — the games origin must never share the hub's (ADR 0002), nor the console or the Studio (ADR 0042, 0051); got %s" (join ", " $hosts)) -}}
 {{- end -}}
 {{- if ne (int .Values.api.replicaCount) 1 -}}
 {{- fail "api.replicaCount must be 1: rooms live in the API's memory and its jobs and migrations assume one instance (ADR 0016)" -}}
