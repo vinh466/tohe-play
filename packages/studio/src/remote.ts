@@ -4,18 +4,36 @@ import { join } from 'node:path';
 import {
   type AssetInput,
   describeRefusal,
+  fromReport,
   type PackVersionView,
   type StudioClient,
+  type StudioUploadView,
   type StyleView,
 } from './api.ts';
 import { type Problem, Refused } from './errors.ts';
-import { fileFacts } from './files.ts';
+import { type FileFacts, fileFacts } from './files.ts';
 import { assetPath, lintPack, type PackFile, readPack } from './pack.ts';
 
-/** Which server draft a working folder became, per server: `{ "<url>": { "versionId", "version" } }`. */
+/**
+ * Which server draft a working folder became, per server: `{ "<url>": { "versionId", "version", "stripped" } }`.
+ * `stripped` maps the sha256 of a file here to the sha256 and size the server kept after stripping its metadata.
+ */
 export const DRAFT_FILE = '.studio-draft.json';
 
-type DraftRecords = Record<string, { versionId: string; version: string }>;
+/** A file as the server kept it, its metadata stripped. */
+interface KeptFile {
+  sha256: string;
+  bytes: number;
+}
+
+interface DraftRecord {
+  versionId: string;
+  version: string;
+  /** The local sha256 → the file as the server kept it; only files the server stripped. */
+  stripped?: Record<string, KeptFile>;
+}
+
+type DraftRecords = Record<string, DraftRecord>;
 
 function readDrafts(dir: string): DraftRecords {
   const path = join(dir, DRAFT_FILE);
@@ -27,7 +45,7 @@ function readDrafts(dir: string): DraftRecords {
   }
 }
 
-function writeDraft(dir: string, url: string, record: { versionId: string; version: string } | null): void {
+function writeDraft(dir: string, url: string, record: DraftRecord | null): void {
   const drafts = readDrafts(dir);
   if (record) drafts[url] = record;
   else delete drafts[url];
@@ -68,19 +86,44 @@ export interface DraftOutcome {
   version: PackVersionView | null;
   /** Files uploaded this time. */
   uploaded: number;
+  /** Files uploaded this time that the server kept with their metadata stripped: the first asset naming each. */
+  stripped: { assetId: string; sha256: string }[];
   problems: Problem[];
 }
 
-/** pack.json's assets as the API takes them, each with its file's sha256, size and extension. */
-function assetInputs(dir: string, pack: PackFile): AssetInput[] {
+/** The working folder's files: each asset's content and sha256, read once. */
+interface LocalFile {
+  content: Buffer;
+  facts: FileFacts;
+}
+
+function readFiles(dir: string, pack: PackFile): Map<string, LocalFile> {
+  return new Map(
+    pack.assets.map((asset) => {
+      const content = readFileSync(assetPath(dir, asset.file));
+      return [asset.id, { content, facts: fileFacts(asset.file, content) }];
+    }),
+  );
+}
+
+/**
+ * pack.json's assets as the API takes them, each with its file's sha256, size and extension — the sha256 and size the
+ * server kept when it stripped the file's metadata.
+ */
+function assetInputs(
+  pack: PackFile,
+  files: Map<string, LocalFile>,
+  stripped: Record<string, KeptFile>,
+): AssetInput[] {
   return pack.assets.map((asset) => {
-    const facts = fileFacts(asset.file, readFileSync(assetPath(dir, asset.file)));
+    const { facts } = files.get(asset.id) as LocalFile;
+    const kept = stripped[facts.sha256];
     return {
       id: asset.id,
       kind: asset.kind,
-      sha256: facts.sha256,
+      sha256: kept?.sha256 ?? facts.sha256,
       ext: facts.ext,
-      bytes: facts.bytes,
+      bytes: kept?.bytes ?? facts.bytes,
       width: facts.width,
       height: facts.height,
       frames: asset.frames ?? null,
@@ -94,24 +137,51 @@ function assetInputs(dir: string, pack: PackFile): AssetInput[] {
   });
 }
 
+/** The files of a draft's assets the server does not have, though their sha256 is one it kept after stripping. */
+const lostKept = (version: PackVersionView, stripped: Record<string, KeptFile>) => {
+  const kept = new Set(Object.values(stripped).map((file) => file.sha256));
+  return version.assets.some((view) => !view.uploaded && kept.has(view.sha256));
+};
+
 /**
  * Makes the server's draft match the working folder — creating it, or replacing the one this folder made before —
- * then uploads every file the server does not have yet. The server checks each file as it arrives.
+ * then uploads every file the server does not have yet. The server checks each file as it arrives, and keeps it with
+ * its metadata stripped: a file it changed is named by the server's sha256 in the draft's later updates.
  */
 export async function syncDraft(client: StudioClient, url: string, dir: string): Promise<DraftOutcome> {
   const pack = readPack(dir);
   const local = lintPack(dir, pack);
-  if (local.length > 0) return { pack, version: null, uploaded: 0, problems: local };
-  const assets = assetInputs(dir, pack);
-  const ids = assets.map((asset) => asset.id ?? '');
+  const refused = (problems: Problem[]): DraftOutcome => ({
+    pack,
+    version: null,
+    uploaded: 0,
+    stripped: [],
+    problems,
+  });
+  if (local.length > 0) return refused(local);
+  const files = readFiles(dir, pack);
+  const ids = pack.assets.map((asset) => asset.id);
   let version: PackVersionView | null = null;
 
   const known = readDrafts(dir)[url];
+  // Only the files still here: one changed since is a new file.
+  const shas = new Set([...files.values()].map((file) => file.facts.sha256));
+  let stripped: Record<string, KeptFile> = Object.fromEntries(
+    Object.entries(known?.stripped ?? {}).filter(([sha]) => shas.has(sha)),
+  );
   if (known) {
-    const { data, error, response } = await client.PUT('/api/studio/drafts/{versionId}', {
+    let { data, error, response } = await client.PUT('/api/studio/drafts/{versionId}', {
       params: { path: { versionId: known.versionId } },
-      body: { version: pack.version, assets },
+      body: { version: pack.version, assets: assetInputs(pack, files, stripped) },
     });
+    if (data && lostKept(data, stripped)) {
+      // The server no longer has a file it stripped, and only it has the stripped bytes: send the files here again.
+      stripped = {};
+      ({ data, error, response } = await client.PUT('/api/studio/drafts/{versionId}', {
+        params: { path: { versionId: known.versionId } },
+        body: { version: pack.version, assets: assetInputs(pack, files, stripped) },
+      }));
+    }
     if (data) version = data;
     else if (codeOf(error) === 'not_a_draft' && known.version === pack.version)
       throw new Refused(
@@ -120,11 +190,13 @@ export async function syncDraft(client: StudioClient, url: string, dir: string):
     else if (response.status === 404 || codeOf(error) === 'not_yours' || codeOf(error) === 'not_a_draft') {
       // It expired, names a draft of someone else, or was submitted and pack.json has a new version: a new draft.
       writeDraft(dir, url, null);
-    } else
-      return { pack, version: null, uploaded: 0, problems: describeRefusal(response.status, error, ids) };
+    } else return refused(describeRefusal(response.status, error, ids));
   }
 
   if (!version) {
+    // A new draft has none of the files the server kept.
+    stripped = {};
+    const assets = assetInputs(pack, files, stripped);
     for (let attempt = 0; ; attempt++) {
       const { data, error, response } = await client.POST('/api/studio/drafts', {
         body: {
@@ -141,35 +213,65 @@ export async function syncDraft(client: StudioClient, url: string, dir: string):
       }
       // Someone made the pack that moment: sending again lands in theirs.
       if (codeOf(error) === 'pack_exists' && attempt === 0) continue;
-      return { pack, version: null, uploaded: 0, problems: describeRefusal(response.status, error, ids) };
+      return refused(describeRefusal(response.status, error, ids));
     }
   }
-  writeDraft(dir, url, { versionId: version.id, version: version.version });
+  const record = (): DraftRecord => ({
+    versionId: (version as PackVersionView).id,
+    version: (version as PackVersionView).version,
+    ...(Object.keys(stripped).length > 0 ? { stripped } : {}),
+  });
+  writeDraft(dir, url, record());
 
   const problems: Problem[] = [];
+  const strippedNow: DraftOutcome['stripped'] = [];
   let uploaded = 0;
   const done = new Set<string>();
   for (const view of version.assets) {
     if (view.uploaded || done.has(view.sha256)) continue;
     done.add(view.sha256);
-    const asset = pack.assets.find((candidate) => candidate.id === view.id);
-    if (!asset) continue;
-    const content = readFileSync(assetPath(dir, asset.file));
-    const { error, response } = await client.PUT('/api/studio/drafts/{versionId}/files/{sha256}', {
+    const local = files.get(view.id);
+    if (!local) continue;
+    const { data, error, response } = await client.PUT('/api/studio/drafts/{versionId}/files/{sha256}', {
       params: { path: { versionId: version.id, sha256: view.sha256 } },
       // The body is the file itself, sent as it is; the generated type calls a stream a string.
-      body: content as unknown as string,
+      body: local.content as unknown as string,
       bodySerializer: (body: unknown) => body as BodyInit,
       headers: { 'Content-Type': 'application/octet-stream' },
     });
     if (response.ok) {
       uploaded++;
+      const kept = data as StudioUploadView | undefined;
+      if (kept && kept.sha256 !== view.sha256) {
+        stripped[local.facts.sha256] = { sha256: kept.sha256, bytes: kept.bytes };
+        strippedNow.push({ assetId: view.id, sha256: kept.sha256 });
+      }
       continue;
     }
     for (const problem of describeRefusal(response.status, error))
       problems.push({ ...problem, assetId: problem.assetId ?? view.id });
   }
-  return { pack, version, uploaded, problems };
+  if (strippedNow.length > 0) writeDraft(dir, url, record());
+  return { pack, version, uploaded, stripped: strippedNow, problems };
+}
+
+/** The server's checks on the draft as it stands — what submitting would check — with nothing saved. */
+export async function checkDraft(
+  client: StudioClient,
+  version: PackVersionView,
+): Promise<{ ok: boolean; problems: Problem[] }> {
+  const { data, error, response } = await client.POST('/api/studio/drafts/{versionId}/check', {
+    params: { path: { versionId: version.id } },
+  });
+  if (data) return { ok: data.ok, problems: fromReport(data.problems) };
+  return {
+    ok: false,
+    problems: describeRefusal(
+      response.status,
+      error,
+      version.assets.map((asset) => asset.id),
+    ),
+  };
 }
 
 /** Submits the draft the working folder made; answers the version, or the problems that refused it. */

@@ -88,7 +88,7 @@ describe('pack.json', () => {
       join(packDir, 'files', 'a.png'),
       png(1, 1, () => {}),
     );
-    const source = { kind: 'pack' as const, name: 'P', url: 'https://example.org/p', author: 'A' };
+    const source = { type: 'pack' as const, name: 'P', url: 'https://example.org/p', author: 'A' };
     const pack = readPack(packDir);
     writePack(packDir, {
       ...pack,
@@ -128,10 +128,56 @@ describe('pack.json', () => {
     );
     expect(problems).toEqual([
       'a licence_not_accepted',
-      'b attribution_required',
+      'b attribution_missing',
       'c file_missing',
       'd file_outside',
     ]);
+  });
+
+  it("refuses a source without the fields the server's source_incomplete check asks for", () => {
+    const pack = readPack(packDir);
+    const withSource = (source: unknown) =>
+      writeFileSync(
+        join(packDir, 'pack.json'),
+        JSON.stringify({
+          ...pack,
+          assets: [
+            {
+              id: 'a',
+              kind: 'image',
+              file: 'a.png',
+              tags: [],
+              licence: 'CC0-1.0',
+              attribution: null,
+              source,
+            },
+          ],
+        }),
+      );
+    const ai = {
+      type: 'ai',
+      vendor: 'v',
+      model: 'm',
+      prompt: 'a carrot',
+      seed: 42,
+      date: '2026-10-24',
+    };
+    withSource(ai);
+    expect(readPack(packDir).assets[0]?.source).toEqual(ai);
+    withSource({ ...ai, seed: 'abc', date: '2026-10-24T10:00:00Z' });
+    expect(() => readPack(packDir)).not.toThrow();
+    // `type` names the kind of source, as the server reads it; `kind` is not it.
+    for (const source of [
+      { kind: 'pack', name: 'P', url: 'https://example.org/p', author: 'A' },
+      { type: 'pack', name: 'P', url: 'ftp://example.org/p', author: 'A' },
+      { type: 'upload', by: ' ' },
+      { type: 'code' },
+      { ...ai, seed: undefined },
+      { ...ai, date: 'yesterday' },
+    ]) {
+      withSource(source);
+      expect(() => readPack(packDir), JSON.stringify(source)).toThrow(/assets\.0\.source/);
+    }
   });
 });
 
@@ -151,7 +197,7 @@ describe('import', () => {
       licence: 'CC0-1.0',
       attribution: null,
       source: {
-        kind: 'pack',
+        type: 'pack',
         name: 'Tiny Farm',
         url: 'https://kenney.nl/assets/tiny-farm',
         author: 'Kenney (www.kenney.nl)',
@@ -222,7 +268,7 @@ describe('draw', () => {
       file: 'files/shapes/square.png',
       tags: ['shape'],
       licence: 'LicenseRef-Tohe-Internal',
-      source: { kind: 'code', file: 'draw-squares.mjs', script },
+      source: { type: 'code', file: 'draw-squares.mjs', script },
     });
     expect(blink).toMatchObject({ kind: 'spritesheet', frames: { width: 8, height: 8, count: 2 } });
     const file = readFileSync(join(packDir, 'files/shapes/square.png'));

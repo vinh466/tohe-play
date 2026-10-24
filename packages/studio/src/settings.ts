@@ -1,7 +1,10 @@
 // What the CLI reads from its environment, and where it writes: every line goes through one sink that hides the token.
 import { UsageError } from './errors.ts';
 
-/** The API's base URL, e.g. `http://localhost:4720` on the dev stack. */
+/**
+ * The Studio's host, which serves `/api/studio`: `https://studio.toheplay.io.vn`, or `http://localhost:4722` in
+ * development (until the Studio has a host of its own, the hub's, `http://localhost:4720`).
+ */
 export const URL_ENV = 'TOHE_STUDIO_URL';
 /** An agent token holding `studio.draft` (`tohe_at_…`), given by the owner on the console's Agents page. */
 export const TOKEN_ENV = 'TOHE_STUDIO_TOKEN';
@@ -18,7 +21,9 @@ export interface Settings {
 export function readSettings(env: NodeJS.ProcessEnv): Settings {
   const url = env[URL_ENV]?.trim();
   if (!url)
-    throw new UsageError(`${URL_ENV} is not set: set it to the API's base URL, e.g. http://localhost:4720`);
+    throw new UsageError(
+      `${URL_ENV} is not set: set it to the Studio's host, e.g. https://studio.toheplay.io.vn or http://localhost:4722`,
+    );
   let parsed: URL;
   try {
     parsed = new URL(url);

@@ -58,7 +58,7 @@ export async function drawWith(dir: string, script: string): Promise<string[]> {
       tags: options.tags ?? [],
       licence: DRAWN_LICENCE,
       attribution: null,
-      source: { kind: 'code', file: basename(path), script: text },
+      source: { type: 'code', file: basename(path), script: text },
       ...(options.frames ? { frames: options.frames } : {}),
     };
     pack = putAsset(pack, asset);

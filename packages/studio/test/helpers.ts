@@ -14,6 +14,7 @@ type StyleView = components['schemas']['StyleView'];
 type AssetInput = components['schemas']['AssetInput'];
 type AssetView = components['schemas']['AssetView'];
 type PackVersionView = components['schemas']['PackVersionView'];
+type CheckProblem = components['schemas']['StudioCheckProblem'];
 
 export const TOKEN = 'tohe_at_c2VjcmV0LXRlc3QtdG9rZW4tbmV2ZXItcHJpbnRlZA';
 
@@ -90,8 +91,15 @@ export interface FakeStudio {
   requests: string[];
   /** Files uploaded: their sha256. */
   uploads: string[];
-  /** The server's checks of an uploaded file: answer failures to refuse it with 422 checks_failed. */
-  checkFile: (asset: AssetInput, content: Buffer) => { code: string; message: string; assetId?: string }[];
+  /** The server's checks of an uploaded file: answer problems to refuse it with 422 checks_failed. */
+  checkFile: (asset: AssetInput, content: Buffer) => CheckProblem[];
+  /**
+   * The checks of the whole version, as the dry run and submitting run them: problems are the dry run's report, and
+   * refuse a submission with 422 checks_failed.
+   */
+  checkVersion: (assets: AssetInput[]) => CheckProblem[];
+  /** What the server keeps of an uploaded file: other bytes when it strips metadata. Default: the file as sent. */
+  strip: (content: Buffer) => Buffer;
   /** Other files the server serves, e.g. a zip: path → bytes. */
   files: Map<string, Uint8Array>;
   /** The field errors of a draft's assets, as the API's 400 names them (`assets[1].tags`). */
@@ -130,6 +138,8 @@ export async function startFakeStudio(token = TOKEN): Promise<FakeStudio> {
     requests: [],
     uploads: [],
     checkFile: () => [],
+    checkVersion: () => [],
+    strip: (content) => content,
     files: new Map(),
     validateDraft: (assets) => {
       const errors: Record<string, string[]> = {};
@@ -313,12 +323,36 @@ export async function startFakeStudio(token = TOKEN): Promise<FakeStudio> {
             status: 400,
             errors: { file: ['sha256_mismatch'] },
           });
-        const failures = fake.checkFile(asset, content);
-        if (failures.length > 0)
-          return problem(response, 422, 'checks_failed', "The Studio's checks refused it", { failures });
-        version.uploaded.add(sha);
+        const problems = fake.checkFile(asset, content);
+        if (problems.length > 0)
+          return problem(response, 422, 'checks_failed', "The Studio's checks refused it", {
+            ok: false,
+            problems,
+          });
+        // The file as kept, its metadata stripped: every asset naming it takes its sha256 and size.
+        const kept = fake.strip(content);
+        const keptSha = createHash('sha256').update(kept).digest('hex');
+        for (const named of version.assets.filter((candidate) => candidate.sha256 === sha)) {
+          named.sha256 = keptSha;
+          named.bytes = kept.length;
+        }
+        version.uploaded.add(keptSha);
         fake.uploads.push(sha);
-        return send(response, 204);
+        return send(response, 200, {
+          sha256: keptSha,
+          bytes: kept.length,
+          width: asset.width,
+          height: asset.height,
+          stripped: keptSha !== sha,
+        });
+      }
+      if (request.method === 'POST' && area === 'drafts' && id && sub === 'check') {
+        const version = fake.versions.get(id);
+        if (!version) return problem(response, 404, 'version_not_found', 'No pack version has this id');
+        if (version.status !== 'draft')
+          return problem(response, 409, 'not_a_draft', 'This pack version is no longer a draft');
+        const problems = fake.checkVersion(version.assets);
+        return send(response, 200, { ok: problems.length === 0, problems });
       }
       if (request.method === 'POST' && area === 'drafts' && id && sub === 'submit') {
         const version = fake.versions.get(id);
@@ -328,6 +362,12 @@ export async function startFakeStudio(token = TOKEN): Promise<FakeStudio> {
           .map((asset) => asset.id);
         if (missing.length > 0)
           return problem(response, 409, 'files_missing', 'Some files are not uploaded', { assets: missing });
+        const problems = fake.checkVersion(version.assets);
+        if (problems.length > 0)
+          return problem(response, 422, 'checks_failed', "The Studio's checks refused it", {
+            ok: false,
+            problems,
+          });
         version.status = 'submitted';
         version.submittedAt = now();
         return send(response, 200, view(version));
@@ -339,7 +379,7 @@ export async function startFakeStudio(token = TOKEN): Promise<FakeStudio> {
   });
   await new Promise<void>((done) => server.listen(0, '127.0.0.1', done));
   const { port } = server.address() as AddressInfo;
-  // The same object the server reads, so a test that sets checkFile changes what the server does.
+  // The same object the server reads, so a test that sets checkFile, checkVersion or strip changes what the server does.
   return Object.assign(fake, {
     url: `http://127.0.0.1:${port}`,
     close: () => new Promise<void>((done) => server.close(() => done())),
