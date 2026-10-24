@@ -100,7 +100,7 @@ body {
   color: var(--tohe-ink-soft);
 }
 
-.farm-group li.is-empty .sprite {
+.farm-group .is-empty .sprite {
   opacity: 0.45;
 }
 

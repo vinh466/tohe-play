@@ -8,7 +8,7 @@ import { persist, session, sfx, store, t } from './app.ts';
 import { assets } from './assets.gen.ts';
 import { type CropId, crops } from './content/crops.ts';
 import { lineFor } from './content/lines.ts';
-import { type Cell, keeper, plots, stall, TILESET } from './content/map.ts';
+import { type Cell, keeper, plots, TILESET } from './content/map.ts';
 import { dayPart } from './light.ts';
 import {
   basketValue,
@@ -29,14 +29,14 @@ import {
 import { createPanel, sprite } from './panel.ts';
 import { route, standCells } from './path.ts';
 import { duration, localeOf } from './strings.ts';
-import { FarmScene, GRASS_COLOUR } from './view.ts';
+import { targetAt } from './targets.ts';
+import { FarmScene, GRASS_COLOUR, type WorldPoint } from './view.ts';
 
 /** The panel's size: its height at the bottom in portrait, its width at the right in landscape. CSS pixels. */
 const PANEL = { bottom: 104, right: 176 };
 /** The safe area is kept by #app's padding (style.css): the stage is inside it already. */
 const NO_INSETS = { top: 0, right: 0, bottom: 0, left: 0 };
 
-const same = (a: Cell, b: Cell) => a.x === b.x && a.y === b.y;
 const localHour = () => {
   const now = new Date();
   return now.getHours() + now.getMinutes() / 60;
@@ -81,8 +81,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     telemetry: session.telemetry,
     createScene: () =>
       new FarmScene(pack, sfx, {
-        onTap: (cell) => void tap(cell),
-        onHold: (cell) => hold(cell),
+        onTap: (point) => void tap(point),
+        onHold: (point) => hold(point),
       }),
   });
   let scene = kit.scene;
@@ -136,17 +136,18 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   // ------------------------------------------------------------------ taps
 
-  async function tap(cell: Cell) {
+  async function tap(point: WorldPoint) {
     if (ctx.overlay.visible || left) return;
+    const target = targetAt(point);
+    if (!target) return;
     scene.showHint(null);
-    const index = plots.findIndex((plot) => same(plot, cell));
-    if (index >= 0) return tapPlot(index);
-    if (stall.some((crate) => same(crate, cell))) {
-      if (await goTo(cell)) openStall(cell);
+    if (target.kind === 'plot') return tapPlot(target.index);
+    if (target.kind === 'stall') {
+      if (await goTo(target.cell)) openStall(target.cell);
       return;
     }
-    if (same(keeper, cell)) return talk();
-    const walk = route(scene.at, [cell]);
+    if (target.kind === 'keeper') return talk();
+    const walk = route(scene.at, [target.cell]);
     if (walk) await scene.walk(walk);
   }
 
@@ -156,7 +157,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     if (!plot) return;
     const step = nextStep(plot);
     // A crop growing with water needs nothing: say how long it has left.
-    if (step === 'wait') return hold(cell);
+    if (step === 'wait') return hold({ x: cell.x + 0.5, y: cell.y + 0.5 });
     if (!(await goTo(cell))) return;
     if (step === 'plant') return pickSeed(index);
     const now = Date.now();
@@ -170,13 +171,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   }
 
   /** What a long press says: what grows on a plot and how long it has left, or Cô Ba's line. */
-  function hold(cell: Cell) {
+  function hold(point: WorldPoint) {
     if (ctx.overlay.visible || left) return;
-    const index = plots.findIndex((plot) => same(plot, cell));
-    if (index < 0) {
-      if (same(keeper, cell)) talk();
-      return;
-    }
+    const target = targetAt(point);
+    if (target?.kind === 'keeper') return talk();
+    if (target?.kind !== 'plot') return;
+    const { index, cell } = target;
     const now = Date.now();
     const plot = tick(farm, now).state.plots[index];
     if (!plot) return;

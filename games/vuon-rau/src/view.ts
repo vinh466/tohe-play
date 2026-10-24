@@ -37,19 +37,26 @@ import {
   objects,
   plots,
   soilTile,
+  stall,
   TILE,
   TILESET,
   TILESET_COLUMNS,
   TILESET_FRAMES,
+  WEEDS,
 } from './content/map.ts';
 import { type DayPart, TINTS } from './light.ts';
 import { type GameEvent, type State, shownStage } from './logic.ts';
 
+/** A point of the world in tiles, with fractions: targets.ts decides what it reaches. */
+export interface WorldPoint {
+  x: number;
+  y: number;
+}
+
 export interface FarmCallbacks {
-  /** A tap on a cell of the world. */
-  onTap(cell: Cell): void;
-  /** A long press on a cell. */
-  onHold(cell: Cell): void;
+  onTap(point: WorldPoint): void;
+  /** A long press. */
+  onHold(point: WorldPoint): void;
 }
 
 export const WORLD: Rect = { x: 0, y: 0, width: MAP_COLS * TILE, height: MAP_ROWS * TILE };
@@ -155,6 +162,11 @@ export class FarmScene extends Phaser.Scene {
         }
       }
     }
+    // The stall: a crate of each crop's harvest, in the order of crops.ts.
+    stall.forEach((cell, index) => {
+      const crop = crops.items[index];
+      if (crop) this.image(crop.art.crate, cell);
+    });
     plots.forEach((cell) => {
       // A ripe crop shows its harvest, small, over the top right corner.
       const { x, y } = centre(cell);
@@ -175,8 +187,8 @@ export class FarmScene extends Phaser.Scene {
     });
     this.keeperImage = this.image(KEEPER, keeper);
     this.farmer = this.image(FARMER, this.at);
-    this.tint = this.add.rectangle(0, 0, WORLD.width, WORLD.height, 0xffffff, 0).setOrigin(0, 0);
-    this.world.add(this.tint);
+    // Day and night over the whole screen, the grass around the world too; under bubbles and floating text.
+    this.tint = this.add.rectangle(0, 0, 1, 1, 0xffffff, 0).setOrigin(0, 0).setDepth(30);
   }
 
   // ---------------------------------------------------------------------------------------------------- layout
@@ -195,6 +207,7 @@ export class FarmScene extends Phaser.Scene {
       snap(view.x + (view.width - width) / 2),
       snap(view.y + (view.height - height) / 2),
     );
+    this.tint.setSize(this.scale.width / dpr, this.scale.height / dpr);
     this.bubble?.destroy();
     this.bubble = null;
   }
@@ -204,12 +217,8 @@ export class FarmScene extends Phaser.Scene {
     return { x: this.world.x + point.x * this.zoom, y: this.world.y + point.y * this.zoom };
   }
 
-  private cellAt(x: number, y: number): Cell | null {
-    const cell = {
-      x: Math.floor((x - this.world.x) / this.zoom / TILE),
-      y: Math.floor((y - this.world.y) / this.zoom / TILE),
-    };
-    return cell.x >= 0 && cell.y >= 0 && cell.x < MAP_COLS && cell.y < MAP_ROWS ? cell : null;
+  private pointAt(x: number, y: number): WorldPoint {
+    return { x: (x - this.world.x) / this.zoom / TILE, y: (y - this.world.y) / this.zoom / TILE };
   }
 
   // ---------------------------------------------------------------------------------------------------- input
@@ -223,8 +232,7 @@ export class FarmScene extends Phaser.Scene {
       timer = this.time.delayedCall(HOLD_MS, () => {
         if (!down) return;
         down.held = true;
-        const cell = this.cellAt(down.x, down.y);
-        if (cell) this.callbacks.onHold(cell);
+        this.callbacks.onHold(this.pointAt(down.x, down.y));
       });
     });
     this.input.on('pointermove', (pointer: Phaser.Input.Pointer) => {
@@ -238,8 +246,7 @@ export class FarmScene extends Phaser.Scene {
       const was = down;
       down = null;
       if (!was || was.held) return;
-      const cell = this.cellAt(pointer.worldX, pointer.worldY);
-      if (cell) this.callbacks.onTap(cell);
+      this.callbacks.onTap(this.pointAt(pointer.worldX, pointer.worldY));
     });
   }
 
@@ -248,7 +255,7 @@ export class FarmScene extends Phaser.Scene {
   /** Draws the whole farm as it is, with no animation. */
   setFarm(state: State) {
     this.state = state;
-    state.plots.forEach((_, index) => this.drawPlot(index));
+    for (let index = 0; index < state.plots.length; index++) this.drawPlot(index);
   }
 
   private drawPlot(index: number) {
@@ -268,7 +275,8 @@ export class FarmScene extends Phaser.Scene {
     }
     const stage = shownStage(plot);
     if (stage === null || (plot.s !== 'growing' && plot.s !== 'ripe')) {
-      plant.setVisible(false);
+      // Weeds on a plot of grass: the field shows where to dig.
+      plant.setFrame(WEEDS).setVisible(plot.s === 'grass');
       ripe.setVisible(false);
       return;
     }

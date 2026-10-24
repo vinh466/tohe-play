@@ -73,6 +73,9 @@ export function soilTile(left: boolean, right: boolean, wet: boolean): number {
   return wet ? light - 12 : light;
 }
 
+/** A plot of grass shows weeds: the field is there before it is dug — the pack has no fence to show it. */
+export const WEEDS = 80;
+
 /** The farmer and Cô Ba (the pack's two people), and a hen. */
 export const FARMER = 109;
 export const KEEPER = 108;
