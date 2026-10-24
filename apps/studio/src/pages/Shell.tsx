@@ -1,5 +1,6 @@
 import { useMutation } from '@tanstack/react-query';
-import { Link, Navigate, Outlet, useLocation } from '@tanstack/react-router';
+import { Link, Outlet, useLocation, useNavigate } from '@tanstack/react-router';
+import { useEffect, useState } from 'react';
 import { studio } from '../api/client.ts';
 import { roleName } from '../format.ts';
 import { hubLink, useHubUrl } from '../hub.ts';
@@ -33,7 +34,7 @@ export function Shell() {
   }
 
   if (me.data === null) {
-    return <Navigate to="/sign-in" search={{ redirect: location.href }} replace />;
+    return <ToSignIn from={location.href} />;
   }
 
   if (me.isError) {
@@ -93,4 +94,19 @@ export function Shell() {
       </main>
     </div>
   );
+}
+
+/**
+ * Goes to the sign-in once, which brings the browser back to `from`: the page as it was when the session was found
+ * missing. Not the router's <Navigate>, which navigates again whenever its props are new: the shell renders again while
+ * the router loads the sign-in — by then with the sign-in as its location — so the browser never got there, and the
+ * page hung.
+ */
+function ToSignIn({ from }: { from: string }) {
+  const navigate = useNavigate();
+  const [redirect] = useState(from);
+  useEffect(() => {
+    void navigate({ to: '/sign-in', search: { redirect }, replace: true });
+  }, [navigate, redirect]);
+  return null;
 }
