@@ -18,7 +18,7 @@
     <PackageVersion Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="10.0.3" />
     <!-- /metrics on its own port, the .NET meters with it (ADR 0036, E-08): the stable exporter; OpenTelemetry's is beta. -->
     <PackageVersion Include="prometheus-net.AspNetCore" Version="8.2.1" />
-    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.0" />
+    <PackageVersion Include="Scalar.AspNetCore" Version="2.18.3" />
     <!-- The Studio's checks of pictures (ADR 0051, D-09): decoding PNG and WebP. MIT; the native library without
          dependencies on fontconfig or freetype, so the chiseled runtime image runs it. -->
     <PackageVersion Include="SkiaSharp" Version="4.153.1" />
