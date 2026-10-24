@@ -1,6 +1,7 @@
 # D-06 — Bề mặt giới thiệu: thiết kế cho SEO, GEO, và để thêm game là có đủ trang?
 
-- Status: **decided** — B (owner, 2026-10-22, chat)
+- Status: **decided** — B (owner, 2026-10-22, chat) · "trang chủ danh mục trước" mở lại ở
+  [D-08](D-08-landing-introduces.md) (owner 2026-10-24: "k cần list game ở đây lặp")
 - Kind: decision
 - Blocks: đợt 1 xong (ADR + spec bề mặt) · Blocked by: — · Đi cùng: [D-01](D-01-languages.md), [D-02](D-02-layout.md)
 - Decided: owner, 2026-10-22, chat: "rất hợp lý, theo đề xuât tôi chốt nha"

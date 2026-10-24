@@ -29,6 +29,17 @@ flowchart TD
   E02 --> E04
   E04 --> E05 --> E01
   E03 --> E01
+  subgraph W2B["Đợt 2b — bề mặt vòng 2 (owner 2026-10-24)"]
+    D08[D-08 Trang chủ giới thiệu]
+    D09[D-09 Cửa của người quay lại]
+    D10[D-10 Vào hub khi chưa đăng nhập]
+    E08[E-08 Bố cục từng màn và luồng]
+  end
+  DEV --> D08 & D09 & D10
+  D06 -. mở lại một phần .-> D08
+  D04 -. mở lại một phần .-> D09
+  D05 -. có thể .-> D09
+  D08 & D09 & D10 --> E08 --> E03
 ```
 
 ## Items
@@ -45,6 +56,10 @@ flowchart TD
 | E-04 | Câu chữ toàn sản phẩm vi + en, gồm câu agent tự chọn ở Phase 1 | "review all" | open — đợt 2 |
 | E-05 | Điều khoản + Quyền riêng tư, bản vi gốc + en, `TERMS_VERSION` mới | "chốt trước khi mở hẳn" | open — đợt 2 |
 | [E-01](items/E-01-gate-before-outsiders.md) | Cổng: backup, load test, `/security-review`, thư, Alertmanager, `status.`, Access cho `console.`… | launch = Cổng qua | open — đợt 2 |
+| [D-08](items/D-08-landing-introduces.md) | Trang chủ giới thiệu theo section, không lặp danh sách game ([R-10](research/R-10-surface-round-2-plan.md)) | "trang đầu tiên cho user mới cuộn xuống có thể đọc hiểu sản phẩm" | proposed — đợt 2b |
+| [D-09](items/D-09-the-way-back-in.md) | Người quay lại gõ domain vào hub một chạm; có đổi domain/path? | "nhấn thêm 1 nút để vào hub 1 cách thoải mái" | proposed — đợt 2b |
+| [D-10](items/D-10-entering-the-hub.md) | Vào hub khi chưa đăng nhập: hỏi đăng nhập hay chơi ngay bằng hồ sơ máy | "vào thẳng với profile tạm … k biết chuyện gì đang xảy ra" | proposed — đợt 2b |
+| [E-08](items/E-08-screens-layouts-and-flows.md) | Bố cục từng màn, luồng dễ chịu, hiểu cách vận hành | "luồng và UI thì cần cải thiện cho xịn hơn nữa" | proposed — đợt 2b |
 | [D-03](items/D-03-features-before-launch.md) | Tính năng trước launch ([R-05](research/R-05-learning-from-peers.md)) | — | **deferred** → backlog sản phẩm |
 | E-06 | Console toàn tiếng Anh | — | → backlog sản phẩm (PB-12) |
 

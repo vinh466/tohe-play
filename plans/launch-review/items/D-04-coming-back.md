@@ -1,6 +1,7 @@
 # D-04 — Mở lại app: người quay lại thấy gì, và máy dùng chung, cập nhật, link xử lý thế nào?
 
-- Status: **decided** — B (owner, 2026-10-22, chat)
+- Status: **decided** — B (owner, 2026-10-22, chat) · cửa của người quay lại ở `/` mở lại ở
+  [D-09](D-09-the-way-back-in.md) (owner 2026-10-24)
 - Kind: decision
 - Blocks: E-02 (rà màn), E-03 (luồng) · Blocked by: D-02 (khung app) · Đi cùng: [D-02](D-02-layout.md)
 - Decided: owner, 2026-10-22, chat: "ok sửa rủi ro cập nhật trước đi, D-02 D-04 chọn B"
