@@ -12,19 +12,23 @@ export function PageTitle({ title, aside }: { title: string; aside?: ReactNode }
   );
 }
 
+/** A titled part of a page; `danger` marks one whose action cannot be undone. */
 export function Section({
   title,
   aside,
+  tone = 'plain',
   children,
 }: {
   title: string;
   aside?: ReactNode;
+  tone?: 'plain' | 'danger';
   children: ReactNode;
 }) {
+  const border = tone === 'danger' ? 'border-2 border-danger-line' : 'border border-line';
   return (
-    <section className="flex min-w-0 flex-col gap-3 rounded-2xl border border-line bg-surface p-5">
+    <section className={`flex min-w-0 flex-col gap-3 rounded-2xl bg-surface p-5 ${border}`}>
       <div className="flex flex-wrap items-baseline justify-between gap-2">
-        <h2 className="font-bold text-ink">{title}</h2>
+        <h2 className={`font-bold ${tone === 'danger' ? 'text-danger' : 'text-ink'}`}>{title}</h2>
         {aside}
       </div>
       {children}

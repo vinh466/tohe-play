@@ -13,6 +13,7 @@ export type Asset = Schemas['AssetView'];
 export type Style = Schemas['StyleView'];
 export type StyleSample = Schemas['StyleSampleView'];
 export type Creator = Schemas['StudioCreatorView'];
+export type CheckProblem = Schemas['StudioCheckProblem'];
 
 /** Same origin: the Studio's host serves its page and proxies the API's Studio routes, /api/studio. */
 const api = createClient<paths>({ baseUrl: '' });
@@ -20,13 +21,15 @@ const api = createClient<paths>({ baseUrl: '' });
 /**
  * A response the API refused: 401 without a Studio session (or one that ended), 403 `studio_required` for a role that
  * may not, 503 `studio_storage_not_configured` while the library has no storage. `fields` holds validation codes per
- * field, e.g. `code_invalid`.
+ * field, e.g. `code_invalid`. `problems` holds the checks' report of a `422 checks_failed`: each problem's code, its
+ * asset (none for the whole version) and its message, as the server wrote them.
  */
 export class ApiError extends Error {
   constructor(
     readonly status: number,
     readonly code: string | null,
     readonly fields: Record<string, string[]> = {},
+    readonly problems: CheckProblem[] = [],
   ) {
     super(`API ${status}${code ? ` ${code}` : ''}`);
   }
@@ -50,12 +53,34 @@ async function call<T>(request: Promise<Outcome<T>>): Promise<T> {
 }
 
 async function refusal(response: Response, problem: unknown = undefined): Promise<ApiError> {
-  const body = (problem ?? (await response.json().catch(() => ({})))) as { code?: unknown; errors?: unknown };
+  const body = (problem ?? (await response.json().catch(() => ({})))) as {
+    code?: unknown;
+    errors?: unknown;
+    problems?: unknown;
+  };
   return new ApiError(
     response.status,
     typeof body.code === 'string' ? body.code : null,
     typeof body.errors === 'object' && body.errors !== null ? (body.errors as Record<string, string[]>) : {},
+    checkProblems(body.problems),
   );
+}
+
+/** The problems of a checks' report, kept only when they have the report's shape. */
+export function checkProblems(raw: unknown): CheckProblem[] {
+  if (!Array.isArray(raw)) return [];
+  return raw.flatMap((item) => {
+    if (typeof item !== 'object' || item === null) return [];
+    const { asset, code, message } = item as Record<string, unknown>;
+    if (typeof code !== 'string') return [];
+    return [
+      {
+        asset: typeof asset === 'string' ? asset : null,
+        code,
+        message: typeof message === 'string' ? message : '',
+      },
+    ];
+  });
 }
 
 export const studio = {
@@ -84,6 +109,44 @@ export const studio = {
   /** The styles, newest first. */
   styles: () => call(api.GET('/api/studio/styles')),
   style: (id: string) => call(api.GET('/api/studio/styles/{id}', { params: { path: { id } } })),
+
+  // Reviewing (studio.review). Each action but withdrawing needs step-up open in this Studio session; each answers the
+  // version or the style as it is now.
+
+  /** A fresh code from the authenticator — never the password — opens step-up for ten minutes: who is signed in. */
+  stepUp: (code: string) => call(api.POST('/api/studio/session/step-up', { body: { code } })),
+  /** Approve and publish; a version with a CC-BY-SA-4.0 asset only with the reviewer's allowance and its reason. */
+  approveVersion: (versionId: string, shareAlike: { reason: string } | null) =>
+    call(
+      api.POST('/api/studio/versions/{versionId}/approve', {
+        params: { path: { versionId } },
+        body: shareAlike
+          ? { allowShareAlike: true, shareAlikeReason: shareAlike.reason }
+          : { allowShareAlike: null, shareAlikeReason: null },
+      }),
+    ),
+  rejectVersion: (versionId: string, reason: string) =>
+    call(
+      api.POST('/api/studio/versions/{versionId}/reject', {
+        params: { path: { versionId } },
+        body: { reason },
+      }),
+    ),
+  /** The reason is optional here. */
+  deprecateVersion: (versionId: string, reason: string | null) =>
+    call(
+      api.POST('/api/studio/versions/{versionId}/deprecate', {
+        params: { path: { versionId } },
+        body: { reason },
+      }),
+    ),
+  /** The owner only: a reason and a fresh code in the request itself, not step-up. */
+  withdrawVersion: (versionId: string, body: { reason: string; code: string }) =>
+    call(api.POST('/api/studio/versions/{versionId}/withdraw', { params: { path: { versionId } }, body })),
+  approveStyle: (id: string) =>
+    call(api.POST('/api/studio/styles/{id}/approve', { params: { path: { id } } })),
+  rejectStyle: (id: string, reason: string) =>
+    call(api.POST('/api/studio/styles/{id}/reject', { params: { path: { id } }, body: { reason } })),
 };
 
 /** A file of a version, from the API with the Studio's cookie: from the drafts until approved, the library after. */
