@@ -26,7 +26,11 @@ import { Screen } from '../ui/Screen.tsx';
 type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
 
 export function CatalogPage() {
-  return <RequireSession need="player">{(session) => <Catalog session={session} />}</RequireSession>;
+  return (
+    <RequireSession need="player" door>
+      {(session) => <Catalog session={session} />}
+    </RequireSession>
+  );
 }
 
 /**

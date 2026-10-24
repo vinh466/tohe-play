@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next';
 import { account, auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { entry } from '../entry/intent.ts';
+import { forgetGreeting } from '../launcher/recent.ts';
 import { useSetMe } from '../session/useSession.ts';
 import { db } from '../storage/db.ts';
 import { Button } from '../ui/Button.tsx';
@@ -58,6 +59,8 @@ export function TermsPrompt({ me }: { me: MeView }) {
     onSettled: async () => {
       // Whoever signs in next on this device did not come for this tab's entry (ADR 0044).
       entry.forget();
+      // Nor is the next person greeted by this account's name on the public pages (ADR 0055).
+      forgetGreeting(globalThis.localStorage);
       await db.cache.delete('me');
       window.location.assign('/account/sign-in');
     },

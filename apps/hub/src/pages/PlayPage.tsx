@@ -74,7 +74,7 @@ function Launcher({
   };
 
   // "Chơi tiếp" on Trò chơi's first screen: this profile opened this game last (ADR 0046).
-  useOpened(player.id, gameId, Boolean(game));
+  useOpened(player, gameId, Boolean(game));
 
   // The game is open, or not in this profile's catalog: either way the intent that led here is over.
   const settled = Boolean(game && gamesOrigin) || (games.isSuccess && !game);

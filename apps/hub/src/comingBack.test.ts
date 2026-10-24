@@ -9,6 +9,9 @@ import { isIos } from './install/install.ts';
 import { askPersistentStorage, launchTarget, PERSIST_KEY } from './install/launch.ts';
 import {
   comingBack,
+  forgetGreeting,
+  GREETING_KEY,
+  markGreeting,
   markReturning,
   OPENED_KEPT,
   type Opened,
@@ -16,6 +19,7 @@ import {
   openedKey,
   RECENT_SHOWN,
   RETURNING_KEY,
+  readGreeting,
   readOpened,
   recordOpened,
   withOpened,
@@ -524,6 +528,61 @@ describe('"Chơi tiếp" on the public pages: the device has opened a game', () 
       }),
     ).not.toThrow();
     expect(() => markReturning(undefined)).not.toThrow();
+  });
+});
+
+describe('the greeting on the public pages: who played last, and what (ADR 0055)', () => {
+  const an = { id: 'p-an', name: 'An', avatar: '🐰' };
+
+  // apps/web greeting.js reads `tohe:greeting`; the hub writes it with `tohe:returning`.
+  it('is the key the public pages read', () => {
+    expect(GREETING_KEY).toBe('tohe:greeting');
+  });
+
+  it('holds the profile, its name and avatar, and the game it opened', () => {
+    const storage = memory();
+    markGreeting(storage, an, 'merge-block');
+    expect(readGreeting(storage)).toEqual({ id: 'p-an', name: 'An', avatar: '🐰', game: 'merge-block' });
+    markGreeting(storage, an, 'tien-len');
+    expect(readGreeting(storage)?.game).toBe('tien-len');
+  });
+
+  it('is forgotten with its profile, and kept when another profile goes', () => {
+    const storage = memory();
+    markGreeting(storage, an, 'merge-block');
+    forgetGreeting(storage, 'p-binh');
+    expect(readGreeting(storage)?.name).toBe('An');
+    forgetGreeting(storage, 'p-an');
+    expect(readGreeting(storage)).toBeNull();
+  });
+
+  it('is forgotten whoever it greets when an account signs out', () => {
+    const storage = memory();
+    markGreeting(storage, an, 'merge-block');
+    forgetGreeting(storage);
+    expect(storage.values.has(GREETING_KEY)).toBe(false);
+  });
+
+  it('reads nothing that is not a greeting, and never fails on blocked storage', () => {
+    const storage = memory();
+    storage.setItem(GREETING_KEY, '{"name":"An"}');
+    expect(readGreeting(storage)).toBeNull();
+    storage.setItem(GREETING_KEY, 'not json');
+    expect(readGreeting(storage)).toBeNull();
+    const blocked = {
+      getItem: () => {
+        throw new Error('blocked');
+      },
+      setItem: () => {
+        throw new Error('blocked');
+      },
+      removeItem: () => {
+        throw new Error('blocked');
+      },
+    };
+    expect(() => markGreeting(blocked, an, 'merge-block')).not.toThrow();
+    expect(readGreeting(blocked)).toBeNull();
+    expect(() => forgetGreeting(blocked)).not.toThrow();
   });
 });
 

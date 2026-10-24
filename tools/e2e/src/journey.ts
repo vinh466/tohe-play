@@ -48,6 +48,11 @@ const fakeInstallPrompt = () => {
 };
 
 /** The page running as the installed app: `display-mode: standalone` matches, and iOS's `navigator.standalone`. */
+/** A device that chose to play on itself before (ADR 0055): the app's door is not asked again, as for a returning one. */
+const choseThisDevice = () => {
+  localStorage.setItem('tohe:guest', '1');
+};
+
 const asInstalledApp = () => {
   const original = window.matchMedia.bind(window);
   window.matchMedia = (query: string) => {
@@ -171,7 +176,7 @@ const storedNo = (page: Page) => page.evaluate(() => localStorage.getItem('tohe:
 
 try {
   step(
-    'a new visitor opens the hub: "Chơi ngay" leads to the catalog, played as a device profile with a name, no sign-in',
+    'a new visitor opens the hub: "Chơi ngay" asks once — sign in, or try it on this device with the suggested profile shown — then the catalog (ADR 0055)',
   );
   const android = await visitor('android', userAgents.androidChrome, browser, [fakeInstallPrompt]);
   await android.goto(hubUrl);
@@ -182,16 +187,33 @@ try {
       `the header's "Chơi ngay" does not carry the page's language: ${await play.getAttribute('href')}`,
     );
   await play.tap();
+  // The app's door: the sign-in screen, with playing on this device as the other choice and where progress stays.
+  await android.waitForURL(/\/account\/sign-in$/);
+  await android.getByText('Tiến độ chỉ ở máy này; đăng nhập sau vẫn giữ.').waitFor();
+  if (await android.getByText(/đang tạm tắt/).isVisible())
+    throw new Error('the door opens with a method that is off');
+  await check(android, 'door');
+  await android.getByRole('button', { name: 'Chơi thử trên máy này' }).tap();
+  // The suggested profile, shown before it plays: nothing to type.
+  await android.getByText('Tên và hình này chỉ ở trên máy này. Đổi lúc nào cũng được.').waitFor();
+  const suggested = ((await android.getByRole('heading', { level: 1 }).innerText()) ?? '').trim();
+  await check(android, 'door-try');
+  await android.getByRole('button', { name: 'Vào chơi' }).tap();
   await android.waitForURL((url) => url.pathname === '/play');
   // The catalog has no strip about where progress is kept (voice-and-look.md): the chip of who plays, and the games.
   await android.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
   if (await android.getByText('Tiến độ đang lưu trên máy này').isVisible())
     throw new Error('the catalog still carries the permanent strip about progress kept on this device');
-  // The chip shows the avatar, then the name: the name is its last line.
-  const chip = (await android.getByRole('link', { name: 'Đổi người chơi' }).innerText()).trim();
-  const deviceName = (chip.split('\n').at(-1) ?? '').trim();
+  // The chip shows the avatar, the name, and where a device profile's progress stays (ADR 0055).
+  const chip = (await android.getByRole('link', { name: /Đổi người chơi/ }).innerText()).trim();
+  const lines = chip.split('\n').map((line) => line.trim());
+  const deviceName = lines[1] ?? '';
   if (!deviceName || deviceName === 'Khách')
     throw new Error(`the catalog names no device profile: "${deviceName}"`);
+  if (deviceName !== suggested)
+    throw new Error(`the door showed "${suggested}", the catalog plays "${deviceName}"`);
+  if (lines.at(-1) !== 'Trên máy này')
+    throw new Error(`the chip does not say where progress stays: "${chip}"`);
   // One animal for the name and the avatar: never "Cá Heo Lém Lỉnh" with a fox.
   const avatarOf = chip.split('\n')[0]?.trim() ?? '';
   const animal = ANIMALS.find((candidate) => candidate.avatar === avatarOf);
@@ -294,7 +316,7 @@ try {
   step(
     'another phone plays as its own device profile, then signs in to that account: "Thêm vào" brings it in, and it plays on',
   );
-  const second = await visitor('second', userAgents.androidChrome, browser);
+  const second = await visitor('second', userAgents.androidChrome, browser, [choseThisDevice]);
   await second.goto(catalogUrl);
   await second.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
   await playOneRound(second);
@@ -352,7 +374,7 @@ try {
   step(
     'an iPhone in Safari: after the first round, the sheet with the steps of iOS 26; "Đã hiểu" keeps it quiet',
   );
-  const iphone = await visitor('iphone', userAgents.iphoneSafari, browser);
+  const iphone = await visitor('iphone', userAgents.iphoneSafari, browser, [choseThisDevice]);
   await iphone.goto(catalogUrl);
   await iphone.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
   await playOneRound(iphone);
@@ -387,7 +409,7 @@ try {
     step(
       `in the browser of ${name}: on arrival, a strip "Mở bằng trình duyệt" with "Chép link" (no game needed)`,
     );
-    const inApp = await visitor(name, userAgent, browser);
+    const inApp = await visitor(name, userAgent, browser, [choseThisDevice]);
     await inApp.goto(catalogUrl);
     const strip = openStrip(inApp);
     await strip.waitFor();
@@ -412,6 +434,7 @@ try {
   const installed = await visitor('standalone', userAgents.androidChrome, browser, [
     fakeInstallPrompt,
     asInstalledApp,
+    choseThisDevice,
   ]);
   await installed.goto(catalogUrl);
   await installed.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
@@ -458,7 +481,7 @@ try {
   step(
     'a device profile moves to a new phone with six digits the old phone confirms, its score with it (ADR 0043, I2b)',
   );
-  const oldPhone = await visitor('transfer-old', userAgents.androidChrome, browser);
+  const oldPhone = await visitor('transfer-old', userAgents.androidChrome, browser, [choseThisDevice]);
   await oldPhone.goto(catalogUrl);
   await oldPhone.getByRole('link', { name: /Đổi người chơi/ }).waitFor();
   await playOneRound(oldPhone);

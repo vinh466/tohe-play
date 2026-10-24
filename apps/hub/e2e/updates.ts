@@ -161,6 +161,8 @@ const notice = (page: Page) => page.getByRole('status').filter({ hasText: 'Có b
 async function openOnA(browser: Browser): Promise<Page> {
   serving = builds.a;
   const context = await browser.newContext({ viewport: { width: 390, height: 844 }, locale: 'vi-VN' });
+  // A device that chose to play on itself before: the app's door is not asked again (ADR 0055).
+  await context.addInitScript(() => localStorage.setItem('tohe:guest', '1'));
   const page = await context.newPage();
   page.on('pageerror', (error) => console.log(`  page error: ${error.message}`));
   await page.goto(`${base}/play`);

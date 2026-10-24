@@ -157,8 +157,12 @@ export function TabHeader({
           className="flex min-h-11 min-w-0 items-center gap-2 rounded-full bg-surface py-1 pr-4 pl-1 shadow-sm active:scale-95"
         >
           <Avatar avatar={player.avatar} size="sm" />
-          <span className="max-w-36 font-semibold text-ink text-sm leading-tight sm:max-w-64 sm:text-base short:max-w-64">
-            {player.name}
+          <span className="flex max-w-36 flex-col sm:max-w-64 short:max-w-64">
+            <span className="font-semibold text-ink text-sm leading-tight sm:text-base">{player.name}</span>
+            {/* A device profile says where its progress stays (ADR 0055). */}
+            {player.kind === 'device' ? (
+              <span className="text-ink-soft text-xs leading-tight">{t('device.onDevice')}</span>
+            ) : null}
           </span>
         </Link>
       ) : (

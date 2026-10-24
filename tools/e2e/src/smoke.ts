@@ -99,7 +99,7 @@ const email = `e2e${Date.now().toString(36)}@e2e.test`;
 
 try {
   step(
-    `open ${hubUrl} — a new device sees the public page; "Chơi ngay" plays as a device profile, and signing in is a choice`,
+    `open ${hubUrl} — a new device sees the public page; "Chơi ngay" opens the app's door: sign in, or try it on this device (ADR 0055)`,
   );
   await page.goto(hubUrl);
   // The header's button, on a phone, to the app in the page's language; "Chơi tiếp" waits for a device that has opened a game.
@@ -115,17 +115,12 @@ try {
   await page.getByRole('link', { name: 'Làm game? Tài liệu (tiếng Anh)' }).waitFor();
   await shot('landing');
   await play.tap();
-  await page.waitForURL((url) => url.pathname === '/play');
+  // The app's door: asked once on a device that never chose — sign in, or try it on this device.
+  await page.waitForURL(/\/account\/sign-in$/);
+  await page.getByRole('button', { name: 'Chơi thử trên máy này' }).waitFor();
   // Opening the app is not opening a game: the public pages still take this device for a newcomer's.
   if ((await page.evaluate(() => localStorage.getItem('tohe:returning'))) !== null)
     throw new Error('the app wrote tohe:returning before any game was opened');
-  // A device profile signs in from Tôi, where the account's section says so (the catalog has no strip for it).
-  await page
-    .getByRole('navigation', { name: 'Mục chính' })
-    .getByRole('link', { name: 'Tôi', exact: true })
-    .tap();
-  await page.getByRole('link', { name: 'Đăng nhập' }).tap();
-  await page.waitForURL(/\/account\/sign-in$/);
   await shot('welcome');
 
   step(

@@ -27,7 +27,11 @@ type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & 
  * made none, so it is not asked for a name only to see that.
  */
 export function LinksPage() {
-  return <RequireSession need="player">{(session) => <Links session={session} />}</RequireSession>;
+  return (
+    <RequireSession need="player" door>
+      {(session) => <Links session={session} />}
+    </RequireSession>
+  );
 }
 
 function Links({ session }: { session: PlayingSession }) {

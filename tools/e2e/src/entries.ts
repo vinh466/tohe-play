@@ -222,6 +222,8 @@ try {
 
   step('"Nhập mã" in the catalog takes a share link’s eight characters, typed loosely');
   const typist = await phone('typist');
+  // A device that chose to play on itself before: the app's door is not asked again (ADR 0055).
+  await typist.addInitScript(() => localStorage.setItem('tohe:guest', '1'));
   await typist.goto(`${hubUrl}/play`);
   await typist.getByRole('button', { name: 'Nhập mã' }).first().tap();
   const box = typist.getByRole('dialog', { name: 'Nhập mã' });

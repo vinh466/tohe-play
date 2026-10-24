@@ -49,16 +49,21 @@ export const deviceMode = {
 };
 
 /** What a screen that needs someone playing does with the session (RequireSession). */
-export type PlayerGate = 'play' | 'enter-as-device' | 'sign-in' | 'choose-profile';
+export type PlayerGate = 'play' | 'enter-as-device' | 'door' | 'sign-in' | 'choose-profile';
 
 /**
- * Opening the hub is playing (E-03): a device with no session plays as its device profile, made silently on the first
- * visit, so no sign-in screen stands before the first game — nor before a table, since ADR 0043's I2a: a room link asks
- * for a name and the terms line instead. A screen that needs an account passes `device: false` and sends signed-out
- * devices to sign in (or up).
+ * A link plays at once (E-03): a device with no session plays as its device profile, made silently, so no sign-in
+ * screen stands before the game a link opens — nor before a table, since ADR 0043's I2a: a room link asks for a name
+ * and the terms line instead. The app's own door asks once (ADR 0055): a screen of the frame passes `door: true`, and a
+ * device with no session that never chose is sent to the sign-in screen, where it signs in or plays on this device;
+ * once it chose, it plays as its device profiles and is never asked again. A screen that needs an account passes
+ * `device: false` and sends signed-out devices to sign in (or up).
  */
-export function playerGate(session: SessionState, { device }: { device: boolean }): PlayerGate {
-  if (session.status === 'signedOut') return device ? 'enter-as-device' : 'sign-in';
+export function playerGate(
+  session: SessionState,
+  { device, door = false }: { device: boolean; door?: boolean },
+): PlayerGate {
+  if (session.status === 'signedOut') return !device ? 'sign-in' : door ? 'door' : 'enter-as-device';
   if (session.status === 'account' && !session.player) return 'choose-profile';
   return 'play';
 }

@@ -657,8 +657,7 @@ key, the `named` screen and its terms line, tables open to `named` device profil
   screen in its first-visit form: the sign-in methods that are on, then *Chơi thử trên máy này*, which shows the device
   profile the hub suggests — a Vietnamese name and an avatar from the profiles' set, *Đổi tên, hình*, one *Vào chơi* —
   and plays. From then on the device plays as its device profiles at once, and the `any` level makes one silently when
-  there is none (`ensureDeviceProfile`). *Until V2 of plans/launch-review E-08 lands, the first visit still makes one
-  silently, with no question.* "Chơi luôn" on the sign-in screen goes back to the device profiles. The catalog shows
+  there is none (`ensureDeviceProfile`). "Chơi luôn" on the sign-in screen goes back to the device profiles. The catalog shows
   the device profile's name, with "· trên máy này". A room link, the rooms lobby, a room and a replay play as the device profile too, after the `named` screen the
   first time ([below](#device-profiles-on-the-server)); signing out of an account leads to the sign-in screen, and the
   device profiles stay; an account's session that ended says so, and the device profiles play only when chosen

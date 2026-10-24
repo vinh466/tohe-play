@@ -104,10 +104,21 @@ const vi = {
     addEmailBody:
       'Từ nay Tò He đăng nhập bằng email, và gửi mã tới đó khi bạn quên mật khẩu. Nhập email của bạn để nhận mã xác nhận.',
     noAccount: 'Chưa có tài khoản?',
-    passwordOff: 'Đăng nhập bằng email và mật khẩu đang tạm tắt.',
     closed: 'Tò He đang tạm đóng đăng ký mới.',
     createAccount: 'Tạo tài khoản',
-    playOnDevice: 'Chơi luôn, không cần tài khoản',
+    /** The app's door (ADR 0055): the other choice, under "hoặc", for a device that has played here before. */
+    or: 'hoặc',
+    playOnDevice: 'Chơi trên máy này',
+    /** The same choice on a device that never played here: its first profile is shown before it plays. */
+    tryOnDevice: 'Chơi thử trên máy này',
+    tryHint: 'Tiến độ chỉ ở máy này; đăng nhập sau vẫn giữ.',
+    try: {
+      hint: 'Tên và hình này chỉ ở trên máy này. Đổi lúc nào cũng được.',
+      play: 'Vào chơi',
+      edit: 'Đổi tên, hình',
+      /** Back to the door's choices; the frame's ← leaves the screen. */
+      other: 'Chọn cách khác',
+    },
   },
   register: {
     title: 'Tạo tài khoản',
@@ -458,6 +469,9 @@ const vi = {
   },
   me: {
     playing: 'Đang chơi',
+    /** A device profile (ADR 0055): where its progress stays, said where it is shown. */
+    playingHere: 'Đang chơi trên máy này',
+    keepProgress: 'Đăng nhập thì tiến độ đi theo sang mọi máy.',
     change: 'Đổi',
     settings: 'Cài đặt',
     language: 'Ngôn ngữ',
@@ -986,10 +1000,18 @@ const en: typeof vi = {
     addEmailBody:
       'Tò He now signs in with an email, and sends a code there when a password is forgotten. Enter yours to get a confirmation code.',
     noAccount: 'No account yet?',
-    passwordOff: 'Signing in with email and password is off for now.',
     closed: 'Tò He is not taking new accounts for now.',
     createAccount: 'Create an account',
-    playOnDevice: 'Just play, no account',
+    or: 'or',
+    playOnDevice: 'Play on this device',
+    tryOnDevice: 'Try it on this device',
+    tryHint: 'Progress stays on this device. Sign in later and keep it.',
+    try: {
+      hint: 'This name and picture stay on this device. Change them any time.',
+      play: 'Play',
+      edit: 'Change the name or picture',
+      other: 'Choose another way',
+    },
   },
   register: {
     title: 'Create an account',
@@ -1340,6 +1362,8 @@ const en: typeof vi = {
   },
   me: {
     playing: 'Playing now',
+    playingHere: 'Playing on this device',
+    keepProgress: 'Sign in and your progress follows you to every device.',
     change: 'Change',
     settings: 'Settings',
     language: 'Language',

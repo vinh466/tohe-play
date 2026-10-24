@@ -1,17 +1,25 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link, useNavigate, useSearch } from '@tanstack/react-router';
+import { Link, useSearch } from '@tanstack/react-router';
 import { type FormEvent, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { auth, type MeView } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
-import { configQuery } from '../api/queries.ts';
+import { configQuery, deviceProfilesQuery } from '../api/queries.ts';
 import { entry } from '../entry/intent.ts';
+import { forgetGreeting } from '../launcher/recent.ts';
+import { useLeaveTo } from '../navigation/leave.tsx';
 import { EmailChange } from '../session/EmailChange.tsx';
+import { takeNext } from '../session/next.ts';
 import { ProviderButtons } from '../session/ProviderButtons.tsx';
+import { cleanName, funIdentity, MAX_NAME_LENGTH, visibleLength } from '../session/profileNames.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import { deviceMode } from '../session/session.ts';
-import { useSetMe } from '../session/useSession.ts';
+import { useDeviceProfilesChanged, useSetMe } from '../session/useSession.ts';
 import { db } from '../storage/db.ts';
+import { AVATARS, createDeviceProfile, MAX_DEVICE_PROFILES } from '../storage/deviceProfiles.ts';
+import { funnel } from '../telemetry/telemetry.ts';
+import { AnotherName } from '../ui/AnotherName.tsx';
+import { Avatar, AvatarGrid } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
 import { DataLink } from '../ui/DataLink.tsx';
 import { Screen } from '../ui/Screen.tsx';
@@ -43,7 +51,6 @@ export function Brand({ subtitle }: { subtitle: string }) {
 
 function SignIn() {
   const { t, i18n } = useTranslation();
-  const navigate = useNavigate();
   const queryClient = useQueryClient();
   const setMe = useSetMe();
   const config = useQuery(configQuery);
@@ -75,6 +82,8 @@ function SignIn() {
     onSettled: async () => {
       // Whoever signs in next on this device did not come for this tab's entry (ADR 0044).
       entry.forget();
+      // Nor is the next person greeted by this account's name on the public pages (ADR 0055).
+      forgetGreeting(globalThis.localStorage);
       // Signing out is a choice, not a session that ended (session/ended.ts): what the hub kept of it goes first.
       await db.cache.delete('me');
       setNeedsEmail(false);
@@ -87,12 +96,24 @@ function SignIn() {
     login.mutate();
   };
 
-  // Back to the device profiles (ADR 0043): the first one is made then, if the device has none.
+  const deviceProfiles = useQuery(deviceProfilesQuery);
+  const hasDeviceProfiles = (deviceProfiles.data?.length ?? 0) > 0;
+  const leaveTo = useLeaveTo();
+  const [trying, setTrying] = useState(false);
+
+  // Back to the device profiles (ADR 0043), and on to the screen the app's door stood before (ADR 0055). A device with
+  // none yet is shown the one the hub suggests first.
   const playOnDevice = async () => {
+    if (!hasDeviceProfiles) {
+      setTrying(true);
+      return;
+    }
     deviceMode.enable();
     await queryClient.invalidateQueries({ queryKey: ['me'] });
-    await navigate({ to: '/play', replace: true });
+    leaveTo({ to: takeNext() ?? '/play' });
   };
+
+  if (trying) return <TryOnDevice onBack={() => setTrying(false)} />;
 
   if (needsEmail) {
     return (
@@ -178,7 +199,6 @@ function SignIn() {
         <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
           <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
           {cameBack}
-          <p className="text-ink-soft">{t('welcome.passwordOff')}</p>
           <ProviderButtons alone />
         </section>
       )}
@@ -194,11 +214,113 @@ function SignIn() {
             </Link>
           </p>
         )}
-        <Button variant="ghost" onClick={() => void playOnDevice()}>
-          {t('welcome.playOnDevice')}
+      </div>
+      {/* The other choice of the app's door (ADR 0055): playing with no account, said plainly where progress stays. */}
+      <p className="flex items-center gap-3 text-ink-soft text-sm before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+        {t('welcome.or')}
+      </p>
+      <div className="flex flex-col gap-2">
+        <Button variant="secondary" onClick={() => void playOnDevice()}>
+          {hasDeviceProfiles ? t('welcome.playOnDevice') : t('welcome.tryOnDevice')}
         </Button>
+        <p className="text-center text-ink-soft text-sm">{t('welcome.tryHint')}</p>
       </div>
       <DataLink />
+    </Screen>
+  );
+}
+
+/**
+ * "Chơi thử trên máy này" on a device with no device profile yet (ADR 0055): the profile the hub suggests — one animal
+ * for its name and avatar — shown before it plays, with *Đổi tên, hình*. Nothing to type: a name is asked for only
+ * where others will see it. Nothing reaches the server; the profile lives on this device (ADR 0043).
+ */
+function TryOnDevice({ onBack }: { onBack(): void }) {
+  const { t, i18n } = useTranslation();
+  const queryClient = useQueryClient();
+  const changed = useDeviceProfilesChanged();
+  const leaveTo = useLeaveTo();
+  const [start] = useState(() => funIdentity(i18n.language));
+  const [name, setName] = useState(start.name);
+  const [avatar, setAvatar] = useState(start.avatar);
+  const [editing, setEditing] = useState(false);
+  const [showErrors, setShowErrors] = useState(false);
+  const clean = cleanName(name);
+  const nameError = !clean
+    ? t('errors.nameRequired')
+    : visibleLength(clean) > MAX_NAME_LENGTH
+      ? t('errors.nameTooLong')
+      : null;
+
+  const play = useMutation({
+    mutationFn: async () => {
+      // `chosen` once the player changed what the hub suggested: a sign-up then asks about this profile (ADR 0043).
+      await createDeviceProfile(db, { name: clean, avatar, chosen: editing });
+      // The device's first device profile is its first step in the newcomer funnel, as when the hub makes one.
+      funnel.guestStart();
+      deviceMode.enable();
+      await changed();
+      await queryClient.invalidateQueries({ queryKey: ['me'] });
+    },
+    onSuccess: () => leaveTo({ to: takeNext() ?? '/play' }),
+  });
+
+  const submit = (event: FormEvent) => {
+    event.preventDefault();
+    setShowErrors(true);
+    if (!nameError) play.mutate();
+  };
+
+  return (
+    <Screen narrow>
+      <form onSubmit={submit} className="flex flex-col gap-5" noValidate>
+        <header className="flex flex-col items-center gap-3 pt-4 text-center">
+          <Avatar avatar={avatar} />
+          <h1 className="font-black text-3xl text-brand-ink">{clean || start.name}</h1>
+          <p className="max-w-xs text-ink-soft">{t('welcome.try.hint')}</p>
+        </header>
+        {editing ? (
+          <section className="flex flex-col gap-5 rounded-3xl bg-surface p-5 shadow-sm">
+            <div className="flex items-end gap-2">
+              <TextField
+                className="flex-1"
+                label={t('device.name')}
+                hint={t('device.nameHint')}
+                required
+                maxLength={128}
+                value={name}
+                onChange={(event) => setName(event.target.value)}
+                error={showErrors ? nameError : null}
+              />
+              <AnotherName
+                onClick={() => {
+                  // Another animal: the avatar follows the name.
+                  const next = funIdentity(i18n.language);
+                  setName(next.name);
+                  setAvatar(next.avatar);
+                }}
+              />
+            </div>
+            <AvatarGrid avatars={AVATARS} value={avatar} onChange={setAvatar} label={t('account.avatar')} />
+          </section>
+        ) : null}
+        {play.isError ? (
+          <p role="alert" className="text-danger">
+            {t('device.full', { max: MAX_DEVICE_PROFILES })}
+          </p>
+        ) : null}
+        <Button type="submit" busy={play.isPending}>
+          {t('welcome.try.play')}
+        </Button>
+        {editing ? null : (
+          <Button variant="secondary" onClick={() => setEditing(true)}>
+            {t('welcome.try.edit')}
+          </Button>
+        )}
+        <Button variant="ghost" onClick={onBack}>
+          {t('welcome.try.other')}
+        </Button>
+      </form>
     </Screen>
   );
 }
