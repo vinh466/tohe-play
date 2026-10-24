@@ -3,6 +3,7 @@ using System.Net.Http.Json;
 using System.Text;
 using System.Text.Json;
 using Microsoft.AspNetCore.Mvc.Testing;
+using Microsoft.AspNetCore.TestHost;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Tohe.Api.Infrastructure.Database;
@@ -280,6 +281,35 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
     }
 
     [Fact]
+    public async Task A_pack_s_files_are_checked_and_copied_side_by_side_so_a_big_pack_fits_in_one_request()
+    {
+        // Approving farm-tiny@1.0.0 (133 files) on production stopped after 32 copies: one storage request at a time,
+        // a few hundred milliseconds each from R2, outlasted the 100 seconds Cloudflare gives a request.
+        var watch = new InFlightStorage();
+        await using var app = _app.WithWebHostBuilder(builder => builder.ConfigureTestServices(services =>
+        {
+            services.AddSingleton<S3StudioStorage>();
+            services.AddSingleton<IStudioStorage>(provider => watch.Around(provider.GetRequiredService<S3StudioStorage>()));
+        }));
+        var contributor = await Studio.SignInAsync(app, await Studio.NewAsync(factory, StudioRole.Contributor, twoFactor: false));
+        var styleId = await NewStyleAsync(contributor);
+        var reviewer = await ReviewerAsync(app, factory);
+        await ApproveStyleAsync(reviewer, styleId);
+        var files = Enumerable.Range(0, 40).Select(i => ($"tile-{i}", NewFile())).ToArray();
+        var submitted = await SubmittedAsync(contributor, NewId("pack"), "1.0.0", styleId, files);
+
+        watch.Reset();
+        var approved = await ApprovedAsync(reviewer, submitted.Id);
+
+        Assert.Equal("approved", approved.Status);
+        Assert.InRange(watch.MostInFlight, 2, StudioStorageWork.InFlight);
+        foreach (var (_, file) in files)
+        {
+            Assert.Equal(file.Bytes, await storage.ReadAsync($"blobs/sha256/{file.Sha256}.png"));
+        }
+    }
+
+    [Fact]
     public async Task The_owner_withdraws_with_a_reason_and_a_fresh_code_and_a_shared_file_stays()
     {
         var contributor = await Studio.SignInAsync(_app, await Studio.NewAsync(factory, StudioRole.Contributor, twoFactor: false));
@@ -465,5 +495,62 @@ public sealed class StudioLibraryTests(ApiFactory factory, SeaweedFs storage)
         Assert.Equal(HttpStatusCode.BadRequest, response.StatusCode);
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync(Ct));
         return json.RootElement.GetProperty("errors").GetProperty(field)[0].GetString();
+    }
+
+    /// <summary>
+    /// The storage, counting its requests in flight at once. Each waits a moment first, so requests made side by side
+    /// overlap even against a storage as quick as a local SeaweedFS.
+    /// </summary>
+    private sealed class InFlightStorage
+    {
+        private int _now;
+        private int _most;
+
+        public int MostInFlight => Volatile.Read(ref _most);
+
+        public void Reset() => Interlocked.Exchange(ref _most, 0);
+
+        public IStudioStorage Around(IStudioStorage inner) => new Counting(inner, this);
+
+        private async Task<T> CountAsync<T>(Func<Task<T>> call)
+        {
+            var now = Interlocked.Increment(ref _now);
+            int most;
+            do
+            {
+                most = Volatile.Read(ref _most);
+            }
+            while (now > most && Interlocked.CompareExchange(ref _most, now, most) != most);
+
+            try
+            {
+                await Task.Delay(20, Ct);
+                return await call();
+            }
+            finally
+            {
+                Interlocked.Decrement(ref _now);
+            }
+        }
+
+        private sealed class Counting(IStudioStorage inner, InFlightStorage watch) : IStudioStorage
+        {
+            public bool IsConfigured => inner.IsConfigured;
+
+            public Task PutAsync(string key, ReadOnlyMemory<byte> content, string contentType, bool published, CancellationToken ct) =>
+                watch.CountAsync(async () => { await inner.PutAsync(key, content, contentType, published, ct); return true; });
+
+            public Task CopyAsync(string from, string to, string contentType, bool published, CancellationToken ct) =>
+                watch.CountAsync(async () => { await inner.CopyAsync(from, to, contentType, published, ct); return true; });
+
+            public Task<bool> ExistsAsync(string key, CancellationToken ct) => watch.CountAsync(() => inner.ExistsAsync(key, ct));
+
+            public Task<StudioObject?> ReadAsync(string key, CancellationToken ct) => watch.CountAsync(() => inner.ReadAsync(key, ct));
+
+            public Task DeleteAsync(string key, CancellationToken ct) =>
+                watch.CountAsync(async () => { await inner.DeleteAsync(key, ct); return true; });
+
+            public Task<IReadOnlyList<string>> ListAsync(string prefix, CancellationToken ct) => watch.CountAsync(() => inner.ListAsync(prefix, ct));
+        }
     }
 }

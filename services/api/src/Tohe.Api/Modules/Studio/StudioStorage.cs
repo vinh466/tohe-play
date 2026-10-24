@@ -92,6 +92,18 @@ internal interface IStudioStorage
 }
 
 /// <summary>
+/// How many requests to the storage one operation on a pack's files keeps in flight. From production, R2 answers each
+/// in a few hundred milliseconds, so the files of a pack read, copied or deleted one by one outlast the 100 seconds
+/// Cloudflare gives a request; the storage's client takes requests side by side.
+/// </summary>
+internal static class StudioStorageWork
+{
+    public const int InFlight = 16;
+
+    public static ParallelOptions Options(CancellationToken ct) => new() { MaxDegreeOfParallelism = InFlight, CancellationToken = ct };
+}
+
+/// <summary>
 /// The layout of the bucket (docs/architecture/asset-studio.md#storage): drafts and style samples private;
 /// <c>blobs/</c> and <c>packs/</c> the registry the build tool reads (docs/guides/use-assets-in-a-game.md).
 /// </summary>
