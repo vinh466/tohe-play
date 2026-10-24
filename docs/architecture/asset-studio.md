@@ -466,7 +466,8 @@ They are in the Studio's OpenAPI document, `studio`. Refusals: `401` (no session
 Object storage through the S3 API (the AWS SDK for .NET, path-style, so Cloudflare R2 and SeaweedFS alike), behind an
 interface of the module's own (`IStudioStorage`): put, copy, read, check and delete an object, and list a prefix. One
 bucket holds the layout in [Storage](#storage) above. Published objects carry `Cache-Control: public, max-age=31536000,
-immutable`.
+immutable`. An upload over HTTPS sends its payload unsigned (`UNSIGNED-PAYLOAD`), as R2 needs: R2 refuses the streaming
+SigV4 the SDK signs uploads with by default. Over HTTP — SeaweedFS locally — the SDK's signed payload stays.
 
 The bucket's public side is the storage's, not the API's: in production a public address that serves `blobs/` and
 `packs/` alone; locally, SeaweedFS lets anyone read those two prefixes and nothing else
