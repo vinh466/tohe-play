@@ -67,3 +67,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0051](0051-an-asset-studio-for-game-assets.md) | Make game assets in a Studio of Tò He's own; games pin them at build time | Accepted; arrives in steps (plans/asset-studio) |
 | [0052](0052-agent-tokens-and-the-scopes-no-agent-gets.md) | Give agents named tokens with scopes, and keep a list of scopes no agent ever gets | Accepted; tokens in place, first scope used by the Studio |
 | [0053](0053-assets-in-the-game-contract.md) | A game declares its asset packs in game.json and ships them pinned by hash | Accepted; the build tool and the kit's loader follow |
+| [0054](0054-the-studios-library-on-assets.md) | Serve the Studio's published library from assets., and nothing else of its bucket | Accepted |

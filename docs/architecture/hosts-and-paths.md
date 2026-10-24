@@ -59,6 +59,8 @@ flowchart TB
 Mail to people: `hello@` and `security@toheplay.io.vn`, forwarded by Cloudflare Email Routing. `send.toheplay.io.vn` is
 the mail provider's return path.
 
+| `assets.toheplay.io.vn` | The [Asset Studio](asset-studio.md)'s published library: `blobs/` and `packs/` of its R2 bucket, read by builds and the Studio's previews ([ADR 0054](../decisions/0054-the-studios-library-on-assets.md)); a WAF rule refuses every other path | none | no | Cloudflare R2 (a custom domain) |
+
 Kept for later, without DNS: `api.`, `account.`, `media.`, `uat.` ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)).
 
 **The hosts as planes** ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)): players (the root), games
