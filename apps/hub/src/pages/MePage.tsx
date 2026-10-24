@@ -51,7 +51,11 @@ const PAPERS = [
  * account's child profile follows with the manage PIN (OutboundLink).
  */
 export function MePage() {
-  return <RequireSession need="player">{(session) => <Me session={session} />}</RequireSession>;
+  return (
+    <RequireSession need="player" door>
+      {(session) => <Me session={session} />}
+    </RequireSession>
+  );
 }
 
 /** What a row of a list looks like: its words at the left, a caret (or the icon of where it goes) at the right. */
@@ -80,12 +84,27 @@ function Me({ session }: { session: PlayingSession }) {
             <Avatar avatar={player.avatar} size="sm" />
             <span className="flex min-w-0 flex-1 flex-col">
               <span className="font-bold text-ink text-lg">{player.name}</span>
-              <span className="text-ink-soft text-sm">{t('me.playing')}</span>
+              <span className="text-ink-soft text-sm">
+                {session.status === 'device' ? t('me.playingHere') : t('me.playing')}
+              </span>
             </span>
             <span className="shrink-0 rounded-full bg-soft px-4 py-2 font-bold text-accent">
               {t('me.change')}
             </span>
           </Link>
+          {/* With no account, Tôi leads with what one gives (ADR 0055); the account group below has the details. */}
+          {session.status === 'device' ? (
+            <div className="flex flex-col gap-2">
+              <Link
+                to="/account/sign-in"
+                onClick={() => funnel.signInOpened()}
+                className={buttonClass('primary')}
+              >
+                {t('device.signIn')}
+              </Link>
+              <p className="text-center text-ink-soft text-sm">{t('me.keepProgress')}</p>
+            </div>
+          ) : null}
 
           <Group id="me-settings" title={t('me.settings')}>
             <Setting label={t('me.language')}>
@@ -150,19 +169,10 @@ function Me({ session }: { session: PlayingSession }) {
             ) : (
               <>
                 <p className="text-ink-soft">{t('me.deviceHint')}</p>
-                {/* One under the other on a phone, side by side from a tablet: "Tạo tài khoản" never wraps. */}
-                <div className="grid gap-3 sm:grid-cols-2">
-                  <Link
-                    to="/account/sign-in"
-                    onClick={() => funnel.signInOpened()}
-                    className={`${buttonClass('primary')} whitespace-nowrap`}
-                  >
-                    {t('device.signIn')}
-                  </Link>
-                  <Link to="/account/register" className={`${buttonClass('secondary')} whitespace-nowrap`}>
-                    {t('device.signUp')}
-                  </Link>
-                </div>
+                {/* Signing in leads Tôi, under who is playing (ADR 0055): here only the way to make an account. */}
+                <Link to="/account/register" className={`${buttonClass('secondary')} whitespace-nowrap`}>
+                  {t('device.signUp')}
+                </Link>
               </>
             )}
           </Group>

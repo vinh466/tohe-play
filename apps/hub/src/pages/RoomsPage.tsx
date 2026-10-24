@@ -90,7 +90,7 @@ function Lobby({
   const games = useQuery(gamesQuery(player.id));
   const game = games.data?.find((g) => g.id === gameId);
   // "Chơi tiếp" on Trò chơi's first screen: a game played at tables is opened at its lobby (ADR 0046).
-  useOpened(player.id, gameId, Boolean(game));
+  useOpened(player, gameId, Boolean(game));
   const list = useQuery({
     queryKey: ['rooms', gameId, player.id],
     queryFn: () => rooms.list(gameId),

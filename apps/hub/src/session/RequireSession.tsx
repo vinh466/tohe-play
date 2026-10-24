@@ -30,14 +30,20 @@ type Props =
       returnTo?: string;
       /**
        * False for what needs an account (a room link): a device with no session is sent to sign in instead of playing
-       * as a device profile. Default true: opening the hub is playing.
+       * as a device profile. Default true: a link plays at once.
        */
       device?: boolean;
+      /**
+       * True for a screen of the frame — Trò chơi, Chơi cùng, Tôi and the links sent (ADR 0055): a device with no session
+       * that never chose is asked once, on the sign-in screen, and comes back here after. Links leave it false.
+       */
+      door?: boolean;
     };
 
 /**
- * Sends people where they belong. A device with no session plays as its device profile at once, with no sign-in screen
- * first (E-03, ADR 0043; `/account/sign-in` opens only when chosen, or for what needs an account); signed-in devices
+ * Sends people where they belong. A link plays at once: a device with no session plays as its device profile, with no
+ * sign-in screen first (E-03, ADR 0043). The app's door asks once (ADR 0055): a screen of the frame sends a device with
+ * no session that never chose to `/account/sign-in`, which signs in or plays on this device; signed-in devices
  * without a chosen player go to the profile picker, and away from the sign-in screens once signed in. The picker is
  * asked to choose by itself (`auto`) when the account leaves nothing to choose. An account that has not accepted the
  * terms the hub shows accepts them first (ADR 0025). Coming back (ADR 0046): an account's session that ended says so
@@ -79,13 +85,16 @@ export function RequireSession(props: Props) {
       );
     case 'player': {
       if (ended && session.status !== 'account') return <SessionEnded returnTo={props.returnTo} />;
-      const gate = playerGate(session, { device: props.device ?? true });
+      const gate = playerGate(session, { device: props.device ?? true, door: props.door });
       if (gate !== 'play' && props.returnTo) rememberNext(props.returnTo);
+      // The door remembers the screen it stands before, so the choice made there comes back to it.
+      if (gate === 'door' && !props.returnTo) rememberNext(location.pathname + location.search);
       if (gate === 'play' && ask === 'loading') return <Loading label={t('loading')} />;
       if (gate === 'play' && ask === 'ask') return <AskWhoIsPlaying returnTo={props.returnTo} />;
       switch (gate) {
         case 'enter-as-device':
           return <EnterAsDevice label={t('loading')} />;
+        case 'door':
         case 'sign-in':
           return <Navigate to="/account/sign-in" replace />;
         case 'choose-profile':
@@ -98,8 +107,8 @@ export function RequireSession(props: Props) {
 }
 
 /**
- * The first visit: the device plays as its device profile from now on — made silently the first time, which counts
- * the funnel's first step (useSession) — until someone signs in.
+ * A link's first visit: the device plays as its device profile from now on — made silently the first time, which
+ * counts the funnel's first step (useSession) — until someone signs in.
  */
 function EnterAsDevice({ label }: { label: string }) {
   useEffect(() => {

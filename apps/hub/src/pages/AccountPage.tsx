@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next';
 import { ApiError, account, external, type MeView, type ProfileView, session } from '../api/client.ts';
 import { errorKey } from '../api/errors.ts';
 import { configQuery, profileOptionsQuery } from '../api/queries.ts';
+import { forgetGreeting } from '../launcher/recent.ts';
 import { BackLink, previousPath, useLeaveTo } from '../navigation/leave.tsx';
 import { AuthenticatorSetup } from '../session/Authenticator.tsx';
 import { EmailChange } from '../session/EmailChange.tsx';
@@ -333,7 +334,12 @@ function ProfileForm({
           }),
     onDone,
   );
-  const remove = useMeMutation(() => account.deleteProfile(profile?.id ?? ''), onDone);
+  const remove = useMeMutation(async () => {
+    const me = await account.deleteProfile(profile?.id ?? '');
+    // The public pages no longer greet a profile that is gone (ADR 0055).
+    if (profile) forgetGreeting(globalThis.localStorage, profile.id);
+    return me;
+  }, onDone);
 
   const pinInvalid = pin.length > 0 && !/^\d{4}$/.test(pin);
   const tooLong = visibleLength(cleanName(name)) > MAX_NAME_LENGTH;

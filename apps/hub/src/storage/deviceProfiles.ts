@@ -4,7 +4,7 @@
 import Dexie from 'dexie';
 import type { DeviceProfileData } from '../api/client.ts';
 import { entry } from '../entry/intent.ts';
-import { openedKey } from '../launcher/recent.ts';
+import { forgetGreeting, openedKey } from '../launcher/recent.ts';
 import { type LocalProfile, type LocalSave, type LocalScore, newId, type ToheDb } from './db.ts';
 
 /** A device holds at most this many device profiles (ADR 0043). */
@@ -137,8 +137,9 @@ async function removeEverything(db: ToheDb, id: string) {
   await db.saves.where('[profileId+gameId]').between(from, to).delete();
   await db.scores.where('[profileId+gameId]').between(from, to).delete();
   await db.ranked.filter((ranked) => ranked.profileId === id).delete();
-  // What it opened last ("Chơi tiếp", launcher/recent.ts) goes with it.
+  // What it opened last ("Chơi tiếp", launcher/recent.ts) goes with it, and the public pages' greeting of it.
   await db.cache.delete(openedKey(id));
+  forgetGreeting(globalThis.localStorage, id);
   await db.profiles.delete(id);
 }
 

@@ -7,6 +7,7 @@ import { errorKey } from '../api/errors.ts';
 import { deviceProfilesQuery, profileOptionsQuery } from '../api/queries.ts';
 import { intentPath, isEntryPath } from '../entry/codes.ts';
 import { entry } from '../entry/intent.ts';
+import { forgetGreeting } from '../launcher/recent.ts';
 import { useLeaveTo } from '../navigation/leave.tsx';
 import { BringIn } from '../session/BringIn.tsx';
 import { withProgress } from '../session/bringInChoices.ts';
@@ -165,6 +166,8 @@ function Picker({ me }: { me: MeView }) {
     onSettled: async () => {
       // Whoever signs in next on this device did not come for this tab's entry.
       entry.forget();
+      // Nor is the next person greeted by this account's name on the public pages (ADR 0055).
+      forgetGreeting(globalThis.localStorage);
       await setMe(null);
       await navigate({ to: '/account/sign-in', replace: true });
     },

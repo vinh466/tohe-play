@@ -31,7 +31,11 @@ const NEWEST_LINKS = 3;
  * to see that; it acts with its device's key once it has (ADR 0043). No title: the bar already says where this is.
  */
 export function TogetherPage() {
-  return <RequireSession need="player">{(session) => <Together session={session} />}</RequireSession>;
+  return (
+    <RequireSession need="player" door>
+      {(session) => <Together session={session} />}
+    </RequireSession>
+  );
 }
 
 function Together({ session }: { session: PlayingSession }) {

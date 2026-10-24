@@ -101,12 +101,21 @@ describe('errorKey', () => {
   });
 });
 
-describe('playerGate: opening the hub is playing (E-03)', () => {
+describe('playerGate: a link plays at once (E-03), the app’s door asks once (ADR 0055)', () => {
   const signedOut = resolveSession(null, false, deviceProfile);
   const device = resolveSession(null, true, deviceProfile);
 
-  it('a device with no session enters device mode by itself, with no sign-in screen', () => {
+  it('a link on a device with no session enters device mode by itself, with no sign-in screen', () => {
     expect(playerGate(signedOut, { device: true })).toBe('enter-as-device');
+    expect(playerGate(signedOut, { device: true, door: false })).toBe('enter-as-device');
+  });
+
+  it('a screen of the frame sends a device that never chose to the door', () => {
+    expect(playerGate(signedOut, { device: true, door: true })).toBe('door');
+  });
+
+  it('a device that chose to play on itself is never asked again', () => {
+    expect(playerGate(device, { device: true, door: true })).toBe('play');
   });
 
   it('a device profile and a chosen profile play at once', () => {
