@@ -133,7 +133,8 @@ public serves those two prefixes and nothing else of it.
 
 One library serves every environment: builds carry their files and are promoted by tag
 ([ADR 0041](../decisions/0041-promote-one-build-through-the-environments-by-tag.md)). Production's storage is Cloudflare
-R2; the dev stack and the API's tests run SeaweedFS (Apache-2.0, S3-compatible) — MinIO's community edition stopped
+R2 — bucket `tohe-studio`, its published library read from `https://assets.toheplay.io.vn`, a custom domain that
+serves only `blobs/` and `packs/` (a WAF rule refuses the rest; [ADR 0054](../decisions/0054-the-studios-library-on-assets.md)); the dev stack and the API's tests run SeaweedFS (Apache-2.0, S3-compatible) — MinIO's community edition stopped
 shipping images in 2025.
 
 ## Building a game with assets

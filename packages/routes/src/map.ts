@@ -16,6 +16,7 @@ export type HostRole =
   | 'api'
   | 'account'
   | 'studio'
+  | 'assets'
   | 'media'
   | 'uat';
 
@@ -68,6 +69,12 @@ export const hosts: readonly Host[] = [
     label: 'studio',
     state: 'decided',
     purpose: 'The Asset Studio: game assets made, checked and approved, with its own session (ADR 0051)',
+  },
+  {
+    role: 'assets',
+    label: 'assets',
+    state: 'serving',
+    purpose: 'The Studio’s published library: blobs/ and packs/ of its R2 bucket, nothing else (ADR 0054)',
   },
   { role: 'media', label: 'media', state: 'reserved', purpose: 'Files people upload' },
   { role: 'uat', label: 'uat', state: 'reserved', purpose: 'UAT’s names, once it has HTTPS' },
