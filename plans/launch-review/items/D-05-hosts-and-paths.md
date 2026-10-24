@@ -1,6 +1,7 @@
 # D-05 — Host và path: giữ bố cục của ADR 0042, hay đổi gì trước launch?
 
-- Status: **decided** — A, mặt phẳng game ở **L1** (owner, 2026-10-22, chat)
+- Status: **decided** — A, mặt phẳng game ở **L1** (owner, 2026-10-22, chat) · owner 2026-10-24 nghi bố cục
+  domain/path làm người quay lại khó vào hub: [D-09](D-09-the-way-back-in.md) khảo sát
 - Kind: decision
 - Blocks: — · Blocked by: — · Đi cùng: [D-01](D-01-languages.md), [D-02](D-02-layout.md)
 - Decided: owner, 2026-10-22, chat: "đến mức L1 th bởi game sẽ do tôi thêm vào repo th, người khác thì sẽ được qua tin tường và review của tôi (hiếm và siêu ít, gần chưa chưa tại bây giờ, tôi sẽ suy nghĩ nên lên L2 hay L3 khi có nucows đi này, nên nếu lên vấn đề này như 1 topic và nói tình hình hiện tại)"

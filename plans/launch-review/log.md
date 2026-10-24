@@ -2,6 +2,17 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-24 (owner thử máy thật; mở bề mặt vòng 2) — agent, phiên "ToHe Surface"
+
+- Owner thử máy thật trên prod: G7 "các mục này ổn r nha"; rà màn và câu chữ "nhìn chung ổn"; chức năng không lỗi.
+- Owner: "về luồng và UI thì cần cải thiện cho xịn hơn nữa" — trang chủ giới thiệu theo section, không lặp danh sách
+  game; người quay lại vào hub một chạm (nghi bố cục domain/path); hỏi đăng nhập khi vào hub. → D-08, D-09, D-10, E-08
+  (researching), kế hoạch ở [R-10](research/R-10-surface-round-2-plan.md); chờ owner duyệt kế hoạch và D-10 Q1.
+- Owner (cùng ngày): tạm gác UAT, owner và tester thử trên prod, dữ liệu prod chưa cần giữ — brief sửa theo; ADR cho
+  luồng release chờ owner.
+- Vẫn mở: HUD bàn online Tiến Lên cắt chữ ở 360–390 px; chữ canvas của kit còn `system-ui`
+  (`packages/game-kit/src/phaser/game.ts:269`).
+
 ## 2026-10-24 (D-07, E-07 chốt; S2, E-07, G5+ lên prod) — agent
 
 - Owner: "chốt theo đề xuất nha, bạn triển nghiêm túc đi", "hoàn thành và lên prod luôn". ADR 0049 (#132, #133 sửa

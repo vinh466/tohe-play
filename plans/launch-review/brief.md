@@ -32,8 +32,9 @@ làm dần.
 
 - **Không có ngày launch**: "chua chot ngay launch, khi nao on thi launch ne thoai mai nhe" (2026-10-22).
 - **Tiếng Việt là mặt chính, tiếng Anh hỗ trợ**; tên riêng và thuật ngữ giữ tiếng Anh khi chính xác hơn (D-01).
-- **UAT giữ dữ liệu thật của gia đình**: chỉ `deploy/uat/deploy.sh <tag uat->`, migration chỉ tiến (ADR 0010).
-- **Prod đã có người dùng thật** từ 2026-10-20: agent chỉ đọc prod từ ngoài; lên prod khi owner nói (ADR 0041).
+- **Prod là nơi thử trước launch** (owner 2026-10-24: "tạm gỡ" UAT, "tất cả tôi và tester sẽ test trên prod cho tiện,
+  prod vẫn còn đang dev chưa launch … đừng quan tâm user data"): agent vẫn chỉ đọc prod từ ngoài, lên prod khi owner nói
+  (ADR 0041). Luồng release không qua UAT cần một ADR sửa 0010 và 0041 — chờ owner. Volume của UAT vẫn giữ.
 - **Lời hứa của vision**: không quảng cáo, không theo dõi, không mua trong app — đổi thì cần ADR.
 - **Quy tắc repo**: spec trước, ADR cho quyết định đắt; đổi Game Contract = ADR + docs + conformance; không làm yếu check;
   màu từ design token, sáng và tối.
