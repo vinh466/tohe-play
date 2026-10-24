@@ -281,9 +281,11 @@ jobs:
       TOHE_VERSION: ${{ github.sha }}
       # The hub then serves /.well-known/security.txt, and the routes check reads it (ADR 0042).
       TOHE_SECURITY_CONTACT: security@example.test
-      # The hub image's second site, the console's own host, published by compose.yaml (ADR 0042).
+      # The hub image's second and third sites, the console's and the Studio's own hosts, published by compose.yaml
+      # (ADR 0042, 0051).
       HUB_URL: http://localhost:4720
       CONSOLE_URL: http://localhost:4721
+      STUDIO_URL: http://localhost:4722
     steps:
       - uses: actions/checkout@v7
       - uses: ./.github/actions/setup

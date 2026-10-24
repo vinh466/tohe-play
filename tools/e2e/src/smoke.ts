@@ -7,7 +7,8 @@
 // With ADMIN_LOGS_COMMAND (CI: the API container's log) a new deployment is claimed on the console's /setup with the
 // setup token the API logged; else, with ADMIN_GRANT_COMMAND (the API container's `admin grant`), a role is granted
 // (ADR 0027). Either way the authenticator is added in the hub, and the console — on its own host, CONSOLE_URL (default
-// the hub's port + 1: 4721) — signed in to with its code and its pages walked (ADR 0042).
+// the hub's port + 1: 4721) — signed in to with its code and its pages walked (ADR 0042). The Studio — on its own host
+// too, STUDIO_URL (default the hub's port + 2: 4722) — is opened without its session (ADR 0051).
 import { execFileSync } from 'node:child_process';
 import { AxeBuilder } from '@axe-core/playwright';
 import { chromium, type Frame, type Page } from 'playwright';
@@ -18,6 +19,7 @@ const hubUrl = process.env.HUB_URL ?? 'http://localhost:4720';
 const catalogUrl = new URL('/play', hubUrl).href;
 const docsUrl = (process.env.DOCS_URL ?? hubUrl.replace(/:4720\/?$/, ':4710')).replace(/\/$/, '');
 const consoleUrl = (process.env.CONSOLE_URL ?? hubUrl.replace(/:4720\/?$/, ':4721')).replace(/\/$/, '');
+const studioUrl = (process.env.STUDIO_URL ?? hubUrl.replace(/:4720\/?$/, ':4722')).replace(/\/$/, '');
 const grantCommand = process.env.ADMIN_GRANT_COMMAND?.split(' ').filter(Boolean);
 const logsCommand = process.env.ADMIN_LOGS_COMMAND?.split(' ').filter(Boolean);
 const step = (message: string) => console.log(`• ${message}`);
@@ -615,6 +617,19 @@ try {
     await page.getByRole('button', { name: 'Đăng xuất' }).click();
     await page.getByRole('button', { name: 'Đăng nhập', exact: true }).waitFor();
   }
+
+  step(
+    `the Studio (${studioUrl}, a host of its own): without its session, a page of it goes to its sign-in, once, to come back to it`,
+  );
+  // Its shell once sent the browser to the sign-in again at each of its renders, and the Studio hung before it got there.
+  await page.goto(`${studioUrl}/styles`);
+  await page.waitForURL((url) => url.pathname === '/sign-in');
+  const comeBackTo = new URL(page.url()).searchParams.get('redirect');
+  if (comeBackTo !== '/styles')
+    throw new Error(`the Studio's sign-in comes back to ${comeBackTo}, not /styles`);
+  await page.getByRole('button', { name: 'Đăng nhập', exact: true }).waitFor();
+  await shot('studio-sign-in');
+
   await page.goto(`${hubUrl}/account?manage=true`);
   await page.getByRole('heading', { name: 'Quản lý tài khoản' }).waitFor();
 
