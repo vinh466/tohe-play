@@ -17,9 +17,10 @@ Luật chung:
 | N1–N3 | **merged** — [#134](https://github.com/vinh466/tohe-play/pull/134) |
 | B1 · K3a | **trên prod** — [#140](https://github.com/vinh466/tohe-play/pull/140), [#141](https://github.com/vinh466/tohe-play/pull/141) (`prod-2026-10-24.1`) |
 | C1 · K2 · T2 · B4 · K1 · K3b · W1a · B2 · T1 · B3 · T1b · W1b · S1a | **trên prod** — #143, #144, #147, #148, #150, #152, #151, #153, #154, #155, #157, #158, #159 (`uat-2026-10-24.3` → `prod-2026-10-24.2`, `check:uat` 20/20, `check:prod` 23/23; platform-infra #251) |
-| S1b | **merged** — [#160](https://github.com/vinh466/tohe-play/pull/160) (màn duyệt); lên UAT/prod ở đợt sau |
-| S2 | **chờ owner**: bucket R2 + credential Infisical, DNS `studio.toheplay.io.vn`, biến repo `TOHE_ASSETS_REGISTRY`, `studio.enabled` |
-| V1, V2 | chờ S2 |
+| S1b | **trên prod** — [#160](https://github.com/vinh466/tohe-play/pull/160), `prod-2026-10-24.3` |
+| S2 | **xong** — owner: R2 `tohe-studio`, `assets.toheplay.io.vn` + WAF, DNS `studio.`, khoá Infisical; agent: biến `TOHE_ASSETS_REGISTRY`, ADR 0054 ([#162](https://github.com/vinh466/tohe-play/pull/162)); Studio bật ([platform-infra #252](https://github.com/vinetic-spaces/platform-infra/pull/252)), host `serving` ([#163](https://github.com/vinh466/tohe-play/pull/163)) |
+| V1 | spec **duyệt** ([#164](https://github.com/vinh466/tohe-play/pull/164)); nhập pack: phiên mới |
+| V2 | phiên mới |
 
 ## Điều chỉnh khi graduate (2026-10-24)
 

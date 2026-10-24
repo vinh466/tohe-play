@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-24 (5) — agent
+
+- Owner xong S2; agent đặt `TOHE_ASSETS_REGISTRY`, viết ADR 0054 (#162), phát hành `uat-2026-10-24.4` (20/20) và
+  `prod-2026-10-24.3` (23/23, platform-infra #253). Owner merge platform-infra #252: Studio chạy ở `studio.toheplay.io.vn`.
+- Spec `games/vuon-rau` (#164): owner "spec ổn, chốt theo đề xuất". Token agent đã lưu và đã thử được.
+- Bàn giao: phiên mới bắt đầu ở PLAN.md → Next (pilot V1 → V2).
+
 ## 2026-10-24 (4) — agent
 
 - Merged #147–#160 (T2, B4, K1, K3b, W1a, B2, T1, B3, T1b, W1b, S1a, S1b). `uat-2026-10-24.3` (20/20) rồi
