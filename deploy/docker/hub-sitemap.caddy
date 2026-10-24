@@ -43,6 +43,11 @@
 		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/tien-len/"/>
 		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/tien-len/"/>
 		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/vuon-rau/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/vuon-rau/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/vuon-rau/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/vuon-rau/"/>
+		  </url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/guides/</loc>
 		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/guides/"/>
 		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/guides/"/>
@@ -99,6 +104,11 @@
 		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/tien-len/"/>
 		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/tien-len/"/>
 		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/tien-len/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/games/vuon-rau/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/vuon-rau/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/vuon-rau/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/vuon-rau/"/>
 		  </url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/guides/</loc>
 		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/guides/"/>
