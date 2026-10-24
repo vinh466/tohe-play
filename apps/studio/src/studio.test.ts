@@ -119,19 +119,23 @@ describe('how the Studio writes things', () => {
     );
   });
 
-  it('reads a source into lines, its type first, and nothing from what is not an object', () => {
+  it('reads a source into lines, its type first, its url a link, and nothing from what is not an object', () => {
     expect(
       sourceLines({ type: 'pack', name: 'Kenney Tiny Farm', url: 'https://kenney.nl', author: 'Kenney' }),
     ).toEqual([
       { label: 'Nguồn', value: 'Lấy từ một gói có sẵn' },
       { label: 'Tên gói', value: 'Kenney Tiny Farm' },
-      { label: 'Địa chỉ', value: 'https://kenney.nl' },
+      { label: 'Địa chỉ', value: 'https://kenney.nl', href: 'https://kenney.nl/' },
       { label: 'Tác giả', value: 'Kenney' },
     ]);
     expect(sourceLines({ type: 'ai', vendor: 'v', seed: 42, extra: '' })).toEqual([
       { label: 'Nguồn', value: 'Tạo bằng AI' },
       { label: 'Nhà cung cấp', value: 'v' },
       { label: 'Seed', value: '42' },
+    ]);
+    expect(sourceLines({ type: 'pack', url: 'javascript:alert(1)' })).toEqual([
+      { label: 'Nguồn', value: 'Lấy từ một gói có sẵn' },
+      { label: 'Địa chỉ', value: 'javascript:alert(1)' },
     ]);
     expect(sourceLines(null)).toEqual([]);
     expect(sourceLines('pack')).toEqual([]);

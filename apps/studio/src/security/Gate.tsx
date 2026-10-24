@@ -4,7 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from '@tanstack/react-router';
 import { type FormEvent, type ReactNode, useEffect, useState } from 'react';
-import { studio } from '../api/client.ts';
+import { type StudioMe, studio } from '../api/client.ts';
 import { hubLink, useHubUrl } from '../hub.ts';
 import { Button, Field, problem } from '../ui/forms.tsx';
 
@@ -16,6 +16,14 @@ export const anonymousKeys: readonly string[] = ['me', 'config'];
 /** Who is signed in to the Studio: null when nobody is. */
 export function useMe() {
   return useQuery({ queryKey: meKey, queryFn: studio.me, retry: false });
+}
+
+/**
+ * Who is signed in, for a page inside the shell — which renders its pages only once the answer came — or null. What a
+ * page shows by it is only what the session may do; the API decides.
+ */
+export function useSignedIn(): StudioMe | null {
+  return useMe().data ?? null;
 }
 
 export function Centered({ children }: { children: ReactNode }) {

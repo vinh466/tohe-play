@@ -12,8 +12,8 @@ steps, and each part says when it exists. **What runs** (2026-10-24): the Studio
 permissions in the API, and giving and taking studio roles in the console ([Members and the Studio's
 session](#members-and-the-studios-session)); styles, packs, drafts, review and the library in object storage in the API
 ([The library in the API](#the-library-in-the-api)); the server's checks and approving styles ([Checks](#checks)); the
-Studio app on a host of its own, with its sign-in and the library to read ([The Studio app](#the-studio-app)). Reviewing
-in the app comes next.
+Studio app on a host of its own, with its sign-in, the library to read, and reviewing packs and styles
+([The Studio app](#the-studio-app), [Reviewing in the app](#reviewing-in-the-app)).
 
 ## The picture
 
@@ -160,14 +160,14 @@ API — the same shape as the console ([Admin console](admin.md#where-it-lives))
 | --- | --- | --- |
 | Agent | a token with `studio.draft` ([Agent tokens](agent-tokens.md)) | create and change its drafts, upload draft files, check without saving |
 | `contributor` | a Tò He account with that studio role | the same, in the app |
-| `reviewer` | a Tò He account with that studio role and two-factor authentication | approve, reject, deprecate |
+| `reviewer` | a Tò He account with that studio role and two-factor authentication | approve, reject, deprecate; approve and reject styles |
 | owner | as a reviewer | also withdraw |
 | CI, builds | nothing | read approved files and manifests |
 
 Studio roles are an account claim of their own, given and taken in the console; they are not platform roles.
 
-*Runs:* signing in and reading the library. Reviewing in the app — the gallery, approving, rejecting, withdrawing, the
-styles' review — comes next; until then a reviewer reviews through the API.
+*Runs:* signing in, reading the library, and reviewing pack versions and styles
+([Reviewing in the app](#reviewing-in-the-app)).
 
 ```mermaid
 flowchart LR
@@ -189,10 +189,10 @@ flowchart LR
 
   | Path | Page |
   | --- | --- |
-  | `/` | The library: every pack, its style, its versions and their status |
+  | `/` | The library: every pack, its style, its versions and their status; for a reviewer, first, what waits for review |
   | `/packs/<packId>` | A pack: its description, style and versions |
-  | `/packs/<packId>/<versionId>` | A version: its status and review, and each asset — its picture, kind, size, file, licence and attribution, source and tags |
-  | `/styles`, `/styles/<styleId>` | The styles, and one: its status, tile size, view, palette, outline and sample pictures |
+  | `/packs/<packId>/<versionId>` | A version: its status and review, and each asset — its picture, kind, size, file, licence and attribution, source and tags; for a reviewer, the gallery, the checklist and the review's actions |
+  | `/styles`, `/styles/<styleId>` | The styles, and one: its status, tile size, view, palette, outline and sample pictures; for a reviewer, approving or rejecting a draft |
   | `/sign-in` | The Studio's sign-in: email, password, and a code or a recovery code; `?redirect=` the page to go back to |
 
   Every page but `/sign-in` sits behind the Studio's session: without one, the app sends the browser to
@@ -212,6 +212,40 @@ flowchart LR
 - **Locally** `pnpm dev` starts the Studio's dev server on <http://localhost:4722>, at the root, proxying the API's
   Studio routes to the API; `docker compose up` publishes the hub container's port 8082 there
   ([Local development](../guides/local-development.md)).
+
+### Reviewing in the app
+
+*Runs.* A session with `studio.review` reviews in the app; one without it sees none of what follows. The app only hides
+what a session may not do: the API decides every action ([The library in the API](#the-library-in-the-api)).
+
+- **What waits** — the library (`/`) starts, for a reviewer, with **Chờ duyệt**: every version `submitted`, oldest
+  submission first, and every style still `draft`, the one changed longest ago first, each linking to its page.
+- **A version's page** gains, for a reviewer:
+  - **the gallery** — every picture at 1× and at 2×, drawn pixel for pixel (`image-rendering: pixelated`), each on a light
+    and on a dark backdrop (the design tokens' light and dark page, whatever the app's own theme); a sprite sheet also
+    shows its frames one by one, and a tileset its grid (its `frames`, or else the style's tile). Beside it, the style's
+    sample pictures and palette, to compare with.
+  - each asset's metadata, its licence and attribution, and its source, its `url` a link;
+  - **the checklist** — suitable for children (no gore, nothing frightening, no text, logos or real people's likeness);
+    not a near copy of a known character or game; in the style; readable at its real size; a plausible source. Approve
+    stays disabled until every line is ticked. The ticks are the reviewer's own check: they are not stored, and they
+    start empty on every visit.
+  - **the actions**, by the version's status: `submitted` — approve or reject; `approved` — deprecate. Each asks for
+    step-up first, as the console does: while it is not open the app asks for a fresh code from the authenticator
+    (`POST /api/studio/session/step-up`), then shows the actions for its ten minutes. Rejecting needs a reason;
+    deprecating takes one if given. A version with a `CC-BY-SA-4.0` asset is approved only with the switch "allow
+    share-alike" on and a reason, sent as `allowShareAlike` and `shareAlikeReason`.
+  - **Withdraw**, for an `approved` or `deprecated` version: a section of its own, marked in the danger colour, apart from
+    the others. It asks for a reason, a fresh code (in the request, not step-up) and a ticked confirmation that names what
+    breaks: every game pinned to the version fails to build until it pins another. The Studio's session does not say
+    whether the account is the platform's owner, so the app shows Withdraw to every reviewer and the API refuses anyone
+    else (`403 owner_required`), which the app says in words.
+  - **A refused approval** shows the server's report: each problem's code, its asset (or the whole version) and its
+    message, as the API gave them ([Checks](#checks)). Any other refusal is said in Vietnamese.
+- **A style's page** gains, for a reviewer and a style in `draft`: approve, or reject with a reason, behind the same
+  step-up, beside its palette and samples. Approve stays disabled while a sample is not uploaded.
+- While a request runs its buttons are disabled; once it answers, the page shows the version or the style as the API
+  returned it. A `403 step_up_required` — step-up ran out meanwhile — asks for the code again.
 
 ## Members and the Studio's session
 

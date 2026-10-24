@@ -1,11 +1,19 @@
 // Buttons, fields and messages for the Studio's few forms. Token colours only (ADR 0013).
-import { type ButtonHTMLAttributes, type InputHTMLAttributes, useId } from 'react';
+import {
+  type ButtonHTMLAttributes,
+  type InputHTMLAttributes,
+  type ReactNode,
+  type TextareaHTMLAttributes,
+  useId,
+} from 'react';
 import { ApiError } from '../api/client.ts';
 
 const variants = {
   // brand-strong, not brand: these buttons carry body-size text, and on-brand meets AA only on brand-strong.
   primary: 'bg-brand-strong text-on-brand',
   secondary: 'bg-soft text-ink hover:bg-soft-strong',
+  // What cannot be undone: withdrawing a published version.
+  danger: 'border border-danger-line bg-danger-soft text-danger',
 };
 
 export function Button({
@@ -67,6 +75,89 @@ export function Field({
   );
 }
 
+/** A longer text: a review's reason. */
+export function TextArea({
+  label,
+  error,
+  hint,
+  ...input
+}: TextareaHTMLAttributes<HTMLTextAreaElement> & {
+  label: string;
+  error?: string | null;
+  hint?: string;
+}) {
+  const id = useId();
+  const described = [hint ? `${id}-hint` : null, error ? `${id}-error` : null].filter(Boolean).join(' ');
+  return (
+    <div className="flex flex-col gap-1">
+      <label htmlFor={id} className="font-semibold text-ink text-sm">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        rows={3}
+        {...input}
+        aria-invalid={error ? true : undefined}
+        aria-describedby={described || undefined}
+        className="min-h-11 rounded-xl border border-line-strong bg-surface px-3 py-2 text-ink"
+      />
+      {hint ? (
+        <span id={`${id}-hint`} className="text-ink-soft text-sm">
+          {hint}
+        </span>
+      ) : null}
+      {error ? (
+        <span id={`${id}-error`} role="alert" className="text-danger text-sm">
+          {error}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+/** A box to tick, with its label and an optional line under it; the whole row is the target. */
+export function Checkbox({
+  label,
+  hint,
+  checked,
+  onChange,
+  disabled,
+  role,
+}: {
+  role?: 'switch';
+  label: ReactNode;
+  hint?: ReactNode;
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+  disabled?: boolean;
+}) {
+  const id = useId();
+  return (
+    <div className="flex items-start gap-3">
+      <input
+        id={id}
+        type="checkbox"
+        role={role}
+        checked={checked}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.checked)}
+        aria-describedby={hint ? `${id}-hint` : undefined}
+        className="mt-0.5 size-6 shrink-0 accent-brand-strong"
+      />
+      <div className="flex min-h-11 flex-col">
+        <label htmlFor={id} className="font-semibold text-ink">
+          {label}
+        </label>
+        {hint ? (
+          <span id={`${id}-hint`} className="text-ink-soft text-sm">
+            {hint}
+          </span>
+        ) : null}
+      </div>
+    </div>
+  );
+}
+
 const reasons: Record<string, string> = {
   invalid_credentials: 'Email, mật khẩu hoặc mã không đúng.',
   account_suspended: 'Tài khoản này đang bị tạm khoá.',
@@ -79,6 +170,20 @@ const reasons: Record<string, string> = {
   pack_not_found: 'Không có gói này.',
   version_not_found: 'Không có phiên bản này.',
   style_not_found: 'Không có phong cách này.',
+  // Reviewing (docs/architecture/asset-studio.md, The library in the API).
+  step_up_required: 'Cần xác nhận lại bằng mã từ ứng dụng xác thực.',
+  owner_required: 'Chỉ chủ sở hữu Tò He mới rút được một phiên bản.',
+  reason_required: 'Cần ghi lý do.',
+  reason_too_long: 'Lý do dài quá 1000 ký tự.',
+  version_not_submitted: 'Phiên bản này không còn chờ duyệt. Tải lại trang để xem.',
+  version_not_approved: 'Phiên bản này không còn ở trạng thái đã duyệt. Tải lại trang để xem.',
+  version_not_greater: 'Đã có một phiên bản bằng hoặc mới hơn được duyệt trong lúc này.',
+  version_changed: 'Phiên bản vừa được người khác xét duyệt. Tải lại trang để xem.',
+  style_changed: 'Phong cách vừa thay đổi hoặc vừa được xét duyệt. Tải lại trang để xem.',
+  not_a_draft: 'Phong cách này không còn là bản nháp.',
+  files_missing: 'Còn tệp chưa được tải lên.',
+  manifest_exists: 'Đã có một manifest khác cho phiên bản này trong thư viện.',
+  checks_failed: 'Phiên bản chưa qua các bước kiểm tra của máy chủ.',
 };
 
 /** What went wrong, in Vietnamese; `own` words a code for the page at hand. */

@@ -1,6 +1,13 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from '@tanstack/react-router';
-import { type Asset, type PackVersion, studio, versionFileUrl } from '../api/client.ts';
+import {
+  type Asset,
+  type PackVersion,
+  type StudioMe,
+  type Style,
+  studio,
+  versionFileUrl,
+} from '../api/client.ts';
 import {
   bytes,
   creatorName,
@@ -11,18 +18,25 @@ import {
   statusTone,
   versionStatusName,
 } from '../format.ts';
+import { mayReview } from '../review.ts';
+import { useSignedIn } from '../security/Gate.tsx';
 import { Badge, Empty, Fact, Facts, Failed, Loading, PageTitle, Section } from '../ui/ui.tsx';
+import { AssetPreviews, StyleCompare } from './Gallery.tsx';
+import { styleKey } from './StylesPage.tsx';
+import { VersionReview, versionKey } from './VersionReview.tsx';
 
 const linkClass = 'font-semibold text-brand-ink underline underline-offset-4';
 
 /**
  * /packs/<packId>/<versionId> — a version: where it is in its life and its review, and each asset with its picture, its
- * file, its licence and its source. Reading only; reviewing comes with the gallery.
+ * file, its licence and its source. For a reviewer, the gallery, the style to compare with, the checklist and the
+ * review's actions (docs/architecture/asset-studio.md, Reviewing in the app).
  */
 export function VersionPage() {
   const { packId, versionId } = useParams({ from: '/_session/packs/$packId/$versionId' });
+  const me = useSignedIn();
   const version = useQuery({
-    queryKey: ['studio', 'version', versionId],
+    queryKey: versionKey(versionId),
     queryFn: () => studio.version(versionId),
   });
   return (
@@ -39,28 +53,73 @@ export function VersionPage() {
         <Loading />
       ) : version.isError ? (
         <Failed error={version.error} retry={() => void version.refetch()} />
+      ) : me && mayReview(me) ? (
+        <Reviewed version={version.data} me={me} />
       ) : (
         <>
           <VersionFacts version={version.data} />
-          <Section title={`Tài nguyên (${version.data.assets.length})`}>
-            {version.data.assets.length === 0 ? (
-              <Empty>Phiên bản này chưa có tài nguyên nào.</Empty>
-            ) : (
-              <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                {version.data.assets.map((asset) => (
-                  <AssetCard
-                    key={asset.id}
-                    asset={asset}
-                    versionId={version.data.id}
-                    filesKept={version.data.status !== 'withdrawn' && version.data.status !== 'rejected'}
-                  />
-                ))}
-              </ul>
-            )}
-          </Section>
+          <Assets version={version.data} review={null} />
         </>
       )}
     </>
+  );
+}
+
+/**
+ * A reviewer's view: the gallery beside the pack's style, and the review's actions. The style comes through the pack
+ * (a version does not name it); its tile size draws a tileset's grid.
+ */
+function Reviewed({ version, me }: { version: PackVersion; me: StudioMe }) {
+  const pack = useQuery({
+    queryKey: ['studio', 'pack', version.packId],
+    queryFn: () => studio.pack(version.packId),
+  });
+  const styleId = pack.data?.styleId;
+  const style = useQuery({
+    queryKey: styleKey(styleId ?? ''),
+    queryFn: () => studio.style(styleId ?? ''),
+    enabled: styleId !== undefined,
+  });
+  return (
+    <div className="grid grid-cols-1 items-start gap-4 lg:grid-cols-[minmax(0,1fr)_22rem]">
+      <div className="flex min-w-0 flex-col gap-4">
+        <VersionFacts version={version} />
+        <Assets version={version} review={{ style: style.data ?? null }} />
+      </div>
+      <aside aria-label="Xét duyệt" className="flex min-w-0 flex-col gap-4 lg:sticky lg:top-4">
+        {style.data ? <StyleCompare style={style.data} /> : null}
+        {pack.isError || style.isError ? (
+          <Failed
+            error={pack.error ?? style.error}
+            retry={() => void (pack.isError ? pack.refetch() : style.refetch())}
+          />
+        ) : null}
+        <VersionReview version={version} me={me} />
+      </aside>
+    </div>
+  );
+}
+
+/** Its assets; `review` holds what the gallery needs, for a reviewer. */
+function Assets({ version, review }: { version: PackVersion; review: { style: Style | null } | null }) {
+  return (
+    <Section title={`Tài nguyên (${version.assets.length})`}>
+      {version.assets.length === 0 ? (
+        <Empty>Phiên bản này chưa có tài nguyên nào.</Empty>
+      ) : (
+        <ul className={`grid grid-cols-1 gap-3 ${review ? '' : 'md:grid-cols-2'}`}>
+          {version.assets.map((asset) => (
+            <AssetCard
+              key={asset.id}
+              asset={asset}
+              versionId={version.id}
+              filesKept={version.status !== 'withdrawn' && version.status !== 'rejected'}
+              review={review}
+            />
+          ))}
+        </ul>
+      )}
+    </Section>
   );
 }
 
@@ -101,8 +160,21 @@ function VersionFacts({ version }: { version: PackVersion }) {
   );
 }
 
-/** One asset: its picture at its real size (pixel for pixel, never smoothed), what it is, its file, licence and source. */
-function AssetCard({ asset, versionId, filesKept }: { asset: Asset; versionId: string; filesKept: boolean }) {
+/**
+ * One asset: its picture at its real size (pixel for pixel, never smoothed) — for a reviewer, the gallery's previews —
+ * what it is, its file, licence and source.
+ */
+function AssetCard({
+  asset,
+  versionId,
+  filesKept,
+  review,
+}: {
+  asset: Asset;
+  versionId: string;
+  filesKept: boolean;
+  review: { style: Style | null } | null;
+}) {
   const showPicture = filesKept && asset.uploaded && isPicture(asset.kind);
   const size = asset.width !== null && asset.height !== null ? `${asset.width} × ${asset.height}` : null;
   return (
@@ -112,7 +184,13 @@ function AssetCard({ asset, versionId, filesKept }: { asset: Asset; versionId: s
         <Badge>{kindName(asset.kind)}</Badge>
         {asset.uploaded ? null : <Badge tone="notice">Chưa tải tệp lên</Badge>}
       </div>
-      {showPicture ? (
+      {showPicture && review ? (
+        <AssetPreviews
+          asset={asset}
+          src={versionFileUrl(versionId, asset.sha256)}
+          tileSize={review.style?.tileSize ?? null}
+        />
+      ) : showPicture ? (
         <div className="flex min-h-24 items-center justify-center overflow-auto rounded-xl bg-soft p-3">
           <img
             src={versionFileUrl(versionId, asset.sha256)}
@@ -142,7 +220,18 @@ function AssetCard({ asset, versionId, filesKept }: { asset: Asset; versionId: s
         {asset.attribution ? <Fact label="Ghi công">{asset.attribution}</Fact> : null}
         {sourceLines(asset.source).map((line) => (
           <Fact key={line.label} label={line.label}>
-            {line.value}
+            {line.href ? (
+              <a
+                href={line.href}
+                target="_blank"
+                rel="noreferrer noopener"
+                className={`${linkClass} break-all`}
+              >
+                {line.value}
+              </a>
+            ) : (
+              line.value
+            )}
           </Fact>
         ))}
         {asset.tags.length > 0 ? <Fact label="Thẻ">{asset.tags.join(', ')}</Fact> : null}

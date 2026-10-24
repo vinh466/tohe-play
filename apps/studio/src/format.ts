@@ -103,21 +103,37 @@ const sourceFields: Record<string, string> = {
   script: 'Kịch bản vẽ',
 };
 
+/** An address a link may lead to: http or https, nothing else (never `javascript:`). */
+export function webAddress(value: string): string | undefined {
+  try {
+    const url = new URL(value);
+    return url.protocol === 'https:' || url.protocol === 'http:' ? url.href : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
+export interface SourceLine {
+  label: string;
+  value: string;
+  /** For the source's `url`, when it is a web address: where its link leads. */
+  href?: string;
+}
+
 /**
  * An asset's source (a JSON object with its `type`, docs/architecture/asset-studio.md) as lines to show: what kind of
- * source first, then each field it has, named in Vietnamese where the Studio knows the field.
+ * source first, then each field it has, named in Vietnamese where the Studio knows the field; its `url` a link.
  */
-export function sourceLines(source: unknown): { label: string; value: string }[] {
+export function sourceLines(source: unknown): SourceLine[] {
   if (typeof source !== 'object' || source === null || Array.isArray(source)) return [];
   const { type, ...fields } = source as Record<string, unknown>;
-  const lines: { label: string; value: string }[] = [];
+  const lines: SourceLine[] = [];
   if (typeof type === 'string') lines.push({ label: 'Nguồn', value: sourceTypes[type] ?? type });
   for (const [key, value] of Object.entries(fields)) {
     if (value === null || value === undefined || value === '') continue;
-    lines.push({
-      label: sourceFields[key] ?? key,
-      value: typeof value === 'string' ? value : JSON.stringify(value),
-    });
+    const text = typeof value === 'string' ? value : JSON.stringify(value);
+    const href = key === 'url' && typeof value === 'string' ? webAddress(value) : undefined;
+    lines.push({ label: sourceFields[key] ?? key, value: text, ...(href ? { href } : {}) });
   }
   return lines;
 }
