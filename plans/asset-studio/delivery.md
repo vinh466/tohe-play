@@ -10,17 +10,16 @@ Luật chung:
 - Owner review và merge từng PR. Số ADR được cấp khi PR mở (tiếp sau 0045).
 - Lên UAT và prod theo luồng hiện có: owner nói "deploy" thì tag `uat-…`; nói "lên prod" thì tag `prod-…` (ADR 0041).
 
-## Tiến độ
+## Tiến độ (2026-10-24 15:00)
 
 | PR | Trạng thái |
 |---|---|
-| N1–N3 | **merged** — [#134](https://github.com/vinh466/tohe-play/pull/134), một PR vì ba ADR trỏ lẫn nhau |
-| B1 | **trên prod** — [#140](https://github.com/vinh466/tohe-play/pull/140), `prod-2026-10-24.1` (phiên `launch-review` tag) |
-| K3a | **trên prod** — [#141](https://github.com/vinh466/tohe-play/pull/141): helper bố cục; phần conformance (K3b) để sau |
-| C1 | **merged** — [#143](https://github.com/vinh466/tohe-play/pull/143): ADR 0053, `assets`, `studio/`, luật folder trong conformance |
-| K2 | **merged** — [#144](https://github.com/vinh466/tohe-play/pull/144): xuất từ entry chính của kit, không đụng `package.json` |
-| B4, T2 | đang xây |
-| B2, B3, S1, S2, T1, K1, K3b, W1, V1, V2 | chờ |
+| N1–N3 | **merged** — [#134](https://github.com/vinh466/tohe-play/pull/134) |
+| B1 · K3a | **trên prod** — [#140](https://github.com/vinh466/tohe-play/pull/140), [#141](https://github.com/vinh466/tohe-play/pull/141) (`prod-2026-10-24.1`) |
+| C1 · K2 · T2 · B4 · K1 · K3b · W1a · B2 · T1 · B3 · T1b · W1b · S1a | **trên prod** — #143, #144, #147, #148, #150, #152, #151, #153, #154, #155, #157, #158, #159 (`uat-2026-10-24.3` → `prod-2026-10-24.2`, `check:uat` 20/20, `check:prod` 23/23; platform-infra #251) |
+| S1b | **merged** — [#160](https://github.com/vinh466/tohe-play/pull/160) (màn duyệt); lên UAT/prod ở đợt sau |
+| S2 | **chờ owner**: bucket R2 + credential Infisical, DNS `studio.toheplay.io.vn`, biến repo `TOHE_ASSETS_REGISTRY`, `studio.enabled` |
+| V1, V2 | chờ S2 |
 
 ## Điều chỉnh khi graduate (2026-10-24)
 
@@ -32,6 +31,19 @@ Luật chung:
 - **P0 chưa đóng atlas**: build chép file theo hash vào `dist/studio/`, để conformance đối chiếu từng file với lock.
   Đóng atlas là tối ưu về sau (owner: "tối ưu chi tiết sau"). Ghi trong ADR 0053.
 - **Studio role nằm trong schema `studio`** (`studio.members`), không nằm trong `identity`, để module giữ bảng của mình.
+- **K3 tách K3a (helper bố cục) và K3b (conformance theo hướng)**; **T1b** theo sau B3 (dry run, file bị strip, `problems`,
+  `source.type`); **S1 tách S1a (app, host) và S1b (màn duyệt)**; **W1 tách W1a (`/new-game`) và W1b (`/new-asset`)**.
+
+## Việc tiếp theo phát hiện khi xây (chưa làm)
+
+- Cờ owner trong `StudioMeView` để app ẩn nút Rút với reviewer không phải owner (API đã chặn `owner_required`).
+- Cho studio member bật 2FA trong hub (hiện chỉ tài khoản có platform role bật được) — đụng `apps/hub`.
+- Bản nháp riêng tư trên R2: R2 public cả bucket → quy tắc Cloudflare chỉ mở `blobs/`, `packs/`, hoặc bucket riêng cho
+  bản nháp. Chốt cùng S2.
+- Retention và append-only cho `agents.audit`; trang console nhập vendor AI đã tra điều khoản (`studio.vendors`).
+- Kiểm thử thật: ảnh chụp sáng/tối của app Studio, SDK S3 với R2 thật, build arm64 của image API.
+- Test `RoomsTests…time_limit` (Jint) trượt khi máy tải nặng, luôn qua trên CI.
+
 
 ## Các lane và PR
 

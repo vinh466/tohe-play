@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-24 (4) — agent
+
+- Merged #147–#160 (T2, B4, K1, K3b, W1a, B2, T1, B3, T1b, W1b, S1a, S1b). `uat-2026-10-24.3` (20/20) rồi
+  `prod-2026-10-24.2` trên `ee69605` (23/23; platform-infra #251 — CI treo ~7 tiếng vì runner, rerun xong thì qua).
+- Studio trên prod trả lời qua host hub (config 200, session 204, packs 401); thư viện trả 503 tới khi có R2.
+- Chờ owner: S2 (R2, DNS `studio.`, `TOHE_ASSETS_REGISTRY`) để mở pilot V1–V2. S1b lên ở đợt sau.
+
 ## 2026-10-24 (3) — agent
 
 - Merged: #140 (B1), #141 (K3a), #143 (C1), #144 (K2). B1 và K3a lên prod trong `prod-2026-10-24.1` (phiên

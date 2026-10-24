@@ -16,14 +16,19 @@
 
 ## Next — one item
 
-**N1–N3** (lane Nền, chỉ docs): ADR 0049 nguyên tắc khai báo, ADR 0050 Asset Studio (sửa hàng *Developers* của ADR 0046:
-`studio.` có session riêng), ADR 0051 token cho agent. Sau đó B1, K2, K3 chạy song song theo claims.
+**Pilot V1–V2**, khi S2 xong: agent nhập Kenney Tiny Farm bằng `tohe-studio`, owner duyệt trong app Studio, rồi
+`games/vuon-rau/SPEC.md` (owner review) và slice dọc + ngang, đo trên máy thật. Trước đó: S1b lên UAT/prod ở đợt sau.
 
 ## Waiting on the owner
 
-1. **S2, hạ tầng** (cần trước khi Studio chạy trên prod, và trước V1): bucket R2 (phần đã duyệt cho đọc công khai) và
-   credential trong Infisical; DNS `studio.toheplay.io.vn`. Agent mở PR `platform-infra` cho ingress khi tới S1.
-2. Không gì khác: D-13, ngân sách D-10 và license asset Tò He đã để sau theo lời owner.
+1. **S2, hạ tầng**:
+   - bucket R2 (chỉ mở công khai `blobs/` và `packs/`, hoặc tách bucket riêng cho bản nháp);
+   - năm khoá `studio-storage-*` trong Infisical `/tohe`;
+   - DNS `studio.toheplay.io.vn`;
+   - biến repo `TOHE_ASSETS_REGISTRY`.
+   Sau đó agent mở PR `platform-infra` bật `studio.enabled`.
+2. **Token agent**: tạo agent và token `studio.draft` trong trang `/agents` của console cho agent làm pilot; cấp cho
+   chính mình studio role `reviewer` trong trang `/studio`.
 
 ## Board
 
