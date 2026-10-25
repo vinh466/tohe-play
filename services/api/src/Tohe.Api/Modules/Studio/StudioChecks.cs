@@ -97,24 +97,33 @@ internal sealed class StudioChecks(ToheDbContext db, IStudioStorage storage, IOp
         var problems = StudioVersionChecks.Check(version, stage, vendors.ToHashSet(StringComparer.Ordinal), Limits);
 
         // Every file that arrived, again: the limits or the style may have changed since its upload. One not uploaded
-        // yet is checked when it is (submitting refuses a draft with one missing).
+        // yet is checked when it is (submitting refuses a draft with one missing). Read side by side: one by one, a
+        // pack of a hundred files outlasts a request.
         var limits = Limits;
-        foreach (var file in version.Assets.Where(asset => asset.UploadedAt is not null).GroupBy(asset => (asset.Sha256, asset.Ext)))
+        var files = version.Assets.Where(asset => asset.UploadedAt is not null).GroupBy(asset => (asset.Sha256, asset.Ext)).ToList();
+        var found = new IReadOnlyList<StudioCheckProblem>[files.Count];
+        await Parallel.ForEachAsync(Enumerable.Range(0, files.Count), StudioStorageWork.Options(ct), async (i, token) =>
         {
-            if (await storage.ReadAsync(StudioKeys.Draft(version.Version.Id, file.Key.Sha256, file.Key.Ext), ct) is not { } found)
+            var file = files[i];
+            if (await storage.ReadAsync(StudioKeys.Draft(version.Version.Id, file.Key.Sha256, file.Key.Ext), token) is not { } stored)
             {
-                continue;
+                found[i] = [];
+                return;
             }
 
             byte[] content;
-            await using (found)
+            await using (stored)
             {
                 using var bytes = new MemoryStream();
-                await found.Content.CopyToAsync(bytes, ct);
+                await stored.Content.CopyToAsync(bytes, token);
                 content = bytes.ToArray();
             }
 
-            problems.AddRange(StudioFileChecks.Check(content, file.Key.Ext, [.. file], version.Style, limits).Problems);
+            found[i] = StudioFileChecks.Check(content, file.Key.Ext, [.. file], version.Style, limits).Problems;
+        });
+        foreach (var fileProblems in found)
+        {
+            problems.AddRange(fileProblems);
         }
 
         return StudioVersionChecks.Ordered(problems);
