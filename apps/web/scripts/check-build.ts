@@ -6,9 +6,9 @@
 //  - the browser's bars: one theme-color tag per scheme, with the tokens' `bar` colours (theming.md);
 //  - every page a search engine or an AI reader may take has what they read: its own title and description, Open
 //    Graph and Twitter tags with its picture (a game's page its own, the others the shared one), one <h1>, the
-//    structured data its kind of page deserves (WebSite, Organization and ItemList on the home pages, VideoGame and
-//    BreadcrumbList on a game's page, WebPage on the promise, FAQPage on the FAQ with as many questions as the page
-//    shows);
+//    structured data its kind of page deserves (WebSite and Organization on the home pages, a CollectionPage (its
+//    ItemList as the main entity) on the list of games, which holds them since ADR 0055; VideoGame and BreadcrumbList on a game's page, WebPage on the
+//    promise, FAQPage on the FAQ with as many questions as the page shows);
 //  - one source per game (ADR 0047): every game with a game.json has games/<id>/page/vi.md, en.md and facts.json, each
 //    as src/content/game-page.ts wants it, and a preview picture per language, 1200×630 — drawn by generate:og,
 //    committed as page/og.vi.png and og.en.png with their stamps in page/og.json (og-stamp.ts), which must match what
@@ -256,7 +256,8 @@ function checkStructuredData(page: string, html: string) {
   };
   // The same kind of page in either language: /en/faq/ is a FAQ as /faq/ is.
   const kind = pathInLanguage(page, 'vi');
-  if (kind === '/') need('WebSite', 'Organization', 'ItemList');
+  if (kind === '/') need('WebSite', 'Organization');
+  if (kind === '/games/') need('CollectionPage');
   if (isGamePage(page)) need('VideoGame', 'BreadcrumbList');
   if (kind === '/promise/') need('WebPage');
   if (kind === '/faq/') {

@@ -103,13 +103,13 @@ try {
   );
   await page.goto(hubUrl);
   // The header's button, on a phone, to the app in the page's language; "Chơi tiếp" waits for a device that has opened a game.
-  const play = page.getByRole('link', { name: 'Chơi ngay', exact: true });
+  const play = page.getByRole('banner').getByRole('link', { name: 'Chơi ngay', exact: true });
   await play.waitFor();
   if (!(await play.getAttribute('href'))?.endsWith('/play?lang=vi'))
     throw new Error(
       `the header's "Chơi ngay" does not carry the page's language: ${await play.getAttribute('href')}`,
     );
-  if (await page.getByRole('link', { name: 'Chơi tiếp', exact: true }).isVisible())
+  if (await page.getByRole('banner').getByRole('link', { name: 'Chơi tiếp', exact: true }).isVisible())
     throw new Error('a new device is offered "Chơi tiếp"');
   // A plain visit shows the links out of Tò He, in the footer.
   await page.getByRole('link', { name: 'Làm game? Tài liệu (tiếng Anh)' }).waitFor();
@@ -206,7 +206,7 @@ try {
   if (onGuides.total === 0 || onGuides.shown !== 0)
     throw new Error(`the next page shows ${onGuides.shown} of ${onGuides.total} links out of Tò He`);
   // The header's button is the way back into the app (this device has not opened a game: "Chơi ngay").
-  await page.getByRole('link', { name: 'Chơi ngay', exact: true }).tap();
+  await page.getByRole('banner').getByRole('link', { name: 'Chơi ngay', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
 
   step(
@@ -502,7 +502,7 @@ try {
     throw new Error(`a reload asked who is playing again: ${page.url()}`);
 
   step(
-    `the public page (${hubUrl}/) and the docs (${docsUrl}) share the app's light/dark choice; a device that has played here stays on the root, which offers "Chơi tiếp" to the app (ADR 0046)`,
+    `the public page (${hubUrl}/) and the docs (${docsUrl}) share the app's light/dark choice; a device that has played here stays on the root, which greets it by name with "Chơi tiếp" and the game (ADR 0046, 0055)`,
   );
   await page.goto(hubUrl);
   await page.getByRole('button', { name: 'Tối' }).tap();
@@ -515,11 +515,21 @@ try {
   await expectTheme('dark');
   // The header's button: "Chơi tiếp" in place of "Chơi ngay" on a device that has opened a game. The home page's own
   // "Chơi tiếp" button at the top of the page says the same, so the first of the two is the one tapped.
-  if (await page.getByRole('link', { name: 'Chơi ngay', exact: true }).isVisible())
+  if (await page.getByRole('banner').getByRole('link', { name: 'Chơi ngay', exact: true }).isVisible())
     throw new Error('a device that has opened a game is still offered "Chơi ngay" in the header');
-  const continueLink = page.getByRole('link', { name: 'Chơi tiếp', exact: true }).first();
+  const continueLink = page.getByRole('banner').getByRole('link', { name: 'Chơi tiếp', exact: true });
   await continueLink.waitFor();
   if (new URL(page.url()).pathname !== '/') throw new Error(`/ was redirected to ${page.url()}`);
+  // The greeting in place of the hero's two buttons: who played last, and the game they opened (ADR 0055).
+  await page.getByText(/^Chào lại, .+!$/).waitFor();
+  if (await page.getByRole('link', { name: 'Tôi đã có tài khoản' }).isVisible())
+    throw new Error('a device that has played here is still offered the newcomer’s buttons');
+  const lastGame = page.getByRole('link', { name: /^Chơi tiếp .+/ });
+  if (!/^\/play\/[\w-]+\?lang=vi$/.test((await lastGame.getAttribute('href')) ?? ''))
+    throw new Error(
+      `the greeting's "Chơi tiếp" does not open the last game: ${await lastGame.getAttribute('href')}`,
+    );
+  await page.getByRole('link', { name: /^Không phải .+\?$/ }).waitFor();
   await shot('landing-returning');
   await continueLink.tap();
   // A public page's links into the app carry its language (?lang=vi, ADR 0047).
