@@ -20,8 +20,8 @@ Luật chung:
 | S1b | **trên prod** — [#160](https://github.com/vinh466/tohe-play/pull/160), `prod-2026-10-24.3` |
 | S2 | **xong** — owner: R2 `tohe-studio`, `assets.toheplay.io.vn` + WAF, DNS `studio.`, khoá Infisical; agent: biến `TOHE_ASSETS_REGISTRY`, ADR 0054 ([#162](https://github.com/vinh466/tohe-play/pull/162)); Studio bật ([platform-infra #252](https://github.com/vinetic-spaces/platform-infra/pull/252)), host `serving` ([#163](https://github.com/vinh466/tohe-play/pull/163)) |
 | Sửa sau phát hành | **trên prod** — [#167](https://github.com/vinh466/tohe-play/pull/167) app Studio treo khi chưa đăng nhập (`prod-2026-10-25.1`); [#169](https://github.com/vinh466/tohe-play/pull/169) upload lên R2 trả 500 vì streaming SigV4 (`prod-2026-10-25.2`, platform-infra #254, #255) |
-| V1 | spec **duyệt** ([#164](https://github.com/vinh466/tohe-play/pull/164)); style `tiny-farm-16` (bản nháp) và pack `farm-tiny@1.0.0` **đã submit** trên Studio prod (2026-10-25); chờ owner duyệt |
-| V2 | sau khi owner duyệt V1 |
+| V1 | **xong** — spec ([#164](https://github.com/vinh466/tohe-play/pull/164)); style `tiny-farm-16` và pack `farm-tiny@1.0.0` **đã duyệt** (2026-10-25), sau [#173](https://github.com/vinh466/tohe-play/pull/173) (duyệt 133 file bị cắt ở 100 s; `prod-2026-10-25.3`) |
+| V2 | **xây xong** — `games/vuon-rau` (PR Vườn Rau); chờ owner chơi và đo trên A55, iPhone |
 
 ## Điều chỉnh khi graduate (2026-10-24)
 
