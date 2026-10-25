@@ -1,0 +1,19 @@
+{
+  "lockVersion": 1,
+  "packs": {
+    "farm-tiny": {
+      "version": "1.0.0",
+      "manifest": "7aa235d1be291a3b3ded7279cbe468419c6fec391bcc24a831ef24364acd6dba",
+      "files": [
+        {
+          "id": "tilemap/tilemap-packed",
+          "kind": "tileset",
+          "sha256": "772898e5ed054455f439cbf9c11a74f9fa4dbeff37109ff5dbc5a692254ef246",
+          "ext": "png",
+          "bytes": 5850,
+          "licence": "CC0-1.0"
+        }
+      ]
+    }
+  }
+}

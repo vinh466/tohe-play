@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-25 (2) — agent
+
+- Owner duyệt style; duyệt pack bị cắt ở 100 s của Cloudflare (đọc và chép 133 file lần lượt): #173 → `prod-2026-10-25.3`.
+- Owner duyệt lại `farm-tiny@1.0.0`: manifest và 133 blob công khai. Vườn Rau khoá pack, chỉ lấy tileset (1 file 5,8 KB).
+- V2 xây xong: luật thuần + bot, A*, ngày/đêm, Cô Ba, quầy; conformance PASS. Lệch do pack: không rào, lúa mì 3 hình.
+- Chờ owner: PR Vườn Rau, rồi chơi và đo trên A55, iPhone.
+
 ## 2026-10-25 — agent
 
 - Owner thấy Studio "crash": app treo khi chưa đăng nhập (Shell `<Navigate>` lặp). #167, smoke mở Studio → `prod-2026-10-25.1`.

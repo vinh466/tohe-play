@@ -1,0 +1,22 @@
+{
+  "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
+  "id": "vuon-rau",
+  "name": "Veggie Patch",
+  "names": { "vi": "Vườn Rau" },
+  "version": "0.1.0",
+  "protocol": 1,
+  "description": "A tiny farm: dig a plot, sow seeds, water them and pick the harvest, then sell it at the stall for more seeds. Crops grow in real time, even while the game is closed. Calm, nothing to lose.",
+  "descriptions": {
+    "vi": "Một nông trại nhỏ: cuốc đất, gieo hạt, tưới nước rồi hái rau, mang ra quầy bán để mua thêm hạt. Rau lớn theo giờ thật, cả khi đã tắt trò chơi. Nhẹ nhàng, không có thua."
+  },
+  "icon": "icon.svg",
+  "orientation": "any",
+  "capabilities": ["save", "shell"],
+  "themes": ["light"],
+  "minAge": 5,
+  "tags": ["farm", "calm"],
+  "sizeBudgetKb": 2500,
+  "assets": {
+    "farm-tiny": { "version": "1.0.0", "delivery": "bundle", "include": ["tilemap/tilemap-packed"] }
+  }
+}

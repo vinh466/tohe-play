@@ -16,6 +16,12 @@ variable "REVISION" {
   default = ""
 }
 
+# The Asset Studio's registry, which the games image builds a game's asset packs from (ADR 0053); taken from the
+# environment, as CI sets it (vars.TOHE_ASSETS_REGISTRY).
+variable "TOHE_ASSETS_REGISTRY" {
+  default = ""
+}
+
 group "default" {
   targets = ["api", "web"]
 }
@@ -42,4 +48,5 @@ target "web" {
   dockerfile = "deploy/docker/web.Dockerfile"
   target     = component
   tags       = ["${IMAGES}/${component}:${TAG}"]
+  args       = { TOHE_ASSETS_REGISTRY = TOHE_ASSETS_REGISTRY }
 }

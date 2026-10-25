@@ -10,11 +10,16 @@ road from an asset pack to a game on players' phones. It is not the whole farm g
 ## World
 
 - **One map, 16 × 12 tiles of 16 px**, drawn with the Studio pack `farm-tiny` (Kenney *Tiny Farm*, CC0, imported with
-  `tohe-studio`; 16 × 16 tiles, checked on 2026-10-24): grass, a fenced field of **4 × 3 plots** in the middle, dirt
-  paths, pines and sunflowers, the barn, a water trough, a few hens, and the **seed stall** (crates) at the path's end. The map is the game's content (`src/content/map.ts`), not an asset.
+  `tohe-studio`; 16 × 16 tiles, checked on 2026-10-24): grass, a field of **4 × 3 plots** in the middle — three beds of
+  four with a path in front of each — dirt paths, pines and sunflowers, the barn, a water trough, a few hens, and the
+  **seed stall** (crates) at the path's end. The map is the game's content (`src/content/map.ts`), not an asset.
+  *Built (V2):* the pack has no fence, so weeds mark the plots not dug yet; the game loads one file of the pack, its
+  tileset, and draws every tile as a frame of it.
 - **The farmer** (the pack's farmer, one front-facing sprite: it bobs as it walks and faces left or right by flipping)
   walks where the player taps, along the paths and grass (A* on the tile grid), then acts on the tile.
-- The camera fits the map to the world view (`fitWorld`, `contain`); pixels stay crisp (whole-number zoom).
+- The camera fits the map to the world view (`fitWorld`, `contain`); pixels stay crisp (whole-number zoom). Upright on a
+  phone that makes a tile about 21 CSS px, so a tap takes the plot, crate or Cô Ba nearest the finger within 0.85 tile
+  (`src/targets.ts`).
 
 ## A move
 
@@ -34,7 +39,8 @@ Tap a plot; the farmer walks there and does what the plot needs next:
 
 ## Crops (content, `src/content/crops.ts`, `defineCatalog`)
 
-Three of the crops the pack draws, each with its growth stages:
+Three of the crops the pack draws, each with its growth stages (the pack draws wheat in three; its first stage is the
+pack's seedling):
 
 | Crop | Seed | Sells for | Stages | Time to ripe |
 | --- | --- | --- | --- | --- |

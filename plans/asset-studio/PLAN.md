@@ -16,18 +16,17 @@
 
 ## Next — one item
 
-**Pilot V2**, sau khi owner duyệt V1:
-1. V1 xong phần agent (2026-10-25): style **`tiny-farm-16`** (bản nháp: 16 px, top-down, palette 44 màu đọc thô từ
-   pixel của pack, 2 ảnh mẫu) và pack **`farm-tiny@1.0.0`** (132 tile + 1 tileset 12×11, CC0, có tag) đã **submit** trên
-   Studio prod; `check` của server qua hết.
-2. V2: xây `games/vuon-rau` theo `games/vuon-rau/SPEC.md` (owner đã duyệt cả 5 đề xuất), `assets` khoá `farm-tiny`,
-   `pnpm assets:resolve` (CI có `TOHE_ASSETS_REGISTRY`), rồi đo trên A55 và iPhone. Pack không có tile cỏ trơn: nền cỏ
-   là màu `#84c669`. Lúa mì cần 4 giai đoạn nhưng pack có 3 (cộng 1 hình héo): V2 chọn cách thể hiện giai đoạn thứ tư.
+**Pilot V2: owner chơi thử và đo trên máy thật.**
+1. V1 xong (2026-10-25): style `tiny-farm-16` và pack `farm-tiny@1.0.0` **đã duyệt**; manifest và 133 blob trên
+   `assets.toheplay.io.vn`.
+2. V2 xây xong (`games/vuon-rau`, PR Vườn Rau): khoá `farm-tiny@1.0.0`, chỉ lấy tileset; 34 test, conformance PASS.
+   Owner merge, rồi phát hành; sau đó chơi và đo trên A55 và iPhone (kích thước, thời gian mở, khung hình qua telemetry,
+   save). Số đo tại máy nằm trong PR.
 
 ## Waiting on the owner
 
-1. **Duyệt style `tiny-farm-16` rồi pack `farm-tiny@1.0.0`** trong `https://studio.toheplay.io.vn` (role reviewer, 2FA).
-   Pack chỉ được duyệt sau khi style đã được duyệt.
+1. **Xem PR Vườn Rau** và ba điểm lệch SPEC do pack (không có rào; giai đoạn đầu của lúa mì; ô nhỏ khi cầm dọc).
+2. **Chơi và đo trên A55, iPhone** sau khi phát hành.
 
 ## Board
 
