@@ -2,6 +2,14 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-25 — agent
+
+- Owner thấy Studio "crash": app treo khi chưa đăng nhập (Shell `<Navigate>` lặp). #167, smoke mở Studio → `prod-2026-10-25.1`.
+- Pilot V1: mọi upload lên R2 trả 500 (R2 không nhận streaming SigV4 của AWS SDK). #169 → `prod-2026-10-25.2`, ảnh mẫu lên được.
+- Style `tiny-farm-16` (bản nháp, palette 44 màu đọc thô — PNG Kenney có `gAMA`) và `farm-tiny@1.0.0` (133 asset) **submit**.
+- Owner chọn "UAT rồi prod" cho cả hai lần phát hành, dù đã gác UAT: spec vẫn bắt qua UAT tới khi có ADR mới.
+- Chờ owner: duyệt style rồi pack trong Studio. Sau đó V2 (`games/vuon-rau`).
+
 ## 2026-10-24 (5) — agent
 
 - Owner xong S2; agent đặt `TOHE_ASSETS_REGISTRY`, viết ADR 0054 (#162), phát hành `uat-2026-10-24.4` (20/20) và

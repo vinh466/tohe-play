@@ -10,7 +10,7 @@ Luật chung:
 - Owner review và merge từng PR. Số ADR được cấp khi PR mở (tiếp sau 0045).
 - Lên UAT và prod theo luồng hiện có: owner nói "deploy" thì tag `uat-…`; nói "lên prod" thì tag `prod-…` (ADR 0041).
 
-## Tiến độ (2026-10-24 15:00)
+## Tiến độ (2026-10-25 02:30)
 
 | PR | Trạng thái |
 |---|---|
@@ -19,8 +19,9 @@ Luật chung:
 | C1 · K2 · T2 · B4 · K1 · K3b · W1a · B2 · T1 · B3 · T1b · W1b · S1a | **trên prod** — #143, #144, #147, #148, #150, #152, #151, #153, #154, #155, #157, #158, #159 (`uat-2026-10-24.3` → `prod-2026-10-24.2`, `check:uat` 20/20, `check:prod` 23/23; platform-infra #251) |
 | S1b | **trên prod** — [#160](https://github.com/vinh466/tohe-play/pull/160), `prod-2026-10-24.3` |
 | S2 | **xong** — owner: R2 `tohe-studio`, `assets.toheplay.io.vn` + WAF, DNS `studio.`, khoá Infisical; agent: biến `TOHE_ASSETS_REGISTRY`, ADR 0054 ([#162](https://github.com/vinh466/tohe-play/pull/162)); Studio bật ([platform-infra #252](https://github.com/vinetic-spaces/platform-infra/pull/252)), host `serving` ([#163](https://github.com/vinh466/tohe-play/pull/163)) |
-| V1 | spec **duyệt** ([#164](https://github.com/vinh466/tohe-play/pull/164)); nhập pack: phiên mới |
-| V2 | phiên mới |
+| Sửa sau phát hành | **trên prod** — [#167](https://github.com/vinh466/tohe-play/pull/167) app Studio treo khi chưa đăng nhập (`prod-2026-10-25.1`); [#169](https://github.com/vinh466/tohe-play/pull/169) upload lên R2 trả 500 vì streaming SigV4 (`prod-2026-10-25.2`, platform-infra #254, #255) |
+| V1 | spec **duyệt** ([#164](https://github.com/vinh466/tohe-play/pull/164)); style `tiny-farm-16` (bản nháp) và pack `farm-tiny@1.0.0` **đã submit** trên Studio prod (2026-10-25); chờ owner duyệt |
+| V2 | sau khi owner duyệt V1 |
 
 ## Điều chỉnh khi graduate (2026-10-24)
 
@@ -42,7 +43,12 @@ Luật chung:
 - Bản nháp riêng tư trên R2: R2 public cả bucket → quy tắc Cloudflare chỉ mở `blobs/`, `packs/`, hoặc bucket riêng cho
   bản nháp. Chốt cùng S2.
 - Retention và append-only cho `agents.audit`; trang console nhập vendor AI đã tra điều khoản (`studio.vendors`).
-- Kiểm thử thật: ảnh chụp sáng/tối của app Studio, SDK S3 với R2 thật, build arm64 của image API.
+- Kiểm thử thật: ảnh chụp sáng/tối của app Studio sau khi đăng nhập, build arm64 của image API. (SDK S3 với R2 thật: đã
+  chạy trên prod từ #169. Smoke e2e đã mở trang đăng nhập của app Studio từ #167.)
+- `prepare --palette` đọc pixel có áp gamma khi PNG còn chunk `gAMA` (các tile Kenney có), còn server đọc pixel thô:
+  palette lệch 1 đơn vị. Tạm thời chạy `prepare` không `--palette` trước để bỏ metadata. Sửa: bỏ metadata trước khi so
+  palette, hoặc giải mã không chuyển màu.
+- `tohe-studio` chưa có lệnh tạo style (`style create`, upload ảnh mẫu): V1 tạo `tiny-farm-16` bằng API trực tiếp.
 - Test `RoomsTests…time_limit` (Jint) trượt khi máy tải nặng, luôn qua trên CI.
 
 
