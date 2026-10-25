@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-10-25 (V1, V2 lên prod) — agent, phiên "ToHe Surface"
+
+- Owner: "làm và đẩy prod luôn". V0 #168 merged; V2 #170 (màn chào lần đầu, `tohe:greeting`) lên `prod-2026-10-25.3` trong đợt của
+  phiên "ToHe Studio" (agent đồng ý cho đi riêng); V1 #171 (trang chủ theo section, thẻ chào) lên `prod-2026-10-25.4`.
+- `check:uat` 20/20 (`uat-2026-10-25.4`), platform-infra #259; e2e smoke, journey, entries, rooms, updates xanh trên CI.
+- Tiếp: owner thử máy thật; V3 bố cục khung tablet và máy tính.
+
 ## 2026-10-25 (D-08–D-10, E-08 chốt; V0 = ADR 0055) — agent, phiên "ToHe Surface"
 
 - Owner merge #166 rồi: "duyet r nha" → D-08 A, D-09 A + D giữ domain/path, D-10 A (Q1 cho chọn, Q2 không), E-08.
