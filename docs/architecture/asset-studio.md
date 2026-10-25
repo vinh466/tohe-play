@@ -467,7 +467,10 @@ Object storage through the S3 API (the AWS SDK for .NET, path-style, so Cloudfla
 interface of the module's own (`IStudioStorage`): put, copy, read, check and delete an object, and list a prefix. One
 bucket holds the layout in [Storage](#storage) above. Published objects carry `Cache-Control: public, max-age=31536000,
 immutable`. An upload over HTTPS sends its payload unsigned (`UNSIGNED-PAYLOAD`), as R2 needs: R2 refuses the streaming
-SigV4 the SDK signs uploads with by default. Over HTTP — SeaweedFS locally — the SDK's signed payload stays.
+SigV4 the SDK signs uploads with by default. Over HTTP — SeaweedFS locally — the SDK's signed payload stays. An
+operation on a pack's files — the checks of a submission, a dry run or an approval, approving's copies, withdrawing,
+removing a draft's files — keeps up to 16 requests to the storage in flight: one at a time, a few hundred milliseconds
+each from production to R2, a pack of a hundred files outlasts the 100 seconds Cloudflare gives a request.
 
 The bucket's public side is the storage's, not the API's: in production a public address that serves `blobs/` and
 `packs/` alone; locally, SeaweedFS lets anyone read those two prefixes and nothing else

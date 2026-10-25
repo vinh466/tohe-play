@@ -1,0 +1,17 @@
+---
+// An icon of the public pages' one set (Phosphor, ../content/icons.ts): drawn in the colour of the text beside it
+// (currentColor), at the size of that text unless the stylesheet says otherwise, and always next to its words — it is
+// hidden from screen readers (docs/conventions/voice-and-look.md: no emoji as interface, every icon labelled).
+import { type IconName, icons } from '../content/icons.ts';
+
+interface Props {
+  name: IconName;
+  class?: string;
+}
+
+const { name, class: className = 'icon' } = Astro.props;
+---
+
+<svg class={className} viewBox="0 0 256 256" fill="currentColor" aria-hidden="true" focusable="false">
+  <path d={icons[name]} />
+</svg>

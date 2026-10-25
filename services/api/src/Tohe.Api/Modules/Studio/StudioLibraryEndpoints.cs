@@ -783,14 +783,14 @@ internal static partial class StudioLibraryEndpoints
         }
 
         var files = Files(assets);
-        foreach (var (sha256, ext) in files)
+        await Parallel.ForEachAsync(files, StudioStorageWork.Options(ct), async (file, token) =>
         {
-            var blob = StudioKeys.Blob(sha256, ext);
-            if (!await storage.ExistsAsync(blob, ct))
+            var blob = StudioKeys.Blob(file.Sha256, file.Ext);
+            if (!await storage.ExistsAsync(blob, token))
             {
-                await storage.CopyAsync(StudioKeys.Draft(versionId, sha256, ext), blob, StudioKeys.ContentType(ext), published: true, ct);
+                await storage.CopyAsync(StudioKeys.Draft(versionId, file.Sha256, file.Ext), blob, StudioKeys.ContentType(file.Ext), published: true, token);
             }
-        }
+        });
 
         if (!written)
         {
@@ -969,10 +969,8 @@ internal static partial class StudioLibraryEndpoints
             .ToListAsync(ct);
         var deleted = files.Where(file => !shared.Any(other => other.Sha256 == file.Sha256 && other.Ext == file.Ext)).ToList();
         await storage.DeleteAsync(StudioKeys.Manifest(version.PackId, version.Version), ct);
-        foreach (var (sha256, ext) in deleted)
-        {
-            await storage.DeleteAsync(StudioKeys.Blob(sha256, ext), ct);
-        }
+        await Parallel.ForEachAsync(deleted, StudioStorageWork.Options(ct), async (file, token) =>
+            await storage.DeleteAsync(StudioKeys.Blob(file.Sha256, file.Ext), token));
 
         var now = clock.GetUtcNow();
         version.Status = PackVersionStatus.Withdrawn;
@@ -1099,17 +1097,18 @@ internal static partial class StudioLibraryEndpoints
 
     private static async Task DeleteQuietlyAsync(IStudioStorage storage, IEnumerable<string> keys, ILoggerFactory logs)
     {
-        foreach (var key in keys)
+        var log = logs.CreateLogger(typeof(StudioLibraryEndpoints));
+        await Parallel.ForEachAsync(keys, StudioStorageWork.Options(CancellationToken.None), async (key, token) =>
         {
             try
             {
-                await storage.DeleteAsync(key, CancellationToken.None);
+                await storage.DeleteAsync(key, token);
             }
             catch (Exception error) when (error is not OperationCanceledException)
             {
-                LogDeleteFailed(logs.CreateLogger(typeof(StudioLibraryEndpoints)), error, key);
+                LogDeleteFailed(log, error, key);
             }
-        }
+        });
     }
 
     /// <summary>Saves a change whose status was read before: someone else changing it meanwhile is a 409.</summary>
