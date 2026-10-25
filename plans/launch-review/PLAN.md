@@ -22,11 +22,11 @@
 
 ## Next — one item
 
-**V1 trang chủ ∥ V2 cửa vào hub** ([graduation đợt 2b](#graduation-list--đợt-2b)), khi V0 (ADR 0055) merge. S3 vẫn chờ tranh.
+**Owner thử V1 + V2 trên máy thật** (trang chủ mới, thẻ chào, màn chào lần đầu) trên `prod-2026-10-25.4`; rồi V3 (bố cục khung tablet, máy tính). S3 vẫn chờ tranh.
 
 ## Waiting on the owner
 
-1. **Merge V0** (ADR 0055 + spec) khi đã đọc.
+1. **Thử trên máy thật** trang chủ mới, thẻ chào (sau khi chơi một game rồi mở lại `toheplay.io.vn`) và màn chào lần đầu (máy mới, hoặc xoá dữ liệu trang).
 2. **Thuê hoạ sĩ** theo [illustrator-brief.md](illustrator-brief.md) (16 avatar tò he, 4 ảnh bìa, linh vật 4 tư thế, sáng
    + tối). Có tranh là agent làm S3.
 3. **Tắt Cloudflare Web Analytics** cho `toheplay.io.vn`: kiểm lại 2026-10-24 với `Accept: text/html`, beacon vẫn được
@@ -89,9 +89,9 @@ G0 ADR 0046, 0047 + `surfaces.md` ([#111](https://github.com/vinh466/tohe-play/p
 
 | PR | Nội dung | Từ | Cần trước | Trạng thái |
 |---|---|---|---|---|
-| **V0** | ADR 0055 (sửa 0046, 0047, ghi chú 0043); `surfaces.md`, `identity.md`, `overview.md` | D-08–D-10 | — | PR mở |
-| **V1** | `apps/web`: hero + 6 section vi/en, thẻ chào đọc `tohe:greeting`, `check-build` (`ItemList` sang `/games/`) | D-08, D-09 | V0 | — |
-| **V2** | `apps/hub`: màn chào lần đầu, "Chơi thử trên máy này", ghi/xoá `tohe:greeting`, chip "· trên máy này", e2e smoke | D-09, D-10 | V0 | — |
+| **V0** ✓ [#168](https://github.com/vinh466/tohe-play/pull/168) | ADR 0055 (sửa 0046, 0047, ghi chú 0043); `surfaces.md`, `identity.md`, `overview.md` | D-08–D-10 | — | merged |
+| **V1** ✓ [#171](https://github.com/vinh466/tohe-play/pull/171) | `apps/web`: hero + 6 section vi/en, thẻ chào đọc `tohe:greeting`, `check-build` (`/games/` giữ `CollectionPage`) | D-08, D-09 | V0 | prod `prod-2026-10-25.4` |
+| **V2** ✓ [#170](https://github.com/vinh466/tohe-play/pull/170) | `apps/hub`: màn chào lần đầu, "Chơi thử trên máy này", ghi/xoá `tohe:greeting`, chip "Trên máy này", e2e | D-09, D-10 | V0 | prod `prod-2026-10-25.3` (cùng đợt của phiên Studio) |
 | **V3** | Bố cục khung trên tablet và máy tính, nút dính đáy ở `/r/`, đo tải lạnh danh mục | E-08 | V2 | — |
 
 V1 ∥ V2 (`apps/web` và `apps/hub`, không chung khu vực). Sau V3: owner thử máy thật → E-03 → E-05 → E-01.
