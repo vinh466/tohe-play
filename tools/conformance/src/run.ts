@@ -1107,25 +1107,31 @@ const PLAY_VIEWPORTS: Record<
 
 /**
  * After the random input, back to the play stage: a shell game left on its title screen plays again, and one with its
- * panel open over play closes it with `menu`. Returns what is wrong when play could not be reached, or null.
+ * panel open over play — or a screen or card over either — steps back with `menu`, at most four times. Returns what is
+ * wrong when play could not be reached, or null.
  */
 async function backToPlay(
   frame: Frame,
   host: ReturnType<typeof createHost>,
   menuOpen: () => boolean,
 ): Promise<string | null> {
-  if (!menuOpen()) return null;
-  const onTitle = await frame
-    .locator('[data-tohe-play]:visible')
-    .count()
-    .catch(() => 0);
-  if (onTitle > 0) {
-    const pressed = await playFromTitle(frame);
-    if (pressed !== 'pressed') return `could not play from the title screen: ${pressed}`;
-  } else {
+  // The random input can leave a game deep in its menus — a screen of its title (how to play, settings), a card over
+  // its panel — and Back steps out one level at a time: Back until play goes on or the title shows, whose play opens it.
+  for (let step = 0; step < 4; step++) {
+    if (!menuOpen()) return null;
+    const onTitle = await frame
+      .locator('[data-tohe-play]:visible')
+      .count()
+      .catch(() => 0);
+    if (onTitle > 0) {
+      const pressed = await playFromTitle(frame);
+      if (pressed !== 'pressed') return `could not play from the title screen: ${pressed}`;
+      return (await until(() => !menuOpen(), 3000)) ? null : 'the game stayed in its menu, not in play';
+    }
     host.menu();
+    if (await until(() => !menuOpen(), 1500)) return null;
   }
-  return (await until(() => !menuOpen(), 3000)) ? null : 'the game stayed in its menu, not in play';
+  return 'the game stayed in its menu, not in play';
 }
 
 /**
