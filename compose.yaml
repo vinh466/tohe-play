@@ -96,6 +96,10 @@ services:
       context: .
       dockerfile: deploy/docker/web.Dockerfile
       target: games
+      # A game with asset packs builds them from the Studio's registry (ADR 0053): https://assets.toheplay.io.vn holds
+      # every approved pack. Unset, such a game's build fails naming the variable.
+      args:
+        TOHE_ASSETS_REGISTRY: ${TOHE_ASSETS_REGISTRY:-}
     environment:
       # The hub, and the console, which frames a game to watch a ranked run (ADR 0032).
       HUB_ORIGINS: http://${TOHE_PUBLIC_HOST:-localhost}:4720 http://${TOHE_PUBLIC_HOST:-localhost}:4721

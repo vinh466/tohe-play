@@ -9,8 +9,8 @@ A game takes its pictures, sounds and fonts from packs approved in the [Asset St
 It pins each pack by version in `game.json`; `@tohe/assets` (`tools/assets`) turns that into a lock of hashes, a typed
 module for the game's code, and, at build time, the folder `studio/` that the
 [Game Contract](../contracts/game-contract-v1.md#assets) asks for
-([ADR 0053](../decisions/0053-assets-in-the-game-contract.md)). **No game uses assets yet**: this is the tool the first
-one will use.
+([ADR 0053](../decisions/0053-assets-in-the-game-contract.md)). `games/vuon-rau` is the first game that does: it takes
+the tileset of `farm-tiny@1.0.0`.
 
 ## 1. Declare the packs
 
@@ -30,12 +30,15 @@ not silently drop files. Without `include`, the game takes the whole pack.
 ## 2. Point at the registry
 
 The registry is the Studio's public storage: approved files and manifests, read without signing in. Its base URL comes
-from **`TOHE_ASSETS_REGISTRY`**, which has no default yet — the production bucket does not exist. When something must be
-fetched and the variable is unset, the tool fails and names it.
+from **`TOHE_ASSETS_REGISTRY`**, which has no default. When something must be fetched and the variable is unset, the
+tool fails and names it. Every approved pack is at the production registry:
 
 ```sh
-export TOHE_ASSETS_REGISTRY=https://assets.example.test
+export TOHE_ASSETS_REGISTRY=https://assets.toheplay.io.vn
 ```
+
+CI sets it for the jobs and passes it to the games image as a build argument (`deploy/docker/docker-bake.hcl`); a local
+`docker compose build games` takes it from the environment too.
 
 It reads two kinds of path below that base:
 

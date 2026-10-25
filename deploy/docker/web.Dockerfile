@@ -47,6 +47,10 @@ RUN pnpm turbo run build --filter=@tohe/docs \
  && if grep -rl 'tohe-docs\.invalid' .; then echo 'docs URL placeholder left outside HTML, XML or text' >&2; exit 1; fi
 
 FROM workspace AS build-games
+# A game with asset packs builds them from the Asset Studio's registry (ADR 0053): its files, fetched by the sha256 the
+# game's lock pins and checked against it. The registry's public base URL is a build argument, not a secret — anyone
+# may read it. Without it a game with assets fails its build, naming the variable.
+ARG TOHE_ASSETS_REGISTRY
 RUN pnpm turbo run build --filter=@tohe/games-host
 
 FROM caddy:2-alpine AS hub

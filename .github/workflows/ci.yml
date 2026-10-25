@@ -26,8 +26,8 @@ env:
   # jobs, and on main pushed as they are.
   IMAGES: ghcr.io/${{ github.repository }}
   TOHE_IMAGE_TAG: sha-${{ github.sha }}
-  # The Asset Studio's public storage, which a game with assets builds from (docs/guides/use-assets-in-a-game.md). No
-  # game uses assets yet and the bucket does not exist: until the variable is set, a build that must fetch fails naming it.
+  # The Asset Studio's public storage, which a game with assets builds from (docs/guides/use-assets-in-a-game.md): the
+  # verify and conformance jobs read it here, the games image as a build argument (deploy/docker/docker-bake.hcl).
   TOHE_ASSETS_REGISTRY: ${{ vars.TOHE_ASSETS_REGISTRY }}
 
 # A pull request runs what it touches (docs/guides/environments.md#continuous-integration): nothing for notes only, the
