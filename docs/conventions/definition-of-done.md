@@ -7,7 +7,8 @@ sidebar:
 
 A change is done when **all** of these are true:
 
-- [ ] `pnpm verify` passes locally (Biome, typecheck, unit + API tests, build, conformance).
+- [ ] `pnpm verify` passes locally for a change that touches code or a generated file. A docs-only change runs Biome
+      and the docs app with its link check — the scope CI runs for it.
 - [ ] New behaviour has tests at the lowest sensible level: pure logic in Vitest, endpoints in xUnit against
       PostgreSQL, games in conformance, user journeys in the e2e smoke test.
 - [ ] Generated files are regenerated and committed (OpenAPI, API types, JSON Schemas); `git status` is clean after

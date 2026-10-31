@@ -26,6 +26,13 @@ agents can add games quickly on a stable foundation. **`docs/` is the specificat
 | `deploy/` | Helm chart (`deploy/helm/tohe`), Caddyfiles and Dockerfiles, UAT scripts (`deploy/uat`) |
 | `tools/` | conformance kit, games-host, e2e smoke, codegen, telemetry report, claims (which worker changes what), assets (a game's asset packs: lock, typed module, `studio/` in its build) |
 
+## How work runs
+
+The loop, risk tiers, research depth, gates (V0–V4), stop rules and metrics are in
+[docs/guides/opencode-workflow.md](docs/guides/opencode-workflow.md). Roles, the work packet and claims are in
+[docs/guides/working-with-agents.md](docs/guides/working-with-agents.md). The docs are the source of truth;
+`.claude/` and `.opencode/` only carry them into a tool.
+
 ## Rules that are easy to break
 
 - Spec first; decisions that are expensive to reverse get an ADR (`docs/decisions/`, skill `/new-adr`).
