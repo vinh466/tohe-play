@@ -186,7 +186,10 @@ try {
   );
   await page.getByRole('link', { name: /Hỏi đáp/ }).tap();
   await page.waitForURL((url) => url.pathname === '/faq/' && url.searchParams.get('from') === 'app');
-  await page.getByRole('link', { name: 'Hỏi đáp', exact: true }).first().waitFor();
+  await page
+    .getByRole('navigation', { name: 'Các trang chính' })
+    .getByRole('link', { name: 'Sạp', exact: true })
+    .waitFor();
   const linksOut = async () => {
     let shown = 0;
     for (const link of await page.locator('a[data-out]').all()) if (await link.isVisible()) shown++;
@@ -196,14 +199,11 @@ try {
   if (onFaq.total === 0 || onFaq.shown !== 0)
     throw new Error(`a page the app opened shows ${onFaq.shown} of ${onFaq.total} links out of Tò He`);
   // The next page the child reads carries no ?from=app, and still has none.
-  await page
-    .getByRole('navigation', { name: 'Các trang chính' })
-    .getByRole('link', { name: 'Hướng dẫn' })
-    .tap();
-  await page.waitForURL((url) => url.pathname === '/guides/');
-  const onGuides = await linksOut();
-  if (onGuides.total === 0 || onGuides.shown !== 0)
-    throw new Error(`the next page shows ${onGuides.shown} of ${onGuides.total} links out of Tò He`);
+  await page.getByRole('navigation', { name: 'Các trang chính' }).getByRole('link', { name: 'Về' }).tap();
+  await page.waitForURL((url) => url.pathname === '/about/');
+  const onAbout = await linksOut();
+  if (onAbout.total === 0 || onAbout.shown !== 0)
+    throw new Error(`the next page shows ${onAbout.shown} of ${onAbout.total} links out of Tò He`);
   // The header's button is the way back into the app (this device has not opened a game: "Chơi ngay").
   await page.getByRole('banner').getByRole('link', { name: 'Chơi ngay', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
