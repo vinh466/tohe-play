@@ -107,20 +107,22 @@ function Catalog({ session }: { session: PlayingSession }) {
         {games.data?.length === 0 && <p className="text-ink-soft">{t('noGames')}</p>}
         {/* The columns follow the room: as many as fit tiles of a width that grows with the screen, stretched to fill
             the row, so a few games are big on a tablet or a computer and the width is never left empty. */}
-        <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9.5rem),1fr))] gap-4 md:grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] lg:grid-cols-[repeat(auto-fit,minmax(min(100%,15rem),1fr))] portrait:md:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] short:grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] short:gap-2">
-          {shown.map((game, index) => (
-            <li
-              key={game.id}
-              className="flex animate-pop-in flex-col rounded-3xl bg-surface p-3 shadow-sm short:p-2"
-              style={{ animationDelay: `${index * 40}ms` }}
-            >
+        <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9.5rem),1fr))] gap-4 md:grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] lg:grid-cols-[repeat(auto-fill,minmax(15rem,18rem))] lg:justify-center portrait:md:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] short:grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] short:gap-2">
+          {shown.map((game) => (
+            <li key={game.id} className="flex flex-col rounded-3xl bg-surface p-3 shadow-sm short:p-2">
               <Link
                 {...gameLink(game)}
                 data-tile
                 className="flex flex-col items-center gap-2 rounded-2xl text-center transition active:scale-95 short:gap-1"
               >
-                <GameIcon game={game} className="aspect-square w-full short:w-16" />
+                <GameCover game={game} className="aspect-video w-full short:w-24" />
                 <span className="font-bold text-ink text-lg leading-tight">{nameOf(game)}</span>
+              </Link>
+              <Link
+                {...gameLink(game)}
+                className="mt-2 flex min-h-11 items-center justify-center rounded-xl bg-brand px-4 font-bold text-on-brand text-xl transition active:scale-95"
+              >
+                {t('play')}
               </Link>
               <div className="mt-1 flex flex-wrap justify-center">
                 <ShareButton game={game} session={session} />
@@ -139,6 +141,19 @@ function gameLink(game: GameSummary) {
   return game.rooms && !hasShell(game)
     ? ({ to: '/play/$gameId/rooms', params: { gameId: game.id } } as const)
     : ({ to: '/play/$gameId', params: { gameId: game.id } } as const);
+}
+
+/** A game's cover: its picture, cropped to 16:9; a game without one gets a die on the soft surface. */
+function GameCover({ game, className }: { game: GameSummary; className: string }) {
+  return game.iconUrl ? (
+    <img src={game.iconUrl} alt="" className={`${className} shrink-0 rounded-2xl object-cover`} />
+  ) : (
+    <span
+      className={`grid ${className} shrink-0 place-items-center rounded-2xl bg-soft text-accent text-4xl`}
+    >
+      <Icon name="dice-five" weight="fill" />
+    </span>
+  );
 }
 
 /** A game's picture; a game without one gets a die. `className` sizes it (the picture is a square). */
@@ -163,7 +178,7 @@ function ContinueTile({ game }: { game: GameSummary }) {
       data-tile
       className="flex items-center gap-4 rounded-3xl bg-surface p-4 shadow-sm transition active:scale-[0.98] md:max-w-2xl md:gap-6 md:p-5 short:gap-3 short:p-2"
     >
-      <GameIcon game={game} className="size-24 md:size-32 short:size-14" />
+      <GameCover game={game} className="aspect-video w-32 md:w-48 short:w-24" />
       <span className="min-w-0 flex-1 font-black text-2xl text-ink leading-tight md:text-3xl short:text-xl">
         {nameOf(game)}
       </span>

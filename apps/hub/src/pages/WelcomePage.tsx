@@ -21,7 +21,6 @@ import { funnel } from '../telemetry/telemetry.ts';
 import { AnotherName } from '../ui/AnotherName.tsx';
 import { Avatar, AvatarGrid } from '../ui/AvatarGrid.tsx';
 import { Button } from '../ui/Button.tsx';
-import { DataLink } from '../ui/DataLink.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { TextField } from '../ui/TextField.tsx';
 import { ThemeButton } from '../ui/ThemePicker.tsx';
@@ -152,10 +151,20 @@ function SignIn() {
   return (
     <Screen narrow>
       <Brand subtitle={t('welcome.subtitle')} />
+      {cameBack}
+      {/* Play first (ADR 0056): a game before an account, for a newcomer and for a device that has played. */}
+      <div className="flex flex-col gap-2">
+        <Button onClick={() => void playOnDevice()}>
+          {hasDeviceProfiles ? t('welcome.playOnDevice') : t('welcome.tryOnDevice')}
+        </Button>
+        <p className="text-center text-ink-soft text-sm">{t('welcome.tryHint')}</p>
+      </div>
+      <p className="flex items-center gap-3 text-ink-soft text-sm before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
+        {t('welcome.orSignIn')}
+      </p>
       {passwordOn ? (
         <form onSubmit={submit} className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
           <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
-          {cameBack}
           <TextField
             label={t('welcome.email')}
             hint={t('welcome.emailHint')}
@@ -198,7 +207,6 @@ function SignIn() {
       ) : (
         <section className="flex flex-col gap-4 rounded-3xl bg-surface p-5 shadow-sm">
           <h2 className="font-bold text-ink text-xl">{t('welcome.title')}</h2>
-          {cameBack}
           <ProviderButtons alone />
         </section>
       )}
@@ -215,17 +223,6 @@ function SignIn() {
           </p>
         )}
       </div>
-      {/* The other choice of the app's door (ADR 0055): playing with no account, said plainly where progress stays. */}
-      <p className="flex items-center gap-3 text-ink-soft text-sm before:h-px before:flex-1 before:bg-line after:h-px after:flex-1 after:bg-line">
-        {t('welcome.or')}
-      </p>
-      <div className="flex flex-col gap-2">
-        <Button variant="secondary" onClick={() => void playOnDevice()}>
-          {hasDeviceProfiles ? t('welcome.playOnDevice') : t('welcome.tryOnDevice')}
-        </Button>
-        <p className="text-center text-ink-soft text-sm">{t('welcome.tryHint')}</p>
-      </div>
-      <DataLink />
     </Screen>
   );
 }

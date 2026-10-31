@@ -9,7 +9,7 @@ import { about } from './about.ts';
 import { faq } from './faq.ts';
 import { allOffline, type GamePageText, parseGameFacts, parseGamePage } from './game-page.ts';
 import { describeGame, gamePaths, gamesPage, loadGames } from './games.ts';
-import { home, homeQuestionIds } from './home.ts';
+import { home } from './home.ts';
 import { guides, install } from './install.ts';
 import { promise } from './promise.ts';
 import { formatDay, siteWords } from './site.ts';
@@ -341,15 +341,13 @@ describe('the two languages', () => {
   });
 });
 
-describe('the home page and the FAQ', () => {
-  it.each(languages)('link the home page’s three questions to the FAQ, by id, in %s', (lang) => {
+describe('the FAQ', () => {
+  it.each(languages)('keeps unique question ids in %s', (lang) => {
     const ids = faq[lang].questions.map((question) => question.id);
     expect(new Set(ids).size).toBe(ids.length);
-    expect(homeQuestionIds).toHaveLength(3);
-    for (const id of homeQuestionIds) expect(ids, id).toContain(id);
   });
 
-  it('keep the same question ids in both languages', () => {
+  it('keeps the same question ids in both languages', () => {
     expect(faq.en.questions.map((question) => question.id)).toEqual(
       faq.vi.questions.map((question) => question.id),
     );

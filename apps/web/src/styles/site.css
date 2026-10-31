@@ -618,63 +618,18 @@ section > h2 {
   color: var(--tohe-ink);
 }
 
-/* The home page (ADR 0055): a centred hero with two buttons — on a browser that has played here, the greeting in
-   their place — then sections, one idea each, grouped by space and type rather than a card each, and a closing call.
-   About 1100 px wide from tablet width. */
-main.home {
-  max-width: 70rem;
-}
-.hero {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 2rem 0 0.5rem;
-  text-align: center;
-}
-.hero-picture {
-  border-radius: 1.5rem;
-}
-.hero h1 {
-  margin: 0;
-  font-size: clamp(2.25rem, 8vw, 3.25rem);
-  font-weight: 900;
-  color: var(--tohe-brand-ink);
-}
-.hero .lead {
-  max-width: 38rem;
-  margin: 0;
-  font-size: 1.2rem;
-  color: var(--tohe-ink);
-}
-.hero-start,
+/* The greeting on the shelf (ADR 0055, 0056): a device that has played sees "Chào lại" and Chơi tiếp; without it the
+   section stays hidden. The words come from src/scripts/greeting.js. */
 .greet {
-  display: flex;
+  display: none;
   flex-direction: column;
   gap: 0.75rem;
   width: 100%;
-  max-width: 22rem;
-  margin-top: 1rem;
-}
-@media (min-width: 48rem) {
-  .hero-start {
-    flex-direction: row;
-    justify-content: center;
-    max-width: none;
-  }
-}
-/* src/scripts/returning.js sets data-returning on <html> before the first paint: the greeting takes the buttons'
-   place, and src/scripts/greeting.js, right after it, puts in who played and what (data-named). */
-.greet {
-  display: none;
   max-width: 26rem;
   padding: 1.25rem;
-  border-radius: 1.5rem;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 1rem;
   background: var(--tohe-surface);
-  border: 1px solid var(--tohe-line);
-}
-:root[data-returning] .hero-start {
-  display: none;
 }
 :root[data-returning] .greet {
   display: flex;
@@ -691,9 +646,9 @@ main.home {
 }
 .greet-hello {
   margin: 0;
+  color: var(--tohe-ink);
   font-size: 1.35rem;
   font-weight: 800;
-  color: var(--tohe-ink);
 }
 .greet-not-you {
   display: block;
@@ -709,170 +664,495 @@ main.home {
 .greet:not([data-named]) .greet-not-you {
   display: none;
 }
-.home > section + section {
-  margin-top: 3.5rem;
+
+/* The shelf (ADR 0056): a game first, then the rows. A cover is 16:9; the icon inside it is cropped until a drawn
+   cover exists. Paper, ink and the gấc red are the design tokens; the hard offset shadow is the shelf's own. */
+main.shelf {
+  max-width: 60rem;
 }
-.home section h2 {
-  margin: 0 0 0.75rem;
-  font-size: clamp(1.5rem, 4vw, 1.9rem);
-}
-/* One idea each: an icon beside its words (never alone), a short title, a few lines. */
-.points {
-  display: grid;
-  gap: 1.5rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-@media (min-width: 48rem) {
-  .what .points {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
-  }
-}
-.point h3 {
-  margin: 0.5rem 0 0.25rem;
-  font-size: 1.15rem;
-}
-.point p {
-  margin: 0;
-  color: var(--tohe-ink-soft);
-}
-.point-icon {
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 3rem;
-  height: 3rem;
-  border-radius: 1rem;
-  background: var(--tohe-soft);
-  color: var(--tohe-accent);
-}
-.point-icon svg {
-  width: 1.6rem;
-  height: 1.6rem;
-}
-.points.stacked .point {
-  display: grid;
-  grid-template-columns: 3rem 1fr;
-  column-gap: 1rem;
-  align-items: start;
-}
-.points.stacked .point-icon {
-  grid-row: span 2;
-}
-.points.stacked .point h3 {
-  margin-top: 0;
-}
-/* How it works: three numbered steps, in a row from tablet width. */
-.home .steps {
-  display: grid;
-  gap: 1rem;
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  counter-reset: step;
-}
-.home .steps li {
-  display: flex;
-  gap: 0.75rem;
-  align-items: baseline;
-  margin: 0;
-  padding: 0;
-  font-size: 1.1rem;
-  counter-increment: step;
-}
-.home .steps li::before {
-  content: counter(step);
-  display: inline-grid;
-  flex: none;
-  place-items: center;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  background: var(--tohe-soft);
-  color: var(--tohe-accent);
-  font-weight: 800;
-}
-@media (min-width: 48rem) {
-  .home .steps {
-    grid-template-columns: repeat(3, 1fr);
-    gap: 2rem;
-  }
-}
-/* Two columns from tablet width: the words, and what goes with them. Until the drawn pictures (ADR 0049, S3) the
-   sides do not alternate: the heading stays where reading starts. */
-.split {
+.shelf-hero {
   display: grid;
   gap: 1.25rem;
-  align-items: start;
+  padding-top: 1.5rem;
 }
 @media (min-width: 48rem) {
-  .split {
-    grid-template-columns: 1fr 1fr;
-    gap: 3rem;
+  .shelf-hero {
+    grid-template-columns: 1.6fr 1fr;
+    align-items: stretch;
+    gap: 1.5rem;
   }
 }
-.split-words > p {
-  margin: 0.5rem 0 0;
-}
-.split-words > p:has(.button) {
-  margin-top: 1rem;
-}
-/* The one way to the list of games: a card, because the whole of it is one tap. */
-.games-card {
+.feature {
   display: flex;
-  align-items: center;
-  gap: 1rem;
+  flex-direction: column;
+}
+.feature-cover {
+  position: relative;
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1.5px solid var(--tohe-ink);
+  border-bottom: 0;
+  border-radius: 1rem 1rem 0 0;
+  background: var(--tohe-soft);
+}
+.feature-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.sticker {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  padding: 0.2rem 0.55rem;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 0.4rem;
+  background: var(--tohe-notice);
+  color: var(--tohe-notice-ink);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  transform: rotate(-2deg);
+}
+.feature-body {
   padding: 1.25rem;
-  border-radius: 1.5rem;
+  border: 1.5px solid var(--tohe-ink);
+  border-top: 0;
+  border-radius: 0 0 1rem 1rem;
   background: var(--tohe-surface);
-  border: 1px solid var(--tohe-line);
-  color: var(--tohe-ink);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 0.1);
+}
+.feature-body h1 {
+  margin: 0;
+  color: var(--tohe-brand-ink);
+  font-size: clamp(2rem, 5vw, 3.4rem);
+  font-weight: 900;
+}
+.feature-body .lead {
+  margin: 0.4rem 0 0;
+  color: var(--tohe-ink-soft);
+}
+.eyebrow {
+  margin: 0 0 0.35rem;
+  color: var(--tohe-brand-ink);
+  font-size: 0.75rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.actions.start {
+  justify-content: flex-start;
+}
+.open-list {
+  display: flex;
+  flex-direction: column;
+  padding: 1.1rem;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 1rem;
+  background: var(--tohe-surface);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 0.1);
+}
+.open-list h2 {
+  margin: 0 0 0.8rem;
   font-size: 1.2rem;
+}
+.open-list ol {
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.open-list li {
+  display: grid;
+  grid-template-columns: 1.5rem 4rem 1fr;
+  gap: 0.6rem;
+  align-items: center;
+}
+.open-num {
+  color: var(--tohe-brand-ink);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+.open-cover {
+  display: block;
+  width: 4rem;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 0.5rem;
+}
+.open-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.open-name {
+  display: block;
+  color: var(--tohe-ink);
   font-weight: 800;
   text-decoration: none;
 }
-.games-card:hover {
-  border-color: var(--tohe-brand);
+.open-name:hover {
+  color: var(--tohe-brand-ink);
 }
-.games-card-label {
-  flex: 1;
-}
-.games-card .caret {
-  width: 1.5rem;
-  height: 1.5rem;
+.open-list .small {
   color: var(--tohe-ink-soft);
+  font-size: 0.75rem;
 }
-/* The questions parents ask, answered in place; the FAQ has the rest. */
-.ask + .ask {
-  border-top: 1px solid var(--tohe-line);
-}
-.ask summary {
-  min-height: 2.75rem;
-  padding: 0.75rem 0;
-  font-weight: 700;
-  cursor: pointer;
-}
-.ask p {
-  margin: 0 0 1rem;
-  color: var(--tohe-ink-soft);
-}
-.asks-all {
-  margin: 0.75rem 0 0;
+.open-list .more {
+  margin-top: auto;
+  padding-top: 0.8rem;
   font-weight: 700;
 }
-/* The closing call: centred, like the hero. */
-.closing {
+@media (max-width: 47.99rem) {
+  .open-list {
+    display: none;
+  }
+}
+.trust {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem 1rem;
+  align-items: center;
+  margin: 1rem 0 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+.trust span + span::before {
+  content: "·";
+  margin-right: 1rem;
+  color: var(--tohe-ink-faint);
+}
+.shelf-continue {
+  display: none;
+  margin-top: 2rem;
+}
+:root[data-returning] .shelf-continue {
+  display: block;
+}
+.shelf-continue h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.4rem;
+}
+.shelf-continue .greet {
+  max-width: 34rem;
+}
+.shelf-row {
+  margin-top: 2.5rem;
+}
+.shelf-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.8rem;
+}
+.shelf-head h2 {
+  margin: 0;
+  font-size: clamp(1.4rem, 3vw, 1.9rem);
+}
+.shelf-head > a {
+  color: var(--tohe-brand-ink);
+  font-weight: 700;
+  text-decoration: none;
+}
+.shelf-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+@media (min-width: 40rem) {
+  .shelf-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+@media (min-width: 56rem) {
+  .shelf-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+.shelf-card {
   display: flex;
   flex-direction: column;
-  align-items: center;
-  gap: 1rem;
-  padding: 2.5rem 1rem;
-  border-radius: 1.5rem;
-  background: var(--tohe-soft);
-  text-align: center;
+  height: 100%;
+  overflow: hidden;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 1rem;
+  background: var(--tohe-surface);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 0.1);
 }
-.home .closing h2 {
+.shelf-cover {
+  display: block;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border-bottom: 1.5px solid var(--tohe-ink);
+  background: var(--tohe-soft);
+}
+.shelf-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.shelf-card-body {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.8rem;
+}
+.shelf-card h2,
+.shelf-card h3 {
   margin: 0;
+  font-size: 1.05rem;
+}
+.shelf-card h2 a,
+.shelf-card h3 a {
+  color: var(--tohe-ink);
+  text-decoration: none;
+}
+.shelf-kind {
+  margin: 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.8rem;
+}
+.shelf-meta {
+  margin: 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+.shelf-play {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 2.5rem;
+  margin-top: auto;
+  border-radius: 0.5rem;
+  background: var(--tohe-brand-strong);
+  color: var(--tohe-on-brand);
+  font-size: 0.95rem;
+  font-weight: 800;
+  text-decoration: none;
+}
+.shelf-play:hover {
+  background: var(--tohe-brand);
+}
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.tag {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 999px;
+  color: var(--tohe-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.shelf-band {
+  display: grid;
+  gap: 1rem;
+  margin-top: 2.5rem;
+  padding: 1.5rem;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 1rem;
+  background: var(--tohe-ink);
+  color: var(--tohe-page);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 0.12);
+}
+@media (min-width: 48rem) {
+  .shelf-band {
+    grid-template-columns: 1.3fr 1fr;
+    align-items: center;
+  }
+}
+.shelf-band .eyebrow {
+  color: var(--tohe-soft-strong);
+}
+.shelf-band h2 {
+  margin: 0;
+  color: var(--tohe-page);
+}
+.shelf-band p {
+  margin: 0.4rem 0 0;
+  color: var(--tohe-soft);
+}
+.band-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+.shelf-band .button.secondary {
+  border-color: var(--tohe-page);
+  background: transparent;
+  color: var(--tohe-page);
+}
+
+/* A game's page as a store page (ADR 0056). */
+main.game-page {
+  max-width: 60rem;
+  padding-bottom: 5rem;
+}
+.game-hero {
+  display: grid;
+  gap: 1.25rem;
+  padding-top: 1rem;
+}
+@media (min-width: 48rem) {
+  .game-hero {
+    grid-template-columns: 1.45fr 1fr;
+    align-items: start;
+  }
+}
+.game-cover {
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 1rem;
+  background: var(--tohe-soft);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 0.1);
+}
+.game-cover img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.game-info {
+  padding: 1.25rem;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 1rem;
+  background: var(--tohe-surface);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 0.1);
+}
+.game-info h1 {
+  margin: 0;
+  color: var(--tohe-brand-ink);
+  font-size: clamp(2rem, 5vw, 3.2rem);
+  font-weight: 900;
+}
+.game-info .lead {
+  margin: 0.4rem 0 1rem;
+}
+.fact-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin: 1rem 0 0;
+  padding: 0;
+  list-style: none;
+}
+.fact-chips li {
+  padding: 0.2rem 0.6rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 999px;
+  color: var(--tohe-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+.game-body {
+  display: grid;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+@media (min-width: 48rem) {
+  .game-body {
+    grid-template-columns: 1.3fr 0.7fr;
+    align-items: start;
+  }
+}
+.game-intro {
+  margin: 0 0 1.5rem;
+  font-size: 1.15rem;
+}
+.game-shots {
+  display: grid;
+  gap: 0.8rem;
+  grid-template-columns: 1fr;
+}
+@media (min-width: 40rem) {
+  .game-shots {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+.game-shots img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 0.8rem;
+}
+.game-others-box {
+  padding: 1rem;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 1rem;
+  background: var(--tohe-surface);
+  box-shadow: 4px 4px 0 rgb(0 0 0 / 0.1);
+}
+.game-others-box h2 {
+  margin: 0 0 0.8rem;
+  font-size: 1.2rem;
+}
+.game-others {
+  display: grid;
+  gap: 0.7rem;
+}
+.game-others a {
+  display: grid;
+  grid-template-columns: 3.5rem 1fr;
+  gap: 0.6rem;
+  align-items: center;
+  color: var(--tohe-ink);
+  text-decoration: none;
+}
+.game-others img {
+  width: 3.5rem;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border: 1.5px solid var(--tohe-ink);
+  border-radius: 0.5rem;
+}
+.game-others strong {
+  display: block;
+  font-size: 0.9rem;
+}
+.game-others .small {
+  color: var(--tohe-ink-soft);
+  font-size: 0.75rem;
+}
+.game-playbar {
+  display: none;
+}
+@media (max-width: 47.99rem) {
+  .game-playbar[data-shown] {
+    position: fixed;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 20;
+    display: flex;
+    gap: 0.6rem;
+    padding: 0.6rem 0.8rem calc(0.6rem + env(safe-area-inset-bottom));
+    border-top: 1.5px solid var(--tohe-ink);
+    background: var(--tohe-page);
+  }
+  .game-playbar .button {
+    flex: 1;
+  }
+}
+
+/* A game page on a phone keeps its play bar at the bottom; the footer steps above it. */
+@media (max-width: 47.99rem) {
+  .game-playbar[data-shown] + .site-footer {
+    padding-bottom: 5rem;
+  }
 }

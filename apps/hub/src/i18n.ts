@@ -4,8 +4,8 @@ import { type Language, localStorageOrNothing, saveLanguage, startingLanguage } 
 
 const vi = {
   appName: 'Tò He',
-  tagline: 'Mấy trò chơi nhỏ cho cả nhà',
-  games: 'Trò chơi',
+  tagline: 'Sạp game nhỏ. Chơi một ván.',
+  games: 'Sạp',
   allGames: 'Tất cả trò chơi',
   play: 'Chơi',
   exit: 'Thoát',
@@ -27,7 +27,7 @@ const vi = {
   pin: {
     delete: 'Xoá',
   },
-  noGames: 'Chưa có trò chơi nào.',
+  noGames: 'Sạp chưa có trò nào.',
   loadFailed: 'Không tải được danh sách trò chơi.',
   gameNotFound: 'Không tìm thấy trò chơi này.',
   gameFailed: 'Trò chơi chưa chạy được. Thử mở lại nhé.',
@@ -91,8 +91,8 @@ const vi = {
     darkHint: 'Nền tối, đỡ chói khi chơi buổi tối',
   },
   welcome: {
-    title: 'Chào mừng đến Tò He',
-    subtitle: 'Đăng nhập để giữ tiến độ chơi trên mọi máy.',
+    title: 'Đăng nhập',
+    subtitle: 'Chơi không cần tài khoản. Đăng nhập nếu muốn giữ điểm trên mọi máy.',
     email: 'Email',
     emailHint: 'Tài khoản tạo trước khi có email: dùng tên đăng nhập.',
     password: 'Mật khẩu',
@@ -106,12 +106,13 @@ const vi = {
     noAccount: 'Chưa có tài khoản?',
     closed: 'Tò He đang tạm đóng đăng ký mới.',
     createAccount: 'Tạo tài khoản',
-    /** The app's door (ADR 0055): the other choice, under "hoặc", for a device that has played here before. */
+    /** The app's door (ADR 0055, 0056): play first, then sign in. */
     or: 'hoặc',
-    playOnDevice: 'Chơi trên máy này',
+    orSignIn: 'hoặc đăng nhập',
+    playOnDevice: 'Chơi tiếp',
     /** The same choice on a device that never played here: its first profile is shown before it plays. */
-    tryOnDevice: 'Chơi thử trên máy này',
-    tryHint: 'Tiến độ chỉ ở máy này; đăng nhập sau vẫn giữ.',
+    tryOnDevice: 'Chơi ngay',
+    tryHint: 'Không cần tài khoản. Điểm ở lại máy này; đăng nhập sau vẫn giữ.',
     try: {
       hint: 'Tên và hình này chỉ ở trên máy này. Đổi lúc nào cũng được.',
       play: 'Vào chơi',
@@ -431,7 +432,7 @@ const vi = {
   // The app's frame (ADR 0046): its three tabs, and what Chơi cùng and Tôi hold.
   frame: {
     label: 'Mục chính',
-    games: 'Trò chơi',
+    games: 'Sạp',
     together: 'Chơi cùng',
     me: 'Tôi',
   },
@@ -459,7 +460,7 @@ const vi = {
     open: 'Mở bàn',
     openGame: 'Mở bàn {{game}}',
     tablesTitle: 'Bàn đang ngồi',
-    tablesEmpty: 'Chưa ngồi bàn nào.',
+    tablesEmpty: 'Chưa ngồi bàn nào. Mở bàn bên dưới, rồi gửi link.',
     tableLine: '{{host}} · {{taken}}/{{seats}} chỗ',
     tableLineCode: 'Bàn {{code}} · {{host}} · {{taken}}/{{seats}} chỗ',
     invitesTitle: 'Lời mời',
@@ -698,7 +699,7 @@ const vi = {
   links: {
     title: 'Link của tôi',
     body: 'Các link mời bạn đã tạo. Chỉ thấy số lượt mở, không thấy ai mở.',
-    empty: 'Chưa gửi link nào.',
+    empty: 'Chưa gửi link nào. Mở bàn rồi gửi link cho bạn.',
     accountsNote:
       'Số tài khoản mới chỉ hiện khi từ 3 trở lên, để không ai biết riêng một người bạn đã đăng ký.',
     state: { ok: 'Đang mở', expired: 'Hết hạn', revoked: 'Đã thu hồi', used_up: 'Hết lượt' },
@@ -903,7 +904,7 @@ const vi = {
 
 const en: typeof vi = {
   appName: 'Tò He',
-  tagline: 'A few small games for the whole family',
+  tagline: 'A small shelf of games. Play one round.',
   games: 'Games',
   allGames: 'All games',
   play: 'Play',
@@ -924,7 +925,7 @@ const en: typeof vi = {
   pin: {
     delete: 'Delete',
   },
-  noGames: 'No games yet.',
+  noGames: 'The shelf is empty.',
   loadFailed: 'Could not load the games.',
   gameNotFound: 'Game not found.',
   gameFailed: 'The game did not start. Try opening it again.',
@@ -987,8 +988,8 @@ const en: typeof vi = {
     darkHint: 'Easy on the eyes in the evening',
   },
   welcome: {
-    title: 'Welcome to Tò He',
-    subtitle: 'Sign in to keep your progress on every device.',
+    title: 'Sign in',
+    subtitle: 'Play without an account. Sign in if you want your scores on every device.',
     email: 'Email',
     emailHint: 'An account made before email sign-in: use its username.',
     password: 'Password',
@@ -1003,9 +1004,10 @@ const en: typeof vi = {
     closed: 'Tò He is not taking new accounts for now.',
     createAccount: 'Create an account',
     or: 'or',
-    playOnDevice: 'Play on this device',
-    tryOnDevice: 'Try it on this device',
-    tryHint: 'Progress stays on this device. Sign in later and keep it.',
+    orSignIn: 'or sign in',
+    playOnDevice: 'Continue',
+    tryOnDevice: 'Play now',
+    tryHint: 'No account needed. Scores stay on this device; sign in later and keep them.',
     try: {
       hint: 'This name and picture stay on this device. Change them any time.',
       play: 'Play',
@@ -1352,7 +1354,7 @@ const en: typeof vi = {
     open: 'Open a table',
     openGame: 'Open a table for {{game}}',
     tablesTitle: 'Your tables',
-    tablesEmpty: 'Not at a table yet.',
+    tablesEmpty: 'Not at a table yet. Open one below, then send the link.',
     tableLine: '{{host}} · {{taken}}/{{seats}} seats',
     tableLineCode: 'Table {{code}} · {{host}} · {{taken}}/{{seats}} seats',
     invitesTitle: 'Invitations',
@@ -1585,7 +1587,7 @@ const en: typeof vi = {
   links: {
     title: 'My links',
     body: 'The invite links you made. You see only how often, never who opened them.',
-    empty: 'No links sent yet.',
+    empty: 'No links sent yet. Open a table, then send the link.',
     accountsNote: 'New accounts show only from 3 up, so nobody learns that one friend signed up.',
     state: { ok: 'Open', expired: 'Expired', revoked: 'Taken back', used_up: 'Used up' },
     opened: 'Opened',

@@ -170,7 +170,7 @@ async function playOneRound(page: Page) {
 const installCard = (page: Page) => page.getByRole('heading', { name: 'Cài Tò He' });
 const openStrip = (page: Page) => page.getByRole('region', { name: 'Mở bằng trình duyệt' });
 /** A tab of the app's frame (ADR 0046), in the bar at the bottom of a phone. */
-const tab = (page: Page, name: 'Trò chơi' | 'Chơi cùng' | 'Tôi') =>
+const tab = (page: Page, name: 'Sạp' | 'Chơi cùng' | 'Tôi') =>
   page.getByRole('navigation', { name: 'Mục chính' }).getByRole('link', { name, exact: true });
 const storedNo = (page: Page) => page.evaluate(() => localStorage.getItem('tohe:install-dismissed'));
 
@@ -189,11 +189,11 @@ try {
   await play.tap();
   // The app's door: the sign-in screen, with playing on this device as the other choice and where progress stays.
   await android.waitForURL(/\/account\/sign-in$/);
-  await android.getByText('Tiến độ chỉ ở máy này; đăng nhập sau vẫn giữ.').waitFor();
+  await android.getByText('Không cần tài khoản. Điểm ở lại máy này; đăng nhập sau vẫn giữ.').waitFor();
   if (await android.getByText(/đang tạm tắt/).isVisible())
     throw new Error('the door opens with a method that is off');
   await check(android, 'door');
-  await android.getByRole('button', { name: 'Chơi thử trên máy này' }).tap();
+  await android.getByRole('button', { name: 'Chơi ngay' }).tap();
   // The suggested profile, shown before it plays: nothing to type.
   await android.getByText('Tên và hình này chỉ ở trên máy này. Đổi lúc nào cũng được.').waitFor();
   const suggested = ((await android.getByRole('heading', { level: 1 }).innerText()) ?? '').trim();
@@ -241,7 +241,7 @@ try {
   }
   await me.getByRole('button', { name: 'Cài', exact: true }).waitFor();
   await check(android, 'me');
-  await tab(android, 'Trò chơi').tap();
+  await tab(android, 'Sạp').tap();
   await android.waitForURL(catalogUrl);
 
   step(
@@ -267,7 +267,7 @@ try {
   const sheet = android.getByRole('dialog', { name: 'Cài Tò He' });
   await sheet.getByText(/Cài đặt ứng dụng/).waitFor();
   await sheet.getByRole('button', { name: 'Đóng' }).tap();
-  await tab(android, 'Trò chơi').tap();
+  await tab(android, 'Sạp').tap();
   await android.waitForURL(catalogUrl);
 
   step(
@@ -462,7 +462,7 @@ try {
   await link.context().close();
 
   step(
-    'a guest at a game’s lobby has a way out (←); a path that is no screen says so in Vietnamese, with the way to Trò chơi (ADR 0046)',
+    'a guest at a game’s lobby has a way out (←); a path that is no screen says so in Vietnamese, with the way to Sạp (ADR 0046)',
   );
   const lost = await visitor('lost', userAgents.androidChrome, browser);
   await lost.goto(`${hubUrl}/play/tien-len/rooms`);
