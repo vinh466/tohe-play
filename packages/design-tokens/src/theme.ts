@@ -8,7 +8,7 @@ export type Theme = 'light' | 'dark';
 export const THEME_COOKIE = 'tohe-theme';
 
 /** Browser UI (status bar) colour per theme: --tohe-bar in tokens.css, checked by theme.test.ts. */
-export const BAR_COLOR: Record<Theme, string> = { light: '#f97316', dark: '#17110e' };
+export const BAR_COLOR: Record<Theme, string> = { light: '#f6efe3', dark: '#171310' };
 
 /** The saved choice in a `document.cookie` string; no cookie means "system". */
 export function parseChoice(cookie: string): ThemeChoice {
