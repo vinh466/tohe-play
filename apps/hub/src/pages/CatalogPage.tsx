@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import type { GameSummary } from '../api/client.ts';
 import { gamesQuery } from '../api/queries.ts';
@@ -21,9 +21,13 @@ import { syncsWithServer, useBackgroundSync } from '../session/useBackgroundSync
 import { db } from '../storage/db.ts';
 import { Icon } from '../ui/Icon.tsx';
 import { LeaderboardButton } from '../ui/Leaderboard.tsx';
+import { SaveProgressCard } from '../ui/SaveProgressCard.tsx';
 import { Screen } from '../ui/Screen.tsx';
 
 type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
+
+/** The tags a shelf card can be filtered by, in the order the row shows them. */
+const TAG_KEYS = ['puzzle', 'numbers', 'cards', 'classic', 'reflex'] as const;
 
 export function CatalogPage() {
   return (
@@ -44,6 +48,21 @@ function Catalog({ session }: { session: PlayingSession }) {
   const { player } = session;
   const games = useQuery(gamesQuery(player.id));
   const shown = useMemo(() => byShownName(games.data ?? [], i18n.language), [games.data, i18n.language]);
+  const [query, setQuery] = useState('');
+  const [activeTag, setActiveTag] = useState<string | null>(null);
+  const availableTags = useMemo(
+    () => TAG_KEYS.filter((tag) => shown.some((game) => game.tags.includes(tag))),
+    [shown],
+  );
+  const visible = useMemo(() => {
+    const needle = query.trim().toLocaleLowerCase(i18n.language);
+    return shown.filter(
+      (game) =>
+        (!activeTag || game.tags.includes(activeTag)) &&
+        (!needle || nameOf(game).toLocaleLowerCase(i18n.language).includes(needle)),
+    );
+  }, [shown, activeTag, query, i18n.language]);
+  const filtering = query.trim().length > 0 || activeTag !== null;
   const opened = useQuery({ queryKey: ['opened', player.id], queryFn: () => openedBy(db, player.id) });
   const back = useMemo(() => comingBack(opened.data ?? [], games.data ?? []), [opened.data, games.data]);
   const { acting } = useTablePlayer(session);
@@ -51,7 +70,7 @@ function Catalog({ session }: { session: PlayingSession }) {
   const online = useOnline();
   useBackgroundSync(player);
   // "Tất cả trò chơi" is a heading to read only when something else is above it to tell it from.
-  const sectionsAbove = back.last !== null || back.recent.length > 0;
+  const sectionsAbove = back.last !== null || back.recent.length > 0 || filtering;
 
   return (
     <Screen wide>
@@ -63,6 +82,7 @@ function Catalog({ session }: { session: PlayingSession }) {
       <MovedNotice />
 
       <InstallNudge />
+      {player.kind === 'device' ? <SaveProgressCard /> : null}
 
       {acting ? <SeatedTables player={acting} games={games.data ?? []} /> : null}
 
@@ -98,6 +118,44 @@ function Catalog({ session }: { session: PlayingSession }) {
 
       {!online && <p className="rounded-xl bg-notice px-4 py-2 text-notice-ink text-sm">{t('offline')}</p>}
 
+      <section aria-label={t('catalog.search')} className="flex flex-col gap-2">
+        <input
+          type="search"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          placeholder={t('catalog.searchPlaceholder')}
+          aria-label={t('catalog.search')}
+          className="min-h-12 rounded-xl border border-line bg-surface px-4 text-ink placeholder:text-ink-faint"
+        />
+        {availableTags.length > 0 && (
+          <div className="flex flex-wrap gap-2">
+            <button
+              type="button"
+              aria-pressed={activeTag === null}
+              onClick={() => setActiveTag(null)}
+              className={`min-h-11 rounded-full px-4 font-bold text-sm ${
+                activeTag === null ? 'bg-ink text-page' : 'border border-line text-ink-soft'
+              }`}
+            >
+              {t('catalog.all')}
+            </button>
+            {availableTags.map((tag) => (
+              <button
+                key={tag}
+                type="button"
+                aria-pressed={activeTag === tag}
+                onClick={() => setActiveTag(activeTag === tag ? null : tag)}
+                className={`min-h-11 rounded-full px-4 font-bold text-sm ${
+                  activeTag === tag ? 'bg-ink text-page' : 'border border-line text-ink-soft'
+                }`}
+              >
+                {t(`catalog.tags.${tag}`)}
+              </button>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section aria-labelledby="games-heading" className="flex flex-col gap-3">
         <h2 id="games-heading" className={sectionsAbove ? 'font-bold text-ink text-lg' : 'sr-only'}>
           {t('allGames')}
@@ -105,10 +163,11 @@ function Catalog({ session }: { session: PlayingSession }) {
         {games.isPending && <p className="text-ink-soft">{t('loading')}</p>}
         {games.isError && <p className="text-danger">{t('loadFailed')}</p>}
         {games.data?.length === 0 && <p className="text-ink-soft">{t('noGames')}</p>}
+        {!games.isPending && visible.length === 0 && <p className="text-ink-soft">{t('catalog.noMatch')}</p>}
         {/* The columns follow the room: as many as fit tiles of a width that grows with the screen, stretched to fill
             the row, so a few games are big on a tablet or a computer and the width is never left empty. */}
         <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,9.5rem),1fr))] gap-4 md:grid-cols-[repeat(auto-fit,minmax(min(100%,13rem),1fr))] lg:grid-cols-[repeat(auto-fill,minmax(15rem,18rem))] lg:justify-center portrait:md:grid-cols-[repeat(auto-fit,minmax(min(100%,18rem),1fr))] short:grid-cols-[repeat(auto-fit,minmax(7rem,1fr))] short:gap-2">
-          {shown.map((game) => (
+          {visible.map((game) => (
             <li key={game.id} className="flex flex-col rounded-3xl bg-surface p-3 shadow-sm short:p-2">
               <Link
                 {...gameLink(game)}
