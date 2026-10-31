@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ghép Khối — Tò He</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .shot .art { transform: scale(1.35); transform-origin: 50% 45%; }
+  .shot:nth-child(2) .art { transform: scale(1.8) translate(-8%, 6%); }
+  .shot:nth-child(3) .art { transform: scale(1.25) translate(6%, -4%); }
+  .mobile-playbar { display: none; }
+  @media (max-width: 900px) {
+    body { padding-bottom: 78px; }
+    .mobile-playbar {
+      display: grid; grid-template-columns: 1fr auto; gap: 10px; align-items: center;
+      position: fixed; left: 0; right: 0; bottom: 0; z-index: 30;
+      background: var(--paper); border-top: 1.5px solid var(--line-ink);
+      padding: 10px 14px calc(10px + env(safe-area-inset-bottom));
+    }
+    .mobile-playbar .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="home.html"><span class="brand-mark">T</span> Tò He</a>
+    <nav class="nav" aria-label="Chính">
+      <a class="active" href="home.html">Sạp</a>
+      <a href="home.html">Chơi cùng</a>
+      <a href="home.html">Về</a>
+    </nav>
+    <div class="top-actions">
+      <button type="button" class="icon-btn" aria-label="Tìm game">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <button type="button" class="icon-btn mobile-only" aria-label="Tài khoản">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>
+      </button>
+      <a class="login" href="home.html">Đăng nhập</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <a class="crumb" href="home.html">← Tất cả trò chơi</a>
+
+  <section class="game-hero" aria-labelledby="game-title">
+    <div class="cover">
+      <div class="art cover-merge">
+        <div class="grid-lines"></div>
+        <div class="blocks">
+          <span class="block b1">256</span>
+          <span class="block b2">16</span>
+          <span class="block b3">64</span>
+          <span class="block b4">2</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="game-info">
+      <p class="eyebrow">Giải đố · 5 phút</p>
+      <h1 id="game-title">Ghép Khối</h1>
+      <p class="hook">2048 nhưng có combo. Thả khối, gộp số, phá kỷ lục của chính mình.</p>
+      <div class="actions">
+        <a class="btn primary" href="home.html">Chơi ngay</a>
+        <a class="btn ghost" href="home.html">Rủ bạn</a>
+      </div>
+      <div class="facts">
+        <span class="fact">1 người</span>
+        <span class="fact">5 phút</span>
+        <span class="fact">Chơi offline</span>
+        <span class="fact">Không quảng cáo</span>
+        <span class="fact">Có bảng xếp hạng</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="shelf" aria-labelledby="shots-title">
+    <div class="shelf-head"><h2 id="shots-title">Ảnh chụp</h2><span class="small">Ảnh tạm — thay bằng ảnh gameplay thật</span></div>
+    <div class="shots">
+      <div class="shot"><div class="art cover-merge"><div class="grid-lines"></div><div class="blocks"><span class="block b1">256</span><span class="block b2">16</span><span class="block b3">64</span><span class="block b4">2</span></div></div></div>
+      <div class="shot"><div class="art cover-merge"><div class="grid-lines"></div><div class="blocks"><span class="block b1">256</span><span class="block b2">16</span><span class="block b3">64</span></div></div></div>
+      <div class="shot"><div class="art cover-merge"><div class="grid-lines"></div><div class="blocks"><span class="block b1">256</span><span class="block b2">16</span><span class="block b3">64</span><span class="block b4">2</span></div></div></div>
+    </div>
+  </section>
+
+  <div class="two-col">
+    <section class="how" aria-labelledby="how-title">
+      <h2 id="how-title">Cách chơi</h2>
+      <ol>
+        <li>Chạm vào một cột để thả khối đang cầm xuống.</li>
+        <li>Hai khối cùng số chạm nhau thì gộp thành khối lớn hơn.</li>
+        <li>Gộp liên tiếp thì điểm nhân lên. Hết cột là hết ván.</li>
+      </ol>
+      <p class="small" style="margin-top:18px">Máy lưu ván sau mỗi nước đi. Lần sau mở, bấm Chơi tiếp là chơi tiếp từ chỗ cũ.</p>
+    </section>
+
+    <aside class="aside-box" aria-labelledby="other-title">
+      <h3 id="other-title">Trò khác</h3>
+      <div class="other">
+        <a href="home.html">
+          <div class="mini"><div class="art cover-chamghep"><div class="tiles"><span class="tile">2</span><span class="tile">2</span><span class="tile">2</span><span class="tile ring">2</span></div></div></div>
+          <div><strong>Chạm Ghép</strong><span class="small">Giải đố · 5 phút</span></div>
+        </a>
+        <a href="home.html">
+          <div class="mini"><div class="art cover-tienlen"><div class="card c1"><span>3</span><span class="suit">♠</span></div><div class="card c2"><span>2</span><span class="suit red">♥</span></div></div></div>
+          <div><strong>Tiến Lên</strong><span class="small">Bài · 2–4 người</span></div>
+        </a>
+        <a href="home.html">
+          <div class="mini"><div class="art cover-vuon">
+            <svg viewBox="0 0 160 90" aria-hidden="true">
+              <rect width="160" height="90" fill="#7fb36a"/>
+              <rect y="60" width="160" height="30" fill="#5a3a28"/>
+              <g fill="#4f8a3d"><rect x="66" y="18" width="8" height="14"/><rect x="76" y="12" width="8" height="20"/><rect x="86" y="18" width="8" height="14"/></g>
+              <g fill="#e8842e"><rect x="68" y="30" width="24" height="8"/><rect x="64" y="38" width="32" height="8"/><rect x="68" y="46" width="24" height="8"/><rect x="72" y="54" width="16" height="8"/><rect x="76" y="62" width="8" height="8"/></g>
+            </svg>
+          </div></div>
+          <div><strong>Vườn Rau</strong><span class="small">Thư giãn · Một mình</span></div>
+        </a>
+      </div>
+    </aside>
+  </div>
+</main>
+
+<div class="mobile-playbar">
+  <a class="btn primary" href="home.html">Chơi ngay</a>
+  <a class="btn ghost" href="home.html">Rủ bạn</a>
+</div>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div><strong style="color:var(--ink)">Tò He</strong><span> · sạp game nhỏ, không quảng cáo.</span></div>
+    <div class="footer-links">
+      <a href="home.html">Về Tò He</a><a href="home.html">Phụ huynh</a><a href="home.html">Giúp</a><a href="home.html">Giấy tờ</a><a href="home.html">Làm game?</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

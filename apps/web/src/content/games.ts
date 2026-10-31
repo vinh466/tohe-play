@@ -19,7 +19,7 @@ const viPage = {
   description:
     'Các trò chơi nhỏ trên Tò He: ghép khối, bài Tiến Lên, thử phản xạ. Chơi ngay trên điện thoại, miễn phí, không quảng cáo, không cần tài khoản.',
   heading: 'Trò chơi',
-  lead: 'Mỗi trò chơi là một con tò he nhỏ: mở là chơi, một ván vài phút. Bấm Chơi, hoặc chọn một trò để xem cách chơi.',
+  lead: 'Mỗi trò là một ván ngắn: mở là chơi, vài phút. Bấm Chơi, hoặc chọn một trò để xem cách chơi.',
   play: 'Chơi',
   /** Only for a game that can be played at a table with others (the `rooms` capability). */
   playTogether: 'Chơi cùng',
@@ -39,7 +39,7 @@ export const gamesPage: Record<Lang, typeof viPage> = {
     description:
       'The small games on Tò He: merging number blocks, the card game Tiến Lên, a reflex test. Play now on your phone. Free, no ads, no account needed.',
     heading: 'Games',
-    lead: 'Every game is a small tò he: open it and play, a round takes a few minutes. Tap Play, or pick a game to see how to play.',
+    lead: 'Every game is a short round: open it and play, a few minutes. Tap Play, or pick a game to see how it plays.',
     play: 'Play',
     playTogether: 'Play together',
     back: '← All games',

@@ -48,7 +48,14 @@ const imageAlt = picture?.alt ?? words.imageAlt;
 const blocks = jsonLd.map((data) =>
   JSON.stringify({ '@context': 'https://schema.org', ...data }).replace(/</g, '\\u003c'),
 );
-const current = (href: string) => (path === href || path.startsWith(href) ? 'page' : undefined);
+const current = (href: string) =>
+  href === '/'
+    ? path === '/' || path.startsWith('/games/')
+      ? 'page'
+      : undefined
+    : path === href || path.startsWith(href)
+      ? 'page'
+      : undefined;
 /** Where the switch's button for `language` leads: this page, its pair, or — with no pair — that language's home. */
 const switchTo = (language: typeof lang) => (language === lang ? path : (pair ?? localPath(language, '/')));
 // The terms and the privacy notice are in Vietnamese only: an English page's links say so in their label and hreflang.
@@ -96,8 +103,8 @@ const legalHreflang = lang === 'vi' ? undefined : 'vi';
       </a>
       <nav class="site-nav" aria-label={words.navLabel}>
         {
-          words.nav.map(({ label, path: target }) => {
-            const href = localPath(lang, target);
+          words.nav.map(({ label, path: target, app }) => {
+            const href = app ? appPath(lang, target) : localPath(lang, target);
             return (
               <a href={href} aria-current={current(href)}>
                 {label}

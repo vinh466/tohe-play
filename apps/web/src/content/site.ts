@@ -21,6 +21,13 @@ export const site = {
   ogImage: { path: '/og.png', width: 1200, height: 630 },
 };
 
+export interface NavItem {
+  label: string;
+  path: string;
+  /** A link into the app, not a public page: it takes `appPath` and the page's language. */
+  app?: boolean;
+}
+
 const vi = {
   /** Under the name in a game's link-preview picture (generate:og): the same line as the home page's. */
   tagline: 'Mấy trò chơi nhỏ cho cả nhà',
@@ -34,10 +41,10 @@ const vi = {
   themeLabel: 'Giao diện',
   /** Three items: a fourth wrapped onto a line of its own on a 360 px phone; About is in the footer. The paths are the Vietnamese ones; an English page's are the same under /en/. */
   nav: [
-    { label: 'Trò chơi', path: '/games/' },
-    { label: 'Hướng dẫn', path: '/guides/' },
-    { label: 'Hỏi đáp', path: '/faq/' },
-  ],
+    { label: 'Sạp', path: '/' },
+    { label: 'Chơi cùng', path: '/together', app: true },
+    { label: 'Về', path: '/about/' },
+  ] satisfies NavItem[],
   /** The light/dark buttons in the footer: a drawn icon (src/layouts/ThemeIcon.astro) and the word. */
   themes: [
     { choice: 'light', label: 'Sáng' },
@@ -47,7 +54,7 @@ const vi = {
   /** The VI | EN switch in the header. */
   switch: { label: 'Ngôn ngữ' },
   footer: {
-    line: 'Tò He là dự án của một gia đình, không quảng cáo.',
+    line: 'Tò He là sạp game nhỏ, không quảng cáo.',
     about: 'Giới thiệu',
     promise: 'Lời hứa của Tò He',
     install: 'Cài ra màn hình chính',
@@ -70,10 +77,10 @@ const en: SiteWords = {
   navLabel: 'Main pages',
   themeLabel: 'Appearance',
   nav: [
-    { label: 'Games', path: '/games/' },
-    { label: 'Guides', path: '/guides/' },
-    { label: 'FAQ', path: '/faq/' },
-  ],
+    { label: 'Shelf', path: '/' },
+    { label: 'Play together', path: '/together', app: true },
+    { label: 'About', path: '/about/' },
+  ] satisfies NavItem[],
   themes: [
     { choice: 'light', label: 'Light' },
     { choice: 'dark', label: 'Dark' },
@@ -81,7 +88,7 @@ const en: SiteWords = {
   ],
   switch: { label: 'Language' },
   footer: {
-    line: 'Tò He is a family project, with no ads.',
+    line: 'Tò He is a small game shelf, with no ads.',
     about: 'About',
     promise: 'Our promise',
     install: 'Add to your home screen',

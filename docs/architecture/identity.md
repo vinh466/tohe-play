@@ -99,7 +99,9 @@ erDiagram
 
 - An **account** is someone who signs in, with one **verified email** that nobody else ever sees. It owns one to five
   **profiles**: the first is created with the account and named with its display name, and the last can never be
-  removed. A family is one account with a profile per player. It may also sign in with Google, GitHub or the
+  removed. A family is one account with a profile per player; its management lives in **Tôi → Gia đình**, behind the
+  manage PIN, and `/family` is the public page that explains it to a parent. The shelf does not lead with it
+  ([ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md)). It may also sign in with Google, GitHub or the
   deployment's OpenID Connect issuer, each linked by the provider's subject ([Signing in with a
   provider](#signing-in-with-a-provider)).
 - A **profile** is a player. Children only ever have profiles — never accounts, emails or passwords. Any profile may

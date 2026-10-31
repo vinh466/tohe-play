@@ -4,9 +4,9 @@ description: What Tò He is, how it is built, and where to find the rules that k
 ---
 
 Tò He is a small, self-hosted platform for quick casual games (merge-block, block-blast, tetris-likes, later
-mini farms and light RPGs) that run in a phone browser or as an installed PWA. It is built for one family and
-its friends, and it is designed so that **new games can be made quickly — including by AI agents — on top of a
-stable technical foundation**.
+mini farms and light RPGs) that run in a phone browser or as an installed PWA. It is built for players aged 16 and
+over first, with a family mode for parents who manage children, and it is designed so that **new games can be made
+quickly — including by AI agents — on top of a stable technical foundation**.
 
 Tò He runs in production at toheplay.io.vn ([ADR 0040](decisions/0040-all-of-tohe-on-one-domain-of-its-own.md)),
 with a UAT environment on the homelab where the family plays first.

@@ -1,38 +1,43 @@
 ---
-// The public home page, / in Vietnamese and /en/ in English (ADR 0055, which amends 0046 and 0047): an introduction
-// that someone new reads by scrolling — a centred hero with *Chơi ngay* and *Tôi đã có tài khoản*; what Tò He is; how it
-// works; playing together, with one card to the list of games; for children and parents; installing it like an app; the
-// questions parents ask, answered in place; and a closing *Chơi ngay*. No list of games here: /games/ and the app hold
-// it. It never redirects: a browser that has played here is greeted in the hero instead of the two buttons —
-// ../scripts/returning.js marks the page before the first paint, ../scripts/greeting.js, right after the card, puts in
-// the name and the game — and every page's header has *Chơi ngay* or *Chơi tiếp*. The developer docs are linked from
-// the footer only, so a page the app opens shows no link out of Tò He. The words are in ../content/home.ts.
-import { faq } from '../content/faq.ts';
+// The home page, / and /en/ (ADR 0056): the shelf. A hero game, the games open now, the greeting of a device that has
+// played, a quick row, the table band and every game. The story of what Tò He is lives in About; the parents' page in
+// /family/; the install guide and questions in /guides/ and /faq/. The words are in ../content/home.ts.
 import { latestDay } from '../content/game-page.ts';
 import { loadGames } from '../content/games.ts';
-import { home, homeQuestionIds } from '../content/home.ts';
+import { home } from '../content/home.ts';
 import { absolute, site } from '../content/site.ts';
 import { appPath, localPath, pageLanguage } from '../i18n.ts';
 import Page from '../layouts/Page.astro';
 import greetingUrl from '../scripts/greeting.js?url';
-import Icon from './Icon.astro';
 import UpdatedOn from './UpdatedOn.astro';
 
 const lang = pageLanguage(Astro.currentLocale);
 const words = home[lang];
 const path = localPath(lang, '/');
 const games = loadGames(lang);
+const featured =
+  games.find((game) => game.id === 'merge-block') ?? games.find((game) => game.together) ?? games[0];
+if (!featured) throw new Error('the shelf needs at least one game');
+const open = games.filter((game) => game.id !== featured.id).slice(0, 4);
+const quick = games.filter((game) => game.id !== featured.id).slice(0, 4);
 const tableGame = games.find((game) => game.together);
-const asked = homeQuestionIds.map((id) => {
-  const question = faq[lang].questions.find((item) => item.id === id);
-  if (!question) throw new Error(`the home page answers the FAQ's question "${id}", which is not there`);
-  return question;
-});
+const tags = [...new Set(games.flatMap((game) => game.genre))].slice(0, 5);
 const updated = latestDay([words.updated, ...games.map((game) => game.page.updated)]);
 const gamePath = (id: string) => localPath(lang, `/games/${id}/`);
-const fill = (template: string, values: Record<string, string>) =>
-  template.replace(/\{(\w+)\}/g, (_, key: string) => values[key] ?? '');
-const playUrl = appPath(lang, '/play');
+const playPath = (id: string) => appPath(lang, `/play/${id}`);
+const roomsPath = (id: string) => appPath(lang, `/play/${id}/rooms`);
+const coverOf = (game: (typeof games)[number]) => game.pictures[0]?.src ?? game.icon;
+const metaOf = (game: (typeof games)[number]) =>
+  [
+    game.genre[0],
+    game.seats
+      ? `${game.seats.min}–${game.seats.max} ${lang === 'vi' ? 'người' : 'players'}`
+      : lang === 'vi'
+        ? 'Một mình'
+        : 'One player',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 /** What the greeting needs of each game, by id: its name in this page's language and where it plays in the app. */
 const greetingGames = Object.fromEntries(
   games.map((game) => [game.id, { name: game.name, href: appPath(lang, `/play/${game.id}`) }]),
@@ -58,20 +63,75 @@ const jsonLd = [
     email: site.email,
     sameAs: [site.github],
   },
+  {
+    '@type': 'ItemList',
+    name: words.all.heading,
+    inLanguage: lang,
+    itemListElement: games.map((game, index) => ({
+      '@type': 'ListItem',
+      position: index + 1,
+      url: absolute(gamePath(game.id)),
+      name: game.name,
+    })),
+  },
 ];
 ---
 
 <Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
-  <main id="main" class="home">
-    <section class="hero" aria-labelledby="hero-title">
-      <img class="hero-picture" src="/favicon.svg" alt="" width="88" height="88" />
-      <h1 id="hero-title">{site.name}</h1>
-      <p class="lead">{words.line}</p>
-      <div class="hero-start">
-        <a class="button primary" href={playUrl}>{words.start.play}</a>
-        <a class="button secondary" href={appPath(lang, '/account/sign-in')}>{words.start.account}</a>
-      </div>
-      {/* Shown in place of the two buttons on a browser that has played here; ../scripts/greeting.js fills it in. */}
+  <main id="main" class="shelf">
+    <section class="shelf-hero" aria-labelledby="hero-title">
+      <article class="feature">
+        <a class="feature-cover" href={gamePath(featured.id)} aria-hidden="true" tabindex="-1">
+          <img src={coverOf(featured)} alt="" width="1280" height="720" />
+          <span class="sticker">{words.hero.sticker}</span>
+        </a>
+        <div class="feature-body">
+          <p class="eyebrow">{words.hero.eyebrow}</p>
+          <h1 id="hero-title">{featured.name}</h1>
+          <p class="lead">{featured.page.kind}</p>
+          <div class="actions start">
+            <a class="button primary" href={playPath(featured.id)}>{words.hero.play}</a>
+            {
+              featured.together && (
+                <a class="button secondary" href={roomsPath(featured.id)}>
+                  {words.hero.together}
+                </a>
+              )
+            }
+          </div>
+        </div>
+      </article>
+
+      {
+        open.length > 0 && (
+          <aside class="open-list" aria-labelledby="open-title">
+            <h2 id="open-title">{words.open.heading}</h2>
+            <ol>
+              {open.map((game, index) => (
+                <li>
+                  <span class="open-num">{String(index + 1).padStart(2, '0')}</span>
+                  <a class="open-cover" href={gamePath(game.id)} aria-hidden="true" tabindex="-1">
+                    <img src={coverOf(game)} alt="" width="160" height="90" loading="lazy" />
+                  </a>
+                  <div class="open-words">
+                    <a class="open-name" href={gamePath(game.id)}>{game.name}</a>
+                    <span class="small">{metaOf(game)}</span>
+                  </div>
+                </li>
+              ))}
+            </ol>
+            <a class="more" href={localPath(lang, '/games/')}>{words.open.more}</a>
+          </aside>
+        )
+      }
+    </section>
+
+    <p class="trust">
+      {words.trust.map((item) => <span>{item}</span>)}
+    </p>
+
+    <section class="shelf-continue" aria-labelledby="continue-title">
+      <h2 id="continue-title">{words.continue.heading}</h2>
       <div
         class="greet"
         data-greeting-card
@@ -82,120 +142,85 @@ const jsonLd = [
       >
         <span class="greet-avatar" data-greeting="avatar" aria-hidden="true"></span>
         <p class="greet-hello" data-greeting="hello">{words.greet.helloPlain}</p>
-        <a class="button primary" data-greeting="play" href={playUrl}>{words.greet.playPlain}</a>
-        <a class="button secondary greet-enter" href={playUrl}>{words.greet.enter}</a>
+        <a class="button primary" data-greeting="play" href={playPath(featured.id)}>{words.greet.playPlain}</a>
+        <a class="button secondary greet-enter" href={appPath(lang, '/play')}>{words.greet.enter}</a>
         <a class="greet-not-you" data-greeting="not-you" href={`/account/profiles?ask=true&lang=${lang}`}></a>
       </div>
       <script is:inline src={greetingUrl}></script>
     </section>
 
-    <section class="what" aria-labelledby="what">
-      <h2 id="what">{words.what.heading}</h2>
-      <ul class="points">
-        {
-          words.what.points.map((point) => (
-            <li class="point">
-              <span class="point-icon">
-                <Icon name={point.icon} />
-              </span>
-              <h3>{point.title}</h3>
-              <p>{point.text}</p>
-            </li>
-          ))
-        }
-      </ul>
-    </section>
+    {
+      quick.length > 0 && (
+        <section class="shelf-row" aria-labelledby="quick-title">
+          <div class="shelf-head">
+            <h2 id="quick-title">{words.quick.heading}</h2>
+            <a href={localPath(lang, '/games/')}>{words.quick.all}</a>
+          </div>
+          <ul class="shelf-grid">
+            {quick.map((game) => (
+              <li>
+                <article class="shelf-card">
+                  <a class="shelf-cover" href={gamePath(game.id)} aria-hidden="true" tabindex="-1">
+                    <img src={coverOf(game)} alt="" width="640" height="360" loading="lazy" />
+                  </a>
+                  <div class="shelf-card-body">
+                    <h3><a href={gamePath(game.id)}>{game.name}</a></h3>
+                    <p class="shelf-kind">{game.page.kind}</p>
+                    <p class="shelf-meta">{metaOf(game)}</p>
+                    <a class="shelf-play" href={playPath(game.id)}>{words.all.play}</a>
+                  </div>
+                </article>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )
+    }
 
-    <section class="how" aria-labelledby="how">
-      <h2 id="how">{words.how.heading}</h2>
-      <ol class="steps">
-        {words.how.steps.map((step) => <li>{step}</li>)}
-      </ol>
-    </section>
+    {
+      tableGame && (
+        <section class="shelf-band" aria-labelledby="together-title">
+          <div>
+            <p class="eyebrow">{words.together.eyebrow}</p>
+            <h2 id="together-title">{words.together.heading}</h2>
+            <p>{words.together.text}</p>
+          </div>
+          <div class="band-actions">
+            <a class="button primary" href={roomsPath(tableGame.id)}>{words.together.create}</a>
+            <a class="button secondary" href={appPath(lang, '/together')}>{words.together.code}</a>
+          </div>
+        </section>
+      )
+    }
 
-    <section class="split" aria-labelledby="together">
-      <div class="split-words">
-        <h2 id="together">{words.together.heading}</h2>
-        <p>{words.together.text}</p>
+    <section class="shelf-row" aria-labelledby="all-title">
+      <div class="shelf-head">
+        <h2 id="all-title">{words.all.heading}</h2>
         {
-          tableGame && (
-            <p>
-              <a class="button secondary" href={gamePath(tableGame.id)}>
-                {fill(words.together.try, { game: tableGame.name })}
-              </a>
-            </p>
+          tags.length > 0 && (
+            <div class="tags" aria-label={words.all.heading}>
+              {tags.map((tag) => <span class="tag">{tag}</span>)}
+            </div>
           )
         }
       </div>
-      <a class="games-card" href={localPath(lang, '/games/')}>
-        <span class="point-icon">
-          <Icon name="play" />
-        </span>
-        <span class="games-card-label">{fill(words.together.games, { count: String(games.length) })}</span>
-        <Icon name="caret-right" class="icon caret" />
-      </a>
-    </section>
-
-    <section class="split" aria-labelledby="family">
-      <div class="split-words">
-        <h2 id="family">{words.family.heading}</h2>
-        <p><a class="more" href={localPath(lang, '/promise/')}>{words.family.promise}</a></p>
-      </div>
-      <ul class="points stacked">
-        {
-          words.family.points.map((point) => (
-            <li class="point">
-              <span class="point-icon">
-                <Icon name={point.icon} />
-              </span>
-              <h3>{point.title}</h3>
-              <p>{point.text}</p>
-            </li>
-          ))
-        }
+      <ul class="shelf-grid">
+        {games.map((game) => (
+          <li>
+            <article class="shelf-card">
+              <a class="shelf-cover" href={gamePath(game.id)} aria-hidden="true" tabindex="-1">
+                <img src={coverOf(game)} alt="" width="640" height="360" loading="lazy" />
+              </a>
+              <div class="shelf-card-body">
+                <h3><a href={gamePath(game.id)}>{game.name}</a></h3>
+                <p class="shelf-kind">{game.page.kind}</p>
+                <p class="shelf-meta">{metaOf(game)}</p>
+                <a class="shelf-play" href={playPath(game.id)}>{words.all.play}</a>
+              </div>
+            </article>
+          </li>
+        ))}
       </ul>
-    </section>
-
-    <section class="split" aria-labelledby="install">
-      <div class="split-words">
-        <h2 id="install">{words.install.heading}</h2>
-        <p>{words.install.text}</p>
-        <p><a class="more" href={localPath(lang, '/guides/install/')}>{words.install.guide}</a></p>
-      </div>
-      <ul class="points stacked">
-        <li class="point">
-          <span class="point-icon">
-            <Icon name="device-mobile" />
-          </span>
-          <p>{words.install.android}</p>
-        </li>
-        <li class="point">
-          <span class="point-icon">
-            <Icon name="device-mobile" />
-          </span>
-          <p>{words.install.iphone}</p>
-        </li>
-      </ul>
-    </section>
-
-    <section class="asks-section" aria-labelledby="asks">
-      <h2 id="asks">{words.questions.heading}</h2>
-      <div class="asks">
-        {
-          asked.map(({ id, q, a }) => (
-            <details class="ask" id={`hoi-${id}`}>
-              <summary>{q}</summary>
-              <p>{a}</p>
-            </details>
-          ))
-        }
-      </div>
-      <p class="asks-all"><a href={localPath(lang, '/faq/')}>{words.questions.all}</a></p>
-    </section>
-
-    <section class="closing" aria-labelledby="closing">
-      <h2 id="closing">{words.closing.heading}</h2>
-      <a class="button primary" href={playUrl}>{words.start.play}</a>
     </section>
 
     <UpdatedOn day={updated} />

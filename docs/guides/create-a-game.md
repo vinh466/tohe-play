@@ -64,7 +64,7 @@ sidebar:
    pnpm --filter @tohe/game-<id> conformance    # then look at test-results/conformance/<id>*.png (one per theme)
    ```
 9. **Give it its public pages.** `/games/<id>/` and its English page `/en/games/<id>/` are made from the game's folder
-   ([Surfaces](../architecture/surfaces.md#the-introduction-surface)). In `public/game.json`, write the descriptions for
+   ([Surfaces](../architecture/surfaces.md#the-shelf-and-a-games-page)). In `public/game.json`, write the descriptions for
    someone who has never heard of the game (`descriptions.vi` is the Vietnamese page's search description,
    `description` the English page's), and give `minAge`, `orientation` and `tags`. Beside `public/`, write
    `page/vi.md` and `page/en.md` — front matter `updated` (today, `YYYY-MM-DD`) and `kind` (what it is in a few words),

@@ -19,20 +19,30 @@ export function AppFrame() {
   const pathname = useRouterState({ select: (state) => state.location.pathname });
   const current = tabOf(pathname);
   const typing = useTyping();
+  // The door and the steps that make an account are a way in, not a tab: no bar, no rail (ADR 0056).
+  const bare = isBare(pathname);
   return (
     <FramedContext.Provider value={true}>
       <FrameBackContext.Provider value={backTarget(pathname)}>
-        <div className="flex min-h-dvh flex-col pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[calc(7rem+env(safe-area-inset-left))] short:pb-0 short:pl-[calc(7rem+env(safe-area-inset-left))]">
-          <TabNav
-            current={current}
-            className="fixed inset-y-0 left-0 z-30 hidden w-[calc(7rem+env(safe-area-inset-left))] flex-col gap-2 border-line border-r bg-surface pt-[max(1.5rem,env(safe-area-inset-top))] pl-[env(safe-area-inset-left)] md:flex short:flex short:gap-1 short:pt-[max(0.5rem,env(safe-area-inset-top))]"
-            item="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl mx-2 px-1 text-center text-sm short:min-h-14 short:gap-0"
-          />
+        <div
+          className={`flex min-h-dvh flex-col ${
+            bare
+              ? ''
+              : 'pb-[calc(4rem+env(safe-area-inset-bottom))] md:pb-0 md:pl-[calc(7rem+env(safe-area-inset-left))] short:pb-0 short:pl-[calc(7rem+env(safe-area-inset-left))]'
+          }`}
+        >
+          {bare ? null : (
+            <TabNav
+              current={current}
+              className="fixed inset-y-0 left-0 z-30 hidden w-[calc(7rem+env(safe-area-inset-left))] flex-col gap-2 border-line border-r bg-surface pt-[max(1.5rem,env(safe-area-inset-top))] pl-[env(safe-area-inset-left)] md:flex short:flex short:gap-1 short:pt-[max(0.5rem,env(safe-area-inset-top))]"
+              item="flex min-h-20 flex-col items-center justify-center gap-1 rounded-2xl mx-2 px-1 text-center text-sm short:min-h-14 short:gap-0"
+            />
+          )}
           <Outlet />
           <UpdateNotice pathname={pathname} />
           {/* The keyboard of a phone covers the bottom of the screen: the bar steps aside while someone types, so it never
             sits over the field (or is pushed up over it, where the browser resizes the page). */}
-          {typing ? null : (
+          {bare || typing ? null : (
             <TabNav
               current={current}
               className="fixed inset-x-0 bottom-0 z-30 grid grid-cols-3 border-line border-t bg-surface px-[env(safe-area-inset-left)] pb-[env(safe-area-inset-bottom)] md:hidden short:hidden"
@@ -42,6 +52,19 @@ export function AppFrame() {
         </div>
       </FrameBackContext.Provider>
     </FramedContext.Provider>
+  );
+}
+
+/** The screens that are a way in rather than a tab: the door, registering, and the password steps. */
+function isBare(pathname: string): boolean {
+  const path = pathname.length > 1 ? pathname.replace(/\/+$/, '') : pathname;
+  return (
+    path === '/account/sign-in' ||
+    path === '/account/sign-in/continue' ||
+    path === '/account/register' ||
+    path === '/account/register/confirm' ||
+    path === '/account/password/forgot' ||
+    path === '/account/password/reset'
   );
 }
 

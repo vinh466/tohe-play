@@ -20,7 +20,6 @@ import { Icon } from '../ui/Icon.tsx';
 import { Screen } from '../ui/Screen.tsx';
 import { Segmented } from '../ui/Segmented.tsx';
 import { Switch } from '../ui/Switch.tsx';
-import { shortVersion } from '../ui/version.ts';
 
 type PlayingSession = Extract<SessionState, { status: 'device' | 'account' }> & { player: Player };
 
@@ -178,7 +177,6 @@ function Me({ session }: { session: PlayingSession }) {
           </Group>
         </div>
       </div>
-      <Version />
     </Screen>
   );
 }
@@ -285,14 +283,4 @@ function Feedback() {
       <Icon name="envelope-simple" className="text-ink-soft text-xl" />
     </OutboundLink>
   );
-}
-
-function Version() {
-  const { t } = useTranslation();
-  const config = useQuery(configQuery);
-  return config.data ? (
-    <p className="text-center text-ink-soft text-xs">
-      {t('account.version', { version: shortVersion(config.data.apiVersion) })}
-    </p>
-  ) : null;
 }

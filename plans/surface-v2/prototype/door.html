@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cửa vào — Tò He</title>
+<link rel="stylesheet" href="concept.css">
+<style>
+  .door-wrap { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 34px 0 10px; align-items: start; }
+  .panel {
+    border: 1.5px solid var(--line-ink); border-radius: var(--radius); background: var(--surface);
+    box-shadow: var(--shadow); padding: 28px;
+  }
+  .panel.dark { background: var(--ink); color: var(--paper); border-color: var(--ink); }
+  .panel.dark .small, .panel.dark .hook { color: #d9c9b6; }
+  .door-brand { display: flex; align-items: center; gap: 12px; margin-bottom: 22px; }
+  .door-brand .brand-mark { width: 44px; height: 44px; font-size: 22px; }
+  .door-brand strong { font-size: 22px; letter-spacing: -0.03em; }
+  .door h1 { font-size: clamp(34px, 4vw, 50px); margin-bottom: 10px; }
+  .door .hook { margin-bottom: 22px; }
+  .door .btn { width: 100%; }
+  .or { display: flex; align-items: center; gap: 12px; color: var(--ink-soft); font-size: 13px; margin: 18px 0; }
+  .or::before, .or::after { content: ""; height: 1px; background: var(--line); flex: 1; }
+  .door .link { display: block; text-align: center; font-weight: 700; color: var(--gac); margin-top: 16px; }
+  .return-card { display: flex; flex-direction: column; gap: 14px; }
+  .return-card .who { display: flex; align-items: center; gap: 12px; }
+  .avatar { width: 44px; height: 44px; border-radius: 50%; background: #f6d77a; border: 1.5px solid var(--line-ink); display: grid; place-items: center; font-weight: 800; }
+  .return-card .continue-line { display: grid; grid-template-columns: 72px 1fr; gap: 12px; align-items: center; border: 1.5px solid var(--line); border-radius: 10px; padding: 10px; }
+  .return-card .mini { width: 72px; aspect-ratio: 16/9; border-radius: 7px; border: 1.5px solid var(--line-ink); overflow: hidden; position: relative; }
+  .nudge { margin-top: 22px; display: grid; grid-template-columns: 1fr auto; gap: 18px; align-items: center; }
+  .nudge h2 { font-size: clamp(22px, 2.4vw, 30px); }
+  .nudge .actions { margin-top: 12px; }
+  .score { font-size: 42px; font-weight: 800; letter-spacing: -0.04em; font-variant-numeric: tabular-nums; }
+  .note { margin: 18px 0 0; font-size: 13px; color: var(--ink-soft); }
+  @media (max-width: 900px) {
+    .door-wrap { grid-template-columns: 1fr; padding-top: 18px; }
+    .panel { padding: 20px; }
+    .nudge { grid-template-columns: 1fr; }
+    .nudge .btn { width: 100%; }
+  }
+</style>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="topbar-inner">
+    <a class="brand" href="home.html"><span class="brand-mark">T</span> Tò He</a>
+    <nav class="nav" aria-label="Chính">
+      <a href="home.html">Sạp</a>
+      <a href="home.html">Chơi cùng</a>
+      <a href="home.html">Về</a>
+    </nav>
+    <div class="top-actions">
+      <button type="button" class="icon-btn" aria-label="Tìm game">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+      </button>
+      <button type="button" class="icon-btn mobile-only" aria-label="Tài khoản">
+        <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4.5 21a7.5 7.5 0 0 1 15 0"/></svg>
+      </button>
+      <a class="login" href="home.html">Đăng nhập</a>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+  <div class="door-wrap">
+
+    <section class="panel door" aria-labelledby="door-title">
+      <div class="door-brand"><span class="brand-mark">T</span><strong>Tò He</strong></div>
+      <p class="eyebrow">Cửa vào</p>
+      <h1 id="door-title">Chơi trước.<br>Tài khoản sau.</h1>
+      <p class="hook">Không cần tài khoản. Đăng nhập nếu muốn giữ điểm trên mọi máy.</p>
+      <a class="btn primary" href="home.html">Chơi ngay</a>
+      <div class="or">hoặc</div>
+      <a class="btn ghost" href="home.html">Đăng nhập</a>
+      <a class="link" href="home.html">Tạo tài khoản</a>
+      <p class="note">Chơi trên máy này vẫn giữ điểm. Đổi máy mới cần tài khoản.</p>
+    </section>
+
+    <section class="panel dark return-card" aria-labelledby="return-title">
+      <p class="eyebrow">Máy đã chơi</p>
+      <h2 id="return-title" style="color:var(--paper)">Chào lại, An.</h2>
+      <div class="who">
+        <div class="avatar">A</div>
+        <div><strong>An</strong><div class="small">Đang chơi trên máy này</div></div>
+      </div>
+      <a class="continue-line" href="game.html">
+        <div class="mini"><div class="art cover-merge"><div class="grid-lines"></div><div class="blocks"><span class="block b1">256</span><span class="block b2">16</span><span class="block b3">64</span></div></div></div>
+        <div><strong>Chơi tiếp Ghép Khối</strong><div class="small">Ván đang dở · 2.340 điểm</div></div>
+      </a>
+      <a class="btn primary" href="game.html">Chơi tiếp</a>
+      <a class="small" href="home.html" style="color:#d9c9b6">Không phải An? Đổi người chơi</a>
+    </section>
+
+  </div>
+
+  <section class="panel nudge" aria-labelledby="nudge-title">
+    <div>
+      <p class="eyebrow">Sau ván đầu — không chặn</p>
+      <h2 id="nudge-title">Giữ điểm này?</h2>
+      <p class="hook" style="margin:6px 0 0">Tạo tài khoản để mang điểm sang máy khác. Không tạo cũng chơi tiếp được.</p>
+      <div class="actions">
+        <a class="btn primary" href="home.html">Tạo tài khoản</a>
+        <a class="btn ghost" href="home.html">Để sau</a>
+      </div>
+    </div>
+    <div style="text-align:right">
+      <div class="small">Ghép Khối</div>
+      <div class="score">2.340</div>
+      <div class="small">Kỷ lục mới</div>
+    </div>
+  </section>
+
+  <p class="note">Gợi ý chỉ hiện sau khi có điểm, tối đa một lần mỗi phiên; bấm "Để sau" thì 7 ngày không hiện lại.</p>
+</main>
+
+<footer>
+  <div class="wrap footer-inner">
+    <div><strong style="color:var(--ink)">Tò He</strong><span> · sạp game nhỏ, không quảng cáo.</span></div>
+    <div class="footer-links">
+      <a href="home.html">Sạp</a><a href="home.html">Phụ huynh</a><a href="home.html">Giúp</a><a href="home.html">Giấy tờ</a>
+    </div>
+  </div>
+</footer>
+
+</body>
+</html>

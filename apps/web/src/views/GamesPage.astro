@@ -1,5 +1,6 @@
 ---
-// /games/ and /en/games/: every game, from its own game.json (../content/games.ts). A new game appears here by itself.
+// /games/ and /en/games/: every game on the shelf, from its own game.json (../content/games.ts). A new game appears here
+// by itself. The cards are the shelf's own (ADR 0056): a 16:9 cover, the name, one line, a tag and Play.
 import { gamesPage, loadGames } from '../content/games.ts';
 import { absolute } from '../content/site.ts';
 import { appPath, localPath, pageLanguage } from '../i18n.ts';
@@ -9,6 +10,17 @@ const lang = pageLanguage(Astro.currentLocale);
 const words = gamesPage[lang];
 const path = localPath(lang, '/games/');
 const games = loadGames(lang);
+const metaOf = (game: (typeof games)[number]) =>
+  [
+    game.genre[0],
+    game.seats
+      ? `${game.seats.min}–${game.seats.max} ${lang === 'vi' ? 'người' : 'players'}`
+      : lang === 'vi'
+        ? 'Một mình'
+        : 'One player',
+  ]
+    .filter(Boolean)
+    .join(' · ');
 const jsonLd = [
   {
     '@type': 'CollectionPage',
@@ -31,28 +43,24 @@ const jsonLd = [
 ---
 
 <Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
-  <main id="main">
+  <main id="main" class="shelf">
     <h1>{words.heading}</h1>
     <p class="lead">{words.lead}</p>
-    <ul class="cards">
+    <ul class="shelf-grid">
       {
         games.map((game) => (
           <li>
-            <div class="card">
-              <div class="card-head">
-                <img class="card-icon" src={game.icon} alt="" width="64" height="64" />
-                <h2 class="card-title">
-                  <a href={localPath(lang, `/games/${game.id}/`)}>{game.name}</a>
-                </h2>
+            <article class="shelf-card">
+              <a class="shelf-cover" href={localPath(lang, `/games/${game.id}/`)} aria-hidden="true" tabindex="-1">
+                <img src={game.pictures[0]?.src ?? game.icon} alt="" width="640" height="360" loading="lazy" />
+              </a>
+              <div class="shelf-card-body">
+                <h2><a href={localPath(lang, `/games/${game.id}/`)}>{game.name}</a></h2>
+                <p class="shelf-kind">{game.page.kind}</p>
+                <p class="shelf-meta">{metaOf(game)}</p>
+                <a class="shelf-play" href={appPath(lang, `/play/${game.id}`)}>{words.play}</a>
               </div>
-              <p>{game.description}</p>
-              <ul class="chips">{game.chips.map((chip) => <li>{chip}</li>)}</ul>
-              <p class="card-play">
-                <a href={appPath(lang, `/play/${game.id}`)} aria-label={`${words.play} ${game.name}`}>
-                  {words.play}
-                </a>
-              </p>
-            </div>
+            </article>
           </li>
         ))
       }

@@ -92,7 +92,7 @@ describe('the voice', () => {
     const vi = i18n.getFixedT('vi');
     expect(vi('offline')).toBe('Đang mất mạng. Trò đã mở trước đó vẫn chơi được.');
     expect(vi('gameFailed')).toBe('Trò chơi chưa chạy được. Thử mở lại nhé.');
-    expect(vi('links.empty')).toBe('Chưa gửi link nào.');
+    expect(vi('links.empty')).toBe('Chưa gửi link nào. Mở bàn rồi gửi link cho bạn.');
     expect(vi('leaderboard.title', { game: 'Tiến Lên' })).toBe('Bảng điểm Tiến Lên');
   });
 

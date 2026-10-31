@@ -54,7 +54,7 @@ sequenceDiagram
 - The seed is the local date (`YYYYMMDD`), so everybody gets the same randomness on the same day — the basis for
   daily challenges.
 - Opening a game's menu, or the lobby of a game played at tables, notes that this profile opened it, on the device
-  (`launcher/recent.ts`): Trò chơi's first screen offers it as *Chơi tiếp* next time ([Surfaces](surfaces.md#coming-back)).
+  (`launcher/recent.ts`): Sạp's first screen offers it as *Chơi tiếp* next time ([Surfaces](surfaces.md#coming-back)).
   Nothing of the game's own goes into it; the game says what is left unfinished on its title screen.
 
 ## Leaving and phone Back
@@ -93,4 +93,4 @@ other for the same reason.
   cần mạng để mở lần đầu." with *Về Tò He* (`launcher/offline.ts`). Online, a game that does not answer fails as before.
 - The catalog's strip follows the browser's `online` and `offline` events, not one reading of `navigator.onLine`: "Đang mất
   mạng. Trò đã mở trước đó vẫn chơi được." The install sheet claims no offline play: no game guarantees it yet
-  ([Surfaces](surfaces.md#the-introduction-surface), `facts.json`).
+  ([Surfaces](surfaces.md#the-shelf-and-a-games-page), `facts.json`).

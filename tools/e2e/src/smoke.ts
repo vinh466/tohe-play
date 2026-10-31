@@ -117,7 +117,7 @@ try {
   await play.tap();
   // The app's door: asked once on a device that never chose — sign in, or try it on this device.
   await page.waitForURL(/\/account\/sign-in$/);
-  await page.getByRole('button', { name: 'Chơi thử trên máy này' }).waitFor();
+  await page.getByRole('button', { name: 'Chơi ngay' }).waitFor();
   // Opening the app is not opening a game: the public pages still take this device for a newcomer's.
   if ((await page.evaluate(() => localStorage.getItem('tohe:returning'))) !== null)
     throw new Error('the app wrote tohe:returning before any game was opened');
@@ -142,8 +142,7 @@ try {
   step('the frame: three tabs at the bottom; Chơi cùng has the box for a code (ADR 0046)');
   const tabs = page.getByRole('navigation', { name: 'Mục chính' });
   const current = await tabs.locator('[aria-current="page"]').innerText();
-  if (!current.includes('Trò chơi'))
-    throw new Error(`the catalog's tab is not the current one: "${current}"`);
+  if (!current.includes('Sạp')) throw new Error(`the catalog's tab is not the current one: "${current}"`);
   await tabs.getByRole('link', { name: 'Chơi cùng', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/together');
   await page.getByLabel('Có mã? Gõ mã hoặc dán link.').waitFor();
@@ -187,7 +186,10 @@ try {
   );
   await page.getByRole('link', { name: /Hỏi đáp/ }).tap();
   await page.waitForURL((url) => url.pathname === '/faq/' && url.searchParams.get('from') === 'app');
-  await page.getByRole('link', { name: 'Hỏi đáp', exact: true }).first().waitFor();
+  await page
+    .getByRole('navigation', { name: 'Các trang chính' })
+    .getByRole('link', { name: 'Sạp', exact: true })
+    .waitFor();
   const linksOut = async () => {
     let shown = 0;
     for (const link of await page.locator('a[data-out]').all()) if (await link.isVisible()) shown++;
@@ -197,20 +199,17 @@ try {
   if (onFaq.total === 0 || onFaq.shown !== 0)
     throw new Error(`a page the app opened shows ${onFaq.shown} of ${onFaq.total} links out of Tò He`);
   // The next page the child reads carries no ?from=app, and still has none.
-  await page
-    .getByRole('navigation', { name: 'Các trang chính' })
-    .getByRole('link', { name: 'Hướng dẫn' })
-    .tap();
-  await page.waitForURL((url) => url.pathname === '/guides/');
-  const onGuides = await linksOut();
-  if (onGuides.total === 0 || onGuides.shown !== 0)
-    throw new Error(`the next page shows ${onGuides.shown} of ${onGuides.total} links out of Tò He`);
+  await page.getByRole('navigation', { name: 'Các trang chính' }).getByRole('link', { name: 'Về' }).tap();
+  await page.waitForURL((url) => url.pathname === '/about/');
+  const onAbout = await linksOut();
+  if (onAbout.total === 0 || onAbout.shown !== 0)
+    throw new Error(`the next page shows ${onAbout.shown} of ${onAbout.total} links out of Tò He`);
   // The header's button is the way back into the app (this device has not opened a game: "Chơi ngay").
   await page.getByRole('banner').getByRole('link', { name: 'Chơi ngay', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
 
   step(
-    'a tab already behind in the history steps back to it: /play → avatar → Trò chơi leaves no extra entry, so Back leaves the app (ADR 0046)',
+    'a tab already behind in the history steps back to it: /play → avatar → Sạp leaves no extra entry, so Back leaves the app (ADR 0046)',
   );
   const playEntry = await historyIndex(page);
   await page.getByRole('link', { name: 'Đổi người chơi' }).tap();
@@ -218,12 +217,10 @@ try {
   await shot('profiles-from-games');
   if (!(await page.getByRole('link', { name: 'Quay lại' }).isVisible()))
     throw new Error('the profile picker has no ← of its own');
-  await tabs.getByRole('link', { name: 'Trò chơi', exact: true }).tap();
+  await tabs.getByRole('link', { name: 'Sạp', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
   if ((await historyIndex(page)) !== playEntry)
-    throw new Error(
-      `the Trò chơi tab stacked a new entry on top (${await historyIndex(page)}, not ${playEntry})`,
-    );
+    throw new Error(`the Sạp tab stacked a new entry on top (${await historyIndex(page)}, not ${playEntry})`);
   await tabs.getByRole('link', { name: 'Tôi', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/account');
 
@@ -270,7 +267,7 @@ try {
   await parent.getByRole('button', { name: 'Đóng' }).tap();
   if (new URL(page.url()).pathname !== '/account')
     throw new Error(`the link out was followed: ${page.url()}`);
-  await tabs.getByRole('link', { name: 'Trò chơi', exact: true }).tap();
+  await tabs.getByRole('link', { name: 'Sạp', exact: true }).tap();
   await page.waitForURL((url) => url.pathname === '/play');
 
   step('wait for the catalog to list the sample game (the API syncs it from the games origin)');
@@ -466,7 +463,7 @@ try {
   await shot('leaderboard');
   await leaderboard.getByRole('button', { name: 'Đóng' }).tap();
 
-  step('coming back: Trò chơi starts with "Chơi tiếp", the game this profile opened last (ADR 0046)');
+  step('coming back: Sạp starts with "Chơi tiếp", the game this profile opened last (ADR 0046)');
   await page
     .getByRole('region', { name: 'Chơi tiếp' })
     .getByRole('link', { name: /Chạm Chấm/ })
