@@ -7,8 +7,7 @@ sidebar:
 
 - **Status:** Accepted
 - **Date:** 2026-10-31
-- **Decided by:** the owner, 2026-10-31, locking the ten rules of
-  [`plans/agent-workflow`](../../plans/agent-workflow/proposal.md) ("chốt nha").
+- **Decided by:** the owner, 2026-10-31, locking the ten rules of the plan space `plans/agent-workflow` ("chốt nha").
 
 ## Context
 
