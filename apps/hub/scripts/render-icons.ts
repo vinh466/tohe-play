@@ -28,7 +28,7 @@ const browser = await chromium.launch().catch(() => chromium.launch({ channel: '
 for (const { file, size } of targets) {
   const page = await browser.newPage({ viewport: { width: size, height: size } });
   await page.setContent(
-    `<style>html,body{margin:0;background:#f97316}svg{width:${size}px;height:${size}px;display:block}</style>${svg}`,
+    `<style>html,body{margin:0;background:#c8402a}svg{width:${size}px;height:${size}px;display:block}</style>${svg}`,
   );
   await page.screenshot({ path: join(publicDir, file) });
   await page.close();

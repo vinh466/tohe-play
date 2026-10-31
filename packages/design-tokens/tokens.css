@@ -1,5 +1,5 @@
 /*
- * Tò He colour tokens (ADR 0013): one palette for the hub, the site and the game kit's screens.
+ * Tò He colour tokens (ADR 0013, ADR 0057): one palette for the hub, the site and the game kit's screens.
  *
  * Light is the default; `data-theme="dark"` on <html> switches to the dark palette — warm charcoal, never pure
  * black, so Tò He keeps its toy-like warmth at night. Names say what a colour is *for*, not what it looks like,
@@ -19,28 +19,31 @@
 [data-theme="light"] ::backdrop {
   color-scheme: light;
 
-  /* Surfaces, from back to front */
-  --tohe-page: #fff7ed; /* page background, sheets */
-  --tohe-surface: #ffffff; /* cards, inputs, keys, chips: anything raised */
-  --tohe-fill: #fff7ed; /* quiet rows and boxes inside a surface */
-  --tohe-soft: #ffedd5; /* tinted controls: secondary and icon buttons */
-  --tohe-soft-strong: #fed7aa; /* pressed or selected tint */
-  --tohe-line: #fed7aa; /* borders and dividers */
-  --tohe-line-strong: #fdba74; /* dashed "add" outlines */
+  /* Surfaces, from back to front: rice paper, a warm white sheet, a quiet fill, tinted controls. */
+  --tohe-page: #f6efe3; /* page background, sheets */
+  --tohe-surface: #fffdf8; /* cards, inputs, keys, chips: anything raised */
+  --tohe-fill: #fbf5ea; /* quiet rows and boxes inside a surface */
+  --tohe-soft: #f1e3ce; /* tinted controls: secondary and icon buttons */
+  --tohe-soft-strong: #e8d3b8; /* pressed or selected tint */
+  --tohe-line: #e4d5c3; /* borders and dividers */
+  --tohe-line-strong: #c9b49a; /* dashed "add" outlines */
+  --tohe-line-ink: #201a16; /* the 1.5 px ink border of a game card, a sticker or a primary button */
 
-  /* Text */
-  --tohe-ink: #431407; /* main text */
-  --tohe-ink-soft: #8a4a32; /* secondary text: subtitles, hints, descriptions */
-  --tohe-ink-faint: #fdba74; /* decoration only, never information */
-  --tohe-accent: #9a3412; /* text and icons of secondary controls */
-  --tohe-brand-ink: #c2410c; /* brand-coloured text: titles, links */
+  /* Text: warm charcoal, never pure black. */
+  --tohe-ink: #201a16; /* main text */
+  --tohe-ink-soft: #6b5a4e; /* secondary text: subtitles, hints, descriptions */
+  --tohe-ink-faint: #a89686; /* decoration only, never information (placeholders) */
+  --tohe-accent: #7a4a2e; /* text and icons of secondary controls */
+  --tohe-brand-ink: #a62f1f; /* gấc-dark text: titles, links */
 
-  /* Brand: primary actions */
-  --tohe-brand: #ea580c;
-  --tohe-brand-strong: #c2410c; /* pressed */
+  /* Brand: gấc red for primary actions; turmeric and leaf for what is new or together. */
+  --tohe-brand: #c8402a;
+  --tohe-brand-strong: #a62f1f; /* pressed */
   --tohe-on-brand: #ffffff;
-  --tohe-glow: rgb(251 146 60 / 0.35); /* coloured shadow under brand elements */
-  --tohe-focus: #ea580c;
+  --tohe-highlight: #d99a2b; /* a "new" sticker, a quiet attention mark: decoration and large marks only */
+  --tohe-leaf: #3e6b4f; /* together, online, "đang mở" */
+  --tohe-glow: rgb(200 64 42 / 0.25); /* retired from the surface; a game may still use it */
+  --tohe-focus: #c8402a;
 
   /* Status */
   --tohe-danger: #b91c1c;
@@ -51,35 +54,38 @@
   --tohe-notice-ink: #78350f;
 
   /* Misc */
-  --tohe-scrim: rgb(67 20 7 / 0.4); /* behind dialogs */
-  --tohe-avatar-from: #fef3c7;
-  --tohe-avatar-to: #fed7aa;
-  --tohe-bar: #f97316; /* browser UI (status bar); mirrored in the hub's public/theme-init.js */
+  --tohe-scrim: rgb(32 26 22 / 0.45); /* behind dialogs */
+  --tohe-avatar-from: #f3e2c7;
+  --tohe-avatar-to: #e8d3b8;
+  --tohe-bar: #f6efe3; /* browser UI (status bar); mirrored in the hub's public/theme-init.js */
 }
 
 [data-theme="dark"],
 [data-theme="dark"] ::backdrop {
   color-scheme: dark;
 
-  --tohe-page: #17110e;
-  --tohe-surface: #261c17;
-  --tohe-fill: #31241d;
-  --tohe-soft: #3a2a20;
-  --tohe-soft-strong: #4a3426;
-  --tohe-line: #3f2e24;
-  --tohe-line-strong: #6e4c36;
+  --tohe-page: #171310;
+  --tohe-surface: #221c18;
+  --tohe-fill: #2b231e;
+  --tohe-soft: #332820;
+  --tohe-soft-strong: #423329;
+  --tohe-line: #3a2e26;
+  --tohe-line-strong: #5a4638;
+  --tohe-line-ink: #e9d9c6;
 
-  --tohe-ink: #fdecdc;
-  --tohe-ink-soft: #cdb09a;
-  --tohe-ink-faint: #7a5a46;
-  --tohe-accent: #fdba74;
-  --tohe-brand-ink: #fb923c;
+  --tohe-ink: #f7ebdd;
+  --tohe-ink-soft: #cdb6a1;
+  --tohe-ink-faint: #8c7563;
+  --tohe-accent: #f0b38f;
+  --tohe-brand-ink: #f08a6a;
 
-  --tohe-brand: #ea580c;
-  --tohe-brand-strong: #c2410c;
+  --tohe-brand: #e26045;
+  --tohe-brand-strong: #c8402a;
   --tohe-on-brand: #ffffff;
-  --tohe-glow: rgb(234 88 12 / 0.3);
-  --tohe-focus: #fb923c;
+  --tohe-highlight: #e3a84a;
+  --tohe-leaf: #7fb08e;
+  --tohe-glow: rgb(226 96 69 / 0.25);
+  --tohe-focus: #f08a6a;
 
   --tohe-danger: #fca5a5;
   --tohe-danger-soft: #3b1a17;
@@ -89,9 +95,9 @@
   --tohe-notice-ink: #fcd34d;
 
   --tohe-scrim: rgb(0 0 0 / 0.6);
-  --tohe-avatar-from: #4a3426;
-  --tohe-avatar-to: #6b4630;
-  --tohe-bar: #17110e;
+  --tohe-avatar-from: #423329;
+  --tohe-avatar-to: #5a4638;
+  --tohe-bar: #171310;
 }
 
 /* Type: not themed, so one block for both. Be Vietnam Pro is loaded by fonts.css; until it arrives (and wherever an app

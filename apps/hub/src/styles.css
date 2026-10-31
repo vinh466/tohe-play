@@ -16,10 +16,13 @@
   --color-soft-strong: var(--tohe-soft-strong);
   --color-line: var(--tohe-line);
   --color-line-strong: var(--tohe-line-strong);
+  --color-line-ink: var(--tohe-line-ink);
   --color-ink: var(--tohe-ink);
   --color-ink-soft: var(--tohe-ink-soft);
   --color-ink-faint: var(--tohe-ink-faint);
   --color-accent: var(--tohe-accent);
+  --color-highlight: var(--tohe-highlight);
+  --color-leaf: var(--tohe-leaf);
   --color-brand-ink: var(--tohe-brand-ink);
   --color-brand: var(--tohe-brand);
   --color-brand-strong: var(--tohe-brand-strong);
