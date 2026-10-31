@@ -2,6 +2,13 @@
 
 Mới nhất ở trên. Mỗi phiên một mục: cái gì đã chuyển, cái gì đang chờ ai. Tối đa 5 dòng mỗi mục.
 
+## 2026-10-31 — agent
+
+- Owner: Vườn Rau là pilot để test luồng Studio; "về cơ bản nó đã hoạt động tốt theo MVP".
+- `prod-2026-10-25.5` (`c87fac8`) mang Vườn Rau; log này bổ sung mục release còn thiếu.
+- E-01/E-02/E-03/E-05 đánh dấu done; E-04 còn spike S3; E-07 **MVP works**, đo A55/iPhone còn mở.
+- Chờ owner: đóng plan hay mở hướng tiếp (D-13, farm đầy đủ).
+
 ## 2026-10-25 (2) — agent
 
 - Owner duyệt style; duyệt pack bị cắt ở 100 s của Cloudflare (đọc và chép 133 file lần lượt): #173 → `prod-2026-10-25.3`.
