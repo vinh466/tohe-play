@@ -1,0 +1,40 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  // The rules are in docs/guides/opencode-workflow.md. These entries prevent accidents; they are guardrails, not a
+  // sandbox: shell commands run with the user's authority.
+  "permissions": [
+    { "action": "shell", "resource": "gh pr merge *", "effect": "ask" },
+    { "action": "shell", "resource": "git tag -a *", "effect": "ask" },
+    { "action": "shell", "resource": "git tag -s *", "effect": "ask" },
+    { "action": "shell", "resource": "git tag uat-*", "effect": "ask" },
+    { "action": "shell", "resource": "git tag prod-*", "effect": "ask" },
+    { "action": "shell", "resource": "git push origin main*", "effect": "ask" },
+    { "action": "shell", "resource": "git push origin uat-*", "effect": "ask" },
+    { "action": "shell", "resource": "git push origin prod-*", "effect": "ask" },
+    { "action": "shell", "resource": "git push * --tags*", "effect": "ask" },
+    { "action": "shell", "resource": "bash deploy/uat/deploy.sh *", "effect": "ask" },
+    { "action": "read", "resource": "~/.config/tohe-studio/env", "effect": "deny" }
+  ],
+
+  // A policy cannot be lifted by an "allow always" approval. Broader configuration still outranks this file, so these
+  // are the commands no session of this repository should run by accident.
+  "policies": [
+    { "action": "tool.use", "resource": "shell:git push --force*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git push * --force*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:kubectl *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:helm *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:psql *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:dropdb *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:docker volume rm *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:docker compose down -v*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:sudo *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:cat *tohe-studio/env*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:head *tohe-studio/env*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:tail *tohe-studio/env*", "effect": "deny" },
+    { "action": "tool.use", "resource": "edit:*.env", "effect": "deny" },
+    { "action": "tool.use", "resource": "edit:*.env.*", "effect": "deny" },
+    { "action": "tool.use", "resource": "edit:*.env.example", "effect": "allow" },
+    { "action": "tool.use", "resource": "read:*/.ssh/*", "effect": "deny" }
+  ]
+}
