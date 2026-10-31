@@ -3,7 +3,10 @@ title: Theming (light and dark)
 description: How colours work in Tò He — design tokens, the player's light/dark choice, and the rules for UI code.
 ---
 
-Decision and reasons: [ADR 0013](../decisions/0013-light-and-dark-themes.md).
+Decisions and reasons: [ADR 0013](../decisions/0013-light-and-dark-themes.md) (tokens, light and dark),
+[ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md) (the surface's paper, ink, gấc, turmeric and leaf; cards with
+an ink border and a hard shadow; no gradient or glow). The roles below are the target; V1 of `plans/surface-v2` updates
+the values in `tokens.css`, adds `line-ink`, `highlight` and `leaf`, and makes the contrast tests pass.
 
 ## Design tokens
 
@@ -12,24 +15,39 @@ value (the default) and a dark value (`data-theme="dark"` on `<html>`):
 
 | Token | Role |
 | --- | --- |
-| `page` | Page background, sheets |
-| `surface` | Cards, inputs, keypad keys, chips: anything raised |
+| `page` | Page background: rice paper, not white |
+| `surface` | Cards, inputs, keypad keys, chips: the sheet something sits on |
 | `fill` | Quiet rows and boxes inside a surface |
 | `soft`, `soft-strong` | Tinted controls (secondary and icon buttons); pressed or selected tint |
 | `line`, `line-strong` | Borders and dividers; dashed "add" outlines |
-| `ink` | Main text |
+| `line-ink` | The 1.5 px ink border of a game card, a sticker or a primary button |
+| `ink` | Main text: warm charcoal, never pure black |
 | `ink-soft` | Secondary text: subtitles, hints, descriptions |
 | `ink-faint` | Decoration only, never information (placeholders) |
-| `accent` | Text and icons of secondary controls |
-| `brand-ink` | Brand-coloured text: titles, links |
-| `brand`, `brand-strong`, `on-brand` | Primary actions, their pressed state, and their text. Text on `brand` must be large (1.25rem bold); on `brand-strong` any size meets AA, as the admin console's buttons need |
-| `glow` | Coloured shadow under brand elements |
+| `accent` | Text and icons of secondary controls; dark enough for AA on `page` and `surface` |
+| `highlight` | Turmeric: a "new" sticker, a quiet attention mark. Decoration and large marks only, never body text |
+| `leaf` | Together, online, "đang mở" |
+| `brand-ink` | Gấc-dark text: titles and links |
+| `brand`, `brand-strong`, `on-brand` | Primary actions, their pressed state, and their text. Text on `brand` must be large (1.25rem bold); on `brand-strong` any size meets AA |
+| `glow` | **Retired from the surface by ADR 0057.** Kept only where a game already uses it; no new UI uses it |
 | `focus` | Keyboard focus ring |
 | `danger`, `danger-soft`, `danger-soft-strong`, `danger-line` | Errors and destructive actions |
 | `notice`, `notice-ink` | Informational banners (guest mode, offline) |
 | `scrim` | Behind dialogs |
 | `avatar-from`, `avatar-to` | Backdrop of emoji avatars |
 | `bar` | Browser UI colour (`theme-color`) |
+
+The surface's hues, in roles rather than hex values (the values are in `tokens.css`; the contrast tests decide):
+
+| Hue | Where it is for |
+| --- | --- |
+| Rice paper | `page`; the page behind the shelf |
+| Warm white | `surface`; a game card, a sheet |
+| Charcoal ink | `ink`; text, the 1.5 px border of a card, a wordmark |
+| Gấc red | `brand`; the one action to take; `brand-ink` for a link or a title |
+| Turmeric | `highlight`; a "Mới" sticker, a small attention mark |
+| Leaf | `leaf`; "đang mở", "chơi cùng", online |
+| Warm charcoal | the dark theme's `page`, never pure black |
 
 ## Type and icons
 
@@ -51,17 +69,31 @@ shared code:
   icon. No emoji as interface: `src/voiceAndLook.test.ts` fails on one in a screen's code (the avatars are content) or in
   a string of either language.
 
+## Shape
+
+The surface's shape is part of the tokens' look, even though it is not a colour:
+
+- **Cards** that are one tappable thing (a game, a table, a profile): radius 10–14 px, a 1.5 px `line-ink` border, and a
+  hard offset shadow of 2–3 px at low opacity. No 24–32 px radius on everything, no wide soft shadow.
+- **Buttons**: radius 10–12 px, a 1.5 px ink border, a 3 px offset shadow; pressed moves down 1–2 px. The primary button
+  is `brand`; a secondary is `surface` with the ink border.
+- **Stickers** ("Mới", "2–4 người", "Offline"): a small label, a 1.5 px ink border, rotated 1–2°, `highlight` or
+  `surface`.
+- **Grouping**: a heading and a rule, not a card each. A card only where the thing is one tappable object.
+- **No gradients, no glow, no blur** on the surface. A cover may have its own art; the frame around it does not.
+
 ## Rules for UI code
 
 - **Hub:** use the Tailwind classes generated from the tokens, for example `bg-page`, `bg-surface`, `text-ink`,
-  `text-ink-soft`, `border-line`, `bg-brand text-on-brand`. Tailwind's default palette is removed, so a class like
-  `bg-orange-500` generates nothing, and `src/tokens.test.ts` fails on it.
-- **Text on `brand`** is at least `text-xl font-bold`: white on orange meets WCAG AA only as large text.
+  `text-ink-soft`, `border-line`, `border-line-ink`, `bg-brand text-on-brand`. Tailwind's default palette is removed, so
+  a class like `bg-orange-500` generates nothing, and `src/tokens.test.ts` fails on it.
+- **Text on `brand`** is at least `text-xl font-bold`: white on gấc red meets WCAG AA only as large text.
 - **Selected state:** `bg-soft-strong` with a `ring-brand` ring (avatars, age bands, theme choices).
 - **A new token** goes into both theme blocks, since a test checks that both define the same set. If it carries
   text, add its pairs to the contrast rules in `packages/design-tokens/src/contrast.test.ts`.
 - **Code that cannot use CSS variables** (canvas, Phaser) reads the values with `parseTokens` from
   `@tohe/design-tokens`, given `tokens.css` imported with `?raw`.
+- **No new gradient or glow utility** on the surface; `src/tokens.test.ts` or the voice-and-look review catches one.
 
 ## The player's choice
 

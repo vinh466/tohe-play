@@ -74,13 +74,13 @@ needs a URL per game from the API, the hub's CSP to allow each game's host, and 
 
 | Namespace | Component | Served | Indexed |
 | --- | --- | --- | --- |
-| `/` (the root only), `/games/`, `/guides/`, `/faq/`, `/about/`, `/promise/`, `/terms/`, `/privacy/` | public pages (`apps/web`), Vietnamese | static HTML | yes |
+| `/` (the root only), `/games/`, `/guides/`, `/faq/`, `/about/`, `/family/`, `/promise/`, `/terms/`, `/privacy/` | public pages (`apps/web`), Vietnamese | static HTML | yes |
 | `/en/…` — the same pages in English, under the same names ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)), but for the pages declared Vietnamese-only (`vietnameseOnlyPages` in the map: `/terms/` and `/privacy/` until their English texts land) | public pages (`apps/web`), English | static HTML | yes |
 | `/_web/…` | public pages — the scripts, styles and images their build adds, hashed names | static | its scripts and styles no; its pictures yes (a game's icon is the `image` of the page's structured data, and a search engine told `noindex` on it drops the markup) |
 | `/og.png`, `/llms.txt` | public pages — the picture a link preview shows, and the list of the pages for AI readers | static | not in the sitemap |
 | `/play`, `/play/<gameId>/…` | the app — the catalog, and only game ids under `/play/`, so a game named like a page never collides: `/play/<gameId>`, `/play/<gameId>/rooms`, `/play/<gameId>/rooms/<roomId>`, `/play/<gameId>/rooms/<roomId>/replay/<hand>` | the app's page | no |
 | `/together` | the app — playing together: a code, the player's tables, invitations, the newest links they sent (the full list stays at `/account/links`) ([Surfaces](surfaces.md)) | the app's page | no |
-| `/account/…` | the app — signing in and up (`/account/sign-in`, `/account/register`), password, email, profiles, what telemetry sends (`/account/data`), moving a device profile (`/account/transfer`), the share links a profile made (`/account/links`, [Entry links](entry-links.md)), Tôi (`/account`, [Surfaces](surfaces.md)) and the account itself (`/account?manage=true`) | the app's page | no |
+| `/account/…` | the app — signing in and up (`/account/sign-in`, `/account/register`), password, email, profiles, family management (`/account/family`), what telemetry sends (`/account/data`), moving a device profile (`/account/transfer`), the share links a profile made (`/account/links`, [Entry links](entry-links.md)), Tôi (`/account`, [Surfaces](surfaces.md)) and the account itself (`/account?manage=true`) | the app's page | no |
 | `/r/<code>`, `/s/<code>` | the app's short links: a table's, a share link's ([Entry links](entry-links.md)); a known link-preview crawler gets the API's card for them instead, through a rewrite to `/api/previews/…` that the map generates | the app's page | no |
 | the app's assets, manifest and service worker | the app | static | — (`/icon-512.png`, the Organization's `logo` in the home pages' structured data, may be indexed; the rest of the app's files keep `noindex`) |
 | `/api/…` | the API | proxied | — |
@@ -102,8 +102,8 @@ prefix). Its pages:
 
 | Page | What it is |
 | --- | --- |
-| `/` | The home page: one line under the name ("Mấy trò chơi nhỏ cho cả nhà. Mở là chơi, không quảng cáo."), the games as the main action — a tile per game, leading to its page —, one "Chơi cùng" strip, and three questions parents ask, each linking into the FAQ; *Chơi tiếp* at the top on a device that has opened a game; the header's *Chơi ngay* (or *Chơi tiếp*) leads to `/play`. Installing, the story and the promise are links in the footer and About. No link to the developer docs in its body: the footer has it. It never redirects |
-| `/games/`, `/games/<gameId>/` | The games, and one page per game, made at build time from the game's own folder: `game.json` and its icon, and `page/vi.md`, `page/en.md` and `page/facts.json` ([Surfaces](surfaces.md#the-introduction-surface)). *Chơi* (and *Chơi cùng* for a game with tables) at the top, big, the short answer, the facts table, how to play, its questions, the other games, the day it was revised |
+| `/` | The shelf ([ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md)): a hero game with a 16:9 cover, its name, one line and *Chơi ngay*; *Đang mở*, *Chơi tiếp* on a device that has played, *Mới tuần này*, a *Rủ bạn* band, and *Tất cả trò chơi* with a few tags. The header has *Chơi ngay* (or *Chơi tiếp*) and *Đăng nhập*; the story, the parents' page and the install guide are links in the footer and `/about`, `/family`, `/faq/`, `/guides/`. No link to the developer docs in its body: the footer has it. It never redirects |
+| `/games/`, `/games/<gameId>/` | The games, and one page per game, made at build time from the game's own folder: `game.json`, its icon, cover and shots, and `page/vi.md`, `page/en.md` and `page/facts.json` ([Surfaces](surfaces.md#the-shelf-and-a-games-page)). A game's page is a store page: cover, name, hook, *Chơi* (and *Chơi cùng* for a game with tables), facts as chips, three screenshots or a short clip, how to play, the facts table, its questions, the other games, the day it was revised |
 | `/games/<gameId>/og.png` | A game's own link-preview picture, 1200×630, in each language (`/en/games/<gameId>/og.png`): made by `pnpm --filter @tohe/web generate:og` and committed beside the game's page (`games/<id>/page/og.vi.png`, `og.en.png`, with their stamps in `og.json`), copied here by the build, which fails when one is missing or out of date |
 | `/promise/` | The promise: no ads, no tracking, nothing to buy, no coins — never. Linked from the home page and every footer |
 | `/guides/`, `/guides/install/` | Guides; how to put Tò He on the home screen — Android, iPhone, inside Zalo or Messenger, a computer |
@@ -121,9 +121,9 @@ alone and nothing else. **The list empties when the English texts land** — wit
 the two in step (ADR 0047), the item of the launch review in which the owner syncs the legal texts.
 
 **The header and the footer.** On a 360 px phone the header is two rows: the brand, the VI | EN switch and *Chơi ngay*
-(or *Chơi tiếp*), then three pages (Trò chơi, Hướng dẫn, Hỏi đáp); from 48rem it is one row. Every target is 44 px
-high. About, the promise, the install guide, the papers, the developer docs, GitHub and the email are the footer's
-links, with the light/dark buttons (an icon and a word each) and one line of what Tò He is.
+(or *Chơi tiếp*), then *Sạp · Chơi cùng · Về* and a search icon; from 48rem it is one row. Every target is 44 px
+high. About, the parents' page, the promise, the install guide, the papers, the developer docs, GitHub and the email
+are the footer's links, with the light/dark buttons (an icon and a word each) and one line of what Tò He is.
 
 **Switching language.** The header has a VI | EN switch: two links, to this page and to the same page in the other
 language (on a Vietnamese-only page, EN leads to `/en/`). A Vietnamese page shows a reader whose browser's first
@@ -222,7 +222,7 @@ language from Astro. Proper names and established terms stay as they are in eith
    its own.
 3. A game's pages come from its own folder: `games/<id>/public/game.json` makes `/games/<id>/` and `/en/games/<id>/`,
    their name and description in each language come from `game.json` (ADR 0048), and the rest is written beside the
-   game — `games/<id>/page/vi.md`, `en.md` and `facts.json` ([Surfaces](surfaces.md#the-introduction-surface); the
+   game — `games/<id>/page/vi.md`, `en.md` and `facts.json` ([Surfaces](surfaces.md#the-shelf-and-a-games-page); the
    build fails without any of them) — then, because the sitemap changes, the regenerated files
    (`pnpm --filter @tohe/routes build`). Nothing in `apps/web` changes.
 
@@ -307,4 +307,4 @@ stays in force for its part.
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |
 | Crawlers by name in `robots.txt` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: `searchCrawlers` and `trainingCrawlers` in the map | the routes' pull request |
 | The English public pages, `/en/…` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: the namespace `en`, the English pages, the sitemap's `hreflang` alternates, the VI \| EN switch and the suggestion; the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages`) | the languages' pull request; the legal texts' English with the review's item for them |
-| The namespaces `/together`, `/promise/` | in place: `/promise/` with its page in both languages, and `/together` (Chơi cùng, the app frame's second tab) with its page | — |
+| The namespaces `/together`, `/promise/`, `/family/` | in place: `/promise/` with its page in both languages, and `/together` (Chơi cùng, the app frame's second tab) with its page. Not yet: `/family/` and `/account/family` (V4 of `plans/surface-v2`) | V4 |

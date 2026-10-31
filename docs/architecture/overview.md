@@ -105,18 +105,22 @@ Generated reference: [Platform API](/reference/api/).
 ## A newcomer's first touches
 
 Playing needs no account ([vision](../vision.md)); nothing stands between a link and the first game, and the app's
-front door asks once ([ADR 0055](../decisions/0055-front-page-explains-greets-and-the-app-asks-once.md)).
+front door offers **Chơi ngay** first and an account second ([ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md),
+amending [ADR 0055](../decisions/0055-front-page-explains-greets-and-the-app-asks-once.md)).
 
 - **No sign-in before playing.** A link to a game, a table or a share plays at once as the device profile. Opening the
-  app itself the first time, with no session, asks once: sign in, or *Chơi thử trên máy này* with the suggested
-  profile shown (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`); after that choice the device
-  plays as its device profile at once, and `/account/sign-in` opens only when chosen, or for what needs an account.
-  A room link (`/r/<code>`), a room, the rooms lobby and a replay play as the device profile too: the `named` screen —
-  a name others see, an avatar, the terms line — the first time, then its copy on the server and a seat at any table
-  open to anyone named ([Identity](identity.md#device-profiles-on-the-server), ADR 0043). Signing out is a choice and
-  leads to the sign-in screen. Signing up asks whether the device
+  app itself the first time, with no session, shows the door: **Chơi ngay** with the suggested profile shown
+  (`RequireSession`, `playerGate` in `apps/hub/src/session/session.ts`), then **Đăng nhập** with the methods that are
+  on. After that choice the device plays as its device profile at once, and `/account/sign-in` opens only when chosen,
+  or for what needs an account. A room link (`/r/<code>`), a room, the rooms lobby and a replay play as the device
+  profile too: the `named` screen — a name others see, an avatar, the terms line — the first time, then its copy on the
+  server and a seat at any table open to anyone named ([Identity](identity.md#device-profiles-on-the-server), ADR 0043).
+  Signing out is a choice and leads to the sign-in screen. Signing up asks whether the device
   profile is the person's own, and signing in offers to bring each device profile with progress into the account
   ([Identity](identity.md#device-profiles)).
+- **A sign-up is suggested after value.** After the first finished game, a small *Giữ điểm này?* card offers
+  *Tạo tài khoản* and *Để sau*; after the second visit or second game, a quiet banner offers *Đăng nhập*. Neither
+  interrupts a game; *Để sau* hides it for seven days; signing up carries the device profile and its progress.
 - **Installing: one component, three ways** (`apps/hub/src/install/`). `chooseInstall` is a pure decision from the
   environment, what the browser handed over, whether a game finished, whether the visit had its offer and when the
   player last said no:

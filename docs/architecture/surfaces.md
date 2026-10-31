@@ -1,12 +1,13 @@
 ---
 title: Surfaces
-description: What players and newcomers see of Tò He and how it is laid out — the planes, the two zones of the players' host, the app's frame, coming back, the two languages, and an introduction surface that grows from one source per game.
+description: What players and newcomers see of Tò He and how it is laid out — the planes, the two zones of the players' host, the app's frame, the shelf, coming back, the two languages, and a game page that grows from one source per game.
 ---
 
 Decisions: [ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md) (the planes, the zones, the frame,
-coming back) and [ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md) (the languages,
-the introduction surface). Hosts and namespaces: [Hosts and paths](hosts-and-paths.md). The target is described here;
-*Where things stand* says what runs today.
+coming back), [ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md) (the languages,
+the shelf and the game page) and [ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md) (16+ first, the shelf,
+the door's order, family as a layer). Hosts and namespaces: [Hosts and paths](hosts-and-paths.md). The target is
+described here; *Where things stand* says what runs today.
 
 ## Planes
 
@@ -45,8 +46,8 @@ an end-to-end test when tried (2026-10-22).
 
 | Zone | Paths | Indexed |
 | --- | --- | --- |
-| **Discover** | `/`, `/games/`, `/games/<id>/`, `/games/c/<slug>/`, `/guides/…`, `/faq/`, `/about/`, `/promise/`, `/terms/`, `/privacy/`, and each under `/en/` | yes |
-| **Play** | `/play`, `/together`, `/account/…`, `/play/<id>/…`, `/s/<code>`, `/r/<code>` | no |
+| **Discover** | `/`, `/games/`, `/games/<id>/`, `/games/c/<slug>/`, `/guides/…`, `/faq/`, `/about/`, `/family/`, `/promise/`, `/terms/`, `/privacy/`, and each under `/en/` | yes |
+| **Play** | `/play`, `/together`, `/account/…` (including `/account/family`), `/play/<id>/…`, `/s/<code>`, `/r/<code>` | no |
 
 ```mermaid
 flowchart LR
@@ -54,15 +55,15 @@ flowchart LR
   pwa[The installed app] --> games
   link["/s/… · /r/… from Zalo, Messenger"] --> playg
   subgraph K[Discover]
-    home["/ — the introduction; a greeting on a known device"]
+    home["/ — the shelf; a greeting on a known device"]
     gp["/games/&lt;id&gt;/ — the game's page"]
-    help["/guides · /faq · /about · /promise"]
+    help["/guides · /faq · /about · /family · /promise"]
     legal["/terms · /privacy"]
   end
   subgraph C[Play]
     games["/play — Games"]
     together["/together — Play together"]
-    me["/account — Me"]
+    me["/account — You and family"]
     playg["/play/&lt;id&gt; — in play"]
   end
   home -- "Play now · Continue" --> games
@@ -75,14 +76,17 @@ flowchart LR
 
 - **A game's two URLs**: `/games/<id>/` is its page (indexed, *Play* and *Play with a friend* at the top);
   `/play/<id>` is where it is played (full screen, not indexed).
-- **`/` never redirects** ([ADR 0055](../decisions/0055-front-page-explains-greets-and-the-app-asks-once.md) keeps the
-  domain and paths). A newcomer gets the introduction with **Chơi ngay** and **Tôi đã có tài khoản** in a centred hero.
-  A device that has played gets, in their place, **a greeting** drawn before the first paint from `tohe:greeting` (the
-  last player's name and picture, the last game's id): "Chào lại, <name>", **Chơi tiếp <game>** (to `/play/<id>`),
-  **Vào Tò He** (to `/play`) and **Không phải <name>?** (to the picker, `/account/profiles?ask=true`); a device with
-  only `tohe:returning` gets *Chơi tiếp* to `/play` without a name. The introduction stays below it; crawlers, which
-  keep no storage, get the newcomer's page like every newcomer. The installed app opens `/play`. In `pnpm dev`, `/` on
-  the app's port (4720) is the app's first screen: it goes to `/play`; the public pages are the other dev server's
+- **`/` never redirects** ([ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md),
+  [ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md) keep the domain and paths). A newcomer gets **the shelf**: a
+  hero game with a 16:9 cover, its name, one line and **Chơi ngay**; then *Đang mở*, *Chơi tiếp* on a device that has
+  played, *Mới tuần này*, a *Rủ bạn* band with *Tạo bàn* and *Nhập mã*, and *Tất cả trò chơi* with a few tags. The
+  header has **Chơi ngay** and **Đăng nhập**; the app's door is in the app (`/account/sign-in`), not on `/`.
+  A device that has played gets **a greeting** drawn before the first paint from `tohe:greeting` (the last player's name
+  and picture, the last game's id): "Chào lại, <name>", **Chơi tiếp <game>** (to `/play/<id>`), **Vào Tò He** (to
+  `/play`) and **Không phải <name>?** (to the picker, `/account/profiles?ask=true`); a device with only
+  `tohe:returning` gets *Chơi tiếp* to `/play` without a name. The shelf stays below it; crawlers, which keep no
+  storage, get the newcomer's page like every newcomer. The installed app opens `/play`. In `pnpm dev`, `/` on the
+  app's port (4720) is the app's first screen: it goes to `/play`; the public pages are the other dev server's
   (4711).
 - **Every public page's header has *Chơi ngay*** to `/play` (with the page's `?lang=`), on phones too, and *Chơi tiếp*
   in its place on a device that has opened a game. A device "has opened a game" when the hub wrote `tohe:returning`
@@ -97,20 +101,20 @@ flowchart LR
 
 | | Narrow screens | From tablet width |
 | --- | --- | --- |
-| Navigation | a bottom bar: **Trò chơi · Chơi cùng · Tôi** | a rail on the left, the same three tabs |
-| Content | one column | up to about 1200 px; the catalog in four to six columns |
+| Navigation | a bottom bar: **Sạp · Chơi cùng · Tôi** | a rail on the left, the same three tabs |
+| Content | one column; two columns of covers | up to about 1440 px; the shelf in four to six columns |
 | A game in play | no frame, full screen | the same |
 
 | Tab | Path | From the top |
 | --- | --- | --- |
-| **Trò chơi** — Games | `/play` | who is playing (a chip with the name — "<name> · trên máy này" for a device profile, ADR 0055; tapped, the picker) and *Nhập mã* → the table the player sits at → invitations → *Chơi tiếp* (the game this profile opened last, one big tile) → recent → every game, each a picture and a name. No title, no strip about where progress is kept, no link to technical data: those are Tôi's |
+| **Sạp** — Shelf | `/play` | who is playing (a chip with the name — "<name> · trên máy này" for a device profile, ADR 0055; tapped, the picker) and *Nhập mã* → the table the player sits at → invitations → *Chơi tiếp* (the game this profile opened last: a cover, its name, one button) → recent → **search and four tags** → every game as a cover-first card with a visible *Chơi*. No title, no strip about where progress is kept, no link to technical data: those are Tôi's |
 | **Chơi cùng** — Play together | `/together` | the player's tables → *Mở bàn* (one button for each game that has tables, to its lobby) → invitations → a one-line box for a code ("Có mã? Gõ mã hoặc dán link.") → the links they sent (the full list stays at `/account/links`). On a computer the first three and the last two stand in two columns |
-| **Tôi** — Me | `/account` | who is playing (one tap to change) — with no session, *Đăng nhập để giữ tiến độ trên mọi máy* first (ADR 0055) → settings (language, theme, sound, install) → help (guides, FAQ, about, the promise, feedback — one row) → papers (terms, privacy, technical data) → the account. Groups are a heading and rows, not a card each; on a computer, two columns |
+| **Tôi** — You | `/account` | who is playing (one tap to change) — with no session, *Đăng nhập để giữ tiến độ trên mọi máy* first (ADR 0055) → **progress** (the games played, best scores) → **Gia đình** (when there are child profiles; behind the PIN) → settings (language, theme, sound, install) → help (guides, FAQ, about, the promise, feedback — one row) → papers (terms, privacy, technical data) → the account. Groups are a heading and rows, not a card each; on a computer, two columns |
 
 None of the tabs' screens repeats its tab's name as a title: the bar or the rail says where it is, and the name stays as a
 heading for screen readers. The look and the words are those of [Voice and look](../conventions/voice-and-look.md): icons
-are SVG from one set and carry a label; a game's tile is a picture and a name, never a cut description; "Rủ bạn"
-(share) and "Bảng điểm" (leaderboard) are labelled buttons under the name. A table is a **bàn** on every screen — the
+are SVG from one set and carry a label; a game's tile is a 16:9 cover, a name, a one-line hook and a visible **Chơi**;
+*Rủ bạn* (share) and *Bảng điểm* (leaderboard) are secondary. A table is a **bàn** on every screen — the
 lobby (*Mở bàn*, *Bàn đang mở*), a table (*Rời bàn*, *chủ bàn*), invitations (*Vào bàn*), its errors and the entry pages
 — and a *table* in English, never *phòng* or *room*; `rooms` stays the name in routes (`/play/<id>/rooms`), in code and in
 the API.
@@ -148,17 +152,17 @@ the API.
   shown by CSS alone, so there is no state to stick and nothing is paused. A game outside the frame
   (`launcher/GameFrame.tsx`) with the hub's own top bar (a game without the `shell` capability) keeps 56 px of bar under
   a notch: the bar's height is 3.5rem plus the safe-area inset.
-- Each tab's screen starts with a chip of the player's avatar and name, which opens the profile picker (and, in Trò chơi, with
+- Each tab's screen starts with a chip of the player's avatar and name, which opens the profile picker (and, in Sạp, with
   *Nhập mã* at the other end). The chip never cuts the name: it wraps at the spaces up to a width (9 rem on a phone, 16 rem
   from a tablet and on a short screen), and the tab's name is a heading for screen readers only. The bar
   sits above the phone's home indicator (`env(safe-area-inset-bottom)`) and steps aside while a field that brings up the
   keyboard has the focus. The rail comes before the screen in the document and the bar after it, so the focus follows
   what is seen; the tab of the screen shown carries `aria-current="page"`.
 - **History**: a tab takes the place of the screen in the history (the app is one level) — or, when the tab's screen is
-  already behind in the history, steps back to it, as "←" does, so `/play → avatar → Trò chơi → Back` leaves the app
+  already behind in the history, steps back to it, as "←" does, so `/play → avatar → Sạp → Back` leaves the app
   instead of staying; a game, a table or a screen under a tab is a new entry.
 - **"←" on a sub-screen** is drawn by `Screen`, from the frame (`backTarget` in `frame/tabs.ts`: signing in and the email
-  → Tôi; the code step, registering and the password screens → signing in; the profile picker → Trò chơi; moving a
+  → Tôi; the code step, registering and the password screens → signing in; the profile picker → Sạp; moving a
   profile → the picker); `/account/data` and `/account/links` draw their own. Outside the frame `Screen` takes `back`.
 - **A path that is no screen** (`/account/foo`, `/play/x/y`) shows the app's own not-found in its language, with *Về
   Tò He* to `/play`. The app opened straight at a game, a table or a link into one, with nothing of the app
@@ -172,7 +176,7 @@ the API.
 
 | Moment | What happens |
 | --- | --- |
-| The app's first visit | a device with no session that never chose (no `tohe:guest`) and opens a screen of the frame is asked once: the sign-in screen in its first-visit form — the sign-in methods that are on, then *Chơi thử trên máy này* ("Tiến độ chỉ ở máy này; đăng nhập sau vẫn giữ."), which shows the suggested device profile (picture, name, *Đổi tên, hình*) and one *Vào chơi*. Never on a link to a game, a table or a share; never on a device already playing as its device profiles ([ADR 0055](../decisions/0055-front-page-explains-greets-and-the-app-asks-once.md)) |
+| The app's first visit | a device with no session that never chose (no `tohe:guest`) and opens a screen of the frame is shown the door once: **Chơi ngay** first ("Không cần tài khoản. Đăng nhập nếu muốn giữ điểm."), then **Đăng nhập** with the methods that are on, then *Tạo tài khoản*. A device that has played sees *Chào lại, <name>* and *Chơi tiếp <game>*. Choosing *Chơi ngay* shows the suggested device profile (picture, name, *Đổi tên, hình*) and one *Vào chơi*. The door has no tab bar. Never on a link to a game, a table or a share; never on a device already playing as its device profiles ([ADR 0055](../decisions/0055-front-page-explains-greets-and-the-app-asks-once.md), [ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md)) |
 | Opening the app | the frame's first screen starts from what was left unfinished (above) |
 | A shared device | with several profiles, "who is playing?" — one tap — after a cold start that follows 30 minutes unused; an account's child profile → an adult's asks for the manage PIN |
 | The account's session ended | the app says so and offers to sign in; it does not fall back to the device's profile in silence |
@@ -186,8 +190,8 @@ the API.
 
 | Moment | Where | How |
 | --- | --- | --- |
-| Trò chơi's first screen | `pages/CatalogPage.tsx`, `launcher/recent.ts`, `rooms/myTables.ts` | from the top: who is playing and *Nhập mã* (no title, no strip about progress, no technical-data link); **Bàn đang ngồi** — the tables of `GET /api/rooms/mine`, "Tiến Lên · bàn của Bố — Vào lại" (an account's profile, or a device profile with a copy on the server); the invitations, as before; **Chơi tiếp** — the game this profile opened last, one big tile (picture, name, the button); **Gần đây** — up to six it opened before; every game, as tiles of a picture and a name with *Rủ bạn* (and, for an account, *Bảng điểm*) under the name, in columns that grow with the screen (about 150 px on a phone, 240 px on a computer, 290 px on a tablet held upright) and stretch to fill the row. A section with nothing to show is not shown. The hub notes "opened" itself when a game's menu or its tables' lobby opens: per profile, on the device, in IndexedDB's `cache` table (`opened:<profileId>`, a game's id and a time, the last twelve), gone with a device profile that is deleted; the same moment writes `tohe:returning` in `localStorage`, which the public pages read for *Chơi tiếp* (and nothing else does); the Game Contract does not change. Whether a round is left unfinished, the game says on its own title screen |
-| The app's first visit and the greeting | `RequireSession`, `session/session.ts`, `pages/WelcomePage.tsx`; `launcher/recent.ts`; `apps/web/src/scripts/` | `playerGate` answers `door` for a screen that passes `door` (Trò chơi, Chơi cùng, Tôi, the links sent) when the device has no session and no `tohe:guest`: `RequireSession` remembers the screen (`rememberNext`) and sends it to `/account/sign-in` instead of `ensureDeviceProfile`; links (a game, a table, a share, the rooms) pass no `door` and still enter as the device. The sign-in screen shows only the methods that are on, then under *hoặc* the other choice — *Chơi trên máy này* on a device with device profiles, *Chơi thử trên máy này* on one with none, which shows `funIdentity`'s suggestion (*Đổi tên, hình*, *Vào chơi*; `chosen` once changed), makes the profile, counts the funnel's `guest-start`, turns device mode on and goes back to the remembered screen. Where `recent.ts` writes `tohe:returning`, the hub also writes `tohe:greeting` (the profile's name, its avatar's id, the game's id), and removes it when that profile is deleted or its account signs out; the public pages' script reads it before the first paint and draws the greeting (V1) |
+| Sạp's first screen | `pages/CatalogPage.tsx`, `launcher/recent.ts`, `rooms/myTables.ts` | from the top: who is playing and *Nhập mã* (no title, no strip about progress, no technical-data link); **Bàn đang ngồi** — the tables of `GET /api/rooms/mine`, "Tiến Lên · bàn của Bố — Vào lại"; the invitations; **Chơi tiếp** — the game this profile opened last: a 16:9 cover, its name, one button; **Gần đây** — up to six it opened before; **search and four tags**; every game as a cover-first card with a visible *Chơi* (and, for an account, *Bảng điểm* as a secondary action), in two columns on a phone and four to six on a computer, never stretched to fill a row. A section with nothing to show is not shown. The hub notes "opened" itself when a game's menu or its tables' lobby opens: per profile, on the device, in IndexedDB's `cache` table (`opened:<profileId>`, a game's id and a time, the last twelve), gone with a device profile that is deleted; the same moment writes `tohe:returning` in `localStorage`, which the public pages read for *Chơi tiếp* (and nothing else does); the Game Contract does not change. Whether a round is left unfinished, the game says on its own title screen |
+| The app's first visit and the greeting | `RequireSession`, `session/session.ts`, `pages/WelcomePage.tsx`; `launcher/recent.ts`; `apps/web/src/scripts/` | `playerGate` answers `door` for a screen that passes `door` (Sạp, Chơi cùng, Tôi, the links sent) when the device has no session and no `tohe:guest`: `RequireSession` remembers the screen (`rememberNext`) and sends it to `/account/sign-in` instead of `ensureDeviceProfile`; links (a game, a table, a share, the rooms) pass no `door` and still enter as the device. The door shows **Chơi ngay** first, then **Đăng nhập** with the methods that are on; choosing *Chơi ngay* shows `funIdentity`'s suggestion (*Đổi tên, hình*, *Vào chơi*; `chosen` once changed), makes the profile, counts the funnel's `guest-start`, turns device mode on and goes back to the remembered screen. After the first finished game, a small *Giữ điểm này?* card offers *Tạo tài khoản* and *Để sau*; after the second visit or second game, a quiet banner offers *Đăng nhập*; neither interrupts a game, and *Để sau* hides it for seven days. Where `recent.ts` writes `tohe:returning`, the hub also writes `tohe:greeting` (the profile's name, its avatar's id, the game's id), and removes it when that profile is deleted or its account signs out; the public pages' script reads it before the first paint and draws the greeting (V1) |
 | Who is playing | `session/whoIsPlaying.ts`, `RequireSession`, the picker (`pages/ProfilesPage.tsx`) | The picker leads with the profile this device played last — "Vẫn là Mèo? Chơi tiếp", big, one tap — and the other profiles below it under "Người khác"; with no last player (a first start) it is the title and a grid. localStorage `tohe:last-used` holds when the app was last in sight (written each minute while seen and when it leaves sight). A page load is a cold start: if it follows 30 minutes or more since then, and the device has more than one profile — an account's profiles, or this device's own — the first screen that needs a player sends to the picker (`/account/profiles?ask=true`) once; the screen that asked, or the link kept, opens after the tap. A first start, a clock set back, or storage refused asks nothing. On an account, choosing an adult's profile while a child's plays opens the parent gate first (the manage PIN, or the password or an email code without one), unless management is open already; choosing locks it again. Quản lý tài khoản was behind the gate already |
 | The session ended | `session/ended.ts`, `api/queries.ts` | the hub keeps a copy of the account's session for playing offline; when the API answers that nobody is signed in while that copy is there, the session ended (signing out and deleting the account forget the copy first). The device keeps `tohe:session-ended` and every screen that needs a player shows "Phiên đăng nhập đã hết — đăng nhập lại để chơi tiếp bằng tài khoản" with *Đăng nhập lại* (back to the same screen after) and *Chơi trên máy này* — the device's profiles only when chosen. Signing in, or that choice, clears it |
 | A new version | `update/`, `vite.config.ts` | `registerType: 'prompt'`: the new service worker installs and waits, with no `skipWaiting`, `clientsClaim` or reload of its own, and takes over once every page of the app is closed. A long session asks for a new version every hour while in sight; *Có bản mới — Tải lại* shows above the bar on the frame's screens only (a game, a lobby, a table, a replay and the links into them are outside the frame), with a visible *Để sau* that hides it until the next start. **Out of sight** (`visibilitychange` to `hidden`) with a new version waiting, the page takes it — skip waiting, then one reload, at the same address — when it shows a tab's own screen (`/play`, `/together`, `/account` but not Quản lý tài khoản) or `/account/links` and holds no work: no dialog open, no field with text in it (`appliesOutOfSight`, `holdsWork`). Every other screen of the frame keeps what is in progress only in the page — a code sent by email, a step of signing up or of moving a profile, the parent gate — so it waits for the notice or the next cold start, as do a game, a table and a replay. Otherwise only a tap reloads. `pnpm --filter @tohe/hub updates` builds the hub twice and checks it, in CI too: going out of sight on `/play` reloads into the new build, in a game it does not |
@@ -251,7 +255,7 @@ that came from a Vietnamese page keeps a Vietnamese app on an English phone. A c
 the app changes language at once, without a reload; its links to the public pages follow it (and carry `?from=app`,
 above).
 
-## The introduction surface
+## The shelf and a game's page
 
 ```mermaid
 flowchart LR
@@ -264,38 +268,48 @@ flowchart LR
 
 | Page | Holds | Structured data |
 | --- | --- | --- |
-| Home ([ADR 0055](../decisions/0055-front-page-explains-greets-and-the-app-asks-once.md)) | a centred hero: the picture, the name, one line, **Chơi ngay** and **Tôi đã có tài khoản** (stacked on a phone, side by side from tablet width) — on a device that has played, the greeting in their place; six sections, one idea each with an icon or a picture: what Tò He is (three points), how it works (three steps), playing together (a table by a Zalo link, *Thử Tiến Lên*, and one card **Xem các trò chơi** to `/games/`), for children and parents (profiles, the PIN, the promise), install it like an app, **Bố mẹ hay hỏi** (three or four questions that open in place, and the FAQ); a closing *Chơi ngay*, centred; a small date near the footer. **No list of games** — `/games/` and the app hold it. About 1100 px wide from tablet width, later sections in two columns. No link to the developer docs in its body (the footer has it). [Voice and look](../conventions/voice-and-look.md) | `WebSite`, `Organization` |
-| The games (`/games/`) | every game: its picture, name, `kind` and *Chơi* | `CollectionPage` with its `ItemList` |
-| A game's page | *Play* big and first under the name and its `kind` (and *Play together* beside it, smaller, for a game with tables); the short answer; **the facts table** (age, players, one round, how the phone is held, ads: none, personal data: no sign-up needed to play, no tracking); how to play; its own questions; pictures; related games; a date. "Who it suits" only where a game's file says something the facts do not | `VideoGame`, `BreadcrumbList` |
+| The shelf (`/`, [ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md)) | a hero game: 16:9 cover, name, one-line hook, **Chơi ngay** and **Rủ bạn** — on a device that has played, the greeting above it; then *Đang mở* (3–4 games), a one-line trust strip, *Chơi tiếp* (when the device has played), *Mới tuần này*, a *Rủ bạn* band (*Tạo bàn*, *Nhập mã*), and *Tất cả trò chơi* with a few tags; a small date; the footer. The story moves to `/about`, parents to `/family`, install/questions to `/faq/` and `/guides/`. No six-section introduction on `/`. [Voice and look](../conventions/voice-and-look.md) | `WebSite`, `Organization`, `ItemList` |
+| The games (`/games/`) | every game: its 16:9 cover, name, hook and *Chơi*; a tag row; the same covers as the shelf | `CollectionPage` with its `ItemList` |
+| A game's page ([ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md)) | a 16:9 cover, name and hook; **Chơi ngay** and **Rủ bạn**; facts as chips (players, one round, offline, ads, board); three screenshots or a short muted clip; how to play in three lines; **the full facts table** (age, players, one round, how the phone is held, ads: none, personal data: no sign-up needed to play, no tracking); its own questions; related games; a date. Age sits under "Phù hợp", not beside the name | `VideoGame`, `BreadcrumbList` |
 | The promise | no ads, no tracking, no purchases, no coins | `WebPage` |
 | A collection (from ~8 games) | a written introduction and a comparison table | `CollectionPage`, `ItemList`, `BreadcrumbList` |
 | A page for a search (≥ 3 fitting games) | written text that answers the search | `Article`, `ItemList` |
+
+**The shelf's sections.** The hero is one game, chosen by a person (a new game, a game with a table, a game worth
+showing); *Đang mở* is three or four, *Mới tuần này* is three to five with real dates, *Chơi tiếp* appears only when the
+device has played, and *Rủ bạn* is one band with *Tạo bàn* and *Nhập mã*. No invented counts, no "HOT", no countdown.
+On a phone the sections stack and the covers are two columns; from tablet width they wrap at three or four; on a
+computer four or five, max 1440 px. A game's tile is a 16:9 cover, its name, a one-line hook and a visible **Chơi**;
+age is not on the tile.
 
 **Adding a game** brings its public page: `/new-game` writes `games/<id>/page/vi.md`, `en.md` (with an `updated` date)
 and `facts.json` (facts the manifest does not hold, such as how long a round lasts); the rest comes from `game.json`;
 `pnpm --filter @tohe/web generate:og` draws its preview pictures, committed beside the page; the build makes the pages,
 serves the pictures at `/games/<id>/og.png` and `/en/games/<id>/og.png`, and fails if anything is missing or out of
-date.
+date. A game also brings `page/cover.png` (16:9) and up to three `page/shot-*.png`; until drawn covers exist, the first
+screenshot in the shared temporary frame stands in for the cover.
 
 **One source per game**, in the game's folder, outside `public/` so the games origin never serves it:
 
 | File | Holds | Read by |
 | --- | --- | --- |
 | `page/vi.md`, `page/en.md` | front matter `updated` (the day the words were last revised) and `kind` (what it is in a few words, after the name in the title); then the answer — what it is and for whom, one or two short sentences, no numbers the facts table holds; then, under the page's own headings, how to play (3 to 5 numbered lines), optionally who it suits (left out where it only repeats the facts and the answer) and the game's own questions (`### …?`) and pictures (`![what it shows](name.png)`, the file beside it). Plain text, no HTML or links | `apps/web/src/content/game-page.ts`, which fails on anything else, naming the file |
-| `page/facts.json` | `round` — `fixed` (seconds, a clock ends it), `about` (a typical range of minutes) or `open` (no set length: a game goes on until it is over, and the game keeps the player's place); `offline` — true only when playing with no connection after a first visit is guaranteed, not left to the browser's cache (a games-origin service worker, [ADR 0005](../decisions/0005-offline-first.md)'s spike S1) | the same, with Zod |
+| `page/facts.json` | `round` — `fixed` (seconds, a clock ends it), `about` (a typical range of minutes) or `open` (no set length: a game goes on until it is over, and the game keeps the player's place); `offline` — true only when playing with no connection after a first visit is guaranteed, not left to the browser's cache (a games-origin service worker, [ADR 0005](../decisions/0005-offline-first.md)'s spike S1); `hook` — one line, ≤ 60 characters, for the tile; `tags` — two or three of Giải đố, Bài, Phản xạ, Chơi cùng | the same, with Zod |
+| `page/cover.png` | the game's 16:9 cover: the one picture the shelf, the catalog and the game page share. Until a drawn cover exists, a screenshot in the shared temporary frame stands in | `apps/web`, the hub's catalog, the API's `coverUrl` (when it reads the convention) |
+| `page/shot-1.png` … `page/shot-3.png` | up to three gameplay screenshots for the game's page; 16:9, no text burned in | `apps/web` |
 | `page/og.vi.png`, `page/og.en.png`, `page/og.json` | the game's link-preview picture in each language (1200×630: its icon, its name in that language, its `kind`, Tò He's tagline), made by `pnpm --filter @tohe/web generate:og` and committed beside the page; `og.json` holds a sha256 per language of what each was drawn from (those words, the icon's bytes, a version of the drawing) | `apps/web/scripts/og-stamp.ts`; the build copies them under the game's pages |
 | `public/game.json` | the name and description in each language ([ADR 0048](../decisions/0048-a-standard-name-and-words-per-language-for-each-game.md)), `minAge`, `orientation`, the seats and bots (`rooms`), whether it plays together (`rooms`) | the Game Contract |
 
 **The facts table** of a game's page: ages (`minAge`), players (one alone, or the seats of a table and the bots), a
 round (`facts.json`), the screen (`orientation`), ads (none) and personal data (none needed to play; no tracking).
-**Offline** is claimed — a row of the table, a sentence on the home page — only when every game's `facts.json` says
+**Offline** is claimed — a row of the table, a line in `/faq/`, `/guides/` or `/about` — only when every game's `facts.json` says
 `offline: true`, worked out at build time; none does today.
 
 **The build check** (`apps/web/scripts/check-build.ts`) fails the build when a game lacks either page or its facts,
 when one is broken, when a language pair of the sitemap does not name its alternates both ways, when a game lacks its
 picture in either language, when one is not 1200×630 or out of date (its stamp no longer matches what the sources
-give: "run pnpm --filter @tohe/web generate:og"), when a game's page does not name its own as `og:image`, when the
-home pages, a game's page
+give: "run pnpm --filter @tohe/web generate:og"), when a game has neither a 16:9 cover nor a screenshot, when a cover
+is not 16:9, when a game's page does not name its own as `og:image`, when the home pages, a game's page
 or the promise show no `updated` day, or when a page lacks its structured data (the table above).
 
 **Crawlers.** `robots.txt` keeps the content signals (`search=yes, ai-input=yes, ai-train=no`), allows by name the
@@ -315,13 +329,13 @@ language and IndexNow.
 | Namespaces `/together`, `/promise/` | in place: `/together` (Chơi cùng) and `/promise/` with their pages | — |
 | Public pages in two languages | in place: Vietnamese at `/…`, English at `/en/…`, `hreflang` in the sitemap, the VI \| EN switch and the suggestion, the choice kept under `tohe:language`, `?lang=vi|en` into the app (which reads both); the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages` in `@tohe/routes`) | the public pages' languages pull request |
 | Game names per language | in place: a standard `name` with `names` and `descriptions` per language (ADR 0048); the hub shows its language's, the console the standard name, link previews their card's language's, each public page its own language's | — |
-| One source per game, a picture per game, the facts table, the home page that explains (ADR 0055), the promise, *Continue* instead of the redirect | in place: `games/<id>/page/` for the four games; a picture per game and language, made by `generate:og` and committed beside the page; the home page explains Tò He in sections, greets a device that has played, and never redirects; `/promise/` in both languages. No game claims offline play yet (no games-origin service worker), so no page does | — |
-| The front page that explains, the greeting, the app's door ([ADR 0055](../decisions/0055-front-page-explains-greets-and-the-app-asks-once.md)) | in place: the home pages in sections with the two buttons, the greeting drawn from `tohe:greeting` (`greeting.js` after the card, `returning.js` before the first paint), the app's door, the chip's "Trên máy này" and Tôi's *Đăng nhập*. The sections have icons until the drawn pictures of S3 | — |
+| One source per game, a cover per game, the facts table, the shelf ([ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md)), the promise, *Continue* instead of the redirect | in place: `games/<id>/page/` for the four games; a picture per game and language, made by `generate:og` and committed beside the page; the home page still explains Tò He in sections, greets a device that has played, and never redirects; `/promise/` in both languages. Not yet: the shelf, covers and screenshots, and the game page as a store page (V2). No game claims offline play yet (no games-origin service worker), so no page does | V2 (web), V3 (hub) |
+| The shelf, the greeting, the app's door ([ADR 0057](../decisions/0057-a-game-shelf-for-16-plus.md)) | the greeting and the door are in place: the greeting drawn from `tohe:greeting` (`greeting.js` after the card, `returning.js` before the first paint), the door, the chip's "Trên máy này" and Tôi's *Đăng nhập*. Not yet: `/` as a shelf, the door's *Chơi ngay* first, and the sign-up nudge after the first game (V2, V3) | V2, V3 |
 | Collections and pages for a search | none: they wait for about eight games, and three fitting ones | the growth above |
 | The short landscape screen, the turn-your-phone layer, the cold start, the icons and shortcuts | in place (above) *(agent)*: the rail and a compact header below 500 px of height; "Xoay dọc máy để chơi" over a portrait game on a touch screen sideways; a skeleton in `#root` and a 3 s wait for `/api/auth/me`; opaque icons and a maskable one; shortcuts to Chơi cùng and the code box | — |
-| The app's frame and tabs, the language setting | in place: the bar and the rail, the three tabs, Chơi cùng, Tôi with the language, theme and sound, the history per level (a tab behind steps back), a "←" on every sub-screen and every full-screen gate, the app's own not-found, no orientation lock, the manage PIN before a link out on a child's profile; the bottom-sheet menu gone | — |
+| The app's frame and tabs, the language setting | in place: the bar and the rail, the three tabs (the first still **Trò chơi**; **Sạp** is V3), Chơi cùng, Tôi with the language, theme and sound, the history per level (a tab behind steps back), a "←" on every sub-screen and every full-screen gate, the app's own not-found, no orientation lock, the manage PIN before a link out on a child's profile; the bottom-sheet menu gone | V3 for the tab's name and the shelf |
 | Public pages and the app joined | in place: *Chơi ngay* / *Chơi tiếp* in every public page's header; `?lang=` on every link into the app; `?from=app` and no link out on a public page the app opened; `tohe:returning` written when a game is opened | — |
-| Coming back | in place (above): a table's six digits on Trò chơi and Chơi cùng ("Tiến Lên · bàn 482 113", from `GET /api/rooms/mine`); the API holds a child moving up to the parent gate (`parent_gate_required`, which the picker answers by asking the parent again). Not yet: a share link that opens its game at once passes no screen to carry the iPhone's line | — |
+| Coming back | in place (above): a table's six digits on the first tab and Chơi cùng ("Tiến Lên · bàn 482 113", from `GET /api/rooms/mine`); the API holds a child moving up to the parent gate (`parent_gate_required`, which the picker answers by asking the parent again). Not yet: a share link that opens its game at once passes no screen to carry the iPhone's line; the sign-up nudge after the first game (V3) | V3 for the nudge |
 | Link previews in the maker's language | in place: the hub sends its language when it makes a share link or opens a table; the API keeps it with the link or the table, and a card that names a game speaks it — its words, `lang`, `og:locale` and the game's name ([Entry links](entry-links.md#link-previews)) | — |
 | The terms and the privacy notice in English, the clause parity test | Vietnamese only | before the launch |
 | The console in English | Vietnamese words in its code | an item of the product backlog |

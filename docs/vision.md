@@ -14,7 +14,9 @@ and shaped quickly. Each game here is one such figurine, shaped quickly from the
 
 ## Who it is for
 
-Everyone is first of all **a player** — one person, followed through one life with Tò He:
+Everyone is first of all **a player** — one person, followed through one life with Tò He. Most players are **16 or
+older** and have used web apps before; a child plays through a parent's account, and that family mode is a layer, not
+the front of the product:
 
 ```mermaid
 flowchart LR
@@ -26,8 +28,8 @@ flowchart LR
 
 | Who | Needs |
 | --- | --- |
-| A player | Open and play in seconds, without signing up; a name only when others will see it; an account only when it is worth it — to keep progress, play on another phone, appear on a board; a link that brings a friend to the same table or the same game. |
-| A family | Profiles for each person on one account; children pick a picture, have no password, and play behind the settings their parent chose. |
+| A player (16+) | Open and play in seconds, without signing up; see what a game is before starting it; a name only when others will see it; an account only when it is worth it — to keep progress, play on another phone, appear on a board; a link that brings a friend to the same table or the same game. |
+| A family (a layer) | Profiles for each person on one account; children pick a picture, have no password, and play behind the settings their parent chose; the parent finds this in Tôi → Gia đình and `/family`, not on the front. |
 | The owner, who runs it | A foundation that stays stable for years; a console to run the platform; games that can be added fast, often with AI help; a codebase that is pleasant to review. |
 | A developer or an AI agent | Docs that explain intent, contracts that are checked by machines, one obvious way to do things. |
 
