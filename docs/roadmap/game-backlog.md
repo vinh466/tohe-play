@@ -22,6 +22,7 @@ Ideas to pick from, not commitments. Each game still starts as a `SPEC.md` revie
 | Chạm Ghép (`tap-merge`) | The owner's variant of Ghép Khối: tap a block on a full board, and its whole group of equal blocks (connected in 8 directions) adds up into it, rounded up to a power of two; a long, relaxed game; 🔀 rescues a stuck board | [SPEC](../../games/tap-merge/SPEC.md) |
 | Chạm Chấm (`hello`) | The minimal sample game: tap the dots | [SPEC](../../games/hello/SPEC.md) |
 | Tiến Lên (`tien-len`) | Tiến lên miền Nam against bots (Dễ, Vừa, Khó) or at an online table with the family and bots ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); house rules H1–H9, a practice hand | [SPEC](../../games/tien-len/SPEC.md) |
+| Vườn Rau (`vuon-rau`) | The Asset Studio's pilot: a small farm slice — till, plant, water, harvest, sell — built from the Studio pack `farm-tiny`; proves the road from an approved pack to a game on a phone. MVP works (owner, 2026-10-31); the full farm is later | [SPEC](../../games/vuon-rau/SPEC.md) |
 
 ## Next
 
@@ -99,14 +100,15 @@ or double straight, chop 2s with bombs, go out first.
 
 ## Bigger (later, after a few small ones)
 
-### Vườn Rau Mini — mini farm · ages 5+ · L
-Plant, water and harvest; crops grow in real time; sell to buy new seeds and decorations.
-- **Proves:**
+### Vườn Rau Mini — the full farm · ages 5+ · L
+Plant, water and harvest; crops grow in real time; sell to buy new seeds and decorations. The vertical slice is
+built as the Studio's pilot (see the Built table above); this item is what grows from it.
+- **Proves (the full farm):**
   - time-based progress across sessions (the save stores timestamps; what grows while the game is closed);
-  - a tilemap world;
+  - a larger tilemap world and more content;
   - long-term saves near the 64 KB limit.
 - **Risk:** needs a careful economy, and offline time must not be cheatable by changing the clock (or must not
-  matter for a family game).
+  matter for a family game). The pilot already proved the asset path (pack → lock → build → phone).
 
 ### Hiệp Sĩ Tò He — light RPG · ages 7+ · L
 Explore small tile maps, talk to characters, turn-based fights, a few quests; chapters of about 15 minutes.

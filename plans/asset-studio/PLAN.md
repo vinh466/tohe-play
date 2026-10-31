@@ -16,17 +16,18 @@
 
 ## Next — one item
 
-**Pilot V2: owner chơi thử và đo trên máy thật.**
+**Pilot V2: MVP validated — decide whether to close or grow.**
 1. V1 xong (2026-10-25): style `tiny-farm-16` và pack `farm-tiny@1.0.0` **đã duyệt**; manifest và 133 blob trên
    `assets.toheplay.io.vn`.
 2. V2 xây xong (`games/vuon-rau`, PR Vườn Rau): khoá `farm-tiny@1.0.0`, chỉ lấy tileset; 34 test, conformance PASS.
-   Owner merge, rồi phát hành; sau đó chơi và đo trên A55 và iPhone (kích thước, thời gian mở, khung hình qua telemetry,
-   save). Số đo tại máy nằm trong PR.
+   Đã lên `prod-2026-10-25.5` (`c87fac8`).
+3. Owner (2026-10-31): "Vườn Rau là để test xong luôn luồng studio, về cơ bản nó đã hoạt động tốt theo MVP rồi nha."
+   Mục tiêu của pilot đã đạt. Đo trên A55/iPhone là tùy chọn, không chặn.
 
 ## Waiting on the owner
 
-1. **Xem PR Vườn Rau** và ba điểm lệch SPEC do pack (không có rào; giai đoạn đầu của lúa mì; ô nhỏ khi cầm dọc).
-2. **Chơi và đo trên A55, iPhone** sau khi phát hành.
+1. **Đóng plan hay mở hướng tiếp**: D-13 (precache/on-demand) và farm đầy đủ vẫn để sau; quyết định khi cần.
+2. **Đo trên A55, iPhone** nếu muốn có số (kích thước, mở game, khung hình, save); không chặn MVP.
 
 ## Board
 
@@ -47,13 +48,13 @@
 | D-13 | [Phục vụ `precache` / `on-demand`](items/D-13-runtime-delivery.md) | decision | **deferred** (sau S1 + game cần) | D-02, E-06 |
 | D-14 | [Studio là app độc lập ở `studio.`](items/D-14-studio-is-its-own-app.md) | decision | **decided** — B | D-11 |
 | D-15 | [Token cho agent dùng chung](items/D-15-agent-tokens.md) | decision | **decided** — B | D-11 |
-| E-01 | Game Contract + conformance cho `assets` | enhancement | open | D-12 |
-| E-02 | Build: resolve · cache · đóng gói · lock | enhancement | open | D-06, D-12 |
-| E-03 | Kit: nạp asset + `content` | enhancement | open | D-03, D-12 |
-| E-04 | Kit + conformance: bố cục (gồm spike S3) | enhancement | open | D-04 |
-| E-05 | Quy trình agent: `/new-game` (chốt style), `/new-asset` | enhancement | open | E-01, D-09, D-14, D-15 |
+| E-01 | Game Contract + conformance cho `assets` | enhancement | **done** — C1 | D-12 |
+| E-02 | Build: resolve · cache · đóng gói · lock | enhancement | **done** — T2 | D-06, D-12 |
+| E-03 | Kit: nạp asset + `content` | enhancement | **done** — K1/K2 | D-03, D-12 |
+| E-04 | Kit + conformance: bố cục (gồm spike S3) | enhancement | **open** — K3a/K3b shipped; spike S3 open | D-04 |
+| E-05 | Quy trình agent: `/new-game` (chốt style), `/new-asset` | enhancement | **done** — W1a/W1b | E-01, D-09, D-14, D-15 |
 | E-06 | Spike S1 + hạn mức lưu trữ | enhancement | open | — |
-| E-07 | Pilot: slice Vườn Rau trên Studio P0 | enhancement | open | E-01, E-02, E-03, E-04, D-09, D-14, D-15 |
+| E-07 | Pilot: slice Vườn Rau trên Studio P0 | enhancement | **MVP works** — V1/V2; đo A55/iPhone còn mở | E-01, E-02, E-03, E-04, D-09, D-14, D-15 |
 
 ## Graduation list
 
