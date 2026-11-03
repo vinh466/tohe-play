@@ -18,7 +18,7 @@
   "devDependencies": {
     "@tohe/conformance": "workspace:*",
     "fast-check": "^4.10.0",
-    "vite": "^8.3.0",
-    "vitest": "^5.0.0"
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   }
 }
