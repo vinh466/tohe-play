@@ -2,14 +2,17 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { type ReactNode, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
-import { configQuery } from '../api/queries.ts';
+import { configQuery, gamesQuery } from '../api/queries.ts';
 import { OutboundLink } from '../frame/OutboundLink.tsx';
 import { currentLanguage, setLanguage } from '../i18n.ts';
 import { InstallSheet, useStandalone } from '../install/InstallNudge.tsx';
 import { fromApp, type Language, publicPage } from '../language/language.ts';
+import { nameOf } from '../launcher/gameWords.ts';
 import { RequireSession } from '../session/RequireSession.tsx';
 import type { Player, SessionState } from '../session/session.ts';
 import { readMuted, saveMuted, subscribeMuted } from '../settings/sound.ts';
+import { db } from '../storage/db.ts';
+import { progressOf } from '../storage/repository.ts';
 import { funnel } from '../telemetry/telemetry.ts';
 import { setThemeChoice, type ThemeChoice } from '../theme/theme.ts';
 import { useTheme } from '../theme/useTheme.ts';
@@ -105,6 +108,8 @@ function Me({ session }: { session: PlayingSession }) {
             </div>
           ) : null}
 
+          <Progress player={player} />
+
           <Group id="me-settings" title={t('me.settings')}>
             <Setting label={t('me.language')}>
               <Segmented
@@ -190,6 +195,54 @@ function Group({ id, title, children }: { id: string; title: string; children: R
       </h2>
       {children}
     </section>
+  );
+}
+
+/** The games this profile has played on this device, with its best score when there is one. */
+function Progress({ player }: { player: Player }) {
+  const { t, i18n } = useTranslation();
+  const games = useQuery(gamesQuery(player.id));
+  const progress = useQuery({ queryKey: ['progress', player.id], queryFn: () => progressOf(db, player.id) });
+  const rows = (progress.data ?? []).slice(0, 3);
+  return (
+    <Group id="me-progress" title={t('progress.title')}>
+      {progress.isPending ? <p className="text-ink-soft">{t('loading')}</p> : null}
+      {!progress.isPending && rows.length === 0 ? (
+        <p className="text-ink-soft">
+          {t('progress.empty')}{' '}
+          <Link to="/play" className="font-bold text-accent underline underline-offset-4">
+            {t('progress.pick')}
+          </Link>
+        </p>
+      ) : null}
+      {rows.length > 0 ? (
+        <ul className="flex flex-col">
+          {rows.map((row) => {
+            const game = games.data?.find((entry) => entry.id === row.gameId);
+            return (
+              <li key={row.gameId}>
+                <Link to="/play/$gameId" params={{ gameId: row.gameId }} className={ROW}>
+                  <span className="flex min-w-0 items-center gap-3">
+                    {game?.iconUrl ? (
+                      <img src={game.iconUrl} alt="" className="size-9 rounded-lg object-cover" />
+                    ) : null}
+                    <span className="flex min-w-0 flex-col">
+                      <span className="truncate">{game ? nameOf(game) : row.gameId}</span>
+                      <span className="text-ink-soft text-sm">
+                        {row.best === null
+                          ? t('progress.played')
+                          : t('progress.best', { value: row.best.toLocaleString(i18n.language) })}
+                      </span>
+                    </span>
+                  </span>
+                  <Icon name="caret-right" className="text-ink-soft text-xl" />
+                </Link>
+              </li>
+            );
+          })}
+        </ul>
+      ) : null}
+    </Group>
   );
 }
 

@@ -86,3 +86,37 @@ export async function withOfflineCache<T>(db: ToheDb, key: string, fetcher: () =
     throw error;
   }
 }
+
+/** One game's local progress: the best score, how many saves it holds, and when it last moved. */
+export interface GameProgress {
+  gameId: string;
+  best: number | null;
+  saves: number;
+  at: number;
+}
+
+/** Every game this profile has played on this device, newest first. */
+export async function progressOf(db: ToheDb, profileId: string): Promise<GameProgress[]> {
+  const byGame = new Map<string, GameProgress>();
+  const saves = await db.saves
+    .where('[profileId+gameId]')
+    .between([profileId, Dexie.minKey], [profileId, Dexie.maxKey])
+    .toArray();
+  for (const save of saves) {
+    const current = byGame.get(save.gameId) ?? { gameId: save.gameId, best: null, saves: 0, at: 0 };
+    current.saves += 1;
+    current.at = Math.max(current.at, save.updatedAt);
+    byGame.set(save.gameId, current);
+  }
+  const scores = await db.scores
+    .where('[profileId+gameId]')
+    .between([profileId, Dexie.minKey], [profileId, Dexie.maxKey])
+    .toArray();
+  for (const score of scores) {
+    const current = byGame.get(score.gameId) ?? { gameId: score.gameId, best: null, saves: 0, at: 0 };
+    current.best = current.best === null ? score.value : Math.max(current.best, score.value);
+    current.at = Math.max(current.at, score.at);
+    byGame.set(score.gameId, current);
+  }
+  return [...byGame.values()].sort((a, b) => b.at - a.at);
+}
