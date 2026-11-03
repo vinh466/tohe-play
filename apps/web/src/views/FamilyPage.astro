@@ -1,0 +1,54 @@
+---
+// /family/ and /en/family/: the family page, written for a parent (ADR 0057, D-07). The words are in
+// ../content/family.ts. The rest of the public pages keep the 16+ register; this one says "bé", "bố mẹ".
+import { family } from '../content/family.ts';
+import { absolute } from '../content/site.ts';
+import { appPath, localPath, pageLanguage } from '../i18n.ts';
+import Page from '../layouts/Page.astro';
+
+const lang = pageLanguage(Astro.currentLocale);
+const words = family[lang];
+const path = localPath(lang, '/family/');
+// The privacy notice is in Vietnamese only (ADR 0047): an English page's link says so.
+const legalHreflang = lang === 'vi' ? undefined : 'vi';
+const jsonLd = [
+  {
+    '@type': 'WebPage',
+    name: words.heading,
+    description: words.description,
+    url: absolute(path),
+    inLanguage: lang,
+    isPartOf: { '@id': absolute(`${localPath(lang, '/')}#website`) },
+  },
+];
+---
+
+<Page title={words.title} description={words.description} path={path} jsonLd={jsonLd}>
+  <main id="main" class="narrow">
+    <h1>{words.heading}</h1>
+    <p class="lead">{words.lead}</p>
+    <div class="actions">
+      <a class="button primary" href={appPath(lang, '/play')}>{words.actions.play}</a>
+      <a class="button secondary" href={appPath(lang, '/account/family')}>{words.actions.manage}</a>
+    </div>
+    {
+      words.sections.map((section) => (
+        <section>
+          <h2>{section.heading}</h2>
+          {section.paragraphs.map((paragraph) => (
+            <p>{paragraph}</p>
+          ))}
+        </section>
+      ))
+    }
+    {/* The links out of Tò He carry data-out, and the label with the mailto goes with it (from-app.js). */}
+    <p data-out>
+      {words.contact.label}: <a href={`mailto:${words.contact.email}`} data-out>{words.contact.email}</a>
+    </p>
+    <p class="page-links">
+      <a href={localPath(lang, '/games/')}>{words.links.games}</a>
+      <a href={localPath(lang, '/faq/')}>{words.links.faq}</a>
+      <a href="/privacy/" hreflang={legalHreflang}>{words.links.privacy}</a>
+    </p>
+  </main>
+</Page>

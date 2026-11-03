@@ -225,6 +225,11 @@ export const hubNamespaces: readonly Namespace[] = [
   publicPage('faq', '/faq', 'Short answers to what people ask first'),
   publicPage('about', '/about', 'What Tò He is, who runs it, how to reach them'),
   publicPage(
+    'family',
+    '/family',
+    'For parents: how Tò He keeps a child safe, child profiles, the PIN, what is stored and time',
+  ),
+  publicPage(
     'promise',
     '/promise',
     'The promise: no ads, no tracking, nothing to buy, no coins — never (ADR 0047)',
@@ -269,7 +274,7 @@ export const hubNamespaces: readonly Namespace[] = [
   appPage(
     'account',
     '/account',
-    'A person’s pages: /account/sign-in (and /continue), /register (and /confirm), /password/forgot, /password/reset, /profiles, /data, /transfer, the share links a profile made at /links (ADR 0044); the account itself at /account and /account/email',
+    'A person’s pages: /account/sign-in (and /continue), /register (and /confirm), /password/forgot, /password/reset, /profiles, /family, /data, /transfer, the share links a profile made at /links (ADR 0044); the account itself at /account and /account/email',
   ),
   { ...appPage('room-link', '/r', 'A room’s short link: /r/<code>'), linkPreview: true },
   {
@@ -526,6 +531,7 @@ export function publicPages(gameIds: readonly string[]): Record<string, readonly
     guides: ['/guides/', '/guides/install/'],
     faq: ['/faq/'],
     about: ['/about/'],
+    family: ['/family/'],
     promise: ['/promise/'],
     terms: ['/terms/'],
     privacy: ['/privacy/'],

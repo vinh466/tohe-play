@@ -14,6 +14,7 @@ import { AccountPage, type AccountSearch } from './pages/AccountPage.tsx';
 import { CatalogPage } from './pages/CatalogPage.tsx';
 import { ContinueSignInPage } from './pages/ContinueSignInPage.tsx';
 import { DataPage } from './pages/DataPage.tsx';
+import { FamilyPage } from './pages/FamilyPage.tsx';
 import { NotFoundPage } from './pages/NotFoundPage.tsx';
 import { ForgotPasswordPage, ResetPasswordPage } from './pages/PasswordPage.tsx';
 import { ProfilesPage } from './pages/ProfilesPage.tsx';
@@ -131,6 +132,13 @@ const accountRoute = createRoute({
   component: AccountPage,
 });
 
+/** Gia đình (ADR 0057, D-07): the children's profiles and the manage PIN, behind the parent gate. */
+const familyRoute = createRoute({
+  getParentRoute: () => frameRoute,
+  path: '/account/family',
+  component: FamilyPage,
+});
+
 // The terms of use and the privacy notice are static pages of apps/web (/terms/, /privacy/), rendered from
 // ./legal/documents.ts; the app links to them with a full navigation (ADR 0042).
 
@@ -231,6 +239,7 @@ export function createAppRouter(queryClient: QueryClient) {
         resetPasswordRoute,
         profilesRoute,
         accountRoute,
+        familyRoute,
         accountEmailRoute,
         dataRoute,
         transferRoute,

@@ -6,6 +6,7 @@ import { GameManifest } from '@tohe/contract';
 import { describe, expect, it } from 'vitest';
 import { languages } from '../i18n.ts';
 import { about } from './about.ts';
+import { family } from './family.ts';
 import { faq } from './faq.ts';
 import { allOffline, type GamePageText, parseGameFacts, parseGamePage } from './game-page.ts';
 import { describeGame, gamePaths, gamesPage, loadGames } from './games.ts';
@@ -324,6 +325,7 @@ describe('the two languages', () => {
     ['install', install],
     ['faq', faq],
     ['about', about],
+    ['family', family],
     ['promise', promise],
   ] as const)('give the %s words the same shape in Vietnamese and English', (_, words) => {
     expect(shape(words.en)).toEqual(shape(words.vi));

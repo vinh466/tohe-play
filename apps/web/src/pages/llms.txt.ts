@@ -3,6 +3,7 @@
 // never lists a page that is not there.
 import type { APIRoute } from 'astro';
 import { about } from '../content/about.ts';
+import { family } from '../content/family.ts';
 import { faq } from '../content/faq.ts';
 import { loadGames } from '../content/games.ts';
 import { home } from '../content/home.ts';
@@ -21,6 +22,7 @@ const pages = (lang: Lang) => [
   link(install[lang].heading, localPath(lang, '/guides/install/'), install[lang].description),
   link(faq[lang].heading, localPath(lang, '/faq/'), faq[lang].description),
   link(about[lang].heading, localPath(lang, '/about/'), about[lang].description),
+  link(family[lang].heading, localPath(lang, '/family/'), family[lang].description),
   link(promise[lang].heading, localPath(lang, '/promise/'), promise[lang].description),
 ];
 const games = (lang: Lang) =>

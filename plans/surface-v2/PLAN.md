@@ -48,11 +48,11 @@ Thứ tự đề xuất. Mỗi PR nhỏ, `pnpm verify` xanh, ảnh 360/768/1440 
 | PR | Nội dung | Từ | Cần trước | Ghi chú |
 |---|---|---|---|---|
 | **V0** | ADR 0057 (định vị 16+ / sạp / gia đình là lớp phụ), sửa ADR 0049, 0055; `voice-and-look.md`, `surfaces.md`, `theming.md`, `vision.md`, `index.md`, `identity.md`, `hosts-and-paths.md`; route `/family` trong `packages/routes` | D-01…D-07 | — | **Spec đã viết**; PR pending |
-| **P0** | Quick wins: card có "Chơi" + cover khung tạm; tab "Sạp"; bỏ SHA; cửa "Chơi ngay" trước; "Chơi tiếp" có cover; empty state; lưới desktop 4–6 cột | E-01, E-02, D-03, D-05 | V0 | 1–2 tuần |
-| **V1** | Brand foundation: token giấy/mực/gấc/nghệ/lá + contrast test; primitive `GameCard`, `Cover`, `Button`, `Tag`, `Shelf`; wordmark; dark mode | D-06 | V0 | Có thể song song P0 |
-| **V2** | `apps/web`: `/` sạp (hero + shelf + tất cả), `/games/` card cover, `/games/<id>/` store page, header **Sạp · Chơi cùng · Về**, playbar mobile; SEO/JSON-LD; ảnh icon crop tạm | D-02, D-04, D-08 | V0 | **Code xong** (token hiện tại; V1 thay look) |
-| **V3** | `apps/hub`: `/play` catalog cover-first + search/tag/shelf; `/account` tiến độ + bỏ SHA; `/together` empty state; auth "Chơi ngay" trước + gợi ý sau chơi; layout tablet/desktop | D-03, D-05, E-01…E-04 | V1, P0 | Chia V3a catalog / V3b auth+account |
-| **V4** | Gia đình: `/family` công khai + `/account/family` sau PIN; hồ sơ/giới hạn; copy family | D-07 | V2, V3 | Có thể sau |
+| **P0** | Quick wins: card có "Chơi" + cover khung tạm; tab "Sạp"; bỏ SHA; cửa "Chơi ngay" trước; "Chơi tiếp" có cover; empty state; lưới desktop 4–6 cột | E-01, E-02, D-03, D-05 | V0 | **Đã merge** (#182) |
+| **V1** | Brand foundation: token giấy/mực/gấc/nghệ/lá + contrast test; primitive `GameCard`, `Cover`, `Button`, `Tag`, `Shelf`; wordmark; dark mode | D-06 | V0 | **Đã merge** (#183) |
+| **V2** | `apps/web`: `/` sạp (hero + shelf + tất cả), `/games/` card cover, `/games/<id>/` store page, header **Sạp · Chơi cùng · Về**, playbar mobile; SEO/JSON-LD; ảnh icon crop tạm | D-02, D-04, D-08 | V0 | **Đã merge** (#182), đã lên prod |
+| **V3** | `apps/hub`: `/play` catalog cover-first + search/tag/shelf; `/account` tiến độ + bỏ SHA; `/together` empty state; auth "Chơi ngay" trước + gợi ý sau chơi; layout tablet/desktop | D-03, D-05, E-01…E-04 | V1, P0 | **Đã merge** (#184) |
+| **V4** | Gia đình: `/family` công khai + `/account/family` sau PIN; hồ sơ/giới hạn; copy family | D-07 | V2, V3 | **PR #187**; chưa merge |
 | **V5** | Nội dung: `coverUrl`/`shotUrls` + convention `page/cover.png`, `shot-*.png`; API + web build + games; `hook`/`tags` | D-08 | V0 | Spike contract trước |
 | **V6** | Đo + kiểm: TTFP, phễu, 5–8 buổi thử 5 giây; e2e journey mới; screenshots light/dark; axe | E-05 | P0, V2 | Trước khi tuyên bố xong |
 

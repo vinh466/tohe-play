@@ -56,6 +56,7 @@ const vi = {
   footer: {
     line: 'Tò He là sạp game nhỏ, không quảng cáo.',
     about: 'Giới thiệu',
+    family: 'Gia đình',
     promise: 'Lời hứa của Tò He',
     install: 'Cài ra màn hình chính',
     terms: 'Điều khoản',
@@ -90,6 +91,7 @@ const en: SiteWords = {
   footer: {
     line: 'Tò He is a small game shelf, with no ads.',
     about: 'About',
+    family: 'Family',
     promise: 'Our promise',
     install: 'Add to your home screen',
     // The terms and the privacy notice have no English text yet (ADR 0047): the links say so.
