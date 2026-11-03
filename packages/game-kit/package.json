@@ -28,6 +28,6 @@
   "devDependencies": {
     "@tohe/contract": "workspace:*",
     "phaser": "^4.2.0",
-    "vitest": "^5.0.0"
+    "vitest": "^5.0.5"
   }
 }

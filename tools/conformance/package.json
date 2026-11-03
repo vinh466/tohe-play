@@ -15,10 +15,10 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@axe-core/playwright": "^4.13.0",
+    "@axe-core/playwright": "^4.14.0",
     "@tohe/contract": "workspace:*",
     "@tohe/game-sdk": "workspace:*",
-    "playwright": "^1.64.0"
+    "playwright": "^1.64.1"
   },
   "devDependencies": {
     "@types/node": "^24.0.0"
