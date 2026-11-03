@@ -29,8 +29,8 @@ const vi = {
     {
       heading: 'PIN giữ phần quản lý',
       paragraphs: [
-        'Vào phần quản lý tài khoản cần mã quản lý 6 số của bố mẹ. Bé có thể có mã PIN 4 số riêng để vào hồ sơ của mình.',
-        'Đang chơi bằng hồ sơ của bé mà muốn đổi sang hồ sơ người lớn hay mở link ra ngoài thì cần mã của bố mẹ. Quên mã quản lý thì lấy lại bằng email của tài khoản.',
+        'Khi bố mẹ đã đặt mã quản lý 6 số, vào phần quản lý tài khoản cần mã đó. Bé có thể có mã PIN 4 số riêng để vào hồ sơ của mình.',
+        'Đang chơi bằng hồ sơ của bé mà muốn đổi sang hồ sơ người lớn hay mở link ra ngoài thì cần bố mẹ mở khoá. Quên mã quản lý thì mở lại bằng email hoặc mật khẩu của tài khoản.',
       ],
     },
     {
@@ -83,8 +83,8 @@ const en: typeof vi = {
     {
       heading: 'The PIN keeps the managing',
       paragraphs: [
-        "The account's managing pages need the parent's six-digit manage PIN. A child may have a four-digit PIN of their own to open their profile.",
-        "Changing from a child's profile to an adult's, or opening a link out of Tò He, needs the parent's PIN. A forgotten manage PIN is recovered with the account's email.",
+        "Once a parent has set the six-digit manage PIN, the account's managing pages need it. A child may have a four-digit PIN of their own to open their profile.",
+        "Changing from a child's profile to an adult's, or opening a link out of Tò He, needs a parent to unlock it. A forgotten manage PIN is recovered with the account's email or password.",
       ],
     },
     {
