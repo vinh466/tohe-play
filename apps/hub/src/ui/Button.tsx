@@ -1,7 +1,7 @@
 import type { ButtonHTMLAttributes } from 'react';
 
 const variants = {
-  primary: 'bg-brand text-on-brand shadow-sm shadow-glow active:bg-brand-strong',
+  primary: 'bg-brand text-on-brand shadow-[3px_3px_0_var(--tohe-line-ink)] active:bg-brand-strong',
   secondary: 'bg-soft text-accent active:bg-soft-strong',
   ghost: 'bg-transparent text-accent active:bg-soft',
   danger: 'bg-danger-soft text-danger active:bg-danger-soft-strong',

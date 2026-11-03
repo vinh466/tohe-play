@@ -114,7 +114,10 @@ try {
         body: readFileSync(join(games, id, 'public', 'icon.svg')),
       });
     });
-    await page.goto(`${origin}/play`);
+    // The door (ADR 0057): a new device chooses Play now, then confirms the suggested profile, then the catalog.
+    await page.goto(`${origin}/account/sign-in`);
+    await page.getByRole('button', { name: 'Chơi ngay' }).click();
+    await page.getByRole('button', { name: 'Vào chơi' }).click();
     await page.getByRole('link', { name: /Ghép Khối/ }).waitFor();
     // Let the entrance animations settle, so the picture shows final colours.
     await page.evaluate(() => Promise.all(document.getAnimations().map((a) => a.finished)));

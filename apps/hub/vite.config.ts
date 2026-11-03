@@ -98,7 +98,7 @@ export default defineConfig({
         // game.json prefers inside the screen it gets.
         // The splash screen: the brand colour, with the opaque icon in the middle.
         background_color: brand,
-        theme_color: '#f97316',
+        theme_color: '#f6efe3',
         // Opaque, the brand colour in the corners (iOS paints transparency black); the maskable one is its own file, its
         // art inside the 80% safe zone. Made by `pnpm --filter @tohe/hub generate:icons`.
         icons: [
