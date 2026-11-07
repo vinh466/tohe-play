@@ -3,13 +3,13 @@
   "id": "merge-block",
   "name": "Merge Blocks",
   "names": {
-    "vi": "Gh\u00e9p Kh\u1ed1i"
+    "vi": "Ghép Khối"
   },
-  "version": "2.0.1",
+  "version": "3.0.0",
   "protocol": 1,
-  "description": "Fire number blocks up into the hanging rack. Equal blocks merge; when the gauge is full the machine shakes every row together. Ship 256+ blocks through the top chute!",
+  "description": "Fire number blocks into the hanging rack. Merge them, ride the machine’s shake, ship 256+ blocks, then take a shift of orders, today’s shared daily, or a pressure-free round.",
   "descriptions": {
-    "vi": "B\u1eafn kh\u1ed1i s\u1ed1 t\u1eeb d\u01b0\u1edbi l\u00ean gi\u00e0n treo. Hai kh\u1ed1i gi\u1ed1ng nhau g\u1ed9p l\u1ea1i; \u0111\u1ea7y h\u01a1i th\u00ec m\u00e1y l\u1eafc c\u1ea3 gi\u00e0n. Kh\u1ed1i 256 tr\u1edf l\u00ean \u1edf n\u00f3c \u0111\u01b0\u1ee3c xu\u1ea5t x\u01b0\u1edfng!"
+    "vi": "Bắn khối số lên giàn treo, gộp khối và xuất xưởng. Bốn cách chơi: Cổ điển xếp hạng, Ca làm có đơn hàng và phụ tùng, Ca hôm nay chung bộ khối, và Thư giãn không áp suất."
   },
   "icon": "icon.svg",
   "orientation": "portrait",

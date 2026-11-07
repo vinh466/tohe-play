@@ -1,1 +1,45 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96"><title>Ghép Khối</title><rect width="96" height="96" rx="22" fill="#ffedd5"/><rect x="24" y="8" width="48" height="40" rx="9" fill="#e8772a"/><rect x="24" y="6" width="48" height="40" rx="9" fill="#fb923c"/><text x="48" y="31" font-family="system-ui,sans-serif" font-size="22" font-weight="900" fill="#431407" text-anchor="middle">16</text><g fill="#8b5e34"><circle cx="30" cy="48" r="2"/><circle cx="30" cy="51.5" r="2"/><circle cx="30" cy="55" r="2"/></g><g fill="#c9a87a"><rect x="69" y="48" width="6" height="10" rx="2"/><rect x="69" y="78" width="6" height="10" rx="2"/><rect x="48" y="65" width="10" height="6" rx="2"/><rect x="86" y="65" width="10" height="6" rx="2"/><rect x="55" y="52" width="6" height="10" rx="2" transform="rotate(-45 58 57)"/><rect x="83" y="52" width="6" height="10" rx="2" transform="rotate(45 86 57)"/><rect x="55" y="74" width="6" height="10" rx="2" transform="rotate(45 58 79)"/><rect x="83" y="74" width="6" height="10" rx="2" transform="rotate(-45 86 79)"/><circle cx="72" cy="68" r="14"/><circle cx="72" cy="68" r="6" fill="#ffedd5"/></g><rect x="10" y="58" width="30" height="26" rx="7" fill="#f2c94c"/><rect x="10" y="56" width="30" height="26" rx="7" fill="#fde68a"/><text x="25" y="73" font-family="system-ui,sans-serif" font-size="16" font-weight="900" fill="#92400e" text-anchor="middle">4</text><rect x="4" y="86" width="88" height="6" rx="3" fill="#8b5e34"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 96" role="img" aria-labelledby="tohe-merge-title">
+  <title id="tohe-merge-title">Ghép Khối — Máy Ghép</title>
+  <rect width="96" height="96" rx="22" fill="#ffedd5"/>
+  <!-- The machine's ears: two brass gears. -->
+  <g fill="#c9a87a">
+    <circle cx="13" cy="35" r="8"/>
+    <circle cx="83" cy="35" r="8"/>
+  </g>
+  <g fill="#ffedd5">
+    <circle cx="13" cy="35" r="3"/>
+    <circle cx="83" cy="35" r="3"/>
+  </g>
+  <g fill="#c9a87a">
+    <rect x="10" y="24" width="6" height="4" rx="1"/>
+    <rect x="10" y="42" width="6" height="4" rx="1"/>
+    <rect x="80" y="24" width="6" height="4" rx="1"/>
+    <rect x="80" y="42" width="6" height="4" rx="1"/>
+  </g>
+  <!-- The head: a block with the 16 as its face plate. -->
+  <rect x="16" y="8" width="64" height="62" rx="14" fill="#e8772a"/>
+  <rect x="16" y="6" width="64" height="62" rx="14" fill="#fb923c"/>
+  <rect x="22" y="12" width="52" height="28" rx="8" fill="#fde68a"/>
+  <text x="48" y="34" font-family="system-ui, sans-serif" font-size="24" font-weight="900" fill="#7c2d12" text-anchor="middle">16</text>
+  <!-- Gauge eyes: a needle in each, so they read as pressure, not just dots. -->
+  <g>
+    <circle cx="33" cy="50" r="6.5" fill="#fff7ed" stroke="#7c2d12" stroke-width="2"/>
+    <circle cx="63" cy="50" r="6.5" fill="#fff7ed" stroke="#7c2d12" stroke-width="2"/>
+    <path d="M33 50 L36 46" stroke="#0f766e" stroke-width="2" stroke-linecap="round"/>
+    <path d="M63 50 L60 46" stroke="#0f766e" stroke-width="2" stroke-linecap="round"/>
+  </g>
+  <!-- The chute mouth, with its brass slats. -->
+  <rect x="34" y="58" width="28" height="9" rx="3" fill="#431407"/>
+  <g fill="#c9a87a">
+    <rect x="38" y="60" width="2" height="5" rx="1"/>
+    <rect x="45" y="60" width="2" height="5" rx="1"/>
+    <rect x="52" y="60" width="2" height="5" rx="1"/>
+    <rect x="59" y="60" width="2" height="5" rx="1"/>
+  </g>
+  <!-- The loader rail and a small block waiting on it. -->
+  <rect x="8" y="84" width="80" height="7" rx="3.5" fill="#8b5e34"/>
+  <rect x="10" y="74" width="18" height="12" rx="4" fill="#f2c94c"/>
+  <rect x="10" y="72" width="18" height="12" rx="4" fill="#fde68a"/>
+  <text x="19" y="82" font-family="system-ui, sans-serif" font-size="9" font-weight="900" fill="#92400e" text-anchor="middle">4</text>
+  <rect x="68" y="78" width="18" height="7" rx="2" fill="#3b2a20"/>
+</svg>

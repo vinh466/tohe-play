@@ -1,15 +1,27 @@
 // "Thách bạn" (ADR 0045, SPEC.md "Challenge a friend"): a finished game shares its start seed and its score; whoever
-// opens the link plays the same blocks in a slot of its own, with its own score run, never ranked. Pure: what the
-// share sends, what an entry may hold, and the challenge slot of the save. The payload is untrusted — anyone can make
-// a share link through the API — so everything is checked here, and the score is only the maker's claim.
+// opens the link plays the same blocks in a slot of its own, with its own score run, never ranked. 3.0.0 adds the
+// daily's share (v3), which carries the sender's local date beside the seed. Pure: what the share sends, what an
+// entry may hold, and the challenge slot of the save. The payload is untrusted — anyone can make a share link
+// through the API — so everything is checked here, and the score is only the maker's claim.
 import { newGame, restore, type State } from './logic.ts';
 
-/** What "Thách bạn" shares: the payload's own version, the seed the game started from, and its score. */
-export type ChallengePayload = {
+/** A classic "Thách bạn" (2.0.1): the payload's own version, the seed the game started from, and its score. */
+export type ClassicPayload = {
   v: 2;
   seed: number;
   score: number;
 };
+
+/** The daily's share (3.0.0): the seed, its score, and the sender's local date, shown as a claim. */
+export type DailyPayload = {
+  v: 3;
+  seed: number;
+  score: number;
+  date: string;
+  mode: 'daily';
+};
+
+export type ChallengePayload = ClassicPayload | DailyPayload;
 
 /** The highest score a payload may claim: far above any game, below where numbers lose their digits. */
 const MAX_SCORE = 1e12;
@@ -20,16 +32,32 @@ const isSeed = (value: unknown): value is number =>
 const isScore = (value: unknown): value is number =>
   Number.isInteger(value) && (value as number) >= 0 && (value as number) <= MAX_SCORE;
 
-/** The payload of a challenge on `seed`, claiming `score`. */
-export const challengePayload = (seed: number, score: number): ChallengePayload => ({
+const isDate = (value: unknown): value is string =>
+  typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value);
+
+/** The payload of a classic challenge on `seed`, claiming `score`. */
+export const challengePayload = (seed: number, score: number): ClassicPayload => ({
   v: 2,
   seed: seed >>> 0,
   score: Math.max(0, Math.round(score)),
 });
 
+/** The payload of a daily challenge: the same seed and score, plus the sender's local date. */
+export const dailyPayload = (seed: number, score: number, date: string): DailyPayload => ({
+  v: 3,
+  seed: seed >>> 0,
+  score: Math.max(0, Math.round(score)),
+  date,
+  mode: 'daily',
+});
+
+/** Whether a payload is a daily one. */
+export const isDailyPayload = (payload: ChallengePayload): payload is DailyPayload =>
+  payload.v === 3 && payload.mode === 'daily';
+
 /**
  * What an entry asks of this game: `handled` for a challenge it opens, `unsupported` for a payload of another version
- * (a newer game's), `invalid` for anything else.
+ * (a newer game's or an older one's), `invalid` for anything else.
  */
 export function readEntry(
   kind: string,
@@ -38,18 +66,38 @@ export function readEntry(
   if (kind !== 'share') return { result: 'unsupported' };
   if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return { result: 'invalid' };
   const fields = payload as Record<string, unknown>;
-  if (typeof fields.v === 'number' && fields.v !== 2) return { result: 'unsupported' };
+  if (typeof fields.v === 'number' && fields.v !== 2 && fields.v !== 3) return { result: 'unsupported' };
   const keys = Object.keys(fields);
-  if (
-    fields.v !== 2 ||
-    keys.length !== 3 ||
-    !keys.every((key) => key === 'v' || key === 'seed' || key === 'score') ||
-    !isSeed(fields.seed) ||
-    !isScore(fields.score)
-  ) {
-    return { result: 'invalid' };
+  if (fields.v === 2) {
+    if (
+      keys.length !== 3 ||
+      !keys.every((key) => key === 'v' || key === 'seed' || key === 'score') ||
+      !isSeed(fields.seed) ||
+      !isScore(fields.score)
+    ) {
+      return { result: 'invalid' };
+    }
+    return { result: 'handled', challenge: { v: 2, seed: fields.seed, score: fields.score } };
   }
-  return { result: 'handled', challenge: { v: 2, seed: fields.seed, score: fields.score } };
+  if (fields.v === 3) {
+    if (
+      keys.length !== 5 ||
+      !keys.every(
+        (key) => key === 'v' || key === 'seed' || key === 'score' || key === 'date' || key === 'mode',
+      ) ||
+      !isSeed(fields.seed) ||
+      !isScore(fields.score) ||
+      !isDate(fields.date) ||
+      fields.mode !== 'daily'
+    ) {
+      return { result: 'invalid' };
+    }
+    return {
+      result: 'handled',
+      challenge: { v: 3, seed: fields.seed, score: fields.score, date: fields.date, mode: 'daily' },
+    };
+  }
+  return { result: 'invalid' };
 }
 
 /** Who sent the challenge, when the hub may say (a child's profile is never named). */
@@ -63,6 +111,10 @@ export interface ChallengeSlot {
   seed: number;
   /** The score the link claimed, shown as the maker's claim. */
   target: number;
+  /** A classic challenge (v2) or the daily's (v3). */
+  mode: 'classic' | 'daily';
+  /** The daily's local date, from its payload. */
+  date?: string;
   from: ChallengeFrom | null;
   /** The challenge game in progress, or null once it ended. */
   game: State | null;
@@ -81,17 +133,23 @@ export function openChallenge(
   best: number,
   newRun: () => string,
 ): ChallengeSlot {
+  const mode = isDailyPayload(challenge) ? 'daily' : 'classic';
+  const date = isDailyPayload(challenge) ? challenge.date : undefined;
   const same =
     slot !== null &&
     slot.seed === challenge.seed &&
     slot.target === challenge.score &&
+    slot.mode === mode &&
+    slot.date === date &&
     (slot.from?.name ?? null) === (from?.name ?? null);
   if (same && slot.game && !slot.game.over) return slot;
   return {
     seed: challenge.seed,
     target: challenge.score,
+    mode,
+    ...(date ? { date } : {}),
     from,
-    game: newGame(challenge.seed, best),
+    game: newGame(challenge.seed, best, mode, date ? { dailyDate: date } : {}),
     run: newRun(),
   };
 }
@@ -108,7 +166,19 @@ export function restoreChallenge(saved: unknown): ChallengeSlot | null {
       from.name.length > 0 &&
       from.name.length <= 64 &&
       (from.avatar === undefined || typeof from.avatar === 'string'));
-  if (!isSeed(slot.seed) || !isScore(slot.target) || !fromOk || typeof slot.run !== 'string' || !slot.run) {
+  // Saves from 2.0.1 have no mode: their challenge is the classic one.
+  const mode = slot.mode === undefined ? 'classic' : slot.mode;
+  const daily = mode === 'daily';
+  if (
+    !isSeed(slot.seed) ||
+    !isScore(slot.target) ||
+    (mode !== 'classic' && mode !== 'daily') ||
+    (daily && !isDate(slot.date)) ||
+    (!daily && slot.date !== undefined) ||
+    !fromOk ||
+    typeof slot.run !== 'string' ||
+    !slot.run
+  ) {
     return null;
   }
   const game = slot.game === null ? null : restore(slot.game);
@@ -116,6 +186,8 @@ export function restoreChallenge(saved: unknown): ChallengeSlot | null {
   return {
     seed: slot.seed,
     target: slot.target,
+    mode,
+    ...(daily ? { date: slot.date as string } : {}),
     from: from ? { name: from.name as string, ...(from.avatar ? { avatar: from.avatar } : {}) } : null,
     game,
     run: slot.run,
