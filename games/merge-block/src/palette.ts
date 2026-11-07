@@ -162,6 +162,20 @@ export interface BoardStyle {
   /** "Combo ×n!" text, and from combo 4 on. */
   combo: string;
   bigCombo: string;
+  /** The machine's frame, its edges, the ceiling rail and the top chute. */
+  frame: number;
+  frameEdge: number;
+  rail: number;
+  chute: number;
+  /** The pressure lamps: empty and full. */
+  gauge: number;
+  gaugeFull: number;
+  /** The safety line: its bar, its stripes and the lamp's three states. */
+  safety: number;
+  safetyStripe: number;
+  lampOff: number;
+  warn: number;
+  danger: number;
 }
 
 export const BOARD: Record<Theme, BoardStyle> = {
@@ -176,8 +190,19 @@ export const BOARD: Record<Theme, BoardStyle> = {
     scoreStroke: '#ffffff',
     combo: '#c2410c',
     bigCombo: '#be185d',
+    frame: 0xf1d6b0,
+    frameEdge: 0xc9a87a,
+    rail: 0x8b5e34,
+    chute: 0x1e293b,
+    gauge: 0x0f766e,
+    gaugeFull: 0xf59e0b,
+    safety: 0x9a3412,
+    safetyStripe: 0xfbbf24,
+    lampOff: 0xd6d3d1,
+    warn: 0xf59e0b,
+    danger: 0xdc2626,
   },
-  // Warm charcoal like the hub: the board sits a step above the page, empty cells a step above the board.
+  // Warm charcoal like the hub: the machine sits a step above the page, empty cells a step above the rack.
   dark: {
     background: '#17110e',
     board: 0x241a15,
@@ -189,5 +214,16 @@ export const BOARD: Record<Theme, BoardStyle> = {
     scoreStroke: '#17110e',
     combo: '#fb923c',
     bigCombo: '#f472b6',
+    frame: 0x3b2a20,
+    frameEdge: 0x1c1310,
+    rail: 0xb97a42,
+    chute: 0xfde68a,
+    gauge: 0x2dd4bf,
+    gaugeFull: 0xfbbf24,
+    safety: 0x7c2d12,
+    safetyStripe: 0xfbbf24,
+    lampOff: 0x57534e,
+    warn: 0xfbbf24,
+    danger: 0xf87171,
   },
 };

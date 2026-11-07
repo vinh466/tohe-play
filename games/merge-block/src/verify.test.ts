@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { drop, newGame, replayMoves } from './logic.ts';
+import { fire, newGame, replayMoves } from './logic.ts';
 import { verify } from './verify.ts';
 
 describe('the verify module (ADR 0030)', () => {
@@ -8,7 +8,7 @@ describe('the verify module (ADR 0030)', () => {
     let state = newGame(seed);
     const moves: number[] = [];
     for (const col of [0, 1, 2, 0, 1, 2, 3, 4, 2, 2]) {
-      const result = drop(state, col);
+      const result = fire(state, col);
       if (!result.ok) continue;
       state = result.state;
       moves.push(col);
@@ -43,7 +43,7 @@ describe('watching a run (ADR 0032)', () => {
     for (const [index, col] of run.moves.entries()) {
       const watched = replayMoves(run.seed, run.moves, index);
       expect('state' in watched && watched.state).toEqual(state);
-      const result = drop(state, col);
+      const result = fire(state, col);
       if (!result.ok) throw new Error(result.reason);
       state = result.state;
     }

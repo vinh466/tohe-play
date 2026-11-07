@@ -8,7 +8,7 @@ import {
   readEntry,
   restoreChallenge,
 } from './challenge.ts';
-import { drop, newGame, restore, type State } from './logic.ts';
+import { fire, newGame, restore, type State } from './logic.ts';
 
 /** The payloads the build ships for conformance (ADR 0045): what "Thách bạn" makes. */
 const samples = JSON.parse(
@@ -20,7 +20,7 @@ const bytes = (value: unknown) => new TextEncoder().encode(JSON.stringify(value)
 function play(state: State, cols: number[]): State {
   let next = state;
   for (const col of cols) {
-    const result = drop(next, col);
+    const result = fire(next, col);
     if (result.ok) next = result.state;
   }
   return next;
@@ -58,20 +58,21 @@ describe('the payloads "Thách bạn" shares (ADR 0045)', () => {
     ['null', null],
     ['a string', 'Thách bạn!'],
     ['an array', [1, 913, 12]],
-    ['wrong types', { v: 1, seed: '913', score: 12 }],
-    ['a negative score', { v: 1, seed: 913, score: -5 }],
-    ['a fractional seed', { v: 1, seed: 1.5, score: 12 }],
-    ['a seed past 32 bits', { v: 1, seed: 2 ** 32, score: 12 }],
-    ['an absurd score', { v: 1, seed: 1, score: 1e15 }],
-    ['extra fields', { v: 1, seed: 1, score: 1, from: 'admin' }],
+    ['wrong types', { v: 2, seed: '913', score: 12 }],
+    ['a negative score', { v: 2, seed: 913, score: -5 }],
+    ['a fractional seed', { v: 2, seed: 1.5, score: 12 }],
+    ['a seed past 32 bits', { v: 2, seed: 2 ** 32, score: 12 }],
+    ['an absurd score', { v: 2, seed: 1, score: 1e15 }],
+    ['extra fields', { v: 2, seed: 1, score: 1, from: 'admin' }],
     ['no version', { seed: 1, score: 1 }],
-    ['deep nesting', { v: 1, seed: [[[[1]]]], score: 1 }],
+    ['deep nesting', { v: 2, seed: [[[[1]]]], score: 1 }],
   ])('refuses %s as invalid', (_label, payload) => {
     expect(readEntry('share', payload).result).toBe('invalid');
   });
 
-  it('leaves a payload of a newer version, or another kind, as unsupported', () => {
-    expect(readEntry('share', { v: 2, seed: 1, score: 1, board: 'x' }).result).toBe('unsupported');
+  it('leaves a payload of a newer version, an older one, or another kind, as unsupported', () => {
+    expect(readEntry('share', { v: 3, seed: 1, score: 1, board: 'x' }).result).toBe('unsupported');
+    expect(readEntry('share', { v: 1, seed: 1, score: 1 }).result).toBe('unsupported');
     expect(readEntry('daily', challengePayload(1, 1)).result).toBe('unsupported');
   });
 });

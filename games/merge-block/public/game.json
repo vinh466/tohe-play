@@ -2,12 +2,14 @@
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "merge-block",
   "name": "Merge Blocks",
-  "names": { "vi": "Ghép Khối" },
-  "version": "1.11.4",
+  "names": {
+    "vi": "Ghép Khối"
+  },
+  "version": "2.0.0",
   "protocol": 1,
-  "description": "Drop number blocks into the columns: two matching blocks merge into one. Chain merges to multiply your score!",
+  "description": "Fire number blocks up into the hanging rack. Equal blocks merge; when the gauge is full the machine shakes every row together. Ship 256+ blocks through the top chute!",
   "descriptions": {
-    "vi": "Thả khối số vào cột, hai khối giống nhau sẽ gộp lại. Gộp liên tiếp để nhân điểm!"
+    "vi": "Bắn khối số từ dưới lên giàn treo. Hai khối giống nhau gộp lại; đầy hơi thì máy lắc cả giàn. Khối 256 trở lên ở nóc được xuất xưởng!"
   },
   "icon": "icon.svg",
   "orientation": "portrait",
@@ -16,6 +18,11 @@
   "minAge": 3,
   "tags": ["puzzle", "numbers"],
   "sizeBudgetKb": 2500,
-  "ranked": { "verify": "verify.js", "board": "default", "minMsPerMove": 150, "maxMoves": 20000 },
+  "ranked": {
+    "verify": "verify.js",
+    "board": "default",
+    "minMsPerMove": 150,
+    "maxMoves": 20000
+  },
   "entries": ["share"]
 }

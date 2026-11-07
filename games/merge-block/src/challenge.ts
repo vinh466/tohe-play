@@ -6,7 +6,7 @@ import { newGame, restore, type State } from './logic.ts';
 
 /** What "Thách bạn" shares: the payload's own version, the seed the game started from, and its score. */
 export type ChallengePayload = {
-  v: 1;
+  v: 2;
   seed: number;
   score: number;
 };
@@ -22,7 +22,7 @@ const isScore = (value: unknown): value is number =>
 
 /** The payload of a challenge on `seed`, claiming `score`. */
 export const challengePayload = (seed: number, score: number): ChallengePayload => ({
-  v: 1,
+  v: 2,
   seed: seed >>> 0,
   score: Math.max(0, Math.round(score)),
 });
@@ -38,10 +38,10 @@ export function readEntry(
   if (kind !== 'share') return { result: 'unsupported' };
   if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) return { result: 'invalid' };
   const fields = payload as Record<string, unknown>;
-  if (typeof fields.v === 'number' && fields.v !== 1) return { result: 'unsupported' };
+  if (typeof fields.v === 'number' && fields.v !== 2) return { result: 'unsupported' };
   const keys = Object.keys(fields);
   if (
-    fields.v !== 1 ||
+    fields.v !== 2 ||
     keys.length !== 3 ||
     !keys.every((key) => key === 'v' || key === 'seed' || key === 'score') ||
     !isSeed(fields.seed) ||
@@ -49,7 +49,7 @@ export function readEntry(
   ) {
     return { result: 'invalid' };
   }
-  return { result: 'handled', challenge: { v: 1, seed: fields.seed, score: fields.score } };
+  return { result: 'handled', challenge: { v: 2, seed: fields.seed, score: fields.score } };
 }
 
 /** Who sent the challenge, when the hub may say (a child's profile is never named). */

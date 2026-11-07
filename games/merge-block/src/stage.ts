@@ -15,13 +15,12 @@ import {
 import { createGame } from '@tohe/game-kit/phaser';
 import { finishRanked, persist, session, sfx, shareChallenge, startRanked, store, t } from './app.ts';
 import { type ChallengeSlot, openChallenge, outcome, readEntry } from './challenge.ts';
-import { drop, newGame, type State } from './logic.ts';
-import { createNextBlock } from './next.ts';
+import { fire, newGame, type State } from './logic.ts';
 import { BOARD, PALETTE_IDS, type PaletteId } from './palette.ts';
 import { samples } from './swatches.ts';
 import { BoardScene } from './view.ts';
 
-/** Taps closer together than this are one bouncing finger, not two drops. */
+/** Taps closer together than this are one bouncing finger, not two shots. */
 const DOUBLE_TAP_MS = 150;
 
 export async function start(ctx: StageContext): Promise<PlayStage> {
@@ -86,13 +85,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     return persist();
   };
 
-  // ------------------------------------------------------------------ HUD: Menu | score | next block | best
+  // ------------------------------------------------------------------ HUD: Menu | score | best
 
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const scores = hud.score({ score: t.score, best: t.best });
   scores.setBest(store.best);
   let theme: Theme = session.settings.theme;
-  const nextBlock = createNextBlock(hud.center, theme);
   const showScore = (value: number, animate = true) => scores.set(value, animate);
   // A challenge's target, under the HUD: the score the link claimed, and whose it is when the hub may say.
   const target = document.createElement('p');
@@ -124,9 +122,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         sfx,
         t,
         {
-          onDrop: (col) => requestMove(col),
+          onFire: (col) => requestMove(col),
           onScore: (value) => showScore(value),
-          onUpcoming: (next, animate) => nextBlock.show(next, animate),
         },
         theme,
         store.palette,
@@ -150,14 +147,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     theme = settings.theme;
     board.setTheme(theme);
     kit.setBackground(BOARD[theme].background);
-    nextBlock.repaint(theme);
   });
 
   function setPalette(id: PaletteId) {
     sfx.play('click');
     store.palette = id;
     board.setPalette(id);
-    nextBlock.repaint(theme);
     void save();
   }
 
@@ -172,7 +167,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   async function move(col: number) {
     if (moving || ctx.overlay.visible) return;
-    const result = drop(state, col);
+    const result = fire(state, col);
     if (!result.ok) {
       if (result.reason === 'column_full') board.reject(col);
       return;
@@ -212,11 +207,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     finishRanked(state.score);
     const seed = state.seed;
     const final = state.score;
+    const body = `${t.result(score(final), score(store.best))}${state.shipped > 0 ? ` · ${t.shipped(state.shipped)}` : ''}`;
     ctx.gameOver(
       {
         icon: record ? 'trophy' : { src: 'icon.svg' },
         title: record ? t.record : t.over,
-        body: t.result(score(final), score(store.best)),
+        body,
       },
       undefined,
       seed !== undefined && session.canShare
@@ -230,11 +226,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     const final = state.score;
     const { beaten, short } = outcome(final, played.target);
     const name = played.from?.name ?? null;
+    const body = `${t.result(score(final), score(store.best))}${state.shipped > 0 ? ` · ${t.shipped(state.shipped)}` : ''}`;
     ctx.gameOver(
       {
         icon: beaten ? 'trophy' : 'target',
         title: beaten ? t.challenge.beaten(score(played.target), name) : t.challenge.short(score(short)),
-        body: t.result(score(final), score(store.best)),
+        body,
       },
       { label: t.challenge.back, onClick: () => void toRegular() },
       session.canShare
@@ -268,7 +265,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   async function startNewGame() {
     if (!state.over && state.score > 0) void run.finish(state.score).catch(scoreFailed);
-    // No drop on the old board while the new one waits for its seed.
+    // No shot on the old board while the new one waits for its seed.
     moving = true;
     if (challenge) {
       // A new game of a challenge starts it again on the same blocks, with a run of its own.
@@ -292,7 +289,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     if (event.key === 'ArrowLeft') board.nudge(-1);
     else if (event.key === 'ArrowRight') board.nudge(1);
     else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
-      if (!event.repeat) requestMove(board.aimedColumn); // holding the key down drops once
+      if (!event.repeat) requestMove(board.aimedColumn); // holding the key down fires once
     } else return;
     event.preventDefault();
   };
