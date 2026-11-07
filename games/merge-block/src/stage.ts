@@ -162,10 +162,15 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       return ranked;
     }
     if (rankedRequest) {
-      const ranked = await rankedRequest;
-      rankedRequest = null;
-      pendingRanked = null;
-      return ranked;
+      try {
+        const ranked = await rankedRequest;
+        rankedRequest = null;
+        pendingRanked = null;
+        return ranked;
+      } catch {
+        rankedRequest = null;
+        return null;
+      }
     }
     try {
       return await startRanked();
@@ -216,7 +221,11 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   /** Ends the live score run and the ranked run when the player leaves this run for another mode. */
   function stopRun() {
     if (run && state && !state.over && state.score > 0) void run.finish(state.score).catch(scoreFailed);
-    if (!challenge && mode === 'classic' && state && !state.over) finishRanked(state.score);
+    if (!challenge && mode === 'classic' && state && !state.over) {
+      finishRanked(state.score);
+      // The live run ended above; a later resume starts a new one rather than writing to a finished report.
+      store.run = null;
+    }
     if (challenge) challenge.game = state;
     run = null;
   }
@@ -405,10 +414,9 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         unlocked: store.workshop.blueprints,
       });
     } else if (modeChoice === 'daily') {
+      // A fresh run of today's shift: same seed, its own board (Continue resumes the saved one).
       const daily = openDaily();
-      if (!daily.game || daily.game.over) {
-        daily.game = newGame(daily.seed, daily.best, 'daily', { dailyDate: daily.date });
-      }
+      daily.game = newGame(daily.seed, daily.best, 'daily', { dailyDate: daily.date });
       state = daily.game;
       runId = newRunId();
     } else {
@@ -503,7 +511,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     const daily = store.daily;
     const today = localDate();
     if (daily) count('daily.view');
-    const dailyBest = daily?.date === today ? score(daily.best) : null;
+    const dailyBest = daily?.date === today && daily.best > 0 ? score(daily.best) : null;
     content.append(
       modeButton('orders', t.modes.orders, t.modes.ordersLine, null, false),
       modeButton('classic', t.modes.classic, t.modes.classicLine, null, true),
@@ -827,6 +835,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   function restartChallenge() {
     if (!challenge) return;
+    ctx.overlay.hide();
     challenge.game = newGame(
       challenge.seed,
       bestOf(mode),
@@ -849,6 +858,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   /** "Về ván thường": the regular game in place — the one in progress, or a fresh classic run. */
   async function toRegular() {
     moving = true;
+    ctx.overlay.hide();
     challenge = null;
     const resumed = state?.mode === 'classic' && !state.over ? null : store.game;
     if (resumed && !resumed.over) {
