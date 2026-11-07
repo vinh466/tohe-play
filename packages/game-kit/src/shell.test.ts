@@ -633,14 +633,30 @@ describe('opened by an entry (ADR 0045)', () => {
     await settle();
     test.ctx().gameOver({ title: 'Hết ván' }, undefined, [
       { label: 'Thách bạn', onClick: share },
-      { label: 'Thách lại', onClick: again },
+      { label: 'Màn tiếp', onClick: again, dismiss: true },
     ]);
-    expect(test.labels()).toEqual(['Chơi lại', 'Thách bạn', 'Thách lại', 'Menu chính']);
+    expect(test.labels()).toEqual(['Chơi lại', 'Thách bạn', 'Màn tiếp', 'Menu chính']);
     expect(test.play()?.actions[1]?.variant).toBe('secondary');
     test.tap('Thách bạn');
     expect(share).toHaveBeenCalled();
     expect(test.play()?.title).toBe('Hết ván');
     expect(test.shell.playing).toBe(false);
+  });
+
+  it('lets an end-card action dismiss the card and go on playing', () => {
+    const next = vi.fn();
+    const test = setup();
+    test.shell.start();
+    test.tap('Chơi');
+    return settle().then(() => {
+      test.ctx().gameOver({ title: 'Hết ván' }, undefined, [
+        { label: 'Màn tiếp', onClick: next, dismiss: true },
+      ]);
+      expect(test.labels()).toEqual(['Chơi lại', 'Màn tiếp', 'Menu chính']);
+      test.tap('Màn tiếp');
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(test.shell.playing).toBe(true);
+    });
   });
 });
 

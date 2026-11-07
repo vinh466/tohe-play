@@ -52,8 +52,9 @@ pressures the player. No ads, purchases, energy, currency or punishing streaks.
   progress, **Chơi lại** and **Menu chính**.
 - **Journey**: a level ends when all its goals are met, its **move limit** is reached, or it is stuck with no rescue.
   A level completes if its **primary goal** (the first goal) is met; the other goals give stars. The card shows the
-  three goals, the stars, **Chơi lại**, **Tiếp theo** and **Menu chính**.
-- **Daily**: like a journey level, with a fixed seed and goals; one scored attempt per day.
+  three goals, the stars, **Chơi lại**, **Màn tiếp** (when the next level is unlocked) and **Menu chính**.
+- **Daily**: like a journey level, with a fixed seed and goals; one scored attempt per day. Its card has
+  **Chơi lại** and **Menu chính** (there is no next level).
 
 ## The journey
 

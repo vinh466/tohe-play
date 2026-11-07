@@ -6,6 +6,7 @@ import {
   haptics,
   icon,
   newRunId,
+  type OverlayAction,
   type PlayStage,
   prefersReducedMotion,
   type StageContext,
@@ -609,7 +610,20 @@ export function start(ctx: StageContext): PlayStage {
     haptics.play(record || done ? 'celebrate' : 'bump');
     if (record || done) celebrate();
     render();
-    ctx.gameOver({ icon: record ? 'trophy' : { src: 'icon.svg' }, title, body });
+    const more: OverlayAction[] = [];
+    if (state.mode === 'journey' && done && state.level) {
+      const index = LEVELS.findIndex((level) => level.id === state.level);
+      const next = LEVELS[index + 1];
+      if (next && journeyStars() >= chapterOf(next).unlockAt) {
+        more.push({
+          label: t.nextLevel,
+          icon: 'play',
+          dismiss: true,
+          onClick: () => begin(startLevel(next.id)),
+        });
+      }
+    }
+    ctx.gameOver({ icon: record ? 'trophy' : { src: 'icon.svg' }, title, body }, undefined, more);
   }
 
   // ------------------------------------------------------------------ a new game in place
