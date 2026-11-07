@@ -35,6 +35,7 @@ import {
   indexOf,
   landingRow,
   PRESSURE_MAX,
+  pressureMax,
   ROWS,
   type State,
 } from './logic.ts';
@@ -103,6 +104,8 @@ export class BoardScene extends Phaser.Scene {
   private hoverCol: number | null = null;
   private busy = false;
   private pressure = 0;
+  /** The gauge's max for the mode and parts in play: 8, or more with Bình áp (logic.pressureMax). */
+  private maxPressure = PRESSURE_MAX;
   private ready: () => void = () => {};
   readonly whenReady = new Promise<void>((resolve) => {
     this.ready = resolve;
@@ -471,6 +474,7 @@ export class BoardScene extends Phaser.Scene {
       this.showFeeder(state.next, false);
     }
     this.pressure = state.pressure;
+    this.maxPressure = pressureMax(state);
     this.drawGauge();
     this.drawSafety();
     this.dimmer.setFillStyle(this.colors.dimmer, 0);
@@ -646,11 +650,11 @@ export class BoardScene extends Phaser.Scene {
   // ------------------------------------------------------------------ the machine's gauges
 
   private setPressure(value: number) {
-    const next = Math.max(0, Math.min(PRESSURE_MAX, value));
+    const next = Math.max(0, Math.min(this.maxPressure, value));
     const was = this.pressure;
     this.pressure = next;
     this.drawGauge();
-    if (next === PRESSURE_MAX && was < PRESSURE_MAX) {
+    if (next === this.maxPressure && was < this.maxPressure) {
       this.tweens.add({
         targets: this.gauge,
         alpha: { from: 1, to: 0.45 },
@@ -671,7 +675,7 @@ export class BoardScene extends Phaser.Scene {
     const step = cell * 0.18;
     const radius = Math.max(2.5, cell * 0.06);
     this.gauge.clear();
-    for (let i = 0; i < PRESSURE_MAX; i++) {
+    for (let i = 0; i < this.maxPressure; i++) {
       const x = start + i * step;
       if (i < this.pressure) this.gauge.fillStyle(this.colors.gaugeFull, 1).fillCircle(x, y, radius);
       else
@@ -680,11 +684,11 @@ export class BoardScene extends Phaser.Scene {
     // A small arrow at the right end, so the lamps read as a gauge rather than a row of dots.
     this.gauge.fillStyle(this.colors.gaugeFull, 0.7);
     this.gauge.fillTriangle(
-      start + PRESSURE_MAX * step + cell * 0.05,
+      start + this.maxPressure * step + cell * 0.05,
       y - cell * 0.06,
-      start + PRESSURE_MAX * step + cell * 0.05,
+      start + this.maxPressure * step + cell * 0.05,
       y + cell * 0.06,
-      start + PRESSURE_MAX * step + cell * 0.14,
+      start + this.maxPressure * step + cell * 0.14,
       y,
     );
     this.pressureLabel.setText(this.text.pressure);
@@ -786,6 +790,24 @@ export class BoardScene extends Phaser.Scene {
           await this.animateShip(event.at, event.gained);
           score += event.gained;
           this.callbacks.onScore(score);
+          break;
+        case 'order':
+          if (event.complete) {
+            floatText(
+              this,
+              this.layoutInfo.width / 2,
+              this.layoutInfo.boardY + this.layoutInfo.cell * 0.6,
+              this.text.orders.complete(formatValue(blockValue(event.exp))),
+              {
+                color: this.colors.bigCombo,
+                stroke: this.colors.scoreStroke,
+                size: Math.round(this.layoutInfo.cell * 0.24),
+                rise: this.layoutInfo.cell * 0.5,
+              },
+            );
+            this.sfx.play('levelUp');
+            haptics.play('success');
+          }
           break;
         case 'next':
           this.showCurrent(event.current);

@@ -124,3 +124,342 @@ body {
 .challenge-target[hidden] {
   display: none;
 }
+
+/* The mode rail under the HUD: what this run is, and its own action (clock out, change mode). */
+.mode-rail {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 0.3rem 0.5rem;
+  margin: 0.2rem auto 0;
+  padding: 0.25rem 0.6rem;
+  max-width: calc(100% - 1rem);
+  border-radius: 999px;
+  background: var(--tohe-soft);
+  color: var(--tohe-ink);
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: center;
+}
+
+.mode-rail[hidden] {
+  display: none;
+}
+
+.mode-rail-name {
+  padding: 0.05rem 0.5rem;
+  border-radius: 999px;
+  background: var(--tohe-ink);
+  color: var(--tohe-page);
+  font-weight: 900;
+}
+
+.mode-rail-line {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mode-rail-parts {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.2rem;
+}
+
+.mode-part-chip {
+  padding: 0.02rem 0.4rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 999px;
+  background: var(--tohe-surface);
+  color: var(--tohe-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.mode-rail-button {
+  min-height: 1.75rem;
+  padding: 0 0.65rem;
+  border: 1px solid var(--tohe-line-strong);
+  border-radius: 999px;
+  background: var(--tohe-ink);
+  color: var(--tohe-page);
+  font: inherit;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.tohe-card-body {
+  white-space: pre-line;
+}
+
+/* The mode select: four cards over play, Ca làm first (the first run defaults to it). */
+.mode-select {
+  display: grid;
+  gap: 0.5rem;
+  width: 100%;
+  margin-top: 0.25rem;
+}
+
+.mode-card {
+  display: flex;
+  align-items: stretch;
+  gap: 0.4rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 1rem;
+  background: var(--tohe-surface);
+  overflow: hidden;
+}
+
+.mode-card-main {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.12rem;
+  min-width: 0;
+  padding: 0.65rem 0.8rem;
+  border: 0;
+  background: transparent;
+  color: var(--tohe-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mode-card-main:hover,
+.mode-card-main:focus-visible {
+  background: var(--tohe-soft);
+}
+
+.mode-card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+.mode-card-head strong {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.mode-card-line {
+  color: var(--tohe-ink-soft);
+  font-size: 0.86rem;
+  line-height: 1.35;
+}
+
+.mode-card-extra {
+  color: var(--tohe-ink-soft);
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.mode-card-resume {
+  margin-top: 0.15rem;
+  color: var(--tohe-brand-strong);
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
+.mode-ranked {
+  padding: 0.05rem 0.45rem;
+  border-radius: 999px;
+  background: var(--tohe-ink);
+  color: var(--tohe-page);
+  font-size: 0.7rem;
+  font-weight: 900;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.mode-card-fresh {
+  align-self: stretch;
+  padding: 0 0.7rem;
+  border: 0;
+  border-left: 1px solid var(--tohe-line);
+  background: var(--tohe-soft);
+  color: var(--tohe-ink-soft);
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mode-workshop {
+  display: block;
+  width: 100%;
+  padding: 0.7rem 0.8rem;
+  border: 1px dashed var(--tohe-line-strong);
+  border-radius: 1rem;
+  background: transparent;
+  color: var(--tohe-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.mode-workshop strong,
+.mode-workshop span {
+  display: block;
+}
+
+.mode-workshop strong {
+  font-size: 0.98rem;
+  font-weight: 900;
+}
+
+.mode-workshop span {
+  color: var(--tohe-ink-soft);
+  font-size: 0.84rem;
+}
+
+/* The Workshop: rank, scrap, blueprints, colours. */
+.workshop {
+  display: grid;
+  gap: 0.55rem;
+  width: 100%;
+}
+
+.workshop-top {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.45rem;
+}
+
+.workshop-stat {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  padding: 0.55rem 0.65rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 0.9rem;
+  background: var(--tohe-soft);
+}
+
+.workshop-stat-label {
+  color: var(--tohe-ink-soft);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.workshop-stat-value {
+  font-size: 1.15rem;
+  font-weight: 900;
+}
+
+.workshop-stat small {
+  color: var(--tohe-ink-soft);
+  font-size: 0.72rem;
+}
+
+.workshop-heading {
+  margin: 0.15rem 0 0;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--tohe-ink-soft);
+}
+
+.workshop-parts {
+  display: grid;
+  gap: 0.4rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.workshop-part {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.45rem 0.55rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 0.85rem;
+  background: var(--tohe-surface);
+}
+
+.workshop-part-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  border-radius: 0.6rem;
+  background: var(--tohe-soft-strong);
+  color: var(--tohe-brand-strong);
+}
+
+.workshop-part-icon {
+  width: 1.35rem;
+  height: 1.35rem;
+}
+
+.workshop-part-words {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.workshop-part-words strong {
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.workshop-part-words span {
+  color: var(--tohe-ink-soft);
+  font-size: 0.76rem;
+}
+
+.workshop-buy {
+  flex: none;
+  min-height: 2.1rem;
+  padding: 0 0.55rem;
+  font-size: 0.78rem;
+}
+
+.workshop-buy:disabled {
+  opacity: 0.65;
+}
+
+.workshop-colours {
+  width: 100%;
+}
+
+.workshop-note {
+  margin: 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+/* The quick panel's block colours, in place over the game. */
+.palette-quick {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.palette-quick-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.2rem;
+  padding: 0.35rem 0.15rem;
+  border: 2px solid transparent;
+  border-radius: 0.7rem;
+  background: var(--tohe-soft);
+  color: var(--tohe-ink);
+  font: inherit;
+  font-size: 0.66rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.palette-quick-item[data-selected="true"] {
+  border-color: var(--tohe-brand);
+}

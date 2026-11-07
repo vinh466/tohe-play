@@ -3,6 +3,8 @@ import { describe, expect, it } from 'vitest';
 import {
   type ChallengeSlot,
   challengePayload,
+  dailyPayload,
+  isDailyPayload,
   openChallenge,
   outcome,
   readEntry,
@@ -32,7 +34,9 @@ describe('the payloads "Thách bạn" shares (ADR 0045)', () => {
     expect(samples.length).toBeLessThanOrEqual(5);
     const made = challengePayload(newGame(20261013).seed ?? 0, 12340);
     for (const sample of samples) {
-      expect(Object.keys(sample as object).sort()).toEqual(Object.keys(made).sort());
+      const version = (sample as { v?: number }).v;
+      const shape = version === 3 ? dailyPayload(1, 1, '2026-11-08') : made;
+      expect(Object.keys(sample as object).sort()).toEqual(Object.keys(shape).sort());
       expect(bytes(sample)).toBeLessThanOrEqual(2048);
       expect(readEntry('share', sample).result).toBe('handled');
     }
@@ -71,9 +75,19 @@ describe('the payloads "Thách bạn" shares (ADR 0045)', () => {
   });
 
   it('leaves a payload of a newer version, an older one, or another kind, as unsupported', () => {
-    expect(readEntry('share', { v: 3, seed: 1, score: 1, board: 'x' }).result).toBe('unsupported');
+    expect(readEntry('share', { v: 4, seed: 1, score: 1 }).result).toBe('unsupported');
     expect(readEntry('share', { v: 1, seed: 1, score: 1 }).result).toBe('unsupported');
     expect(readEntry('daily', challengePayload(1, 1)).result).toBe('unsupported');
+  });
+
+  it('opens the daily’s v3 payload: the same seed, the date as a claim', () => {
+    const made = dailyPayload(913, 12340, '2026-11-08');
+    expect(readEntry('share', made)).toEqual({ result: 'handled', challenge: made });
+    expect(isDailyPayload(made)).toBe(true);
+    expect(isDailyPayload(challengePayload(913, 1))).toBe(false);
+    expect(readEntry('share', { ...made, mode: 'classic' })).toEqual({ result: 'invalid' });
+    expect(readEntry('share', { ...made, date: '08/11/2026' })).toEqual({ result: 'invalid' });
+    expect(readEntry('share', { ...made, extra: true })).toEqual({ result: 'invalid' });
   });
 });
 
@@ -85,8 +99,22 @@ describe('the challenge slot', () => {
 
   it('starts a fresh game from the link’s seed, with its own run', () => {
     const slot = openChallenge(null, challenge, from, 500, newRun);
-    expect(slot).toMatchObject({ seed: 913, target: 12340, from, run: expect.stringMatching(/^run-/) });
+    expect(slot).toMatchObject({
+      seed: 913,
+      target: 12340,
+      mode: 'classic',
+      from,
+      run: expect.stringMatching(/^run-/),
+    });
     expect(slot.game).toEqual(newGame(913, 500));
+  });
+
+  it('opens a daily challenge on its date and seed, in the daily mode', () => {
+    const slot = openChallenge(null, dailyPayload(913, 12340, '2026-11-08'), from, 500, newRun);
+    expect(slot).toMatchObject({ mode: 'daily', date: '2026-11-08' });
+    expect(slot.game).toEqual(newGame(913, 500, 'daily', { dailyDate: '2026-11-08' }));
+    expect(openChallenge(slot, dailyPayload(913, 12340, '2026-11-08'), from, 500, newRun)).toBe(slot);
+    expect(openChallenge(slot, dailyPayload(913, 12340, '2026-11-09'), from, 500, newRun)).not.toBe(slot);
   });
 
   it('continues the same challenge in progress — the game opened again — and starts another afresh', () => {
@@ -114,6 +142,9 @@ describe('the challenge slot', () => {
     const slot = openChallenge(null, challenge, from, 0, newRun);
     const saved = JSON.parse(JSON.stringify({ ...slot, game: play(slot.game as State, [1]) }));
     expect(restoreChallenge(saved)).toEqual(saved);
+    // A 2.0.1 slot has no mode: the classic challenge.
+    const { mode: _mode, ...old } = saved as ChallengeSlot;
+    expect(restoreChallenge(old)?.mode).toBe('classic');
     expect(restoreChallenge({ ...saved, game: null })?.game).toBeNull();
     expect(restoreChallenge({ ...saved, from: null })?.from).toBeNull();
     expect(restoreChallenge(undefined)).toBeNull();
