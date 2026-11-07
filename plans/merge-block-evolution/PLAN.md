@@ -2,7 +2,7 @@
 
 - Goal: a next Ghép Khối that gives the family a reason to start a run and come back tomorrow — Orders, a light Workshop, a Daily Shift, Zen, a first screen and a brand mark that sell the machine — while the classic ranked run, its verifier and the platform's no-ads/no-IAP rules stay intact.
 - Phase: **Frame** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases))
-- Started: 2026-11-08 · Branch: `plan/merge-block-evolution` · PR: (draft)
+- Started: 2026-11-08 · Branch: `plan/merge-block-evolution` · PR: [#191](https://github.com/vinh466/tohe-play/pull/191)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Log: [log.md](log.md)
 
 ## Next — one item
