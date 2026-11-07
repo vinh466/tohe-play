@@ -649,9 +649,9 @@ describe('opened by an entry (ADR 0045)', () => {
     test.shell.start();
     test.tap('Chơi');
     return settle().then(() => {
-      test.ctx().gameOver({ title: 'Hết ván' }, undefined, [
-        { label: 'Màn tiếp', onClick: next, dismiss: true },
-      ]);
+      test
+        .ctx()
+        .gameOver({ title: 'Hết ván' }, undefined, [{ label: 'Màn tiếp', onClick: next, dismiss: true }]);
       expect(test.labels()).toEqual(['Chơi lại', 'Màn tiếp', 'Menu chính']);
       test.tap('Màn tiếp');
       expect(next).toHaveBeenCalledTimes(1);
