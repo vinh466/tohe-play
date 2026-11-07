@@ -833,8 +833,16 @@ export function createShell(options: ShellOptions): Shell {
                 stage?.newGame();
               },
             },
-        // The game's own: a share, a challenge back. The card stays while they run.
-        ...more.map((action) => ({ variant: 'secondary' as const, ...action })),
+        // The game's own: a share, a challenge back, or a next level. A `dismiss` action closes the card first;
+        // the others keep it up while they run.
+        ...more.map((action) => ({
+          variant: 'secondary' as const,
+          ...action,
+          onClick: () => {
+            if (action.dismiss) enterPlaying();
+            action.onClick();
+          },
+        })),
         direct
           ? { ...exitAction(), variant: 'secondary' }
           : {
