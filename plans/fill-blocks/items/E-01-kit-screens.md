@@ -1,6 +1,6 @@
 # E-01 — Kit: a generic `screens` API for the shell
 
-**Status:** proposed · **Kind:** enhancement · **Blocked by:** D-06
+**Status:** done — shipped in `prod-2026-11-08.4` · **Kind:** enhancement · **Blocked by:** D-06
 
 ## What
 

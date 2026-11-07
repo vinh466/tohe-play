@@ -1,6 +1,15 @@
 # Log — Lấp Ô
 
-Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
+Newest first.
+
+## 2026-11-08 (built and released) — agent
+
+- Owner: "ok tốt nha, làm đi, release prod xong thì báo tôi" — the recommended options were approved.
+- Built `games/fill-blocks`: core, endless, 18 journey levels, daily, ranks, stats, 15 achievements, 6 skins and the
+  kit's `screens` API. PR [#193](https://github.com/vinh466/tohe-play/pull/193) merged; all CI jobs green.
+- UAT `uat-2026-11-08.4` 20/20; production `prod-2026-11-08.4` 23/23; the game is the 6th catalog entry.
+- Deviations: DOM + CSS instead of Phaser; journey as a title tool + tabbed screens; ranked and platform daily V4.
+ One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
 ## 2026-11-08 — agent
 

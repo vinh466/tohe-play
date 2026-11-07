@@ -1,6 +1,6 @@
 # D-01 — Positioning, age and promise
 
-**Status:** proposed · **Kind:** decision · **Blocked by:** —
+**Status:** decided — owner approved the recommended option on 2026-11-08 ("ok tốt nha, làm đi") · **Kind:** decision · **Blocked by:** —
 
 ## Question
 

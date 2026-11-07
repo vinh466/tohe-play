@@ -1,6 +1,6 @@
 # E-03 — Save shape, ranked and daily platform
 
-**Status:** proposed · **Kind:** enhancement · **Blocked by:** D-02, D-05
+**Status:** done — the save shape and the local daily shipped in `prod-2026-11-08.4`; ranked and the platform daily board are deferred to V4. · **Kind:** enhancement · **Blocked by:** D-02, D-05
 
 ## What
 

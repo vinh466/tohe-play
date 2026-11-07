@@ -1,6 +1,6 @@
 # E-02 — Level validator and simulation
 
-**Status:** proposed · **Kind:** enhancement · **Blocked by:** D-04
+**Status:** done — shipped in `prod-2026-11-08.4` · **Kind:** enhancement · **Blocked by:** D-04
 
 ## What
 

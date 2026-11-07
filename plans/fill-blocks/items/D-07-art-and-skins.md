@@ -1,6 +1,6 @@
 # D-07 — Art, palette and skins
 
-**Status:** proposed · **Kind:** decision · **Blocked by:** D-01
+**Status:** decided — owner approved the recommended option on 2026-11-08 ("ok tốt nha, làm đi") · **Kind:** decision · **Blocked by:** D-01
 
 ## Question
 

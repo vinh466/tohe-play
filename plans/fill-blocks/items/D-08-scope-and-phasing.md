@@ -1,6 +1,6 @@
 # D-08 — Scope and phasing
 
-**Status:** proposed · **Kind:** decision · **Blocked by:** D-02…D-07
+**Status:** decided — owner approved the recommended option on 2026-11-08 ("ok tốt nha, làm đi"). V1–V3 shipped in `prod-2026-11-08.4`; V4 (ranked, platform daily) deferred. · **Kind:** decision · **Blocked by:** D-02…D-07
 
 ## Question
 
