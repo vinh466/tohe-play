@@ -2,6 +2,26 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-11-03 (V1 + V3 + V4) — agent, phiên "Surface v2"
+
+- V1 **#183** merged (`7540cd7`): giấy/mực/gấc/nghệ/lá, token `line-ink`/`highlight`/`leaf`, browser bar, icon PWA,
+  ảnh cài app, nút chính có bóng cứng; console/Studio copy theo palette.
+- V3 **#184** merged (`2bfe527`): Tôi → Tiến độ, thẻ *Giữ điểm này?* sau ván đầu (im 7 ngày sau "Để sau"), Sạp có tìm
+  kiếm + 5 tag, bỏ công tắc âm thanh trùng.
+- V4 **#187** (chưa merge): `/family` + `/en/family/`, `/account/family` sau PIN, `Tôi → Gia đình` (hoặc một dòng
+  "Thêm hồ sơ cho bé"); routes/sitemap/llms, docs status.
+- Kiểm: routes 227, web 115 + build 28 trang, hub 358 + typecheck + build; ảnh 360/390/768/1440 sáng/tối, không tràn ngang.
+- Chờ owner: merge #187; deploy UAT/prod khi owner nói.
+
+## 2026-10-31 (V2 lên UAT + prod) — agent, phiên "Surface v2"
+
+- PR **#182** merged (`ee31035`); CI xanh (Verify, API, E2E smoke/journey/entries/rooms, conformance, chart, updates).
+- UAT **`uat-2026-10-31.1`** deployed; `pnpm check:uat` **20/20**. Prod **`prod-2026-10-31.1`** released; platform-infra
+  **#307** (chỉ `targetRevision: 0.1.0-gee31035`) merged; `pnpm check:prod` **23/23**.
+- Bề mặt mới đã lên `https://toheplay.io.vn` (home sạp, `/games/` card cover, game store page). Còn V1 brand, V3 nudge,
+  V4 `/family`.
+- Owner review 2026-10-31: "ok tôi review thấy ổn nha" — bản `prod-2026-10-31.1` là mốc đã duyệt.
+
 ## 2026-10-31 (V2 web: home sạp + game store) — agent, phiên "Surface v2"
 
 - `apps/web`: `/` thành sạp (hero game, Đang mở, Chơi tiếp/greeting, Chơi nhanh, band Rủ bạn, Tất cả + tag); `/games/`

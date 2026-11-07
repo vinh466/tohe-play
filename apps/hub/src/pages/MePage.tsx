@@ -2,6 +2,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { type ReactNode, useState, useSyncExternalStore } from 'react';
 import { useTranslation } from 'react-i18next';
+import type { MeView } from '../api/client.ts';
 import { configQuery, gamesQuery } from '../api/queries.ts';
 import { OutboundLink } from '../frame/OutboundLink.tsx';
 import { currentLanguage, setLanguage } from '../i18n.ts';
@@ -109,6 +110,8 @@ function Me({ session }: { session: PlayingSession }) {
           ) : null}
 
           <Progress player={player} />
+
+          {session.status === 'account' ? <Family me={session.me} /> : null}
 
           <Group id="me-settings" title={t('me.settings')}>
             <Setting label={t('me.language')}>
@@ -242,6 +245,36 @@ function Progress({ player }: { player: Player }) {
           })}
         </ul>
       ) : null}
+    </Group>
+  );
+}
+
+/** Tôi → Gia đình: the managing row once there is a child profile; before that, one quiet line to add one. */
+function Family({ me }: { me: MeView }) {
+  const { t } = useTranslation();
+  const children = me.profiles.filter((profile) => profile.kind === 'child');
+  if (children.length === 0) {
+    return (
+      <p className="text-ink-soft text-sm">
+        <Link to="/account/family" className="font-semibold text-accent underline underline-offset-4">
+          {t('family.add')}
+        </Link>
+      </p>
+    );
+  }
+  return (
+    <Group id="me-family" title={t('family.title')}>
+      <ul className="flex flex-col">
+        <li>
+          <Link to="/account/family" className={ROW}>
+            <span className="flex min-w-0 flex-col">
+              <span>{t('family.manage')}</span>
+              <span className="text-ink-soft text-sm">{t('family.hint')}</span>
+            </span>
+            <Icon name="caret-right" className="text-ink-soft text-xl" />
+          </Link>
+        </li>
+      </ul>
     </Group>
   );
 }

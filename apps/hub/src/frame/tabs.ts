@@ -70,7 +70,7 @@ export function backTarget(pathname: string): FrameBack | null {
 }
 
 /** Screens of the frame that draw an arrow of their own, in their header, rather than the one `Screen` draws. */
-export const ownBack: readonly string[] = ['/account/data', '/account/links'];
+export const ownBack: readonly string[] = ['/account/data', '/account/links', '/account/family'];
 
 /**
  * The app's own level, to put behind a game, a table or a link into one that the app was opened at directly (a share

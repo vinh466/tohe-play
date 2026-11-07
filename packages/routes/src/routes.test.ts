@@ -210,6 +210,7 @@ describe('the map', () => {
       '/guides/install/',
       '/faq/',
       '/about/',
+      '/family/',
       '/promise/',
       '/terms/',
       '/privacy/',
@@ -221,6 +222,7 @@ describe('the map', () => {
       '/en/guides/install/',
       '/en/faq/',
       '/en/about/',
+      '/en/family/',
       '/en/promise/',
     ]);
     for (const path of publicPaths) {
@@ -465,7 +467,7 @@ describe('what the map generates', () => {
     ]);
     expect(hubCaddySnippet()).toContain('@apiProxy path /api /api/*\n');
     expect(hubCaddySnippet()).toContain(
-      '@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /promise /promise/* /terms /terms/* /privacy /privacy/* /en /en/* /og.png /llms.txt\n',
+      '@publicStaticRevalidate path / /games /games/* /guides /guides/* /faq /faq/* /about /about/* /family /family/* /promise /promise/* /terms /terms/* /privacy /privacy/* /en /en/* /og.png /llms.txt\n',
     );
     expect(hubCaddySnippet()).toContain('@publicStaticImmutable path /_web /_web/*\n');
     expect(hubCaddySnippet()).toContain(' /robots.txt /sitemap.xml /.well-known /.well-known/*\n');
@@ -715,8 +717,8 @@ describe('what the map generates', () => {
     expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/terms/</loc></url>');
     expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/games/merge-block/</loc>');
     expect(snippet).toContain('<url><loc>{{ env "TOHE_HUB_URL" }}/en/games/merge-block/</loc>');
-    // Ten Vietnamese pages, eight English ones: the terms and the privacy notice are Vietnamese-only for now.
-    expect(snippet.match(/<url>/g)).toHaveLength(18);
+    // Eleven Vietnamese pages, nine English ones: the terms and the privacy notice are Vietnamese-only for now.
+    expect(snippet.match(/<url>/g)).toHaveLength(20);
     expect(snippet).toContain('xmlns:xhtml="http://www.w3.org/1999/xhtml"');
   });
 
