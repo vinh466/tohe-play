@@ -3,7 +3,7 @@
 - Goal: a calm 8 × 8 block puzzle with a deep core, a long journey, and a UI/UX that brings players back without
   pressure.
 - Phase: **Frame** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases))
-- Started: 2026-11-08 · Branch: `plan/fill-blocks` · PR: (draft, after opening)
+- Started: 2026-11-08 · Branch: `plan/fill-blocks` · PR: [#190](https://github.com/vinh466/tohe-play/pull/190) (draft)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
 - Research: [R-01 market](research/R-01-block-puzzle-market.md) · [R-02 UX](research/R-02-ux-and-retention.md) ·
   [R-03 platform](research/R-03-platform-and-reuse.md) · [R-04 simulation](research/R-04-run-length-simulation.md)
