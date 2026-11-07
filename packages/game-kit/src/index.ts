@@ -59,6 +59,7 @@ export {
   type QuickRow,
   type Shell,
   type ShellOptions,
+  type ShellScreen,
   type ShellSessionLike,
   type ShellSetting,
   type ShellStrings,

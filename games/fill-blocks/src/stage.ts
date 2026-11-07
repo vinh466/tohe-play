@@ -1,0 +1,743 @@
+// The play stage (ADR 0020): the board, the tray, the HUD and the moves. Rules live in logic.ts; this file only reads
+// input, calls the rules and animates their events. The board is DOM: 64 buttons, three piece buttons, CSS blocks.
+import {
+  choiceList,
+  createHud,
+  haptics,
+  icon,
+  newRunId,
+  type PlayStage,
+  prefersReducedMotion,
+  type StageContext,
+} from '@tohe/game-kit';
+import { finishGame, journeyStars, nextSeed, persist, scoreText, session, sfx, store, t } from './app.ts';
+import { chapterOf, DAILY_GOALS, DAILY_MOVES, dailySeed, LEVEL_BY_ID, LEVELS } from './content/levels.ts';
+import { bounds, type Shape, shapeById } from './content/shapes.ts';
+import { SKINS, skinById } from './content/skins.ts';
+import {
+  anyPieceFits,
+  anyShapeFits,
+  completed,
+  finish,
+  type Goal,
+  goalMet,
+  hint,
+  newGame,
+  place,
+  placements,
+  rescue,
+  type State,
+  starsFor,
+} from './logic.ts';
+import { todayId } from './strings.ts';
+
+interface Started {
+  state: State;
+  goals: readonly Goal[];
+  runId: string;
+}
+
+const goalsFor = (state: State): readonly Goal[] => {
+  if (state.mode === 'journey' && state.level) return LEVEL_BY_ID.get(state.level)?.goals ?? [];
+  if (state.mode === 'daily') return DAILY_GOALS;
+  return [];
+};
+
+const startLevel = (id: string): Started => {
+  const level = LEVEL_BY_ID.get(id);
+  if (!level) return startEndless();
+  return {
+    state: newGame(level.seed, store.best, {
+      mode: 'journey',
+      level: level.id,
+      moveLimit: level.moveLimit,
+      profile: level.profile,
+    }),
+    goals: level.goals,
+    runId: newId(),
+  };
+};
+
+const startDaily = (date: string): Started => ({
+  state: newGame(dailySeed(date), store.best, {
+    mode: 'daily',
+    level: `daily-${date}`,
+    moveLimit: DAILY_MOVES,
+    profile: 'all',
+  }),
+  goals: DAILY_GOALS,
+  runId: newId(),
+});
+
+const startEndless = (): Started => ({
+  state: newGame(nextSeed(), store.best, { mode: 'endless', profile: 'all' }),
+  goals: [],
+  runId: newId(),
+});
+
+const newId = (): string => newRunId();
+
+const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) => {
+  const node = document.createElement(tag);
+  node.className = className;
+  if (text !== undefined) node.textContent = text;
+  return node;
+};
+
+const iconSpan = (name: Parameters<typeof icon>[0], className = 'ui-icon') => {
+  const span = el('span', className);
+  span.setAttribute('aria-hidden', 'true');
+  span.append(icon(name));
+  return span;
+};
+
+const shapeGrid = (shape: Shape): HTMLElement => {
+  const { rows, cols } = bounds(shape);
+  const grid = el('span', 'piece-grid');
+  grid.style.setProperty('--cols', String(cols));
+  grid.style.setProperty('--rows', String(rows));
+  const cells = new Set(shape.cells.map(([row, col]) => `${row},${col}`));
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const cell = el('i', 'piece-cell');
+      if (cells.has(`${row},${col}`)) {
+        cell.classList.add('is-filled');
+        cell.dataset.colour = String(shape.colour);
+      }
+      grid.append(cell);
+    }
+  }
+  return grid;
+};
+
+export function start(ctx: StageContext): PlayStage {
+  const template = document.querySelector<HTMLTemplateElement>('#play-stage') as HTMLTemplateElement;
+  ctx.root.append(template.content.cloneNode(true));
+  const stage = ctx.root.querySelector<HTMLElement>('#stage') as HTMLElement;
+  const board = ctx.root.querySelector<HTMLElement>('#board') as HTMLElement;
+  const tray = ctx.root.querySelector<HTMLElement>('#tray') as HTMLElement;
+  const actions = ctx.root.querySelector<HTMLElement>('#actions') as HTMLElement;
+  const message = ctx.root.querySelector<HTMLElement>('#message') as HTMLElement;
+  board.setAttribute('aria-label', t.boardLabel);
+  tray.setAttribute('aria-label', t.trayLabel);
+
+  // ------------------------------------------------------------------ the game: a level, the daily, a resume or endless
+
+  const pending = ctx.fresh ? { ...store.pending } : {};
+  if (ctx.fresh) store.pending = {};
+  let started: Started;
+  if (ctx.fresh && pending.level) started = startLevel(pending.level);
+  else if (ctx.fresh && pending.daily) started = startDaily(pending.daily);
+  else if (!ctx.fresh && store.game && !store.game.over)
+    started = { state: store.game, goals: goalsFor(store.game), runId: store.run ?? newId() };
+  else started = startEndless();
+
+  let state = started.state;
+  let goals = started.goals;
+  let runId = started.runId;
+  let run = session.run(runId);
+  let finished = false;
+  let busy = false;
+  let paused = false;
+  let left = false;
+  let selected: number | null = null;
+  let previous: State | null = null;
+  let undoUsed = false;
+  let hintTimer: ReturnType<typeof setTimeout> | null = null;
+  let messageTimer: ReturnType<typeof setTimeout> | null = null;
+
+  const save = () => {
+    store.game = state;
+    store.run = runId;
+    return persist();
+  };
+
+  // ------------------------------------------------------------------ HUD: Menu | score | goals/combo | best
+
+  const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
+  const scores = hud.score({ score: t.score, best: t.best });
+  scores.setBest(store.best);
+  const center = el('div', 'stage-center');
+  hud.center.append(center);
+
+  // ------------------------------------------------------------------ board and tray
+
+  const cells: HTMLButtonElement[] = [];
+  for (let row = 0; row < 8; row++) {
+    for (let col = 0; col < 8; col++) {
+      const cell = el('button', 'cell');
+      cell.type = 'button';
+      cell.tabIndex = -1;
+      cell.dataset.row = String(row);
+      cell.dataset.col = String(col);
+      cell.setAttribute('aria-label', t.cell(row + 1, col + 1));
+      cell.addEventListener('click', () => {
+        if (selected === null || busy) return;
+        tryPlace(selected, row, col);
+      });
+      cell.addEventListener('pointermove', () => {
+        if (selected === null || busy) return;
+        showGhost(selected, row, col);
+      });
+      cell.addEventListener('pointerleave', () => clearGhost());
+      board.append(cell);
+      cells.push(cell);
+    }
+  }
+
+  const cellAt = (row: number, col: number): HTMLButtonElement | undefined => cells[row * 8 + col];
+
+  const applyLooks = () => {
+    const skin = skinById(store.settings.skin);
+    if (!skin || skin.at > journeyStars()) store.settings.skin = 'paper';
+    stage.dataset.palette = store.settings.palette;
+    stage.dataset.skin = store.settings.skin;
+  };
+
+  function renderBoard(): void {
+    for (let index = 0; index < cells.length; index++) {
+      const cell = cells[index] as HTMLButtonElement;
+      const colour = state.board[index] ?? 0;
+      const blocked = state.blocked[index] === 1;
+      if (colour > 0) cell.dataset.colour = String(colour);
+      else delete cell.dataset.colour;
+      cell.classList.toggle('is-filled', colour > 0);
+      cell.classList.toggle('is-blocked', blocked);
+      cell.classList.toggle('is-over', state.over);
+    }
+    board.classList.toggle('is-busy', busy);
+  }
+
+  function pieceButton(pieceIndex: number, shape: Shape, unfits: boolean): HTMLButtonElement {
+    const button = el('button', 'piece');
+    button.type = 'button';
+    button.dataset.piece = String(pieceIndex);
+    button.setAttribute('aria-label', t.piece(pieceIndex + 1));
+    button.classList.toggle('is-selected', selected === pieceIndex);
+    button.classList.toggle('is-unfit', unfits);
+    button.disabled = unfits || busy;
+    button.append(shapeGrid(shape));
+    button.addEventListener('click', () => {
+      if (suppressClick) return;
+      selected = selected === pieceIndex ? null : pieceIndex;
+      sfx.play('click');
+      haptics.play('tap');
+      clearHint();
+      render();
+    });
+    button.addEventListener('pointerdown', (event) => beginDrag(event, pieceIndex, shape));
+    return button;
+  }
+
+  function renderTray(): void {
+    tray.replaceChildren();
+    state.tray.forEach((id, index) => {
+      const shape = shapeById(id);
+      if (!shape) return;
+      const unfits = placements(state.board, state.blocked, shape).length === 0;
+      tray.append(pieceButton(index, shape, unfits));
+    });
+    tray.classList.toggle('is-busy', busy);
+  }
+
+  function renderCenter(): void {
+    center.replaceChildren();
+    if (goals.length > 0) {
+      const met = starsFor(state, goals);
+      const next = goals.find((goal) => !goalMet(state, goal));
+      const meter = el('div', 'goal-meter');
+      meter.append(el('span', 'goal-count', t.ofTotal(met, goals.length)));
+      if (next) meter.append(el('span', 'goal-next', t.goal(next.kind, next.value)));
+      meter.title = goals.map((goal) => t.goal(goal.kind, goal.value)).join(' · ');
+      center.append(meter);
+      return;
+    }
+    const meter = el('div', 'combo-meter');
+    for (let step = 1; step <= 5; step++) {
+      meter.append(el('i', step <= state.combo ? 'combo-pip is-on' : 'combo-pip'));
+    }
+    meter.append(el('span', 'combo-label', `×${state.combo}`));
+    center.append(meter);
+  }
+
+  const undoButton = el('button', 'stage-action');
+  undoButton.type = 'button';
+  undoButton.append(icon('arrow-counter-clockwise'), el('span', 'tohe-label', t.undo));
+  undoButton.addEventListener('click', undo);
+  const hintButton = el('button', 'stage-action');
+  hintButton.type = 'button';
+  hintButton.append(icon('lightbulb'), el('span', 'tohe-label', t.hint));
+  hintButton.addEventListener('click', () => showHintNow());
+  const rescueButton = el('button', 'stage-action stage-action-rescue');
+  rescueButton.type = 'button';
+  rescueButton.append(icon('shuffle'), el('span', 'tohe-label', t.rescue));
+  rescueButton.addEventListener('click', doRescue);
+  actions.append(undoButton, hintButton, rescueButton);
+
+  function renderActions(): void {
+    const canUndo = previous !== null && !undoUsed && !finished && !state.over;
+    undoButton.hidden = !canUndo;
+    hintButton.hidden = !store.settings.hints || state.over || finished;
+    const canRescue =
+      !state.over && !finished && state.rescue > 0 && !anyPieceFits(state) && anyShapeFits(state);
+    rescueButton.hidden = !canRescue;
+    if (canRescue) rescueButton.querySelector('.tohe-label')!.textContent = t.rescueLeft(state.rescue);
+  }
+
+  function render(): void {
+    applyLooks();
+    renderBoard();
+    renderTray();
+    renderCenter();
+    renderActions();
+  }
+
+  // ------------------------------------------------------------------ messages, hints, ghosts
+
+  function showMessage(text: string): void {
+    message.textContent = text;
+    message.classList.add('is-visible');
+    if (messageTimer) clearTimeout(messageTimer);
+    messageTimer = setTimeout(() => message.classList.remove('is-visible'), 1200);
+  }
+
+  /** A short paper confetti for a perfect clear or a record; the reduced-motion setting keeps it still. */
+  function celebrate(): void {
+    if (prefersReducedMotion()) return;
+    const layer = el('div', 'confetti-layer');
+    layer.setAttribute('aria-hidden', 'true');
+    for (let i = 0; i < 26; i++) {
+      const bit = el('i', 'confetti-bit');
+      bit.style.left = `${5 + Math.random() * 90}%`;
+      bit.style.background = `var(--p${1 + Math.floor(Math.random() * 8)})`;
+      bit.style.animationDelay = `${Math.random() * 250}ms`;
+      bit.style.setProperty('--drift', `${(Math.random() - 0.5) * 120}px`);
+      layer.append(bit);
+    }
+    stage.append(layer);
+    setTimeout(() => layer.remove(), 1700);
+  }
+
+  function clearHint(): void {
+    if (hintTimer) {
+      clearTimeout(hintTimer);
+      hintTimer = null;
+    }
+    for (const cell of cells) cell.classList.remove('is-hint');
+    for (const piece of tray.querySelectorAll('.piece')) piece.classList.remove('is-hint');
+  }
+
+  function scheduleHint(): void {
+    clearHint();
+    if (left || !store.settings.hints || paused || busy || finished || state.over || ctx.overlay.visible)
+      return;
+    hintTimer = setTimeout(showHintNow, 8000);
+  }
+
+  function showHintNow(): void {
+    if (left || paused || busy || finished || state.over) return;
+    clearHint();
+    const move = hint(state);
+    if (!move) return;
+    const shape = shapeById(state.tray[move.pieceIndex] ?? '');
+    if (!shape) return;
+    const piece = tray.querySelector(`[data-piece="${move.pieceIndex}"]`);
+    piece?.classList.add('is-hint');
+    for (const [dr, dc] of shape.cells) {
+      cellAt(move.row + dr, move.col + dc)?.classList.add('is-hint');
+    }
+    hintTimer = setTimeout(clearHint, 2600);
+  }
+
+  function nearest(pieceIndex: number, row: number, col: number) {
+    const shape = shapeById(state.tray[pieceIndex] ?? '');
+    if (!shape) return null;
+    let best: { row: number; col: number } | null = null;
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const spot of placements(state.board, state.blocked, shape)) {
+      let sumRow = 0;
+      let sumCol = 0;
+      for (const [dr, dc] of shape.cells) {
+        sumRow += spot.row + dr;
+        sumCol += spot.col + dc;
+      }
+      const centerRow = sumRow / shape.cells.length;
+      const centerCol = sumCol / shape.cells.length;
+      const distance = Math.hypot(centerRow - row, centerCol - col);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        best = spot;
+      }
+    }
+    return bestDistance <= 1.75 ? best : null;
+  }
+
+  function clearGhost(): void {
+    for (const cell of cells) cell.classList.remove('is-ghost', 'is-invalid');
+  }
+
+  function showGhost(pieceIndex: number, row: number, col: number): void {
+    clearGhost();
+    const shape = shapeById(state.tray[pieceIndex] ?? '');
+    if (!shape) return;
+    const spot = nearest(pieceIndex, row, col);
+    if (!spot) {
+      cellAt(row, col)?.classList.add('is-invalid');
+      return;
+    }
+    for (const [dr, dc] of shape.cells) cellAt(spot.row + dr, spot.col + dc)?.classList.add('is-ghost');
+  }
+
+  // ------------------------------------------------------------------ drag
+
+  let suppressClick = false;
+  let dragCleanup: (() => void) | null = null;
+
+  function beginDrag(event: PointerEvent, pieceIndex: number, shape: Shape): void {
+    if (busy || finished || state.over || ctx.overlay.visible) return;
+    if (event.pointerType === 'mouse' && event.button !== 0) return;
+    const startX = event.clientX;
+    const startY = event.clientY;
+    const target = event.currentTarget as HTMLElement;
+    target.setPointerCapture(event.pointerId);
+    let moved = false;
+    const ghost = el('div', 'drag-piece');
+    ghost.append(shapeGrid(shape));
+    ghost.style.left = `${startX}px`;
+    ghost.style.top = `${startY}px`;
+    ghost.hidden = true;
+    document.body.append(ghost);
+
+    const move = (next: PointerEvent) => {
+      if (next.pointerId !== event.pointerId) return;
+      if (!moved && Math.hypot(next.clientX - startX, next.clientY - startY) > 6) {
+        moved = true;
+        ghost.hidden = false;
+        selected = null;
+        clearHint();
+        renderTray();
+      }
+      if (!moved) return;
+      next.preventDefault();
+      ghost.style.left = `${next.clientX}px`;
+      ghost.style.top = `${next.clientY}px`;
+      const rect = board.getBoundingClientRect();
+      const size = rect.width / 8;
+      const col = Math.floor((next.clientX - rect.left) / size);
+      const row = Math.floor((next.clientY - rect.top) / size);
+      if (row >= 0 && row < 8 && col >= 0 && col < 8) showGhost(pieceIndex, row, col);
+      else clearGhost();
+    };
+    const up = (next: PointerEvent) => {
+      if (next.pointerId !== event.pointerId) return;
+      const rect = board.getBoundingClientRect();
+      const size = rect.width / 8;
+      const col = Math.floor((next.clientX - rect.left) / size);
+      const row = Math.floor((next.clientY - rect.top) / size);
+      const inside = row >= 0 && row < 8 && col >= 0 && col < 8;
+      const spot = inside && moved ? nearest(pieceIndex, row, col) : null;
+      cleanup();
+      if (moved) {
+        suppressClick = true;
+        setTimeout(() => {
+          suppressClick = false;
+        }, 0);
+      }
+      if (spot) playMove(pieceIndex, spot.row, spot.col);
+      else if (moved) {
+        sfx.play('error');
+        haptics.play('error');
+      }
+    };
+    const cancel = () => cleanup();
+    const cleanup = () => {
+      ghost.remove();
+      target.removeEventListener('pointermove', move);
+      target.removeEventListener('pointerup', up);
+      target.removeEventListener('pointercancel', cancel);
+      dragCleanup = null;
+      clearGhost();
+    };
+    dragCleanup = cleanup;
+    target.addEventListener('pointermove', move);
+    target.addEventListener('pointerup', up);
+    target.addEventListener('pointercancel', cancel);
+  }
+
+  function tryPlace(pieceIndex: number, row: number, col: number): void {
+    const spot = nearest(pieceIndex, row, col);
+    if (!spot) {
+      sfx.play('error');
+      haptics.play('error');
+      cellAt(row, col)?.classList.add('is-invalid');
+      setTimeout(() => cellAt(row, col)?.classList.remove('is-invalid'), 220);
+      return;
+    }
+    playMove(pieceIndex, spot.row, spot.col);
+  }
+
+  // ------------------------------------------------------------------ a move
+
+  function decorate(result: {
+    type: string;
+    cells?: { row: number; col: number; colour: number }[];
+    perfect?: boolean;
+  }): void {
+    if (result.type === 'place' && result.cells) {
+      for (const cell of result.cells) cellAt(cell.row, cell.col)?.classList.add('is-new');
+    }
+    if (result.type === 'clear' && result.cells) {
+      for (const cell of result.cells) {
+        const node = cellAt(cell.row, cell.col);
+        if (!node) continue;
+        node.classList.add('is-clearing');
+        node.style.setProperty('--clear-colour', `var(--p${cell.colour})`);
+      }
+    }
+  }
+
+  function playMove(pieceIndex: number, row: number, col: number): void {
+    if (busy || finished || state.over || ctx.overlay.visible) return;
+    const result = place(state, pieceIndex, row, col);
+    if (!result.ok) {
+      sfx.play('error');
+      haptics.play('error');
+      return;
+    }
+    const before = state;
+    state = result.state;
+    previous = state.mode === 'endless' ? null : before;
+    undoUsed = false;
+    selected = null;
+    busy = true;
+    clearHint();
+    clearGhost();
+    render();
+    for (const event of result.events) decorate(event);
+    scores.set(state.score, true);
+    sfx.play('pop');
+    haptics.play('tap');
+    const clear = result.events.find((event) => event.type === 'clear');
+    if (clear?.type === 'clear') {
+      sfx.play('combo', clear.lines);
+      haptics.play(clear.lines > 1 ? 'success' : 'bump');
+      if (clear.perfect) {
+        sfx.play('levelUp');
+        haptics.play('celebrate');
+        showMessage(t.perfect);
+        celebrate();
+      } else if (clear.lines > 1) {
+        showMessage(t.combo(state.combo));
+      }
+    }
+    if (state.score > before.score)
+      void run.update(state.score).catch((error) => session.log('warn', String(error)));
+
+    const wait = clear ? 320 : 170;
+    setTimeout(() => {
+      if (left) return;
+      busy = false;
+      if (finished) return;
+      // The level goes on after the primary goal: the player may still earn the other two stars. It ends when all
+      // three are met, the move limit is reached, or the board is stuck.
+      const allGoals = goals.length > 0 && goals.every((goal) => goalMet(state, goal));
+      if (state.over || allGoals) {
+        if (allGoals && !state.over) state = finish(state);
+        endGame();
+        return;
+      }
+      render();
+      void save();
+      scheduleHint();
+    }, wait);
+  }
+
+  function undo(): void {
+    if (!previous || undoUsed || busy || finished) return;
+    state = previous;
+    previous = null;
+    undoUsed = true;
+    selected = null;
+    clearHint();
+    clearGhost();
+    sfx.play('click');
+    haptics.play('tap');
+    scores.set(state.score, false);
+    render();
+    void run.update(state.score).catch((error) => session.log('warn', String(error)));
+    void save();
+    scheduleHint();
+  }
+
+  function doRescue(): void {
+    const result = rescue(state);
+    if (!result.ok) return;
+    state = result.state;
+    busy = false;
+    selected = null;
+    sfx.play('click');
+    haptics.play('success');
+    showMessage(t.rescue);
+    scores.set(state.score, false);
+    render();
+    if (state.over) endGame();
+    else {
+      void save();
+      scheduleHint();
+    }
+  }
+
+  function endGame(): void {
+    if (left || finished) return;
+    finished = true;
+    if (!state.over) state = finish(state);
+    store.game = state;
+    finishGame(state, goals);
+    void run.finish(state.score).catch((error) => session.log('warn', String(error)));
+    void save();
+    const record = state.mode === 'endless' && state.score > state.best;
+    const stars = starsFor(state, goals);
+    const done = goals.length > 0 && completed(state, goals);
+    const missed = goals.find((goal) => !goalMet(state, goal));
+    const title =
+      state.mode === 'endless' ? (record ? t.record : t.over) : done ? t.levelDone(stars) : t.over;
+    const body =
+      state.mode === 'endless'
+        ? t.result(scoreText(state.score), scoreText(store.best))
+        : `${t.levelResult(scoreText(state.score), stars)}${done ? '' : missed ? ` · ${t.levelMissed(t.goal(missed.kind, missed.value))}` : ''}`;
+    sfx.play(record ? 'fanfare' : done ? 'levelUp' : 'drop');
+    haptics.play(record || done ? 'celebrate' : 'bump');
+    if (record || done) celebrate();
+    render();
+    ctx.gameOver({ icon: record ? 'trophy' : { src: 'icon.svg' }, title, body });
+  }
+
+  // ------------------------------------------------------------------ a new game in place
+
+  function begin(started: Started): void {
+    state = started.state;
+    goals = started.goals;
+    runId = started.runId;
+    run = session.run(runId);
+    finished = false;
+    busy = false;
+    selected = null;
+    previous = null;
+    undoUsed = false;
+    ctx.overlay.hide();
+    scores.setBest(store.best);
+    scores.set(state.score, false);
+    render();
+    void save();
+    scheduleHint();
+  }
+
+  function newGameInPlace(): void {
+    if (!finished && state.score > 0)
+      void run.finish(state.score).catch((error) => session.log('warn', String(error)));
+    if (state.mode === 'journey' && state.level) begin(startLevel(state.level));
+    else if (state.mode === 'daily') begin(startDaily(state.level?.replace('daily-', '') ?? todayId()));
+    else begin(startEndless());
+  }
+
+  // ------------------------------------------------------------------ the quick panel's rows
+
+  const paletteRow = () => ({
+    kind: 'card' as const,
+    icon: 'palette' as const,
+    label: t.palette,
+    value: store.settings.palette === 'paper' ? t.palettePaper : t.paletteContrast,
+    card: () => ({
+      icon: 'palette' as const,
+      title: t.palette,
+      content: choiceList(
+        [
+          { id: 'paper', label: t.palettePaper },
+          { id: 'contrast', label: t.paletteContrast },
+        ],
+        store.settings.palette,
+        (id) => {
+          store.settings.palette = id;
+          applyLooks();
+          void persist();
+        },
+      ),
+    }),
+  });
+
+  const skinRow = () => {
+    const stars = journeyStars();
+    const unlocked = SKINS.filter((skin) => skin.at <= stars);
+    const current =
+      unlocked.find((skin) => skin.id === store.settings.skin) ?? (SKINS[0] as (typeof SKINS)[number]);
+    return {
+      kind: 'card' as const,
+      icon: 'cards' as const,
+      label: t.board,
+      value: current[session.locale.startsWith('vi') ? 'vi' : 'en'],
+      card: () => ({
+        icon: 'cards' as const,
+        title: t.board,
+        content: choiceList(
+          unlocked.map((skin) => ({
+            id: skin.id,
+            label: session.locale.startsWith('vi') ? skin.vi : skin.en,
+          })),
+          store.settings.skin,
+          (id) => {
+            store.settings.skin = id;
+            applyLooks();
+            void persist();
+          },
+        ),
+      }),
+    };
+  };
+
+  const quick = () => [
+    paletteRow(),
+    skinRow(),
+    {
+      kind: 'switch' as const,
+      icon: 'lightbulb' as const,
+      label: t.hintsSetting,
+      on: store.settings.hints,
+      onChange: (on: boolean) => {
+        store.settings.hints = on;
+        if (!on) clearHint();
+        void persist();
+      },
+    },
+  ];
+
+  // ------------------------------------------------------------------ start and leave
+
+  applyLooks();
+  render();
+  scores.set(state.score, false);
+  void save();
+  ctx.ready();
+  if (ctx.firstTime) setTimeout(() => showHintNow(), 700);
+  else scheduleHint();
+
+  return {
+    pause() {
+      paused = true;
+      clearHint();
+    },
+    resume() {
+      paused = false;
+      scheduleHint();
+    },
+    newGame: newGameInPlace,
+    quick,
+    leave() {
+      left = true;
+      paused = true;
+      clearHint();
+      if (messageTimer) clearTimeout(messageTimer);
+      if (dragCleanup) dragCleanup();
+      void save();
+    },
+  };
+}
