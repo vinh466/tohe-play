@@ -1,203 +1,168 @@
-# Ghép Khối (`merge-block`) — spec
+# Ghép Khối (`merge-block`) — spec (3.0.0)
 
-Fire numbered blocks up into a rack that hangs from the ceiling; equal blocks that touch merge into bigger numbers.
-The machine above the rack shakes when its pressure is full: every row slides toward the centre, and the blocks that
-meet merge in a chain. Build a big block and let it leave through the top chute before the rack reaches the loader.
-The genre of "X2 Blocks" / "Drop the Number", turned upside down and given a machine, for children and adults on a
-phone in portrait.
+Fire numbered blocks up into a rack that hangs from the ceiling; equal blocks that touch merge into bigger
+numbers. The machine above the rack shakes when its pressure is full: every row slides toward the centre, and the
+blocks that meet merge in a chain. Build a big block and let it leave through the top chute before the rack reaches
+the loader. **Four ways to play** — the endless **Cổ điển**, the **Ca làm** orders, the **Ca hôm nay** daily and the
+free **Thư giãn** — with a light **Xưởng** that keeps what the family earns.
 
-## The machine and the board
+The core (2.0.1) is unchanged in every mode: the same machine, physics and aim.
 
-- **5 columns × 7 rows.** Row 0 is the bottom, row 6 the ceiling. The rack hangs from the ceiling; empty cells are
-  below the lowest block of each column.
-- The **loader** sits in a bay under the rack: the **current** block is in its breech, and the **next** block waits on
-  a feeder below it, inside the same bay. The loader slides along the bay to the aimed column.
-- Above the rack, the machine's **pressure gauge** (eight lamps) and its **top chute**; below the rack, the **safety
-  line** that separates the playing field from the loader.
-- Blocks hold powers of two: 2, 4, 8, … shown as `2048`, `4K`, `16K`, `1M`.
+## Modes
 
-## A shot
+| Mode | The run | Ranked | Saved | Best |
+| --- | --- | --- | --- | --- |
+| **Cổ điển** | The endless 2.0.1 game; the jam ends it | **Yes** (the classic ranked run) | `game` | `best` |
+| **Ca làm** | 3 orders from the machine, a 1-of-3 part after each; the jam or **Về xưởng** (clock out) ends it | No | `orders` | `bests.orders` |
+| **Ca hôm nay** | One classic run on a seed from the **local date**; a streak; share | No (local) | `daily` | `bests.daily` + `daily.best` |
+| **Thư giãn** | The classic without pressure or the jam; the player leaves by choice | No | not saved | none |
 
-1. The player drags the loader to a column and lets go; a tap on a column also fires. A dotted aim line runs from the
-   current block to a ghost block in the landing cell. While the previous shot is still animating, the latest tap is
-   remembered and fired as soon as that shot ends (taps less than 150 ms apart count as one; holding a fire key fires
-   once).
-2. The block flies up its column. It stops in the cell **just below the lowest block** of that column; an empty column
-   takes it at the ceiling. A column with a block in row 0 is blocked: the loader clunks, shakes and the shot is not a
-   move.
-3. **Merge:** when a block arrives in a cell (landing, falling upward, or after merging), every orthogonal neighbour
-   (left, right, below, above) with the **same value** is absorbed into it. Absorbing *k* neighbours multiplies the
-   value by 2^k: one neighbour → ×2, two → ×4, three → ×8. A block takes part in at most one merge in a round.
-4. **Gravity up:** absorbed blocks leave holes; blocks below fall **upward** until they rest on the ceiling or on
-   another block. Every block that moved, and every merged block, is checked again (step 3). This repeats until
-   nothing changes — a **chain**. Each round of a chain is one **combo** level (1, 2, 3, …).
-5. **Score:** every merge adds its resulting value × its combo level.
-6. **Pressure:** after the shot's chain settles, every merge in it adds 1 to the pressure gauge (at most 8). At 8 the
-   machine shakes (below). The shot's chain always finishes first.
-7. **Ship:** after every round, a block of 256 or more resting on the ceiling is pushed up through the top chute: it
-   leaves the rack, adds its value × 3 to the score, and the blocks below it fall up into its place.
-8. The next block becomes current; a new next block is drawn.
+The **title screen** (the shell) has one primary (Chơi tiếp / Chơi) and the tools; the **mode select** is the
+first screen of a new game: the four modes, the **Xưởng**, the day's **Ca hôm nay** card (the date, the streak,
+the best), and the classic's ranked mark. A saved run resumes straight into its mode. A challenge link opens its
+challenge at once.
 
-## The machine's shake
+## The board and the shot (unchanged)
 
-When the pressure gauge is full (8), the machine shakes once the shot has settled:
+- **5 columns × 7 rows.** Row 0 is the bottom, row 6 the ceiling. The rack hangs from the ceiling.
+- The **loader** under the rack: the current block in its breech, the next on the feeder. The pressure gauge on
+  the beam, the safety line under the rack, the chute at the top.
+- A drag (or tap) fires the current block up its column; it lands in the cell just below the lowest block, or at
+  the ceiling in an empty column. A column with a block in row 0 is blocked (clunk, no shot).
+- Merge: every orthogonal equal neighbour is absorbed; absorbing *k* multiplies the value by 2^k. Gravity pulls
+  the rack **up**; chains repeat; each round is a combo. A block takes part in at most one merge in a round.
+- Score: the resulting value × the combo × the mode's multiplier.
+- **Pressure**: each merge in a shot adds the mode's gain (1, or 2 with **Dầu**); at the gauge's max (8, or 10
+  with **Bình áp**) the machine shakes: rows slide to the centre, equal pairs merge ×2 (×3 with **Bánh răng**),
+  ships happen, gravity up; the gauge resets.
+- **Ship**: a block at the ceiling of the mode's ship value or more leaves for value × 3; the rack pulls up.
+  In Cổ điển/Ca hôm nay/Thư giãn the ship value is **256** (2^8). In Ca làm it is the **current order's value**
+  (16, 32, 64), lowered by **Cửa xưởng**, so the orders can be shipped; after the last order it is 256 again.
+- The jam: every column has a block in row 0 at the end of a shot and its shake → over (Cổ điển/Ca làm/Ca hôm
+  nay); Thư giãn never jams.
 
-1. **Slide:** in every row, the blocks slide toward the centre, keeping their left-to-right order. The centre columns
-   are filled first, so a gap between two equal blocks can close.
-2. **Merge:** every equal pair that now touches merges, by the same rule as a shot. A machine merge adds its resulting
-   value × its combo × **2**; the combo starts again at 1 for the shake. The shake's own merges add no pressure.
-3. **Ship and gravity:** a block of 256 or more on the ceiling is shipped as above; blocks below it fall upward.
-   Repeat the merges and the gravity until nothing changes (the slide itself happens once).
-4. The gauge empties. The shake can free a column: a pulse merge removes a block and the gravity pulls the blocks below
-   it up, or the merge removes a row-0 block itself. The game is over only after the shake has run, so the rack is always
-   settled before a jam is declared.
+## Ca làm — the orders
 
-A machine merge is what a player sets up: two equal blocks in the same row, with only empty cells between them in that
-row, slide together and merge. The machine is a second, reliable actor in the puzzle, not a random booster.
+- **Three orders**, seeded with the run: **ship a 16**, **ship two 32s**, **ship a 64**. The order rail shows the
+  current goal, the progress and the reward; the ship threshold is the current order's value, so the player can
+  ship early.
+- When an order completes, the run pauses and offers **1 of 3 parts** from the unlocked blueprints (repeats are
+  allowed while fewer than 3 are unlocked). The part applies at once and lasts the run; the next order begins.
+- After the third order the player can keep playing for score or press **Về xưởng** to bank the run; the jam still
+  ends it.
+- Rewards: each order gives scrap (4/6/10) and scrap comes from the shipped blocks (value/16, at least 1); XP is
+  the run's score/100 at the end. The ticket prints the orders, the shipped, the scrap, the XP.
+- The run is **unranked**; no live score run, no server board. The parts never appear in Cổ điển.
 
-## New blocks
+### The parts (first set)
 
-Values are drawn from the state's seeded PRNG. With *M* the exponent of the largest block on the board
-(2 → 1, 4 → 2, …, at least 3), new blocks have exponents 1 … min(M − 2, 6), weighted towards the small ones
-(weights 6, 5, 4, 3, 2, 1). Early on that means 2, 4 and 8; later up to 64.
+| Part | Effect (Ca làm only) |
+| --- | --- |
+| **Bình áp** | +2 pressure max (the gauge 10) |
+| **Cửa xưởng** | the ship value one step lower |
+| **Dầu** | +1 pressure per merge |
+| **Bánh răng** | the shake's score multiplier +1 (×3) |
 
-## End
+The Workshop starts with **Bình áp** and **Cửa xưởng** unlocked; **Dầu** and **Bánh răng** cost scrap.
 
-The machine jams when **every column has a block in row 0** at the end of a shot and its shake: the rack has reached
-the safety line and no column can take another block. Then: score, best, "Kỷ lục mới!" if it is a record, the number
-of blocks shipped, and **Chơi lại**.
+## Xưởng — the light meta
+
+- **Scrap** is earned by playing (the ships, the orders, the daily); it is never bought. **XP** (the run's
+  score/100) raises the machine's level: **Tập sự, Thợ phụ, Thợ chính, Trưởng ca, Kỹ sư, Bậc thầy**
+  (0/40/120/280/560/1000).
+- The Workshop shows the machine, the scrap, the level, the **blueprints** (the four parts, the two to buy), and
+  the **cosmetics** (the block colours — the existing preset picker; the machine level's plaque/stamp). No timers,
+  no energy, no purchase.
+- The blueprints decide which parts the Ca làm offers; the parts themselves are per run. The cosmetics never
+  change the rules; the stat parts never appear in Cổ điển or Ca hôm nay.
+
+## Ca hôm nay — the daily
+
+- The seed is derived from the **local date** at the start (`YYYY-MM-DD` → a 32-bit seed); everyone who plays that
+  local day gets the same blocks. The logic is pure; the stage passes the date and seed in.
+- A **streak** counts consecutive local days started (the save's `lastDay`); the card shows the date, the streak,
+  the best today; the game over shows the date/streak and **Chia sẻ**.
+- The share is the entry **`v: 3`**: `{ v: 3, seed, score, date, mode: "daily" }`; opening it starts a same-seed
+  challenge (a normal score, never ranked). The date is the sender's local date, shown as a claim.
+- The daily is unranked and local; no server board in 3.0.0.
+
+## Thư giãn
+
+The same rack, no pressure, no jam, no score run, no save; the aim/merge/ship for the joy of it; leaves by choice.
+If the rack fills, the game offers **Ván mới** / **Đổi chế độ**; nothing is recorded.
+
+## The classic, ranked and the challenge
+
+- **Cổ điển** is the ranked game: the server deals the seed, records the columns, replays them with this logic
+  (`verify.js`); the pressure/shake/ships derive from the state. The mode-specific fields are absent.
+- **Thách bạn** keeps the `v: 2` classic challenge (`{ v: 2, seed, score }`); the daily share adds `v: 3`. The
+  entry handler answers `unsupported` for a newer version, `invalid` for a malformed one.
 
 ## Screens
 
-The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020); this game
-brings its content:
+1. **Title** (the menu stage, every open): the **mascot mark** (Máy Ghép) and **Ghép Khối** over drifting blocks;
+   the chip "Ván đang chơi dở: …" (the mode + score) or the best; **Chơi / Chơi tiếp**, **Ván mới**; tools Âm
+   thanh, Cài đặt (Màu khối, **Xưởng**), Xếp hạng (signed-in) and Cách chơi; **Về Tò He** last.
+2. **Mode select** (play stage, a new run): the four modes + the Workshop; the daily card; the ranked mark on
+   Cổ điển; the first run defaults to **Ca làm**; back via Menu/Back.
+3. **Playing**: the kit's HUD — Menu, score, best (the mode's) — the **order rail** (Ca làm) or the daily/zen tag,
+   the **part strip**; the machine: the gauge (8–10 lamps, hollow/full), the rack, the safety line, the chute,
+   the loader/feeder, the aim/ghost/merge preview.
+4. **Choice sheet** (after an order): 1 of 3 parts, each with an icon/name/one line; the chosen part is applied;
+   the next order.
+5. **Workshop** (title's Cài đặt and the mode select/game over): the machine, the scrap, the level, the four
+   blueprints (buy), the block colours, a short "no timers/no money" line.
+6. **Game over**: the ticket — the mode, the score/best, the orders, the shipped, the scrap, the XP/level; a record
+   if it is one; **Chơi lại**, **Đổi chế độ**, **Xưởng** (if scrap), **Thách bạn** (classic/daily), **Menu chính**;
+   the jam or the clock-out.
+7. **Quick panel**: Tiếp tục; Âm thanh; Màu khối; Ván mới; Cách chơi; Menu chính.
+8. **Watching a ranked run** (the admin console, ADR 0032): the classic replay, unchanged: Menu, score, Nước n/m;
+   the slider/Lùi/Phát-Dừng/Tới, the speeds; the panel; Thoát xem lại.
 
-1. **Title screen** (the menu stage, every time the game opens, no board running): its block-and-gear logo (the 4 fired up to the 16, the gear and the loader rail) over
-   drifting blocks, **Ghép Khối**, the chip "Ván đang chơi dở: n điểm. · Kỷ lục m", **Chơi** or **Chơi
-   tiếp** and **Ván mới** (asks first; the run ends); tools Âm thanh, Cài đặt, Xếp hạng (signed-in players) and Cách
-   chơi; **Về Tò He** last, under the tools. **Cài đặt**: Âm thanh and **Màu khối** — one row per
-   [preset](#block-colours), with its name and sample blocks 2 … 256 in its colours. **Cách chơi**: the three picture
-   hints.
-2. **How to play** (before the first **Chơi** only): three picture hints — drag the loader and let go to fire up;
-   equal blocks that touch merge; when the gauge is full the machine shakes the rows together. **Bắt đầu** starts,
-   and the first move shows a pulsing aim line and the kit's pointing hand at the loader.
-3. **Playing** (the play stage, created on play from the save): the kit's HUD — Menu, score (counts up), best (its crown
-   lights up once the score passes it); the machine: top beam with the **eight pressure lamps** and the chute, the
-   hanging rack, the **safety line**, the loader bay with the current block and the feeder; the aim line and ghost.
-4. **Quick panel** (Menu, phone Back, Esc, or the hub hiding the game): **Tiếp tục**; Âm thanh as a switch;
-   **Màu khối · (the preset)**, which opens the presets with their sample blocks over the panel — a tap repaints
-   the board, the current block, the feeder and the machine's blocks behind it at once, **Quay lại** returns to the
-   panel; Ván mới (asks) · Cách chơi · Menu chính (saves; the title then offers Chơi tiếp).
-5. **Game over:** the rack dims and the machine jams, card with score/best/shipped, confetti for a record, **Chơi lại**,
-   **Thách bạn** (when the hub can share and the game knows its seed), **Menu chính**; Back goes to the title screen.
-6. **Watching a ranked run** (the admin console, ADR 0032): no title screen. The board starts from the run's seed and
-   plays at once, like a video, with the kit's HUD — Menu, score, **Nước n/m** — and a bar under it: a
-   slider to any move, **Lùi** one back, **Phát / Dừng**, **Tới** one on (stepping and the slider wait for **Dừng**),
-   each with the kit's caret, play or pause icon beside its word, and
-   the speed: **×1** shows where each block goes, then fires it; **×4** fires them one after another; **×20** only draws
-   the boards. The board takes no taps. At the end the bar says how the run ended — "Hết ván: n điểm.",
-   "Run dừng ở đây, ván chưa hết.", or for a run with a move that is not legal
-   "Nước k không hợp lệ: chiếu đến trước nó." (it plays up to that move). The panel: Tiếp tục (playing stops when
-   it opens), Âm thanh, Màu khối (not saved), Cách chơi, **Thoát xem lại**. Nothing is saved, scored or handed in.
+## Onboarding
 
-## Challenge a friend ("Thách bạn")
+Before the first Chơi: the three picture hints (drag/merge/shake) + the first order. The first run defaults to
+Ca làm: the hand at the loader, the first shot, the merge preview, the gauge filling to the first shake, the
+first ship → the first order → the choice sheet → the Workshop. The how-to stays available in Cách chơi. A
+returning player sees no onboarding; a child can replay the how-to.
 
-[ADR 0045](../../docs/decisions/0045-games-declare-identity-and-entries.md). A game remembers the seed it started from
-(`seed` in its state; a version-2 game always has one, and only a damaged save loses it).
+## Feel, themes, block colours, accessibility
 
-- **Sending**: the end-of-game card of a regular game shows **Thách bạn** when the hub can share
-  (`session.canShare`): it shares `{ v: 2, seed, score }` with the text "Mình được {score} điểm Ghép Khối. Bạn vượt
-  được không?" and the level `any`, so a newcomer plays at once. The hub's sheet makes the link only when the player
-  sends, copies or shows it.
-- **Opening**: `game.json` declares `"entries": ["share"]` and ships `entries/share.json`. The shell's entry handler
-  answers `handled` only for exactly `{ v: 2, seed, score }` (a 32-bit seed, a whole score from 0 to 10¹²),
-  `unsupported` for another `v` or kind, `invalid` for anything else. Handled, play opens at once, the title screen
-  behind it. A `v: 1` link is from the game before the machine: it is `unsupported`, not played.
-- **The challenge game**: the same blocks from the link's seed, in a slot of its own in the save (`challenge`: seed,
-  target, sender, game, run) with its own score run on the account's board — a normal score, **never a ranked run**.
-  The regular game and its ranked run stay untouched. Opened again by the same challenge while it is in progress (after
-  signing in, or the same link), it continues; another challenge replaces the slot. First a card: "Vượt {score} của
-  {name}" and "Cùng bộ khối với {name}. {score} là điểm {name} gửi kèm link." (without a sender: "Vượt {score}", "Cùng
-  bộ khối với người gửi…"): the score is the sender's claim, shown as such. Under the HUD, the target line.
-  Ván mới in the panel starts the challenge again on the same blocks.
-- **Its end**: "Bạn đã vượt {name}! 🎉" or "Còn thiếu {diff} điểm nữa thôi!", then **Về ván thường** (the regular game
-  in place: the one in progress, or a new one, ranked when the hub deals a run), **Thách lại** (shares this score on
-  the same seed) and Menu chính.
+The 2.0.1 feel stays: shot/steam, merge/pop, chain banner, pressure flash/click, the shake (rows, dust,
+KA-CHUNK), the gold ship, the record confetti, the jam ticket. The parts add their own cues (the gauge's max,
+the chute's value, the combo, the lubricant). Light/dark follow the hub; the machine frame, gauge (hollow/full
+by shape), safety line (stripes + lamp + triangle), the order rail (a value + a progress shape), the daily date
+stamp and the parts (icon + word) never rely on colour alone. Reduced motion: the loader snaps, the machine's
+jolt is a flash, the rows still slide. The five block-colour presets stay the player's; the brand's mascot mark
+is the game's own.
 
-## Feel (juice), in tiers
+## Brand
 
-| Event | Feedback |
-| --- | --- |
-| Shot | A steam puff, an accelerating rise, squash on landing, soft "tock", light haptic |
-| Merge | Neighbours slide into the target, target pops and changes colour, particle burst in its colour, "+value" floats up, rising pitch with value, haptic |
-| Chain ≥ 2 | "Combo ×n!" banner, each step a little brighter and higher in pitch |
-| Pressure full | The gauge lamps flash, a warning tick, a light haptic |
-| Shake | The machine jolts; rows slide toward the centre in a staggered wave; every pair snaps with a mechanical "clunk"; the gauge empties; "Máy lắc ×n!" banner; a dust burst from the beam |
-| Ship | The block rises into the chute, a gold burst and an "Xuất xưởng!" stamp; "+value" and a cash-register chime |
-| Big merge (≥ 512) | Short camera shake (skipped with reduced motion) |
-| Record | Confetti + fanfare |
-| Jam | The rack dims, the safety lamp turns red, the loader stops, a paper ticket with the result |
+The game's mark is **Máy Ghép**, the machine as a character: a block-shaped head (the 16 as its face plate), two
+pressure-gauge eyes, a chute mouth, gear ears, the loader rail. **Ghép Khối** is the wordmark (the platform's
+type); the 4→16 + gear + rail is the machine's **badge** (the ticket, the daily card, the OG corner). The mark
+is the icon/catalog/favicon, the title, the game over, the Workshop and the OG; it is readable at 32, 96, 192,
+512 and 1200×630, light/dark and monochrome, and can animate the eyes in the title/OG (CSS/SVG; the menu stage
+has no canvas, ADR 0020).
 
-Every animation step is short (under half a second) so the board stays readable; taps made meanwhile are remembered
-(see *A shot*), so the game never ignores the player. With reduced motion the loader's block snaps into place, the
-machine's jolt is a flash, and the rows still slide (the state must be readable).
-
-## Themes
-
-Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013):
-
-- **Machine and board:** a warm cream machine with brass and dark rails in light; a warm-charcoal machine with copper
-  and amber lamps in dark. Empty cells are a step lighter than the rack in light, a step lighter than the rack in
-  dark. It switches at once when the hub changes theme mid-round.
-- **Blocks:** in the player's [colour preset](#block-colours), the same in both themes, so a value keeps its colour.
-- **HUD and cards:** the platform's design tokens, through the kit.
-- **Safety line and pressure:** the safety line has a striped pattern and a lamp (never colour alone); the pressure
-  lamps show empty/full by shape as well as colour.
-
-## Block colours
-
-Each player picks how the blocks look (**Cài đặt → Màu khối**), with the same five presets as Chạm Ghép, so the two games
-still look like a family. The owner asked for them on 2026-10-15, after trying them in Chạm Ghép. The choice belongs
-to the player: it is kept in the game's save, so it follows the profile to other devices, and a new player starts
-with **Hoàng hôn**. Each game keeps its own choice (games do not share saves).
-
-| Preset | Look |
-| --- | --- |
-| **Hoàng hôn** (default) | Warm and soft for small numbers, saturated and cool as they grow, so a glance at the board shows how far a game has come. |
-| **Tương phản mạnh** | Two numbers in a row never share a hue: red, blue, yellow, green, purple, orange, pink, teal, then the same round again in other shades. |
-| **Kẹo pastel** | Light, soft colours, a different hue for each number, dark text. |
-| **Neon** | Bright, saturated colours with dark text; they stand out most on the dark board. |
-| **Dễ phân biệt** | Built on the Okabe–Ito palette, which people with red–green colour blindness tell apart; numbers above 256 take its hues again, darker. |
-
-- Every number is at least 4.5:1 on its block, in every preset (`palette.test.ts`).
-- In every preset except Hoàng hôn, two numbers in a row are clearly different colours (`palette.test.ts`
-  measures the distance between them).
-- The champion block (64K and up) is the same in every preset: dark with gold digits, and a gold ring on the
-  dark board.
-
-## Contract usage
+## Save, contract and invariants
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game, tutorialSeen, run, palette, ranked?, challenge? }` where `game` is the full state (rack, current, next, score, pressure, shipped, PRNG), `run` its leaderboard id, `palette` the player's colour preset (also saved when it changes) and `ranked` the ranked run in progress — its id, seed and every column fired. Opening the game resumes it. |
-| `scores` | A live run (ADR 0014): `session.run(id).update(score)` after each move that scores, so the account's board shows the game in progress; `finish(score)` at game over, or when the player starts a new game (an unfinished game keeps the best score it reached). One run id per game, kept in the save. |
-| `ranked` | Every new game asks for a ranked run (ADR 0030) and waits up to 2.5 s: with one, the game plays from the server's seed and records each column fired; at game over, or when the player starts a new game, it hands the columns and the score in. Without one — offline, a guest — it plays unranked, as before. The verify module (`src/verify.ts` → `verify.js`) replays a run with `logic.ts` itself (`replayMoves`); its `bot` fires into a column the run's own PRNG picks. With `init.rankedReplay` (ADR 0032) the game plays a run back instead of a game (`src/replay.ts`), with the same `replayMoves`, so it shows the game the server judged. The shake is derived from the moves (it follows the merges), so a run stays a list of columns. |
-| entries | `share` (ADR 0045): a challenge link opens a challenge game; "Thách bạn" and "Thách lại" ask the hub to share one (above). `v: 2` is this game; `v: 1` is the game before the machine and is unsupported. |
-| settings | Respects `muted`; follows `theme`. |
-| seed | Seeds the PRNG of an unranked new game; a ranked one plays from the server's seed. |
+| `save` | `{ best, bests, game, orders, tutorialSeen, run, palette, ranked?, challenge?, workshop?, daily? }`. `game` is the Cổ điển state; `orders` the Ca làm state; `daily` the day/streak/best; `workshop` the scrap/XP/level/blueprints; `ranked` the classic run; `challenge` the last link. A v2 save upgrades its classic `game` to v3; v1 starts fresh. |
+| `scores` | The classic live score run (update/finish) as today. The Ca làm/Ca hôm nay/Thư giãn do **not** open a live run or a server board; they are local. The challenge keeps its normal score run (never ranked). |
+| `ranked` | Cổ điển only: the server's seed, the columns, the verify/replay. The new modes' states/parts are not in the ranked run. |
+| `entries` | `share`: the v2 classic challenge and the v3 daily challenge; the shell answers `unsupported` for newer versions, `invalid` malformed. |
+| `settings` | `muted`; the theme; the block palette. |
 
-## Invariants (checked by the random-play bot)
-
-- After every move, no two orthogonally adjacent blocks have the same value.
-- No hole above a block: every block rests on the ceiling or on another block (each column is full from the top
-  down to its lowest block).
-- The score never decreases; the board never holds more than 35 blocks.
-- The pressure is an integer from 0 to 8; a shot that fills it always shakes; after a shake it is 0.
-- The game is over exactly when every column has a block in row 0, after the shake has had its chance.
-- A save restores an identical game: replaying the same shots from a restored state gives the same result.
-- A game saved before version 2 is not restored; it starts a new game.
+Invariants (the bot/unit tests): no equal orthogonal neighbours after a move; no hole above a block; the score
+never decreases; ≤35 blocks; the pressure 0…the mode's max, the shake resets it; the game over at the jam for
+Cổ điển/Ca làm/Ca hôm nay, never for Thư giãn; the orders complete exactly on their ships; the choice blocks the
+next shot until a part is chosen; a save restores the same state (v3); the classic replay/verify unchanged.
 
 ## Technology
 
-Phaser 4 + `@tohe/game-kit` ([research](../../docs/research/game-tech.md)), pure logic in `src/logic.ts`
-emitting events the view animates.
+Phaser 4 + `@tohe/game-kit`; pure logic in `src/logic.ts` (the modes/orders/parts included, no DOM/timers/
+random), the view animates the events; the app/save/daily in `src/app.ts` and the Workshop in `src/workshop.ts`;
+the menu stage in `src/main.ts`, the play/mode select/choice/workshop/game over in `src/stage.ts`, the replay in
+`src/replay.ts`.

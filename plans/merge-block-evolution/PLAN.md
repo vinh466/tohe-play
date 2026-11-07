@@ -1,41 +1,38 @@
 # Plan — Ghép Khối: the evolution (orders, workshop, daily, brand)
 
 - Goal: a next Ghép Khối that gives the family a reason to start a run and come back tomorrow — Orders, a light Workshop, a Daily Shift, Zen, a first screen and a brand mark that sell the machine — while the classic ranked run, its verifier and the platform's no-ads/no-IAP rules stay intact.
-- Phase: **Frame** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases))
+- Phase: **Close** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases))
 - Started: 2026-11-08 · Branch: `plan/merge-block-evolution` · PR: [#191](https://github.com/vinh466/tohe-play/pull/191)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Log: [log.md](log.md)
 
-## Next — one item
+## Closed — shipped in 3.0.0
 
-**D-01 — the next layer and its order.** The owner's priority decides whether the first slice is
-Orders + Workshop, the Daily Shift, or the brand first. Research is in
-[research/R-01](research/R-01-modes-and-progression.md) and [research/R-02](research/R-02-brand-and-logo.md);
-the recommendation is brand + Orders + Workshop (light) first, then Daily, then Zen.
+The owner approved the whole recommendation on 2026-11-08 ("ok làm tất"), and the first slice landed as
+`games/merge-block` **3.0.0**: the Máy Ghép mark, the title/mode select, Ca làm (orders and the four parts),
+Ca hôm nay (local-date seed, streak and share), Thư giãn, the Xưởng (scrap, XP, rank, blueprints and the palette),
+save v3, the daily `v: 3` entry, and the UI/UX pass. Cổ điển remains the only ranked mode and its replay is unchanged.
 
 ## Waiting on the owner
 
-1. **D-01** — which layer is the first slice, and how much of it (the recommendation is in the item).
-2. **D-09 / D-10** — the logo direction: mascot + wordmark (recommended), symbol only, or wordmark only; and whether the mascot appears in the title/UI.
-3. **D-05** — the Daily: a local date seed and a share/streak now, a server board later; or a server board in the first slice (contract + API).
-4. **D-13** — the phase split: 2.1 brand + Orders + Workshop, 2.2 Daily + achievements + telemetry, 2.3 mascot + cosmetics + Zen, 3.0 versus? Or different.
+Nothing — the plan is closed.
 
 ## Board
 
 | ID | Item | Kind | Status | Blocked by |
 |---|---|---|---|---|
-| D-01 | The next layer and its order | decision | proposed | — |
-| D-02 | The Orders run structure | decision | open | D-01 |
-| D-03 | In-run machine parts (1 of 3) | decision | open | D-02, D-12 |
-| D-04 | The Workshop and its light meta | decision | open | D-01, D-12 |
-| D-05 | The Daily Shift and its board | decision | open | D-01, D-12 |
-| D-06 | The modes and the title/mode select | decision | open | D-01 |
-| D-07 | The first screen and onboarding | decision | open | D-06, D-09 |
-| D-08 | The UI/UX pass (HUD, Orders, Workshop, Daily, game over) | decision | open | D-02, D-04, D-05 |
-| D-09 | The logo and brand system | decision | proposed | — |
-| D-10 | The mascot "Máy Ghép" | decision | open | D-09 |
-| D-11 | The funnel and retention telemetry | decision | open | D-05, D-06 |
-| D-12 | The save/ranked/verify/contract shape | decision | open | — |
-| D-13 | The phase split and the first slice | decision | open | D-01, D-02, D-04, D-09 |
+| D-01 | The next layer and its order | decision | done | — |
+| D-02 | The Orders run structure | decision | done | D-01 |
+| D-03 | In-run machine parts (1 of 3) | decision | done | D-02, D-12 |
+| D-04 | The Workshop and its light meta | decision | done | D-01, D-12 |
+| D-05 | The Daily Shift and its board | decision | done | D-01, D-12 |
+| D-06 | The modes and the title/mode select | decision | done | D-01 |
+| D-07 | The first screen and onboarding | decision | done | D-06, D-09 |
+| D-08 | The UI/UX pass (HUD, Orders, Workshop, Daily, game over) | decision | done | D-02, D-04, D-05 |
+| D-09 | The logo and brand system | decision | done | — |
+| D-10 | The mascot "Máy Ghép" | decision | done | D-09 |
+| D-11 | The funnel and retention telemetry | decision | done | D-05, D-06 |
+| D-12 | The save/ranked/verify/contract shape | decision | done | — |
+| D-13 | The phase split and the first slice | decision | done | D-01, D-02, D-04, D-09 |
 
 ## Graduation list
 
