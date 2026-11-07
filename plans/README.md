@@ -20,6 +20,7 @@ it goes straight to a doc change or an ADR.
 | launch-review | Product surfaces before the official launch: wave 1 designs and builds the layout and UX for players, the introduction surface, SEO, GEO and how it scales; wave 2 reviews screens, flows, copy, terms and the gate; wave 2b reworks the front page, the way back in and the first screen of the app | Close (wave 1) · Resolve (wave 2b) | [PLAN.md](launch-review/PLAN.md) |
 | surface-v2 | A product surface for 16+ players first, family mode second: a game shelf instead of an introduction page, covers and screenshots instead of icons, and a calmer, clearer experience across phone, tablet and computer | Converge (decisions done) | [PLAN.md](surface-v2/PLAN.md) |
 | asset-studio | A Studio where agents (mostly) and people make, review and manage game assets centrally; games declare which packs, versions and delivery mode they use, the platform provides and keeps the guardrails; a farming slice proves it | Graduate (14 of 15 decided, 1 deferred; delivery.md) | [PLAN.md](asset-studio/PLAN.md) |
+| merge-block-evolution | Ghép Khối from MVP to a game with a reason to return: Orders, Workshop, Daily, Zen, brand/logo, UI/UX | Frame (brief draft; D-01/D-09/D-13 waiting on the owner) | [PLAN.md](merge-block-evolution/PLAN.md) |
 
 ## What a plan space is — and is not
 
