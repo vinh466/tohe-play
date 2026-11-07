@@ -23,16 +23,7 @@ Ideas to pick from, not commitments. Each game still starts as a `SPEC.md` revie
 | Chạm Chấm (`hello`) | The minimal sample game: tap the dots | [SPEC](../../games/hello/SPEC.md) |
 | Tiến Lên (`tien-len`) | Tiến lên miền Nam against bots (Dễ, Vừa, Khó) or at an online table with the family and bots ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); house rules H1–H9, a practice hand | [SPEC](../../games/tien-len/SPEC.md) |
 | Vườn Rau (`vuon-rau`) | The Asset Studio's pilot: a small farm slice — till, plant, water, harvest, sell — built from the Studio pack `farm-tiny`; proves the road from an approved pack to a game on a phone. MVP works (owner, 2026-10-31); the full farm is later | [SPEC](../../games/vuon-rau/SPEC.md) |
-
-## Next
-
-### Lấp Ô (`fill-blocks`) — block puzzle · ages 3+ · S–M
-Place shapes on an 8×8 board; full rows and columns clear ("Block Blast" / "1010!").
-- **Spec:** written and waiting for review in [`games/fill-blocks/SPEC.md`](../../games/fill-blocks/SPEC.md).
-- **Kid-friendly twists:** tap-to-place instead of precise dragging, and a "helpful draw" that always deals a piece
-  that fits while one exists. No timer.
-- **Proves:** a second real game built quickly from the kit, with drag-and-drop input, a tray of choices, and
-  line-clear juice. These parts carry over to every grid puzzle.
+| Lấp Ô (`fill-blocks`) | A calm 8 × 8 block puzzle: place three shapes a turn, clear full rows and columns, build a combo. An endless run, a 18-level journey with stars, a daily challenge and mastery ranks. Tap-to-place, a helpful draw and no timer — built for a child's hand and an adult's long game | [SPEC](../../games/fill-blocks/SPEC.md) |
 
 ## Puzzles and arcade (quick to build, high replay)
 
@@ -123,7 +114,7 @@ Any of the above built in Godot 4 instead of Phaser, to measure size and start-u
 
 ## How to choose
 
-- Small and fast first (Lấp Ô, Rắn Săn Mồi, Lật Hình): each grows the kit a little and keeps the family playing new
+- Small and fast first (Rắn Săn Mồi, Lật Hình): each grows the kit a little and keeps the family playing new
   things.
 - One per age band: the youngest (Lật Hình, Tô Màu), school age (Xếp Gạch, Bắn Bong Bóng), adults (Sudoku 9×9,
   Cờ Caro 15×15).

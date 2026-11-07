@@ -236,8 +236,14 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 }
 ```
 
-- `createShell(options)` → `{ start(), playing }`. It owns both stages: the title screen and its screens, entering
-  play (`stage()` then `start(ctx)`, a loading view until `ctx.ready()`), the panel, the end card and every Back.
+- `createShell(options)` → `{ start(), openScreen(id), play(fresh?), playing }`. It owns both stages: the title
+  screen and its screens, entering play (`stage()` then `start(ctx)`, a loading view until `ctx.ready()`), the panel,
+  the end card and every Back.
+- **Screens the game owns** (`ShellScreen`): `screens: [{ id, label, icon, render(root) }]` adds full screens to the
+  title's tools; `render` returns a cleanup called when the screen is left. `shell.openScreen(id)` opens one from a
+  mode button or another screen; `modes` adds secondary buttons under play; `progress()` adds a line under the title
+  (the journey's stars, a daily stamp). The shell keeps the header, Back, focus and the theme; a game's screen is
+  content only. Lấp Ô uses four: Hành trình, Hôm nay, Thống kê and Thành tích.
 - **Icons, not emoji** (ADR 0049). Every `icon` the kit takes — a button's, a tool's, a row's, a setting's, a card's —
   is an `IconName` of the kit's set (`icons.ts`: Phosphor, MIT, copied the way the hub copies its own, since a game
   loads nothing from outside its folder); a card's picture may instead be the game's own art, `{ src: 'icon.svg' }`.
@@ -269,7 +275,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
 | Where | What |
 | --- | --- |
-| Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, the settings and how-to screens, a new game asked first, the first-time how-to); the play stage (loading, playing, the panel without a way out, looks changed in place, Menu chính leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
+| Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, the settings and how-to screens, the game's own screens and their cleanup, modes, a new game asked first, the first-time how-to); the play stage (loading, playing, the panel without a way out, looks changed in place, Menu chính leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
 | Kit (`credits.test.ts`) | Ghi công: shown only once a game's credits are read, nothing more asked for and nothing changed without `assets`, none at a table; its screen and Back; the credits file's shape checked, its lines per pack |
 | Kit (`phaser/assets.test.ts`) | `loadPack`: each kind queued as it should be, keys already loaded skipped, a failed file named, fonts |
 | Kit (`kit.test.ts`) | The HUD's count-up and shortened scores, run ids |
