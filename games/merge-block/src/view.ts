@@ -336,13 +336,15 @@ export class BoardScene extends Phaser.Scene {
     });
   }
 
-  /** A block with its number, centred on the top face's square: `originY` puts that centre on the block's position. */
+  /** A block with its number, the whole block the size of its cell slot: `originY` puts its centre on the cell's. */
   private blockTexture(exp: Exponent, size: number): { key: string; originY: number } {
     const inner = size - this.layoutInfo.gap;
     const r = inner * 0.2;
     const line = Math.max(2, inner * 0.04);
     const pad = Math.ceil(line / 2) + 1;
-    const height = inner * 1.06 + pad * 2;
+    const height = inner + pad * 2;
+    const inset = inner * 0.03;
+    const face = inner - inset * 2;
     const key = `merge-block:block:${this.theme}:${this.palette}:${inner}:${exp}`;
     this.drawn.add(key);
     drawTexture(this, key, inner + pad * 2, height, (ctx) => {
@@ -353,17 +355,25 @@ export class BoardScene extends Phaser.Scene {
         roundedRect(ctx, pad + x, pad + y, w, h, radius);
         ctx.fill();
       };
-      fill(cssHex(style.edge), 0, inner * 0.06, inner, inner, r);
-      fill(cssHex(style.fill), 0, 0, inner, inner * 0.94, r);
+      // The dark edge is the block's border, inside the cell slot, so blocks never spill into the gap.
+      fill(cssHex(style.edge), 0, 0, inner, inner, r);
+      fill(cssHex(style.fill), inset, inset, face, face, r * 0.94);
       if (style.outline !== undefined) {
         ctx.lineWidth = line;
         ctx.strokeStyle = cssHex(style.outline);
         ctx.beginPath();
-        roundedRect(ctx, pad, pad, inner, inner, r);
+        roundedRect(ctx, pad + inset, pad + inset, face, face, r * 0.94);
         ctx.stroke();
       }
-      fill('rgba(255, 255, 255, 0.22)', inner * 0.1, inner * 0.07, inner * 0.8, inner * 0.18, r * 0.6);
-      // The digits' own box is centred (not the font's), a little above the middle like the top face.
+      fill(
+        'rgba(255, 255, 255, 0.22)',
+        inset + face * 0.1,
+        inset + face * 0.07,
+        face * 0.8,
+        face * 0.18,
+        r * 0.6,
+      );
+      // The digits' own box is centred (not the font's) on the top face.
       const value = formatValue(blockValue(exp));
       const fontSize = Math.round(inner * (value.length <= 2 ? 0.46 : value.length === 3 ? 0.38 : 0.31));
       ctx.font = `900 ${fontSize}px system-ui, sans-serif`;
@@ -371,7 +381,7 @@ export class BoardScene extends Phaser.Scene {
       ctx.textAlign = 'center';
       ctx.textBaseline = 'alphabetic';
       const box = ctx.measureText(value);
-      const middle = pad + inner / 2 - inner * 0.03;
+      const middle = pad + inner / 2;
       ctx.fillText(
         value,
         pad + inner / 2,
@@ -578,12 +588,15 @@ export class BoardScene extends Phaser.Scene {
     }
     const { y: ghostY } = this.cellCenter({ col: this.hoverCol, row });
     const style = blockStyle(this.state.current, this.theme, this.palette);
+    // The ghost is the block's own slot: the same size and centre the block will land at.
+    const ghostX = x + gap / 2;
+    const ghostTop = ghostY - cell / 2 + gap / 2;
     this.ghost
       .lineStyle(3, style.edge, 0.9)
-      .strokeRoundedRect(x + gap, ghostY - cell / 2 + gap, cell - gap * 2, cell - gap * 2, cell * 0.18);
+      .strokeRoundedRect(ghostX, ghostTop, cell - gap, cell - gap, cell * 0.18);
     this.ghost
       .fillStyle(style.fill, 0.35)
-      .fillRoundedRect(x + gap, ghostY - cell / 2 + gap, cell - gap * 2, cell - gap * 2, cell * 0.18);
+      .fillRoundedRect(ghostX, ghostTop, cell - gap, cell - gap, cell * 0.18);
     // The aim line: dots from the loader's block to the ghost.
     this.aim.fillStyle(style.edge, 0.7);
     const from = this.current?.y ?? loaderY;

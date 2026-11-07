@@ -144,7 +144,7 @@ title screen → Tò He.
 | Game | Title screen (logo · decor) | Cài đặt | Quick panel rows | HUD (start · middle · end) |
 | --- | --- | --- | --- | --- |
 | Chạm Chấm (`hello`) | its dot · dots and a star; Chơi, Kỷ lục, Âm thanh, Cài đặt, Xếp hạng, Cách chơi | sound | sound | score · `timer` seconds · best; 3-2-1 before a round goes on |
-| Ghép Khối (`merge-block`) | its gear · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | score · best (the next block waits on the loader) |
+| Ghép Khối (`merge-block`) | its 4-and-16 block logo · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | score · best (the next block waits on the loader) |
 | Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu) under it |
 | Tiến Lên (`tien-len`) | its cards · the four suits; `robot` Chơi với máy / Chơi tiếp, Bàn mới, Chơi online, Âm thanh, Cài đặt, Cách chơi | sound, `scroll` Luật nhà, `chair` Bàn chơi (from the next hand), `cards` Bộ bài | sound, `cards` Bộ bài (the decks); at a table also `scroll` Luật của bàn | table score · hand number · (`smiley` Cảm xúc) `arrows-down-up` Xếp số / Xếp bộ |
 

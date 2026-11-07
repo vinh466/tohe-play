@@ -3,13 +3,13 @@
   "id": "merge-block",
   "name": "Merge Blocks",
   "names": {
-    "vi": "Ghép Khối"
+    "vi": "Gh\u00e9p Kh\u1ed1i"
   },
-  "version": "2.0.0",
+  "version": "2.0.1",
   "protocol": 1,
   "description": "Fire number blocks up into the hanging rack. Equal blocks merge; when the gauge is full the machine shakes every row together. Ship 256+ blocks through the top chute!",
   "descriptions": {
-    "vi": "Bắn khối số từ dưới lên giàn treo. Hai khối giống nhau gộp lại; đầy hơi thì máy lắc cả giàn. Khối 256 trở lên ở nóc được xuất xưởng!"
+    "vi": "B\u1eafn kh\u1ed1i s\u1ed1 t\u1eeb d\u01b0\u1edbi l\u00ean gi\u00e0n treo. Hai kh\u1ed1i gi\u1ed1ng nhau g\u1ed9p l\u1ea1i; \u0111\u1ea7y h\u01a1i th\u00ec m\u00e1y l\u1eafc c\u1ea3 gi\u00e0n. Kh\u1ed1i 256 tr\u1edf l\u00ean \u1edf n\u00f3c \u0111\u01b0\u1ee3c xu\u1ea5t x\u01b0\u1edfng!"
   },
   "icon": "icon.svg",
   "orientation": "portrait",

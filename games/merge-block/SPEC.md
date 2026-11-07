@@ -72,7 +72,7 @@ of blocks shipped, and **Chơi lại**.
 The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020); this game
 brings its content:
 
-1. **Title screen** (the menu stage, every time the game opens, no board running): its gear logo holding a block over
+1. **Title screen** (the menu stage, every time the game opens, no board running): its block-and-gear logo (the 4 fired up to the 16, the gear and the loader rail) over
    drifting blocks, **Ghép Khối**, the chip "Ván đang chơi dở: n điểm. · Kỷ lục m", **Chơi** or **Chơi
    tiếp** and **Ván mới** (asks first; the run ends); tools Âm thanh, Cài đặt, Xếp hạng (signed-in players) and Cách
    chơi; **Về Tò He** last, under the tools. **Cài đặt**: Âm thanh and **Màu khối** — one row per
