@@ -18,7 +18,7 @@ Ideas to pick from, not commitments. Each game still starts as a `SPEC.md` revie
 
 | Game | What | Spec |
 | --- | --- | --- |
-| Ghép Khối (`merge-block`) | Drop number blocks into columns; equal blocks merge and chain | [SPEC](../../games/merge-block/SPEC.md) |
+| Ghép Khối (`merge-block`) | Fire number blocks up into a hanging rack; equal blocks merge, and the machine shakes the rows together when its pressure fills | [SPEC](../../games/merge-block/SPEC.md) |
 | Chạm Ghép (`tap-merge`) | The owner's variant of Ghép Khối: tap a block on a full board, and its whole group of equal blocks (connected in 8 directions) adds up into it, rounded up to a power of two; a long, relaxed game; 🔀 rescues a stuck board | [SPEC](../../games/tap-merge/SPEC.md) |
 | Chạm Chấm (`hello`) | The minimal sample game: tap the dots | [SPEC](../../games/hello/SPEC.md) |
 | Tiến Lên (`tien-len`) | Tiến lên miền Nam against bots (Dễ, Vừa, Khó) or at an online table with the family and bots ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); house rules H1–H9, a practice hand | [SPEC](../../games/tien-len/SPEC.md) |

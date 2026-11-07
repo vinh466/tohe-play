@@ -1,21 +1,27 @@
 // Ghép Khối rules (SPEC.md). Pure: no DOM, no timers, no Math.random — the PRNG state lives in the game state,
-// so a saved game resumes exactly and a seed + list of moves replays exactly. `drop` returns the new state and
-// the events that happened, in order; the view animates those events and never decides rules itself.
+// so a saved game resumes exactly and a seed + list of shots replays exactly. `fire` returns the new state and the
+// events that happened, in order; the view animates those events and never decides rules itself.
 
 export const COLS = 5;
 export const ROWS = 7;
+/** The machine shakes when the gauge reaches this. A shot's merge adds 1; the shake's own merges add none. */
+export const PRESSURE_MAX = 8;
+/** A block this large (256) or larger leaves through the top chute when it rests on the ceiling. */
+export const SHIP_EXP = 8;
+const SHIP_MULTIPLIER = 3;
+const PULSE_MULTIPLIER = 2;
 
 /** A block is stored as its exponent: 1 → 2, 2 → 4, …; 0 is an empty cell. */
 export type Exponent = number;
 
 export interface Cell {
   col: number;
-  /** 0 is the bottom row. */
+  /** 0 is the bottom row; ROWS − 1 is the ceiling. */
   row: number;
 }
 
 export interface State {
-  version: 1;
+  version: 2;
   /** COLS × ROWS exponents, index = row * COLS + col. */
   grid: Exponent[];
   current: Exponent;
@@ -32,16 +38,33 @@ export interface State {
    * 1.11.0 have none, and offer no challenge.
    */
   seed?: number;
+  /** The machine's pressure, 0 … PRESSURE_MAX. A full gauge shakes it once the shot has settled. */
+  pressure: number;
+  /** How many blocks the chute has taken this game. */
+  shipped: number;
+  /** The largest block shipped, as its exponent (0 before the first). */
+  biggestShipped: Exponent;
 }
 
 export type GameEvent =
   | { type: 'land'; at: Cell; exp: Exponent }
-  | { type: 'merge'; into: Cell; from: Cell[]; exp: Exponent; gained: number; combo: number }
+  | {
+      type: 'merge';
+      into: Cell;
+      from: Cell[];
+      exp: Exponent;
+      gained: number;
+      combo: number;
+      source: 'shot' | 'pulse';
+    }
   | { type: 'fall'; moves: { from: Cell; to: Cell; exp: Exponent }[] }
+  | { type: 'pressure'; value: number; max: number }
+  | { type: 'pulse'; slides: { from: Cell; to: Cell; exp: Exponent }[] }
+  | { type: 'ship'; at: Cell; exp: Exponent; gained: number }
   | { type: 'next'; current: Exponent; next: Exponent }
   | { type: 'over'; score: number; best: number; record: boolean };
 
-export type DropResult =
+export type FireResult =
   | { ok: true; state: State; events: GameEvent[] }
   | { ok: false; reason: 'column_full' | 'game_over' | 'no_such_column' };
 
@@ -79,15 +102,35 @@ export function newGame(seed: number, best = 0): State {
   const start = seed >>> 0;
   const [current, rng1] = spawn(grid, start);
   const [next, rng2] = spawn(grid, rng1);
-  return { version: 1, grid, current, next, score: 0, best, moves: 0, over: false, rng: rng2, seed: start };
+  return {
+    version: 2,
+    grid,
+    current,
+    next,
+    score: 0,
+    best,
+    moves: 0,
+    over: false,
+    rng: rng2,
+    seed: start,
+    pressure: 0,
+    shipped: 0,
+    biggestShipped: 0,
+  };
 }
 
-/** The row a block dropped in `col` would land on, or null if the column is full. */
+/**
+ * The row a block fired into `col` lands on: just below the lowest block of the column, or the ceiling when the
+ * column is empty. A block in row 0 blocks the column; null then.
+ */
 export function landingRow(grid: readonly Exponent[], col: number): number | null {
-  for (let row = 0; row < ROWS; row++) if (grid[indexOf({ col, row })] === 0) return row;
-  return null;
+  for (let row = 0; row < ROWS; row++) {
+    if (grid[indexOf({ col, row })] !== 0) return row === 0 ? null : row - 1;
+  }
+  return ROWS - 1;
 }
 
+/** No column can take a block: every column has a block in row 0. */
 export const isFull = (grid: readonly Exponent[]) =>
   Array.from({ length: COLS }, (_, col) => landingRow(grid, col)).every((row) => row === null);
 
@@ -101,12 +144,12 @@ function neighbours({ col, row }: Cell): Cell[] {
   return around.filter((c) => c.col >= 0 && c.col < COLS && c.row >= 0 && c.row < ROWS);
 }
 
-/** Pull every block down to fill holes; returns the moves made. */
+/** Pull every block up to the ceiling, filling holes; returns the moves made. */
 function gravity(grid: Exponent[]): { from: Cell; to: Cell; exp: Exponent }[] {
   const moves: { from: Cell; to: Cell; exp: Exponent }[] = [];
   for (let col = 0; col < COLS; col++) {
-    let target = 0;
-    for (let row = 0; row < ROWS; row++) {
+    let target = ROWS - 1;
+    for (let row = ROWS - 1; row >= 0; row--) {
       const exp = grid[indexOf({ col, row })] ?? 0;
       if (exp === 0) continue;
       if (row !== target) {
@@ -114,13 +157,104 @@ function gravity(grid: Exponent[]): { from: Cell; to: Cell; exp: Exponent }[] {
         grid[indexOf({ col, row })] = 0;
         moves.push({ from: { col, row }, to: { col, row: target }, exp });
       }
-      target++;
+      target--;
     }
   }
   return moves;
 }
 
-export function drop(state: State, col: number): DropResult {
+/**
+ * The machine's shake: every row's blocks slide toward the centre, keeping their left-to-right order. A gap between
+ * two equal blocks can close; the blocks themselves keep their row.
+ */
+function slide(grid: Exponent[]): { from: Cell; to: Cell; exp: Exponent }[] {
+  const moves: { from: Cell; to: Cell; exp: Exponent }[] = [];
+  for (let row = 0; row < ROWS; row++) {
+    const rowBlocks: { col: number; exp: Exponent }[] = [];
+    for (let col = 0; col < COLS; col++) {
+      const exp = grid[indexOf({ col, row })] ?? 0;
+      if (exp !== 0) rowBlocks.push({ col, exp });
+    }
+    if (rowBlocks.length === 0) continue;
+    const start = Math.floor((COLS - rowBlocks.length) / 2);
+    for (let col = 0; col < COLS; col++) grid[indexOf({ col, row })] = 0;
+    rowBlocks.forEach((block, i) => {
+      const to = start + i;
+      grid[indexOf({ col: to, row })] = block.exp;
+      if (block.col !== to)
+        moves.push({ from: { col: block.col, row }, to: { col: to, row }, exp: block.exp });
+    });
+  }
+  return moves;
+}
+
+type MergeEvent = Extract<GameEvent, { type: 'merge' }>;
+type ShipEvent = Extract<GameEvent, { type: 'ship' }>;
+
+interface Round {
+  merges: MergeEvent[];
+  ships: ShipEvent[];
+  gained: number;
+}
+
+/**
+ * One round of merges over `active`, then the chute. A block takes part in at most one merge in the round. The
+ * top row's blocks of SHIP_EXP or more leave after the merges; `gained` covers both.
+ */
+function mergeRound(
+  grid: Exponent[],
+  active: Cell[],
+  source: 'shot' | 'pulse',
+  combo: number,
+  multiplier: number,
+): Round {
+  const used = new Set<number>();
+  const merges: MergeEvent[] = [];
+  const ships: ShipEvent[] = [];
+  let gained = 0;
+
+  // Bottom-up, left-to-right: a fixed order keeps replays deterministic.
+  const ordered = [...active].sort((a, b) => a.row - b.row || a.col - b.col);
+  for (const cell of ordered) {
+    const index = indexOf(cell);
+    if ((grid[index] ?? 0) === 0 || used.has(index)) continue;
+    const exp = grid[index] as number;
+    const same = neighbours(cell).filter((n) => {
+      const i = indexOf(n);
+      return !used.has(i) && grid[i] === exp;
+    });
+    if (same.length === 0) continue;
+    for (const n of same) {
+      grid[indexOf(n)] = 0;
+      used.add(indexOf(n));
+    }
+    const result = exp + same.length;
+    grid[index] = result;
+    used.add(index);
+    const value = blockValue(result) * combo * multiplier;
+    gained += value;
+    merges.push({ type: 'merge', into: cell, from: same, exp: result, gained: value, combo, source });
+  }
+
+  for (let col = 0; col < COLS; col++) {
+    const at = { col, row: ROWS - 1 };
+    const exp = grid[indexOf(at)] ?? 0;
+    if (exp < SHIP_EXP) continue;
+    grid[indexOf(at)] = 0;
+    const value = blockValue(exp) * SHIP_MULTIPLIER;
+    gained += value;
+    ships.push({ type: 'ship', at, exp, gained: value });
+  }
+
+  return { merges, ships, gained };
+}
+
+/** The cells holding blocks, bottom-up and left-to-right (a deterministic order). */
+function occupied(grid: readonly Exponent[]): Cell[] {
+  return blocks(grid).map((block) => block.cell);
+}
+
+export function fire(state: State, col: number): FireResult {
   if (state.over) return { ok: false, reason: 'game_over' };
   if (!Number.isInteger(col) || col < 0 || col >= COLS) return { ok: false, reason: 'no_such_column' };
   const row = landingRow(state.grid, col);
@@ -128,44 +262,59 @@ export function drop(state: State, col: number): DropResult {
 
   const grid = [...state.grid];
   let score = state.score;
+  let pressure = state.pressure;
+  let shipped = state.shipped;
+  let biggestShipped = state.biggestShipped;
   const events: GameEvent[] = [];
 
   const landed: Cell = { col, row };
   grid[indexOf(landed)] = state.current;
   events.push({ type: 'land', at: landed, exp: state.current });
 
-  // Resolve merges and gravity until nothing changes. Each round of merges is one combo level.
-  let active: Cell[] = [landed];
-  for (let combo = 1; active.length > 0; combo++) {
-    const merged: Cell[] = [];
-    // Bottom-up, left-to-right: a fixed order keeps replays deterministic.
-    const ordered = [...active].sort((a, b) => a.row - b.row || a.col - b.col);
-    for (const cell of ordered) {
-      const exp = grid[indexOf(cell)] ?? 0;
-      if (exp === 0) continue; // absorbed by an earlier merge this round
-      const same = neighbours(cell).filter((n) => grid[indexOf(n)] === exp);
-      if (same.length === 0) continue;
-      for (const n of same) grid[indexOf(n)] = 0;
-      const result = exp + same.length;
-      grid[indexOf(cell)] = result;
-      const gained = blockValue(result) * combo;
-      score += gained;
-      events.push({ type: 'merge', into: cell, from: same, exp: result, gained, combo });
-      merged.push(cell);
+  /** Resolve merges, the chute and gravity-up until nothing changes. Returns how many merges the chain made. */
+  const runChain = (first: Cell[], source: 'shot' | 'pulse', multiplier: number): number => {
+    let active = first;
+    let combo = 1;
+    let mergeCount = 0;
+    while (active.length > 0) {
+      const round = mergeRound(grid, active, source, combo, multiplier);
+      if (round.merges.length === 0 && round.ships.length === 0) break;
+      events.push(...round.merges, ...round.ships);
+      score += round.gained;
+      mergeCount += round.merges.length;
+      for (const ship of round.ships) {
+        shipped++;
+        biggestShipped = Math.max(biggestShipped, ship.exp);
+      }
+      const moves = gravity(grid);
+      if (moves.length > 0) events.push({ type: 'fall', moves });
+      const moved = new Map(moves.map((m) => [indexOf(m.from), m.to]));
+      const next = new Map<number, Cell>();
+      for (const merge of round.merges) {
+        const at = moved.get(indexOf(merge.into)) ?? merge.into;
+        if ((grid[indexOf(at)] ?? 0) > 0) next.set(indexOf(at), at);
+      }
+      for (const move of moves) {
+        if ((grid[indexOf(move.to)] ?? 0) > 0) next.set(indexOf(move.to), move.to);
+      }
+      active = [...next.values()];
+      if (round.merges.length > 0) combo++;
     }
-    if (merged.length === 0) break;
+    return mergeCount;
+  };
 
-    const moves = gravity(grid);
-    if (moves.length > 0) events.push({ type: 'fall', moves });
-    // Next round: merged blocks (at their new place) and every block that moved.
-    const moved = new Map(moves.map((m) => [indexOf(m.from), m.to]));
-    const nextActive = new Map<number, Cell>();
-    for (const cell of merged) {
-      const at = moved.get(indexOf(cell)) ?? cell;
-      nextActive.set(indexOf(at), at);
-    }
-    for (const m of moves) nextActive.set(indexOf(m.to), m.to);
-    active = [...nextActive.values()].filter((cell) => (grid[indexOf(cell)] ?? 0) > 0);
+  const shotMerges = runChain([landed], 'shot', 1);
+  if (shotMerges > 0) {
+    pressure = Math.min(PRESSURE_MAX, pressure + shotMerges);
+    events.push({ type: 'pressure', value: pressure, max: PRESSURE_MAX });
+  }
+
+  if (pressure >= PRESSURE_MAX) {
+    const slides = slide(grid);
+    events.push({ type: 'pulse', slides });
+    pressure = 0;
+    events.push({ type: 'pressure', value: 0, max: PRESSURE_MAX });
+    runChain(occupied(grid), 'pulse', PULSE_MULTIPLIER);
   }
 
   const [upcoming, rng] = spawn(grid, state.rng);
@@ -173,24 +322,27 @@ export function drop(state: State, col: number): DropResult {
     ...state,
     grid,
     score,
+    pressure,
+    shipped,
+    biggestShipped,
     current: state.next,
     next: upcoming,
     moves: state.moves + 1,
     rng,
   };
-  events.push({ type: 'next', current: next.current, next: next.next });
-
   if (isFull(grid)) {
     next.over = true;
     const record = score > state.best;
     next.best = Math.max(state.best, score);
     events.push({ type: 'over', score, best: next.best, record });
+  } else {
+    events.push({ type: 'next', current: next.current, next: next.next });
   }
   return { ok: true, state: next, events };
 }
 
 /**
- * A ranked run played again from its seed (ADR 0030, 0032): the state after its first `upTo` moves, or why move `at`
+ * A ranked run played again from its seed (ADR 0030, 0032): the state after its first `upTo` shots, or why shot `at`
  * is not a legal column. The verify module judges runs with it and the replay stage shows them with it, so the console
  * shows the game the server judged.
  */
@@ -204,7 +356,7 @@ export function replayMoves(
   for (let at = 0; at < Math.min(upTo, moves.length); at++) {
     const col = moves[at];
     if (typeof col !== 'number' || !Number.isInteger(col)) return { error: `move ${at} is not a column`, at };
-    const result = drop(state, col);
+    const result = fire(state, col);
     if (!result.ok) return { error: `move ${at}: ${result.reason}`, at };
     state = result.state;
   }
@@ -222,11 +374,15 @@ export function restore(saved: unknown): State | null {
   const s = saved as Partial<State>;
   const ints = (v: unknown) => Number.isInteger(v) && (v as number) >= 0;
   if (
-    s.version !== 1 ||
+    s.version !== 2 ||
     !Array.isArray(s.grid) ||
     s.grid.length !== COLS * ROWS ||
     !s.grid.every((e) => ints(e) && e <= 40) ||
-    ![s.current, s.next, s.score, s.best, s.moves, s.rng].every(ints) ||
+    ![s.current, s.next, s.score, s.best, s.moves, s.rng, s.pressure, s.shipped, s.biggestShipped].every(
+      ints,
+    ) ||
+    (s.pressure as number) > PRESSURE_MAX ||
+    (s.biggestShipped as number) > 40 ||
     typeof s.over !== 'boolean'
   ) {
     return null;

@@ -13,18 +13,17 @@ import {
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
 import { rankedReplay, session, sfx, store, t } from './app.ts';
-import { drop, replayMoves, type State } from './logic.ts';
-import { createNextBlock } from './next.ts';
+import { fire, replayMoves, type State } from './logic.ts';
 import { BOARD, PALETTE_IDS, type PaletteId } from './palette.ts';
 import { samples } from './swatches.ts';
 import { BoardScene } from './view.ts';
 
 /** A replay sets no record: the end of someone else's run is never "Kỷ lục mới!". */
 const NO_RECORD = Number.MAX_SAFE_INTEGER;
-/** ×1 shows where each block goes, then drops it; ×4 drops them one after another; ×20 only draws the boards. */
+/** ×1 shows where each block goes, then fires it; ×4 fires them one after another; ×20 only draws the boards. */
 const SPEEDS = [1, 4, 20] as const;
 type Speed = (typeof SPEEDS)[number];
-/** At ×1, how long the aim shows over a column before its block drops, and the pause after a move. */
+/** At ×1, how long the aim shows over a column before its block fires, and the pause after a move. */
 const AIM_MS = 300;
 const BETWEEN_MS = 250;
 /** At ×4 and ×20, the pause after a move. */
@@ -49,12 +48,11 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   ctx.root.append(template.content.cloneNode(true));
   const stage = ctx.root.querySelector<HTMLElement>('#stage') as HTMLElement;
 
-  // ------------------------------------------------------------------ HUD: Menu | score | next block | move
+  // ------------------------------------------------------------------ HUD: Menu | score | move
 
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const score = hud.stat(t.score);
   let theme: Theme = session.settings.theme;
-  const nextBlock = createNextBlock(hud.center, theme);
   const moveStat = hud.stat(t.replay.move, { place: 'end', format: (n) => `${n}/${total}` });
 
   // ------------------------------------------------------------------ the bar: where the run is, and the controls
@@ -138,9 +136,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         sfx,
         t,
         {
-          onDrop: () => {},
+          onFire: () => {},
           onScore: (value) => score.set(value),
-          onUpcoming: (next, animate) => nextBlock.show(next, animate),
         },
         theme,
         store.palette,
@@ -170,7 +167,6 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     theme = settings.theme;
     board.setTheme(theme);
     kit.setBackground(BOARD[theme].background);
-    nextBlock.repaint(theme);
   });
 
   /** Block colours change the board at once, in memory only: a replay saves nothing. */
@@ -178,7 +174,6 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     sfx.play('click');
     store.palette = id;
     board.setPalette(id);
-    nextBlock.repaint(theme);
   }
 
   function jump(to: number) {
@@ -197,7 +192,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   async function forward() {
     if (moving || step >= total || left) return;
     const col = columns[step] as number;
-    const result = drop(state, col);
+    const result = fire(state, col);
     if (!result.ok) return;
     const before = state.score;
     state = result.state;

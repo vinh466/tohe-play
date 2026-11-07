@@ -70,8 +70,8 @@ description per language ([ADR 0048](../decisions/0048-a-standard-name-and-words
 ```json
 "name": "Merge Blocks",
 "names": { "vi": "Ghép Khối" },
-"description": "Drop number blocks into the columns; two matching blocks merge. Chain merges to multiply your score!",
-"descriptions": { "vi": "Thả khối số vào cột, …", "en": "Drop number blocks into the columns; …" }
+"description": "Fire number blocks up into the hanging rack; equal blocks merge, and the machine shakes the rows together when its pressure fills.",
+"descriptions": { "vi": "Bắn khối số từ dưới lên giàn treo; …", "en": "Fire number blocks up into the hanging rack; …" }
 ```
 
 - **Keys** are language tags like the ones `init.locale` carries, in their canonical case: a language of two or three
