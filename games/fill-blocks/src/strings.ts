@@ -1,4 +1,5 @@
 import type { Goal, GoalKind } from './logic.ts';
+import type { PaletteId } from './palette.ts';
 
 // The game's words. Vietnamese is the face; English is the support. The shell owns its own words.
 export interface Strings {
@@ -13,7 +14,10 @@ export interface Strings {
   stats: string;
   achievements: string;
   palette: string;
+  paletteFresh: string;
   palettePaper: string;
+  paletteCandy: string;
+  paletteNeon: string;
   paletteContrast: string;
   board: string;
   hintsSetting: string;
@@ -95,7 +99,10 @@ const vi: Strings = {
   stats: 'Thống kê',
   achievements: 'Thành tích',
   palette: 'Màu sắc',
+  paletteFresh: 'Tươi sáng',
   palettePaper: 'Giấy mực',
+  paletteCandy: 'Kẹo',
+  paletteNeon: 'Neon',
   paletteContrast: 'Dễ phân biệt',
   board: 'Bàn',
   hintsSetting: 'Gợi ý',
@@ -200,7 +207,10 @@ const en: Strings = {
   stats: 'Stats',
   achievements: 'Achievements',
   palette: 'Colours',
+  paletteFresh: 'Fresh',
   palettePaper: 'Paper and ink',
+  paletteCandy: 'Candy',
+  paletteNeon: 'Neon',
   paletteContrast: 'High contrast',
   board: 'Board',
   hintsSetting: 'Hints',
@@ -314,3 +324,19 @@ export function recentDays(days: number, now = new Date()): string[] {
   }
   return out;
 }
+
+/** The name of a palette in the player's language. */
+export const paletteLabel = (id: PaletteId, t: Strings): string => {
+  switch (id) {
+    case 'fresh':
+      return t.paletteFresh;
+    case 'paper':
+      return t.palettePaper;
+    case 'candy':
+      return t.paletteCandy;
+    case 'neon':
+      return t.paletteNeon;
+    case 'contrast':
+      return t.paletteContrast;
+  }
+};
