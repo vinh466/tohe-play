@@ -92,7 +92,9 @@ pressures the player. No ads, purchases, energy, currency or punishing streaks.
   100/500 lines, first journey chapter, all chapter 1 stars, 7 different days played. Achievements are in-game only.
 - **Board skins** (6): Giấy, Mực, Gấc, Nghệ, Lá, Đêm. They change the board frame/background, not the piece
   colours. Unlocked by journey stars and mastery rank; no purchase.
-- **Palette**: the default paper/ink eight colours; a **Dễ phân biệt** palette (Okabe–Ito) in Cài đặt.
+- **Palette**: five presets of the eight colours — **Tươi sáng** (default), **Giấy mực**, **Kẹo**, **Neon** and
+  **Dễ phân biệt** (Okabe–Ito). A save from before the choice existed moves its old paper default to Tươi sáng; a
+  deliberate contrast choice stays.
 
 ## Screens
 
@@ -115,7 +117,7 @@ The kit's shell (ADR 0018–0020) with two stages. The game brings its content.
    buttons with ARIA labels; the board is a grid of 64 cells.
 7. **Game over**: the board dims; the end card with score/best/rank (endless), stars/goals (journey/daily), the
    actions above.
-8. **Cài đặt**: sound, **Màu sắc** (paper / Dễ phân biệt), **Bàn** (unlocked skins), **Gợi ý** (on/off), reduced
+8. **Cài đặt**: sound, **Màu sắc** (five presets, default Tươi sáng), **Bàn** (unlocked skins), **Gợi ý** (on/off), reduced
    motion follows the system.
 
 ## Feel (juice), in tiers
@@ -143,7 +145,7 @@ motion, clears are a flash and confetti is off.
 Light and dark, following the hub (`"themes": ["light", "dark"]`, ADR 0013):
 
 - **Board**: cream paper in light, warm charcoal in dark; blocked cells are a darker hole.
-- **Pieces**: eight colours, readable on both boards; the contrast palette is a setting.
+- **Pieces**: eight colours, readable on both boards; five presets, with the contrast palette as one of them.
 - **HUD and cards**: the design tokens, through the kit.
 - Every text is at least 4.5:1; UI/non-text 3:1. Colour is never the only channel: shape, star count and text.
 

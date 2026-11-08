@@ -6,7 +6,9 @@ import { choiceList, createShell, followTheme, hintList, type Shell, type ShellS
 import { journeyStars, persist, rankLabel, scoreText, session, store, t } from './app.ts';
 import { chapterOf, LEVEL_BY_ID, LEVELS, type Level } from './content/levels.ts';
 import { SKINS, skinById } from './content/skins.ts';
+import { PALETTE_COLOURS, PALETTE_IDS, type PaletteId } from './palette.ts';
 import { renderAchievements, renderDaily, renderJourney, renderStats, type ScreenDeps } from './screens.ts';
+import { paletteLabel } from './strings.ts';
 
 document.documentElement.lang = session.locale;
 followTheme(session);
@@ -110,13 +112,13 @@ const skinPreview = (id: string): HTMLElement => {
   return preview;
 };
 
-const palettePreview = (palette: 'paper' | 'contrast'): HTMLElement => {
+const palettePreview = (palette: PaletteId): HTMLElement => {
   const preview = document.createElement('span');
   preview.className = `palette-preview palette-${palette}`;
   preview.setAttribute('aria-hidden', 'true');
-  for (let i = 1; i <= 8; i++) {
+  for (const colour of PALETTE_COLOURS[palette]) {
     const chip = document.createElement('i');
-    chip.style.background = `var(--p${i})`;
+    chip.style.background = colour;
     preview.append(chip);
   }
   return preview;
@@ -136,10 +138,10 @@ shell = createShell({
   root: document.querySelector<HTMLElement>('#app') as HTMLElement,
   logo: 'icon.svg',
   decor: [
-    { shape: 'square', colour: '#c2413a' },
-    { shape: 'square', colour: '#d9a227' },
-    { shape: 'square', colour: '#4f7a3a' },
-    { shape: 'square', colour: '#2f5f8f' },
+    { shape: 'square', colour: '#ff5a5f' },
+    { shape: 'square', colour: '#ffb703' },
+    { shape: 'square', colour: '#38b000' },
+    { shape: 'square', colour: '#2196f3' },
   ],
   title: t.title,
   inProgress,
@@ -161,13 +163,15 @@ shell = createShell({
       when: 'any-time',
       content: () =>
         choiceList(
-          [
-            { id: 'paper', label: t.palettePaper, preview: palettePreview('paper') },
-            { id: 'contrast', label: t.paletteContrast, preview: palettePreview('contrast') },
-          ],
+          PALETTE_IDS.map((id) => ({
+            id,
+            label: paletteLabel(id, t),
+            preview: palettePreview(id),
+          })),
           store.settings.palette,
           (id) => {
             store.settings.palette = id;
+            store.settings.palettePicked = true;
             void persist();
           },
         ),
