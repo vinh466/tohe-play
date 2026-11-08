@@ -12,6 +12,7 @@ export interface StatsView {
   totalScore: number;
   lines: number;
   bestCombo: number;
+  bestStreak: number;
   perfects: number;
 }
 
@@ -270,6 +271,7 @@ export function renderStats(root: HTMLElement, deps: ScreenDeps): void {
   stat(deps.t.statsScore, formatScore(deps.stats.totalScore, deps.locale));
   stat(deps.t.statsLines, formatScore(deps.stats.lines, deps.locale));
   stat(deps.t.statsCombo, `×${deps.stats.bestCombo}`);
+  stat(deps.t.statsStreak, String(deps.stats.bestStreak));
   stat(deps.t.statsPerfects, formatScore(deps.stats.perfects, deps.locale));
   stat(deps.t.statsStars, deps.t.ofTotal(totalStars(deps.journey), LEVELS.length * 3));
   page.append(grid);

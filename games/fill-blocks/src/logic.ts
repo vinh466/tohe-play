@@ -5,7 +5,8 @@ import { bounds, isLarge, SHAPES, type Shape, shapeById } from './content/shapes
 
 export const SIZE = 8;
 export const TRAY = 3;
-export const MAX_COMBO = 5;
+export const MAX_COMBO = 8;
+export const MAX_SHIELDS = 2;
 export const PERFECT_BONUS = 300;
 export const RESCUE_FIRST = 1000;
 export const RESCUE_STEP = 2000;
@@ -35,6 +36,11 @@ export interface State {
   lines: number;
   combo: number;
   maxCombo: number;
+  /** Shields that absorb one non-clearing placement without lowering the combo (0 … MAX_SHIELDS). */
+  shields: number;
+  /** Consecutive clearing placements; a shield keeps the combo but breaks the streak. */
+  streak: number;
+  maxStreak: number;
   maxClear: number;
   perfects: number;
   over: boolean;
@@ -71,7 +77,11 @@ export type GameEvent =
       gained: number;
       combo: number;
       perfect: boolean;
+      /** A milestone (×3, ×5, ×7): the extra points and whether a shield came with it. */
+      milestone?: { combo: number; bonus: number; shield: boolean };
+      bonus: number;
     }
+  | { type: 'shield'; left: number; combo: number }
   | { type: 'draw'; tray: string[] }
   | { type: 'rescue'; tray: string[]; left: number }
   | { type: 'over'; score: number; best: number; record: boolean };
@@ -244,6 +254,9 @@ export function newGame(seed: number, best = 0, options: NewGameOptions = {}): S
     lines: 0,
     combo: 1,
     maxCombo: 1,
+    shields: 0,
+    streak: 0,
+    maxStreak: 0,
     maxClear: 0,
     perfects: 0,
     over: false,
@@ -305,7 +318,15 @@ function outcome(
   row: number,
   col: number,
   combo: number,
-): { board: number[]; lines: number; gained: number; perfect: boolean; cells: CellFill[] } {
+): {
+  board: number[];
+  rows: number[];
+  cols: number[];
+  lines: number;
+  gained: number;
+  perfect: boolean;
+  cells: CellFill[];
+} {
   const next = [...board];
   const cells: CellFill[] = [];
   for (const [dr, dc] of shape.cells) {
@@ -324,7 +345,7 @@ function outcome(
   const lines = rows.length + cols.length;
   const gained = lines > 0 ? 10 * lines * lines * combo : 0;
   const perfect = lines > 0 && emptyBoard(next, blocked);
-  return { board: next, lines, gained, perfect, cells };
+  return { board: next, rows, cols, lines, gained, perfect, cells };
 }
 
 export type PlaceResult = { ok: true; state: State; events: GameEvent[] } | { ok: false; reason: PlaceError };
@@ -338,8 +359,45 @@ export function place(state: State, pieceIndex: number, row: number, col: number
 
   const played = outcome(state.board, state.blocked, shape, row, col, state.combo);
   const board = played.board;
-  const score = state.score + shape.cells.length + played.gained + (played.perfect ? PERFECT_BONUS : 0);
-  const combo = played.lines > 0 ? Math.min(MAX_COMBO, state.combo + 1) : Math.max(1, state.combo - 1);
+  const events: GameEvent[] = [{ type: 'place', piece: shape.id, cells: played.cells }];
+
+  const oldMaxCombo = state.maxCombo;
+  let combo = state.combo;
+  let shields = state.shields;
+  let streak = state.streak;
+  let maxStreak = state.maxStreak;
+  let comboBonus = 0;
+  let milestone: { combo: number; bonus: number; shield: boolean } | undefined;
+  if (played.lines > 0) {
+    combo = Math.min(MAX_COMBO, state.combo + 1);
+    streak = state.streak + 1;
+    maxStreak = Math.max(maxStreak, streak);
+    for (const [at, bonus] of [
+      [3, 25],
+      [5, 50],
+      [7, 100],
+    ] as const) {
+      if (oldMaxCombo < at && combo >= at) {
+        comboBonus += bonus;
+        const gotShield = shields < MAX_SHIELDS;
+        if (gotShield) shields++;
+        milestone = { combo: at, bonus, shield: gotShield };
+        break;
+      }
+    }
+    if (played.perfect && shields < MAX_SHIELDS) shields++;
+  } else {
+    streak = 0;
+    if (state.shields > 0) {
+      shields = state.shields - 1;
+      events.push({ type: 'shield', left: shields, combo });
+    } else {
+      combo = Math.max(1, state.combo - 1);
+    }
+  }
+
+  const score =
+    state.score + shape.cells.length + played.gained + comboBonus + (played.perfect ? PERFECT_BONUS : 0);
   const perfects = state.perfects + (played.perfect ? 1 : 0);
   const lines = state.lines + played.lines;
   const maxCombo = Math.max(state.maxCombo, combo);
@@ -356,30 +414,29 @@ export function place(state: State, pieceIndex: number, row: number, col: number
 
   const tray = state.tray.filter((_, index) => index !== pieceIndex);
   let rng = state.rng;
-  const events: GameEvent[] = [{ type: 'place', piece: shape.id, cells: played.cells }];
   if (played.lines > 0) {
     const cleared = new Set<number>();
-    // The view gets the cleared cells from the played board before it was emptied: recompute the same lines.
+    // The view gets the cleared cells from the board before it was emptied: read the colours from `before`.
     const before = [...state.board];
     for (const [dr, dc] of shape.cells) before[indexOf(row + dr, col + dc)] = shape.colour;
-    const rows = fullRows(before, state.blocked);
-    const cols = fullCols(before, state.blocked);
     const cells: CellFill[] = [];
-    for (const line of rows) for (let c = 0; c < SIZE; c++) cleared.add(indexOf(line, c));
-    for (const line of cols) for (let r = 0; r < SIZE; r++) cleared.add(indexOf(r, line));
+    for (const line of played.rows) for (let c = 0; c < SIZE; c++) cleared.add(indexOf(line, c));
+    for (const line of played.cols) for (let r = 0; r < SIZE; r++) cleared.add(indexOf(r, line));
     for (const index of cleared) {
       const colour = before[index] ?? 0;
       if (colour !== 0) cells.push({ row: Math.floor(index / SIZE), col: index % SIZE, colour });
     }
     events.push({
       type: 'clear',
-      rows,
-      cols,
+      rows: played.rows,
+      cols: played.cols,
       cells,
       lines: played.lines,
       gained: played.gained,
       combo: state.combo,
       perfect: played.perfect,
+      milestone,
+      bonus: comboBonus,
     });
   }
 
@@ -404,6 +461,9 @@ export function place(state: State, pieceIndex: number, row: number, col: number
     lines,
     combo,
     maxCombo,
+    shields,
+    streak,
+    maxStreak,
     maxClear,
     perfects,
     over,
@@ -440,6 +500,28 @@ export function rescue(state: State): RescueResult {
 
 /** Marks a journey/daily level as finished when its goals are met before a move limit. */
 export const finish = (state: State): State => ({ ...state, over: true });
+
+export interface PlacementPreview {
+  rows: number[];
+  cols: number[];
+  lines: number;
+  gained: number;
+  perfect: boolean;
+}
+
+/** What a placement would clear, without changing the state: the drag preview and the clear-line glow. */
+export function preview(state: State, pieceIndex: number, row: number, col: number): PlacementPreview | null {
+  const shape = shapeById(state.tray[pieceIndex] ?? '');
+  if (!shape || !fitsAt(state.board, state.blocked, shape, row, col)) return null;
+  const played = outcome(state.board, state.blocked, shape, row, col, state.combo);
+  return {
+    rows: played.rows,
+    cols: played.cols,
+    lines: played.lines,
+    gained: played.gained,
+    perfect: played.perfect,
+  };
+}
 
 export interface Hint {
   pieceIndex: number;
@@ -504,6 +586,9 @@ export function restore(value: unknown): State | null {
   if (state.level !== null && typeof state.level !== 'string') return null;
   if (state.moveLimit !== null && !int(state.moveLimit)) return null;
   if (state.profile !== 'small' && state.profile !== 'mixed' && state.profile !== 'all') return null;
+  const shields = int(state.shields) ? Math.min(MAX_SHIELDS, Math.max(0, state.shields)) : 0;
+  const streak = int(state.streak) ? Math.max(0, state.streak) : 0;
+  const maxStreak = int(state.maxStreak) ? Math.max(streak, state.maxStreak) : streak;
   return {
     version: 1,
     board: state.board.map((cell) => (Number.isFinite(cell) ? cell : 0)),
@@ -514,7 +599,10 @@ export function restore(value: unknown): State | null {
     moves: state.moves,
     lines: state.lines,
     combo: Math.min(MAX_COMBO, Math.max(1, state.combo)),
-    maxCombo: Math.max(1, state.maxCombo),
+    maxCombo: Math.min(MAX_COMBO, Math.max(1, state.maxCombo)),
+    shields,
+    streak,
+    maxStreak,
     maxClear: state.maxClear,
     perfects: state.perfects,
     over: state.over,

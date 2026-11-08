@@ -32,9 +32,10 @@ body {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: clamp(0.35rem, 1.2vh, 0.75rem);
-  padding: 0.35rem;
+  justify-content: space-between;
+  gap: 0;
+  padding: 0.35rem 0.35rem 0;
+  overflow: hidden;
   --p1: #c2413a;
   --p2: #d9a227;
   --p3: #4f7a3a;
@@ -159,13 +160,38 @@ body {
   --cell-blocked: #171a2e;
 }
 
+/* ---------------------------------------------------------------- the upper board and the thumb deck */
+
+.board-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.deck {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  width: 100%;
+  padding: 0.25rem 0.5rem max(0.5rem, env(safe-area-inset-bottom));
+  border-radius: 1.5rem 1.5rem 0 0;
+  background: var(--tohe-surface);
+  box-shadow: 0 -10px 28px rgb(0 0 0 / 0.12);
+}
+
 /* ---------------------------------------------------------------- board */
 
 .board {
   display: grid;
   grid-template-columns: repeat(8, 1fr);
   gap: clamp(2px, 0.7vw, 5px);
-  width: min(calc(100vw - 1.5rem), calc(100dvh - 16rem), 34rem);
+  width: min(calc(100vw - 1.5rem), calc(100dvh - 19rem), 34rem);
   aspect-ratio: 1;
   padding: clamp(0.4rem, 1.5vw, 0.7rem);
   border: clamp(4px, 1.2vw, 7px) solid var(--board-frame);
@@ -248,9 +274,15 @@ body {
   content: "";
   position: absolute;
   inset: 4%;
-  border: 2px dashed var(--tohe-brand);
+  border: 2px solid var(--ghost-colour, var(--tohe-brand));
   border-radius: 18%;
-  background: color-mix(in srgb, var(--tohe-brand) 22%, transparent);
+  background: color-mix(in srgb, var(--ghost-colour, var(--tohe-brand)) 32%, transparent);
+}
+
+.cell.is-clear-preview {
+  outline: 2px solid var(--tohe-highlight, #d9a227);
+  outline-offset: -2px;
+  animation: clear-preview-pulse 0.85s ease-in-out infinite;
 }
 
 .cell.is-invalid {
@@ -284,8 +316,8 @@ body {
   align-items: center;
   justify-content: center;
   gap: clamp(0.4rem, 2.5vw, 1rem);
-  min-height: clamp(4.6rem, 17vw, 6.5rem);
-  width: min(100%, 34rem);
+  min-height: clamp(4.4rem, 16vw, 6rem);
+  width: 100%;
 }
 
 .tray.is-busy {
@@ -364,7 +396,7 @@ body {
   justify-content: center;
   gap: 0.45rem;
   min-height: 2.75rem;
-  width: min(100%, 34rem);
+  width: 100%;
 }
 
 .stage-action[hidden],
@@ -399,22 +431,54 @@ body {
 }
 
 .message {
-  min-height: 1.4rem;
+  position: absolute;
+  bottom: 0.6rem;
+  left: 50%;
+  z-index: 4;
+  max-width: 90%;
   margin: 0;
+  padding: 0.25rem 0.85rem;
+  border-radius: 999px;
+  background: var(--tohe-surface);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.12);
   color: var(--tohe-ink-soft);
-  font-size: 1rem;
+  font-size: 0.95rem;
   font-weight: 800;
   text-align: center;
+  white-space: nowrap;
   opacity: 0;
-  transform: translateY(0.25rem);
+  transform: translate(-50%, 0.25rem);
   transition:
     opacity 0.16s ease,
     transform 0.16s ease;
+  pointer-events: none;
 }
 
 .message.is-visible {
   opacity: 1;
-  transform: translateY(0);
+  transform: translate(-50%, 0);
+}
+
+.preview-badge {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  z-index: 5;
+  margin-bottom: 0.35rem;
+  padding: 0.3rem 0.85rem;
+  border-radius: 999px;
+  background: var(--tohe-notice);
+  color: var(--tohe-notice-ink);
+  box-shadow: 0 2px 10px rgb(0 0 0 / 0.16);
+  font-size: 0.88rem;
+  font-weight: 900;
+  white-space: nowrap;
+  transform: translateX(-50%);
+  pointer-events: none;
+}
+
+.preview-badge[hidden] {
+  display: none;
 }
 
 /* ---------------------------------------------------------------- HUD's centre */
@@ -426,49 +490,36 @@ body {
   min-width: 0;
 }
 
-.goal-meter {
+.hud-meter {
   display: flex;
   align-items: center;
-  gap: 0.4rem;
+  gap: 0.3rem;
   min-width: 0;
-  padding: 0.25rem 0.7rem;
+  padding: 0.2rem 0.55rem;
   border-radius: 999px;
   background: var(--tohe-soft);
   color: var(--tohe-accent);
 }
 
 .goal-count {
-  font-size: 1rem;
+  font-size: 0.82rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
 
-.goal-next {
-  max-width: 9.5rem;
-  overflow: hidden;
-  color: var(--tohe-ink-soft);
-  font-size: 0.82rem;
-  font-weight: 700;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.combo-meter {
+.combo-pips {
   display: flex;
   align-items: center;
-  gap: 3px;
-  padding: 0.25rem 0.6rem;
-  border-radius: 999px;
-  background: var(--tohe-soft);
+  gap: 2px;
 }
 
 .combo-pip {
   display: block;
-  width: 0.34rem;
-  height: 0.95rem;
+  width: 0.24rem;
+  height: 0.8rem;
   border-radius: 999px;
   background: var(--tohe-line-strong);
-  opacity: 0.35;
+  opacity: 0.3;
 }
 
 .combo-pip.is-on {
@@ -477,11 +528,22 @@ body {
 }
 
 .combo-label {
-  margin-left: 0.25rem;
+  margin-left: 0.15rem;
   color: var(--tohe-accent);
-  font-size: 0.9rem;
+  font-size: 0.82rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
+}
+
+.shield-row {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.1rem;
+  color: var(--tohe-warning, #d9a227);
+}
+
+.shield-icon {
+  font-size: 0.82rem;
 }
 
 /* ---------------------------------------------------------------- drag */
@@ -490,9 +552,18 @@ body {
   position: fixed;
   z-index: 40;
   pointer-events: none;
-  transform: translate(-50%, -110%);
+  transform: translate(-50%, calc(-100% - 28px));
   filter: drop-shadow(0 12px 18px rgb(0 0 0 / 0.3));
-  opacity: 0.92;
+  opacity: 0.96;
+}
+
+.drag-grid {
+  gap: var(--drag-gap, 2px);
+}
+
+.piece.is-dragging {
+  opacity: 0.22;
+  filter: grayscale(0.35);
 }
 
 /* ---------------------------------------------------------------- meta tabs */
@@ -969,6 +1040,18 @@ body {
 }
 
 /* ---------------------------------------------------------------- motion */
+
+@keyframes clear-preview-pulse {
+  0%,
+  100% {
+    outline-color: var(--tohe-highlight, #d9a227);
+    box-shadow: 0 0 0 0 rgb(217 162 39 / 0);
+  }
+  50% {
+    outline-color: var(--tohe-highlight, #d9a227);
+    box-shadow: 0 0 12px 2px rgb(217 162 39 / 0.45);
+  }
+}
 
 @keyframes cell-pop {
   0% {
