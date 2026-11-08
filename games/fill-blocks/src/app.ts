@@ -12,6 +12,7 @@ export interface Stats {
   totalScore: number;
   lines: number;
   bestCombo: number;
+  bestStreak: number;
   perfects: number;
 }
 
@@ -36,7 +37,7 @@ export interface Saved {
   pending?: { level?: string; daily?: string };
 }
 
-const DEFAULT_STATS: Stats = { games: 0, totalScore: 0, lines: 0, bestCombo: 0, perfects: 0 };
+const DEFAULT_STATS: Stats = { games: 0, totalScore: 0, lines: 0, bestCombo: 0, bestStreak: 0, perfects: 0 };
 const DEFAULT_SETTINGS: Settings = { palette: 'paper', skin: 'paper', hints: true };
 
 export const session = await connect<Saved>({ gameId: 'fill-blocks' });
@@ -105,6 +106,7 @@ export function finishGame(state: State, goals: readonly Goal[]): void {
   store.stats.totalScore += state.score;
   store.stats.lines += state.lines;
   store.stats.bestCombo = Math.max(store.stats.bestCombo, state.maxCombo);
+  store.stats.bestStreak = Math.max(store.stats.bestStreak, state.maxStreak);
   store.stats.perfects += state.perfects;
 
   if (state.mode === 'journey' && level) {

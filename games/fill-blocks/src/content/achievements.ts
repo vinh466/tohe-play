@@ -71,12 +71,12 @@ export const ACHIEVEMENTS: readonly Achievement[] = [
     check: (ctx) => (ctx.state?.maxCombo ?? 0) >= 3,
   },
   {
-    id: 'combo-5',
+    id: 'combo-8',
     group: 'combos',
     icon: 'shuffle',
-    vi: { title: 'Combo ×5', body: 'Đạt combo ×5.' },
-    en: { title: 'Combo ×5', body: 'Reach a ×5 combo.' },
-    check: (ctx) => (ctx.state?.maxCombo ?? 0) >= 5,
+    vi: { title: 'Combo ×8', body: 'Đạt combo ×8.' },
+    en: { title: 'Combo ×8', body: 'Reach a ×8 combo.' },
+    check: (ctx) => (ctx.state?.maxCombo ?? 0) >= 8,
   },
   {
     id: 'perfect-1',

@@ -10,10 +10,15 @@
     <!-- The play stage's markup (ADR 0020): stage.ts clones it when play starts, under the kit's HUD. -->
     <template id="play-stage">
       <main id="stage">
-        <section id="board" class="board"></section>
-        <section id="tray" class="tray"></section>
-        <div id="actions" class="stage-actions"></div>
-        <p id="message" class="message" role="status" aria-live="polite"></p>
+        <div id="board-area" class="board-area">
+          <section id="board" class="board"></section>
+          <p id="message" class="message" role="status" aria-live="polite"></p>
+        </div>
+        <section id="deck" class="deck">
+          <div id="preview" class="preview-badge" hidden></div>
+          <div id="actions" class="stage-actions"></div>
+          <section id="tray" class="tray"></section>
+        </section>
       </main>
     </template>
     <script type="module" src="./src/main.ts"></script>

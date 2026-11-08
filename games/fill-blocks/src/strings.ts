@@ -38,6 +38,7 @@ export interface Strings {
   statsScore: string;
   statsLines: string;
   statsCombo: string;
+  statsStreak: string;
   statsPerfects: string;
   statsStars: string;
   statsRank: string;
@@ -57,6 +58,11 @@ export interface Strings {
   levelMissed(goal: string): string;
   nextLevel: string;
   combo(n: number): string;
+  preview(lines: number, gained: number, perfect: boolean, combo: number): string;
+  comboMilestone(combo: number, bonus: number, shield: boolean): string;
+  comboRecord(combo: number, streak: number): string;
+  shield: string;
+  shieldLeft(n: number): string;
   perfect: string;
   rescue: string;
   rescueLeft(n: number): string;
@@ -130,6 +136,7 @@ const vi: Strings = {
   statsScore: 'Tổng điểm',
   statsLines: 'Hàng/cột đã xoá',
   statsCombo: 'Combo cao nhất',
+  statsStreak: 'Chuỗi dài nhất',
   statsPerfects: 'Bàn sạch',
   statsStars: 'Sao hành trình',
   statsRank: 'Bậc hiện tại',
@@ -149,6 +156,12 @@ const vi: Strings = {
   levelMissed: (goal) => `Chưa đạt: ${goal}`,
   nextLevel: 'Màn tiếp',
   combo: (n) => `Combo ×${n}!`,
+  preview: (lines, gained, perfect, combo) =>
+    `${lines} hàng/cột · +${gained}${perfect ? ' · Sạch bàn' : ''}${combo > 1 ? ` · ×${combo}` : ''}`,
+  comboMilestone: (combo, bonus, shield) => `Combo ×${combo}! +${bonus}${shield ? ' · +1 khiên' : ''}`,
+  comboRecord: (combo, streak) => `Combo ×${combo} · Chuỗi ${streak}`,
+  shield: 'Đỡ!',
+  shieldLeft: (n) => `Còn ${n} khiên`,
   perfect: 'Sạch bàn!',
   rescue: 'Đổi khay',
   rescueLeft: (n) => `Đổi khay · ${n}`,
@@ -227,6 +240,7 @@ const en: Strings = {
   statsScore: 'Total score',
   statsLines: 'Lines cleared',
   statsCombo: 'Best combo',
+  statsStreak: 'Longest streak',
   statsPerfects: 'Clean boards',
   statsStars: 'Journey stars',
   statsRank: 'Current rank',
@@ -246,6 +260,12 @@ const en: Strings = {
   levelMissed: (goal) => `Missed: ${goal}`,
   nextLevel: 'Next level',
   combo: (n) => `Combo ×${n}!`,
+  preview: (lines, gained, perfect, combo) =>
+    `${lines} hàng/cột · +${gained}${perfect ? ' · Sạch bàn' : ''}${combo > 1 ? ` · ×${combo}` : ''}`,
+  comboMilestone: (combo, bonus, shield) => `Combo ×${combo}! +${bonus}${shield ? ' · +1 shield' : ''}`,
+  comboRecord: (combo, streak) => `Combo ×${combo} · Streak ${streak}`,
+  shield: 'Shielded!',
+  shieldLeft: (n) => `${n} shields left`,
   perfect: 'Clean board!',
   rescue: 'Swap tray',
   rescueLeft: (n) => `Swap tray · ${n}`,

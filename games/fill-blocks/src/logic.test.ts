@@ -12,6 +12,7 @@ import {
   PERFECT_BONUS,
   place,
   placements,
+  preview,
   rescue,
   restore,
   SIZE,
@@ -134,6 +135,64 @@ describe('placing', () => {
     expect(result.state.maxCombo).toBe(4);
   });
 
+  it('reaches a milestone at ×3: bonus points, a shield and a banner event', () => {
+    const rows = [
+      `${filledRow(2)} .`,
+      ...Array.from({ length: 6 }, () => '. . . . . . . .'),
+      '3 . . . . . . .',
+    ];
+    const state = boardState(rows, ['single'], { combo: 2, maxCombo: 2 });
+    const result = place(state, 0, 0, 7);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.combo).toBe(3);
+    expect(result.state.shields).toBe(1);
+    expect(result.state.score).toBe(1 + 20 + 25);
+    const clear = result.events.find((event) => event.type === 'clear');
+    expect(clear).toMatchObject({ milestone: { combo: 3, bonus: 25, shield: true }, bonus: 25 });
+  });
+
+  it('a shield absorbs a non-clearing placement and keeps the combo', () => {
+    const state = boardState(
+      Array.from({ length: SIZE }, () => '. . . . . . . .'),
+      ['single'],
+      {
+        combo: 3,
+        maxCombo: 3,
+        shields: 1,
+      },
+    );
+    const result = place(state, 0, 0, 0);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.combo).toBe(3);
+    expect(result.state.shields).toBe(0);
+    expect(result.events).toContainEqual({ type: 'shield', left: 0, combo: 3 });
+  });
+
+  it('without a shield a non-clearing placement lowers the combo by one', () => {
+    const state = boardState(
+      Array.from({ length: SIZE }, () => '. . . . . . . .'),
+      ['single'],
+      {
+        combo: 3,
+        maxCombo: 3,
+        shields: 0,
+      },
+    );
+    const result = place(state, 0, 0, 0);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.state.combo).toBe(2);
+  });
+
+  it('previews the rows and columns a placement would clear', () => {
+    const rows = [`${filledRow(2)} .`, ...Array.from({ length: 7 }, () => '. . . . . . . .')];
+    const state = boardState(rows, ['single']);
+    const look = preview(state, 0, 0, 7);
+    expect(look).toEqual({ rows: [0], cols: [], lines: 1, gained: 10, perfect: true });
+  });
+
   it('adds the perfect-clear bonus and counts it', () => {
     const rows = [`${filledRow(2)} .`, ...Array.from({ length: 7 }, () => '. . . . . . . .')];
     const state = boardState(rows, ['single']);
@@ -144,6 +203,7 @@ describe('placing', () => {
     expect(result.state.perfects).toBe(1);
     expect(result.state.score).toBe(1 + 10 + PERFECT_BONUS);
     expect(result.state.rescue).toBe(1);
+    expect(result.state.shields).toBe(1);
   });
 
   it('refuses a placement that overlaps, leaves the board or on a finished game', () => {
@@ -269,6 +329,11 @@ describe('saves', () => {
     expect(restore({ ...game.state, tray: [] })).toBeNull();
     expect(restore({ ...game.state, mode: 'other' })).toBeNull();
     expect(restore(null)).toBeNull();
+    const { shields: _shields, streak: _streak, maxStreak: _maxStreak, ...old } = game.state;
+    const restored = restore(old);
+    expect(restored?.shields).toBe(0);
+    expect(restored?.streak).toBe(0);
+    expect(restored?.maxStreak).toBe(0);
   });
 });
 
@@ -314,7 +379,10 @@ describe('random play (bot)', () => {
           expect(state.tray.length).toBeGreaterThanOrEqual(1);
           expect(state.tray.length).toBeLessThanOrEqual(3);
           expect(state.combo).toBeGreaterThanOrEqual(1);
-          expect(state.combo).toBeLessThanOrEqual(5);
+          expect(state.combo).toBeLessThanOrEqual(8);
+          expect(state.shields).toBeGreaterThanOrEqual(0);
+          expect(state.shields).toBeLessThanOrEqual(2);
+          expect(state.streak).toBeGreaterThanOrEqual(0);
           // No full row or column may remain after a placement.
           for (let row = 0; row < SIZE; row++) {
             let full = true;

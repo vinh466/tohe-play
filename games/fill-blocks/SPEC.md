@@ -36,8 +36,13 @@ pressures the player. No ads, purchases, energy, currency or punishing streaks.
 4. **Clearing**: every row and every column that is now full clears, all at the same time (a cell in a full row and
    a full column clears once). A placement that clears **n** lines scores **10 × n × n × combo** before the perfect
    bonus: with combo ×1, one line gives 10, two give 40, three give 90.
-5. **Combo**: a clear raises the multiplier by 1 (cap ×5); a placement that clears nothing lowers it by 1 (floor
-   ×1). It never resets to 1 in one step. The HUD shows the meter.
+5. **Combo**: a clear raises the multiplier by 1 (cap ×8); a placement that clears nothing lowers it by 1 (floor
+   ×1). It never resets to 1 in one step. The HUD shows 8 pips, the multiplier and any shields.
+   - **Milestones**: the first time a run reaches ×3, ×5 and ×7, it earns **+25/+50/+100** and a **shield** (max 2).
+   - **Shield**: a placement that clears nothing consumes a shield instead of lowering the combo. A perfect clear
+     also grants one. A shield keeps the multiplier, but the consecutive-clear **streak** ends.
+   - **Records**: `bestCombo` (highest multiplier) and `bestStreak` (longest run of consecutive clearing placements)
+     are saved and shown on the stats screen and the end card.
 6. **Perfect clear**: if the board is empty after a clear, add **300** and a fanfare; count it.
 7. **Refill** the tray when it is empty.
 8. **Rescue**: a run earns a **Đổi khay** at 1,000 points and at each perfect clear, holding at most **2**. It can
@@ -80,8 +85,8 @@ pressures the player. No ads, purchases, energy, currency or punishing streaks.
 
 - **Mastery rank** from personal best: 10 ranks, `0, 100, 250, 500, 1000, 1750, 2750, 4000, 6000, 9000`. No decay.
   The title and end card show the rank and the next threshold.
-- **Stats**: games, total score, total lines, best combo, perfect clears, journey stars.
-- **15 achievements**: first line, 2/3/4-line clear, ×3/×5 combo, first perfect clear, 1,000/5,000 points,
+- **Stats**: games, total score, total lines, best combo, longest streak, perfect clears, journey stars.
+- **15 achievements**: first line, 2/3/4-line clear, ×3/×8 combo, first perfect clear, 1,000/5,000 points,
   100/500 lines, first journey chapter, all chapter 1 stars, 7 different days played. Achievements are in-game only.
 - **Board skins** (6): Giấy, Mực, Gấc, Nghệ, Lá, Đêm. They change the board frame/background, not the piece
   colours. Unlocked by journey stars and mastery rank; no purchase.
@@ -100,9 +105,12 @@ The kit's shell (ADR 0018–0020) with two stages. The game brings its content.
 4. **Stats / Achievements** (full screens): the totals, rank progress and the 15 stamps.
 5. **How to play** (before the first **Chơi**, then from **Cách chơi**): three picture hints — drag or tap a piece
    onto the board; a full row/column clears; clear again and again for a combo. A first move pulses.
-6. **Playing**: the kit's HUD (Menu, score, best); a combo meter/goal chip in the middle; the board; the tray;
-   **Đổi khay** when stuck and a rescue is left; hint after idle. The board, tray and controls are DOM buttons with
-   ARIA labels; the board is a grid of 64 cells.
+6. **Playing**: the kit's HUD (Menu, score, best); a compact combo meter (8 pips, multiplier, shields) and the
+   goal count in the middle; the board in the upper area; a **thumb deck** at the bottom with the utility row above
+   the three pieces, so the tray is the lowest, easiest target for one hand. Drag lifts a **board-scale piece above
+   the finger**; the board ghost shows its colour, the rows/columns it would clear glow, and a badge shows the lines
+   and points. **Đổi khay** when stuck and a rescue is left; hint after idle. The board, tray and controls are DOM
+   buttons with ARIA labels; the board is a grid of 64 cells.
 7. **Game over**: the board dims; the end card with score/best/rank (endless), stars/goals (journey/daily), the
    actions above.
 8. **Cài đặt**: sound, **Màu sắc** (paper / Dễ phân biệt), **Bàn** (unlocked skins), **Gợi ý** (on/off), reduced
@@ -117,6 +125,9 @@ The kit's shell (ADR 0018–0020) with two stages. The game brings its content.
 | Clear 1 line | Cells pop out along the line in their colours, sparkle, "+n" floats up |
 | Clear 2+ lines | As above, with a rising pitch and a bigger "+n" |
 | Combo ≥ 2 | "Combo ×n!" banner, brighter and higher per step |
+| Combo milestone ×3/×5/×7 | "Combo ×n! +25/50/100 · +1 khiên" and a shield appears |
+| Shield used | A shield breaks with a soft "Đỡ!" and the combo stays |
+| Drag preview | The target cells glow in the piece's colour; full rows/columns pulse, with "2 hàng/cột · +40" |
 | Perfect clear | Confetti + fanfare, bonus 300 |
 | Record | Confetti + fanfare |
 | Doesn't fit | Piece slides back, soft "nope" |
@@ -162,7 +173,8 @@ there is no asset pack and no network request outside the game's folder.
 - The score never decreases; it equals the sum of the rules above.
 - The tray holds 1–3 pieces while the game runs; it is refilled exactly when it becomes empty.
 - Helpful draw: whenever some shape fits a fresh tray, at least one piece fits.
-- The combo is an integer 1–5; a clear raises it by 1 (cap 5), a non-clear lowers it by 1 (floor 1).
+- The combo is an integer 1–8; a clear raises it by 1 (cap 8), a non-clear lowers it by 1 (floor 1), or consumes a
+  shield (0–2) and keeps it. The streak is a non-negative count of consecutive clearing placements.
 - The run is over exactly when no tray piece fits and no rescue is left; a journey/daily level also ends at its move
   limit.
 - A save restores an identical game: replaying the same moves from a restored state gives the same result.

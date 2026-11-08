@@ -26,6 +26,7 @@ import {
   newGame,
   place,
   placements,
+  preview,
   rescue,
   type State,
   starsFor,
@@ -116,10 +117,15 @@ export function start(ctx: StageContext): PlayStage {
   ctx.root.append(template.content.cloneNode(true));
   const stage = ctx.root.querySelector<HTMLElement>('#stage') as HTMLElement;
   const board = ctx.root.querySelector<HTMLElement>('#board') as HTMLElement;
+  const boardArea = ctx.root.querySelector<HTMLElement>('#board-area') as HTMLElement;
+  const deck = ctx.root.querySelector<HTMLElement>('#deck') as HTMLElement;
   const tray = ctx.root.querySelector<HTMLElement>('#tray') as HTMLElement;
   const actions = ctx.root.querySelector<HTMLElement>('#actions') as HTMLElement;
+  const previewBadge = ctx.root.querySelector<HTMLElement>('#preview') as HTMLElement;
   const message = ctx.root.querySelector<HTMLElement>('#message') as HTMLElement;
   board.setAttribute('aria-label', t.boardLabel);
+  boardArea.setAttribute('aria-label', t.boardLabel);
+  deck.setAttribute('aria-label', t.trayLabel);
   tray.setAttribute('aria-label', t.trayLabel);
 
   // ------------------------------------------------------------------ the game: a level, the daily, a resume or endless
@@ -243,21 +249,30 @@ export function start(ctx: StageContext): PlayStage {
 
   function renderCenter(): void {
     center.replaceChildren();
+    const meter = el('div', 'hud-meter');
     if (goals.length > 0) {
       const met = starsFor(state, goals);
-      const next = goals.find((goal) => !goalMet(state, goal));
-      const meter = el('div', 'goal-meter');
-      meter.append(el('span', 'goal-count', t.ofTotal(met, goals.length)));
-      if (next) meter.append(el('span', 'goal-next', t.goal(next.kind, next.value)));
-      meter.title = goals.map((goal) => t.goal(goal.kind, goal.value)).join(' · ');
-      center.append(meter);
-      return;
+      const goal = el('span', 'goal-count', t.ofTotal(met, goals.length));
+      goal.title = goals.map((item) => t.goal(item.kind, item.value)).join(' · ');
+      goal.setAttribute('aria-label', t.ofTotal(met, goals.length));
+      meter.append(goal);
     }
-    const meter = el('div', 'combo-meter');
-    for (let step = 1; step <= 5; step++) {
-      meter.append(el('i', step <= state.combo ? 'combo-pip is-on' : 'combo-pip'));
+    const pips = el('span', 'combo-pips');
+    pips.setAttribute('aria-hidden', 'true');
+    for (let step = 1; step <= 8; step++) {
+      pips.append(el('i', step <= state.combo ? 'combo-pip is-on' : 'combo-pip'));
     }
-    meter.append(el('span', 'combo-label', `×${state.combo}`));
+    meter.append(pips, el('span', 'combo-label', `×${state.combo}`));
+    if (state.shields > 0) {
+      const shields = el('span', 'shield-row');
+      shields.setAttribute('aria-label', t.shieldLeft(state.shields));
+      for (let i = 0; i < state.shields; i++) shields.append(iconSpan('shield', 'ui-icon shield-icon'));
+      meter.append(shields);
+    }
+    meter.setAttribute(
+      'aria-label',
+      `${t.combo(state.combo)}${goals.length > 0 ? ` · ${t.ofTotal(starsFor(state, goals), goals.length)}` : ''}${state.shields > 0 ? ` · ${t.shieldLeft(state.shields)}` : ''}`,
+    );
     center.append(meter);
   }
 
@@ -350,49 +365,85 @@ export function start(ctx: StageContext): PlayStage {
     hintTimer = setTimeout(clearHint, 2600);
   }
 
-  function nearest(pieceIndex: number, row: number, col: number) {
+  /** The legal placement whose top-left is nearest to a cell; the drag ghost and a tap both use this anchor. */
+  function nearest(pieceIndex: number, row: number, col: number, maxDistance = 1.75) {
     const shape = shapeById(state.tray[pieceIndex] ?? '');
     if (!shape) return null;
     let best: { row: number; col: number } | null = null;
     let bestDistance = Number.POSITIVE_INFINITY;
     for (const spot of placements(state.board, state.blocked, shape)) {
-      let sumRow = 0;
-      let sumCol = 0;
-      for (const [dr, dc] of shape.cells) {
-        sumRow += spot.row + dr;
-        sumCol += spot.col + dc;
-      }
-      const centerRow = sumRow / shape.cells.length;
-      const centerCol = sumCol / shape.cells.length;
-      const distance = Math.hypot(centerRow - row, centerCol - col);
+      const distance = Math.hypot(spot.row - row, spot.col - col);
       if (distance < bestDistance) {
         bestDistance = distance;
         best = spot;
       }
     }
-    return bestDistance <= 1.75 ? best : null;
+    return bestDistance <= maxDistance ? best : null;
+  }
+
+  function showPreviewText(text: string): void {
+    previewBadge.textContent = text;
+    previewBadge.hidden = false;
+  }
+
+  function hidePreview(): void {
+    previewBadge.hidden = true;
+    previewBadge.textContent = '';
   }
 
   function clearGhost(): void {
-    for (const cell of cells) cell.classList.remove('is-ghost', 'is-invalid');
+    for (const cell of cells) {
+      cell.classList.remove('is-ghost', 'is-invalid', 'is-clear-preview');
+      cell.style.removeProperty('--ghost-colour');
+    }
+    hidePreview();
   }
 
-  function showGhost(pieceIndex: number, row: number, col: number): void {
+  function showGhost(pieceIndex: number, row: number, col: number, maxDistance = 1.75): void {
     clearGhost();
     const shape = shapeById(state.tray[pieceIndex] ?? '');
     if (!shape) return;
-    const spot = nearest(pieceIndex, row, col);
+    const spot = nearest(pieceIndex, row, col, maxDistance);
     if (!spot) {
       cellAt(row, col)?.classList.add('is-invalid');
       return;
     }
-    for (const [dr, dc] of shape.cells) cellAt(spot.row + dr, spot.col + dc)?.classList.add('is-ghost');
+    for (const [dr, dc] of shape.cells) {
+      const cell = cellAt(spot.row + dr, spot.col + dc);
+      if (!cell) continue;
+      cell.classList.add('is-ghost');
+      cell.style.setProperty('--ghost-colour', `var(--p${shape.colour})`);
+    }
+    const clear = preview(state, pieceIndex, spot.row, spot.col);
+    if (clear && clear.lines > 0) {
+      for (const line of clear.rows)
+        for (let c = 0; c < 8; c++) cellAt(line, c)?.classList.add('is-clear-preview');
+      for (const line of clear.cols)
+        for (let r = 0; r < 8; r++) cellAt(r, line)?.classList.add('is-clear-preview');
+      showPreviewText(t.preview(clear.lines, clear.gained, clear.perfect, state.combo));
+    }
   }
 
   // ------------------------------------------------------------------ drag
 
   let suppressClick = false;
   let dragCleanup: (() => void) | null = null;
+
+  /** The board's cell size, gap and content origin: the drag piece is drawn at board scale, not tray scale. */
+  function boardMetrics() {
+    const first = cells[0]?.getBoundingClientRect();
+    const rect = board.getBoundingClientRect();
+    const style = getComputedStyle(board);
+    const gap = Number.parseFloat(style.columnGap || style.gap || '2') || 2;
+    const cell = first?.width ?? rect.width / 8;
+    return {
+      cell,
+      gap,
+      left: first?.left ?? rect.left,
+      top: first?.top ?? rect.top,
+      stride: cell + gap,
+    };
+  }
 
   function beginDrag(event: PointerEvent, pieceIndex: number, shape: Shape): void {
     if (busy || finished || state.over || ctx.overlay.visible) return;
@@ -401,42 +452,64 @@ export function start(ctx: StageContext): PlayStage {
     const startY = event.clientY;
     const target = event.currentTarget as HTMLElement;
     target.setPointerCapture(event.pointerId);
+    target.classList.add('is-dragging');
+    selected = null;
+    clearHint();
     let moved = false;
+    const metrics = boardMetrics();
     const ghost = el('div', 'drag-piece');
-    ghost.append(shapeGrid(shape));
+    const grid = shapeGrid(shape);
+    grid.classList.add('drag-grid');
+    grid.style.setProperty('--piece-cell', `${metrics.cell}px`);
+    grid.style.setProperty('--drag-gap', `${metrics.gap}px`);
+    ghost.append(grid);
     ghost.style.left = `${startX}px`;
     ghost.style.top = `${startY}px`;
     ghost.hidden = true;
-    document.body.append(ghost);
+    stage.append(ghost);
+    let lastSpot = '';
+
+    /** Where the piece would go: its board-scale bottom sits 28 px above the finger, so the finger never hides it. */
+    const targetCell = (clientX: number, clientY: number) => {
+      const { rows, cols } = bounds(shape);
+      const width = cols * metrics.cell + (cols - 1) * metrics.gap;
+      const height = rows * metrics.cell + (rows - 1) * metrics.gap;
+      const left = clientX - width / 2;
+      const top = clientY - height - 28;
+      return {
+        row: Math.round((top - metrics.top) / metrics.stride),
+        col: Math.round((left - metrics.left) / metrics.stride),
+      };
+    };
 
     const move = (next: PointerEvent) => {
       if (next.pointerId !== event.pointerId) return;
-      if (!moved && Math.hypot(next.clientX - startX, next.clientY - startY) > 6) {
+      if (!moved && Math.hypot(next.clientX - startX, next.clientY - startY) > 4) {
         moved = true;
         ghost.hidden = false;
-        selected = null;
-        clearHint();
-        renderTray();
       }
       if (!moved) return;
       next.preventDefault();
       ghost.style.left = `${next.clientX}px`;
       ghost.style.top = `${next.clientY}px`;
-      const rect = board.getBoundingClientRect();
-      const size = rect.width / 8;
-      const col = Math.floor((next.clientX - rect.left) / size);
-      const row = Math.floor((next.clientY - rect.top) / size);
-      if (row >= 0 && row < 8 && col >= 0 && col < 8) showGhost(pieceIndex, row, col);
-      else clearGhost();
+      const { row, col } = targetCell(next.clientX, next.clientY);
+      if (row >= -1 && row <= 8 && col >= -1 && col <= 8) {
+        showGhost(pieceIndex, row, col, 2.25);
+        const spot = nearest(pieceIndex, row, col, 2.25);
+        const key = spot ? `${spot.row},${spot.col}` : '';
+        if (key !== lastSpot) {
+          lastSpot = key;
+          if (key) haptics.play('tap');
+        }
+      } else {
+        clearGhost();
+      }
     };
+
     const up = (next: PointerEvent) => {
       if (next.pointerId !== event.pointerId) return;
-      const rect = board.getBoundingClientRect();
-      const size = rect.width / 8;
-      const col = Math.floor((next.clientX - rect.left) / size);
-      const row = Math.floor((next.clientY - rect.top) / size);
-      const inside = row >= 0 && row < 8 && col >= 0 && col < 8;
-      const spot = inside && moved ? nearest(pieceIndex, row, col) : null;
+      const { row, col } = targetCell(next.clientX, next.clientY);
+      const spot = moved ? nearest(pieceIndex, row, col, 2.25) : null;
       cleanup();
       if (moved) {
         suppressClick = true;
@@ -450,19 +523,20 @@ export function start(ctx: StageContext): PlayStage {
         haptics.play('error');
       }
     };
-    const cancel = () => cleanup();
+
     const cleanup = () => {
       ghost.remove();
+      target.classList.remove('is-dragging');
       target.removeEventListener('pointermove', move);
       target.removeEventListener('pointerup', up);
-      target.removeEventListener('pointercancel', cancel);
+      target.removeEventListener('pointercancel', cleanup);
       dragCleanup = null;
       clearGhost();
     };
     dragCleanup = cleanup;
     target.addEventListener('pointermove', move);
     target.addEventListener('pointerup', up);
-    target.addEventListener('pointercancel', cancel);
+    target.addEventListener('pointercancel', cleanup);
   }
 
   function tryPlace(pieceIndex: number, row: number, col: number): void {
@@ -518,6 +592,12 @@ export function start(ctx: StageContext): PlayStage {
     scores.set(state.score, true);
     sfx.play('pop');
     haptics.play('tap');
+    const shield = result.events.find((event) => event.type === 'shield');
+    if (shield?.type === 'shield') {
+      showMessage(`${t.shield} · ${t.shieldLeft(shield.left)}`);
+      sfx.play('click');
+      haptics.play('bump');
+    }
     const clear = result.events.find((event) => event.type === 'clear');
     if (clear?.type === 'clear') {
       sfx.play('combo', clear.lines);
@@ -527,6 +607,8 @@ export function start(ctx: StageContext): PlayStage {
         haptics.play('celebrate');
         showMessage(t.perfect);
         celebrate();
+      } else if (clear.milestone) {
+        showMessage(t.comboMilestone(clear.milestone.combo, clear.milestone.bonus, clear.milestone.shield));
       } else if (clear.lines > 1) {
         showMessage(t.combo(state.combo));
       }
@@ -602,10 +684,11 @@ export function start(ctx: StageContext): PlayStage {
     const missed = goals.find((goal) => !goalMet(state, goal));
     const title =
       state.mode === 'endless' ? (record ? t.record : t.over) : done ? t.levelDone(stars) : t.over;
+    const comboLine = state.maxCombo > 1 ? ` · ${t.comboRecord(state.maxCombo, state.maxStreak)}` : '';
     const body =
       state.mode === 'endless'
-        ? t.result(scoreText(state.score), scoreText(store.best))
-        : `${t.levelResult(scoreText(state.score), stars)}${done ? '' : missed ? ` · ${t.levelMissed(t.goal(missed.kind, missed.value))}` : ''}`;
+        ? `${t.result(scoreText(state.score), scoreText(store.best))}${comboLine}`
+        : `${t.levelResult(scoreText(state.score), stars)}${done ? '' : missed ? ` · ${t.levelMissed(t.goal(missed.kind, missed.value))}` : ''}${comboLine}`;
     sfx.play(record ? 'fanfare' : done ? 'levelUp' : 'drop');
     haptics.play(record || done ? 'celebrate' : 'bump');
     if (record || done) celebrate();
