@@ -15,6 +15,7 @@ import {
   type Theme,
 } from '@tohe/game-kit';
 import { activeMode, gameFor, levelLabel, persist, progressLine, session, sfx, store, t } from './app.ts';
+import { modeHubContent } from './modes.ts';
 import { PALETTE_IDS } from './palette.ts';
 import { renderAlbum, renderDaily, renderJourney, type ScreenDeps } from './screens.ts';
 import { samples } from './swatches.ts';
@@ -41,6 +42,12 @@ const playDaily = (date: string) => {
   shell.play(true);
 };
 
+const resumeMode = (mode: 'journey' | 'daily') => {
+  store.lastMode = mode;
+  void persist();
+  shell.play(false);
+};
+
 const screenDeps = (): ScreenDeps => ({
   t,
   locale: session.locale,
@@ -52,11 +59,12 @@ const screenDeps = (): ScreenDeps => ({
   achievements: store.achievements,
   stats: store.stats,
   best: store.best,
-  game: store.journeyGame,
+  journeyGame: gameFor('journey'),
+  dailyGame: gameFor('daily'),
   onPlayLevel: playLevel,
-  onContinue: () => shell.play(false),
+  onResumeJourney: () => resumeMode('journey'),
+  onResumeDaily: () => resumeMode('daily'),
   onPlayDaily: playDaily,
-  onPracticeDaily: playDaily,
   onOpenScreen: (id) => shell.openScreen(id),
 });
 
@@ -107,10 +115,30 @@ shell = createShell({
     { shape: 'sparkle', colour: '#f59e0b' },
   ],
   title: t.title,
+  strings: { newGame: t.modes, newGameShort: t.modes },
   inProgress,
-  progress: progressLine,
-  best: () => (store.best > 0 ? t.bestLine(formatScore(store.best, session.locale)) : null),
+  // With a run waiting, the title's one job is Continue: the hub shows the other doors' progress and records.
+  progress: () => (activeMode() ? null : progressLine()),
+  best: () => (!activeMode() && store.best > 0 ? t.bestLine(formatScore(store.best, session.locale)) : null),
   howTo: () => ({ icon: { src: 'icon.svg' }, title: t.title, content: hintList(t.hints) }),
+  prePlayOwnsNewGame: true,
+  prePlay: ({ choose, show }) => ({
+    icon: { src: 'icon.svg' },
+    title: t.modesTitle,
+    body: t.modesBody,
+    content: modeHubContent({
+      t,
+      locale: session.locale,
+      // A choice from the hub is a fresh start: drop any level a screen asked for but never started.
+      choose: (id) => {
+        store.pending = {};
+        choose(id);
+      },
+      show,
+      format: (value) => formatScore(value, session.locale),
+    }),
+    actions: [],
+  }),
   tutorial: {
     seen: () => store.tutorialSeen,
     done: () => {
@@ -129,7 +157,7 @@ shell = createShell({
       onClick: () => {
         store.lastMode = 'classic';
         void persist();
-        if (store.classicGame) shell.play(false);
+        if (gameFor('classic')) shell.play(false);
         else shell.play(true);
       },
     },

@@ -104,11 +104,13 @@ screen with four tools or fewer looks as before.
 afterwards it is Cách chơi. Games point at a first move on the board after it (`ctx.firstTime`).
 
 **A game with modes:** `prePlay(ctx)` returns the screen shown before a new game — the title's Chơi with nothing in
-progress, Ván mới, and the panel's Ván mới. The game's own buttons call `ctx.choose(id)` to start play with that id
-(the stage gets it as `ctx.choice`); `ctx.show(card)` opens a child screen over it, such as the Workshop, whose Back
-returns to the modes. Back from the modes returns to the title or the panel, and phone Back, Esc and the corner all
-do the same. The first-time how-to comes before the modes. A game-over card can call `ctx.changeMode()` to open the
-same screen over the panel.
+progress, Ván mới, and the panel's Ván mới. When the pre-play screen asks before replacing a run
+(`prePlayOwnsNewGame`), Ván mới opens it directly: the shell's generic confirm would be a second, wrong question.
+The game's own buttons call
+`ctx.choose(id)` to start play with that id (the stage gets it as `ctx.choice`); `ctx.show(card)` opens a child
+screen over it, such as the Workshop or a level picker, whose Back returns to the modes. Back from the modes returns
+to the title or the panel, and phone Back, Esc and the corner all do the same. The first-time how-to comes before
+the modes. A game-over card can call `ctx.changeMode()` to open the same screen over the panel.
 
 ### Play stage
 
@@ -152,7 +154,7 @@ title screen → Tò He.
 | --- | --- | --- | --- | --- |
 | Chạm Chấm (`hello`) | its dot · dots and a star; Chơi, Kỷ lục, Âm thanh, Cài đặt, Xếp hạng, Cách chơi | sound | sound | score · `timer` seconds · best; 3-2-1 before a round goes on |
 | Ghép Khối (`merge-block`) | the Máy Ghép mascot mark · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools; a pre-play screen with the four modes (Cổ điển, Ca làm, Ca hôm nay, Thư giãn) and the Xưởng | sound, `palette` Màu khối, `gear-six` Xưởng | sound, `palette` Màu khối (the presets), `gear-six` Xưởng | score · best (the next block waits on the loader); a mode rail under it (orders, the daily, parts, Về xưởng) |
-| Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks; Chơi / Chơi tiếp, Ván mới, the three doors Vô Tận · Hành Trình · Mỗi Ngày, and Sổ Tay Khối as a tool | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | classic: score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu); Journey/Daily: score · `shuffle`, the goal/taps row and the star meter (the classic best is hidden because they are unranked) |
+| Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks; Chơi / Chơi tiếp, `cards` Chế độ (the mode hub), Vô Tận · Hành Trình · Mỗi Ngày, and Sổ Tay Khối as a tool | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets), `cards` Chế độ | classic: score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu); Journey/Daily: score · `shuffle`, the goal/taps row and the star meter (the classic best is hidden because they are unranked) |
 | Tiến Lên (`tien-len`) | its cards · the four suits; `robot` Chơi với máy / Chơi tiếp, Bàn mới, Chơi online, Âm thanh, Cài đặt, Cách chơi | sound, `scroll` Luật nhà, `chair` Bàn chơi (from the next hand), `cards` Bộ bài | sound, `cards` Bộ bài (the decks); at a table also `scroll` Luật của bàn | table score · hand number · (`smiley` Cảm xúc) `arrows-down-up` Xếp số / Xếp bộ |
 
 What a game draws itself, on its board and in the HUD's middle and end, follows the same rule with the kit's

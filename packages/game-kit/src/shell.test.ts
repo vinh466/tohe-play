@@ -241,6 +241,37 @@ describe('the menu stage (ADR 0020)', () => {
     expect(ctx().choice).toBe('orders');
   });
 
+  it('keeps the generic confirm before a mode screen unless the game owns the new-game decision', () => {
+    const { shell, menu, tap } = setup({
+      inProgress: () => 'Ván dở',
+      prePlay: () => ({
+        title: 'Chọn cách chơi',
+        actions: [],
+      }),
+    });
+    shell.start();
+    tap('Ván mới');
+    expect(menu()?.title).toBe('Bắt đầu ván mới?');
+    tap('Ván mới');
+    expect(menu()?.title).toBe('Chọn cách chơi');
+    expect(menu()?.layout).toBe('screen');
+  });
+
+  it('opens the mode screen straight from Ván mới when the game owns the new-game decision', () => {
+    const { shell, menu, tap } = setup({
+      inProgress: () => 'Ván dở',
+      prePlay: () => ({
+        title: 'Chọn cách chơi',
+        actions: [],
+      }),
+      prePlayOwnsNewGame: true,
+    });
+    shell.start();
+    tap('Ván mới');
+    expect(menu()?.title).toBe('Chọn cách chơi');
+    expect(menu()?.layout).toBe('screen');
+  });
+
   it('opens the mode screen over the panel for a new game, and starts the mode in place', async () => {
     const { shell, play, tap, back, calls } = setup({
       inProgress: () => 'Ván dở',

@@ -3,7 +3,7 @@
   "id": "tap-merge",
   "name": "Tap Merge",
   "names": { "vi": "Chạm Ghép" },
-  "version": "0.9.0",
+  "version": "0.9.1",
   "protocol": 1,
   "description": "Tap a number block: every matching block joined to it, diagonals too, merges into it. The classic endless game, a 24-level Journey, a Daily board and a notebook of blocks to collect.",
   "descriptions": {

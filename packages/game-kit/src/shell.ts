@@ -255,10 +255,16 @@ export interface ShellOptions {
   /** First-time help: the how-to screen shows before the first game until `seen()`; `done()` when it is passed. */
   tutorial?: { seen(): boolean; done(): void };
   /**
-   * A game with modes: the screen shown before a new game — Play with no run, Ván mới, the panel's new game.
-   * `choose(id)` starts play with that id; the play stage gets it as `ctx.choice`. Back returns to the title or panel.
+   * A game with modes: the screen shown before a new game — Play with no run, Ván mới (straight, with no generic
+   * confirm in front), the panel's new game. `choose(id)` starts play with that id; the play stage gets it as
+   * `ctx.choice`. Back returns to the title or panel.
    */
   prePlay?(context: PrePlayContext): Omit<OverlayCard, 'layout' | 'corner'>;
+  /**
+   * The game's pre-play screen owns the new-game confirmation (a hub with a guarded New game per mode): the title's
+   * Ván mới goes straight to it. Without this, the shell asks its generic question first.
+   */
+  prePlayOwnsNewGame?: boolean;
   /** The sections of Cài đặt (sound comes first by itself). */
   settings?: ShellSetting[];
   /** Full screens the game owns: a journey map, stats, a calendar. Each is a tool on the title screen. */
@@ -554,7 +560,13 @@ export function createShell(options: ShellOptions): Shell {
     warm();
   }
 
-  const confirmFromTitle = () =>
+  const confirmFromTitle = () => {
+    // A game whose mode hub asks before replacing a run owns the decision: a generic confirm in front of it would be
+    // a second, wrong question.
+    if (options.prePlay && options.prePlayOwnsNewGame) {
+      showPrePlay('title');
+      return;
+    }
     menuScreen(
       {
         icon: 'arrow-counter-clockwise',
@@ -575,6 +587,7 @@ export function createShell(options: ShellOptions): Shell {
       },
       titleScreen,
     );
+  };
 
   /**
    * The pre-play screen (a game with modes): the title's Play when nothing is in progress, Ván mới, and the panel's

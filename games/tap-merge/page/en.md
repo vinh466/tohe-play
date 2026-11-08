@@ -20,7 +20,9 @@ Tap a number block, and every block with the same number joined to it merges int
 Three doors, one notebook. Endless is the same endless board as before, still the only ranked mode. Journey has 24
 short levels, each with a goal and a par for 1–3 stars; there is no hard move cap. Daily is one board per day for the
 whole family, 120 taps, 1–3 stars from the largest block; missing a day is fine. The Notebook keeps 20 blocks from 2
-to 1M and 11 badges: every block you meet in any mode stays there, with no coins, purchases or expiry.
+to 1M and 11 badges: every block you meet in any mode stays there, with no coins, purchases or expiry. Each mode keeps
+its own run; open Modes from the menu to continue the run in progress or start a new one. Trying another mode never
+loses your Endless game.
 
 ### Does a game take long?
 
