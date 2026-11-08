@@ -12,6 +12,9 @@
 > đề xuất, làm sao để nó hợp lý, an toàn, và kích thích cảm giác đạt được"), with points for the blocks it clears
 > ("có cộng") and no care for older scores ("k cần quan tâm điểm cũ"), and asked for vibrations and effects tuned
 > so players stay ("tối ưu để người chơi dính hơn"): 0.5.0, [Feel](#feel-juice-in-tiers).
+> On 2026-11-08 the owner reviewed the progression plan and said "rất ổn, làm như vậy đi ... xong release prod":
+> the classic stays exactly as it is, and the game gains two optional doors, [Hành Trình](#hành-trình) and
+> [Mỗi Ngày](#mỗi-ngày), plus [Sổ Tay Khối](#sổ-tay-khối) — one collection that every mode fills. 0.9.0.
 > Details the chat left open are marked *(default)*.
 
 A board always full of number blocks. Tap a block: every equal block connected to it, diagonals included, merges
@@ -19,6 +22,20 @@ into it and their sum, rounded up to a power of two, is the new block; the board
 from the top. Big blocks retire the smallest numbers, which leave the board with a bonus, so the game levels up as
 it goes. The genre of "Get 10" / "2248", made for children: one tap is the whole move, there is no timer, and
 nothing merges on its own.
+
+## Modes
+
+The title offers three doors; the rules of a move, the board, the rising floor, the shuffle, the feel and the
+colours are the same in all of them.
+
+| Door | What it is | Ranked |
+| --- | --- | --- |
+| **Vô Tận** | The classic endless game described in this spec. The only ranked mode; the only mode with a server-verified run. | **Yes** |
+| **Hành Trình** | Short levels: a snapshot of a real run, a target block and a par for stars. Unranked. | No |
+| **Mỗi Ngày** | One date-seeded board, 120 taps, stars from the largest block. Unranked, local. | No |
+
+**Sổ Tay Khối** is not a fourth door: it is the collection that all three modes fill. The classic is the first
+door, still one tap from opening, and its rules and HUD are unchanged.
 
 ## Board
 
@@ -99,10 +116,11 @@ the board, up to 64; each time the floor rises, the whole range moves up one val
 - It rearranges the same blocks at random; if that still leaves no move, one block is moved next to an equal one.
   The score does not change.
 
-## End
+## Classic: end
 
-The game ends when **no block has an equal neighbour and no shuffle is left**. Then: score, best, "Kỷ lục mới!" if it is
-a record, and **Chơi lại**.
+The classic ends when **no block has an equal neighbour and no shuffle is left**. Then: score, best, "Kỷ lục mới!" if
+it is a record, and **Chơi lại**. The classic's score, best, HUD, shuffle and end card are exactly as before; Hành
+Trình and Mỗi Ngày keep their scores to themselves and never touch the classic's best or the leaderboard.
 
 ## Game length
 
@@ -140,6 +158,60 @@ ending; the sum rounded down to a power of two, about 6,000; **rounded up (0.3.0
 8 cells around (0.1.0) gave about 3,000 taps; 4 directions only, about 260. The directions are one constant
 (`DIRECTIONS` in `logic.ts`), the rounding one function (`merged`), the floor another (`floorOf`).
 
+## Hành Trình
+
+- **3 chapters × 8 levels**: **Mầm**, **Chồi**, **Lá**. Chapter 1 teaches the goal; chapter 2 adds tighter pars;
+  chapter 3 asks for bigger blocks. The levels are data in `src/content/levels.ts` (the table is generated into `levels.data.ts`); a generator
+  (`pnpm --filter @tohe/game-tap-merge levels`) produces them from real runs and a bot validates every one.
+- **A level is a snapshot of a real run.** The board, the PRNG and the largest block are frozen from a run at a
+  moment one or two doublings below the target; the score and the move count start at 0. The board is full, has a
+  move and looks like the moment before the target was made.
+- **A level's data**: `{ id, chapter, index, start, rng, top, target, par: { three, two }, shuffles, intro }`.
+  `target` is the exponent to make; `top` is the largest block on the starting board; `par.three`/`par.two` are
+  taps from the generator's bot table. The level is deterministic: the same start and moves give the same result.
+- **Playing**: the same tap, gravity, refill, rising floor and shuffle as the classic. The HUD shows the target,
+  the taps used and the three-star par. A level starts with **3 shuffles** and earns one more on a new largest
+  block, holding at most 5.
+- **End**: the level completes the moment the target block is made. **1 star** for completing; **2** if the level
+  is finished within `par.two` taps; **3** within `par.three`. There is **no hard move cap**; a player who takes
+  longer still finishes with one star. If the board is stuck with no shuffle left before the target, the level
+  ends with 0 stars and **Chơi lại** (one tap, no penalty). The level's result card shows the stars, taps, score
+  and any new Sổ Tay Khối card.
+- **Chapters**: a level is unlocked when the one before it is complete (1 star). The next chapter opens when
+  **6 of 8** levels in the current chapter are complete, so one hard level is never a wall. A completed level can
+  be replayed for more stars; the best result is kept.
+- **Unranked**: no `session.run`, no leaderboard, no server replay. The result says "Không xếp hạng".
+
+## Mỗi Ngày
+
+- **One board per local date**, seeded from `YYYYMMDD`, the same for everyone in the family that day. The date
+  is read in the player's local time; a future server board would need a fixed timezone, which this release does
+  not have.
+- **120 taps.** The HUD shows "Nước 34/120" — a budget, not a timer. The run ends at 120 taps, or earlier if the
+  board is stuck with no shuffle.
+- **Stars from the largest block**: 1K = 1 star, 2K = 2, 4K = 3. The first star is deliberately easy; the first
+  daily ends with a small win. A run that misses 1K gives no stamp and may be retried.
+- **A local result, a calendar.** The best result of the day is kept; practice after it never changes the stamp.
+  The Daily screen shows the last 28 days as a calendar; a missed day never removes a stamp. The monthly badge is
+  earned at **20 days played in a month**, not 30, and never expires.
+- **Unranked**: no `session.run`, no leaderboard, no server board in this release.
+
+## Sổ Tay Khối
+
+- **20 block cards**, 2 … 1M, each with a growth name and a small fact. A card unlocks the first time the value
+  is **seen in any mode** — classic, Hành Trình or Mỗi Ngày. This is the long-term progression that a classic-only
+  player still fills.
+- The detail shows the value, the name, the first-seen date, how many times the block has been met and a tiny
+  fact. Locked cards show the value and "Làm ra 4K để mở"; they never expire or cost anything.
+- **11 badges** for feats across the modes: absorb 9+/20+ blocks in one tap, play 10 classic runs, score 1M,
+  finish chapter 1, 3-star five levels, finish a level without a shuffle, play 7 daily days, 20 daily days in a
+  month, unlock 10 cards, unlock all 20. Badges are recognition, never a gate; no badge is lost or competitive.
+- **Cosmetic only**: the album's completion can open a card frame and a board theme; it never changes a rule, a
+  score, a shuffle or a ranked run. No coins, no ads, no purchase, no limited-time FOMO.
+- The album and badges are game-owned full screens (the kit's `screens`): plain DOM, no engine, Back returns to
+  the title. The title's progress line shows "Sổ Tay 12/20"; a new card is announced in the play stage and on the
+  result card, never in a modal that interrupts a run.
+
 ## Screens
 
 The kit's two stages, quick panel and HUD ([Game shell](../../docs/architecture/game-shell.md), ADR 0020); this game
@@ -147,26 +219,46 @@ brings its content:
 The kit draws every control with an icon of its set beside the words (Phosphor, ADR 0049); the title screen shows
 the game's own logo, `public/icon.svg`, the picture the catalog shows.
 
-1. **Title screen** (the menu stage, every time the game opens, no board running): its logo and **Chạm Ghép** over drifting blocks, the chip "Ván
-   đang chơi dở: n điểm. · Kỷ lục m", **Chơi** or **Chơi tiếp** and **Ván mới** (asks first; the run
-   ends); tools Âm thanh, Cài đặt, Xếp hạng (signed-in players) and Cách chơi; **Về Tò He** last, under the tools. **Cài đặt**: Âm thanh and **Màu khối**
-   — one row per [preset](#block-colours), with sample blocks 2 … 256 (the numbers on the board most of the time).
-2. **How to play** (before the first **Chơi** only): four picture hints — tap a block; equal blocks connected to it,
+1. **Title screen** (the menu stage, every time the game opens, no board running): its logo and **Chạm Ghép** over
+   drifting blocks, the chip "Ván đang chơi dở: n điểm. · Kỷ lục m", **Chơi** or **Chơi tiếp**, **Ván mới** (asks
+   first; a fresh classic run), then the two doors **Hành Trình** and **Mỗi Ngày** as secondary buttons with the
+   kit's icons. The progress line under the title says "Hành Trình x/24 sao · Sổ Tay y/20". Tools: Âm thanh, Cài
+   đặt, **Sổ Tay Khối**, Xếp hạng (signed-in players) and Cách chơi; **Về Tò He** last, under the tools. The
+   primary button resumes the last mode: a classic run, a Journey level or today's Daily. **Cài đặt**: Âm thanh and
+   **Màu khối** — one row per [preset](#block-colours), with sample blocks 2 … 256 (the numbers on the board most of
+   the time).
+2. **Hành Trình** (a game-owned full screen, no engine): three chapter sections, eight level stamps each with 1–3
+   stars, the next chapter locked until 6/8 of the previous one is complete; the selected level's target, starting
+   top block, par ("3 sao trong 120 nước · 2 sao trong 160") and **Chơi**. A completed level offers **Chơi lại**.
+3. **Mỗi Ngày** (a game-owned full screen): today's card with the target 4K, "120 nước", the 1K/2K/4K star
+   thresholds and **Chơi hôm nay** (or **Luyện lại** after the stamp); the last 28 days as a calendar with a star on
+   each stamped day; a note "Bỏ một ngày không sao — huy hiệu tháng cần 20 ngày". No timer, no streak loss.
+4. **Sổ Tay Khối** (a game-owned full screen): a 4 × 5 grid of the 20 cards, locked cards dashed with their value;
+   a selected card's name, first-seen date, count and fact; a **Huy hiệu** tab with the 11 badges and their hints.
+5. **How to play** (before the first **Chơi** only): four picture hints — tap a block; equal blocks connected to it,
    diagonals too, merge into it; making the goal block (4K, 16K, …) retires the smallest blocks, with points; when
-   nothing merges, **Xáo trộn**. **Bắt đầu** starts, and a hand (the kit's, in the board's colours) points at a first
-   move.
-3. **Playing** (the play stage, created on play from the save): the kit's HUD — Menu, score (counts up), the **Xáo trộn**
-   button (the kit's shuffle icon) with how many are left, best (its crown lights up once the score passes it); under it the goal, the kit's target icon and
-   "Mục tiêu [4K] tạm biệt [2]" with both blocks drawn small in the player's colours; the board below.
+   nothing merges, **Xáo trộn** — plus one line: "Hành Trình có mục tiêu riêng; Mỗi Ngày có 120 nước; cả hai không
+   ảnh hưởng bảng điểm của Vô Tận." **Bắt đầu** starts, and a hand (the kit's, in the board's colours) points at a
+   first move.
+6. **Playing** (the play stage, created on play from the save): the kit's HUD — Menu, score (counts up), the **Xáo
+   trộn** button (the kit's shuffle icon) with how many are left, best (its crown lights up once the score passes
+   it). In the classic, under it the goal, the kit's target icon and "Mục tiêu [4K] tạm biệt [2]" with both blocks
+   drawn small in the player's colours; the board below. In Hành Trình the goal row shows the target block and the
+   taps/star par ("Nước 46 · 3 sao đến 120") with three small stars; in Mỗi Ngày it shows "Nước 46/120" and the
+   1K/2K/4K thresholds. The board, tap, animation and shuffle are the same in every mode.
    - **Scores never cover the HUD:** each score box keeps its share of the row; the kit shows a score in full while
      it fits ("812.345") and otherwise in its own unit with as many decimals as fit ("812,3K", "23,45M"), cut and
-     never rounded up (`formatCompact`). The game-over card shows scores in full.
-4. **Quick panel** (Menu, phone Back, Esc, or the hub hiding the game): **Tiếp tục**; Âm thanh as a switch;
+     never rounded up (`formatCompact`). The end cards show scores in full.
+7. **Quick panel** (Menu, phone Back, Esc, or the hub hiding the game): **Tiếp tục**; Âm thanh as a switch;
    **Màu khối · (the preset)**, which opens the presets with their sample blocks over the panel — a tap repaints
-   the board and the goal behind it at once, **Quay lại** returns to the panel; Ván mới (asks) ·
-   Cách chơi · Menu chính (saves; the title then offers Chơi tiếp).
-5. **Game over:** board dims, card with score/best and the largest block made ("Khối lớn nhất [512K]"),
-   confetti for a record, **Chơi lại**, **Menu chính**; Back goes to the title screen.
+   the board and the goal behind it at once, **Quay lại** returns to the panel; Ván mới (asks; a fresh game of the
+   current mode — a classic run, the same Journey level or today's Daily) · Cách chơi · Menu chính (saves; the title
+   then offers Chơi tiếp).
+8. **End cards**: the classic is unchanged — score/best, the largest block made ("Khối lớn nhất [512K]"), confetti
+   for a record, **Chơi lại**, **Menu chính**. A Journey result shows the 1–3 stars, taps, score, a new Sổ Tay Khối
+   card, **Màn tiếp** (the next level in place) and **Chơi lại**; a stuck level says "Hết nước rồi, thử lại nhé!"
+   with no "thua". A Daily result shows the stars, the largest block, score and taps, the stamp, **Luyện lại** and
+   **Menu chính**; missing 3 stars is not a failure.
 
 ## Feel (juice), in tiers
 
@@ -230,10 +322,10 @@ game's save, so it follows the profile to other devices, and a new player starts
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every move: `{ best, game, tutorialSeen, run, palette }` where `game` is the full state (board, score, shuffles left, largest block made, PRNG), `run` its leaderboard id and `palette` the player's colour preset (also saved when it changes). Opening the game resumes it; the floor is computed from the largest block, so saves from before 0.5.0 still open. |
-| `scores` | A live run (ADR 0014): `session.run(id).update(score)` after every move, `finish(score)` at game over or when the player starts a new game. One run id per game, kept in the save. |
+| `save` | After every move: `{ best, game, tutorialSeen, run, palette, journey, daily, album, stats, achievements, pending }`. `game` is the full state (board, score, shuffles, largest block, PRNG) plus its `mode` (`classic` / `journey` / `daily`), `level` and `moveLimit`; a save from before 0.9.0 has no mode and opens as classic. `run` exists only for a classic run. `journey` maps level id → best stars; `daily` holds the date → best stars; `album` holds the seen values, first-seen dates and counts; `stats` holds the small totals the badges read; `achievements` is the badge ids; `pending` is the level/daily a screen asked the stage to start on the next play. Opening the game resumes the saved game, whatever its mode; the floor is computed from the largest block, so saves from before 0.5.0 still open. |
+| `scores` | **Classic only** (ADR 0014): `session.run(id).update(score)` after every move, `finish(score)` at game over or when the player starts a new classic game. One run id per classic game, kept in the save. Hành Trình and Mỗi Ngày never call `session.run`; their scores are local and unranked. |
 | settings | Respects `muted`; follows `theme`. |
-| seed | Seeds the PRNG of a new game. |
+| seed | Seeds the PRNG of a new classic game and the daily generator; a Journey level carries its own snapshot's `rng`. |
 
 `minAge`: **3** (one tap per move, no reading needed).
 
@@ -246,11 +338,21 @@ game's save, so it follows the profile to other devices, and a new player starts
 - The score never decreases, and every move raises it.
 - Shuffles left stay between 0 and 3; a shuffle keeps the same blocks, leaves a move, and costs one.
 - No block is larger than the largest block made in the game.
-- The game is over exactly when no block has an equal neighbour and no shuffle is left; it waits for a shuffle
+- The classic is over exactly when no block has an equal neighbour and no shuffle is left; it waits for a shuffle
   exactly when no block has an equal neighbour and one is left.
-- A save restores an identical game: replaying the same moves from a restored state gives the same result.
+- A Journey level starts from a full valid board, its target is above `top`, and it completes exactly when the
+  target is made; stars are 1 for completion, 2/3 by `par.two`/`par.three`; it fails only when stuck with no
+  shuffle before the target. A chapter's next chapter opens at 6/8 completed levels.
+- A Daily's board is the same for the same local date; it ends at 120 taps or when stuck; its stars are 1/2/3 at
+  1K/2K/4K; a missed day never removes a stamp.
+- The Album unlocks a value the first time it is seen in any mode; it never changes a rule, a score or a shuffle.
+- A save restores an identical game in any mode: replaying the same moves from a restored state gives the same
+  result. An old save with no mode opens as a classic game.
 
 ## Technology
 
 Phaser 4 + `@tohe/game-kit`, like Ghép Khối: pure logic in `src/logic.ts` emitting events the view animates; the
-board and blocks are drawn once into textures (`drawTexture`).
+board and blocks are drawn once into textures (`drawTexture`). The levels, daily seed, album and badges are pure
+data/logic (`src/content/`, `src/album.ts`); the Journey, Daily and Album screens are plain DOM in the menu stage
+(the kit's `screens`), so they run no engine. The classic's ranked run stays the only `session.run`; the other modes
+are local and unranked.

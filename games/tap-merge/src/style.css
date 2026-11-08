@@ -165,3 +165,612 @@ body {
     animation: none;
   }
 }
+
+/* ---------------------------------------------------------------- the goal in a Journey/Daily run */
+.goal.is-multi {
+  width: calc(100% - 2rem);
+  flex-direction: column;
+  align-items: stretch;
+  gap: 0.15rem;
+  padding: 0.35rem 0.6rem 0.4rem;
+  border-radius: 1rem;
+  white-space: normal;
+}
+
+.goal-main,
+.goal-sub {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.goal-sub {
+  color: var(--tohe-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.goal.is-multi .mini {
+  min-width: 1.7rem;
+  height: 1.35rem;
+  font-size: 0.68rem;
+}
+
+.star-meter {
+  display: inline-flex;
+  gap: 0.05rem;
+  margin-left: auto;
+  color: var(--tohe-warning, #d9a227);
+}
+
+.star.is-off {
+  opacity: 0.28;
+}
+
+/* A quiet toast for a new notebook card; it never blocks the board. */
+.toast {
+  position: absolute;
+  top: 4.2rem;
+  left: 50%;
+  z-index: 25;
+  max-width: calc(100% - 2rem);
+  padding: 0.45rem 0.8rem;
+  border-radius: 999px;
+  background: var(--tohe-surface);
+  color: var(--tohe-ink);
+  box-shadow: 0 0.4rem 1.2rem rgb(0 0 0 / 0.16);
+  font-size: 0.8rem;
+  font-weight: 800;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -0.4rem);
+  transition:
+    opacity 0.2s ease,
+    transform 0.2s ease;
+}
+
+.toast.is-visible {
+  opacity: 1;
+  transform: translate(-50%, 0);
+}
+
+/* End cards: stars and the new card/badge rows. */
+.result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.result-stars {
+  display: flex;
+  gap: 0.2rem;
+  color: var(--tohe-warning, #d9a227);
+  font-size: 2rem;
+}
+
+.result-stars .star.is-off {
+  opacity: 0.22;
+}
+
+.result-note {
+  margin: 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.78rem;
+}
+
+.result-unlock {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.25rem 0.55rem;
+  border-radius: 0.7rem;
+  background: var(--tohe-soft);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.result .largest {
+  margin-top: 0.2rem;
+}
+
+/* ---------------------------------------------------------------- the game's screens */
+.meta-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.3rem;
+  padding: 0.25rem;
+  border-radius: 0.9rem;
+  background: var(--tohe-soft);
+}
+
+.meta-tab {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.15rem;
+  min-height: 2.8rem;
+  padding: 0.25rem 0.1rem;
+  border: 0;
+  border-radius: 0.7rem;
+  background: none;
+  color: var(--tohe-ink-soft);
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.meta-tab .tohe-svg {
+  font-size: 1.15rem;
+}
+
+.meta-tab.is-current {
+  background: var(--tohe-surface);
+  color: var(--tohe-accent);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.1);
+}
+
+.journey,
+.daily,
+.album {
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+}
+
+.screen-note {
+  margin: 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.88rem;
+  line-height: 1.4;
+}
+
+.journey-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.journey-summary {
+  color: var(--tohe-accent);
+  font-size: 0.9rem;
+  font-weight: 900;
+  white-space: nowrap;
+}
+
+.chapter {
+  padding: 0.8rem;
+  border-radius: 1.15rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.chapter.is-locked {
+  opacity: 0.62;
+}
+
+.chapter-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+}
+
+.chapter-title {
+  margin: 0;
+  color: var(--tohe-ink);
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.chapter-stars {
+  color: var(--tohe-ink-soft);
+  font-size: 0.82rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.lock-note {
+  margin: 0 0 0.5rem;
+  color: var(--tohe-ink-soft);
+  font-size: 0.82rem;
+}
+
+.level-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: clamp(0.3rem, 1.5vw, 0.55rem);
+}
+
+.level-stamp {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.2rem;
+  min-height: 3.4rem;
+  padding: 0.25rem;
+  border: 2px solid transparent;
+  border-radius: 0.9rem;
+  background: var(--tohe-soft);
+  color: var(--tohe-accent);
+  font: inherit;
+  cursor: pointer;
+}
+
+.level-stamp.is-done {
+  background: color-mix(in srgb, var(--tohe-brand) 18%, var(--tohe-surface));
+}
+
+.level-stamp.is-selected {
+  border-color: var(--tohe-brand);
+}
+
+.level-stamp:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.level-number {
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.star-row {
+  display: inline-flex;
+  gap: 0.1rem;
+  line-height: 1;
+}
+
+.star {
+  color: var(--tohe-warning, #d9a227);
+}
+
+.level-detail {
+  padding: 0.9rem;
+  border-radius: 1.15rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.detail-title {
+  margin: 0 0 0.35rem;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.level-goal {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  margin: 0.55rem 0 0.2rem;
+  font-weight: 900;
+}
+
+.detail-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.7rem;
+}
+
+.detail-actions .tohe-button {
+  flex: 1 1 9rem;
+  min-height: 2.9rem;
+  font-size: 1rem;
+}
+
+.daily-today {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  padding: 0.85rem;
+  border-radius: 1.15rem;
+  background: linear-gradient(135deg, var(--tohe-soft), var(--tohe-surface));
+  border: 1px solid var(--tohe-line);
+}
+
+.daily-today-top {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.daily-date {
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.daily-budget {
+  margin-left: auto;
+  color: var(--tohe-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.section-label {
+  margin: 0.2rem 0 0;
+  color: var(--tohe-ink-soft);
+  font-size: 0.78rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.calendar {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 0.3rem;
+}
+
+.calendar-day {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  aspect-ratio: 1;
+  border: 1px solid var(--tohe-line);
+  border-radius: 0.55rem;
+  background: var(--tohe-soft);
+  color: var(--tohe-ink-soft);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.calendar-day.is-stamped {
+  border-color: var(--tohe-brand);
+  background: color-mix(in srgb, var(--tohe-brand) 18%, var(--tohe-surface));
+  color: var(--tohe-accent);
+}
+
+.calendar-day.is-today {
+  outline: 2px solid var(--tohe-brand);
+  outline-offset: 1px;
+}
+
+.calendar-stars {
+  position: absolute;
+  right: 1px;
+  bottom: 1px;
+  display: flex;
+  gap: 0;
+  color: var(--tohe-warning, #d9a227);
+}
+
+.calendar-stars .tohe-svg {
+  font-size: 0.48rem;
+}
+
+.month-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.9rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.month-icon {
+  color: var(--tohe-warning, #d9a227);
+  font-size: 1.1rem;
+}
+
+.month-text {
+  white-space: nowrap;
+}
+
+.month-bar {
+  flex: 1;
+  height: 0.42rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: var(--tohe-soft);
+}
+
+.month-fill {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--tohe-brand);
+}
+
+/* Sổ Tay Khối */
+.mini-block {
+  display: inline-grid;
+  place-items: center;
+  min-width: 2.2rem;
+  height: 1.7rem;
+  padding: 0 0.35rem;
+  border-radius: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.album-summary {
+  margin-left: auto;
+  color: var(--tohe-accent);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.album-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.4rem;
+}
+
+.album-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 4.2rem;
+  padding: 0.3rem 0.15rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 0.8rem;
+  background: var(--tohe-soft);
+  color: var(--tohe-ink-soft);
+  font: inherit;
+  cursor: pointer;
+}
+
+.album-card.is-locked {
+  border-style: dashed;
+  opacity: 0.7;
+}
+
+.album-card.is-selected {
+  outline: 2px solid var(--tohe-brand);
+  outline-offset: 1px;
+}
+
+.album-value {
+  font-size: 0.9rem;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.album-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.58rem;
+  font-weight: 800;
+  line-height: 1.1;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.album-lock {
+  font-size: 0.7rem;
+  opacity: 0.55;
+}
+
+.album-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.65rem 0.75rem;
+  border-radius: 0.95rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+}
+
+.album-detail-text {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.album-detail-name {
+  font-size: 0.95rem;
+  font-weight: 900;
+}
+
+.badge-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.badge {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.55rem 0.7rem;
+  border-radius: 0.85rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 1px 3px rgb(0 0 0 / 0.08);
+  opacity: 0.62;
+}
+
+.badge.is-earned {
+  opacity: 1;
+  background: color-mix(in srgb, var(--tohe-leaf, var(--tohe-brand)) 10%, var(--tohe-surface));
+}
+
+.badge-icon {
+  color: var(--tohe-accent);
+  font-size: 1.2rem;
+}
+
+.badge-text {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.badge-title {
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.badge-body {
+  color: var(--tohe-ink-soft);
+  font-size: 0.76rem;
+}
+
+.ui-icon.is-earned {
+  color: var(--tohe-leaf, var(--tohe-brand));
+}
+
+.ui-icon.is-locked {
+  color: var(--tohe-line-strong);
+}
+
+@media (max-width: 380px) {
+  .level-grid,
+  .album-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* The title's doors: the three mode buttons become cards under the primary and Ván mới. */
+.tohe-layout-title .tohe-card-actions {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+}
+
+.tohe-layout-title .tohe-card-actions > .tohe-button-hero,
+.tohe-layout-title .tohe-card-actions > .tohe-button-secondary:not([data-mode]) {
+  grid-column: 1 / -1;
+}
+
+.tohe-layout-title .tohe-button[data-mode] {
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  min-height: 4.1rem;
+  padding: 0.35rem 0.2rem;
+  font-size: 0.82rem;
+  line-height: 1.1;
+  text-align: center;
+}
+
+.tohe-layout-title .tohe-button[data-mode] .tohe-svg {
+  font-size: 1.25rem;
+}
+
+@media (max-width: 380px) {
+  .tohe-layout-title .tohe-button[data-mode] {
+    min-height: 3.6rem;
+    font-size: 0.75rem;
+  }
+}
