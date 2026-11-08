@@ -411,6 +411,16 @@
             "leaderboard",
             "rooms"
           ]
+        },
+        "board": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
+        },
+        "label": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 40
         }
       },
       "required": [
