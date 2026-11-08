@@ -172,8 +172,8 @@ export interface ShellSession {
    * first one also says the game's first screen is up: the hub keeps its loading screen until then (ADR 0019).
    */
   menuChanged(open: boolean): void;
-  /** Show the hub's leaderboard for this game over it, or go to the game's rooms lobby. */
-  open(what: ShellTarget): void;
+  /** Show the hub's leaderboard for this game over it (optionally a named board), or go to the game's rooms lobby. */
+  open(what: ShellTarget, options?: { board?: string; label?: string }): void;
   /** The player switched sound in the game: `settings` changes here at once, and the hub remembers it. */
   setMuted(muted: boolean): void;
 }
@@ -369,7 +369,7 @@ function embeddedSession<TSave>(options: ConnectOptions): Promise<GameSession<TS
             shell: {
               can: message.shell ?? { leaderboard: false, rooms: false },
               menuChanged: (open) => send({ tohe: PROTOCOL, type: 'menu', open }),
-              open: (what) => send({ tohe: PROTOCOL, type: 'open', what }),
+              open: (what, options) => send({ tohe: PROTOCOL, type: 'open', what, ...options }),
               setMuted: (muted) => {
                 settings = { ...settings, muted };
                 emitter.emit('settings', settings);

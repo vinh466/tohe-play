@@ -23,6 +23,11 @@
 		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/"/>
 		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/"/>
 		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/fill-blocks/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/fill-blocks/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/fill-blocks/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/fill-blocks/"/>
+		  </url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/games/hello/</loc>
 		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/hello/"/>
 		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/hello/"/>
@@ -89,6 +94,11 @@
 		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/"/>
 		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/"/>
 		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/"/>
+		  </url>
+		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/games/fill-blocks/</loc>
+		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/fill-blocks/"/>
+		    <xhtml:link rel="alternate" hreflang="en" href="{{ env "TOHE_HUB_URL" }}/en/games/fill-blocks/"/>
+		    <xhtml:link rel="alternate" hreflang="x-default" href="{{ env "TOHE_HUB_URL" }}/en/games/fill-blocks/"/>
 		  </url>
 		  <url><loc>{{ env "TOHE_HUB_URL" }}/en/games/hello/</loc>
 		    <xhtml:link rel="alternate" hreflang="vi" href="{{ env "TOHE_HUB_URL" }}/games/hello/"/>

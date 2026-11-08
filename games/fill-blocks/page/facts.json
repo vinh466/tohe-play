@@ -1,0 +1,4 @@
+{
+  "round": { "kind": "about", "minMinutes": 1, "maxMinutes": 5 },
+  "offline": false
+}

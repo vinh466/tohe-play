@@ -15,23 +15,25 @@ export function PublicBoard({
   scope,
   period,
   playerId,
+  board = 'default',
 }: {
   gameId: string;
   scope: 'community' | 'server';
   period: 'week' | 'all';
   playerId: string;
+  board?: string;
 }) {
   const { t, i18n } = useTranslation();
-  const board = useQuery({
-    queryKey: ['public-board', gameId, scope, period],
-    queryFn: () => boards.public(gameId, scope, period),
+  const boardQuery = useQuery({
+    queryKey: ['public-board', gameId, scope, period, board],
+    queryFn: () => boards.public(gameId, scope, period, board),
     staleTime: 30_000,
   });
   const format = new Intl.NumberFormat(i18n.language);
 
-  if (board.isPending) return <p className="text-ink-soft">{t('loading')}</p>;
-  if (board.isError) return <p className="text-danger">{t('leaderboard.failed')}</p>;
-  const { top, around, listed, hands, reproducible } = board.data;
+  if (boardQuery.isPending) return <p className="text-ink-soft">{t('loading')}</p>;
+  if (boardQuery.isError) return <p className="text-danger">{t('leaderboard.failed')}</p>;
+  const { top, around, listed, hands, reproducible } = boardQuery.data;
   // Past the top, the viewer and their neighbours — without the places the top already shows.
   const past = around.filter((row) => !top.some((shown) => shown.rank === row.rank));
   // A board of checked results only says so once; a board that mixes them labels each one (D-16 Q4).

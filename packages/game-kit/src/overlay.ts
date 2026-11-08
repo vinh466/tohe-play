@@ -22,6 +22,8 @@ export interface OverlayAction {
   icon?: IconName;
   /** The accessible name when the visible label is short (a tool's caption, e.g. "Âm thanh: bật"). */
   ariaLabel?: string;
+  /** On an end card: run this action, then close the card and go on playing (a journey's next level). */
+  dismiss?: boolean;
   /** Extra attributes for the button, e.g. `data-tohe-exit` (what conformance looks for, ADR 0018). */
   attributes?: Record<string, string>;
 }

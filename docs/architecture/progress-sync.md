@@ -70,7 +70,7 @@ in the table but no longer appear on a board.
 ## Offline
 
 - Playing, saving and scoring work offline; writes wait in IndexedDB until the next sync.
-- The leaderboard shows the last copy it fetched for that period (or a message if it never could).
+- The leaderboard shows the last copy it fetched for that period (or a message if it never could). A game may open a named board (ADR 0058); the hub reads that board for the same period.
 - A device that never comes online keeps its progress to itself; nothing is lost when it does.
 
 ## Not yet

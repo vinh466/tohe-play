@@ -1,6 +1,6 @@
-// The menu stage (ADR 0020): Chạm Ghép's own first screen — title, play, settings (block colours), how to play, the
-// leaderboard — with no engine
-// running. Play loads stage.ts (fetched in the background meanwhile). Shared state lives in app.ts.
+// The menu stage (ADR 0020): Chạm Ghép's title, its three doors (Vô Tận, Hành Trình, Mỗi Ngày), the game-owned
+// Journey/Daily/Notebook screens, settings and how-to, with no board running. Play loads stage.ts. The game's
+// screens are DOM inside the shell; the shell owns Back. Shared state lives in app.ts.
 import '@tohe/game-kit/overlay.css';
 import './style.css';
 import {
@@ -10,10 +10,13 @@ import {
   formatScore,
   haptics,
   hintList,
+  type Shell,
+  type ShellScreen,
   type Theme,
 } from '@tohe/game-kit';
-import { persist, session, sfx, store, t } from './app.ts';
+import { activeMode, gameFor, levelLabel, persist, progressLine, session, sfx, store, t } from './app.ts';
 import { PALETTE_IDS } from './palette.ts';
+import { renderAlbum, renderDaily, renderJourney, type ScreenDeps } from './screens.ts';
 import { samples } from './swatches.ts';
 
 document.documentElement.lang = session.locale;
@@ -22,7 +25,77 @@ followTheme(session, (next) => {
   theme = next;
 });
 
-const shell = createShell({
+let shell: Shell;
+
+const playLevel = (id: string) => {
+  store.pending = { level: id };
+  store.lastMode = 'journey';
+  void persist();
+  shell.play(true);
+};
+
+const playDaily = (date: string) => {
+  store.pending = { daily: date };
+  store.lastMode = 'daily';
+  void persist();
+  shell.play(true);
+};
+
+const screenDeps = (): ScreenDeps => ({
+  t,
+  locale: session.locale,
+  theme,
+  palette: store.palette,
+  journey: store.journey,
+  dailyDates: store.dailyDates,
+  album: store.album,
+  achievements: store.achievements,
+  stats: store.stats,
+  best: store.best,
+  game: store.journeyGame,
+  onPlayLevel: playLevel,
+  onContinue: () => shell.play(false),
+  onPlayDaily: playDaily,
+  onPracticeDaily: playDaily,
+  onOpenScreen: (id) => shell.openScreen(id),
+});
+
+const screens: ShellScreen[] = [
+  {
+    id: 'journey',
+    label: t.journey,
+    icon: 'target',
+    hidden: true,
+    render: (root) => renderJourney(root, screenDeps()),
+  },
+  {
+    id: 'daily',
+    label: t.daily,
+    icon: 'timer',
+    hidden: true,
+    render: (root) => renderDaily(root, screenDeps()),
+  },
+  {
+    id: 'album',
+    label: t.album,
+    icon: 'star',
+    hidden: false,
+    render: (root) => renderAlbum(root, screenDeps()),
+  },
+];
+
+const inProgress = (): string | null => {
+  const mode = activeMode();
+  if (!mode) return null;
+  const game = gameFor(mode);
+  if (!game) return null;
+  if (mode === 'journey' && game.level)
+    return t.inProgressLevel(levelLabel(game.level), formatScore(game.score, session.locale));
+  if (mode === 'daily') return t.inProgressDaily(formatScore(game.score, session.locale));
+  return t.inProgress(formatScore(game.score, session.locale));
+};
+
+shell = createShell({
   session,
   root: document.querySelector<HTMLElement>('#app') as HTMLElement,
   logo: 'icon.svg',
@@ -34,12 +107,8 @@ const shell = createShell({
     { shape: 'sparkle', colour: '#f59e0b' },
   ],
   title: t.title,
-  inProgress: () => {
-    const game = store.game;
-    return game && game.moves > 0 && !game.over
-      ? t.inProgress(formatScore(game.score, session.locale))
-      : null;
-  },
+  inProgress,
+  progress: progressLine,
   best: () => (store.best > 0 ? t.bestLine(formatScore(store.best, session.locale)) : null),
   howTo: () => ({ icon: { src: 'icon.svg' }, title: t.title, content: hintList(t.hints) }),
   tutorial: {
@@ -51,6 +120,35 @@ const shell = createShell({
       void persist();
     },
   },
+  modes: [
+    {
+      label: t.classic,
+      icon: 'trophy',
+      variant: 'secondary',
+      attributes: { 'data-mode': 'classic' },
+      onClick: () => {
+        store.lastMode = 'classic';
+        void persist();
+        if (store.classicGame) shell.play(false);
+        else shell.play(true);
+      },
+    },
+    {
+      label: t.journey,
+      icon: 'target',
+      variant: 'secondary',
+      attributes: { 'data-mode': 'journey' },
+      onClick: () => shell.openScreen('journey'),
+    },
+    {
+      label: t.daily,
+      icon: 'timer',
+      variant: 'secondary',
+      attributes: { 'data-mode': 'daily' },
+      onClick: () => shell.openScreen('daily'),
+    },
+  ],
+  screens,
   settings: [
     {
       label: t.colours,

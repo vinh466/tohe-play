@@ -1,0 +1,21 @@
+{
+  "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
+  "id": "fill-blocks",
+  "name": "Fill Blocks",
+  "names": {
+    "vi": "Lấp Ô"
+  },
+  "version": "0.3.0",
+  "protocol": 1,
+  "description": "Place block shapes on an 8 × 8 board; a full row or column clears. Play a calm endless run, a 18-level journey, or today's challenge, with no timer, no ads and no pressure.",
+  "descriptions": {
+    "vi": "Đặt các miếng khối lên bàn 8 × 8; một hàng hoặc cột đầy sẽ biến mất. Chơi tự do, đi hành trình 18 màn, hoặc thử thách hôm nay, không đồng hồ, không quảng cáo, không áp lực."
+  },
+  "icon": "icon.svg",
+  "orientation": "portrait",
+  "capabilities": ["save", "scores", "shell"],
+  "themes": ["light", "dark"],
+  "minAge": 3,
+  "tags": ["puzzle", "blocks", "family"],
+  "sizeBudgetKb": 450
+}

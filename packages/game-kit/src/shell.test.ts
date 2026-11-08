@@ -687,14 +687,99 @@ describe('opened by an entry (ADR 0045)', () => {
     await settle();
     test.ctx().gameOver({ title: 'Hết ván' }, undefined, [
       { label: 'Thách bạn', onClick: share },
-      { label: 'Thách lại', onClick: again },
+      { label: 'Màn tiếp', onClick: again, dismiss: true },
     ]);
-    expect(test.labels()).toEqual(['Chơi lại', 'Thách bạn', 'Thách lại', 'Menu chính']);
+    expect(test.labels()).toEqual(['Chơi lại', 'Thách bạn', 'Màn tiếp', 'Menu chính']);
     expect(test.play()?.actions[1]?.variant).toBe('secondary');
     test.tap('Thách bạn');
     expect(share).toHaveBeenCalled();
     expect(test.play()?.title).toBe('Hết ván');
     expect(test.shell.playing).toBe(false);
+  });
+
+  it('lets an end-card action dismiss the card and go on playing', () => {
+    const next = vi.fn();
+    const test = setup();
+    test.shell.start();
+    test.tap('Chơi');
+    return settle().then(() => {
+      test
+        .ctx()
+        .gameOver({ title: 'Hết ván' }, undefined, [{ label: 'Màn tiếp', onClick: next, dismiss: true }]);
+      expect(test.labels()).toEqual(['Chơi lại', 'Màn tiếp', 'Menu chính']);
+      test.tap('Màn tiếp');
+      expect(next).toHaveBeenCalledTimes(1);
+      expect(test.shell.playing).toBe(true);
+    });
+  });
+});
+
+describe('screens and modes the game owns', () => {
+  it('opens a game screen as a full screen, renders it, and runs its cleanup on Back', () => {
+    const cleanup = vi.fn();
+    const test = setup({
+      screens: [
+        {
+          id: 'map',
+          label: 'Bản đồ',
+          icon: 'cards',
+          render: (root) => {
+            root.textContent = 'the map';
+            return cleanup;
+          },
+        },
+      ],
+    });
+    test.shell.start();
+    expect(test.tools()).toContain('Bản đồ');
+    test.tap('Bản đồ');
+    expect(test.menu()?.layout).toBe('screen');
+    expect(test.menu()?.title).toBe('Bản đồ');
+    expect(test.menu()?.content?.textContent).toBe('the map');
+    test.back();
+    expect(test.menu()?.layout).toBe('title');
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it('opens a screen by id and lets a mode start play fresh', async () => {
+    const cleanup = vi.fn();
+    const test = setup({
+      screens: [
+        {
+          id: 'map',
+          label: 'Bản đồ',
+          icon: 'cards',
+          render: () => cleanup,
+        },
+      ],
+    });
+    test.shell.start();
+    test.shell.openScreen('map');
+    expect(test.menu()?.title).toBe('Bản đồ');
+    test.shell.play(true);
+    await settle();
+    expect(test.calls).toEqual(['start fresh']);
+    // Leaving the screen for play frees it too.
+    expect(cleanup).toHaveBeenCalledTimes(1);
+  });
+
+  it('ignores an unknown screen id and leaves the title alone', () => {
+    const test = setup();
+    test.shell.start();
+    test.shell.openScreen('missing');
+    expect(test.menu()?.layout).toBe('title');
+  });
+
+  it('puts the game’s modes under play, as secondary buttons', () => {
+    const open = vi.fn();
+    const test = setup({
+      modes: [{ label: 'Hành trình', icon: 'cards', onClick: open }],
+    });
+    test.shell.start();
+    expect(test.labels()).toEqual(['Chơi', 'Hành trình']);
+    expect(test.menu()?.actions[1]?.variant).toBe('secondary');
+    test.tap('Hành trình');
+    expect(open).toHaveBeenCalled();
   });
 });
 

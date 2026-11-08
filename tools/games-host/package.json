@@ -15,6 +15,7 @@
     "@tohe/contract": "workspace:*"
   },
   "devDependencies": {
+    "@tohe/game-fill-blocks": "workspace:*",
     "@tohe/game-hello": "workspace:*",
     "@tohe/game-merge-block": "workspace:*",
     "@tohe/game-tap-merge": "workspace:*",

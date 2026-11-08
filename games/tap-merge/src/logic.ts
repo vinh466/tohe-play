@@ -4,8 +4,15 @@
 
 export const COLS = 5;
 export const ROWS = 7;
-/** Shuffles a player can hold at once. */
+/** Shuffles a classic or daily player can hold at once. */
 export const MAX_SHUFFLES = 3;
+/** A Journey level holds a little more rescue, because its goal is fixed. */
+export const MAX_LEVEL_SHUFFLES = 5;
+/** One daily run: a tap budget, not a timer. */
+export const DAILY_TAPS = 120;
+
+/** The three doors. The classic is the ranked one; the other two are local and unranked. */
+export type Mode = 'classic' | 'journey' | 'daily';
 
 /** A block is stored as its exponent: 1 → 2, 2 → 4, …. The board is always full, so there is no empty cell. */
 export type Exponent = number;
@@ -21,16 +28,41 @@ export interface State {
   /** COLS × ROWS exponents, index = row * COLS + col. */
   grid: Exponent[];
   score: number;
-  /** Best score before this game. */
+  /** Best score before this game; the classic record only. */
   best: number;
   moves: number;
   /** 🔀 left. */
   shuffles: number;
+  /** How many shuffles the player has used in this run (a badge reads it). */
+  shufflesUsed: number;
   /** The largest block made in this game: a new one earns a shuffle, and it sets the floor (`floorOf`). */
   top: Exponent;
   over: boolean;
   /** PRNG (mulberry32) state. */
   rng: number;
+  /** Which door this run belongs to; absent in saves from before 0.9.0, where it means classic. */
+  mode: Mode;
+  /** A Journey level's id, a Daily's `daily-YYYYMMDD`; null for the classic. */
+  level: string | null;
+  /** A Daily's tap budget; null for the classic and for a Journey level (which has no hard cap). */
+  moveLimit: number | null;
+}
+
+export interface NewGameOptions {
+  mode?: Mode;
+  level?: string | null;
+  moveLimit?: number | null;
+  /** The classic and the daily start with one shuffle; a Journey level starts with more. */
+  shuffles?: number;
+}
+
+/** The frozen start of a Journey level: a full board from a real run, its PRNG and its largest block. */
+export interface LevelStart {
+  id: string;
+  start: readonly Exponent[];
+  rng: number;
+  top: Exponent;
+  shuffles: number;
 }
 
 export interface Move {
@@ -174,7 +206,7 @@ export const hasMove = (grid: readonly Exponent[]) =>
   grid.some((exp, index) => around(cellAt(index)).some((n) => grid[indexOf(n)] === exp));
 
 /** A full board, redrawn until it has a move (a fresh game never starts stuck). */
-export function newGame(seed: number, best = 0): State {
+export function newGame(seed: number, best = 0, options: NewGameOptions = {}): State {
   let rng = seed >>> 0;
   let grid: Exponent[] = [];
   do {
@@ -191,12 +223,53 @@ export function newGame(seed: number, best = 0): State {
     score: 0,
     best,
     moves: 0,
-    shuffles: 1,
+    shuffles: options.shuffles ?? 1,
+    shufflesUsed: 0,
     top: Math.max(...grid),
     over: false,
     rng,
+    mode: options.mode ?? 'classic',
+    level: options.level ?? null,
+    moveLimit: options.moveLimit ?? null,
   };
 }
+
+/** A Journey level: its frozen snapshot, its own PRNG and its shuffle allowance; score and moves start at 0. */
+export function newLevelGame(level: LevelStart): State {
+  return {
+    version: 1,
+    grid: [...level.start],
+    score: 0,
+    best: 0,
+    moves: 0,
+    shuffles: level.shuffles,
+    shufflesUsed: 0,
+    top: level.top,
+    over: false,
+    rng: level.rng,
+    mode: 'journey',
+    level: level.id,
+    moveLimit: null,
+  };
+}
+
+/** A daily run: the date-seeded board with a budget of `DAILY_TAPS`. */
+export function newDailyGame(date: string, seed: number): State {
+  return newGame(seed, 0, {
+    mode: 'daily',
+    level: `daily-${date}`,
+    moveLimit: DAILY_TAPS,
+    shuffles: 1,
+  });
+}
+
+/** The shuffle cap of a run: a Journey level may hold a little more. */
+export const maxShufflesFor = (mode: Mode = 'classic'): number =>
+  mode === 'journey' ? MAX_LEVEL_SHUFFLES : MAX_SHUFFLES;
+
+/** The date part of a daily level id, or null. */
+export const dailyDateOf = (level: string | null): string | null =>
+  level?.startsWith('daily-') ? level.slice('daily-'.length) : null;
 
 /** Pull every block down to fill holes (0 = hole); returns the moves made. */
 function gravity(grid: Exponent[]): Move[] {
@@ -290,7 +363,7 @@ export function tap(state: State, cell: Cell): TapResult {
 
   let { shuffles } = state;
   if (exp > state.top) {
-    const earned = shuffles < MAX_SHUFFLES;
+    const earned = shuffles < maxShufflesFor(state.mode);
     if (earned) shuffles++;
     events.push({ type: 'top', exp, shuffles, earned });
   }
@@ -369,7 +442,7 @@ export function shuffle(state: State): ShuffleResult {
   );
   const shuffles = state.shuffles - 1;
   const events: GameEvent[] = [{ type: 'shuffle', moves, shuffles }];
-  const next = settle({ ...state, grid, shuffles, rng }, events);
+  const next = settle({ ...state, grid, shuffles, shufflesUsed: state.shufflesUsed + 1, rng }, events);
   return { ok: true, state: next, events };
 }
 
@@ -386,18 +459,24 @@ export function restore(saved: unknown): State | null {
   if (typeof saved !== 'object' || saved === null) return null;
   const s = saved as Partial<State>;
   const ints = (v: unknown) => Number.isInteger(v) && (v as number) >= 0;
+  const mode = s.mode ?? 'classic';
+  const level = s.level ?? null;
+  const moveLimit = s.moveLimit ?? null;
   if (
     s.version !== 1 ||
     !Array.isArray(s.grid) ||
     s.grid.length !== COLS * ROWS ||
     !s.grid.every((e) => ints(e) && e >= 1 && e <= 40) ||
-    ![s.score, s.best, s.moves, s.shuffles, s.top, s.rng].every(ints) ||
-    (s.shuffles ?? 0) > MAX_SHUFFLES ||
-    typeof s.over !== 'boolean'
+    ![s.score, s.best, s.moves, s.shuffles, s.top, s.rng, s.shufflesUsed ?? 0].every(ints) ||
+    (s.shuffles ?? 0) > maxShufflesFor(mode) ||
+    typeof s.over !== 'boolean' ||
+    (mode !== 'classic' && mode !== 'journey' && mode !== 'daily') ||
+    (level !== null && typeof level !== 'string') ||
+    (moveLimit !== null && !ints(moveLimit))
   ) {
     return null;
   }
-  const state = s as State;
+  const state: State = { ...(s as State), mode, level, moveLimit, shufflesUsed: s.shufflesUsed ?? 0 };
   // A game that can no longer go on is over, whatever the save says.
   return !state.over && state.shuffles === 0 && !hasMove(state.grid) ? { ...state, over: true } : state;
 }

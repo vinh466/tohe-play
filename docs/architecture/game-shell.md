@@ -152,7 +152,7 @@ title screen → Tò He.
 | --- | --- | --- | --- | --- |
 | Chạm Chấm (`hello`) | its dot · dots and a star; Chơi, Kỷ lục, Âm thanh, Cài đặt, Xếp hạng, Cách chơi | sound | sound | score · `timer` seconds · best; 3-2-1 before a round goes on |
 | Ghép Khối (`merge-block`) | the Máy Ghép mascot mark · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools; a pre-play screen with the four modes (Cổ điển, Ca làm, Ca hôm nay, Thư giãn) and the Xưởng | sound, `palette` Màu khối, `gear-six` Xưởng | sound, `palette` Màu khối (the presets), `gear-six` Xưởng | score · best (the next block waits on the loader); a mode rail under it (orders, the daily, parts, Về xưởng) |
-| Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu) under it |
+| Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks; Chơi / Chơi tiếp, Ván mới, the three doors Vô Tận · Hành Trình · Mỗi Ngày, and Sổ Tay Khối as a tool | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | classic: score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu); Journey/Daily: score · `shuffle`, the goal/taps row and the star meter (the classic best is hidden because they are unranked) |
 | Tiến Lên (`tien-len`) | its cards · the four suits; `robot` Chơi với máy / Chơi tiếp, Bàn mới, Chơi online, Âm thanh, Cài đặt, Cách chơi | sound, `scroll` Luật nhà, `chair` Bàn chơi (from the next hand), `cards` Bộ bài | sound, `cards` Bộ bài (the decks); at a table also `scroll` Luật của bàn | table score · hand number · (`smiley` Cảm xúc) `arrows-down-up` Xếp số / Xếp bộ |
 
 What a game draws itself, on its board and in the HUD's middle and end, follows the same rule with the kit's
@@ -177,7 +177,7 @@ Additive, protocol 1 ([Game Contract v1](../contracts/game-contract-v1.md)):
 | `init.shell` `{ leaderboard, rooms }` | What the hub can open for this player now (signed-in profiles; the game keeps scores / has rooms). |
 | host → game `menu` | The player pressed Back. |
 | game → host `menu` `{ open }` | The game's menu or screen opened or closed: its answer to Back. The first one also says the first screen is up: the hub keeps its loading screen until then. |
-| game → host `open` `{ what: 'leaderboard' \| 'rooms' }` | Show the hub's board over the game, or go to the game's lobby. Games still never call the API. |
+| game → host `open` `{ what: 'leaderboard' \| 'rooms', board?, label? }` | Show the hub's board over the game (optionally a named board, with a short label; ADR 0058), or go to the game's lobby. Games still never call the API. |
 | game → host `settings` `{ muted }` | The player switched sound in the game. |
 
 Markers conformance looks for: `data-tohe-play` (play, and the first-time how-to's start), `data-tohe-exit` (the way
@@ -203,7 +203,7 @@ title screen's way out sends `exit`.
   hub's sheet offers **Về Tò He** or **Chờ thêm**.
 - **Leaving from the game** goes at once: a choice made in its menu needs no question. Leaving a table asks, as
   before, unless watching.
-- **Leaderboard** opens as a sheet over the game: the same board as *Bảng điểm* under each game on the catalog, which stays.
+- **Leaderboard** opens as a sheet over the game: the same board as *Bảng điểm* under each game on the catalog, which stays. A game may name one of its boards and a label (`open('leaderboard', { board, label })`); the hub then reads that board in the same scopes and periods (ADR 0058).
 - **Sound** is remembered per device (`tohe:muted`), whichever game switched it.
 
 ## Kit
@@ -243,8 +243,14 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 }
 ```
 
-- `createShell(options)` → `{ start(), playing }`. It owns both stages: the title screen and its screens, entering
-  play (`stage()` then `start(ctx)`, a loading view until `ctx.ready()`), the panel, the end card and every Back.
+- `createShell(options)` → `{ start(), openScreen(id), play(fresh?), playing }`. It owns both stages: the title
+  screen and its screens, entering play (`stage()` then `start(ctx)`, a loading view until `ctx.ready()`), the panel,
+  the end card and every Back.
+- **Screens the game owns** (`ShellScreen`): `screens: [{ id, label, icon, render(root) }]` adds full screens to the
+  title's tools; `render` returns a cleanup called when the screen is left. `shell.openScreen(id)` opens one from a
+  mode button or another screen; `modes` adds secondary buttons under play; `progress()` adds a line under the title
+  (the journey's stars, a daily stamp). The shell keeps the header, Back, focus and the theme; a game's screen is
+  content only. Lấp Ô uses four: Hành trình, Hôm nay, Thống kê and Thành tích; Chạm Ghép uses three: Hành Trình, Mỗi Ngày and Sổ Tay Khối.
 - **Icons, not emoji** (ADR 0049). Every `icon` the kit takes — a button's, a tool's, a row's, a setting's, a card's —
   is an `IconName` of the kit's set (`icons.ts`: Phosphor, MIT, copied the way the hub copies its own, since a game
   loads nothing from outside its folder); a card's picture may instead be the game's own art, `{ src: 'icon.svg' }`.
@@ -277,7 +283,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
 | Where | What |
 | --- | --- |
-| Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, the settings and how-to screens, a new game asked first, the first-time how-to, a mode screen before a new game and over the panel); the play stage (loading, playing, the panel without a way out, looks changed in place, Menu chính leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
+| Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, the settings and how-to screens, the game's own screens and their cleanup, modes, a new game asked first, the first-time how-to, a mode screen before a new game and over the panel); the play stage (loading, playing, the panel without a way out, looks changed in place, Menu chính leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
 | Kit (`credits.test.ts`) | Ghi công: shown only once a game's credits are read, nothing more asked for and nothing changed without `assets`, none at a table; its screen and Back; the credits file's shape checked, its lines per pack |
 | Kit (`phaser/assets.test.ts`) | `loadPack`: each kind queued as it should be, keys already loaded skipped, a failed file named, fonts |
 | Kit (`kit.test.ts`) | The HUD's count-up and shortened scores, run ids |

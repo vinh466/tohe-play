@@ -137,6 +137,17 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
 export const shellStrings = (locale: string): ShellStrings =>
   locale.startsWith('vi') ? STRINGS.vi : STRINGS.en;
 
+/** A full screen the game owns (a journey map, stats, a calendar): the shell gives it navigation and a way back. */
+export interface ShellScreen {
+  id: string;
+  label: string;
+  icon: IconName;
+  /** A screen opened from a mode button can stay out of the title's tool row. */
+  hidden?: boolean;
+  /** Builds the screen inside `root`; the returned cleanup runs when the screen is left. */
+  render(root: HTMLElement): void | (() => void);
+}
+
 /** A section of the menu stage's Cài đặt screen. */
 export interface ShellSetting {
   label: string;
@@ -250,6 +261,12 @@ export interface ShellOptions {
   prePlay?(context: PrePlayContext): Omit<OverlayCard, 'layout' | 'corner'>;
   /** The sections of Cài đặt (sound comes first by itself). */
   settings?: ShellSetting[];
+  /** Full screens the game owns: a journey map, stats, a calendar. Each is a tool on the title screen. */
+  screens?: ShellScreen[];
+  /** Extra title-screen buttons (the game's modes), after play and new game. */
+  modes?: OverlayAction[];
+  /** A progress line under the title, e.g. "Hành trình 8/18 sao". */
+  progress?(): string | null;
   /** The game has online rooms: "Chơi online" when the hub can open the lobby. */
   online?: boolean;
   /** The game keeps scores: the leaderboard when the hub can show it. */
@@ -276,6 +293,10 @@ export interface ShellOptions {
 export interface Shell {
   /** Shows the first screen — the title, or play when opened directly — and tells the hub it is up. Call it once. */
   start(): void;
+  /** Opens one of the game's screens by id (a journey map, stats). Does nothing if there is no such screen. */
+  openScreen(id: string): void;
+  /** Starts or continues play from a screen or a mode button; `fresh` starts a new game. */
+  play(fresh?: boolean): void;
   /** True while the game is on screen with nothing over it. */
   readonly playing: boolean;
 }
@@ -330,6 +351,13 @@ export function createShell(options: ShellOptions): Shell {
   let warmed = false;
   /** Who made the game's assets (ADR 0053), once read: the title screen's Ghi công shows only with them. */
   let credits: AssetCredits | null = null;
+  /** The cleanup of the game's custom screen, run when that screen is left. */
+  let screenCleanup: (() => void) | null = null;
+  const clearScreen = () => {
+    const cleanup = screenCleanup;
+    screenCleanup = null;
+    cleanup?.();
+  };
 
   /** Tells the hub whether a menu or screen is up; every step answers its Back, so the hub knows the game is alive. */
   const report = (open: boolean) => session.shell.menuChanged(open);
@@ -368,8 +396,14 @@ export function createShell(options: ShellOptions): Shell {
     on: !session.settings.muted,
     onChange: () => toggleSound(again),
   });
-  /** A full screen of the menu stage, with its way back in its header. */
-  const menuScreen = (card: Omit<OverlayCard, 'layout' | 'corner'>, back: () => void) => {
+  /** A full screen of the menu stage, with its way back in its header. `onLeave` frees what the screen built. */
+  const menuScreen = (
+    card: Omit<OverlayCard, 'layout' | 'corner'>,
+    back: () => void,
+    onLeave?: () => void,
+  ) => {
+    clearScreen();
+    screenCleanup = onLeave ?? null;
     parent = back;
     screen = 'screen';
     menuLayer.show({
@@ -380,6 +414,23 @@ export function createShell(options: ShellOptions): Shell {
     report(true);
   };
   const howToScreen = (back: () => void) => menuScreen({ ...options.howTo(), actions: [] }, back);
+
+  /** A screen the game owns: its content fills the body, and the shell keeps the navigation. */
+  function customScreen(def: ShellScreen) {
+    const host =
+      typeof document === 'undefined'
+        ? ({ textContent: '' } as unknown as HTMLElement)
+        : element('div', 'tohe-screen-custom');
+    let cleanup: (() => void) | undefined;
+    menuScreen({ icon: def.icon, title: def.label, content: host, actions: [] }, titleScreen, () =>
+      cleanup?.(),
+    );
+    cleanup = def.render(host) ?? undefined;
+  }
+  const openScreen = (id: string) => {
+    const def = options.screens?.find((screen) => screen.id === id);
+    if (def) customScreen(def);
+  };
   function settingsScreen() {
     const inProgress = options.inProgress() !== null;
     menuScreen(
@@ -426,6 +477,7 @@ export function createShell(options: ShellOptions): Shell {
   };
 
   function titleScreen() {
+    clearScreen();
     screen = 'title';
     ended = null;
     const summary = options.inProgress();
@@ -434,7 +486,7 @@ export function createShell(options: ShellOptions): Shell {
       layout: 'title',
       icon: logo,
       title: options.title,
-      body: [summary, options.best?.()].filter(Boolean).join(' · ') || undefined,
+      body: [summary, options.progress?.(), options.best?.()].filter(Boolean).join(' · ') || undefined,
       decor: options.decor,
       footer: embedded ? exitAction() : undefined,
       actions: [
@@ -457,6 +509,7 @@ export function createShell(options: ShellOptions): Shell {
               },
             ]
           : []),
+        ...(options.modes ?? []).map((mode) => ({ variant: 'secondary' as const, ...mode })),
         ...(options.online && can.rooms
           ? [
               {
@@ -476,6 +529,13 @@ export function createShell(options: ShellOptions): Shell {
           onClick: () => toggleSound(titleScreen),
         },
         { icon: 'gear-six', label: t.settings, onClick: settingsScreen },
+        ...(options.screens ?? [])
+          .filter((screen) => !screen.hidden)
+          .map((screen) => ({
+            icon: screen.icon,
+            label: screen.label,
+            onClick: () => openScreen(screen.id),
+          })),
         ...(options.leaderboard && can.leaderboard
           ? [
               {
@@ -669,6 +729,7 @@ export function createShell(options: ShellOptions): Shell {
     choice: string | null = null,
   ) {
     const mine = ++entry;
+    clearScreen();
     screen = 'loading';
     menuLayer.hide();
     playLayer.show({ layout: 'loading', icon: logo, title: t.loading, actions: [] });
@@ -911,8 +972,16 @@ export function createShell(options: ShellOptions): Shell {
                 stage?.newGame();
               },
             },
-        // The game's own: a share, a challenge back. The card stays while they run.
-        ...more.map((action) => ({ variant: 'secondary' as const, ...action })),
+        // The game's own: a share, a challenge back, or a next level. A `dismiss` action closes the card first;
+        // the others keep it up while they run.
+        ...more.map((action) => ({
+          variant: 'secondary' as const,
+          ...action,
+          onClick: () => {
+            if (action.dismiss) enterPlaying();
+            action.onClick();
+          },
+        })),
         direct
           ? { ...exitAction(), variant: 'secondary' }
           : {
@@ -1001,6 +1070,10 @@ export function createShell(options: ShellOptions): Shell {
       // Opened by an entry the game handles: play at once — after the how-to, the first time — the title screen behind.
       else if (opened) begin(false, opened);
       else titleScreen();
+    },
+    openScreen,
+    play(fresh = false) {
+      begin(fresh);
     },
     get playing() {
       return screen === 'playing' && !playLayer.visible;

@@ -329,11 +329,15 @@ export const runs = {
 
 /** Boards read by trust (ADR 0029): the account's board of a game, this week or all time. */
 export const boards = {
-  account: (gameId: string, period: 'week' | 'all') =>
-    call(api.GET('/api/boards/{gameId}', { params: { path: { gameId }, query: { period } } })),
+  account: (gameId: string, period: 'week' | 'all', board = 'default') =>
+    call(api.GET('/api/boards/{gameId}', { params: { path: { gameId }, query: { period, board } } })),
   /** A community's board — the account's — or the server's: the first 50 and the viewer's place. */
-  public: (gameId: string, scope: 'community' | 'server', period: 'week' | 'all') =>
-    call(api.GET('/api/boards/{gameId}/public', { params: { path: { gameId }, query: { scope, period } } })),
+  public: (gameId: string, scope: 'community' | 'server', period: 'week' | 'all', board = 'default') =>
+    call(
+      api.GET('/api/boards/{gameId}/public', {
+        params: { path: { gameId }, query: { scope, period, board } },
+      }),
+    ),
 };
 
 /** Online rooms (ADR 0016): the lobby and the host's controls. What happens at the table goes through the hub. */
