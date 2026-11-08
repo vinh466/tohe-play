@@ -141,8 +141,6 @@ shell = createShell({
   session,
   root: document.querySelector<HTMLElement>('#app') as HTMLElement,
   logo: 'icon.svg',
-  // The game's modes live behind the shell's new-game action: the mode screen keeps a run of each mode.
-  strings: { newGame: t.modes, newGameShort: t.modes },
   prePlay: ({ choose, inProgress, show }) => ({
     icon: { src: 'icon.svg' },
     title: t.modes,

@@ -228,11 +228,9 @@ export function start(ctx: StageContext): PlayStage {
 
   const pending = ctx.fresh ? { ...store.pending } : {};
   if (ctx.fresh) store.pending = {};
-  const choice = ctx.fresh ? ctx.choice : null;
-  const slot = choice?.replace('new:', '') as ModeSlot | undefined;
+  const choice = ctx.choice as ModeSlot | null;
   let started: Started;
-  if (ctx.fresh && slot && MODE_SLOTS.includes(slot))
-    started = modeStart(slot, choice?.startsWith('new:') === true);
+  if (choice && MODE_SLOTS.includes(choice)) started = modeStart(choice, ctx.fresh);
   else if (ctx.fresh && pending.level) started = levelStart(pending.level, pending.restart === true);
   else if (ctx.fresh && pending.daily) started = dailyStart(pending.daily, pending.restart === true);
   else if (!ctx.fresh && store.game && !store.game.over) started = fromRun(store.game, store.run);
@@ -845,13 +843,13 @@ export function start(ctx: StageContext): PlayStage {
   }
 
   /** Ends this run and starts another of the same mode, or of the mode chosen on the pre-play screen. */
-  function newGameInPlace(choice?: string): void {
+  function newGameInPlace(choice?: string, fresh = true): void {
     if (choice) {
       store.game = state;
       store.run = runId;
-      const slot = choice.replace('new:', '') as ModeSlot;
+      const slot = choice as ModeSlot;
       if (MODE_SLOTS.includes(slot)) {
-        begin(modeStart(slot, choice.startsWith('new:')));
+        begin(modeStart(slot, fresh));
         return;
       }
     }
@@ -916,6 +914,13 @@ export function start(ctx: StageContext): PlayStage {
   };
 
   const quick = () => [
+    {
+      kind: 'action' as const,
+      icon: 'cards' as const,
+      label: t.modes,
+      value: state.mode === 'journey' ? t.modeJourney : state.mode === 'daily' ? t.modeDaily : t.modeEndless,
+      onClick: () => ctx.changeMode(),
+    },
     paletteRow(),
     skinRow(),
     {

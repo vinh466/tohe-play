@@ -7,6 +7,7 @@ import {
   createHud,
   formatScore,
   formatValue,
+  icon as kitIcon,
   newRunId,
   type OverlayAction,
   type PlayStage,
@@ -159,15 +160,38 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     return persist();
   };
 
-  /** Ends the live score run and the ranked run when the player leaves this run for another mode. */
-  function stopRun() {
+  /** Ends the live score run and the ranked run of the state being replaced (a new run of the same mode, a challenge). */
+  function finishCurrentRun() {
     if (run && state && !state.over && state.score > 0) void run.finish(state.score).catch(scoreFailed);
-    if (!challenge && mode === 'classic' && state && !state.over) {
+    if (challenge) {
+      challenge.game = state;
+    } else if (mode === 'classic' && state && !state.over) {
       finishRanked(state.score);
-      // The live run ended above; a later resume starts a new one rather than writing to a finished report.
       store.run = null;
     }
-    if (challenge) challenge.game = state;
+    run = null;
+  }
+
+  /** A fresh classic run replaces any saved classic run: hand in the live/ranked one first. */
+  function finishSavedClassic() {
+    const saved = store.game;
+    if (!saved || saved.over) return;
+    if (store.ranked) {
+      finishRanked(saved.score);
+    } else if (store.run) {
+      void session.run(store.run).finish(saved.score).catch(scoreFailed);
+    }
+    store.run = null;
+  }
+
+  /**
+   * Leaving a mode for another keeps that run (saved after every move); only a new run of the same mode, a challenge
+   * being left, or a new classic run replacing the saved classic hands a live/ranked run in.
+   */
+  function prepareForNewRun(target: Mode) {
+    if (challenge) finishCurrentRun();
+    else if (target === mode) finishCurrentRun();
+    if (target === 'classic') finishSavedClassic();
     run = null;
   }
 
@@ -243,9 +267,15 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       return;
     }
     rail.hidden = false;
-    const label = document.createElement('span');
+    const label = document.createElement('button');
+    label.type = 'button';
     label.className = 'mode-rail-name';
-    label.textContent = modeName(mode);
+    label.setAttribute('aria-label', `${t.over.changeMode}: ${modeName(mode)}`);
+    label.append(modeName(mode), kitIcon('caret-right', 'tohe-svg mode-rail-caret'));
+    label.addEventListener('click', () => {
+      sfx.play('click');
+      ctx.changeMode();
+    });
     rail.append(label);
 
     if (mode === 'orders') {
@@ -279,7 +309,6 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       line.className = 'mode-rail-line';
       line.textContent = t.zen.tag;
       rail.append(line);
-      rail.append(railButton(t.zen.leave, () => ctx.changeMode()));
     } else {
       const line = document.createElement('span');
       line.className = 'mode-rail-line';
@@ -290,9 +319,56 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     }
   }
 
+  /** Resumes the saved run of `modeChoice`; the same run already on the board just closes the screen. */
+  async function resumeRun(modeChoice: Mode, saved: State) {
+    if (saved === state && kit) {
+      ctx.overlay.hide();
+      return;
+    }
+    if (challenge) finishCurrentRun();
+    else if (modeChoice === 'classic' && mode === 'classic') finishCurrentRun();
+    run = null;
+    const switching = kit !== null;
+    if (!switching) ctx.overlay.hide();
+    mode = modeChoice;
+    challenge = null;
+    banked = false;
+    endedRecord = false;
+    count(`mode.start.${modeChoice}`);
+    if (modeChoice === 'daily') count('daily.start');
+    state = saved;
+    runId = modeChoice === 'classic' ? (store.ranked?.run ?? store.run ?? newRunId()) : newRunId();
+    if (modeChoice === 'classic') {
+      store.run = runId;
+      run = session.run(runId);
+    } else {
+      run = null;
+    }
+    if (switching) {
+      ctx.overlay.show({
+        layout: 'loading',
+        icon: { src: 'icon.svg' },
+        title: shellStrings(session.locale).loading,
+        actions: [],
+      });
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    }
+    const current = await ensureBoard();
+    if (left) return;
+    current.setBoard(state);
+    scores.setBest(bestOf(mode));
+    showScore(state.score, false);
+    showTarget();
+    updateRail();
+    if (ctx.firstTime) current.showHint(true);
+    if (state.choice) showChoice();
+    else ctx.overlay.hide();
+    void save();
+  }
+
   /** Starts a fresh run of `modeChoice` (a ranked classic run when the hub deals one). */
   async function startNewRun(modeChoice: Mode) {
-    stopRun();
+    prepareForNewRun(modeChoice);
     // A mode switch happens in place: show the loading card before the board is rebuilt, so the tap has an answer.
     const switching = kit !== null;
     if (!switching) ctx.overlay.hide();
@@ -650,8 +726,9 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   async function toRegular() {
     moving = true;
     ctx.overlay.hide();
+    if (challenge) finishCurrentRun();
     challenge = null;
-    const resumed = state?.mode === 'classic' && !state.over ? null : store.game;
+    const resumed = store.game;
     if (resumed && !resumed.over) {
       mode = 'classic';
       state = resumed;
@@ -756,6 +833,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   const onKey = (event: KeyboardEvent) => {
     if (!board || ctx.overlay.visible) return;
+    // A focused control (the mode chip, the Menu button) keeps its own Enter/Space and arrows.
+    if ((event.target as HTMLElement | null)?.closest('button, a, input, select, textarea')) return;
     if (event.key === 'ArrowLeft') board.nudge(-1);
     else if (event.key === 'ArrowRight') board.nudge(1);
     else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
@@ -771,31 +850,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   if (opened?.result === 'handled') {
     openEntry(opened.challenge);
     await startChallenge();
-  } else if (!ctx.fresh && resumeMode()) {
-    const resume = resumeMode() as Mode;
-    const saved = savedRun(resume) as State;
-    mode = resume;
-    count(`mode.start.${mode}`);
-    if (mode === 'daily') count('daily.start');
-    state = saved;
-    runId = resume === 'classic' ? (store.run ?? newRunId()) : newRunId();
-    if (resume === 'classic') {
-      store.run = runId;
-      run = session.run(runId);
-    }
-    const current = await ensureBoard();
-    if (!left) {
-      current.setBoard(state);
-      scores.setBest(bestOf(mode));
-      showScore(state.score, false);
-      showTarget();
-      updateRail();
-      if (state.choice) showChoice();
-      void save();
-    }
   } else {
-    const chosen = ctx.choice && isMode(ctx.choice) ? ctx.choice : 'orders';
-    await startNewRun(chosen);
+    const chosen = ctx.choice && isMode(ctx.choice) ? ctx.choice : null;
+    const resume = !ctx.fresh ? (chosen ?? resumeMode()) : null;
+    const saved = resume ? savedRun(resume) : null;
+    if (resume && saved) await resumeRun(resume, saved);
+    else await startNewRun(chosen ?? resume ?? 'orders');
   }
 
   ctx.ready();
@@ -803,13 +863,22 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   return {
     pause: () => kit?.pause(),
     resume: () => kit?.resume(),
-    newGame: (choice?: string) => {
+    newGame: (choice?: string, fresh = true) => {
       sfx.play('click');
       const chosen = choice && isMode(choice) ? choice : mode;
-      void startNewRun(chosen);
+      const saved = !fresh ? savedRun(chosen) : null;
+      if (saved) void resumeRun(chosen, saved);
+      else void startNewRun(chosen);
     },
-    // Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
+    // Đổi chế độ and the block colours open over the panel; the game behind stays as it was.
     quick: () => [
+      {
+        kind: 'action',
+        icon: 'cards',
+        label: t.over.changeMode,
+        value: t.modeNames[mode],
+        onClick: () => ctx.changeMode(),
+      },
       {
         kind: 'card',
         icon: 'palette',

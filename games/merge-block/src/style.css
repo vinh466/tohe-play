@@ -148,11 +148,23 @@ body {
 }
 
 .mode-rail-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
   padding: 0.05rem 0.5rem;
+  border: 0;
   border-radius: 999px;
   background: var(--tohe-ink);
   color: var(--tohe-page);
+  font: inherit;
   font-weight: 900;
+  cursor: pointer;
+}
+
+.mode-rail-caret {
+  width: 0.7rem;
+  height: 0.7rem;
+  transform: rotate(90deg);
 }
 
 .mode-rail-line {
@@ -381,36 +393,74 @@ body {
 }
 
 .mode-choice {
+  width: 100%;
+  border: 1px solid var(--tohe-line);
+  border-radius: 1.1rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 2px 0 var(--tohe-line);
+  overflow: hidden;
+  color: var(--tohe-ink);
+  font: inherit;
+}
+
+.mode-choice-main {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
   align-items: center;
   gap: 0.65rem;
   width: 100%;
   padding: 0.65rem 0.7rem 0.65rem 0.65rem;
-  border: 1px solid var(--tohe-line);
-  border-radius: 1.1rem;
-  background: var(--tohe-surface);
-  box-shadow: 0 2px 0 var(--tohe-line);
-  color: var(--tohe-ink);
+  border: 0;
+  background: transparent;
+  color: inherit;
   font: inherit;
   text-align: left;
   cursor: pointer;
-  transition:
-    transform 0.12s ease,
-    box-shadow 0.12s ease,
-    background 0.12s ease;
+  transition: background 0.12s ease;
 }
 
-.mode-choice:hover,
-.mode-choice:focus-visible {
+.mode-choice-main:hover,
+.mode-choice-main:focus-visible {
   background: var(--tohe-soft);
-  box-shadow: 0 3px 0 var(--tohe-line);
-  transform: translateY(-1px);
 }
 
-.mode-choice:active {
-  box-shadow: 0 1px 0 var(--tohe-line);
-  transform: translateY(1px);
+.mode-choice-main:focus-visible {
+  outline: 2px solid var(--tohe-focus);
+  outline-offset: -2px;
+}
+
+.mode-choice-foot {
+  display: flex;
+  justify-content: flex-end;
+  padding: 0.22rem 0.5rem 0.32rem;
+  border-top: 1px solid var(--tohe-line);
+}
+
+.mode-choice-fresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  min-height: 1.85rem;
+  padding: 0 0.55rem;
+  border: 0;
+  border-radius: 0.6rem;
+  background: var(--tohe-soft);
+  color: var(--tohe-ink-soft);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mode-choice-fresh .tohe-svg {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.mode-choice-fresh:hover,
+.mode-choice-fresh:focus-visible {
+  background: var(--tohe-soft-strong);
+  color: var(--tohe-ink);
 }
 
 .mode-choice-mark {
@@ -497,6 +547,11 @@ body {
   color: var(--tohe-on-brand);
 }
 
+.mode-choice-badge.is-resume {
+  background: var(--tohe-leaf);
+  color: var(--tohe-page);
+}
+
 .mode-choice-chevron {
   flex: none;
   width: 1.25rem;
@@ -510,10 +565,9 @@ body {
   box-shadow: none;
 }
 
-.mode-choice.is-workshop:hover,
-.mode-choice.is-workshop:focus-visible {
+.mode-choice.is-workshop .mode-choice-main:hover,
+.mode-choice.is-workshop .mode-choice-main:focus-visible {
   background: var(--tohe-soft);
-  box-shadow: none;
 }
 
 .mode-choice.is-workshop .mode-choice-mark {

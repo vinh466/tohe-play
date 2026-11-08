@@ -103,12 +103,14 @@ screen with four tools or fewer looks as before.
 **How to play, the first time:** the how-to screen with **Bắt đầu** before the first game (`data-tohe-play`);
 afterwards it is Cách chơi. Games point at a first move on the board after it (`ctx.firstTime`).
 
-**A game with modes:** `prePlay(ctx)` returns the screen shown before a new game — the title's Chơi with nothing in
-progress, Ván mới, and the panel's Ván mới. The game's own buttons call `ctx.choose(id)` to start play with that id
-(the stage gets it as `ctx.choice`); `ctx.show(card)` opens a child screen over it, such as the Workshop, whose Back
-returns to the modes. Back from the modes returns to the title or the panel, and phone Back, Esc and the corner all
-do the same. The first-time how-to comes before the modes. A game-over card can call `ctx.changeMode()` to open the
-same screen over the panel.
+**A game with modes:** `prePlay(ctx)` returns the screen shown before a game — the title's Chơi with nothing in
+progress, its Chế độ when a run is in progress, and the panel's Đổi chế độ. The game's own buttons call
+`ctx.choose(id)` for a fresh run or `ctx.choose(id, false)` for the run in progress; the stage gets the id as
+`ctx.choice` and `ctx.fresh` says which. `ctx.show(card)` opens a child screen over it, such as the Workshop or a
+fresh-run question, whose Back returns to the modes. Back from the modes returns to the title or the panel, and
+phone Back, Esc and the corner all do the same. The first-time how-to comes before the modes. A game-over card can
+call `ctx.changeMode()` to open the same screen over the panel. The title action becomes **Chế độ** (it opens the
+modes instead of asking to end the run), so a game can keep one run per mode and resume any of them.
 
 ### Play stage
 
@@ -151,7 +153,7 @@ title screen → Tò He.
 | Game | Title screen (logo · decor) | Cài đặt | Quick panel rows | HUD (start · middle · end) |
 | --- | --- | --- | --- | --- |
 | Chạm Chấm (`hello`) | its dot · dots and a star; Chơi, Kỷ lục, Âm thanh, Cài đặt, Xếp hạng, Cách chơi | sound | sound | score · `timer` seconds · best; 3-2-1 before a round goes on |
-| Ghép Khối (`merge-block`) | the Máy Ghép mascot mark · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools; a pre-play screen with the four modes (Cổ điển, Ca làm, Ca hôm nay, Thư giãn) and the Xưởng | sound, `palette` Màu khối, `gear-six` Xưởng | sound, `palette` Màu khối (the presets), `gear-six` Xưởng | score · best (the next block waits on the loader); a mode rail under it (orders, the daily, parts, Về xưởng) |
+| Ghép Khối (`merge-block`) | the Máy Ghép mascot mark · blocks; Chơi / Chơi tiếp, Chế độ, Kỷ lục, the same tools; a pre-play hub with the four modes (Cổ điển, Ca làm, Ca hôm nay, Thư giãn), each resumable, and the Xưởng | sound, `palette` Màu khối, `gear-six` Xưởng | sound, `palette` Màu khối (the presets), `gear-six` Xưởng | score · best (the next block waits on the loader); a mode rail under it (orders, the daily, parts, Về xưởng) |
 | Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks; Chơi / Chơi tiếp, Ván mới, the three doors Vô Tận · Hành Trình · Mỗi Ngày, and Sổ Tay Khối as a tool | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | classic: score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu); Journey/Daily: score · `shuffle`, the goal/taps row and the star meter (the classic best is hidden because they are unranked) |
 | Tiến Lên (`tien-len`) | its cards · the four suits; `robot` Chơi với máy / Chơi tiếp, Bàn mới, Chơi online, Âm thanh, Cài đặt, Cách chơi | sound, `scroll` Luật nhà, `chair` Bàn chơi (from the next hand), `cards` Bộ bài | sound, `cards` Bộ bài (the decks); at a table also `scroll` Luật của bàn | table score · hand number · (`smiley` Cảm xúc) `arrows-down-up` Xếp số / Xếp bộ |
 
@@ -256,13 +258,13 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   loads nothing from outside its folder); a card's picture may instead be the game's own art, `{ src: 'icon.svg' }`.
   `decor` takes filled `ShapeName`s in the colours of the game's art. Labels and `strings` are words only: the kit
   draws the icon beside them. A game that needs an icon in its own controls uses `icon(name)` or `shape(name)`.
-- `StageContext`: `root` (empty, the stage builds in it), `fresh` (Ván mới from the title), `firstTime` (after the how-to),
-  `choice` (the mode id chosen with `prePlay`), `menuButton()`, `overlay` (the game's own cards), `gameOver(card, again?)`,
-  `changeMode()`, `ready()`.
-- `PlayStage`: `pause`, `resume`, `newGame` (in place; a mode id when the game has a pre-play screen), `leave` (save, then stop everything the stage started: the
-  engine, listeners, timers — the shell empties the root), `quick()` (rows: a `switch` applied at once, or a `card`
-  with its current `value` that opens over the panel — a `choiceList` that applies as the player taps, or text to
-  read — and goes back to it).
+- `StageContext`: `root` (empty, the stage builds in it), `fresh` (Ván mới from the title, or the mode screen's
+  fresh run), `firstTime` (after the how-to), `choice` (the mode id chosen with `prePlay`), `menuButton()`, `overlay`
+  (the game's own cards), `gameOver(card, again?)`, `changeMode()`, `ready()`.
+- `PlayStage`: `pause`, `resume`, `newGame` (in place; a mode id and `fresh` false to resume it when the game has a pre-play screen), `leave` (save, then stop everything the stage started: the
+  engine, listeners, timers — the shell empties the root), `quick()` (rows: a `switch` applied at once, an `action`
+  that does something and closes the panel, or a `card` with its current `value` that opens over the panel — a
+  `choiceList` that applies as the player taps, or text to read — and goes back to it).
 - **Credits** (`credits.ts`): `readCredits()` → the game's `AssetCredits`, or null for a game without `assets` (or
   with a credits file it cannot read); `formatCredits(credits, { licences })` → per pack a title and its lines. The
   shell uses both for Ghi công; a game may use them to show credits elsewhere.

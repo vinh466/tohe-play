@@ -8,7 +8,7 @@ import { type Strings, todayId } from './strings.ts';
 
 export interface ModeSelectOptions {
   t: Strings;
-  choose(id: string): void;
+  choose(id: string, fresh?: boolean): void;
   show(card: Omit<OverlayCard, 'actions'>): void;
   /** "Chương 1 · Màn 4" for a journey run. */
   levelLabel(id: string): string;
@@ -114,7 +114,7 @@ export function modeSelectContent(options: ModeSelectOptions): HTMLElement {
     meta.textContent = row.meta;
     words.append(head, chip, meta);
     button.append(mark, words, kitIcon('caret-right', 'tohe-svg mode-choice-chevron'));
-    button.addEventListener('click', () => options.choose(row.slot));
+    button.addEventListener('click', () => options.choose(row.slot, false));
     line.append(button);
 
     if (row.fresh) {
@@ -138,7 +138,7 @@ export function modeSelectContent(options: ModeSelectOptions): HTMLElement {
     start.append(kitIcon('arrow-counter-clockwise', 'tohe-svg'), element('span', 'tohe-label'));
     const label = start.querySelector('.tohe-label');
     if (label) label.textContent = t.modeNewStart;
-    start.addEventListener('click', () => options.choose(`new:${slot}`));
+    start.addEventListener('click', () => options.choose(slot, true));
     body.append(start);
     options.show({ icon: 'arrow-counter-clockwise', title: `${t.modeNew} · ${name}`, content: body });
   }

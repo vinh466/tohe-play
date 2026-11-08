@@ -17,11 +17,14 @@ The core (2.0.1) is unchanged in every mode: the same machine, physics and aim.
 | **Ca hôm nay** | One classic run on a seed from the **local date**; a streak; share | No (local) | `daily` | `bests.daily` + `daily.best` |
 | **Thư giãn** | The classic without pressure or the jam; the player leaves by choice | No | not saved | none |
 
-The **title screen** (the shell) has one primary (Chơi tiếp / Chơi) and the tools; the **mode select** is a
-screen of the menu stage before a new game: the four modes, the **Xưởng**, the day's **Ca hôm nay** card (the date,
-the streak, the best), and the classic's ranked mark. It opens from Chơi with no run, from **Ván mới** (title or
-panel), and from the ticket's **Đổi chế độ**; Back returns to the title or the panel, never into a dead end. A saved
-run resumes straight into its mode. A challenge link opens its challenge at once.
+The **title screen** (the shell) has one primary (Chơi tiếp / Chơi) and the tools; with a run in progress its second
+action is **Chế độ**, which opens the mode hub without ending anything. The **mode select** is a screen of the menu
+stage: the four modes, the **Xưởng**, the day's **Ca hôm nay** card (the date, the streak, the best), and the
+classic's ranked mark. A mode with a saved run leads with **Chơi tiếp · điểm**; its **Ván mới** (Ca mới for the
+daily) is a small second action behind a confirmation, so one mode can be restarted without touching the others. It
+opens from Chơi with no run, from the title's **Chế độ**, from the panel's **Đổi chế độ**, and from the ticket's
+**Đổi chế độ**; Back returns to the title or the panel, never into a dead end. A challenge link opens its challenge
+at once.
 
 ## The board and the shot (unchanged)
 
@@ -104,9 +107,10 @@ If the rack fills, the game offers **Ván mới** / **Đổi chế độ**; noth
 1. **Title** (the menu stage, every open): the **mascot mark** (Máy Ghép) and **Ghép Khối** over drifting blocks;
    the chip "Ván đang chơi dở: …" (the mode + score) or the best; **Chơi / Chơi tiếp**, **Ván mới**; tools Âm
    thanh, Cài đặt (Màu khối, **Xưởng**), Xếp hạng (signed-in) and Cách chơi; **Về Tò He** last.
-2. **Mode select** (a menu-stage screen, before a new run): the four modes + the Workshop; the daily card; the
-   ranked mark on Cổ điển; the first run defaults to **Ca làm**. Back goes to the title, or to the panel when it
-   was opened from a run. The Workshop opens over it and Back returns to the modes.
+2. **Mode select** (a menu-stage hub): the four modes + the Workshop; the daily card; the ranked mark on Cổ điển;
+   the first run defaults to **Ca làm**. A saved run leads with **Chơi tiếp**; **Ván mới** is a smaller action with
+   a confirmation. Back goes to the title, or to the panel when it was opened from a run. The Workshop opens over
+   it and Back returns to the modes.
 3. **Playing**: the kit's HUD — Menu, score, best (the mode's) — the **order rail** (Ca làm) or the daily/zen tag,
    the **part strip**; the machine: the gauge (8–10 lamps, hollow/full), the rack, the safety line, the chute,
    the loader/feeder, the aim/ghost/merge preview.
@@ -117,7 +121,8 @@ If the rack fills, the game offers **Ván mới** / **Đổi chế độ**; noth
 6. **Game over**: the ticket — the mode, the score/best, the orders, the shipped, the scrap, the XP/level; a record
    if it is one; **Chơi lại**, **Đổi chế độ**, **Xưởng** (if scrap), **Thách bạn** (classic/daily), **Menu chính**;
    the jam or the clock-out.
-7. **Quick panel**: Tiếp tục; Âm thanh; Màu khối; Ván mới; Cách chơi; Menu chính.
+7. **Quick panel**: Tiếp tục; Âm thanh; **Đổi chế độ** (the mode hub); Màu khối; Xưởng; **Ván mới** (the current
+   mode, asked first); Cách chơi; Menu chính.
 8. **Watching a ranked run** (the admin console, ADR 0032): the classic replay, unchanged: Menu, score, Nước n/m;
    the slider/Lùi/Phát-Dừng/Tới, the speeds; the panel; Thoát xem lại.
 
@@ -151,7 +156,7 @@ has no canvas, ADR 0020).
 
 | Capability | Use |
 | --- | --- |
-| `save` | `{ best, bests, game, orders, tutorialSeen, run, palette, ranked?, challenge?, workshop?, daily? }`. `game` is the Cổ điển state; `orders` the Ca làm state; `daily` the day/streak/best; `workshop` the scrap/XP/level/blueprints; `ranked` the classic run; `challenge` the last link. A v2 save upgrades its classic `game` to v3; v1 starts fresh. |
+| `save` | `{ best, bests, game, orders, tutorialSeen, run, palette, ranked?, challenge?, workshop?, daily?, last }`. `game` is the Cổ điển state; `orders` the Ca làm state; `daily` the day/streak/best; `workshop` the scrap/XP/level/blueprints; `ranked` the classic run; `challenge` the last link; `last` the mode the title's Chơi tiếp resumes first. A v2 save upgrades its classic `game` to v3; v1 starts fresh. |
 | `scores` | The classic live score run (update/finish) as today. The Ca làm/Ca hôm nay/Thư giãn do **not** open a live run or a server board; they are local. The challenge keeps its normal score run (never ranked). |
 | `ranked` | Cổ điển only: the server's seed, the columns, the verify/replay. The new modes' states/parts are not in the ranked run. |
 | `entries` | `share`: the v2 classic challenge and the v3 daily challenge; the shell answers `unsupported` for newer versions, `invalid` malformed. |
@@ -160,7 +165,9 @@ has no canvas, ADR 0020).
 Invariants (the bot/unit tests): no equal orthogonal neighbours after a move; no hole above a block; the score
 never decreases; ≤35 blocks; the pressure 0…the mode's max, the shake resets it; the game over at the jam for
 Cổ điển/Ca làm/Ca hôm nay, never for Thư giãn; the orders complete exactly on their ships; the choice blocks the
-next shot until a part is chosen; a save restores the same state (v3); the classic replay/verify unchanged.
+next shot until a part is chosen; a save restores the same state (v3); the classic replay/verify unchanged. Each
+mode keeps one run: moving to another mode saves the old one (its ranked run keeps recording if it is Cổ điển), a
+new run of a mode replaces that mode's run behind a confirmation, and a run with no shots is not offered for resume.
 
 ## Technology
 
