@@ -145,7 +145,7 @@ title screen → Tò He.
 | --- | --- | --- | --- | --- |
 | Chạm Chấm (`hello`) | its dot · dots and a star; Chơi, Kỷ lục, Âm thanh, Cài đặt, Xếp hạng, Cách chơi | sound | sound | score · `timer` seconds · best; 3-2-1 before a round goes on |
 | Ghép Khối (`merge-block`) | the Máy Ghép mascot mark · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools; play opens the four modes (Cổ điển, Ca làm, Ca hôm nay, Thư giãn) and the Xưởng | sound, `palette` Màu khối, `gear-six` Xưởng | sound, `palette` Màu khối (the presets), `gear-six` Xưởng | score · best (the next block waits on the loader); a mode rail under it (orders, the daily, parts, Về xưởng) |
-| Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu) under it |
+| Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks; Chơi / Chơi tiếp, Ván mới, the three doors Vô Tận · Hành Trình · Mỗi Ngày, and Sổ Tay Khối as a tool | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | classic: score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu); Journey/Daily: score · `shuffle`, the goal/taps row and the star meter (the classic best is hidden because they are unranked) |
 | Tiến Lên (`tien-len`) | its cards · the four suits; `robot` Chơi với máy / Chơi tiếp, Bàn mới, Chơi online, Âm thanh, Cài đặt, Cách chơi | sound, `scroll` Luật nhà, `chair` Bàn chơi (from the next hand), `cards` Bộ bài | sound, `cards` Bộ bài (the decks); at a table also `scroll` Luật của bàn | table score · hand number · (`smiley` Cảm xúc) `arrows-down-up` Xếp số / Xếp bộ |
 
 What a game draws itself, on its board and in the HUD's middle and end, follows the same rule with the kit's
@@ -243,7 +243,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   title's tools; `render` returns a cleanup called when the screen is left. `shell.openScreen(id)` opens one from a
   mode button or another screen; `modes` adds secondary buttons under play; `progress()` adds a line under the title
   (the journey's stars, a daily stamp). The shell keeps the header, Back, focus and the theme; a game's screen is
-  content only. Lấp Ô uses four: Hành trình, Hôm nay, Thống kê and Thành tích.
+  content only. Lấp Ô uses four: Hành trình, Hôm nay, Thống kê and Thành tích; Chạm Ghép uses three: Hành Trình, Mỗi Ngày and Sổ Tay Khối.
 - **Icons, not emoji** (ADR 0049). Every `icon` the kit takes — a button's, a tool's, a row's, a setting's, a card's —
   is an `IconName` of the kit's set (`icons.ts`: Phosphor, MIT, copied the way the hub copies its own, since a game
   loads nothing from outside its folder); a card's picture may instead be the game's own art, `{ src: 'icon.svg' }`.

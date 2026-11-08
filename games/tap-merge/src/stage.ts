@@ -1,6 +1,6 @@
 // The play stage (ADR 0020): the board, the HUD, the goal and the moves. The shell creates it when the player presses
 // play and destroys it when they go back to the menu; leave() saves and stops everything start() started. Rules live
-// in logic.ts, drawing in view.ts, the save in app.ts.
+// in logic.ts, drawing in view.ts, the save in app.ts. One stage plays all three doors: the state carries its mode.
 import {
   bump,
   choiceList,
@@ -14,14 +14,45 @@ import {
   type Theme,
 } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
-import { persist, session, sfx, store, t } from './app.ts';
+import {
+  activeMode,
+  badgeTitle,
+  startClassic as countClassicStart,
+  finishGame,
+  gameFor,
+  levelLabel,
+  newCards,
+  nextSeed,
+  noteSeen,
+  persist,
+  runFor,
+  session,
+  sfx,
+  store,
+  t,
+} from './app.ts';
+import {
+  dailyDone,
+  dailySeed,
+  dailyStars,
+  LEVEL_BY_ID,
+  type Level,
+  levelComplete,
+  levelStars,
+  nextLevel,
+} from './content/levels.ts';
+import { todayId } from './date.ts';
 import {
   type Cell,
   cellAt,
+  DAILY_TAPS,
+  dailyDateOf,
   floorOf,
   isStuck,
   matches,
+  newDailyGame,
   newGame,
+  newLevelGame,
   nextMilestone,
   type State,
   shuffle,
@@ -37,33 +68,84 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const stage = ctx.root.querySelector<HTMLElement>('#stage') as HTMLElement;
   const goal = ctx.root.querySelector<HTMLElement>('#goal') as HTMLElement;
   const scoreFailed = (error: unknown) => session.log('warn', `score not stored: ${String(error)}`);
+  const toast = document.createElement('div');
+  toast.className = 'toast';
+  ctx.root.append(toast);
 
-  // ------------------------------------------------------------------ the game: continue, or a fresh one
+  // ------------------------------------------------------------------ the game: a level, the daily, a resume or the classic
 
+  const pending = ctx.fresh ? { ...store.pending } : {};
+  if (ctx.fresh) store.pending = {};
+  let level: Level | null = null;
+  let runId: string | null = null;
+  let run: ReturnType<typeof session.run> | null = null;
   let state: State;
-  let runId: string;
-  if (!ctx.fresh && store.game && !store.game.over) {
-    state = store.game;
-    runId = store.run ?? newRunId();
-  } else {
-    // A game left unfinished ends here and keeps the best score it reached on the leaderboard.
-    const previous = store.game;
-    if (previous && !previous.over && previous.score > 0 && store.run) {
+
+  const beginClassic = (): State => {
+    const previous = store.classicGame;
+    if (previous && previous.score > 0 && store.run) {
       void session.run(store.run).finish(previous.score).catch(scoreFailed);
     }
-    // The next game continues the PRNG sequence, so every new game differs but stays reproducible.
-    state = newGame(previous?.rng ?? session.seed, store.best);
+    countClassicStart();
     runId = newRunId();
+    run = runFor(runId);
+    level = null;
+    store.lastMode = 'classic';
+    return newGame(nextSeed(), store.best, { mode: 'classic' });
+  };
+
+  const beginLevel = (nextLevelDef: Level): State => {
+    level = nextLevelDef;
+    runId = null;
+    run = null;
+    store.lastMode = 'journey';
+    return newLevelGame(nextLevelDef);
+  };
+
+  const beginDaily = (date: string): State => {
+    level = null;
+    runId = null;
+    run = null;
+    store.lastMode = 'daily';
+    return newDailyGame(date, dailySeed(date));
+  };
+
+  if (ctx.fresh && pending.level) {
+    const chosen = LEVEL_BY_ID.get(pending.level);
+    state = chosen ? beginLevel(chosen) : beginClassic();
+  } else if (ctx.fresh && pending.daily) {
+    state = beginDaily(pending.daily);
+  } else if (!ctx.fresh) {
+    const mode = activeMode();
+    const saved = mode ? gameFor(mode) : null;
+    if (!saved) state = beginClassic();
+    else {
+      state = saved;
+      store.lastMode = state.mode;
+      if (state.mode === 'journey' && state.level) level = LEVEL_BY_ID.get(state.level) ?? null;
+      if (state.mode === 'classic') {
+        runId = store.run ?? newRunId();
+        run = runFor(runId);
+      }
+    }
+  } else {
+    state = beginClassic();
   }
-  // The leaderboard shows the game in progress as it grows, and its best score stays when it ends.
-  let run = session.run(runId);
-  /** The score passes the best score once a game; a game resumed above it has already had its moment. */
-  let passedBest = store.best > 0 && state.score > store.best;
+
+  /** The score passes the classic best once a game; a game resumed above it has already had its moment. */
+  let passedBest = state.mode === 'classic' && store.best > 0 && state.score > store.best;
 
   const save = () => {
-    store.game = state;
-    store.best = Math.max(store.best, state.best);
-    store.run = runId;
+    store.lastMode = state.mode;
+    if (state.mode === 'classic') {
+      store.classicGame = state;
+      store.run = runId;
+      store.best = Math.max(store.best, state.best);
+    } else if (state.mode === 'journey') {
+      store.journeyGame = state;
+    } else {
+      store.dailyGame = state;
+    }
     return persist();
   };
 
@@ -72,6 +154,11 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const scores = hud.score({ score: t.score, best: t.best });
   scores.setBest(store.best);
+  // Only the classic is ranked: a Journey or Daily score must not light the classic best's crown.
+  if (state.mode !== 'classic') {
+    const bestBox = ctx.root.querySelector<HTMLElement>('.tohe-stat-best');
+    if (bestBox) bestBox.style.display = 'none';
+  }
   const rescueBox = document.createElement('div');
   rescueBox.className = 'rescue';
   const shuffleLabel = document.createElement('span');
@@ -88,29 +175,89 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   let theme: Theme = session.settings.theme;
   const showScore = (score: number, animate = true) => scores.set(score, animate);
 
+  const starMeter = (count: number): HTMLElement => {
+    const row = document.createElement('span');
+    row.className = 'star-meter';
+    row.setAttribute('aria-label', t.stars(count));
+    for (let i = 0; i < 3; i++) {
+      const star = icon('star');
+      star.classList.add('star', i < count ? 'is-on' : 'is-off');
+      row.append(star);
+    }
+    return row;
+  };
+
+  const goalMain = (name: string, value?: HTMLElement): HTMLElement => {
+    const line = document.createElement('span');
+    line.className = 'goal-main';
+    line.append(icon('target'), document.createTextNode(name));
+    if (value) line.append(value);
+    return line;
+  };
+
   /**
-   * The goal: the next milestone and the value it retires: "Mục tiêu [4K] tạm biệt [2]". It lights up when one more new
-   * largest block reaches it, and pops when it moves on (SPEC.md, "Rising floor").
+   * The goal row. The classic shows the next milestone and the value it retires; a Journey shows the target and the
+   * par; a Daily shows the tap budget and the 1K/2K/4K stars. The classic row is unchanged (SPEC.md, "Rising floor").
    */
   function showGoal(reached = false) {
-    const target = nextMilestone(state.top);
-    const retired = floorOf(state.top);
-    const label = document.createElement('span');
-    label.className = 'goal-label';
-    label.append(icon('target'), t.goal);
-    const then = document.createElement('span');
-    then.textContent = t.goalThen;
-    goal.replaceChildren(
-      label,
-      miniBlock(target, theme, store.palette),
-      then,
-      miniBlock(retired, theme, store.palette),
-    );
-    goal.setAttribute('aria-label', t.goalLabel(formatValue(2 ** target), formatValue(2 ** retired)));
-    const near = target - state.top === 1;
-    if (near && !goal.classList.contains('is-near')) bump(goal);
-    goal.classList.toggle('is-near', near);
-    if (reached) bump(goal);
+    goal.classList.toggle('is-multi', state.mode !== 'classic');
+    if (state.mode === 'classic') {
+      const target = nextMilestone(state.top);
+      const retired = floorOf(state.top);
+      const label = document.createElement('span');
+      label.className = 'goal-label';
+      label.append(icon('target'), t.goal);
+      const then = document.createElement('span');
+      then.textContent = t.goalThen;
+      goal.replaceChildren(
+        label,
+        miniBlock(target, theme, store.palette),
+        then,
+        miniBlock(retired, theme, store.palette),
+      );
+      goal.setAttribute('aria-label', t.goalLabel(formatValue(2 ** target), formatValue(2 ** retired)));
+      const near = target - state.top === 1;
+      if (near && !goal.classList.contains('is-near')) bump(goal);
+      goal.classList.toggle('is-near', near);
+      if (reached) bump(goal);
+      return;
+    }
+
+    if (state.mode === 'journey' && level) {
+      const projected = levelComplete(state, level)
+        ? levelStars(state, level)
+        : state.moves <= level.par.three
+          ? 3
+          : state.moves <= level.par.two
+            ? 2
+            : 1;
+      const main = goalMain(t.goal, miniBlock(level.target, theme, store.palette));
+      const sub = document.createElement('span');
+      sub.className = 'goal-sub';
+      sub.append(document.createTextNode(t.goalTaps(state.moves, level.par.three)), starMeter(projected));
+      goal.replaceChildren(main, sub);
+      goal.setAttribute(
+        'aria-label',
+        `${t.target(formatValue(2 ** level.target))} · ${t.goalTaps(state.moves, level.par.three)}`,
+      );
+      goal.classList.remove('is-near');
+      if (reached) bump(goal);
+      return;
+    }
+
+    if (state.mode === 'daily') {
+      const main = document.createElement('span');
+      main.className = 'goal-main';
+      main.append(icon('timer'), document.createTextNode(t.daily), miniBlock(12, theme, store.palette));
+      main.append(document.createTextNode(`Nước ${state.moves}/${DAILY_TAPS}`));
+      const sub = document.createElement('span');
+      sub.className = 'goal-sub';
+      sub.append(document.createTextNode(t.dailyStars), starMeter(dailyStars(state.top)));
+      goal.replaceChildren(main, sub);
+      goal.setAttribute('aria-label', `${t.daily}, ${t.dailyStars}, ${t.dailyBudget(DAILY_TAPS)}`);
+      goal.classList.remove('is-near');
+      if (reached) bump(goal);
+    }
   }
 
   /** A move or a shuffle is animating: taps wait for it (SPEC.md, "A move"). */
@@ -159,6 +306,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     board.setBoard(state);
     moving = false;
     showShuffle();
+    showGoal();
   });
 
   // Light/dark follows the hub (ADR 0013): the page through the menu stage's followTheme, the board here.
@@ -178,6 +326,28 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     void save();
   }
 
+  // ------------------------------------------------------------------ a move
+
+  function showToast(text: string): void {
+    toast.textContent = text;
+    toast.classList.add('is-visible');
+    window.setTimeout(() => toast.classList.remove('is-visible'), 1900);
+  }
+
+  /** Count the merge sizes and the blocks met; returns the values newly added to the notebook. */
+  function recordMove(next: State, events: Parameters<BoardScene['play']>[0]): number[] {
+    for (const event of events) {
+      if (event.type === 'merge')
+        store.stats.maxAbsorbed = Math.max(store.stats.maxAbsorbed, event.from.length + 1);
+    }
+    const fresh = noteSeen(next, events);
+    if (fresh.length > 0) {
+      const values = fresh.map((exp) => formatValue(2 ** exp)).join(', ');
+      showToast(t.newCard(values));
+    }
+    return fresh;
+  }
+
   async function play(cell: Cell) {
     if (moving || ctx.overlay.visible) return;
     const result = tap(state, cell);
@@ -185,14 +355,10 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       if (result.reason === 'no_match') board.reject(cell);
       return;
     }
+    const fresh = recordMove(result.state, result.events);
     await animate(result.state, result.events);
     if (left) return;
-    void run.update(state.score).catch(scoreFailed);
-    if (!passedBest && store.best > 0 && state.score > store.best && !state.over) {
-      passedBest = true;
-      board.celebrateRecord();
-    }
-    if (state.over) endGame();
+    afterMove(fresh);
   }
 
   async function rescue() {
@@ -200,7 +366,10 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     const result = shuffle(state);
     if (!result.ok) return;
     sfx.play('click');
+    const fresh = recordMove(result.state, result.events);
     await animate(result.state, result.events);
+    if (left) return;
+    afterMove(fresh);
   }
   shuffleButton.addEventListener('click', () => void rescue());
 
@@ -214,29 +383,184 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     showScore(state.score);
     moving = false;
     showShuffle();
+    showGoal();
     void save();
   }
 
-  function endGame() {
+  function afterMove(freshCards: number[]) {
+    if (state.mode === 'classic') {
+      void run?.update(state.score).catch(scoreFailed);
+      if (!passedBest && store.best > 0 && state.score > store.best && !state.over) {
+        passedBest = true;
+        board.celebrateRecord();
+      }
+      if (state.over) endClassic();
+      else void save();
+      return;
+    }
+
+    if (state.mode === 'journey') {
+      if (level && levelComplete(state, level)) {
+        state = { ...state, over: true };
+        endJourney(freshCards);
+        return;
+      }
+      if (state.over) {
+        endJourneyFailed(freshCards);
+        return;
+      }
+      void save();
+      return;
+    }
+
+    if (state.mode === 'daily') {
+      if (dailyDone(state)) {
+        state = { ...state, over: true };
+        endDaily(freshCards);
+        return;
+      }
+      void save();
+    }
+  }
+
+  // ------------------------------------------------------------------ end cards
+
+  function starsRow(count: number): HTMLElement {
+    const row = document.createElement('div');
+    row.className = 'result-stars';
+    for (let i = 0; i < 3; i++) {
+      const star = icon('star');
+      star.classList.add('star', i < count ? 'is-on' : 'is-off');
+      row.append(star);
+    }
+    return row;
+  }
+
+  function resultContent(stars: number, cards: number[], badges: string[], note?: string): HTMLElement {
+    const content = document.createElement('div');
+    content.className = 'result';
+    if (stars >= 0) content.append(starsRow(stars));
+    if (note) {
+      const line = document.createElement('p');
+      line.className = 'result-note';
+      line.textContent = note;
+      content.append(line);
+    }
+    for (const exp of newCards(cards)) {
+      const row = document.createElement('div');
+      row.className = 'result-unlock';
+      row.append(miniBlock(exp, theme, store.palette));
+      const text = document.createElement('span');
+      text.textContent = t.newCard(formatValue(2 ** exp));
+      row.append(text);
+      content.append(row);
+    }
+    for (const badge of badges) {
+      const row = document.createElement('div');
+      row.className = 'result-unlock';
+      row.append(icon('star'));
+      const text = document.createElement('span');
+      text.textContent = t.newBadge(badgeTitle(badge));
+      row.append(text);
+      content.append(row);
+    }
+    return content;
+  }
+
+  function endClassic() {
+    toast.classList.remove('is-visible');
     const record = state.score > store.best;
+    const badges = finishGame(state);
     void save();
-    void run.finish(state.score).catch(scoreFailed);
+    void run?.finish(state.score).catch(scoreFailed);
     const largest = document.createElement('p');
     largest.className = 'largest';
     largest.append(t.largest(''), miniBlock(state.top, theme, store.palette));
+    const content = resultContent(-1, [], badges);
+    content.append(largest);
     ctx.gameOver({
       icon: record ? 'trophy' : { src: 'icon.svg' },
       title: record ? t.record : t.over,
       body: t.result(formatScore(state.score, session.locale), formatScore(store.best, session.locale)),
-      content: largest,
+      content,
     });
   }
 
-  function startNewGame() {
-    if (!state.over && state.score > 0) void run.finish(state.score).catch(scoreFailed);
-    runId = newRunId();
-    run = session.run(runId);
-    state = newGame(state.rng, store.best);
+  function endJourney(freshCards: number[]) {
+    toast.classList.remove('is-visible');
+    if (!level) return;
+    const stars = levelStars(state, level);
+    const badges = finishGame(state);
+    void save();
+    const next = nextLevel(level);
+    ctx.gameOver(
+      {
+        icon: stars === 3 ? 'trophy' : { src: 'icon.svg' },
+        title: t.levelDone(levelLabel(level.id)),
+        body: t.journeyResult(stars, state.moves),
+        content: resultContent(stars, freshCards, badges, t.notRanked),
+      },
+      { label: t.replayLevel, icon: 'play', onClick: () => startLevel(level as Level) },
+      next
+        ? [
+            {
+              label: t.nextLevel,
+              icon: 'caret-right',
+              dismiss: true,
+              onClick: () => startLevel(next),
+            },
+          ]
+        : [],
+    );
+  }
+
+  function endJourneyFailed(freshCards: number[]) {
+    toast.classList.remove('is-visible');
+    if (!level) return;
+    const badges = finishGame(state);
+    void save();
+    ctx.gameOver(
+      {
+        icon: 'smiley-sad',
+        title: t.stuck,
+        body: t.journeyResult(0, state.moves),
+        content: resultContent(0, freshCards, badges, t.notRanked),
+      },
+      { label: t.replayLevel, icon: 'play', onClick: () => startLevel(level as Level) },
+    );
+  }
+
+  function endDaily(freshCards: number[]) {
+    toast.classList.remove('is-visible');
+    const date = dailyDateOf(state.level) ?? todayId();
+    const stars = dailyStars(state.top);
+    const badges = finishGame(state);
+    void save();
+    const played = stars > 0;
+    ctx.gameOver(
+      {
+        icon: played ? 'trophy' : { src: 'icon.svg' },
+        title: t.daily,
+        body: t.dailyResult(
+          formatValue(2 ** state.top),
+          formatScore(state.score, session.locale),
+          state.moves,
+        ),
+        content: resultContent(stars, freshCards, badges, played ? t.dailyStamped : t.notRanked),
+      },
+      {
+        label: played ? t.dailyPractice : t.replayLevel,
+        icon: 'play',
+        onClick: () => startDaily(date),
+      },
+    );
+  }
+
+  function startLevel(next: Level) {
+    level = next;
+    state = newLevelGame(next);
+    runId = null;
+    run = null;
     passedBest = false;
     board.setBoard(state);
     scores.setBest(store.best);
@@ -244,6 +568,38 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     showShuffle();
     showGoal();
     void save();
+  }
+
+  function startDaily(date: string) {
+    level = null;
+    state = newDailyGame(date, dailySeed(date));
+    runId = null;
+    run = null;
+    passedBest = false;
+    board.setBoard(state);
+    scores.setBest(store.best);
+    showScore(0, false);
+    showShuffle();
+    showGoal();
+    void save();
+  }
+
+  function startClassicFresh() {
+    state = beginClassic();
+    passedBest = false;
+    board.setBoard(state);
+    scores.setBest(store.best);
+    showScore(0, false);
+    showShuffle();
+    showGoal();
+    void save();
+  }
+
+  /** The panel's Ván mới: a fresh game of the current mode, not a jump to another door. */
+  function restartCurrent() {
+    if (state.mode === 'journey' && level) startLevel(level);
+    else if (state.mode === 'daily' && state.level) startDaily(dailyDateOf(state.level) ?? todayId());
+    else startClassicFresh();
   }
 
   /** The first block that merges, for the pointing hand of the first game. */
@@ -272,6 +628,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   await board.whenReady;
   board.relayout(kit.size().width, kit.size().height);
+  noteSeen(state);
   board.setBoard(state);
   showScore(state.score, false);
   showShuffle();
@@ -285,9 +642,9 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     resume: () => kit.resume(),
     newGame: () => {
       sfx.play('click');
-      startNewGame();
+      restartCurrent();
     },
-    // Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
+    // Màu khối opens the presets over the panel; a tap repaints the board and the goal behind it at once.
     quick: () => [
       {
         kind: 'card',
