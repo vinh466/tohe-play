@@ -149,7 +149,7 @@ export function GameFrame({
   const { theme } = useTheme();
   const navigate = useNavigate();
   const shell = hasShell(game);
-  const [board, setBoard] = useState(false);
+  const [board, setBoard] = useState<{ board: string; label: string | null } | null>(null);
   const [stuck, setStuck] = useState(false);
   /** The sheet a game asked for (ADR 0045): one at a time. */
   const [ask, setAsk] = useState<GameAsk | null>(null);
@@ -444,8 +444,9 @@ export function GameFrame({
         answered.current = Date.now();
         firstScreen();
       },
-      onOpen: (what: ShellTarget) => {
-        if (what === 'leaderboard') setBoard(true);
+      onOpen: (what: ShellTarget, options?: { board?: string; label?: string }) => {
+        if (what === 'leaderboard')
+          setBoard({ board: options?.board ?? 'default', label: options?.label ?? null });
         else void navigate({ to: '/play/$gameId/rooms', params: { gameId: game.id } });
       },
       onSettings: (change) => setMuted(change.muted),
@@ -649,7 +650,14 @@ export function GameFrame({
       <EntryNotice open={notice && status === 'ready' && !ask} game={game} onClose={() => setNotice(false)} />
       {shell ? (
         <>
-          <LeaderboardSheet game={game} player={player} open={board} onClose={() => setBoard(false)} />
+          <LeaderboardSheet
+            game={game}
+            player={player}
+            open={board !== null}
+            board={board?.board ?? 'default'}
+            boardLabel={board?.label ?? null}
+            onClose={() => setBoard(null)}
+          />
           <ConfirmDialog
             open={stuck}
             title={t('shell.stuckTitle')}

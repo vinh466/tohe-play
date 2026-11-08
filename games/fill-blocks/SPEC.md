@@ -86,6 +86,8 @@ pressures the player. No ads, purchases, energy, currency or punishing streaks.
 - **Mastery rank** from personal best: 10 ranks, `0, 100, 250, 500, 1000, 1750, 2750, 4000, 6000, 9000`. No decay.
   The title and end card show the rank and the next threshold.
 - **Stats**: games, total score, total lines, best combo, longest streak, perfect clears, journey stars.
+- **Streak board**: a signed-in player's best streak of a run is submitted to the named board `streak` (ADR 0058)
+  and can be opened from the end card and the stats screen as **Bảng chuỗi**; the score board stays the main board.
 - **15 achievements**: first line, 2/3/4-line clear, ×3/×8 combo, first perfect clear, 1,000/5,000 points,
   100/500 lines, first journey chapter, all chapter 1 stars, 7 different days played. Achievements are in-game only.
 - **Board skins** (6): Giấy, Mực, Gấc, Nghệ, Lá, Đêm. They change the board frame/background, not the piece
@@ -158,7 +160,7 @@ there is no asset pack and no network request outside the game's folder.
 | Capability | Use |
 | --- | --- |
 | `save` | After every placement: the game state, best, journey stars, daily stamps, stats, achievements, settings. The last game in progress resumes on open. |
-| `scores` | A live run (ADR 0014): `session.run(id).update(score)` after scoring moves, `finish(score)` at the end or when a new game replaces it. Journey levels use a run of their own; the household board shows the best. |
+| `scores` | A live run (ADR 0014): `session.run(id).update(score)` after scoring moves, `finish(score)` at the end or when a new game replaces it. Journey levels use a run of their own; the household board shows the best. At the end, `submitScore(maxStreak, 'streak')` puts the run's longest streak on the named board `streak` (ADR 0058). |
 | `shell` | The two stages and the shell screens. |
 | settings | `muted`, `theme`; the game's own settings live in the save. |
 | seed | A new endless game mixes the hub's daily seed with a run counter; a journey/daily game uses its fixed seed. |

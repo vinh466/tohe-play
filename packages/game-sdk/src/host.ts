@@ -49,8 +49,8 @@ export interface HostOptions {
   onRoomReact?(reaction: Reaction): void;
   /** A `shell` game's menu opened or closed (ADR 0018): its answer to `menu()`. */
   onMenu?(open: boolean): void;
-  /** A `shell` game asks for the hub's leaderboard over it, or for its rooms lobby. */
-  onOpen?(what: ShellTarget): void;
+  /** A `shell` game asks for the hub's leaderboard over it (optionally a named board), or for its rooms lobby. */
+  onOpen?(what: ShellTarget, options?: { board?: string; label?: string }): void;
   /** A `shell` game's player switched sound in the game. */
   onSettings?(change: { muted: boolean }): void;
   /**
@@ -190,7 +190,8 @@ export function createHost(options: HostOptions): HostHandle {
         return options.onMenu?.(message.open);
       case 'open':
         if (!can('shell')) return fail('open without the "shell" capability', raw);
-        return options.onOpen?.(message.what);
+        if (message.board === undefined && message.label === undefined) return options.onOpen?.(message.what);
+        return options.onOpen?.(message.what, { board: message.board, label: message.label });
       case 'settings':
         if (!can('shell')) return fail('settings without the "shell" capability', raw);
         return options.onSettings?.({ muted: message.muted });

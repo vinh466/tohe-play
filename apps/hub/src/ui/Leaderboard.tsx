@@ -43,17 +43,22 @@ export function LeaderboardSheet({
   game,
   player,
   open,
+  board = 'default',
+  boardLabel = null,
   onClose,
 }: {
   game: GameSummary;
   player: Player;
   open: boolean;
+  board?: string;
+  boardLabel?: string | null;
   onClose(): void;
 }) {
   const { t } = useTranslation();
+  const title = `${t('leaderboard.title', { game: nameOf(game) })}${boardLabel ? ` · ${boardLabel}` : ''}`;
   return (
-    <Modal open={open} title={t('leaderboard.title', { game: nameOf(game) })} onClose={onClose}>
-      {open ? <Ranking gameId={game.id} player={player} /> : null}
+    <Modal open={open} title={title} onClose={onClose}>
+      {open ? <Ranking gameId={game.id} player={player} board={board} /> : null}
     </Modal>
   );
 }
@@ -62,7 +67,7 @@ export function LeaderboardSheet({
  * The account's board, its community's and the server's (ADR 0029) — this week, from Monday 00:00 in Việt Nam, or all
  * time.
  */
-function Ranking({ gameId, player }: { gameId: string; player: Player }) {
+function Ranking({ gameId, player, board }: { gameId: string; player: Player; board: string }) {
   const { t } = useTranslation();
   const me = useQuery(meQuery);
   const community = me.data?.account.community ?? null;
@@ -87,30 +92,42 @@ function Ranking({ gameId, player }: { gameId: string; player: Player }) {
       />
       {scope === 'community' && community ? <p className="text-ink-soft text-sm">{community}</p> : null}
       {scope === 'account' ? (
-        <Rows gameId={gameId} player={player} period={period} />
+        <Rows gameId={gameId} player={player} period={period} board={board} />
       ) : (
-        <PublicBoard gameId={gameId} scope={scope} period={period} playerId={player.id} />
+        <PublicBoard gameId={gameId} scope={scope} period={period} playerId={player.id} board={board} />
       )}
     </div>
   );
 }
 
-function Rows({ gameId, player, period }: { gameId: string; player: Player; period: Period }) {
+function Rows({
+  gameId,
+  player,
+  period,
+  board,
+}: {
+  gameId: string;
+  player: Player;
+  period: Period;
+  board: string;
+}) {
   const { t, i18n } = useTranslation();
-  const board = useQuery({
-    queryKey: ['leaderboard', gameId, period],
+  const boardQuery = useQuery({
+    queryKey: ['leaderboard', gameId, period, board],
     queryFn: async () => {
       // Push this device's newest scores first, so a round just played is on the board.
       await syncer.syncNow(player.id).catch(() => {});
-      return withOfflineCache(db, `leaderboard:${gameId}:${period}`, () => boards.account(gameId, period));
+      return withOfflineCache(db, `leaderboard:${gameId}:${period}:${board}`, () =>
+        boards.account(gameId, period, board),
+      );
     },
     staleTime: 0,
   });
   const format = new Intl.NumberFormat(i18n.language);
 
-  if (board.isPending) return <p className="text-ink-soft">{t('loading')}</p>;
-  if (board.isError) return <p className="text-danger">{t('leaderboard.failed')}</p>;
-  if (board.data.rows.length === 0) {
+  if (boardQuery.isPending) return <p className="text-ink-soft">{t('loading')}</p>;
+  if (boardQuery.isError) return <p className="text-danger">{t('leaderboard.failed')}</p>;
+  if (boardQuery.data.rows.length === 0) {
     return (
       <p className="text-ink-soft">{t(period === 'week' ? 'leaderboard.emptyWeek' : 'leaderboard.empty')}</p>
     );
@@ -118,7 +135,7 @@ function Rows({ gameId, player, period }: { gameId: string; player: Player; peri
 
   return (
     <ol className="flex flex-col gap-2">
-      {board.data.rows.map((entry, index) => {
+      {boardQuery.data.rows.map((entry, index) => {
         const mine = entry.profileId === player.id;
         return (
           <li

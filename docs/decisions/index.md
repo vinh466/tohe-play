@@ -71,3 +71,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0055](0055-front-page-explains-greets-and-the-app-asks-once.md) | Let the front page explain Tò He, greet a known device, and ask once at the app's door | Accepted; arrives in steps (front page, then the app's door); the front page is a shelf and play comes first at the door by 0057 |
 | [0056](0056-make-the-agent-workflow-tool-neutral.md) | Make the agent workflow tool-neutral, and put the gates in the repository | Accepted; the rules, `.opencode/` and the Definition of Done follow |
 | [0057](0057-a-game-shelf-for-16-plus.md) | Make the surface a game shelf for 16+, with family mode as a layer | Accepted |
+| [0058](0058-a-game-may-open-a-named-leaderboard.md) | A game may open a named leaderboard, with a short label | Accepted |
