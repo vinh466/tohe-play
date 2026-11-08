@@ -937,6 +937,9 @@ async function shellRun(run: {
       detail: underTitle === 0 ? undefined : `${underTitle} canvas element(s) before play`,
     });
     const played = await playFromTitle(frame);
+    // A game may open a mode screen or draw its first board before it is playing; wait for that first, then test
+    // how quickly Back answers from play. (Back while the stage is still loading is the loading check's business.)
+    const inPlay = await until(() => menus.at(-1) === false, FIRST_SCREEN_MS);
     await page.waitForTimeout(1500);
     let before = menus.length;
     host.menu();
@@ -947,7 +950,7 @@ async function shellRun(run: {
       ok: answered,
       detail: answered
         ? undefined
-        : `${played}; menu states after Back: ${JSON.stringify(menus.slice(before))}, exits: ${exits}`,
+        : `${played}; in play: ${inPlay}; menu states after Back: ${JSON.stringify(menus.slice(before))}, exits: ${exits}`,
     });
     if (answered) glyphs.push(...(await glyphControls(frame)));
     checks.push({

@@ -156,6 +156,67 @@ export function startRanked(): Promise<RankedRun | null> {
   ]);
 }
 
+/** A ranked run the menu stage asked for while its mode screen was open, used if Cổ điển is chosen. */
+let pendingRanked: RankedRun | null = null;
+let rankedRequest: Promise<RankedRun | null> | null = null;
+
+/** Asks the hub for a ranked seed while the modes are up, so a chosen Cổ điển starts without a wait. */
+export function prefetchRanked(): void {
+  if (pendingRanked || rankedRequest) return;
+  rankedRequest = startRanked();
+  void rankedRequest
+    .then((ranked) => {
+      pendingRanked = ranked;
+      rankedRequest = null;
+    })
+    .catch(() => {
+      rankedRequest = null;
+    });
+}
+
+/** The prefetched ranked run, or a fresh ask: null when the hub cannot deal one. */
+export async function takeRanked(): Promise<RankedRun | null> {
+  if (pendingRanked) {
+    const ranked = pendingRanked;
+    pendingRanked = null;
+    return ranked;
+  }
+  if (rankedRequest) {
+    try {
+      const ranked = await rankedRequest;
+      rankedRequest = null;
+      pendingRanked = null;
+      return ranked;
+    } catch {
+      rankedRequest = null;
+      return null;
+    }
+  }
+  try {
+    return await startRanked();
+  } catch {
+    return null;
+  }
+}
+
+/** The state a mode resumes, when it has one in progress. */
+export function savedRun(mode: Mode): State | null {
+  if (mode === 'classic') return store.game && !store.game.over ? store.game : null;
+  if (mode === 'orders') return store.orders && !store.orders.over ? store.orders : null;
+  if (mode === 'daily') {
+    const game = store.daily?.game;
+    return game && !game.over && store.daily?.date === localDate() ? game : null;
+  }
+  return null;
+}
+
+/** The mode Continue resumes: the last one played, or any run still in progress. */
+export function resumeMode(): Mode | null {
+  const order: Mode[] = [store.last, 'classic', 'orders', 'daily'];
+  for (const mode of order) if (savedRun(mode)) return mode;
+  return null;
+}
+
 /** Hands the ranked run of the game in progress in, with the score it reached (ADR 0030); none is kept after. */
 export function finishRanked(score: number) {
   const ranked = store.ranked;

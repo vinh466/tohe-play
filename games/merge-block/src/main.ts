@@ -13,9 +13,10 @@ import {
   hintList,
   type Theme,
 } from '@tohe/game-kit';
-import { localDate, persist, rankedReplay, session, sfx, store, t } from './app.ts';
+import { localDate, persist, prefetchRanked, rankedReplay, session, sfx, store, t } from './app.ts';
 import { readEntry } from './challenge.ts';
 import type { Mode } from './logic.ts';
+import { modeSelectContent } from './modes.ts';
 import { PALETTE_IDS } from './palette.ts';
 import { samples } from './swatches.ts';
 import { workshopContent } from './workshop.ts';
@@ -66,6 +67,28 @@ const shell = createShell({
     return [best, scrap].filter(Boolean).join(' · ') || null;
   },
   howTo: () => ({ icon: { src: 'icon.svg' }, title: t.title, content: hintList(t.hints) }),
+  prePlay: ({ choose, inProgress, show }) => {
+    prefetchRanked();
+    return {
+      icon: { src: 'icon.svg' },
+      title: t.modes.title,
+      body: t.modes.body,
+      content: modeSelectContent({
+        t,
+        choose,
+        inProgress,
+        show,
+        theme,
+        onPalette: (id) => {
+          sfx.play('click');
+          store.palette = id;
+          void persist();
+        },
+        format: (value) => formatScore(value, session.locale),
+      }),
+      actions: [],
+    };
+  },
   tutorial: {
     seen: () => store.tutorialSeen,
     done: () => {

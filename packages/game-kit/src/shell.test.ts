@@ -63,7 +63,7 @@ function setup(overrides: Partial<ShellOptions> = {}, can: ShellInfo = { leaderb
       return {
         pause: () => calls.push('pause'),
         resume: () => calls.push('resume'),
-        newGame: () => calls.push('newGame'),
+        newGame: (choice?: string) => calls.push(choice ? `newGame ${choice}` : 'newGame'),
         leave: () => void calls.push('leave'),
         quick: (): QuickRow[] => [
           {
@@ -221,6 +221,60 @@ describe('the menu stage (ADR 0020)', () => {
     tap('Ván mới');
     await settle();
     expect(calls).toEqual(['start fresh']);
+  });
+
+  it('shows the game’s mode screen before a new game, and starts the chosen mode', async () => {
+    const { shell, menu, tap, calls, ctx } = setup({
+      prePlay: ({ choose }) => ({
+        title: 'Chọn cách chơi',
+        actions: [{ label: 'Ca làm', onClick: () => choose('orders') }],
+      }),
+    });
+    shell.start();
+    tap('Chơi');
+    expect(menu()?.title).toBe('Chọn cách chơi');
+    expect(menu()?.layout).toBe('screen');
+    expect(menu()?.corner?.label).toBe('Quay lại');
+    tap('Ca làm');
+    await settle();
+    expect(calls).toEqual(['start fresh']);
+    expect(ctx().choice).toBe('orders');
+  });
+
+  it('opens the mode screen over the panel for a new game, and starts the mode in place', async () => {
+    const { shell, play, tap, back, calls } = setup({
+      inProgress: () => 'Ván dở',
+      prePlay: ({ choose }) => ({
+        title: 'Chọn cách chơi',
+        actions: [{ label: 'Cổ điển', onClick: () => choose('classic') }],
+      }),
+    });
+    shell.start();
+    tap('Chơi tiếp');
+    await settle();
+    back();
+    expect(play()?.layout).toBe('menu');
+    tap('Ván mới');
+    expect(play()?.title).toBe('Chọn cách chơi');
+    tap('Cổ điển');
+    expect(calls).toContain('newGame classic');
+  });
+
+  it('gives a game its own change-mode screen over the panel', async () => {
+    const { shell, play, tap, back, ctx } = setup({
+      inProgress: () => 'Ván dở',
+      prePlay: ({ choose }) => ({
+        title: 'Chọn cách chơi',
+        actions: [{ label: 'Ca làm', onClick: () => choose('orders') }],
+      }),
+    });
+    shell.start();
+    tap('Chơi tiếp');
+    await settle();
+    ctx().changeMode();
+    expect(play()?.title).toBe('Chọn cách chơi');
+    back();
+    expect(play()?.layout).toBe('menu');
   });
 
   it('shows how to play before the first game, then never again', async () => {

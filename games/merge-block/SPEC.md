@@ -17,10 +17,11 @@ The core (2.0.1) is unchanged in every mode: the same machine, physics and aim.
 | **Ca hôm nay** | One classic run on a seed from the **local date**; a streak; share | No (local) | `daily` | `bests.daily` + `daily.best` |
 | **Thư giãn** | The classic without pressure or the jam; the player leaves by choice | No | not saved | none |
 
-The **title screen** (the shell) has one primary (Chơi tiếp / Chơi) and the tools; the **mode select** is the
-first screen of a new game: the four modes, the **Xưởng**, the day's **Ca hôm nay** card (the date, the streak,
-the best), and the classic's ranked mark. A saved run resumes straight into its mode. A challenge link opens its
-challenge at once.
+The **title screen** (the shell) has one primary (Chơi tiếp / Chơi) and the tools; the **mode select** is a
+screen of the menu stage before a new game: the four modes, the **Xưởng**, the day's **Ca hôm nay** card (the date,
+the streak, the best), and the classic's ranked mark. It opens from Chơi with no run, from **Ván mới** (title or
+panel), and from the ticket's **Đổi chế độ**; Back returns to the title or the panel, never into a dead end. A saved
+run resumes straight into its mode. A challenge link opens its challenge at once.
 
 ## The board and the shot (unchanged)
 
@@ -103,8 +104,9 @@ If the rack fills, the game offers **Ván mới** / **Đổi chế độ**; noth
 1. **Title** (the menu stage, every open): the **mascot mark** (Máy Ghép) and **Ghép Khối** over drifting blocks;
    the chip "Ván đang chơi dở: …" (the mode + score) or the best; **Chơi / Chơi tiếp**, **Ván mới**; tools Âm
    thanh, Cài đặt (Màu khối, **Xưởng**), Xếp hạng (signed-in) and Cách chơi; **Về Tò He** last.
-2. **Mode select** (play stage, a new run): the four modes + the Workshop; the daily card; the ranked mark on
-   Cổ điển; the first run defaults to **Ca làm**; back via Menu/Back.
+2. **Mode select** (a menu-stage screen, before a new run): the four modes + the Workshop; the daily card; the
+   ranked mark on Cổ điển; the first run defaults to **Ca làm**. Back goes to the title, or to the panel when it
+   was opened from a run. The Workshop opens over it and Back returns to the modes.
 3. **Playing**: the kit's HUD — Menu, score, best (the mode's) — the **order rail** (Ca làm) or the daily/zen tag,
    the **part strip**; the machine: the gauge (8–10 lamps, hollow/full), the rack, the safety line, the chute,
    the loader/feeder, the aim/ghost/merge preview.
@@ -163,6 +165,6 @@ next shot until a part is chosen; a save restores the same state (v3); the class
 ## Technology
 
 Phaser 4 + `@tohe/game-kit`; pure logic in `src/logic.ts` (the modes/orders/parts included, no DOM/timers/
-random), the view animates the events; the app/save/daily in `src/app.ts` and the Workshop in `src/workshop.ts`;
+random), the view animates the events; the app/save/daily in `src/app.ts`, the Workshop in `src/workshop.ts` and the pre-play mode screen in `src/modes.ts`;
 the menu stage in `src/main.ts`, the play/mode select/choice/workshop/game over in `src/stage.ts`, the replay in
 `src/replay.ts`.
