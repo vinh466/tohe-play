@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-11-08 — pre-play navigation and looks
+
+- Owner testing: the mode screen's Back and New game flows needed work. The mode screen is now a menu-stage
+  screen (`prePlay` in the shell) shown from Chơi with no run, Ván mới and the panel's Ván mới; Back returns to the
+  title or panel, hardware Back and Esc match, and choosing a mode starts play (in place from the panel).
+- A first-run how-to comes before the modes; the Workshop opens over them with Back to the modes; the ticket's
+  Đổi chế độ uses the same screen. Cards got the mode pictures, ranks and live/best lines; phone headers fit one line.
 ## 2026-11-08 — 3.0.0 shipped
 
 - Owner: "ok làm tất" — the whole recommendation. Built on `feat/merge-block-evolution`.

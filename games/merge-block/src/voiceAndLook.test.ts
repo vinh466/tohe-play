@@ -29,6 +29,7 @@ const found = (text: string) => [...text.matchAll(glyph)].map(([match]) => match
 /** The files that build the game's own controls. */
 const files = [
   './main.ts',
+  './modes.ts',
   './stage.ts',
   './replay.ts',
   './view.ts',

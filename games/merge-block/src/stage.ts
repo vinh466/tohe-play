@@ -23,13 +23,15 @@ import {
   openDaily,
   persist,
   recordDaily,
+  resumeMode,
+  savedRun,
   session,
   sfx,
   shareChallenge,
   shareDaily,
-  startRanked,
   store,
   t,
+  takeRanked,
 } from './app.ts';
 import {
   type ChallengePayload,
@@ -46,6 +48,7 @@ import {
   currentOrder,
   fire,
   isFull,
+  isMode,
   type Mode,
   newGame,
   type PartId,
@@ -58,24 +61,6 @@ import { workshopContent } from './workshop.ts';
 
 /** Taps closer together than this are one bouncing finger, not two shots. */
 const DOUBLE_TAP_MS = 150;
-
-/** The state a mode resumes, when it has one in progress. */
-function savedRun(mode: Mode): State | null {
-  if (mode === 'classic') return store.game && !store.game.over ? store.game : null;
-  if (mode === 'orders') return store.orders && !store.orders.over ? store.orders : null;
-  if (mode === 'daily') {
-    const game = store.daily?.game;
-    return game && !game.over && store.daily?.date === localDate() ? game : null;
-  }
-  return null;
-}
-
-/** The mode Continue resumes: the last one played, or any run still in progress. */
-function resumeMode(): Mode | null {
-  const order: Mode[] = [store.last, 'classic', 'orders', 'daily'];
-  for (const mode of order) if (savedRun(mode)) return mode;
-  return null;
-}
 
 /** The best before a run of this mode. */
 function bestOf(mode: Mode): number {
@@ -123,8 +108,6 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   let run: ReturnType<typeof session.run> | null = null;
   /** A finished run is banked once: its scrap, XP and best are written to the save a single time. */
   let banked = false;
-  /** The mode select is the screen over play: no board has to exist yet. */
-  let choosing = false;
   /** Whether the run that just ended set a record (its best is banked before the card is drawn). */
   let endedRecord = false;
 
@@ -137,48 +120,6 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   let kit: ReturnType<typeof createGame> | null = null;
   let board: BoardScene | null = null;
-  /** A ranked run asked for while the player chooses a mode, used if they choose Cổ điển. */
-  let pendingRanked: Awaited<ReturnType<typeof startRanked>> = null;
-  let rankedRequest: ReturnType<typeof startRanked> | null = null;
-
-  /** Asks the hub for a ranked seed while the mode select is up (the classic mode takes it). */
-  function prefetchRanked() {
-    if (pendingRanked || rankedRequest) return;
-    rankedRequest = startRanked();
-    void rankedRequest
-      .then((ranked) => {
-        pendingRanked = ranked;
-        rankedRequest = null;
-      })
-      .catch(() => {
-        rankedRequest = null;
-      });
-  }
-
-  async function takeRanked() {
-    if (pendingRanked) {
-      const ranked = pendingRanked;
-      pendingRanked = null;
-      return ranked;
-    }
-    if (rankedRequest) {
-      try {
-        const ranked = await rankedRequest;
-        rankedRequest = null;
-        pendingRanked = null;
-        return ranked;
-      } catch {
-        rankedRequest = null;
-        return null;
-      }
-    }
-    try {
-      return await startRanked();
-    } catch {
-      return null;
-    }
-  }
-
   const showScore = (next: number, animate = true) => scores.set(next, animate);
   /** Opens the shell's quick panel, the only way back to the title screen from over play. */
   const openMenu = () => hud.element.querySelector<HTMLButtonElement>('.tohe-menu-button')?.click();
@@ -272,7 +213,6 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     theme = settings.theme;
     board?.setTheme(theme);
     kit?.setBackground(BOARD[theme].background);
-    if (choosing) showModeSelect();
   });
 
   function setPalette(id: PaletteId) {
@@ -298,7 +238,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   function updateRail() {
     rail.replaceChildren();
-    if (!state || choosing) {
+    if (!state) {
       rail.hidden = true;
       return;
     }
@@ -339,7 +279,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       line.className = 'mode-rail-line';
       line.textContent = t.zen.tag;
       rail.append(line);
-      rail.append(railButton(t.zen.leave, () => showModeSelect()));
+      rail.append(railButton(t.zen.leave, () => ctx.changeMode()));
     } else {
       const line = document.createElement('span');
       line.className = 'mode-rail-line';
@@ -350,47 +290,12 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     }
   }
 
-  // ------------------------------------------------------------------ showing a game
-
-  async function begin(modeChoice: Mode, resume: State | null) {
-    choosing = false;
-    ctx.overlay.hide();
-    mode = modeChoice;
-    challenge = null;
-    banked = false;
-    count(`mode.start.${modeChoice}`);
-    if (modeChoice === 'daily') count('daily.start');
-
-    if (resume && !resume.over) {
-      state = resume;
-      runId = modeChoice === 'classic' ? (store.run ?? newRunId()) : newRunId();
-      if (modeChoice === 'classic') {
-        store.run = runId;
-        run = session.run(runId);
-      } else {
-        run = null;
-      }
-    } else {
-      await startNewRun(modeChoice);
-      return;
-    }
-    const current = await ensureBoard();
-    if (left) return;
-    current.setBoard(state);
-    scores.setBest(bestOf(mode));
-    showScore(state.score, false);
-    showTarget();
-    updateRail();
-    if (ctx.firstTime) current.showHint(true);
-    if (state.choice) showChoice();
-    void save();
-  }
-
   /** Starts a fresh run of `modeChoice` (a ranked classic run when the hub deals one). */
   async function startNewRun(modeChoice: Mode) {
     stopRun();
-    choosing = false;
-    ctx.overlay.hide();
+    // A mode switch happens in place: show the loading card before the board is rebuilt, so the tap has an answer.
+    const switching = kit !== null;
+    if (!switching) ctx.overlay.hide();
     mode = modeChoice;
     challenge = null;
     banked = false;
@@ -423,6 +328,15 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       runId = newRunId();
       state = newGame(session.seed, 0, 'zen');
     }
+    if (switching) {
+      ctx.overlay.show({
+        layout: 'loading',
+        icon: { src: 'icon.svg' },
+        title: shellStrings(session.locale).loading,
+        actions: [],
+      });
+      await new Promise((resolve) => requestAnimationFrame(() => resolve(null)));
+    }
     const current = await ensureBoard();
     if (left) return;
     current.setBoard(state);
@@ -431,131 +345,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     showTarget();
     updateRail();
     if (ctx.firstTime) current.showHint(true);
+    if (switching) ctx.overlay.hide();
     void save();
-  }
-
-  // ------------------------------------------------------------------ the mode select
-
-  function modeButton(
-    id: Mode,
-    title: string,
-    line: string,
-    extra: string | null,
-    ranked: boolean,
-  ): HTMLElement {
-    const card = document.createElement('div');
-    card.className = `mode-card mode-${id}`;
-    const main = document.createElement('button');
-    main.type = 'button';
-    main.className = 'mode-card-main';
-    const head = document.createElement('span');
-    head.className = 'mode-card-head';
-    const name = document.createElement('strong');
-    name.textContent = title;
-    head.append(name);
-    if (ranked) {
-      const badge = document.createElement('span');
-      badge.className = 'mode-ranked';
-      badge.textContent = t.modes.ranked;
-      head.append(badge);
-    }
-    const words = document.createElement('span');
-    words.className = 'mode-card-line';
-    words.textContent = line;
-    main.append(head, words);
-    if (extra) {
-      const note = document.createElement('span');
-      note.className = 'mode-card-extra';
-      note.textContent = extra;
-      main.append(note);
-    }
-    const saved = savedRun(id);
-    if (saved) {
-      const resume = document.createElement('span');
-      resume.className = 'mode-card-resume';
-      resume.textContent = `${t.modes.resume} · ${score(saved.score)}`;
-      main.append(resume);
-    }
-    main.addEventListener('click', () => {
-      sfx.play('click');
-      if (saved) void begin(id, saved);
-      else void startNewRun(id);
-    });
-    card.append(main);
-    if (saved) {
-      const fresh = document.createElement('button');
-      fresh.type = 'button';
-      fresh.className = 'mode-card-fresh';
-      fresh.textContent = shellStrings(session.locale).newGame;
-      fresh.addEventListener('click', () => {
-        sfx.play('click');
-        void startNewRun(id);
-      });
-      card.append(fresh);
-    }
-    return card;
-  }
-
-  function showModeSelect() {
-    prefetchRanked();
-    choosing = true;
-    state = null;
-    challenge = null;
-    run = null;
-    banked = false;
-    endedRecord = false;
-    target.hidden = true;
-    updateRail();
-    const content = document.createElement('div');
-    content.className = 'mode-select';
-    const daily = store.daily;
-    const today = localDate();
-    if (daily) count('daily.view');
-    const dailyBest = daily?.date === today && daily.best > 0 ? score(daily.best) : null;
-    content.append(
-      modeButton('orders', t.modes.orders, t.modes.ordersLine, null, false),
-      modeButton('classic', t.modes.classic, t.modes.classicLine, null, true),
-      modeButton(
-        'daily',
-        t.modes.daily,
-        t.modes.dailyLine,
-        daily && daily.date === today ? t.daily.card(today, daily.streak, dailyBest) : null,
-        false,
-      ),
-      modeButton('zen', t.modes.zen, t.modes.zenLine, null, false),
-    );
-    const workshop = document.createElement('button');
-    workshop.type = 'button';
-    workshop.className = 'mode-workshop';
-    workshop.append(textBlock(t.modes.workshop, t.modes.workshopLine));
-    workshop.addEventListener('click', () => {
-      sfx.play('click');
-      openWorkshop(() => showModeSelect());
-    });
-    content.append(workshop);
-    ctx.overlay.show({
-      layout: 'screen',
-      icon: { src: 'icon.svg' },
-      title: t.modes.title,
-      body: t.modes.body,
-      content,
-      corner: {
-        label: t.over.menu,
-        icon: 'list',
-        onClick: openMenu,
-      },
-      actions: [],
-    });
-  }
-
-  function textBlock(title: string, line: string): HTMLElement {
-    const words = document.createElement('span');
-    const name = document.createElement('strong');
-    name.textContent = title;
-    const small = document.createElement('span');
-    small.textContent = line;
-    words.append(name, small);
-    return words;
   }
 
   // ------------------------------------------------------------------ the Workshop over play
@@ -632,7 +423,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         label: t.over.changeMode,
         icon: 'list' as const,
         variant: 'secondary' as const,
-        onClick: () => showModeSelect(),
+        onClick: () => ctx.changeMode(),
       });
     } else if (mode === 'daily') {
       actions.push({
@@ -654,7 +445,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         label: t.over.changeMode,
         icon: 'list' as const,
         variant: 'secondary' as const,
-        onClick: () => showModeSelect(),
+        onClick: () => ctx.changeMode(),
       });
     } else {
       actions.push({
@@ -681,7 +472,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         label: t.over.changeMode,
         icon: 'list' as const,
         variant: 'secondary' as const,
-        onClick: () => showModeSelect(),
+        onClick: () => ctx.changeMode(),
       });
     }
     const title =
@@ -883,7 +674,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   // ------------------------------------------------------------------ the moves
 
   function requestMove(col: number) {
-    if (!state || !board || ctx.overlay.visible || choosing) return;
+    if (!state || !board || ctx.overlay.visible) return;
     const now = performance.now();
     if (now - lastTap < DOUBLE_TAP_MS) return;
     lastTap = now;
@@ -957,14 +748,14 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
           label: t.zen.leave,
           icon: 'list',
           variant: 'secondary',
-          onClick: () => showModeSelect(),
+          onClick: () => ctx.changeMode(),
         },
       ],
     });
   }
 
   const onKey = (event: KeyboardEvent) => {
-    if (!board || ctx.overlay.visible || choosing) return;
+    if (!board || ctx.overlay.visible) return;
     if (event.key === 'ArrowLeft') board.nudge(-1);
     else if (event.key === 'ArrowRight') board.nudge(1);
     else if (event.key === 'ArrowDown' || event.key === 'Enter' || event.key === ' ') {
@@ -1003,7 +794,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       void save();
     }
   } else {
-    showModeSelect();
+    const chosen = ctx.choice && isMode(ctx.choice) ? ctx.choice : 'orders';
+    await startNewRun(chosen);
   }
 
   ctx.ready();
@@ -1011,11 +803,10 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   return {
     pause: () => kit?.pause(),
     resume: () => kit?.resume(),
-    newGame: () => {
+    newGame: (choice?: string) => {
       sfx.play('click');
-      stopRun();
-      if (state && !state.over) void save();
-      showModeSelect();
+      const chosen = choice && isMode(choice) ? choice : mode;
+      void startNewRun(chosen);
     },
     // Màu khối opens the presets over the panel; a tap repaints the board behind it at once.
     quick: () => [

@@ -103,6 +103,13 @@ screen with four tools or fewer looks as before.
 **How to play, the first time:** the how-to screen with **Bắt đầu** before the first game (`data-tohe-play`);
 afterwards it is Cách chơi. Games point at a first move on the board after it (`ctx.firstTime`).
 
+**A game with modes:** `prePlay(ctx)` returns the screen shown before a new game — the title's Chơi with nothing in
+progress, Ván mới, and the panel's Ván mới. The game's own buttons call `ctx.choose(id)` to start play with that id
+(the stage gets it as `ctx.choice`); `ctx.show(card)` opens a child screen over it, such as the Workshop, whose Back
+returns to the modes. Back from the modes returns to the title or the panel, and phone Back, Esc and the corner all
+do the same. The first-time how-to comes before the modes. A game-over card can call `ctx.changeMode()` to open the
+same screen over the panel.
+
 ### Play stage
 
 **Loading:** the game's logo and three dots on the page colour, covering the board until its first frame — and
@@ -144,7 +151,7 @@ title screen → Tò He.
 | Game | Title screen (logo · decor) | Cài đặt | Quick panel rows | HUD (start · middle · end) |
 | --- | --- | --- | --- | --- |
 | Chạm Chấm (`hello`) | its dot · dots and a star; Chơi, Kỷ lục, Âm thanh, Cài đặt, Xếp hạng, Cách chơi | sound | sound | score · `timer` seconds · best; 3-2-1 before a round goes on |
-| Ghép Khối (`merge-block`) | the Máy Ghép mascot mark · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools; play opens the four modes (Cổ điển, Ca làm, Ca hôm nay, Thư giãn) and the Xưởng | sound, `palette` Màu khối, `gear-six` Xưởng | sound, `palette` Màu khối (the presets), `gear-six` Xưởng | score · best (the next block waits on the loader); a mode rail under it (orders, the daily, parts, Về xưởng) |
+| Ghép Khối (`merge-block`) | the Máy Ghép mascot mark · blocks; Chơi / Chơi tiếp, Ván mới, Kỷ lục, the same tools; a pre-play screen with the four modes (Cổ điển, Ca làm, Ca hôm nay, Thư giãn) and the Xưởng | sound, `palette` Màu khối, `gear-six` Xưởng | sound, `palette` Màu khối (the presets), `gear-six` Xưởng | score · best (the next block waits on the loader); a mode rail under it (orders, the daily, parts, Về xưởng) |
 | Chạm Ghép (`tap-merge`) | as Ghép Khối, a sparkle among the blocks; Chơi / Chơi tiếp, Ván mới, the three doors Vô Tận · Hành Trình · Mỗi Ngày, and Sổ Tay Khối as a tool | sound, `palette` Màu khối | sound, `palette` Màu khối (the presets) | classic: score · `shuffle` Xáo trộn · best, the goal row (`target` Mục tiêu); Journey/Daily: score · `shuffle`, the goal/taps row and the star meter (the classic best is hidden because they are unranked) |
 | Tiến Lên (`tien-len`) | its cards · the four suits; `robot` Chơi với máy / Chơi tiếp, Bàn mới, Chơi online, Âm thanh, Cài đặt, Cách chơi | sound, `scroll` Luật nhà, `chair` Bàn chơi (from the next hand), `cards` Bộ bài | sound, `cards` Bộ bài (the decks); at a table also `scroll` Luật của bàn | table score · hand number · (`smiley` Cảm xúc) `arrows-down-up` Xếp số / Xếp bộ |
 
@@ -250,8 +257,9 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   `decor` takes filled `ShapeName`s in the colours of the game's art. Labels and `strings` are words only: the kit
   draws the icon beside them. A game that needs an icon in its own controls uses `icon(name)` or `shape(name)`.
 - `StageContext`: `root` (empty, the stage builds in it), `fresh` (Ván mới from the title), `firstTime` (after the how-to),
-  `menuButton()`, `overlay` (the game's own cards), `gameOver(card, again?)`, `ready()`.
-- `PlayStage`: `pause`, `resume`, `newGame` (in place), `leave` (save, then stop everything the stage started: the
+  `choice` (the mode id chosen with `prePlay`), `menuButton()`, `overlay` (the game's own cards), `gameOver(card, again?)`,
+  `changeMode()`, `ready()`.
+- `PlayStage`: `pause`, `resume`, `newGame` (in place; a mode id when the game has a pre-play screen), `leave` (save, then stop everything the stage started: the
   engine, listeners, timers — the shell empties the root), `quick()` (rows: a `switch` applied at once, or a `card`
   with its current `value` that opens over the panel — a `choiceList` that applies as the player taps, or text to
   read — and goes back to it).
@@ -275,7 +283,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
 | Where | What |
 | --- | --- |
-| Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, the settings and how-to screens, the game's own screens and their cleanup, modes, a new game asked first, the first-time how-to); the play stage (loading, playing, the panel without a way out, looks changed in place, Menu chính leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
+| Kit (`shell.test.ts`) | The menu stage (title entries with and without a game in progress, a guest, the settings and how-to screens, the game's own screens and their cleanup, modes, a new game asked first, the first-time how-to, a mode screen before a new game and over the panel); the play stage (loading, playing, the panel without a way out, looks changed in place, Menu chính leaving the stage, the hub hiding the game, 3-2-1, a new game from the panel, a game card brought back, the end and Back from it, an end under the panel, a load that lost the race, a stage that cannot start, an info card); a table; a replay |
 | Kit (`credits.test.ts`) | Ghi công: shown only once a game's credits are read, nothing more asked for and nothing changed without `assets`, none at a table; its screen and Back; the credits file's shape checked, its lines per pack |
 | Kit (`phaser/assets.test.ts`) | `loadPack`: each kind queued as it should be, keys already loaded skipped, a failed file named, fonts |
 | Kit (`kit.test.ts`) | The HUD's count-up and shortened scores, run ids |

@@ -172,6 +172,8 @@ export interface StageContext {
    * play the shell opens at once (after the how-to, the first time). Null for every other play, a later one included.
    */
   readonly entry: SessionEntry | null;
+  /** The mode id the player chose on the pre-play screen, or null (a resume, a challenge, a direct replay). */
+  readonly choice: string | null;
   /** The Menu button for the HUD (`createHud` puts it first). */
   menuButton(): HTMLButtonElement;
   /** The game's own cards over play (hints, a hand's results): they come back after the panel closes. */
@@ -181,8 +183,20 @@ export interface StageContext {
    * share — and Menu chính; Back goes to the menu.
    */
   gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction, more?: OverlayAction[]): void;
+  /** Opens the pre-play screen over the panel (a game-over card's "Đổi chế độ"), or the panel otherwise. */
+  changeMode(): void;
   /** The board is drawn: the loading view lifts. Call it once, after the first frame's state is set. */
   ready(): void;
+}
+
+/** What a game with modes builds for its pre-play screen. */
+export interface PrePlayContext {
+  /** Starts a new game in mode `id`; the play stage gets it as `ctx.choice`. */
+  choose(id: string): void;
+  /** Whether a run is in progress (the panel's new game, or the title with a saved run). */
+  readonly inProgress: boolean;
+  /** Opens another screen over the pre-play one; its Back returns to the modes, not the title or the panel. */
+  show(card: Omit<OverlayCard, 'actions'>): void;
 }
 
 /**
@@ -199,8 +213,8 @@ export interface PlayStage {
   /** Stop what runs (clock, bots, animations): the panel or the hub is over it. */
   pause(): void;
   resume(): void;
-  /** Ván mới / Chơi lại: a fresh game in place. */
-  newGame(): void;
+  /** Ván mới / Chơi lại: a fresh game in place; `choice` picks a mode when the game has a pre-play screen. */
+  newGame(choice?: string): void;
   /** Back to the menu: save, then stop timers and listeners and free the engine. The shell empties the root after. */
   leave(): void | Promise<void>;
   /** The panel's live rows (the game's looks: block colours, the deck), read each time it opens. */
@@ -240,6 +254,11 @@ export interface ShellOptions {
   howTo(): Omit<OverlayCard, 'actions'>;
   /** First-time help: the how-to screen shows before the first game until `seen()`; `done()` when it is passed. */
   tutorial?: { seen(): boolean; done(): void };
+  /**
+   * A game with modes: the screen shown before a new game — Play with no run, Ván mới, the panel's new game.
+   * `choose(id)` starts play with that id; the play stage gets it as `ctx.choice`. Back returns to the title or panel.
+   */
+  prePlay?(context: PrePlayContext): Omit<OverlayCard, 'layout' | 'corner'>;
   /** The sections of Cài đặt (sound comes first by itself). */
   settings?: ShellSetting[];
   /** Full screens the game owns: a journey map, stats, a calendar. Each is a tool on the title screen. */
@@ -390,7 +409,7 @@ export function createShell(options: ShellOptions): Shell {
     menuLayer.show({
       ...card,
       layout: 'screen',
-      corner: { label: t.back, icon: 'arrow-left', onClick: back },
+      corner: { label: t.back, icon: 'arrow-left', ariaLabel: t.back, onClick: back },
     });
     report(true);
   };
@@ -475,7 +494,10 @@ export function createShell(options: ShellOptions): Shell {
           label: summary ? t.continue : t.play,
           icon: options.playIcon ?? 'play',
           attributes: { 'data-tohe-play': '' },
-          onClick: () => begin(false),
+          onClick: () => {
+            if (summary || !options.prePlay) begin(false);
+            else showPrePlay('title');
+          },
         },
         ...(summary
           ? [
@@ -544,15 +566,110 @@ export function createShell(options: ShellOptions): Shell {
             label: t.newGame,
             icon: 'arrow-counter-clockwise',
             variant: 'secondary',
-            onClick: () => begin(true),
+            onClick: () => {
+              if (options.prePlay) showPrePlay('title');
+              else begin(true);
+            },
           },
         ],
       },
       titleScreen,
     );
 
+  /**
+   * The pre-play screen (a game with modes): the title's Play when nothing is in progress, Ván mới, and the panel's
+   * new game. `origin` decides where Back goes; a mode choice starts play with that id.
+   */
+  function prePlayCard(origin: 'title' | 'panel'): OverlayCard {
+    const built = options.prePlay?.({
+      choose: (id) => choosePrePlay(id, origin),
+      inProgress: options.inProgress() !== null,
+      show: (card) => showPrePlayChild(card, origin),
+    }) ?? { title: options.title, actions: [] };
+    return {
+      ...built,
+      layout: 'screen',
+      actions: built.actions ?? [],
+      corner: {
+        label: t.back,
+        icon: 'arrow-left',
+        ariaLabel: t.back,
+        onClick: origin === 'title' ? titleScreen : panel,
+      },
+    };
+  }
+
+  function showPrePlay(origin: 'title' | 'panel') {
+    // The first run's how-to comes before the modes, so its Back and Start both lead somewhere sensible.
+    if (origin === 'title' && options.tutorial && !options.tutorial.seen()) {
+      const tutorial = options.tutorial;
+      menuScreen(
+        {
+          ...options.howTo(),
+          actions: [
+            {
+              label: t.start,
+              icon: 'play',
+              attributes: { 'data-tohe-play': '' },
+              onClick: () => {
+                tutorial.done();
+                showPrePlay(origin);
+              },
+            },
+          ],
+        },
+        titleScreen,
+      );
+      return;
+    }
+    const card = prePlayCard(origin);
+    if (origin === 'title') {
+      menuScreen(card, titleScreen);
+      return;
+    }
+    parent = panel;
+    screen = 'card';
+    playLayer.show(card);
+    report(true);
+  }
+
+  /** A screen opened from the pre-play one (the Workshop): Back returns to the modes. */
+  function showPrePlayChild(card: Omit<OverlayCard, 'actions'>, origin: 'title' | 'panel') {
+    const shown: OverlayCard = {
+      ...card,
+      layout: 'screen',
+      actions: [],
+      corner: {
+        label: t.back,
+        icon: 'arrow-left',
+        ariaLabel: t.back,
+        onClick: () => showPrePlay(origin),
+      },
+    };
+    parent = () => showPrePlay(origin);
+    screen = origin === 'title' ? 'screen' : 'card';
+    (origin === 'title' ? menuLayer : playLayer).show(shown);
+    report(true);
+  }
+
+  function choosePrePlay(id: string, origin: 'title' | 'panel') {
+    if (origin === 'title') {
+      begin(true, null, id);
+      return;
+    }
+    // In place, without a title flash: the stage ends the old run when it starts the new mode.
+    stopCounting();
+    gameCard = null;
+    ended = null;
+    screen = 'playing';
+    playLayer.hide();
+    resumeStage();
+    stage?.newGame(id);
+    report(false);
+  }
+
   /** Play from the title screen — or for an entry the game handles — the how-to first, the first time. */
-  function begin(fresh: boolean, opened: SessionEntry | null = null) {
+  function begin(fresh: boolean, opened: SessionEntry | null = null, choice: string | null = null) {
     const tutorial = options.tutorial;
     if (tutorial && !tutorial.seen()) {
       menuScreen(
@@ -565,7 +682,7 @@ export function createShell(options: ShellOptions): Shell {
               attributes: { 'data-tohe-play': '' },
               onClick: () => {
                 tutorial.done();
-                void enterPlay(fresh, true, opened);
+                void enterPlay(fresh, true, opened, choice);
               },
             },
           ],
@@ -574,7 +691,7 @@ export function createShell(options: ShellOptions): Shell {
       );
       return;
     }
-    void enterPlay(fresh, false, opened);
+    void enterPlay(fresh, false, opened, choice);
   }
 
   // ------------------------------------------------------------------ play stage
@@ -605,7 +722,12 @@ export function createShell(options: ShellOptions): Shell {
     return button;
   };
 
-  async function enterPlay(fresh: boolean, firstTime: boolean, opened: SessionEntry | null = null) {
+  async function enterPlay(
+    fresh: boolean,
+    firstTime: boolean,
+    opened: SessionEntry | null = null,
+    choice: string | null = null,
+  ) {
     const mine = ++entry;
     clearScreen();
     screen = 'loading';
@@ -629,9 +751,11 @@ export function createShell(options: ShellOptions): Shell {
         fresh,
         firstTime,
         entry: opened,
+        choice,
         menuButton,
         overlay: gameOverlay,
         gameOver,
+        changeMode,
         ready: () => markReady(),
       });
       if (mine !== entry) {
@@ -769,7 +893,11 @@ export function createShell(options: ShellOptions): Shell {
               {
                 icon: 'arrow-counter-clockwise' as const,
                 label: t.newGameShort,
-                onClick: () =>
+                onClick: () => {
+                  if (options.prePlay) {
+                    showPrePlay('panel');
+                    return;
+                  }
                   panelCard({
                     icon: 'arrow-counter-clockwise',
                     title: t.confirmTitle,
@@ -788,7 +916,8 @@ export function createShell(options: ShellOptions): Shell {
                         },
                       },
                     ],
-                  }),
+                  });
+                },
               },
             ]),
         {
@@ -810,6 +939,16 @@ export function createShell(options: ShellOptions): Shell {
       footer: direct ? exitAction() : undefined,
     });
     report(true);
+  }
+
+  /** A game's own "Đổi chế độ": the pre-play screen over the panel (Back returns to the panel). */
+  function changeMode() {
+    if (!options.prePlay) {
+      if (screen === 'playing' || screen === 'over' || screen === 'count') panel();
+      return;
+    }
+    if (screen === 'playing' || screen === 'over' || screen === 'count') panel();
+    showPrePlay('panel');
   }
 
   function gameOver(card: Omit<OverlayCard, 'actions'>, again?: OverlayAction, more: OverlayAction[] = []) {
