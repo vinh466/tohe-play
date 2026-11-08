@@ -31,7 +31,8 @@ import {
   type State,
   starsFor,
 } from './logic.ts';
-import { todayId } from './strings.ts';
+import { DEFAULT_PALETTE, isPalette, PALETTE_COLOURS, PALETTE_IDS } from './palette.ts';
+import { paletteLabel, todayId } from './strings.ts';
 
 interface Started {
   state: State;
@@ -197,8 +198,13 @@ export function start(ctx: StageContext): PlayStage {
   const applyLooks = () => {
     const skin = skinById(store.settings.skin);
     if (!skin || skin.at > journeyStars()) store.settings.skin = 'paper';
-    stage.dataset.palette = store.settings.palette;
+    const palette = isPalette(store.settings.palette) ? store.settings.palette : DEFAULT_PALETTE;
+    store.settings.palette = palette;
+    stage.dataset.palette = palette;
     stage.dataset.skin = store.settings.skin;
+    PALETTE_COLOURS[palette].forEach((colour, index) => {
+      stage.style.setProperty(`--p${index + 1}`, colour);
+    });
   };
 
   function renderBoard(): void {
@@ -469,13 +475,13 @@ export function start(ctx: StageContext): PlayStage {
     stage.append(ghost);
     let lastSpot = '';
 
-    /** Where the piece would go: its board-scale bottom sits 28 px above the finger, so the finger never hides it. */
+    /** Where the piece would go: its board-scale bottom sits 56 px above the finger, so the finger never hides it. */
     const targetCell = (clientX: number, clientY: number) => {
       const { rows, cols } = bounds(shape);
       const width = cols * metrics.cell + (cols - 1) * metrics.gap;
       const height = rows * metrics.cell + (rows - 1) * metrics.gap;
       const left = clientX - width / 2;
-      const top = clientY - height - 28;
+      const top = clientY - height - 56;
       return {
         row: Math.round((top - metrics.top) / metrics.stride),
         col: Math.round((left - metrics.left) / metrics.stride),
@@ -494,8 +500,8 @@ export function start(ctx: StageContext): PlayStage {
       ghost.style.top = `${next.clientY}px`;
       const { row, col } = targetCell(next.clientX, next.clientY);
       if (row >= -1 && row <= 8 && col >= -1 && col <= 8) {
-        showGhost(pieceIndex, row, col, 2.25);
-        const spot = nearest(pieceIndex, row, col, 2.25);
+        showGhost(pieceIndex, row, col, 2.75);
+        const spot = nearest(pieceIndex, row, col, 2.75);
         const key = spot ? `${spot.row},${spot.col}` : '';
         if (key !== lastSpot) {
           lastSpot = key;
@@ -509,7 +515,7 @@ export function start(ctx: StageContext): PlayStage {
     const up = (next: PointerEvent) => {
       if (next.pointerId !== event.pointerId) return;
       const { row, col } = targetCell(next.clientX, next.clientY);
-      const spot = moved ? nearest(pieceIndex, row, col, 2.25) : null;
+      const spot = moved ? nearest(pieceIndex, row, col, 2.75) : null;
       cleanup();
       if (moved) {
         suppressClick = true;
@@ -754,18 +760,16 @@ export function start(ctx: StageContext): PlayStage {
     kind: 'card' as const,
     icon: 'palette' as const,
     label: t.palette,
-    value: store.settings.palette === 'paper' ? t.palettePaper : t.paletteContrast,
+    value: paletteLabel(store.settings.palette, t),
     card: () => ({
       icon: 'palette' as const,
       title: t.palette,
       content: choiceList(
-        [
-          { id: 'paper', label: t.palettePaper },
-          { id: 'contrast', label: t.paletteContrast },
-        ],
+        PALETTE_IDS.map((id) => ({ id, label: paletteLabel(id, t) })),
         store.settings.palette,
         (id) => {
           store.settings.palette = id;
+          store.settings.palettePicked = true;
           applyLooks();
           void persist();
         },

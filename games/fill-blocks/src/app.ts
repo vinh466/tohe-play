@@ -5,6 +5,7 @@ import { connect } from '@tohe/game-sdk';
 import { earned } from './content/achievements.ts';
 import { rankName } from './content/ranks.ts';
 import { completed, type Goal, restore, type State, starsFor } from './logic.ts';
+import { DEFAULT_PALETTE, isPalette, type PaletteId } from './palette.ts';
 import { stringsFor, todayId } from './strings.ts';
 
 export interface Stats {
@@ -17,7 +18,9 @@ export interface Stats {
 }
 
 export interface Settings {
-  palette: 'paper' | 'contrast';
+  palette: PaletteId;
+  /** False for a save from before the palette choice was recorded; a `paper` default then becomes the new fresh one. */
+  palettePicked?: boolean;
   skin: string;
   hints: boolean;
 }
@@ -38,7 +41,7 @@ export interface Saved {
 }
 
 const DEFAULT_STATS: Stats = { games: 0, totalScore: 0, lines: 0, bestCombo: 0, bestStreak: 0, perfects: 0 };
-const DEFAULT_SETTINGS: Settings = { palette: 'paper', skin: 'paper', hints: true };
+const DEFAULT_SETTINGS: Settings = { palette: DEFAULT_PALETTE, skin: 'paper', hints: true };
 
 export const session = await connect<Saved>({ gameId: 'fill-blocks' });
 export const t = stringsFor(session.locale);
@@ -52,8 +55,13 @@ const resumed = restore(saved?.game);
 
 const settings = (): Settings => {
   const value = saved?.settings;
+  const savedPalette = isPalette(value?.palette) ? value.palette : DEFAULT_PALETTE;
+  // The old default was `paper`; a save that never recorded a choice moves to the new fresh default. A deliberate
+  // `contrast` choice stays; `paper` is still one tap away in settings.
+  const palette = value?.palettePicked === true || savedPalette !== 'paper' ? savedPalette : DEFAULT_PALETTE;
   return {
-    palette: value?.palette === 'contrast' ? 'contrast' : 'paper',
+    palette,
+    palettePicked: value?.palettePicked === true,
     skin: typeof value?.skin === 'string' ? value.skin : DEFAULT_SETTINGS.skin,
     hints: value?.hints !== false,
   };
