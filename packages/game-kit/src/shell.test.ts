@@ -223,6 +223,20 @@ describe('the menu stage (ADR 0020)', () => {
     expect(calls).toEqual(['start fresh']);
   });
 
+  it('opens the mode screen for the title’s new game with no confirm, so modes can keep a run', () => {
+    const { shell, menu, tap } = setup({
+      inProgress: () => 'Ván dở',
+      prePlay: ({ choose }) => ({
+        title: 'Chọn cách chơi',
+        actions: [{ label: 'Ca làm', onClick: () => choose('orders') }],
+      }),
+    });
+    shell.start();
+    tap('Ván mới');
+    expect(menu()?.title).toBe('Chọn cách chơi');
+    expect(menu()?.layout).toBe('screen');
+  });
+
   it('shows the game’s mode screen before a new game, and starts the chosen mode', async () => {
     const { shell, menu, tap, calls, ctx } = setup({
       prePlay: ({ choose }) => ({

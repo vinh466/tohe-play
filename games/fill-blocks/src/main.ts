@@ -3,9 +3,10 @@
 import '@tohe/game-kit/overlay.css';
 import './style.css';
 import { choiceList, createShell, followTheme, hintList, type Shell, type ShellScreen } from '@tohe/game-kit';
-import { journeyStars, persist, rankLabel, scoreText, session, store, t } from './app.ts';
+import { journeyStars, parkedRun, persist, rankLabel, scoreText, session, store, t } from './app.ts';
 import { chapterOf, LEVEL_BY_ID, LEVELS, type Level } from './content/levels.ts';
 import { SKINS, skinById } from './content/skins.ts';
+import { modeSelectContent } from './modes.ts';
 import { PALETTE_COLOURS, PALETTE_IDS, type PaletteId } from './palette.ts';
 import { renderAchievements, renderDaily, renderJourney, renderStats, type ScreenDeps } from './screens.ts';
 import { paletteLabel } from './strings.ts';
@@ -25,14 +26,14 @@ const levelLabel = (id: string): string => {
   return `${session.locale.startsWith('vi') ? 'Chương' : 'Chapter'} ${chapter.number} · ${t.levelName(levelNumber(level))}`;
 };
 
-const playLevel = (id: string) => {
-  store.pending = { level: id };
+const playLevel = (id: string, restart = false) => {
+  store.pending = { level: id, restart };
   void persist();
   shell.play(true);
 };
 
-const playDaily = (date: string) => {
-  store.pending = { daily: date };
+const playDaily = (date: string, restart = false) => {
+  store.pending = { daily: date, restart };
   void persist();
   shell.play(true);
 };
@@ -47,12 +48,15 @@ const screenDeps = (): ScreenDeps => ({
   game: store.game,
   achievements: store.achievements,
   onPlayLevel: playLevel,
-  onContinue: () => shell.play(false),
   onPlayDaily: playDaily,
   onPracticeDaily: playDaily,
   onOpenScreen: (id) => shell.openScreen(id),
   canStreakBoard: session.shell.can.leaderboard,
   onOpenStreakBoard: () => session.shell.open('leaderboard', { board: 'streak', label: t.streakBoard }),
+  parkedJourney: parkedRun('journey'),
+  parkedDaily: parkedRun('daily'),
+  journeyGoals: store.journeyGoals,
+  dailyGoals: store.dailyGoals,
 });
 
 const screens: ShellScreen[] = [
@@ -137,6 +141,18 @@ shell = createShell({
   session,
   root: document.querySelector<HTMLElement>('#app') as HTMLElement,
   logo: 'icon.svg',
+  // The game's modes live behind the shell's new-game action: the mode screen keeps a run of each mode.
+  strings: { newGame: t.modes, newGameShort: t.modes },
+  prePlay: ({ choose, inProgress, show }) => ({
+    icon: { src: 'icon.svg' },
+    title: t.modes,
+    body:
+      inProgress || Object.values(store.parked).some((run) => run !== undefined && !run.over)
+        ? t.modesBody
+        : t.modesChoose,
+    content: modeSelectContent({ t, choose, show, levelLabel, format: scoreText }),
+    actions: [],
+  }),
   decor: [
     { shape: 'square', colour: '#ff5a5f' },
     { shape: 'square', colour: '#ffb703' },

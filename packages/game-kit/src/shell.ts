@@ -503,7 +503,9 @@ export function createShell(options: ShellOptions): Shell {
           ? [
               {
                 label: t.newGame,
-                icon: 'arrow-counter-clockwise' as const,
+                icon: (options.prePlay ? 'cards' : 'arrow-counter-clockwise') as
+                  | 'cards'
+                  | 'arrow-counter-clockwise',
                 variant: 'secondary' as const,
                 onClick: () => confirmFromTitle(),
               },
@@ -554,7 +556,13 @@ export function createShell(options: ShellOptions): Shell {
     warm();
   }
 
-  const confirmFromTitle = () =>
+  const confirmFromTitle = () => {
+    // A game with a pre-play screen owns the new-game choice there: its modes may keep the run in progress, so the
+    // title's new-game action opens that screen directly instead of a confirm that says the run will end.
+    if (options.prePlay) {
+      showPrePlay('title');
+      return;
+    }
     menuScreen(
       {
         icon: 'arrow-counter-clockwise',
@@ -566,15 +574,13 @@ export function createShell(options: ShellOptions): Shell {
             label: t.newGame,
             icon: 'arrow-counter-clockwise',
             variant: 'secondary',
-            onClick: () => {
-              if (options.prePlay) showPrePlay('title');
-              else begin(true);
-            },
+            onClick: () => begin(true),
           },
         ],
       },
       titleScreen,
     );
+  };
 
   /**
    * The pre-play screen (a game with modes): the title's Play when nothing is in progress, Ván mới, and the panel's
@@ -891,7 +897,9 @@ export function createShell(options: ShellOptions): Shell {
           ? []
           : [
               {
-                icon: 'arrow-counter-clockwise' as const,
+                icon: (options.prePlay ? 'cards' : 'arrow-counter-clockwise') as
+                  | 'cards'
+                  | 'arrow-counter-clockwise',
                 label: t.newGameShort,
                 onClick: () => {
                   if (options.prePlay) {
