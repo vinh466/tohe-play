@@ -20,7 +20,7 @@ A small child can play with a tap; an older player has the journey, the mastery 
 
 ### What if I leave in the middle of a game?
 
-The game is saved after every move. Next time you open it, tap Continue to pick up where you left off.
+The game is saved after every move. Next time you open it, tap Continue to pick up where you left off. Each mode keeps its own run: switch from Endless to Journey or Today and the old run stays in Modes.
 
 ### Do I need an account?
 
