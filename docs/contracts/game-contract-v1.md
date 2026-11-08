@@ -186,7 +186,8 @@ it (every game uses the kit, ADR 0012); what it does, and what any `shell` game 
 - on `pause` (the hub hid the game): open the panel while playing alone, so play waits there; at a table nothing
   stops;
 - offer sound (`session.shell.setMuted`), and the leaderboard or online play only when `session.shell.can` says the
-  hub can open them (`session.shell.open('leaderboard' | 'rooms')`).
+  hub can open them (`session.shell.open('leaderboard' | 'rooms')`). A leaderboard may name a board and a label:
+  `session.shell.open('leaderboard', { board: 'streak', label: 'Chuỗi' })` (ADR 0058).
 
 ### Entries and identity
 
@@ -323,7 +324,7 @@ run.finish(score);                               // at game over, or when the pl
 | `saved` | Last saved state or `null`. |
 | `settings` | `{ muted, theme }`, kept up to date. `theme` is the hub's `light` or `dark`. |
 | `on('menu', fn)` | The player pressed Back (shell games, ADR 0018, SDK 0.7.0). |
-| `shell` | For `shell` games (SDK 0.7.0): `can` (`{ leaderboard, rooms }`: what the hub can open for this player), `menuChanged(open)`, `open('leaderboard' \| 'rooms')`, `setMuted(muted)` (updates `settings` at once). |
+| `shell` | For `shell` games (SDK 0.7.0): `can` (`{ leaderboard, rooms }`: what the hub can open for this player), `menuChanged(open)`, `open('leaderboard' \| 'rooms', { board?, label? })`, `setMuted(muted)` (updates `settings` at once). |
 | `ranked` | For `ranked` games (SDK 0.8.0, [ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)): `start()` → `{ run, seed }`, or `null` when the hub cannot open a run — play unranked; `finish(run, moves, score)` hands the run in (the hub keeps it until it is online). Standalone, `start()` is always `null`. |
 | `on(event, fn)` | `pause`, `resume`, `settings`. Returns an unsubscribe function. |
 | `save(data)` | JSON, ≤ 64 KB. Resolves when the hub stored it; rejects with the hub's reason. |
@@ -363,7 +364,7 @@ Messages are plain objects sent with `postMessage`. Every message carries `tohe:
 | game → host | `exit` | — | Close the game. |
 | host → game | `menu` | — | Shell: the player pressed Back. |
 | game → host | `menu` | `open` | Shell: the game's menu opened or closed — the answer to `menu`; without one (or `exit`) within 1.5 s the hub offers its own way out. |
-| game → host | `open` | `what` | Shell: `leaderboard` (the hub's board over the game) or `rooms` (the game's lobby). |
+| game → host | `open` | `what`, `board?`, `label?` | Shell: `leaderboard` (the hub's board over the game, or the named `board`; `label` names it in the hub) or `rooms` (the game's lobby). |
 | game → host | `settings` | `muted` | Shell: the player switched sound in the game; the hub remembers it for the device. |
 | game → host | `ranked.start` | `id` | Ranked: request a ranked run as a new game starts; `result.value` is `{ run, seed }`, or the result is not ok and the game plays unranked. |
 | game → host | `ranked.finish` | `id`, `run`, `moves` (≤ 100000, ≤ `ranked.maxMoves`), `score` | Ranked: request; the run ended, with its moves in order and the score reached. |

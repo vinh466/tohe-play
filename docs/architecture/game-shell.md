@@ -170,7 +170,7 @@ Additive, protocol 1 ([Game Contract v1](../contracts/game-contract-v1.md)):
 | `init.shell` `{ leaderboard, rooms }` | What the hub can open for this player now (signed-in profiles; the game keeps scores / has rooms). |
 | host → game `menu` | The player pressed Back. |
 | game → host `menu` `{ open }` | The game's menu or screen opened or closed: its answer to Back. The first one also says the first screen is up: the hub keeps its loading screen until then. |
-| game → host `open` `{ what: 'leaderboard' \| 'rooms' }` | Show the hub's board over the game, or go to the game's lobby. Games still never call the API. |
+| game → host `open` `{ what: 'leaderboard' \| 'rooms', board?, label? }` | Show the hub's board over the game (optionally a named board, with a short label; ADR 0058), or go to the game's lobby. Games still never call the API. |
 | game → host `settings` `{ muted }` | The player switched sound in the game. |
 
 Markers conformance looks for: `data-tohe-play` (play, and the first-time how-to's start), `data-tohe-exit` (the way
@@ -196,7 +196,7 @@ title screen's way out sends `exit`.
   hub's sheet offers **Về Tò He** or **Chờ thêm**.
 - **Leaving from the game** goes at once: a choice made in its menu needs no question. Leaving a table asks, as
   before, unless watching.
-- **Leaderboard** opens as a sheet over the game: the same board as *Bảng điểm* under each game on the catalog, which stays.
+- **Leaderboard** opens as a sheet over the game: the same board as *Bảng điểm* under each game on the catalog, which stays. A game may name one of its boards and a label (`open('leaderboard', { board, label })`); the hub then reads that board in the same scopes and periods (ADR 0058).
 - **Sound** is remembered per device (`tohe:muted`), whichever game switched it.
 
 ## Kit

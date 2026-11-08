@@ -42,6 +42,7 @@ export interface Strings {
   statsPerfects: string;
   statsStars: string;
   statsRank: string;
+  streakBoard: string;
   statsNext(score: string, rank: string): string;
   achievementsEarned(n: number, total: number): string;
   achievementLocked: string;
@@ -140,6 +141,7 @@ const vi: Strings = {
   statsPerfects: 'Bàn sạch',
   statsStars: 'Sao hành trình',
   statsRank: 'Bậc hiện tại',
+  streakBoard: 'Bảng chuỗi',
   statsNext: (score, rank) => `Còn ${score} điểm để lên ${rank}`,
   achievementsEarned: (n, total) => `${n}/${total} đã đạt`,
   achievementLocked: 'Chưa đạt',
@@ -244,6 +246,7 @@ const en: Strings = {
   statsPerfects: 'Clean boards',
   statsStars: 'Journey stars',
   statsRank: 'Current rank',
+  streakBoard: 'Streak board',
   statsNext: (score, rank) => `${score} points to ${rank}`,
   achievementsEarned: (n, total) => `${n}/${total} earned`,
   achievementLocked: 'Not yet',

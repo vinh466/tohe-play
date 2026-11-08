@@ -677,6 +677,10 @@ export function start(ctx: StageContext): PlayStage {
     store.game = state;
     finishGame(state, goals);
     void run.finish(state.score).catch((error) => session.log('warn', String(error)));
+    if (state.maxStreak > 0)
+      void session
+        .submitScore(state.maxStreak, 'streak')
+        .catch((error) => session.log('warn', String(error)));
     void save();
     const record = state.mode === 'endless' && state.score > state.best;
     const stars = starsFor(state, goals);
@@ -694,6 +698,13 @@ export function start(ctx: StageContext): PlayStage {
     if (record || done) celebrate();
     render();
     const more: OverlayAction[] = [];
+    if (session.shell.can.leaderboard) {
+      more.push({
+        label: t.streakBoard,
+        icon: 'trophy',
+        onClick: () => session.shell.open('leaderboard', { board: 'streak', label: t.streakBoard }),
+      });
+    }
     if (state.mode === 'journey' && done && state.level) {
       const index = LEVELS.findIndex((level) => level.id === state.level);
       const next = LEVELS[index + 1];

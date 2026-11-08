@@ -30,6 +30,8 @@ export interface ScreenDeps {
   onPlayDaily(date: string): void;
   onPracticeDaily(date: string): void;
   onOpenScreen(id: string): void;
+  canStreakBoard: boolean;
+  onOpenStreakBoard(): void;
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) => {
@@ -275,6 +277,13 @@ export function renderStats(root: HTMLElement, deps: ScreenDeps): void {
   stat(deps.t.statsPerfects, formatScore(deps.stats.perfects, deps.locale));
   stat(deps.t.statsStars, deps.t.ofTotal(totalStars(deps.journey), LEVELS.length * 3));
   page.append(grid);
+  if (deps.canStreakBoard) {
+    const button = el('button', 'tohe-button tohe-button-secondary streak-board-button');
+    button.type = 'button';
+    button.append(icon('trophy'), el('span', 'tohe-label', deps.t.streakBoard));
+    button.addEventListener('click', () => deps.onOpenStreakBoard());
+    page.append(button);
+  }
   root.append(page);
 }
 

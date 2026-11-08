@@ -49,6 +49,8 @@ const screenDeps = (): ScreenDeps => ({
   onPlayDaily: playDaily,
   onPracticeDaily: playDaily,
   onOpenScreen: (id) => shell.openScreen(id),
+  canStreakBoard: session.shell.can.leaderboard,
+  onOpenStreakBoard: () => session.shell.open('leaderboard', { board: 'streak', label: t.streakBoard }),
 });
 
 const screens: ShellScreen[] = [

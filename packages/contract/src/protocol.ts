@@ -243,8 +243,17 @@ export const RoomReactMessage = z.object({ ...envelope, type: z.literal('room.re
 /** A `shell` game's menu opened or closed; it answers the hub's `menu` (the player pressed Back). */
 export const MenuStateMessage = z.object({ ...envelope, type: z.literal('menu'), open: z.boolean() });
 
-/** A `shell` game asks the hub for one of its screens: the leaderboard over the game, or the rooms lobby. */
-export const OpenMessage = z.object({ ...envelope, type: z.literal('open'), what: ShellTarget });
+/**
+ * A `shell` game asks the hub for one of its screens: the leaderboard over the game, or the rooms lobby. A leaderboard
+ * may name one of the game's boards (the same id a score's `board` uses) and a short label for it, e.g. "Chuỗi".
+ */
+export const OpenMessage = z.object({
+  ...envelope,
+  type: z.literal('open'),
+  what: ShellTarget,
+  board: z.string().min(1).max(40).optional(),
+  label: z.string().min(1).max(40).optional(),
+});
 
 /** A `shell` game's player switched sound in the game; the hub remembers it for the device. */
 export const GameSettingsMessage = z.object({ ...envelope, type: z.literal('settings'), muted: z.boolean() });
