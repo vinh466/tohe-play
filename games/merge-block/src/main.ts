@@ -13,9 +13,19 @@ import {
   hintList,
   type Theme,
 } from '@tohe/game-kit';
-import { localDate, persist, prefetchRanked, rankedReplay, session, sfx, store, t } from './app.ts';
+import {
+  persist,
+  prefetchRanked,
+  rankedReplay,
+  resumeMode,
+  savedRun,
+  session,
+  sfx,
+  store,
+  t,
+} from './app.ts';
 import { readEntry } from './challenge.ts';
-import type { Mode } from './logic.ts';
+import { MODES, type Mode } from './logic.ts';
 import { modeSelectContent } from './modes.ts';
 import { PALETTE_IDS } from './palette.ts';
 import { samples } from './swatches.ts';
@@ -27,21 +37,14 @@ followTheme(session, (next) => {
   theme = next;
 });
 
-/** The run Chơi tiếp resumes: the last mode played, or any run still in progress. */
-function runInProgress(): { mode: Mode; score: number } | null {
-  const order: Mode[] = [store.last, 'classic', 'orders', 'daily'];
-  for (const mode of order) {
-    if (mode === 'classic' && store.game && !store.game.over) {
-      return { mode, score: store.game.score };
-    }
-    if (mode === 'orders' && store.orders && !store.orders.over) {
-      return { mode, score: store.orders.score };
-    }
-    if (mode === 'daily' && store.daily?.game && !store.daily.game.over && store.daily.date === localDate()) {
-      return { mode, score: store.daily.game.score };
-    }
-  }
-  return null;
+/** The run Chơi tiếp resumes, and how many other runs wait in the modes screen. */
+function runInProgress(): { mode: Mode; score: number; others: number } | null {
+  const mode = resumeMode();
+  if (!mode) return null;
+  const state = savedRun(mode);
+  if (!state) return null;
+  const others = MODES.filter((other) => other !== mode && savedRun(other)).length;
+  return { mode, score: state.score, others };
 }
 
 const shell = createShell({
@@ -59,7 +62,9 @@ const shell = createShell({
   title: t.title,
   inProgress: () => {
     const run = runInProgress();
-    return run ? t.inProgress(t.modeNames[run.mode], formatScore(run.score, session.locale)) : null;
+    if (!run) return null;
+    const line = t.inProgress(t.modeNames[run.mode], formatScore(run.score, session.locale));
+    return run.others > 0 ? `${line} · ${t.moreRuns(run.others)}` : line;
   },
   best: () => {
     const best = store.best > 0 ? t.bestLine(formatScore(store.best, session.locale)) : null;

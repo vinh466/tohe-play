@@ -223,6 +223,36 @@ describe('the menu stage (ADR 0020)', () => {
     expect(calls).toEqual(['start fresh']);
   });
 
+  it('offers Chế độ on the title when a game with modes has a run in progress', () => {
+    const { shell, labels, tap, menu } = setup({
+      inProgress: () => 'Ván dở',
+      prePlay: ({ choose }) => ({
+        title: 'Chọn cách chơi',
+        actions: [{ label: 'Ca làm', onClick: () => choose('orders') }],
+      }),
+    });
+    shell.start();
+    expect(labels()).toEqual(['Chơi tiếp', 'Chế độ']);
+    tap('Chế độ');
+    expect(menu()?.title).toBe('Chọn cách chơi');
+  });
+
+  it('resumes a chosen run when the mode screen opens it without a fresh run', async () => {
+    const { shell, tap, calls, ctx } = setup({
+      prePlay: ({ choose }) => ({
+        title: 'Chọn cách chơi',
+        actions: [{ label: 'Chơi tiếp', onClick: () => choose('orders', false) }],
+      }),
+    });
+    shell.start();
+    tap('Chơi');
+    tap('Chơi tiếp');
+    await settle();
+    expect(calls).toEqual(['start']);
+    expect(ctx().choice).toBe('orders');
+    expect(ctx().fresh).toBe(false);
+  });
+
   it('shows the game’s mode screen before a new game, and starts the chosen mode', async () => {
     const { shell, menu, tap, calls, ctx } = setup({
       prePlay: ({ choose }) => ({
@@ -241,8 +271,8 @@ describe('the menu stage (ADR 0020)', () => {
     expect(ctx().choice).toBe('orders');
   });
 
-  it('opens the mode screen over the panel for a new game, and starts the mode in place', async () => {
-    const { shell, play, tap, back, calls } = setup({
+  it('restarts the current mode from the panel, and changes modes through the game’s own screen', async () => {
+    const { shell, play, tap, back, calls, ctx } = setup({
       inProgress: () => 'Ván dở',
       prePlay: ({ choose }) => ({
         title: 'Chọn cách chơi',
@@ -255,9 +285,41 @@ describe('the menu stage (ADR 0020)', () => {
     back();
     expect(play()?.layout).toBe('menu');
     tap('Ván mới');
+    expect(play()?.title).toBe('Bắt đầu ván mới?');
+    tap('Ván mới');
+    expect(calls).toContain('newGame');
+    ctx().changeMode();
     expect(play()?.title).toBe('Chọn cách chơi');
     tap('Cổ điển');
     expect(calls).toContain('newGame classic');
+  });
+
+  it('runs an action row from the panel in place', async () => {
+    const ran: string[] = [];
+    const module: StageModule = {
+      start(ctx) {
+        ctx.ready();
+        return {
+          pause: () => {},
+          resume: () => {},
+          newGame: () => {},
+          leave: () => {},
+          quick: () => [{ kind: 'action', label: 'Đổi chế độ', onClick: () => ran.push('mode') }],
+        };
+      },
+    };
+    const { shell, tap, back, rows } = setup({
+      inProgress: () => 'Ván dở',
+      stage: async () => module,
+    });
+    shell.start();
+    tap('Chơi tiếp');
+    await settle();
+    back();
+    const row = rows().find((candidate) => candidate.label === 'Đổi chế độ');
+    if (!row || row.kind !== 'link') throw new Error('no action row');
+    row.onClick();
+    expect(ran).toEqual(['mode']);
   });
 
   it('gives a game its own change-mode screen over the panel', async () => {

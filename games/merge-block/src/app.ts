@@ -199,13 +199,14 @@ export async function takeRanked(): Promise<RankedRun | null> {
   }
 }
 
-/** The state a mode resumes, when it has one in progress. */
+/** The state a mode resumes, when it has one in progress and at least one shot has been played. */
 export function savedRun(mode: Mode): State | null {
-  if (mode === 'classic') return store.game && !store.game.over ? store.game : null;
-  if (mode === 'orders') return store.orders && !store.orders.over ? store.orders : null;
+  const played = (game: State | null | undefined): game is State =>
+    Boolean(game && !game.over && game.moves > 0);
+  if (mode === 'classic') return played(store.game) ? store.game : null;
+  if (mode === 'orders') return played(store.orders) ? store.orders : null;
   if (mode === 'daily') {
-    const game = store.daily?.game;
-    return game && !game.over && store.daily?.date === localDate() ? game : null;
+    return played(store.daily?.game) && store.daily?.date === localDate() ? store.daily.game : null;
   }
   return null;
 }

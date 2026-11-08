@@ -1,18 +1,19 @@
-// The pre-play screen (the shell's prePlay hook): the four modes and the Workshop, shown before a new game from the
-// title screen or the in-game panel. The shell owns the screen's Back — the title or the panel — so phone Back, Escape
-// and the corner all do the same thing. The cards are the game's own art: a warm tile, a picture and a short line.
+// The pre-play screen (the shell's prePlay hook): the four modes and the Workshop, shown before a game from the
+// title screen or the in-game panel. The shell owns the screen's Back — the title or the panel — so phone Back,
+// Escape and the corner all do the same thing. A mode with a saved run leads with "Chơi tiếp"; its "Ván mới" is a
+// small second action behind a confirmation, so a family can hold several runs without losing one by accident.
 import { icon as kitIcon, type OverlayCard, type Theme } from '@tohe/game-kit';
 import { levelFor, localDate, savedRun, store } from './app.ts';
-import { MODES, type Mode } from './logic.ts';
+import type { Mode } from './logic.ts';
 import type { PaletteId } from './palette.ts';
 import type { Strings } from './strings.ts';
 import { workshopContent } from './workshop.ts';
 
 export interface ModeSelectOptions {
   t: Strings;
-  choose(id: string): void;
+  choose(id: string, fresh?: boolean): void;
   inProgress: boolean;
-  show(card: Omit<OverlayCard, 'actions'>): void;
+  show(card: Omit<OverlayCard, 'layout' | 'corner'>): void;
   theme: Theme;
   onPalette(id: PaletteId): void;
   /** A number in the player's digits (the shell's formatter). */
@@ -89,54 +90,111 @@ function modeMeta(t: Strings, mode: Mode, format: (value: number) => string): st
   return t.modes.zenMeta;
 }
 
-function modeChoice(
+function freshLabel(t: Strings, mode: Mode): string {
+  return mode === 'daily' ? t.modes.freshDaily : t.modes.fresh;
+}
+
+/** The small "Ván mới" under a saved run, behind a confirmation that names the run it replaces. */
+function confirmFresh(
   t: Strings,
   mode: Mode,
-  choose: (id: string) => void,
+  choose: (id: string, fresh?: boolean) => void,
+  show: (card: Omit<OverlayCard, 'layout' | 'corner'>) => void,
+): void {
+  show({
+    icon: 'arrow-counter-clockwise',
+    title: t.modes.freshTitle,
+    body: t.modes.freshBody(t.modeNames[mode]),
+    actions: [
+      {
+        label: freshLabel(t, mode),
+        icon: 'arrow-counter-clockwise',
+        variant: 'primary',
+        onClick: () => choose(mode, true),
+      },
+    ],
+  });
+}
+
+function headBadges(t: Strings, mode: Mode, saved: boolean): HTMLElement[] {
+  const badges: HTMLElement[] = [];
+  if (mode === 'classic') badges.push(badge(t.modes.ranked, 'is-ranked'));
+  if (saved) badges.push(badge(t.modes.resume, 'is-resume'));
+  else if (mode === 'orders' && store.bests.orders === 0) badges.push(badge(t.modes.startHere, 'is-start'));
+  return badges;
+}
+
+function badge(label: string, className: string): HTMLElement {
+  const node = document.createElement('span');
+  node.className = `mode-choice-badge ${className}`;
+  node.textContent = label;
+  return node;
+}
+
+function choiceButton(
+  t: Strings,
+  mode: Mode,
+  choose: (id: string, fresh?: boolean) => void,
   format: (value: number) => string,
-): HTMLElement {
-  const button = document.createElement('button');
-  button.type = 'button';
-  button.className = `mode-choice ${MODE_CLASS[mode]}`;
+  show: (card: Omit<OverlayCard, 'layout' | 'corner'>) => void,
+): { card: HTMLElement; saved: boolean } {
+  const savedState = savedRun(mode);
+  const saved = savedState !== null;
+  const card = document.createElement('div');
+  card.className = `mode-choice ${MODE_CLASS[mode]}`;
+  if (saved) card.dataset.saved = 'true';
+
+  const main = document.createElement('button');
+  main.type = 'button';
+  main.className = 'mode-choice-main';
+  // The first card is the first run's default, so the shell's Play marker leads there from the how-to.
+  if (mode === 'orders') main.dataset.tohePlay = '';
+
   const mark = document.createElement('span');
   mark.className = 'mode-choice-mark';
   mark.append(icon(mode));
+
   const words = document.createElement('span');
   words.className = 'mode-choice-words';
   const head = document.createElement('span');
   head.className = 'mode-choice-head';
   const name = document.createElement('strong');
   name.textContent = t.modeNames[mode];
-  head.append(name);
-  if (mode === 'classic') {
-    const badge = document.createElement('span');
-    badge.className = 'mode-choice-badge is-ranked';
-    badge.textContent = t.modes.ranked;
-    head.append(badge);
-  }
-  if (mode === 'orders' && !savedRun('orders') && store.bests.orders === 0) {
-    const badge = document.createElement('span');
-    badge.className = 'mode-choice-badge is-start';
-    badge.textContent = t.modes.startHere;
-    head.append(badge);
-  }
+  head.append(name, ...headBadges(t, mode, saved));
   const line = document.createElement('span');
   line.className = 'mode-choice-line';
   line.textContent = modeLine(t, mode);
   const meta = document.createElement('span');
   meta.className = 'mode-choice-meta';
-  meta.textContent = modeMeta(t, mode, format);
+  const live = savedState ? t.modes.inProgress(format(savedState.score)) : null;
+  meta.textContent =
+    mode === 'daily' && live && store.daily
+      ? `${live} · ${t.daily.streak(store.daily.streak)}`
+      : (live ?? modeMeta(t, mode, format));
   words.append(head, line, meta);
-  const chevron = kitIcon('caret-right', 'tohe-svg mode-choice-chevron');
-  button.append(mark, words, chevron);
-  // The first card is the first run's default, so the shell's Play marker leads there from the how-to.
-  if (mode === 'orders') button.dataset.tohePlay = '';
-  if (savedRun(mode)) button.dataset.saved = 'true';
-  button.addEventListener('click', () => choose(mode));
-  return button;
+
+  main.append(mark, words, kitIcon('caret-right', 'tohe-svg mode-choice-chevron'));
+  main.addEventListener('click', () => choose(mode, !saved));
+  card.append(main);
+
+  if (saved) {
+    const foot = document.createElement('div');
+    foot.className = 'mode-choice-foot';
+    const fresh = document.createElement('button');
+    fresh.type = 'button';
+    fresh.className = 'mode-choice-fresh';
+    fresh.append(
+      kitIcon('arrow-counter-clockwise', 'tohe-svg'),
+      document.createTextNode(freshLabel(t, mode)),
+    );
+    fresh.addEventListener('click', () => confirmFresh(t, mode, choose, show));
+    foot.append(fresh);
+    card.append(foot);
+  }
+  return { card, saved };
 }
 
-/** The pre-play content: the four modes, then the Workshop; `show` opens the Workshop over it. */
+/** The pre-play content: the four modes, then the Workshop; `show` opens the Workshop or a fresh-run question. */
 export function modeSelectContent(options: ModeSelectOptions): HTMLElement {
   const { t } = options;
   const root = document.createElement('div');
@@ -149,11 +207,15 @@ export function modeSelectContent(options: ModeSelectOptions): HTMLElement {
     root.append(note);
   }
 
-  for (const mode of DISPLAY_MODES) root.append(modeChoice(t, mode, options.choose, options.format));
+  for (const mode of DISPLAY_MODES) {
+    root.append(choiceButton(t, mode, options.choose, options.format, options.show).card);
+  }
 
-  const workshop = document.createElement('button');
-  workshop.type = 'button';
+  const workshop = document.createElement('div');
   workshop.className = 'mode-choice is-workshop';
+  const main = document.createElement('button');
+  main.type = 'button';
+  main.className = 'mode-choice-main';
   const mark = document.createElement('span');
   mark.className = 'mode-choice-mark';
   mark.append(gearIcon());
@@ -174,9 +236,8 @@ export function modeSelectContent(options: ModeSelectOptions): HTMLElement {
     t.workshop.levelName(levelFor(store.workshop.xp)),
   );
   words.append(head, line, meta);
-  const chevron = kitIcon('caret-right', 'tohe-svg mode-choice-chevron');
-  workshop.append(mark, words, chevron);
-  workshop.addEventListener('click', () => {
+  main.append(mark, words, kitIcon('caret-right', 'tohe-svg mode-choice-chevron'));
+  main.addEventListener('click', () => {
     options.show({
       icon: 'gear-six',
       title: t.workshop.title,
@@ -186,8 +247,10 @@ export function modeSelectContent(options: ModeSelectOptions): HTMLElement {
         palette: store.palette,
         onPalette: options.onPalette,
       }),
+      actions: [],
     });
   });
+  workshop.append(main);
   root.append(workshop);
   return root;
 }

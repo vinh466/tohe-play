@@ -46,6 +46,8 @@ export interface ShellStrings {
   /** The leaderboard's caption under its picture. */
   leaderboardShort: string;
   howTo: string;
+  /** The title screen's way into a game with modes (the pre-play screen). */
+  modes: string;
   sound: string;
   soundOn: string;
   soundOff: string;
@@ -84,6 +86,7 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     leaderboard: 'Bảng xếp hạng',
     leaderboardShort: 'Xếp hạng',
     howTo: 'Cách chơi',
+    modes: 'Chế độ',
     sound: 'Âm thanh',
     soundOn: 'Âm thanh: bật',
     soundOff: 'Âm thanh: tắt',
@@ -115,6 +118,7 @@ const STRINGS: Record<'vi' | 'en', ShellStrings> = {
     leaderboard: 'Leaderboard',
     leaderboardShort: 'Scores',
     howTo: 'How to play',
+    modes: 'Modes',
     sound: 'Sound',
     soundOn: 'Sound: on',
     soundOff: 'Sound: off',
@@ -191,12 +195,15 @@ export interface StageContext {
 
 /** What a game with modes builds for its pre-play screen. */
 export interface PrePlayContext {
-  /** Starts a new game in mode `id`; the play stage gets it as `ctx.choice`. */
-  choose(id: string): void;
+  /**
+   * Starts mode `id`: a fresh run by default, or the run in progress when `fresh` is false (a mode with no saved
+   * run still starts fresh). The play stage gets the id as `ctx.choice`.
+   */
+  choose(id: string, fresh?: boolean): void;
   /** Whether a run is in progress (the panel's new game, or the title with a saved run). */
   readonly inProgress: boolean;
   /** Opens another screen over the pre-play one; its Back returns to the modes, not the title or the panel. */
-  show(card: Omit<OverlayCard, 'actions'>): void;
+  show(card: Omit<OverlayCard, 'layout' | 'corner'>): void;
 }
 
 /**
@@ -206,6 +213,7 @@ export interface PrePlayContext {
  */
 export type QuickRow =
   | Extract<OverlayRow, { kind: 'switch' }>
+  | { kind: 'action'; label: string; icon?: IconName; value?: string; onClick(): void }
   | { kind: 'card'; label: string; icon?: IconName; value?: string; card(): Omit<OverlayCard, 'actions'> };
 
 /** A running play stage, as the game's `start(ctx)` returns it. */
@@ -213,8 +221,11 @@ export interface PlayStage {
   /** Stop what runs (clock, bots, animations): the panel or the hub is over it. */
   pause(): void;
   resume(): void;
-  /** Ván mới / Chơi lại: a fresh game in place; `choice` picks a mode when the game has a pre-play screen. */
-  newGame(choice?: string): void;
+  /**
+   * Ván mới / Chơi lại: a game in place. `choice` picks a mode when the game has a pre-play screen; `fresh` false
+   * resumes that mode's saved run instead of starting a new one.
+   */
+  newGame(choice?: string, fresh?: boolean): void;
   /** Back to the menu: save, then stop timers and listeners and free the engine. The shell empties the root after. */
   leave(): void | Promise<void>;
   /** The panel's live rows (the game's looks: block colours, the deck), read each time it opens. */
@@ -502,10 +513,13 @@ export function createShell(options: ShellOptions): Shell {
         ...(summary
           ? [
               {
-                label: t.newGame,
-                icon: 'arrow-counter-clockwise' as const,
+                label: options.prePlay ? t.modes : t.newGame,
+                icon: options.prePlay ? ('cards' as const) : ('arrow-counter-clockwise' as const),
                 variant: 'secondary' as const,
-                onClick: () => confirmFromTitle(),
+                onClick: () => {
+                  if (options.prePlay) showPrePlay('title');
+                  else confirmFromTitle();
+                },
               },
             ]
           : []),
@@ -582,7 +596,7 @@ export function createShell(options: ShellOptions): Shell {
    */
   function prePlayCard(origin: 'title' | 'panel'): OverlayCard {
     const built = options.prePlay?.({
-      choose: (id) => choosePrePlay(id, origin),
+      choose: (id, fresh = true) => choosePrePlay(id, origin, fresh),
       inProgress: options.inProgress() !== null,
       show: (card) => showPrePlayChild(card, origin),
     }) ?? { title: options.title, actions: [] };
@@ -634,11 +648,11 @@ export function createShell(options: ShellOptions): Shell {
   }
 
   /** A screen opened from the pre-play one (the Workshop): Back returns to the modes. */
-  function showPrePlayChild(card: Omit<OverlayCard, 'actions'>, origin: 'title' | 'panel') {
+  function showPrePlayChild(card: Omit<OverlayCard, 'layout' | 'corner'>, origin: 'title' | 'panel') {
     const shown: OverlayCard = {
       ...card,
       layout: 'screen',
-      actions: [],
+      actions: card.actions ?? [],
       corner: {
         label: t.back,
         icon: 'arrow-left',
@@ -652,9 +666,9 @@ export function createShell(options: ShellOptions): Shell {
     report(true);
   }
 
-  function choosePrePlay(id: string, origin: 'title' | 'panel') {
+  function choosePrePlay(id: string, origin: 'title' | 'panel', fresh = true) {
     if (origin === 'title') {
-      begin(true, null, id);
+      begin(fresh, null, id);
       return;
     }
     // In place, without a title flash: the stage ends the old run when it starts the new mode.
@@ -664,7 +678,7 @@ export function createShell(options: ShellOptions): Shell {
     screen = 'playing';
     playLayer.hide();
     resumeStage();
-    stage?.newGame(id);
+    stage?.newGame(id, fresh);
     report(false);
   }
 
@@ -861,24 +875,33 @@ export function createShell(options: ShellOptions): Shell {
     pauseStage();
     screen = 'panel';
     const goesOn = direct?.goesOn ?? false;
-    const quick = (stage?.quick?.() ?? []).map(
-      (row): OverlayRow =>
-        row.kind === 'switch'
-          ? {
-              ...row,
-              onChange: (on) => {
-                row.onChange(on);
-                panel();
-              },
-            }
-          : {
-              kind: 'link',
-              label: row.label,
-              icon: row.icon,
-              value: row.value,
-              onClick: () => panelCard({ ...row.card(), actions: [{ label: t.back, onClick: panel }] }),
-            },
-    );
+    const quick = (stage?.quick?.() ?? []).map((row): OverlayRow => {
+      if (row.kind === 'switch') {
+        return {
+          ...row,
+          onChange: (on) => {
+            row.onChange(on);
+            panel();
+          },
+        };
+      }
+      if (row.kind === 'action') {
+        return {
+          kind: 'link',
+          label: row.label,
+          icon: row.icon,
+          value: row.value,
+          onClick: () => row.onClick(),
+        };
+      }
+      return {
+        kind: 'link',
+        label: row.label,
+        icon: row.icon,
+        value: row.value,
+        onClick: () => panelCard({ ...row.card(), actions: [{ label: t.back, onClick: panel }] }),
+      };
+    });
     playLayer.show({
       layout: 'menu',
       icon: goesOn ? 'list' : 'pause',
@@ -893,11 +916,7 @@ export function createShell(options: ShellOptions): Shell {
               {
                 icon: 'arrow-counter-clockwise' as const,
                 label: t.newGameShort,
-                onClick: () => {
-                  if (options.prePlay) {
-                    showPrePlay('panel');
-                    return;
-                  }
+                onClick: () =>
                   panelCard({
                     icon: 'arrow-counter-clockwise',
                     title: t.confirmTitle,
@@ -916,8 +935,7 @@ export function createShell(options: ShellOptions): Shell {
                         },
                       },
                     ],
-                  });
-                },
+                  }),
               },
             ]),
         {

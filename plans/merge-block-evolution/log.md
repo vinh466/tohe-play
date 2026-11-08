@@ -2,6 +2,12 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-11-08 — a mode hub that keeps every run
+
+- Owner asked for a deep review of multi-mode play. The mode screen is now a hub: a saved mode leads with
+  Chơi tiếp (resume), Ván mới is a smaller confirmed action, the title's second action is Chế độ, and the panel and
+  the rail's mode chip open the hub while playing. Switching modes keeps the others (and a ranked classic run)
+  resumable; only a new run of the same mode or a new classic finishes a live run. Zero-move runs no longer count.
 ## 2026-11-08 — pre-play navigation and looks
 
 - Owner testing: the mode screen's Back and New game flows needed work. The mode screen is now a menu-stage
