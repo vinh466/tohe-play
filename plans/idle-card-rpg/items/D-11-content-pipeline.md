@@ -10,7 +10,7 @@
   - `content/heroes.ts`, `skills.ts`, `enemies.ts`, `regions.ts`, `stages.ts`, `loot.ts`, `modes.ts`, `fx.ts`.
   - Each item has a literal `id`; references are typed (`IdOf<typeof heroes>`).
 - **Zod schemas in tests**, not at runtime: `checkSchema` + `checkReferences`; the bundle never validates content.
-- **Balance simulation** in Node: the same pure battle/progression logic; bots/teams play the 36 stages; report win rate, time-to-clear, power curve, economy sources/sinks. A test fails if a stage is unwinnable at the intended power or trivial.
+- **Balance simulation** in Node: the same pure battle/progression logic; bots/teams play the 48 stages; report win rate, time-to-clear, power curve, economy sources/sinks. A test fails if a stage is unwinnable at the intended power or trivial.
 - **Art**: Studio packs; FX via pixelfx sprite sheets + `act` sidecar (R-08).
 - **Authoring**: agents edit TS, run tests/sim; a debug screen (`#content`) lists heroes/stages and previews cards; no spreadsheet in v1.
 
@@ -19,7 +19,7 @@
 - The owner wants **content to be the strength**; typed data + a sim is how content stays cheap to add and safe to balance.
 - TypeScript catalogs are the smallest pipeline that gives type safety, reference checks and a single source for game + sim; no extra loader, no runtime schema cost.
 - The game-kit already ships `defineCatalog`, `checkReferences`, `checkSchema` (`packages/game-kit/src/content/index.ts`).
-- A simulation is non-negotiable for 6 heroes × 36 stages; without it, the one-week pacing is guesswork.
+- A simulation is non-negotiable for 6 heroes × 48 stages; without it, the two-week pacing is guesswork.
 
 ## What it changes
 

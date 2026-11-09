@@ -55,7 +55,7 @@ Nothing at the decision level. The exact numbers (star shard costs, gear tier ca
 
 ## Evidence
 
-- [R-03 — Battle, card UX and pixel art](../research/R-03-battle-card-ux.md): card width math; 4 heroes.
+- [R-03 — Battle, card UX and pixel art](../research/R-03-battle-card-ux.md): card width math; 6-hero density.
 - [R-01 — Genre landscape](../research/R-01-genre.md): Summoners War/Epic Seven use 4; AFK 5; Idle Heroes 6.
 - [R-02 — Progression & economy](../research/R-02-progression-economy.md): 3 growth axes; gear as the farm chase.
 

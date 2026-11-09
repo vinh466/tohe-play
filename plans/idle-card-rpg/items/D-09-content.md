@@ -6,7 +6,7 @@
 
 > "Auto-advance + farm (Recommended)"
 
-> "3 vùng × 12 (Recommended)"
+> "Thêm nội dung" (4 regions × 12, then 20 heroes/20 enemies/4 bosses/2 events)
 
 - The board **auto-advances** through stages: wave → wave → stage clear → next stage, until a loss.
 - On a loss, the company **farms the highest cleared stage**; the player can retry the wall or open a **stage picker** to farm elsewhere.

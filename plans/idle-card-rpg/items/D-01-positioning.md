@@ -66,7 +66,7 @@ This supersedes the "caravan as home" idea in the earlier draft. The caravan can
 
 - [R-01 — Genre landscape](../research/R-01-genre.md): the genre's core is team + stage + gear; a base is optional.
 - [R-02 — Progression & economy](../research/R-02-progression-economy.md): one idle source is enough; no energy.
-- [R-03 — Battle & card UX](../research/R-03-battle-card-ux.md): 4 heroes fit the phone.
+- [R-03 — Battle & card UX](../research/R-03-battle-card-ux.md): card width math; 6-hero density.
 - [R-04 — Platform fit](../research/R-04-platform-fit.md): a persistent game needs E-01; no base reduces scope.
 
 ## Discussion

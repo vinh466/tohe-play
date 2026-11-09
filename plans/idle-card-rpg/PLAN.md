@@ -78,9 +78,9 @@
 - [board-v2.html](wireframes/board-v2.html) — history: 2×2 per side.
 - [board-v3.html](wireframes/board-v3.html) — current: 3 rows / 6 heroes, card-on-board, dark-first; board, formation, stage preview, boss.
 
-## Graduation list (provisional)
+## Graduation list
 
-**Gate:** the owner confirms [brief.md](brief.md); then phase 5 *Graduate* starts. Do not implement before that.
+The brief is confirmed. Phase 5 *Graduate* starts when the owner says; the 20/20/4 roster and the 2 events can be tuned before art lock.
 
 Platform P0, in order:
 

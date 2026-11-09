@@ -12,13 +12,13 @@
 - Skills are **auto-cast by default**.
 - A toggle turns **auto-cast off**, so the player can cast manually.
 - The battle runs in **rounds**: each round, every living unit acts once in SPD order; auto attacks/skills; the player can turn auto-cast off and choose a skill/target on their heroes' turns.
-- 4 heroes per team (D-05 decision).
+- **6 heroes per team**, arranged **3 rows × 2 columns** (front, mid, back). (D-05 decision)
 
 This is the "balanced" control layer: the game can be watched on auto, but the player can take over the skills when it matters.
 
 ## Battle shape (decided direction; details in D-05/D-09/D-12)
 
-- 4 heroes vs 4 enemies, 2 rows (front/back), portrait.
+- 6 heroes vs 6 enemies, 3 rows (front/mid/back), portrait.
 - 3–5 rounds, 20–40 s; boss 60–90 s; speed ×1/×2/×3.
 - **Turn rail** at the top: the next 6 actors in order; speed buffs/debuffs move icons.
 - **Auto-cast toggle** on the battle HUD: on by default; turning it off pauses the skill decision for the player's heroes, not the enemies.
@@ -30,7 +30,7 @@ This is the "balanced" control layer: the game can be watched on auto, but the p
 
 ## Battle shape (provisional, follows the timing decision)
 
-- 4 heroes vs 4 enemies, 2 rows (front/back), portrait.
+- 6 heroes vs 6 enemies, 3 rows (front/mid/back), portrait.
 - 3–5 rounds, 20–40 s; boss 60–90 s; speed ×1/×2/×3.
 - **Turn rail** at the top: the next 6 actors in order; speed buffs/debuffs move icons.
 - **Auto-cast toggle** on the battle HUD: on by default; turning it off pauses the skill decision for the player's heroes, not the enemies.
@@ -41,7 +41,7 @@ This is the "balanced" control layer: the game can be watched on auto, but the p
 
 ## What it changes
 
-- **D-05**: 4 heroes, roles/elements, 1 basic + 1 active + 1 passive; the active is the skill the player can cast.
+- **D-05**: 6 heroes, 3 rows, roles/elements, 1 basic + 1 active + 1 passive; the active is the skill the player can cast.
 - **D-06**: SPD is a real stat; gear can change turn order.
 - **D-09**: stages are built from rounds/waves; bosses have phases and telegraphed skills.
 - **D-12**: battle HUD needs a turn rail, 4 cards, an auto-cast toggle, a speed toggle and a target marker.
