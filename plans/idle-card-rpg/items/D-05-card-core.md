@@ -18,6 +18,7 @@ The research's phone math supports 4 cards: on a 360 px screen, four cards are ~
 
 | Sub-question | Options | Recommendation |
 |---|---|---|
+| **Formation** | 1 row · 2×2 per side · 3 rows | **2×2 per side**: 2 front, 2 back; tank front, support back; enemies use the same grid (R-07) |
 | **Rarity** | 3 tiers · 4 tiers · no rarity | **3**: Common, Rare, Epic; star 1–5; no "SSR" inflation |
 | **Gear slots** | 4 · 6 | **4**: weapon, armor, charm, relic; 2-piece sets; no random substat rerolls in v1 |
 | **Skills** | 1 active · 2 active · 1 basic + 1 active + 1 passive | **1 basic + 1 active + 1 passive**; active charges and auto-casts; passive unlocks at star 3/5 |

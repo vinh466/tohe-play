@@ -1,28 +1,27 @@
 # D-12 — UX: one main board, panels over it
 
-**Status:** researching — **2 rows of 4 cards decided**; dock, sheets and pause behaviour open · **Kind:** decision · **Blocked by:** D-05, D-08, D-10, E-01
+**Status:** researching — board layout mostly approved; **formation moves to multiple rows**; wireframe v2 pending · **Kind:** decision · **Blocked by:** D-05, D-08, D-10, E-01
 
 ## Decision (owner's words)
 
-> "2 hàng 4 card (Recommended)"
+> "hầu hết ổn, nhưng về đội hình nghiên cứu cho tôi về dạng nhiều hàng để có chiến thuật sắp xếp hơn cả ta lẫn quái, có thể sắp tank lên trên sp ở dưới chẳng hạn"
 
-- **4 hero cards in the bottom row, 4 enemy cards in the top row**, a turn rail, and a clash zone between them.
-- Cards lunge/collide; damage numbers; skill cut-ins; the board is the main screen.
-- No home; the board is the app.
+- The board layout is **mostly approved**: top strip, turn rail, clash zone, controls, dock, sheets.
+- The **formation** must support **multiple rows for both heroes and enemies**: tank in front, support in back, and the player can arrange the team.
+- The earlier "one row of 4" is **superseded**; see R-07 for the formation research and the proposed **2×2 per side**.
 
-**Wireframe v1:** [board-v1.html](../wireframes/board-v1.html) — board, team sheet, hero detail, summon, offline return, stage picker (low-fi, 380 × 676).
+**Wireframe v1:** [board-v1.html](../wireframes/board-v1.html) — history; the formation part is replaced by v2.
+**Wireframe v2:** [board-v2.html](../wireframes/board-v2.html) — 2×2 per side, formation sheet, stage preview, boss board (low-fi, 380 × 676).
 
 ```
 ┌──────────────────────────────────────┐
-│ Vùng 1 · 3/12   [gold] [essence] [⚙] │  stage progress + resources + menu
-│        ┌──────────────────────┐      │
-│        │  enemy cards (4)      │      │  enemy zone (top)
-│        │  [turn rail]          │      │  next 6 actors
-│        ├──────────────────────┤      │
-│        │  board / effects      │      │  clash, damage numbers, boss bar
-│        ├──────────────────────┤      │
-│        │  hero cards (4)       │      │  hero zone (bottom)
-│        └──────────────────────┘      │
+│ Vùng 1 · 3/12   [gold] [essence] [≡] │  stage progress + resources + menu
+│  [turn rail: next 6 actors]           │
+│        enemy back   [E3] [E4]         │  back row: casters/healers
+│        enemy front  [E1] [E2]         │  front row: tanks/brutes
+│        ────── clash zone ──────       │  clash, damage numbers, boss bar
+│        hero front   [H1] [H2]         │  front row: tank/melee
+│        hero back    [H3] [H4]         │  back row: support/ranged
 │ [auto-cast] [×2] [Dừng]   [Nâng cấp] │  battle controls + contextual upgrade
 │ [Đội] [Trang bị] [Triệu hồi] [Sổ] [⋯]│  bottom dock (panels)
 └──────────────────────────────────────┘
@@ -30,11 +29,13 @@
 
 - **The board is the app.** There is no home screen and no tab that replaces the board.
 - **Top strip**: region/stage progress, soft currencies, settings/menu.
-- **Enemy zone**: 4 enemy cards, their HP, buffs, boss bar; the turn rail sits above/below.
+- **Turn rail**: the next 6 actors, above the enemy rows.
+- **Enemy zone**: enemy back row + front row, 2 cards each; HP, buffs, boss bar.
 - **Middle**: the clash — cards lunge, hit-stop, damage numbers, skill cut-ins; the region background.
-- **Hero zone**: 4 hero cards with HP, skill charge, element, star; tap to target/see details.
+- **Hero zone**: hero front row + back row, 2 cards each; HP, skill charge, element, star; tap to target/see details.
 - **Battle controls**: auto-cast toggle, speed ×1/×2/×3, stop/farm, contextual "Nâng cấp" when something is affordable.
 - **Bottom dock**: Đội · Trang bị · Triệu hồi · Sổ tay · ⋯ (daily, records, settings, credits). A dock button opens a **sheet** over the board.
+- **Formation**: 2×2 per side; front row +DEF/draws melee, back row +ATK/safer; the player arranges it in the formation sheet, not by dragging on the board.
 
 ## Navigation options
 

@@ -23,7 +23,8 @@ flowchart LR
 
 There is no home screen. The board is the app; the stage strip is the road; the panels are the systems.
 
-**Wireframe v1:** [board-v1.html](wireframes/board-v1.html) — the board, team sheet, hero detail, summon, offline return and stage picker (low-fi, 380 × 676).
+**Wireframe v1:** [board-v1.html](wireframes/board-v1.html) — the first layout (one row of four); kept for history.
+**Wireframe v2:** [board-v2.html](wireframes/board-v2.html) — **2×2 per side** (front/back × 2 columns), formation sheet, stage preview and boss board; the current direction.
 
 ## 2. The pieces, the standard behind each, and where each lives
 
