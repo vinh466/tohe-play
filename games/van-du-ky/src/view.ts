@@ -1,22 +1,33 @@
 // The board (Phaser): 6 heroes vs 6 enemies on three rows, the turn loop, and the card clash. The pure rules live in
-// core/battle.ts; this scene only draws them and forwards the player's taps.
+// core/battle.ts; this scene only draws them and forwards the player's taps and the battle's summary.
 
+import { haptics } from '@tohe/game-kit';
 import { crispText, floatText, shake } from '@tohe/game-kit/phaser';
 import Phaser from 'phaser';
 import { sfx } from './app.ts';
+import { ENEMIES } from './content/enemies.ts';
+import { HEROES } from './content/heroes.ts';
 import { RULES } from './content/index.ts';
-import { REGIONS } from './content/stages.ts';
 import { basicAttack, cast, createBattle, step } from './core/battle.ts';
 import type { BattleState, BattleUnit, HeroLoadout, StageDef } from './core/types.ts';
 
+/** What the battle is called on the top strip (`Chặng đường · 2-3`, `Tháp · tầng 12`). */
+export interface BoardSummary {
+  /** Effective HP taken off the enemies across every wave. */
+  readonly damage: number;
+  /** Rounds spent across every wave. */
+  readonly rounds: number;
+}
+
 export interface BoardSceneData {
   readonly stage: StageDef;
+  readonly label: string;
   readonly team: readonly HeroLoadout[];
   readonly companyLevel: number;
   readonly autoCast: boolean;
   readonly speed: 1 | 2 | 3;
   readonly reducedMotion: boolean;
-  readonly onEnd: (result: 'win' | 'lose') => void;
+  readonly onEnd: (result: 'win' | 'lose', summary: BoardSummary) => void;
 }
 
 interface CardView {
@@ -32,6 +43,8 @@ export class BoardScene extends Phaser.Scene {
   private state!: BattleState;
   private waveIndex = 0;
   private eventIndex = 0;
+  private dealt = 0;
+  private rounds = 0;
   private cards = new Map<string, CardView>();
   private cardLayer!: Phaser.GameObjects.Container;
   private turnText!: Phaser.GameObjects.Text;
@@ -51,6 +64,16 @@ export class BoardScene extends Phaser.Scene {
     if (data?.stage) this.config = data as BoardSceneData;
   }
 
+  /** The portraits are tiny and shared by every battle; Phaser caches them by key after the first load. */
+  preload() {
+    const queue = (id: string) => {
+      const key = `portrait-${id}`;
+      if (!this.textures.exists(key)) this.load.image(key, `portraits/${id}.png`);
+    };
+    for (const hero of HEROES.items) queue(hero.id);
+    for (const enemy of ENEMIES.items) queue(enemy.id);
+  }
+
   create() {
     const { stage, team, companyLevel } = this.config;
     const { width, height } = this.viewSize();
@@ -61,19 +84,13 @@ export class BoardScene extends Phaser.Scene {
     this.paused = false;
     this.waveIndex = 0;
     this.eventIndex = 0;
+    this.dealt = 0;
+    this.rounds = 0;
     this.cards.clear();
     this.cameras.main.setBackgroundColor('#171614');
 
-    const regionName = REGIONS.items.find((region) => region.id === stage.region)?.name ?? stage.region;
-    this.add
-      .text(width / 2, 14, regionName.toUpperCase(), {
-        fontFamily: 'sans-serif',
-        fontSize: '10px',
-        color: '#a89f8d',
-      })
-      .setOrigin(0.5, 0);
     this.turnText = this.add
-      .text(width / 2, 30, '', {
+      .text(width / 2, Math.max(48, height * 0.07), '', {
         fontFamily: 'sans-serif',
         fontSize: '9px',
         color: '#a89f8d',
@@ -89,18 +106,19 @@ export class BoardScene extends Phaser.Scene {
 
     this.cardLayer = this.add.container(0, 0);
     this.state = createBattle(RULES, {
-      seed: stage.index * 1000 + 17,
+      seed: stage.index * 1000 + 17 + this.waveIndex * 7919,
       companyLevel,
       heroes: team,
       enemies: stage.waves[0]!.enemies,
       autoCast: this.autoCast,
+      maxRounds: stage.rounds,
     });
     this.drawCards();
     this.armTimer();
     this.processEvents();
   }
 
-  /** Restart the scene with a new stage or team; the shell's play stage calls `scene.restart`. */
+  /** Restart the scene with a new stage or team; the play stage calls it through `createGame`. */
   restart(data: BoardSceneData) {
     this.config = data;
     this.scene.restart(data);
@@ -139,7 +157,7 @@ export class BoardScene extends Phaser.Scene {
   private armTimer() {
     this.timer?.remove(false);
     this.timer = this.time.addEvent({
-      delay: 700 / this.speed,
+      delay: 320 / this.speed,
       loop: true,
       callback: () => this.tick(),
     });
@@ -158,6 +176,8 @@ export class BoardScene extends Phaser.Scene {
   }
 
   private endWave(result: 'win' | 'lose') {
+    this.dealt += this.waveDamage();
+    this.rounds += this.state.round;
     if (result === 'lose') return this.finish('lose');
     const next = this.waveIndex + 1;
     if (next >= this.config.stage.waves.length) return this.finish('win');
@@ -172,9 +192,17 @@ export class BoardScene extends Phaser.Scene {
       heroes: this.teamWithHp(heroes),
       enemies: this.config.stage.waves[next]!.enemies,
       autoCast: this.autoCast,
+      maxRounds: this.config.stage.rounds,
     });
     this.drawCards();
     this.processEvents();
+  }
+
+  /** Effective damage: what the enemies lost, not an overkill number. */
+  private waveDamage(): number {
+    return this.state.units
+      .filter((unit) => unit.side === 'enemy')
+      .reduce((sum, unit) => sum + Math.max(0, unit.maxHp - unit.hp), 0);
   }
 
   private teamWithHp(hp: readonly number[]): HeroLoadout[] {
@@ -185,7 +213,7 @@ export class BoardScene extends Phaser.Scene {
     if (this.ended) return;
     this.ended = true;
     this.timer?.remove(false);
-    this.config.onEnd(result);
+    this.config.onEnd(result, { damage: this.dealt, rounds: this.rounds });
   }
 
   private viewSize(): { width: number; height: number } {
@@ -212,7 +240,8 @@ export class BoardScene extends Phaser.Scene {
       const box = this.add
         .rectangle(0, 0, cardW, cardH, unit.side === 'hero' ? 0x1f2a22 : 0x2d1f1c)
         .setStrokeStyle(1.5, unit.side === 'hero' ? 0x456c4e : 0x6d3831);
-      const name = crispText(this, -cardW / 2 + 6, -cardH / 2 + 4, unit.name, {
+      const picture = this.add.image(-cardW / 2 + 16, 0, `portrait-${unit.defId}`).setDisplaySize(24, 24);
+      const name = crispText(this, -cardW / 2 + 32, -cardH / 2 + 4, unit.name, {
         fontSize: '10px',
         fontStyle: '800',
         color: '#f2ead9',
@@ -226,11 +255,11 @@ export class BoardScene extends Phaser.Scene {
         fontStyle: '800',
         color: '#d8a84e',
       }).setOrigin(1, 0);
-      const charge = crispText(this, -cardW / 2 + 6, cardH / 2 - 20, '', {
+      const charge = crispText(this, -cardW / 2 + 32, cardH / 2 - 20, '', {
         fontSize: '8px',
         color: '#a89f8d',
       }).setOrigin(0, 0.5);
-      container.add([box, name, hpBack, hp, element, charge]);
+      container.add([box, picture, name, hpBack, hp, element, charge]);
       container.setSize(cardW, cardH);
       container.setInteractive({ useHandCursor: true });
       container.on('pointerdown', () => this.tap(unit.id));
@@ -291,8 +320,14 @@ export class BoardScene extends Phaser.Scene {
     const actor = this.state.units.find((unit) => unit.id === unitId);
     if (!actor) return;
     const before = this.eventIndex;
-    if (this.state.pending.activeReady) cast(this.state, RULES, unitId, actor.active);
-    else basicAttack(this.state, RULES, unitId);
+    if (this.state.pending.activeReady) {
+      cast(this.state, RULES, unitId, actor.active);
+      sfx.play('combo');
+      if (!this.reducedMotion) haptics.play('success');
+    } else {
+      basicAttack(this.state, RULES, unitId);
+      sfx.play('click');
+    }
     this.eventIndex = before;
     this.updateCards();
     this.processEvents();
@@ -311,8 +346,11 @@ export class BoardScene extends Phaser.Scene {
             stroke: '#171614',
             size: event.crit ? 16 : 13,
           });
-          if (!this.reducedMotion) shake(this, event.crit ? 'medium' : 'small');
-          if (!this.reducedMotion) sfx.play('merge');
+          if (!this.reducedMotion) {
+            shake(this, event.crit ? 'medium' : 'small');
+            sfx.play('merge');
+            if (event.crit) haptics.play('bump');
+          }
           this.tweens.add({
             targets: target.container,
             x: target.container.x + (event.source.startsWith('h') ? 6 : -6),
@@ -332,6 +370,10 @@ export class BoardScene extends Phaser.Scene {
       } else if (event.type === 'death') {
         const target = this.cards.get(event.unit);
         target?.container.setAlpha(0.28);
+        if (!this.reducedMotion) {
+          sfx.play('drop');
+          haptics.play('tap');
+        }
       } else if (event.type === 'turn') {
         this.highlight(event.unit);
       }

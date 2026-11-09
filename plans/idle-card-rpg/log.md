@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-11-09 — agent (v1.0.0 release candidate)
+
+- Full v1: 4 vùng × 12 màn, 20 hero, 20 quái + 4 boss, 10 mối nối, 44 portrait pixel, save v2.
+- Tháp 40 tầng, expedition ngày, boss tuần, Thử Thách tuần, Khởi Hành 7 ngày; stage picker/codex/gear/daily sheets.
+- `pnpm verify` xanh: API 610/610, mọi game build + conformance; balance sim qua 48 màn.
+- Chờ chữ release của owner; chưa merge/tag/deploy.
+
 ## 2026-11-09 — agent (implementation starts)
 
 - Platform P0a: save budget across contract/SDK/API/hub, persistent shell, FX player; docs/ADR 0059.

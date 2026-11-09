@@ -1,291 +1,161 @@
 import { defineCatalog } from '@tohe/game-kit';
-import type { RegionDef, StageDef, StageEnemy } from '../core/types.ts';
+import type { Column, RegionDef, Row, StageDef, StageEnemy } from '../core/types.ts';
+import { GEAR } from './gear.ts';
 
-const e = (id: string, row: 0 | 1 | 2, column: 0 | 1, level: number): StageEnemy => ({
-  enemyId: id,
+const e = (enemyId: string, row: Row, column: Column, level: number): StageEnemy => ({
+  enemyId,
   row,
   column,
   level,
 });
 
-const region: RegionDef = {
-  id: 'doi-suong',
-  name: 'Đồi Sương',
-  palette: ['#171614', '#2d1f1c', '#456c4e', '#d8a84e'],
-};
+interface RegionPlan {
+  readonly id: string;
+  readonly name: string;
+  readonly blurb: string;
+  readonly palette: readonly string[];
+  /** Six regular enemies: vanguard, blade, binder, seer, blade, seer. */
+  readonly pool: readonly string[];
+  readonly boss: string;
+}
 
-const stages = [
+export const REGION_PLANS: readonly RegionPlan[] = [
   {
-    id: '1-1',
-    region: 'doi-suong',
-    index: 1,
-    waves: [{ enemies: [e('sen-da', 0, 0, 1), e('doi-lua', 2, 1, 1), e('bun-non', 1, 0, 1)] }],
-    recommendedPower: 5500,
-    firstClear: { gold: 160, essence: 12, shards: 4 },
-    loot: { gold: 70, essence: 4, shardChance: 0.2 },
+    id: 'doi-suong',
+    name: 'Đồi Sương',
+    blurb: 'Con đường đầu tiên, sương phủ kín lối. Đoàn đi qua tiếng chuông của người xưa.',
+    palette: ['#171614', '#2d1f1c', '#456c4e', '#d8a84e'],
+    pool: ['sen-da', 'doi-lua', 'bun-non', 'may-xam', 'soi-tro', 'phu-thuy'],
+    boss: 'sen-da-co',
   },
   {
-    id: '1-2',
-    region: 'doi-suong',
-    index: 2,
-    waves: [
-      { enemies: [e('sen-da', 0, 0, 1), e('doi-lua', 2, 1, 1), e('may-xam', 2, 0, 1)] },
-      { enemies: [e('bun-non', 1, 1, 1), e('soi-tro', 0, 1, 1), e('phu-thuy', 2, 0, 1)] },
-    ],
-    recommendedPower: 6200,
-    firstClear: { gold: 180, essence: 14, shards: 4 },
-    loot: { gold: 80, essence: 4, shardChance: 0.22 },
+    id: 'rung-tro',
+    name: 'Rừng Tro',
+    blurb: 'Rừng cây cháy dở, tro bay như tuyết. Ở đây, lửa không bao giờ tắt hẳn.',
+    palette: ['#151210', '#3a2018', '#7a3a24', '#e0a34e'],
+    pool: ['quai-da', 'ma-lua', 'ca-bay', 'chim-gio', 're-cay', 'xac-uot'],
+    boss: 'vua-re',
   },
   {
-    id: '1-3',
-    region: 'doi-suong',
-    index: 3,
-    waves: [
-      { enemies: [e('sen-da', 0, 0, 2), e('doi-lua', 2, 1, 2), e('bun-non', 1, 0, 2)] },
-      { enemies: [e('soi-tro', 0, 1, 2), e('may-xam', 2, 0, 2), e('phu-thuy', 2, 1, 2)] },
-    ],
-    recommendedPower: 6900,
-    firstClear: { gold: 200, essence: 16, shards: 5 },
-    loot: { gold: 90, essence: 5, shardChance: 0.24 },
+    id: 'ho-muoi',
+    name: 'Hồ Muối',
+    blurb: 'Hồ nước mặn đến mức đá cũng khô. Muối kết thành những con đường trắng.',
+    palette: ['#101518', '#1e3036', '#3f6f7a', '#d8d2bd'],
+    pool: ['lua-ma', 'gio-doc', 'da-lan', 'song-du', 'tro-bay', 'mua-da'],
+    boss: 'nua-lua',
   },
   {
-    id: '1-4',
-    region: 'doi-suong',
-    index: 4,
-    waves: [
-      {
-        enemies: [e('sen-da', 0, 0, 3), e('soi-tro', 0, 1, 3), e('doi-lua', 2, 0, 3), e('phu-thuy', 2, 1, 3)],
-      },
-      {
-        enemies: [e('bun-non', 1, 0, 3), e('may-xam', 2, 0, 3), e('doi-lua', 0, 1, 3), e('sen-da', 1, 1, 3)],
-      },
-    ],
-    elite: true,
-    recommendedPower: 7800,
-    firstClear: { gold: 240, essence: 20, shards: 6 },
-    loot: { gold: 110, essence: 6, shardChance: 0.26, gear: 'giap-da' },
+    id: 'deo-gio',
+    name: 'Đèo Gió',
+    blurb: 'Đèo cao nhất, gió đổi chiều mỗi bước. Trên đỉnh, biển mây che cả bầu trời.',
+    palette: ['#121414', '#24302c', '#4d7666', '#c8d8c8'],
+    pool: ['xoay-gio', 'bong-toi', 'da-lan', 'chim-gio', 'ma-lua', 'mua-da'],
+    boss: 'nuoc-lon',
   },
-  {
-    id: '1-5',
-    region: 'doi-suong',
-    index: 5,
-    waves: [
-      {
-        enemies: [e('sen-da', 0, 0, 4), e('bun-non', 0, 1, 4), e('doi-lua', 2, 0, 4), e('may-xam', 2, 1, 4)],
-      },
-      {
-        enemies: [e('soi-tro', 0, 0, 4), e('phu-thuy', 1, 0, 4), e('doi-lua', 1, 1, 4), e('sen-da', 2, 0, 4)],
-      },
-    ],
-    recommendedPower: 8800,
-    firstClear: { gold: 270, essence: 22, shards: 6 },
-    loot: { gold: 125, essence: 7, shardChance: 0.28 },
-  },
-  {
-    id: '1-6',
-    region: 'doi-suong',
-    index: 6,
-    waves: [
-      {
-        enemies: [
-          e('sen-da', 0, 0, 4),
-          e('soi-tro', 0, 1, 4),
-          e('bun-non', 1, 0, 4),
-          e('bun-non', 1, 1, 4),
-          e('doi-lua', 2, 0, 4),
-          e('phu-thuy', 2, 1, 4),
-        ],
-      },
-      {
-        enemies: [
-          e('sen-da', 0, 0, 5),
-          e('soi-tro', 0, 1, 5),
-          e('may-xam', 1, 0, 5),
-          e('phu-thuy', 1, 1, 5),
-          e('doi-lua', 2, 0, 5),
-          e('doi-lua', 2, 1, 5),
-        ],
-      },
-    ],
-    recommendedPower: 9800,
-    firstClear: { gold: 300, essence: 24, shards: 7 },
-    loot: { gold: 140, essence: 8, shardChance: 0.3, gear: 'bua-nuoc' },
-  },
-  {
-    id: '1-7',
-    region: 'doi-suong',
-    index: 7,
-    waves: [
-      {
-        enemies: [
-          e('sen-da', 0, 0, 5),
-          e('soi-tro', 0, 1, 5),
-          e('bun-non', 1, 0, 5),
-          e('may-xam', 1, 1, 5),
-          e('doi-lua', 2, 0, 5),
-          e('phu-thuy', 2, 1, 5),
-        ],
-      },
-      {
-        enemies: [
-          e('sen-da', 0, 0, 6),
-          e('soi-tro', 0, 1, 6),
-          e('bun-non', 1, 0, 6),
-          e('phu-thuy', 1, 1, 6),
-          e('doi-lua', 2, 0, 6),
-          e('doi-lua', 2, 1, 6),
-        ],
-      },
-    ],
-    recommendedPower: 10800,
-    firstClear: { gold: 330, essence: 26, shards: 7 },
-    loot: { gold: 155, essence: 9, shardChance: 0.32 },
-  },
-  {
-    id: '1-8',
-    region: 'doi-suong',
-    index: 8,
-    waves: [
-      {
-        enemies: [
-          e('sen-da', 0, 0, 6),
-          e('soi-tro', 0, 1, 6),
-          e('bun-non', 1, 0, 6),
-          e('may-xam', 1, 1, 6),
-          e('doi-lua', 2, 0, 6),
-          e('phu-thuy', 2, 1, 6),
-        ],
-      },
-      {
-        enemies: [
-          e('sen-da', 0, 0, 7),
-          e('soi-tro', 0, 1, 7),
-          e('bun-non', 1, 0, 7),
-          e('phu-thuy', 1, 1, 7),
-          e('doi-lua', 2, 0, 7),
-          e('soi-tro', 2, 1, 7),
-        ],
-      },
-    ],
-    elite: true,
-    recommendedPower: 12000,
-    firstClear: { gold: 370, essence: 30, shards: 8 },
-    loot: { gold: 170, essence: 10, shardChance: 0.34, gear: 'di-vat-gio' },
-  },
-  {
-    id: '1-9',
-    region: 'doi-suong',
-    index: 9,
-    waves: [
-      {
-        enemies: [
-          e('sen-da', 0, 0, 7),
-          e('soi-tro', 0, 1, 7),
-          e('bun-non', 1, 0, 7),
-          e('may-xam', 1, 1, 7),
-          e('doi-lua', 2, 0, 7),
-          e('phu-thuy', 2, 1, 7),
-        ],
-      },
-      {
-        enemies: [
-          e('sen-da', 0, 0, 8),
-          e('soi-tro', 0, 1, 8),
-          e('bun-non', 1, 0, 8),
-          e('phu-thuy', 1, 1, 8),
-          e('doi-lua', 2, 0, 8),
-          e('doi-lua', 2, 1, 8),
-        ],
-      },
-    ],
-    recommendedPower: 13200,
-    firstClear: { gold: 400, essence: 32, shards: 8 },
-    loot: { gold: 185, essence: 11, shardChance: 0.36 },
-  },
-  {
-    id: '1-10',
-    region: 'doi-suong',
-    index: 10,
-    waves: [
-      {
-        enemies: [
-          e('sen-da', 0, 0, 8),
-          e('soi-tro', 0, 1, 8),
-          e('bun-non', 1, 0, 8),
-          e('may-xam', 1, 1, 8),
-          e('doi-lua', 2, 0, 8),
-          e('phu-thuy', 2, 1, 8),
-        ],
-      },
-      {
-        enemies: [
-          e('sen-da', 0, 0, 9),
-          e('soi-tro', 0, 1, 9),
-          e('bun-non', 1, 0, 9),
-          e('phu-thuy', 1, 1, 9),
-          e('doi-lua', 2, 0, 9),
-          e('soi-tro', 2, 1, 9),
-        ],
-      },
-    ],
-    recommendedPower: 14500,
-    firstClear: { gold: 430, essence: 34, shards: 9 },
-    loot: { gold: 200, essence: 12, shardChance: 0.38 },
-  },
-  {
-    id: '1-11',
-    region: 'doi-suong',
-    index: 11,
-    waves: [
-      {
-        enemies: [
-          e('sen-da', 0, 0, 9),
-          e('soi-tro', 0, 1, 9),
-          e('bun-non', 1, 0, 9),
-          e('may-xam', 1, 1, 9),
-          e('doi-lua', 2, 0, 9),
-          e('phu-thuy', 2, 1, 9),
-        ],
-      },
-      {
-        enemies: [
-          e('sen-da', 0, 0, 10),
-          e('soi-tro', 0, 1, 10),
-          e('bun-non', 1, 0, 10),
-          e('phu-thuy', 1, 1, 10),
-          e('doi-lua', 2, 0, 10),
-          e('soi-tro', 2, 1, 10),
-        ],
-      },
-    ],
-    recommendedPower: 15800,
-    firstClear: { gold: 460, essence: 36, shards: 9 },
-    loot: { gold: 215, essence: 13, shardChance: 0.4, gear: 'bua-lua' },
-  },
-  {
-    id: '1-12',
-    region: 'doi-suong',
-    index: 12,
-    waves: [
-      {
-        enemies: [
-          e('sen-da', 0, 0, 10),
-          e('soi-tro', 0, 1, 10),
-          e('bun-non', 1, 0, 10),
-          e('phu-thuy', 1, 1, 10),
-          e('doi-lua', 2, 0, 10),
-          e('doi-lua', 2, 1, 10),
-        ],
-      },
-      { enemies: [e('sen-da-co', 0, 0, 10), e('phu-thuy', 2, 0, 10), e('may-xam', 2, 1, 10)] },
-    ],
-    boss: true,
-    recommendedPower: 17500,
-    firstClear: { gold: 600, essence: 50, shards: 12 },
-    loot: { gold: 260, essence: 16, shardChance: 0.45, gear: 'giap-may' },
-  },
-] as const satisfies readonly StageDef[];
+];
 
-export const REGIONS = defineCatalog('region', [region]);
+const regionDefs: readonly RegionDef[] = REGION_PLANS.map((plan) => ({
+  id: plan.id,
+  name: plan.name,
+  blurb: plan.blurb,
+  palette: plan.palette,
+}));
+
+/** Card slots in the order a growing wave takes them: front first, then mid, then back. */
+const SLOTS: readonly { readonly row: Row; readonly column: Column }[] = [
+  { row: 0, column: 0 },
+  { row: 0, column: 1 },
+  { row: 1, column: 0 },
+  { row: 1, column: 1 },
+  { row: 2, column: 0 },
+  { row: 2, column: 1 },
+];
+
+/** How many enemies each wave of a stage holds; stage 12's last wave is the boss plus two escorts. */
+function waveSizes(index: number): readonly number[] {
+  if (index === 1) return [3];
+  if (index <= 3) return [3, 3];
+  if (index === 4) return [4, 4];
+  if (index <= 7) return [4, 5];
+  if (index === 8) return [5, 6];
+  if (index <= 11) return [6, 6];
+  return [5, 3];
+}
+
+function waveOf(plan: RegionPlan, index: number, wave: number, size: number, level: number): StageEnemy[] {
+  return SLOTS.slice(0, size).map((slot, offset) => {
+    const id = plan.pool[(index + wave * 2 + offset) % plan.pool.length] as string;
+    return e(id, slot.row, slot.column, level);
+  });
+}
+
+function stageOf(plan: RegionPlan, regionNumber: number, index: number, offset: number): StageDef {
+  // One global curve, not one per region: early stages stay gentle, the last region climbs fast.
+  const level = 1 + Math.floor(offset * 0.38 + Math.max(0, offset - 16) * 0.32);
+  const sizes = waveSizes(index);
+  const waves = sizes.map((size, wave) => {
+    if (index === 12 && wave === 1) {
+      return {
+        boss: true,
+        enemies: [
+          e(plan.boss, 0, 0, level + 1),
+          e(plan.pool[2] as string, 2, 0, level),
+          e(plan.pool[3] as string, 2, 1, level),
+        ],
+      };
+    }
+    return {
+      enemies: waveOf(plan, index, wave, size, level),
+      ...(index === 4 || index === 8 ? { elite: true } : {}),
+    };
+  });
+  const gear = index % 4 === 0 ? GEAR.items[offset % GEAR.items.length] : undefined;
+  return {
+    id: `${regionNumber}-${index}`,
+    region: plan.id,
+    index,
+    waves,
+    recommendedPower: Math.round(5100 + offset * 300 + offset * offset * 2.2),
+    ...(index === 12 ? { rounds: 40 } : {}),
+    firstClear: {
+      gold: 140 + offset * 28,
+      essence: 10 + offset * 2,
+      shards: 4 + Math.floor(offset / 4),
+    },
+    loot: {
+      gold: 55 + offset * 14,
+      essence: 3 + Math.floor(offset * 0.9),
+      shardChance: Math.min(0.48, 0.2 + offset * 0.006),
+      ...(gear ? { gear: gear.id } : {}),
+    },
+    ...(index === 4 || index === 8 ? { elite: true } : {}),
+    ...(index === 12 ? { boss: true } : {}),
+  };
+}
+
+const stages: readonly StageDef[] = REGION_PLANS.flatMap((plan, regionIndex) =>
+  Array.from({ length: 12 }, (_, index) =>
+    stageOf(plan, regionIndex + 1, index + 1, regionIndex * 12 + index),
+  ),
+);
+
+export const REGIONS = defineCatalog('region', regionDefs);
 export const STAGES = defineCatalog('stage', stages);
 export type StageId = (typeof stages)[number]['id'];
+
+/** The region number of a stage (`1`–`4`), or 0 when the id is unknown. */
+export function regionNumber(stageId: string): number {
+  return Number(stageId.split('-')[0]) || 0;
+}
+
+/** The first stage of a region. */
+export function regionStart(region: number): StageDef | undefined {
+  return STAGES.items[(Math.max(1, Math.min(4, region)) - 1) * 12];
+}
+
+/** A stage by id, or a clear error; the UI and sim use ids from the save and the road. */
+export function stageById(id: string): StageDef {
+  const stage = STAGES.items.find((candidate) => candidate.id === id);
+  if (!stage) throw new Error(`stage: no stage with id "${id}"`);
+  return stage;
+}

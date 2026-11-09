@@ -46,6 +46,7 @@ export function createBattle(rules: BattleRules, config: BattleConfig): BattleSt
     throw new Error(`a battle needs 1–${MAX_ENEMIES} enemies`);
 
   const units: BattleUnit[] = [];
+  const heroIds = new Set(config.heroes.map((hero) => hero.heroId));
   config.heroes.forEach((loadout, index) => {
     const def = rules.hero(loadout.heroId);
     const stats = applyRow(
@@ -54,6 +55,7 @@ export function createBattle(rules: BattleRules, config: BattleConfig): BattleSt
         star: loadout.star,
         gear: loadout.gear.map((id) => rules.gear(id)),
         plus: loadout.plus,
+        bond: heroIds.has(def.bond),
       }),
       loadout.row,
     );
@@ -438,6 +440,7 @@ export function runStage(
       heroes: current,
       enemies: definition.enemies,
       autoCast: true,
+      maxRounds: stage.rounds,
     });
     runBattle(state, rules);
     events.push(...state.events);

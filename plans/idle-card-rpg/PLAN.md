@@ -1,7 +1,7 @@
 # Plan — Vân Du Ký (RPG thẻ bài treo máy)
 
 - Goal: Một RPG thẻ bài treo máy phone-first cho Tò He — **Vân Du Ký**, một đoàn thám hiểm đi qua thế giới fantasy gốc, **main zone là bàn đánh bài** tự động đánh qua màn, tiến trình dài là trục chính, phiên ngắn một tay, và nội dung mở rộng được lâu dài.
-- Phase: **Graduate** — implementation started; the first playable exists in `games/van-du-ky`. The graduation list is being worked through in [EXECUTION.md](EXECUTION.md). ([process](../README.md#phases))
+- Phase: **Graduate** — v1.0.0 is implemented and green; it waits on the owner's release word (merge/tag/deploy). The ledger is [EXECUTION.md](EXECUTION.md). ([process](../README.md#phases))
 - Started: 2026-11-09 · Branch: `feat/van-du-ky-core` · PR: chưa mở
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md) · Execution: [EXECUTION.md](EXECUTION.md)
 
@@ -29,7 +29,7 @@
 
 ## Next — one item
 
-**Implementation — C3/C5.** The first playable is in `games/van-du-ky`: board, core, 6-hero/12-stage slice, team/hero/summon/offline sheets. Next: the turn rail and top strip, codex/daily/gear-equip, SFX/haptics, then the full 20/20/4/2 content. The ledger is [EXECUTION.md](EXECUTION.md); release candidate only when C6 is green.
+**Release v1.0.0.** The release candidate is green: 48 stages, 20 heroes, 20 enemies + 4 bosses, 10 bonds, tower/daily/boss/challenge, save v2, 44 portraits, public pages/OG, `pnpm verify` and all-game conformance. Nothing is merged, tagged or deployed until the owner says so.
 
 ## Board
 

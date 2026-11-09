@@ -88,6 +88,8 @@ export interface HeroDef {
   readonly active: string;
   readonly passive: PassiveDef;
   readonly bond: string;
+  /** One line of the codex that tells who they are. */
+  readonly blurb?: string;
 }
 
 export interface EnemyDef {
@@ -100,6 +102,7 @@ export interface EnemyDef {
   readonly active: string;
   readonly boss?: boolean;
   readonly immuneControl?: boolean;
+  readonly blurb?: string;
 }
 
 export interface StageEnemy {
@@ -121,6 +124,8 @@ export interface StageDef {
   readonly index: number;
   readonly waves: readonly WaveDef[];
   readonly recommendedPower: number;
+  /** The round cap for this stage; 30 by default, 40 for a boss. */
+  readonly rounds?: number;
   readonly elite?: boolean;
   readonly boss?: boolean;
   readonly firstClear: { readonly gold: number; readonly essence: number; readonly shards: number };
@@ -136,6 +141,7 @@ export interface StageDef {
 export interface RegionDef {
   readonly id: string;
   readonly name: string;
+  readonly blurb?: string;
   readonly palette: readonly string[];
 }
 

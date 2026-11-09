@@ -60,6 +60,8 @@ export interface HeroGrowth {
   readonly star: number;
   readonly gear?: readonly GearDef[];
   readonly plus?: readonly number[];
+  /** A bond partner is deployed: +6% HP and ATK. */
+  readonly bond?: boolean;
 }
 
 /** A hero's stats before the row bonus: base × company × stars + gear + the passive at its star. */
@@ -80,12 +82,17 @@ export function heroStats(def: HeroDef, growth: HeroGrowth): Stats {
     (stats as Record<keyof Stats, number>)[def.passive.stat] +=
       (stats as Record<keyof Stats, number>)[def.passive.stat] * def.passive.value;
   }
-  return stats;
+  if (!growth.bond) return stats;
+  return {
+    ...stats,
+    hp: Math.round(stats.hp * 1.06),
+    atk: Math.round(stats.atk * 1.06),
+  };
 }
 
 /** Enemy stats at a stage level: base × level; a boss is 1.35×. */
 export function enemyStats(base: Stats, level: number, boss = false): Stats {
-  const scale = (1 + Math.max(0, level - 1) * 0.1) * (boss ? 1.35 : 1);
+  const scale = (1 + Math.max(0, level - 1) * 0.1) * (boss ? 1.25 : 1);
   return {
     hp: Math.round(base.hp * scale),
     atk: Math.round(base.atk * scale),

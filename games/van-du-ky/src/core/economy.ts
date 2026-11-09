@@ -1,6 +1,6 @@
 import { HEROES } from '../content/heroes.ts';
 import { STAGES } from '../content/stages.ts';
-import { cloneSave } from './progression.ts';
+import { addCompanyXp, cloneSave } from './progression.ts';
 import type { SaveData } from './save-types.ts';
 import type { Rarity, Rng } from './types.ts';
 
@@ -67,6 +67,7 @@ export function summon(save: SaveData, rng: Rng, count: 1 | 10): SummonOutcome {
       roster,
       currencies: { ...next.currencies, shards },
       summon: { ...next.summon, pityRare, pityEpic },
+      daily: { ...next.daily, summons: next.daily.summons + 1 },
     },
     results,
   };
@@ -77,12 +78,13 @@ export interface OfflineReward {
   readonly gold: number;
   readonly essence: number;
   readonly shards: number;
+  readonly xp: number;
 }
 
 /** What the company farmed while the app was closed: the highest cleared stage, capped at 12 h. */
 export function offlineReward(save: SaveData, now: number): OfflineReward {
   const since = save.offline.at;
-  if (!since || now <= since) return { hours: 0, gold: 0, essence: 0, shards: 0 };
+  if (!since || now <= since) return { hours: 0, gold: 0, essence: 0, shards: 0, xp: 0 };
   const hours = Math.min(OFFLINE_CAP_HOURS, (now - since) / 3_600_000);
   const stage = STAGES.items.find((candidate) => candidate.id === save.offline.stage) ?? STAGES.items[0]!;
   const rate = 1 + stage.index * 0.35;
@@ -91,22 +93,24 @@ export function offlineReward(save: SaveData, now: number): OfflineReward {
     gold: Math.floor(hours * 24 * rate),
     essence: Math.floor(hours * 2.4 * rate),
     shards: Math.floor(hours * 0.8),
+    xp: Math.floor(hours * 60 * rate),
   };
 }
 
 /** Add an offline reward once and start the next window. */
 export function claimOffline(save: SaveData, now: number): { save: SaveData; reward: OfflineReward } {
   const reward = offlineReward(save, now);
+  const next = addCompanyXp(save, reward.xp);
   return {
     reward,
     save: {
-      ...save,
+      ...next,
       currencies: {
-        gold: save.currencies.gold + reward.gold,
-        essence: save.currencies.essence + reward.essence,
-        shards: save.currencies.shards + reward.shards,
+        gold: next.currencies.gold + reward.gold,
+        essence: next.currencies.essence + reward.essence,
+        shards: next.currencies.shards + reward.shards,
       },
-      offline: { at: now, stage: save.offline.stage },
+      offline: { at: now, stage: next.offline.stage },
     },
   };
 }

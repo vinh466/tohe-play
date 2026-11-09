@@ -25,6 +25,33 @@ export interface SaveRecords {
   readonly bossDamage: number;
 }
 
+export interface SaveDaily {
+  /** The local date this block belongs to (`YYYY-MM-DD`). */
+  readonly date: string;
+  /** Stages cleared today. */
+  readonly stages: number;
+  /** Gear pieces upgraded today. */
+  readonly upgrades: number;
+  /** Summons made today. */
+  readonly summons: number;
+  /** Claimed task ids. */
+  readonly tasks: string[];
+  readonly expedition: boolean;
+  /** The 7-day Khởi Hành journey, 1–7, and the last day claimed. */
+  readonly journeyDay: number;
+  readonly journeyDate: string;
+}
+
+export interface SaveWeekly {
+  /** The Monday of the week this block belongs to (`YYYY-MM-DD`). */
+  readonly week: string;
+  readonly bossDamage: number;
+  readonly bossClaimed: boolean;
+  /** Fewest rounds a weekly challenge was cleared in; 0 means not cleared. */
+  readonly challengeRounds: number;
+  readonly challengeClaimed: boolean;
+}
+
 export interface SaveData {
   readonly v: number;
   readonly company: { readonly level: number; readonly xp: number };
@@ -41,13 +68,8 @@ export interface SaveData {
   };
   /** Stages whose first-clear bonus has been taken. */
   readonly cleared: string[];
-  readonly daily: {
-    readonly date: string;
-    readonly tasks: string[];
-    readonly expedition: boolean;
-    readonly boss: boolean;
-    readonly journeyDay: number;
-  };
+  readonly daily: SaveDaily;
+  readonly weekly: SaveWeekly;
   readonly summon: { readonly pityRare: number; readonly pityEpic: number; readonly lastFree: string | null };
   readonly settings: {
     readonly autoCast: boolean;

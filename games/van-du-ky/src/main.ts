@@ -18,7 +18,7 @@ const shell = createShell({
   howTo: () => ({
     icon: { src: 'icon.svg' },
     title: t.howToTitle,
-    content: hintList(t.hints.map((text) => ({ icon: 'lightbulb', text }))),
+    content: hintList(t.hints.map((text, index) => ({ icon: ['▸', '◆', '✦', '☾'][index] ?? '▸', text }))),
   }),
   tutorial: {
     seen: () => store.save.tutorial.seen,

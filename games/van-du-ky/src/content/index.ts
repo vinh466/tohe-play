@@ -1,6 +1,7 @@
 import { checkReferences } from '@tohe/game-kit';
 import type { BattleRules } from '../core/battle.ts';
 import type { EnemyDef, GearDef, HeroDef, HeroLoadout, SkillDef } from '../core/types.ts';
+import { BONDS } from './bonds.ts';
 import { ENEMIES } from './enemies.ts';
 import { GEAR } from './gear.ts';
 import { HEROES } from './heroes.ts';
@@ -21,7 +22,7 @@ export const RULES: BattleRules = {
   gear: (id): GearDef => lookup(GEAR.items, 'gear', id),
 };
 
-/** The first slice's team: two front, two mid, two back. */
+/** The company's opening team: two front, two mid, two back. */
 export const STARTER_TEAM: readonly HeroLoadout[] = [
   { heroId: 've-binh', row: 0, column: 0, star: 2, gear: [] },
   { heroId: 'kiem-si', row: 0, column: 1, star: 2, gear: ['kiem-lua'] },
@@ -31,39 +32,21 @@ export const STARTER_TEAM: readonly HeroLoadout[] = [
   { heroId: 'moc-y', row: 2, column: 1, star: 1, gear: [] },
 ];
 
+/** The bond whose two heroes are exactly this pair, in either order. */
+export function bondOf(a: string, b: string): (typeof BONDS.items)[number] | undefined {
+  return BONDS.items.find((bond) => (bond.a === a && bond.b === b) || (bond.a === b && bond.b === a));
+}
+
 /** Every reference the content makes must resolve; the game's tests fail on a problem. */
 export function contentProblems(): string[] {
   const problems = checkReferences([
-    {
-      from: HEROES,
-      field: 'basic',
-      to: SKILLS,
-      ids: (hero) => [hero.basic],
-    },
-    {
-      from: HEROES,
-      field: 'active',
-      to: SKILLS,
-      ids: (hero) => [hero.active],
-    },
-    {
-      from: HEROES,
-      field: 'bond',
-      to: HEROES,
-      ids: (hero) => [hero.bond],
-    },
-    {
-      from: ENEMIES,
-      field: 'basic',
-      to: SKILLS,
-      ids: (enemy) => [enemy.basic],
-    },
-    {
-      from: ENEMIES,
-      field: 'active',
-      to: SKILLS,
-      ids: (enemy) => [enemy.active],
-    },
+    { from: HEROES, field: 'basic', to: SKILLS, ids: (hero) => [hero.basic] },
+    { from: HEROES, field: 'active', to: SKILLS, ids: (hero) => [hero.active] },
+    { from: HEROES, field: 'bond', to: HEROES, ids: (hero) => [hero.bond] },
+    { from: BONDS, field: 'a', to: HEROES, ids: (bond) => [bond.a] },
+    { from: BONDS, field: 'b', to: HEROES, ids: (bond) => [bond.b] },
+    { from: ENEMIES, field: 'basic', to: SKILLS, ids: (enemy) => [enemy.basic] },
+    { from: ENEMIES, field: 'active', to: SKILLS, ids: (enemy) => [enemy.active] },
     {
       from: STAGES,
       field: 'wave.enemy',
@@ -76,16 +59,11 @@ export function contentProblems(): string[] {
       to: GEAR,
       ids: (stage) => ('gear' in stage.loot && stage.loot.gear ? [stage.loot.gear] : []),
     },
-    {
-      from: STAGES,
-      field: 'region',
-      to: REGIONS,
-      ids: (stage) => [stage.region],
-    },
+    { from: STAGES, field: 'region', to: REGIONS, ids: (stage) => [stage.region] },
   ]).map((problem) => `${problem.kind}/${problem.id}: ${problem.field} → ${problem.missing}`);
 
   for (const stage of STAGES.items) {
-    if ((stage.waves as readonly unknown[]).length === 0) problems.push(`${stage.id}: no waves`);
+    if (stage.waves.length === 0) problems.push(`${stage.id}: no waves`);
     for (const wave of stage.waves) {
       const slots = new Set<string>();
       for (const enemy of wave.enemies) {
@@ -93,6 +71,20 @@ export function contentProblems(): string[] {
         if (slots.has(key)) problems.push(`${stage.id}: two enemies in ${key}`);
         slots.add(key);
       }
+    }
+  }
+
+  // Bonds are pairs: mutual in the heroes, each hero in exactly one pair, no pair twice.
+  const paired = new Set<string>();
+  for (const bond of BONDS.items) {
+    const a = HEROES.items.find((hero) => hero.id === bond.a);
+    const b = HEROES.items.find((hero) => hero.id === bond.b);
+    if (!a || !b) continue;
+    if (a.bond !== bond.b) problems.push(`${bond.id}: ${a.id} bonds ${a.bond}, not ${bond.b}`);
+    if (b.bond !== bond.a) problems.push(`${bond.id}: ${b.id} bonds ${b.bond}, not ${bond.a}`);
+    for (const id of [bond.a, bond.b]) {
+      if (paired.has(id)) problems.push(`${bond.id}: ${id} is in more than one bond`);
+      paired.add(id);
     }
   }
   return problems;

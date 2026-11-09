@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { RULES, STARTER_TEAM } from '../content/index.ts';
-import { STAGES } from '../content/stages.ts';
+import { STAGES, stageById } from '../content/stages.ts';
 import { basicAttack, cast, createBattle, runBattle, runStage, step, turnOrder } from './battle.ts';
 import type { HeroLoadout } from './types.ts';
 
-const stage = STAGES.get('1-1');
+const stage = stageById('1-1');
 
 function battle(seed = 7, heroes: readonly HeroLoadout[] = STARTER_TEAM, autoCast = true) {
   return createBattle(RULES, {

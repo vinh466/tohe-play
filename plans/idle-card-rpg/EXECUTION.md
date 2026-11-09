@@ -5,8 +5,8 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - Branch: `feat/van-du-ky-core` (based on `plan/idle-card-rpg`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C3 — playable board (first pass)**; C4 (region 1) is in
-- Release: not started; no deploy, no tag, no merge without the owner's word.
+- Current checkpoint: **C6 — release candidate green** (v1.0.0, 2026-11-09)
+- Release: branch ready; no deploy, no tag, no merge until the owner says so.
 
 ## Checkpoints
 
@@ -15,16 +15,16 @@ what to do next. Update it at the end of every session, newest session first in 
 | C0 | Spec & ADRs | `games/van-du-ky/SPEC.md`; ADR 0059 (save budget); docs updated; docs build | **done** (ADR 0060 deferred with P0b) |
 | C1 | Platform P0a | save budget in contract/API/hub; E-01 persistent shell; E-03 FX player; tests | **done** (on-demand is P0b) |
 | C2 | Game core | pure battle/progression/economy + catalogs + save + tests + sim | **done** |
-| C3 | Playable board | Phaser board + DOM sheets + one FX effect; 360×640; 60 fps | **first pass** (no FX yet; board/sheets play) |
-| C4 | Content slice | region 1 (12 stages), 6 heroes, 1 boss | **done** (event later) |
-| C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | todo |
-| C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | blocked by C3/C5 polish |
+| C3 | Playable board | Phaser board + DOM sheets + kit FX; 360×640; 60 fps | **done** (shake/float/tween, SFX, haptics) |
+| C4 | Content slice | region 1 (12 stages), 6 heroes, 1 boss | **done** |
+| C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | **done** |
+| C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (report to owner) |
 
 ## Staging and deviations
 
-1. **Asset on-demand is P0b, after C3.** The first playable uses bundled placeholder art under the build budget; the
-   contract keeps `delivery: "bundle"` until on-demand is implemented. Do not add `on-demand` to the contract before the
-   hub/Studio/API can serve it. Record the deferral in `PLAN.md`/log. The full 20-hero art needs P0b or a larger build.
+1. **Asset on-demand is P0b/P1.** v1 bundles its 44 portraits (~40 KB) and stays at 1.6 MB of the 8 MB budget, so
+   on-demand delivery is not needed to ship. The contract keeps `delivery: "bundle"` until the hub/Studio/API can serve
+   `on-demand`; that work is P1, not a v1 gate.
 2. **Full content is C5, not C1–C3.** Build the engine and a 6-hero/12-stage slice first; add the rest through data.
 3. **The game is dark-only** (`themes: ["dark"]`), as decided in D-13. The hub is still light/dark; the game keeps its
    own look. Screenshot the game at 360 px.
@@ -37,7 +37,7 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - [x] `games/van-du-ky/SPEC.md`: board, 6v6/3 rows, elements/roles, progression, content, save, UX, art, SFX, themes.
 - [x] ADR 0059: a game's save budget (`saveBudgetKb`, default 64 KB, max 1 MB).
-- [ ] ADR 0060: asset on-demand delivery (design only; implement in P0b).
+- [ ] ADR 0060: asset on-demand delivery (P1; v1 bundles 1.6 MB of an 8 MB budget).
 - [x] `docs/contracts/game-contract-v1.md`: `saveBudgetKb` row and save section.
 - [x] `docs/architecture/progress-sync.md`: per-game save budget.
 - [x] `docs/architecture/game-shell.md`: `persistent` shell.
@@ -57,31 +57,31 @@ what to do next. Update it at the end of every session, newest session first in 
 
 ### P0b — Asset on-demand (after C3)
 
-- [ ] ADR/contract `delivery: on-demand`; Studio/hub/API/conformance; offline cache.
-- [ ] Until then, keep `bundle`; the build stays under the declared `sizeBudgetKb`.
+- [ ] ADR/contract `delivery: on-demand`; Studio/hub/API/conformance; offline cache (P1).
+- [x] Until then, keep `bundle`; the build stays at 1.6 MB, under the 8 MB `sizeBudgetKb`.
 
 ### G1 — Game core
 
 - [x] Scaffold `games/van-du-ky`: package, tsconfig, vite (`base: './'`), `public/game.json`, icon, `page/`.
 - [x] Pure core: `rng`, `stats`, `battle`, `progression`, `economy`, `save`, `content`.
-- [x] Catalogs: heroes, skills, enemies, regions, stages, loot; events/fx later.
+- [x] Catalogs: heroes, skills, enemies, bonds, regions, stages, gear, events (expedition/tower/boss/challenge).
 - [x] Tests: turn order, damage, elements, rows, auto-cast toggle, win/lose, star/gear, save/restore.
-- [x] Balance sim: plays the 12-stage slice; 48 stages later.
-- [x] Save envelope: versioned; normalize; budget-aware; save on stage clear/upgrade/summon.
+- [x] Balance sim: plays all 48 stages; all win with the growth curve.
+- [x] Save envelope v2: versioned plus a v1 migration; normalize; budget-aware; daily/weekly blocks.
 
 ### G2 — UI/UX
 
 - [x] Research: R-09 at 360×640; sheet heights; one-hand reach; offline card; summon pity.
-- [ ] Wireframe v4: board/formation/hero/summon done in the UI; codex/daily later.
-- [x] Phaser board: 6v6/3 rows, clash, damage numbers, auto-cast, speed, stop, upgrade; turn rail later.
-- [x] DOM sheets: team, hero, gear (in hero), summon, offline; codex/daily later.
-- [ ] SFX/haptics; reduced motion; empty/loading states.
-- [x] Screenshots at 390×844 and conformance 360×640; hub playtest later.
+- [x] Wireframe v4: board, formation, hero, gear, summon, stage picker, codex, daily, offline, events.
+- [x] Phaser board: 6v6/3 rows, portraits, turn rail, clash, damage numbers, auto-cast, speed, stop, upgrade.
+- [x] DOM sheets: team, hero, gear, summon, offline, stage picker, codex, daily, events, credits.
+- [x] SFX/haptics; reduced motion; empty states; sheets pause the board.
+- [x] Screenshots at 390×844 and conformance 360×640; stage-clear and expedition played in Chrome.
 
 ### G3 — Release
 
 - [x] `pnpm --filter @tohe/game-van-du-ky test/typecheck/build/conformance`.
-- [x] public pages, OG images, sitemap; `pnpm verify` pending.
+- [x] public pages, OG images, sitemap; `pnpm verify` green (API 610/610, all games conformance).
 - [ ] Report the release candidate to the owner. No deploy/tag/merge without their word.
 
 ## Gates (every code change)
@@ -105,6 +105,14 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-09 — agent (v1.0.0 release candidate)
+
+- Full v1: 4 regions × 12 stages, 20 heroes, 20 enemies + 4 bosses, 10 bonds, 44 pixel portraits, save v2.
+- Story board + tower 40 + daily expedition + weekly boss + weekly challenge + Khởi Hành; stage picker, codex, gear, daily sheets.
+- Balance sim clears all 48 stages; SFX/haptics/reduced motion; public pages and OG for v1.
+- `pnpm verify` green: contract/SDK/kit/API 610 tests, all game builds and conformance. No deploy/tag/merge yet.
+- Next: owner's release word; then merge, tag and deploy per docs/guides/environments.md.
 
 ### 2026-11-09 — agent (first playable + P0a)
 

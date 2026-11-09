@@ -15,7 +15,7 @@ Một đoàn hộ vệ đi con đường mây. Bàn đánh bài là màn hình c
 
 ## Hợp với ai
 
-Bản đầu có một vùng Đồi Sương, sáu hộ vệ, mười hai màn và một boss. Bốn vùng, hai mươi hộ vệ và hai sự kiện là đường đi tiếp; trang này sẽ được cập nhật khi chúng vào game.
+Bản 1.0 có bốn vùng, 48 màn, 20 hộ vệ, 20 quái, 4 boss, 10 mối nối. Ngoài chặng đường chính còn có Tháp Đường Mây 40 tầng, chuyến đi trong ngày, boss thế giới hằng tuần, Thử Thách Đường Mây và chuỗi bảy ngày Khởi Hành. Người lớn chơi lâu, trẻ nhỏ mở lên là đoàn tự đi; không có cửa hàng bằng tiền thật, không có bảng xếp hạng công khai.
 
 ## Hỏi đáp
 
@@ -26,3 +26,7 @@ Game lưu tiến trình trên máy trước, rồi đồng bộ khi có mạng. 
 ### Có phải nạp tiền hay xem quảng cáo không?
 
 Không. Mảnh triệu hồi kiếm trong game; không có cửa hàng bằng tiền thật và không có quảng cáo.
+
+### Chơi bao lâu thì hết?
+
+Chặng đường chính dài 48 màn; tháp, boss tuần và thử thách quay vòng để chơi tiếp. Không có ngày nào bị mất tiến trình vì nghỉ.

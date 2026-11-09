@@ -1,7 +1,7 @@
 import { GEAR } from '../content/gear.ts';
 import { HEROES } from '../content/heroes.ts';
-import { STAGES } from '../content/stages.ts';
-import type { SaveData, SaveFormation, SaveHero } from './save-types.ts';
+import { regionNumber, STAGES } from '../content/stages.ts';
+import type { SaveData, SaveFormation, SaveHero, SaveSlot } from './save-types.ts';
 import { heroPower } from './stats.ts';
 import type { HeroLoadout, Row, StageDef } from './types.ts';
 
@@ -15,6 +15,11 @@ export function cloneSave(save: SaveData): SaveData {
 /** XP needed to reach the next company level. */
 export function xpToNext(level: number): number {
   return 100 + level * 80;
+}
+
+/** XP a stage pays: its region and index, plus a first-clear bonus. */
+export function stageXp(stage: StageDef, first: boolean): number {
+  return 100 + (regionNumber(stage.id) - 1) * 50 + stage.index * 10 + (first ? 50 : 0);
 }
 
 /** Add XP and level the company; stops at 20. */
@@ -87,6 +92,36 @@ export function equipGear(save: SaveData, heroId: string, gearId: string): SaveD
   };
 }
 
+/** Take one slot off a hero; the piece goes back to the inventory. */
+export function unequipGear(save: SaveData, heroId: string, slot: SaveSlot): SaveData {
+  const hero = save.roster[heroId];
+  if (!hero) throw new Error(`unequip: ${heroId} is not in the roster`);
+  const next = cloneSave(save);
+  const target = next.roster[heroId] as SaveHero;
+  const gear = { ...target.gear };
+  delete gear[slot];
+  next.roster[heroId] = { ...target, gear };
+  return next;
+}
+
+/** The gear pieces nobody is wearing, ready to equip. */
+export function inventory(
+  save: SaveData,
+  slot?: 'weapon' | 'armor' | 'charm' | 'relic',
+): { id: string; defId: string; plus: number }[] {
+  const worn = new Set(
+    Object.values(save.roster).flatMap((hero) =>
+      Object.values(hero.gear).filter((id): id is string => typeof id === 'string'),
+    ),
+  );
+  return Object.entries(save.gear)
+    .filter(
+      ([id, piece]) =>
+        !worn.has(id) && (!slot || GEAR.items.some((def) => def.id === piece.defId && def.slot === slot)),
+    )
+    .map(([id, piece]) => ({ id, defId: piece.defId, plus: piece.plus }));
+}
+
 export function upgradeCost(piece: { readonly plus: number }): number {
   return 40 * (piece.plus + 1);
 }
@@ -102,6 +137,7 @@ export function upgradeGear(save: SaveData, gearId: string): SaveData {
     ...next,
     currencies: { ...next.currencies, gold: next.currencies.gold - cost },
     gear: { ...next.gear, [gearId]: { ...piece, plus: piece.plus + 1 } },
+    daily: { ...next.daily, upgrades: next.daily.upgrades + 1 },
   };
 }
 
@@ -134,6 +170,7 @@ export function loadouts(save: SaveData): HeroLoadout[] {
 }
 
 export function teamPower(save: SaveData): number {
+  const team = new Set(save.formation.map((entry) => entry.heroId));
   return save.formation.reduce((sum, entry) => {
     const hero = save.roster[entry.heroId];
     const def = HEROES.items.find((candidate) => candidate.id === entry.heroId);
@@ -143,49 +180,85 @@ export function teamPower(save: SaveData): number {
       .map((id) => GEAR.items.find((piece) => piece.id === id))
       .filter((piece): piece is NonNullable<typeof piece> => piece !== undefined);
     const plus = gearIds.map((id) => save.gear[id]?.plus ?? 0);
-    return sum + heroPower(def, { companyLevel: save.company.level, star: hero.star, gear, plus }, entry.row);
+    return (
+      sum +
+      heroPower(
+        def,
+        {
+          companyLevel: save.company.level,
+          star: hero.star,
+          gear,
+          plus,
+          bond: team.has(def.bond),
+        },
+        entry.row,
+      )
+    );
   }, 0);
 }
 
-export function nextStage(stage: StageDef): StageDef | null {
-  const all = STAGES.items;
-  const index = all.findIndex((candidate) => candidate.id === stage.id);
-  return index >= 0 && index + 1 < all.length ? all[index + 1]! : null;
+/** The order a stage sits in the road, for comparing two clears. */
+export function stageOrder(stageId: string): number {
+  return STAGES.items.findIndex((stage) => stage.id === stageId);
 }
 
-/** Apply a win: loot, first-clear bonus, the next stage. A loss changes nothing. */
+export function nextStage(stage: StageDef): StageDef | null {
+  const index = STAGES.items.findIndex((candidate) => candidate.id === stage.id);
+  return index >= 0 && index + 1 < STAGES.items.length ? (STAGES.items[index + 1] as StageDef) : null;
+}
+
+/** Apply a win: loot, first-clear bonus, XP, the next stage. A loss changes nothing. */
 export function recordClear(save: SaveData, stage: StageDef, now = Date.now()): SaveData {
   const next = cloneSave(save);
   const first = !next.cleared.includes(stage.id);
   const gold = stage.loot.gold + (first ? stage.firstClear.gold : 0);
   const essence = stage.loot.essence + (first ? stage.firstClear.essence : 0);
   const shards = first ? stage.firstClear.shards : 0;
-  const upcoming = nextStage(stage);
+  const current = `${next.progress.region}-${next.progress.stage}`;
+  const advances = stageOrder(stage.id) >= stageOrder(current);
+  const upcoming = advances ? nextStage(stage) : null;
+  const highest = stageOrder(stage.id) > stageOrder(next.progress.highest) ? stage.id : next.progress.highest;
+  const leveled = addCompanyXp(next, stageXp(stage, first));
   return {
-    ...next,
+    ...leveled,
     currencies: {
-      gold: next.currencies.gold + gold,
-      essence: next.currencies.essence + essence,
-      shards: next.currencies.shards + shards,
+      gold: leveled.currencies.gold + gold,
+      essence: leveled.currencies.essence + essence,
+      shards: leveled.currencies.shards + shards,
     },
-    cleared: first ? [...next.cleared, stage.id] : next.cleared,
+    cleared: first ? [...leveled.cleared, stage.id] : leveled.cleared,
     progress: {
-      ...next.progress,
-      highest: stage.id,
-      stage: upcoming ? upcoming.index : stage.index,
-      records: { ...next.progress.records, bestStage: stage.id },
+      ...leveled.progress,
+      region: upcoming ? regionNumber(upcoming.id) : advances ? regionNumber(stage.id) : next.progress.region,
+      stage: upcoming ? upcoming.index : advances ? stage.index : next.progress.stage,
+      highest,
+      records: { ...leveled.progress.records, bestStage: highest },
     },
-    offline: { at: now, stage: stage.id },
+    daily: { ...leveled.daily, stages: leveled.daily.stages + 1 },
+    offline: { at: now, stage: highest },
   };
 }
 
-/** A new day: the three tasks reset; the journey day advances only on a day with a claim. */
+/** A new day: the three tasks and the counters reset; the journey keeps its place. */
 export function resetDaily(save: SaveData, date: string): SaveData {
   if (save.daily.date === date) return save;
-  return { ...cloneSave(save), daily: { ...save.daily, date, tasks: [], expedition: false, boss: false } };
+  return {
+    ...cloneSave(save),
+    daily: { ...save.daily, date, stages: 0, upgrades: 0, summons: 0, tasks: [], expedition: false },
+  };
 }
 
-export function claimTask(save: SaveData, task: string): SaveData {
-  if (save.daily.tasks.includes(task)) return save;
-  return { ...cloneSave(save), daily: { ...save.daily, tasks: [...save.daily.tasks, task].slice(0, 3) } };
+/** A new week: the boss and the challenge reset. */
+export function resetWeekly(save: SaveData, week: string): SaveData {
+  if (save.weekly.week === week) return save;
+  return {
+    ...cloneSave(save),
+    weekly: {
+      week,
+      bossDamage: 0,
+      bossClaimed: false,
+      challengeRounds: 0,
+      challengeClaimed: false,
+    },
+  };
 }

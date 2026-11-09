@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { BONDS } from './bonds.ts';
 import { ENEMIES } from './enemies.ts';
 import { GEAR } from './gear.ts';
 import { HEROES } from './heroes.ts';
@@ -11,11 +12,13 @@ describe('content', () => {
     expect(contentProblems()).toEqual([]);
   });
 
-  it('has the first slice: 6 heroes, 6 enemies, 1 boss and 12 stages', () => {
-    expect(HEROES.items).toHaveLength(6);
-    expect(ENEMIES.items).toHaveLength(7);
-    expect(STAGES.items).toHaveLength(12);
-    expect(REGIONS.items).toHaveLength(1);
+  it('has the full road: 20 heroes, 20 enemies, 4 bosses, 4 regions and 48 stages', () => {
+    expect(HEROES.items).toHaveLength(20);
+    expect(ENEMIES.items).toHaveLength(24);
+    expect(ENEMIES.items.filter((enemy) => enemy.boss)).toHaveLength(4);
+    expect(BONDS.items).toHaveLength(10);
+    expect(REGIONS.items).toHaveLength(4);
+    expect(STAGES.items).toHaveLength(48);
     expect(GEAR.items.length).toBeGreaterThanOrEqual(8);
     expect(SKILLS.items.length).toBeGreaterThanOrEqual(10);
   });
@@ -25,8 +28,13 @@ describe('content', () => {
       expect(RULES.hero(hero.id)).toBe(hero);
       expect(RULES.skill(hero.basic).kind).toBe('basic');
       expect(RULES.skill(hero.active).kind).toBe('active');
+      expect(hero.blurb?.length).toBeGreaterThan(10);
     }
     for (const gear of GEAR.items) expect(RULES.gear(gear.id)).toBe(gear);
+  });
+
+  it('every enemy has a blurb and a portrait-sized identity', () => {
+    for (const enemy of ENEMIES.items) expect(enemy.blurb?.length).toBeGreaterThan(10);
   });
 
   it('the starter team is six heroes with a front/mid/back formation', () => {
@@ -36,9 +44,15 @@ describe('content', () => {
     expect(STARTER_TEAM.filter((hero) => hero.row === 2)).toHaveLength(2);
   });
 
-  it('the region has a rising recommended power and a boss at the end', () => {
+  it('the road has a rising recommended power, a boss at every region end and 12 stages per region', () => {
     const powers = STAGES.items.map((stage) => stage.recommendedPower);
     expect(powers).toEqual([...powers].sort((a, b) => a - b));
-    expect(STAGES.get('1-12').boss).toBe(true);
+    for (const region of REGIONS.items) {
+      const stages = STAGES.items.filter((stage) => stage.region === region.id);
+      expect(stages).toHaveLength(12);
+      expect(stages[11]?.boss).toBe(true);
+      expect(stages[11]?.waves.at(-1)?.boss).toBe(true);
+    }
+    expect(new Set(STAGES.items.map((stage) => stage.id)).size).toBe(48);
   });
 });

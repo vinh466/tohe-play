@@ -5,13 +5,13 @@ import type { SaveData, SaveFormation, SaveGear, SaveHero } from './save-types.t
 export * from './save-types.ts';
 
 /** The save's schema version. A change that cannot be read by the old code bumps it and adds a migration. */
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 
 export class SaveError extends Error {}
 
 const MAX_GEAR = 200;
 
-/** A fresh company: the six starters, no progress, no currencies. */
+/** A fresh company: the six starters, no progress, one welcome pull. */
 export function emptySave(): SaveData {
   const roster: Record<string, SaveHero> = {};
   const gear: Record<string, SaveGear> = {};
@@ -30,7 +30,11 @@ export function emptySave(): SaveData {
     currencies: { gold: 0, essence: 0, shards: 100 },
     roster,
     gear,
-    formation: STARTER_TEAM.map((hero) => ({ heroId: hero.heroId, row: hero.row, column: hero.column })),
+    formation: STARTER_TEAM.map((hero) => ({
+      heroId: hero.heroId,
+      row: hero.row,
+      column: hero.column,
+    })),
     progress: {
       region: 1,
       stage: 1,
@@ -39,7 +43,23 @@ export function emptySave(): SaveData {
       records: { bestStage: '1-1', tower: 0, bossDamage: 0 },
     },
     cleared: [],
-    daily: { date: '', tasks: [], expedition: false, boss: false, journeyDay: 1 },
+    daily: {
+      date: '',
+      stages: 0,
+      upgrades: 0,
+      summons: 0,
+      tasks: [],
+      expedition: false,
+      journeyDay: 1,
+      journeyDate: '',
+    },
+    weekly: {
+      week: '',
+      bossDamage: 0,
+      bossClaimed: false,
+      challengeRounds: 0,
+      challengeClaimed: false,
+    },
     summon: { pityRare: 0, pityEpic: 0, lastFree: null },
     settings: { autoCast: true, speed: 2, reducedMotion: false },
     offline: { at: 0, stage: '1-1' },
@@ -52,6 +72,7 @@ export function migrate(raw: unknown): SaveData {
   if (raw === null || raw === undefined) return emptySave();
   if (typeof raw !== 'object') throw new SaveError('save is not an object');
   const value = raw as Partial<SaveData> & { v?: unknown };
+  if (value.v === 1) return normalize(value as SaveData);
   if (value.v !== SAVE_VERSION) {
     throw new SaveError(
       `save version ${String(value.v)} is not supported (this build reads ${SAVE_VERSION})`,
@@ -102,7 +123,30 @@ export function normalize(input: SaveData): SaveData {
     uniqueFormation.length > 0
       ? uniqueFormation
       : STARTER_TEAM.map((hero) => ({ heroId: hero.heroId, row: hero.row, column: hero.column }));
-  const progress = input.progress ?? { region: 1, stage: 1, highest: '1-1', tower: 1, records: {} };
+  const progress = input.progress ?? {
+    region: 1,
+    stage: 1,
+    highest: '1-1',
+    tower: 1,
+    records: { bestStage: '1-1', tower: 0, bossDamage: 0 },
+  };
+  const daily = input.daily ?? {
+    date: '',
+    stages: 0,
+    upgrades: 0,
+    summons: 0,
+    tasks: [],
+    expedition: false,
+    journeyDay: 1,
+    journeyDate: '',
+  };
+  const weekly = input.weekly ?? {
+    week: '',
+    bossDamage: 0,
+    bossClaimed: false,
+    challengeRounds: 0,
+    challengeClaimed: false,
+  };
   return {
     v: SAVE_VERSION,
     company: {
@@ -121,10 +165,10 @@ export function normalize(input: SaveData): SaveData {
       region: clampInt(progress.region, 1, 4, 1),
       stage: clampInt(progress.stage, 1, 12, 1),
       highest: typeof progress.highest === 'string' ? progress.highest : '1-1',
-      tower: clampInt(progress.tower, 1, 10_000, 1),
+      tower: clampInt(progress.tower, 1, 41, 1),
       records: {
         bestStage: typeof progress.records?.bestStage === 'string' ? progress.records.bestStage : '1-1',
-        tower: clampInt(progress.records?.tower, 0, 10_000, 0),
+        tower: clampInt(progress.records?.tower, 0, 40, 0),
         bossDamage: clampInt(progress.records?.bossDamage, 0, Number.MAX_SAFE_INTEGER, 0),
       },
     },
@@ -132,16 +176,23 @@ export function normalize(input: SaveData): SaveData {
       ? [...new Set(input.cleared.filter((id): id is string => typeof id === 'string'))].slice(0, 100)
       : [],
     daily: {
-      date: typeof input.daily?.date === 'string' ? input.daily.date : '',
-      tasks: Array.isArray(input.daily?.tasks)
-        ? [...new Set(input.daily.tasks.filter((task): task is string => typeof task === 'string'))].slice(
-            0,
-            3,
-          )
+      date: typeof daily.date === 'string' ? daily.date : '',
+      stages: clampInt(daily.stages, 0, 1000, 0),
+      upgrades: clampInt(daily.upgrades, 0, 1000, 0),
+      summons: clampInt(daily.summons, 0, 1000, 0),
+      tasks: Array.isArray(daily.tasks)
+        ? [...new Set(daily.tasks.filter((task): task is string => typeof task === 'string'))].slice(0, 3)
         : [],
-      expedition: input.daily?.expedition === true,
-      boss: input.daily?.boss === true,
-      journeyDay: clampInt(input.daily?.journeyDay, 1, 7, 1),
+      expedition: daily.expedition === true,
+      journeyDay: clampInt(daily.journeyDay, 1, 7, 1),
+      journeyDate: typeof daily.journeyDate === 'string' ? daily.journeyDate : '',
+    },
+    weekly: {
+      week: typeof weekly.week === 'string' ? weekly.week : '',
+      bossDamage: clampInt(weekly.bossDamage, 0, Number.MAX_SAFE_INTEGER, 0),
+      bossClaimed: weekly.bossClaimed === true,
+      challengeRounds: clampInt(weekly.challengeRounds, 0, 999, 0),
+      challengeClaimed: weekly.challengeClaimed === true,
     },
     summon: {
       pityRare: clampInt(input.summon?.pityRare, 0, 10, 0),

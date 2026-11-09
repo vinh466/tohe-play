@@ -2,7 +2,7 @@
   "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
   "id": "van-du-ky",
   "name": "Vân Du Ký",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "protocol": 1,
   "description": "A phone-first idle card RPG: a company of guardians walks a long road, its card board is the game, and every stop makes the company stronger. No ads, no purchases, no energy.",
   "descriptions": {

@@ -16,6 +16,7 @@ describe('summon', () => {
     expect(save.currencies.shards).toBe(start.currencies.shards - TEN_PULL_COST + gained);
     expect(results).toHaveLength(10);
     expect(results.every((result) => HEROES.items.some((hero) => hero.id === result.heroId))).toBe(true);
+    expect(save.daily.summons).toBe(1);
   });
 
   it('gives a Rare+ on the 10th pull without one', () => {
@@ -62,6 +63,8 @@ describe('offline', () => {
     expect(offlineReward(start, start.offline.at - 1).hours).toBe(0);
     const claimed = claimOffline(start, now).save;
     expect(claimed.currencies.gold).toBe(reward.gold);
+    expect(claimed.company.xp).toBeGreaterThan(0);
+    expect(reward.xp).toBeGreaterThan(0);
     expect(offlineReward(claimed, now).hours).toBe(0);
   });
 });

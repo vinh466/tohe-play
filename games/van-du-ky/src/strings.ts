@@ -1,5 +1,5 @@
-import type { SaveData } from './core/save-types.ts';
-import type { Element, Role } from './core/types.ts';
+import type { SaveData, SaveSlot } from './core/save-types.ts';
+import type { Element, Rarity, Role } from './core/types.ts';
 
 export interface Strings {
   title: string;
@@ -8,6 +8,8 @@ export interface Strings {
   progress(save: SaveData): string;
   roles: Record<Role, string>;
   elements: Record<Element, string>;
+  rarities: Record<Rarity, string>;
+  slots: Record<SaveSlot, string>;
   autoCast: string;
   autoCastNote: string;
   reducedMotion: string;
@@ -30,6 +32,52 @@ export interface Strings {
   more: string;
   close: string;
   continue: string;
+  daily: string;
+  stages: string;
+  records: string;
+  inventory: string;
+  equip: string;
+  equipped: string;
+  remove: string;
+  pick: string;
+  start: string;
+  warnPower: string;
+  cleared: string;
+  firstClear: string;
+  recommended: string;
+  yourPower: string;
+  tower: string;
+  floor: string;
+  expedition: string;
+  boss: string;
+  challenge: string;
+  week: string;
+  claim: string;
+  claimed: string;
+  ready: string;
+  journey: string;
+  quests: string;
+  reward: string;
+  credits: string;
+  bond: string;
+  bonds: string;
+  region: string;
+  furthest: string;
+  heroes: string;
+  enemies: string;
+  back: string;
+  none: string;
+  company: string;
+  power: string;
+  stats: string;
+  skills: string;
+  passive: string;
+  shards: string;
+  gold: string;
+  essence: string;
+  open: string;
+  locked: string;
+  done: string;
 }
 
 const VI: Strings = {
@@ -50,6 +98,8 @@ const VI: Strings = {
     binder: 'Trói buộc',
   },
   elements: { ember: 'Lửa', tide: 'Nước', stone: 'Đá', gale: 'Gió' },
+  rarities: { common: 'Thường', rare: 'Hiếm', epic: 'Sử thi' },
+  slots: { weapon: 'Vũ khí', armor: 'Giáp', charm: 'Bùa', relic: 'Di vật' },
   autoCast: 'Tự tung chiêu',
   autoCastNote: 'Tắt để tự bấm chiêu khi tới lượt hero.',
   reducedMotion: 'Giảm chuyển động',
@@ -72,6 +122,52 @@ const VI: Strings = {
   more: 'Khác',
   close: 'Đóng',
   continue: 'Tiếp tục',
+  daily: 'Hôm nay',
+  stages: 'Chặng đường',
+  records: 'Kỷ lục',
+  inventory: 'Túi đồ',
+  equip: 'Lắp',
+  equipped: 'Đang dùng',
+  remove: 'Tháo',
+  pick: 'Chọn',
+  start: 'Đi',
+  warnPower: 'Sức mạnh dưới mức đề nghị — vẫn đi được, nhưng hãy chuẩn bị.',
+  cleared: 'Đã qua',
+  firstClear: 'Thưởng lần đầu',
+  recommended: 'Đề nghị',
+  yourPower: 'Sức mạnh',
+  tower: 'Tháp Đường Mây',
+  floor: 'Tầng',
+  expedition: 'Chuyến đi trong ngày',
+  boss: 'Boss thế giới',
+  challenge: 'Thử Thách Đường Mây',
+  week: 'Tuần',
+  claim: 'Nhận',
+  claimed: 'Đã nhận',
+  ready: 'Sẵn sàng',
+  journey: 'Khởi Hành',
+  quests: 'Việc hôm nay',
+  reward: 'Thưởng',
+  credits: 'Ghi công',
+  bond: 'Mối nối',
+  bonds: 'Mối nối',
+  region: 'Vùng',
+  furthest: 'Màn xa nhất',
+  heroes: 'Anh hùng',
+  enemies: 'Quái',
+  back: 'Quay lại',
+  none: '—',
+  company: 'Công ty',
+  power: 'Sức mạnh',
+  stats: 'Chỉ số',
+  skills: 'Kỹ năng',
+  passive: 'Bị động',
+  shards: 'Mảnh',
+  gold: 'Vàng',
+  essence: 'Tinh chất',
+  open: 'Mở',
+  locked: 'Chưa mở',
+  done: 'Xong',
 };
 
 const EN: Strings = {
@@ -85,13 +181,10 @@ const EN: Strings = {
   ],
   progress: (save) =>
     `Company level ${save.company.level} · Region ${save.progress.region} · Stage ${save.progress.stage}`,
-  roles: {
-    vanguard: 'Vanguard',
-    blade: 'Blade',
-    seer: 'Seer',
-    binder: 'Binder',
-  },
+  roles: { vanguard: 'Vanguard', blade: 'Blade', seer: 'Seer', binder: 'Binder' },
   elements: { ember: 'Ember', tide: 'Tide', stone: 'Stone', gale: 'Gale' },
+  rarities: { common: 'Common', rare: 'Rare', epic: 'Epic' },
+  slots: { weapon: 'Weapon', armor: 'Armor', charm: 'Charm', relic: 'Relic' },
   autoCast: 'Auto-cast',
   autoCastNote: 'Turn it off to cast a skill yourself on a hero turn.',
   reducedMotion: 'Reduced motion',
@@ -114,6 +207,52 @@ const EN: Strings = {
   more: 'More',
   close: 'Close',
   continue: 'Continue',
+  daily: 'Today',
+  stages: 'The road',
+  records: 'Records',
+  inventory: 'Inventory',
+  equip: 'Equip',
+  equipped: 'Equipped',
+  remove: 'Remove',
+  pick: 'Pick',
+  start: 'Go',
+  warnPower: 'Below the recommended power — you may go, but be ready.',
+  cleared: 'Cleared',
+  firstClear: 'First clear',
+  recommended: 'Recommended',
+  yourPower: 'Power',
+  tower: 'Cloud Road Tower',
+  floor: 'Floor',
+  expedition: 'Daily expedition',
+  boss: 'World boss',
+  challenge: 'Cloud Road Challenge',
+  week: 'Week',
+  claim: 'Claim',
+  claimed: 'Claimed',
+  ready: 'Ready',
+  journey: 'Departure',
+  quests: "Today's tasks",
+  reward: 'Reward',
+  credits: 'Credits',
+  bond: 'Bond',
+  bonds: 'Bonds',
+  region: 'Region',
+  furthest: 'Furthest',
+  heroes: 'Heroes',
+  enemies: 'Enemies',
+  back: 'Back',
+  none: '—',
+  company: 'Company',
+  power: 'Power',
+  stats: 'Stats',
+  skills: 'Skills',
+  passive: 'Passive',
+  shards: 'Shards',
+  gold: 'Gold',
+  essence: 'Essence',
+  open: 'Open',
+  locked: 'Locked',
+  done: 'Done',
 };
 
 export function stringsFor(locale: string): Strings {

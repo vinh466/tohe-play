@@ -15,7 +15,7 @@ A company of guardians walks the cloud road. The card board is the game: six car
 
 ## Who it suits
 
-The first release has one region, Đồi Sương, six guardians, twelve stages and one boss. Four regions, twenty guardians and two events are the road ahead; this page will change when they land.
+Version 1.0 has four regions, 48 stages, 20 guardians, 20 enemies, 4 bosses and 10 bonds. Beyond the main road there is a 40-floor tower, a daily expedition, a weekly world boss, a weekly challenge and a seven-day Departure journey. There is no real-money store and no public leaderboard; a missed day never wipes progress.
 
 ## Questions
 
@@ -26,3 +26,7 @@ The game saves on the device first, then syncs when there is a network. Next tim
 ### Is there anything to buy or an ad to watch?
 
 No. Summon shards are earned in the game; there is no real-money store and no advertising.
+
+### How long does it last?
+
+The main road is 48 stages; the tower, the weekly boss and the challenge rotate for more. No day is lost for taking a break.
