@@ -1,19 +1,25 @@
-# D-09 — Content: auto-advance stages, regions, bosses
+# D-09 — Content: auto-advance stages, regions, bosses (decided)
 
-**Status:** researching — **auto-advance + farm decided**; counts and side modes open · **Kind:** decision · **Blocked by:** D-04, D-05, D-06
+**Status:** decided — owner chose **3 regions × 12 stages** on 2026-11-09; the exact tuning is D-11 · **Kind:** decision · **Blocked by:** D-04, D-05, D-06
 
-## Decision (owner's words)
+## Decisions (owner's words)
 
 > "Auto-advance + farm (Recommended)"
+
+> "3 vùng × 12 (Recommended)"
 
 - The board **auto-advances** through stages: wave → wave → stage clear → next stage, until a loss.
 - On a loss, the company **farms the highest cleared stage**; the player can retry the wall or open a **stage picker** to farm elsewhere.
 - No energy; no manual stage selection required for normal progress.
+- **3 regions × 12 stages = 36 stages**; 3 region bosses.
+- **Tower**: 30 floors at launch, scaling.
+- **Daily expedition**: one rotating resource dungeon per day.
+- **World boss**: weekly async boss; local damage record in v1.
 - The stage strip at the top is the road: `Vùng 1 · 3/12`.
 
-## Proposed content shape for v1
+## Content shape (decided)
 
-| Piece | v1 proposal | Why |
+| Piece | v1 | Why |
 |---|---|---|
 | **Regions** | 3 regions, 12 stages each (36 stages) | One week of progression at 2–3 short sessions a day |
 | **Waves** | 2–3 waves per stage; the last wave may be elite | Keeps a stage 20–40 s; auto-advance has a rhythm |
@@ -24,13 +30,13 @@
 | **World boss** | A weekly async boss; damage record, local in v1 | A long-term goal without PvP |
 | **Codex** | Hero/enemy/region entries; bonds | Collection content that reuses battle art |
 
-## Open
+## Open (implementation details, not decisions)
 
-- Exact stage count per region (10/12/15) and boss cadence (every 4th/5th).
+- Exact stage count per region is 12; boss cadence every 4th/5th is a tuning detail.
 - Whether a stage has a fixed enemy composition or a small pool per stage.
 - Whether the tower is a separate mode or a "landmark" on the road.
-- Whether the world boss is weekly or daily; local record only in v1.
 - The stage schema (D-11): `region → stage → waves → enemies → rewards`.
+- Exact tower floors, world boss cadence, and daily rotation: D-11/D-10.
 
 ## What it changes
 
@@ -49,6 +55,6 @@
 
 ## Discussion
 
-**owner (2026-11-09):** chose auto-advance + farm.
+**owner (2026-11-09):** chose auto-advance + farm, then 3 regions × 12 stages.
 
-**agent (2026-11-09):** auto-advance is the right default for a board that is the app. The stage picker is the escape hatch; the wall card is the moment the player learns the systems. The content count is a proposal; the simulation in D-11 should tune it before art is produced.
+**agent (2026-11-09):** recorded. 36 stages + tower + daily + world boss is the right v1: enough for a week, small enough to art and balance. The stage picker is the escape hatch; the wall card is where the player learns the systems. The exact enemy compositions are D-11's content work, not a plan decision.

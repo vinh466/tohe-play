@@ -1,6 +1,6 @@
-# D-13 — Art direction: pixel card-on-board, dark-first
+# D-13 — Art direction: pixel card-on-board, dark-first (decided)
 
-**Status:** decided — owner chose **card-on-board** and **dark-first** on 2026-11-09; the detailed art spec is open · **Kind:** decision · **Blocked by:** D-01, D-05, D-12
+**Status:** decided — owner chose **card-on-board** and **dark-first** on 2026-11-09; palette/moodboard are open implementation details · **Kind:** decision · **Blocked by:** D-01, D-05, D-12
 
 ## Decisions (owner's words)
 

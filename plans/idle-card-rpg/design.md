@@ -4,7 +4,7 @@ This page **composes** the items into one picture. It decides nothing: every cla
 
 ## Short answer: how complete is it?
 
-**Decided:** the game is a **roaming company (Đoàn Thám Hiểm)** with **no home**; the **main zone is the battle board**; **6 hero cards in 3 rows** (front/mid/back) vs 6 enemy cards; **round-based auto** with auto normal attacks + auto-cast skills and a manual toggle; **card-on-board** visuals, **dark-first**; the platform extension package is **P0** (persistent shell, on-demand assets, 256 KB save, music). **Open:** roles/elements details, gear/skills, progression formulas, economy, content framework, daily, the board's density/readability, world/name, scope. Everything below is a **working proposal** to make the discussion concrete.
+**Decided:** the game is a **roaming company (Đoàn Thám Hiểm)** with **no home**; the **main zone is the battle board**; **6 hero cards in 3 rows** (front/mid/back) vs 6 enemy cards; **round-based auto** with auto normal attacks + auto-cast skills and a manual toggle; **card-on-board** visuals, **dark-first**; **company level + star + gear** progression; **3 regions × 12 stages**; **offline combat**; the platform extension package is **P0** (persistent shell, on-demand assets, 256 KB save, music). **Open:** economy details, meta/codex, daily, content pipeline, world/name, audio, scope, technical foundation. Everything below is a **working proposal** to make the discussion concrete.
 
 ## 1. The picture
 
@@ -68,17 +68,14 @@ There is no home screen. The board is the app; the stage strip is the road; the 
 
 ## 4. Still open
 
-- **D-05** — roles, elements, rarity, gear slots, skills, bonds (team size 4 is decided).
-- **D-06** — company level vs individual levels; 3 axes; no prestige in v1.
-- **D-07** — no gacha vs earned gacha vs hybrid; pity; duplicate value; offline combat simulation.
-- **D-09** — waves per stage, boss cadence, regions, tower, world boss; stage schema.
+- **D-03** — technical foundation: engine split, save schema/migrations, data load, performance.
+- **D-07** — economy details: currency rates, summon/pity, duplicate value, offline rate.
+- **D-08** — meta: codex entries, bonds, company rank, local records; no home.
 - **D-10** — daily weight; no streak punishment.
 - **D-11** — content pipeline and balance simulation.
-- **D-12** — board layout details, dock vs sheets, pause behavior, stage picker.
-- **D-13** — card-on-board vs sprite vs hybrid; dark-first vs both themes.
 - **D-14** — name, world, factions, tone, lore hooks.
 - **D-15** — audio/haptics; music or SFX only.
-- **D-16** — v1 scope, milestones, what is deliberately out.
+- **D-16** — v1 scope, milestones, what is deliberately out; the wireframe pack is v3, with a 360×640 pass still needed.
 
 ## 5. Known risks without an answer yet
 

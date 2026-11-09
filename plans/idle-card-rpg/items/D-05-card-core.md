@@ -1,30 +1,30 @@
-# D-05 — Card/character core: 6 heroes, 3 rows, 4 roles, 4 elements
+# D-05 — Card/character core: 6 heroes, 3 rows, 4 roles, 4 elements (decided)
 
-**Status:** researching — **6 heroes / 3 rows** (owner changed from 4), 4 roles and 4 elements decided; rarity, gear, skills and bonds are open · **Kind:** decision · **Blocked by:** D-04
+**Status:** decided — owner chose 6 heroes / 3 rows, 4 roles, 4 elements, and the proposed card details on 2026-11-09 · **Kind:** decision · **Blocked by:** D-04
 
 ## Decisions (owner's words)
 
-> "4 hero (Recommended)" → later changed to **"3 hàng / 6 hero"**
+> "3 hàng / 6 hero"
 
 > "4 role / 4 element (Recommended)"
+
+> "Theo đề xuất (Recommended)" (rarity, gear, skills, bonds)
 
 - **6 heroes** per team, arranged **3 rows × 2 columns** (front, mid, back).
 - **4 roles**: Vanguard (tank), Blade (DPS), Seer (support/heal), Binder (control/debuff).
 - **4 elements**: Ember, Tide, Stone, Gale; 1.25× advantage, 0.8× disadvantage; no hard gates.
 - **Row preference**: Vanguard front; Blade front/mid; Binder mid/back; Seer back.
+- **3 rarities**: Common, Rare, Epic; star 1–5.
+- **4 gear slots**: weapon, armor, charm, relic; 2-piece sets; +0…+5; fixed substats in v1.
+- **Skills**: 1 basic + 1 active + 1 passive; active charges and auto-casts; passive unlocks at star 3/5.
+- **Bonds**: one bond pair per hero; a small bonus when deployed together.
+- **Stats**: HP, ATK, DEF, SPD, CRIT; control chance is a skill property.
 
-The 6-hero decision supersedes the earlier 4-hero phone math. The trade-off is explicit: 12 cards on screen, smaller card text, longer battles, more art/balance. The wireframe v3 must prove it reads at 360×640; if it does not, the owner can revert to 2×2/4 heroes.
+The 6-hero decision supersedes the earlier 4-hero phone math. The owner accepted the density after seeing wireframe v3 (12 cards, full info on each card). The risk is real: 8 px names at 380 px; test at 360×640 during implementation.
 
 ## What is still open
 
-| Sub-question | Options | Recommendation |
-|---|---|---|
-| **Formation** | 2×2 · 3 rows / 6 heroes | **3 rows / 6 heroes** (owner, 2026-11-09); front/mid/back, 2 columns; enemies use the same grid |
-| **Rarity** | 3 tiers · 4 tiers · no rarity | **3**: Common, Rare, Epic; star 1–5; no "SSR" inflation |
-| **Gear slots** | 4 · 6 | **4**: weapon, armor, charm, relic; 2-piece sets; no random substat rerolls in v1 |
-| **Skills** | 1 active · 2 active · 1 basic + 1 active + 1 passive | **1 basic + 1 active + 1 passive**; active charges and auto-casts; passive unlocks at star 3/5 |
-| **Synergy** | Element aura · role synergy · bonds | **Element aura (2/4/6)** + **one bond pair** per hero; keep it legible |
-| **Stats** | 5 · 6 · 8 | **5**: HP, ATK, DEF, SPD, CRIT; control chance is a skill property, not a stat |
+Nothing at the decision level. The exact numbers (star shard costs, gear tier cadence, skill multipliers) belong to D-06/D-07 and the balance simulation (D-11).
 
 ## Proposed card anatomy
 
@@ -61,6 +61,6 @@ The 6-hero decision supersedes the earlier 4-hero phone math. The trade-off is e
 
 ## Discussion
 
-**owner (2026-11-09):** chose 4 heroes, then 4 roles / 4 elements.
+**owner (2026-11-09):** chose 6 heroes / 3 rows, 4 roles / 4 elements, and the proposed card details (3 rarity, 4 gear slots, 1 basic + 1 active + 1 passive, bonds, 5 stats).
 
-**agent (2026-11-09):** 4/4 is the right depth for a phone-first v1. Each role has a clear job, each element has a clear counter, and the enemy composition can pressure one role/element at a time without a hard gate. The remaining card details (rarity, gear slots, skills, bonds) should be kept to the smallest set that makes the board interesting; the recommendation table above is that set.
+**agent (2026-11-09):** recorded. This is a deep card core for a v1: 6 heroes, 3 rows, 4 roles, 4 elements, 3 rarities, 4 gear slots, 3 skills and bonds. The risk is not depth but **surface**: every axis needs a readable icon/label on a small card. The board keeps full info (owner: "Ổn, giữ nguyên"); the hero sheet carries the detail. The implementation must test 360×640 early.

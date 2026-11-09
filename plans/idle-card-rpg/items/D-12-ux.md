@@ -1,6 +1,6 @@
-# D-12 — UX: one main board, panels over it
+# D-12 — UX: one main board, panels over it (decided)
 
-**Status:** researching — **3 rows / 6 heroes decided**; wireframe v3 pending · **Kind:** decision · **Blocked by:** D-05, D-08, D-10, E-01
+**Status:** decided — board v3 approved ("Ổn, giữ nguyên") on 2026-11-09 · **Kind:** decision · **Blocked by:** D-05, D-08, D-10, E-01
 
 ## Decisions (owner's words)
 
@@ -8,14 +8,12 @@
 
 > "3 hàng / 6 hero"
 
-- The board layout is **approved in principle**: top strip, turn rail, clash zone, controls, dock, sheets.
-- **6 heroes**, arranged **3 rows × 2 columns** (front, mid, back); the enemy side uses the same 3×2.
-- The earlier one-row and 2×2/4-hero layouts are **superseded**.
-- **Card-on-board** and **dark-first** are decided in D-13.
+> "Ổn, giữ nguyên" (board v3, full info on the cards)
 
-**Wireframe v1:** [board-v1.html](../wireframes/board-v1.html) — history (one row of four).
-**Wireframe v2:** [board-v2.html](../wireframes/board-v2.html) — history (2×2 per side).
-**Wireframe v3:** [board-v3.html](../wireframes/board-v3.html) — current: 3 rows / 6 heroes, card-on-board, dark-first; board, formation sheet, stage preview, boss board. Readability risk: 12 cards, 8 px names; test at 360×640 before locking.
+- The board layout is **approved**: top strip, turn rail, clash zone, controls, dock, sheets.
+- **6 heroes**, arranged **3 rows × 2 columns** (front, mid, back); the enemy side uses the same 3×2.
+- **Card-on-board** and **dark-first** are decided in D-13.
+- Full info stays on the board cards (name, HP, element, star, skill ring); the hero sheet carries the detail. The density is accepted, with a 360×640 test during implementation.
 
 ```
 ┌──────────────────────────────────────┐
@@ -97,13 +95,14 @@ Title (menu stage) ─ Chơi tiếp ─▶ Board (play stage)
 
 ## Evidence
 
-- Owner's words, 2026-11-09: main zone is the fight; board of cards.
+- Owner's words, 2026-11-09: main zone is the fight; board of cards; 3 rows / 6 heroes; "Ổn, giữ nguyên".
 - [R-06 — Main-screen auto-battler UX](../research/R-06-main-screen-ux.md): always-visible battle, dock, contextual upgrade.
 - [R-03 — Battle, card UX and pixel art](../research/R-03-battle-card-ux.md): 4-card width math; hit feedback.
+- [R-07 — Formation](../research/R-07-formation.md): 3 rows / 6 heroes; density costs.
 - [R-04 — Platform fit](../research/R-04-platform-fit.md): the shell gap (E-01).
 
 ## Discussion
 
-**agent (2026-11-09):** recommend A. The game should feel like a board you watch and poke, not a menu with a battle inside. The dock is the smallest navigation that still gives access to team/gear/summon/codex; sheets pause the battle so the player can think. The risk is vertical space on a 360×640 phone; the wireframe must prove the board still reads with the dock.
+**owner (2026-11-09):** approved board v3 ("Ổn, giữ nguyên").
 
-**owner:** _chưa trả lời._
+**agent (2026-11-09):** recorded. The board is the app; the risk is density, not navigation. The implementation must test 360×640 and a real phone before art lock; if names truncate badly, the fallback is to move star/skill ring into the hero sheet, not to add more UI.
