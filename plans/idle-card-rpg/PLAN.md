@@ -2,7 +2,7 @@
 
 - Goal: Một RPG thẻ bài treo máy phone-first cho Tò He — **Vân Du Ký**, một đoàn thám hiểm đi qua thế giới fantasy gốc, **main zone là bàn đánh bài** tự động đánh qua màn, tiến trình dài là trục chính, phiên ngắn một tay, và nội dung mở rộng được lâu dài.
 - Phase: **Graduate** — v1.0.0 is implemented and green; it waits on the owner's release word (merge/tag/deploy). The ledger is [EXECUTION.md](EXECUTION.md). ([process](../README.md#phases))
-- Started: 2026-11-09 · Branch: `feat/van-du-ky-core` · PR: chưa mở
+- Started: 2026-11-09 · Branch: `feat/van-du-ky-core` · PR: [#208](https://github.com/vinh466/tohe-play/pull/208)
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md) · Execution: [EXECUTION.md](EXECUTION.md)
 
 ## Decided so far
