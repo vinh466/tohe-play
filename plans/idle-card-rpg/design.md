@@ -4,13 +4,13 @@ This page **composes** the items into one picture. It decides nothing: every cla
 
 ## Short answer: how complete is it?
 
-**Decided:** the game is **Vân Du Ký**, a **roaming company** with **no home**; the **main zone is the battle board**; **6 hero cards in 3 rows** (front/mid/back) vs 6 enemy cards; **round-based auto** with auto normal attacks + auto-cast skills and a manual toggle; **card-on-board** visuals, **dark-first**; **company level + star + gear** progression; **3 regions × 12 stages**; **offline combat**; **light daily**; the platform extension package is **P0** (persistent shell, on-demand assets, 256 KB save, music). **Open:** economy details, meta/codex, content pipeline, audio, scope, technical foundation. Everything below is a **working proposal** to make the discussion concrete.
+**Decided:** the game is **Vân Du Ký**, a **roaming company** with **no home**; the **main zone is the battle board**; **6 hero cards in 3 rows** (front/mid/back) vs 6 enemy cards; **round-based auto** with auto normal attacks + auto-cast skills and a manual toggle; **card-on-board** visuals, **dark-first**; **company level + star + gear** progression; **4 regions × 12 stages (48)**, 16 heroes, 16 enemies, 4 bosses; **offline combat**; **light daily**; **SFX only**; the platform extension package is **P0** (persistent shell, on-demand assets, 256 KB save, E-03 FX player). **Open:** the summon/economy model (D-07). The brief is deferred by the owner; the plan is at Resolve → Converge.
 
 ## 1. The picture
 
 ```mermaid
 flowchart LR
-  board["Battle board (main zone)<br/>4 hero cards vs enemy cards<br/>auto-advance"] --> wave["Wave cleared<br/>loot + quick upgrade"]
+  board["Battle board (main zone)<br/>6 hero cards vs 6 enemy cards<br/>3 rows · auto-advance"] --> wave["Wave cleared<br/>loot + quick upgrade"]
   wave --> board
   board --> boss["Boss / region end"]
   boss --> board
@@ -32,6 +32,9 @@ There is no home screen. The board is the app; the stage strip is the road; the 
 | Piece | Does | Standard / prior art | Lives in | Item |
 |---|---|---|---|---|
 | **Battle board** | 6 hero cards vs 6 enemy cards, 3 rows (front/mid/back); auto-advance; turn rail; card clash effects | Legend of Mushroom's always-on action + a card board | Play stage, full screen | D-01, D-04, D-05 |
+| **Regions** | 4 regions × 12 stages; 4 bosses; 16 heroes, 16 enemies | AFK campaign + Legend of Mushroom waves | Board + stage strip | D-09 |
+| **FX layer** | pixelfx sprite sheets + act timing; hit-stop/shake/push | Card clash + E-03 player | Phaser board | D-03, E-03 |
+| **Audio** | SFX only; no music | Kit `createSfx` + haptics | Board/sheets | D-15 |
 | **Wave / stage** | Waves, loot, auto-advance, stop/farm, region end | AFK campaign + Legend of Mushroom waves | Top strip + board | D-09 |
 | **Boss** | Every N stages / region end; phases, telegraphs, bigger reward | AFK bosses, Summoners War | Board | D-09 |
 | **Panels** | Team, hero detail, gear, summon, codex, daily, records | Mobile RPG sheets over the action | Sheets over the board | D-12 |
@@ -68,22 +71,21 @@ There is no home screen. The board is the app; the stage strip is the road; the 
 
 ## 4. Still open
 
-- **D-03** — technical foundation: engine split, save schema/migrations, data load, performance.
-- **D-07** — economy details: currency rates, summon/pity, duplicate value, offline rate.
-- **D-15** — audio/haptics; music or SFX only.
-- **D-16** — v1 scope, milestones, what is deliberately out; the wireframe pack is v3, with a 360×640 pass still needed.
-- **E-03** — kit FX player; proposed, part of the first implementation slice.
+- **D-07** — economy details: summon/gacha model, currency rates, pity, duplicate value, offline rate.
+- **Brief** — the owner deferred confirmation; graduation waits for it.
+- **D-16** — the exact 16/16/4 roster and the 7-day event are proposed; owner can adjust.
 
 ## 5. Known risks without an answer yet
 
 | Risk | Where it will be answered |
 |---|---|
-| Board clutter: 8 cards + turn rail + boss bar + dock on 360×640 | D-12, with wireframes tested at that size |
+| Board clutter: 12 cards + turn rail + boss bar + dock on 360×640 | D-12, with wireframes tested at that size |
+| Scope grew to 4 regions / 16 heroes / 4 bosses | D-16; the sim and content tests gate art lock |
 | Battery/heat: continuous animation | D-12/D-13, with an idle mode that animates less |
 | Auto-advance frustration: the board walks into a loss | D-09, with a "Dừng" control and a clear wall state |
 | No home: no quiet place, no long-term sink outside gear/stars | D-08, via codex/bonds/company rank |
 | Balance: one week collapses into one day, or walls are too hard | D-06/D-07/D-11, with a simulation |
-| Art cost: 12 hero cards × frames + 12 enemies + 3 bosses + regions | D-13/D-11, with a frame budget and reuse |
+| Art cost: 16 hero cards + 16 enemies + 4 bosses + 4 regions | D-13/D-11, with a frame budget and reuse |
 | Platform drift: P0 delays the game | D-17, with a timeboxed P0 |
 | Shell mismatch: a persistent world is not a "run" | E-01, part of P0 |
 | "Calm" vs "deep": the owner wants both | D-01/D-04, via playtest |

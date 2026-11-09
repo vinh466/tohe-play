@@ -11,24 +11,27 @@
 - The board **auto-advances** through stages: wave → wave → stage clear → next stage, until a loss.
 - On a loss, the company **farms the highest cleared stage**; the player can retry the wall or open a **stage picker** to farm elsewhere.
 - No energy; no manual stage selection required for normal progress.
-- **3 regions × 12 stages = 36 stages**; 3 region bosses.
-- **Tower**: 30 floors at launch, scaling.
+- **4 regions × 12 stages = 48 stages**; 4 region bosses.
+- **Tower**: 40 floors at launch, scaling.
 - **Daily expedition**: one rotating resource dungeon per day.
 - **World boss**: weekly async boss; local damage record in v1.
+- **One 7-day Khởi Hành event**: tasks + rewards; no live-ops calendar.
 - The stage strip at the top is the road: `Vùng 1 · 3/12`.
+- **Content duration target**: ~1.5 weeks at 2–3 short sessions a day.
 
 ## Content shape (decided)
 
 | Piece | v1 | Why |
 |---|---|---|
-| **Regions** | 3 regions, 12 stages each (36 stages) | One week of progression at 2–3 short sessions a day |
+| **Regions** | 4 regions, 12 stages each (48 stages) | ~1.5 weeks of progression at 2–3 short sessions a day |
 | **Waves** | 2–3 waves per stage; the last wave may be elite | Keeps a stage 20–40 s; auto-advance has a rhythm |
-| **Bosses** | Every 4th stage elite; region end boss (3 bosses) | A spike and a reward; a reason to change the team |
+| **Bosses** | Every 4th stage elite; region end boss (4 bosses) | A spike and a reward; a reason to change the team |
 | **Stage picker** | A sheet from the top strip; choose any cleared stage to farm | The player can target gear/element drops |
-| **Tower** | A landmark on the road; 30 floors at launch, scaling | A second progression path when the road walls |
+| **Tower** | A landmark on the road; 40 floors at launch, scaling | A second progression path when the road walls |
 | **Daily expedition** | One rotating resource dungeon per day | A short daily reason to log in |
 | **World boss** | A weekly async boss; damage record, local in v1 | A long-term goal without PvP |
-| **Codex** | Hero/enemy/region entries; bonds | Collection content that reuses battle art |
+| **Codex** | 16 hero / 16 enemy / 4 region entries; 8 bond pairs | Collection content that reuses battle art |
+| **Event** | One 7-day Khởi Hành journey; tasks + rewards | A launch retention arc, not a live-ops calendar |
 
 ## Open (implementation details, not decisions)
 
@@ -55,6 +58,6 @@
 
 ## Discussion
 
-**owner (2026-11-09):** chose auto-advance + farm, then 3 regions × 12 stages.
+**owner (2026-11-09):** chose auto-advance + farm, then 3 regions × 12, then **"Thêm nội dung"** — revised to **4 regions × 12**, 4 bosses, 16 heroes, 16 enemies, 40 tower floors and one 7-day event.
 
-**agent (2026-11-09):** recorded. 36 stages + tower + daily + world boss is the right v1: enough for a week, small enough to art and balance. The stage picker is the escape hatch; the wall card is where the player learns the systems. The exact enemy compositions are D-11's content work, not a plan decision.
+**agent (2026-11-09):** recorded. The scope grew from 36 to 48 stages; the same structure scales. The cost is more art (16 heroes/16 enemies/4 bosses/4 backdrops), more balance and a longer build; the simulation and content tests become the gate. The exact roster (16/16/4) is a proposal the owner can adjust before art lock.

@@ -11,24 +11,22 @@ The platform extension package is **P0**:
 1. **E-01 persistent shell** — a `persistent` option in the game-kit shell (no "Ván mới").
 2. **Asset on-demand** — the game declares `delivery: on-demand`; the hub fetches packs after first paint; offline cache keeps the last copy.
 3. **Save envelope 256 KB** — a versioned envelope; the API/hub accept 256 KB; 64 KB stays the default for other games.
-4. **Music helper** — a small kit helper for loops/fades.
 
-**Not in P0:** content packs/remote content (P1), save conflict merge, ranked daily boss, server time, push (P2). The first playable does not wait for them.
+**Not in P0:** content packs/remote content (P1), save conflict merge, ranked daily boss, server time, push (P2), music (D-15 chose SFX only). The first playable does not wait for them.
 
 ## What the game can rely on
 
 - A persistent shell (no "Ván mới", title says "Chơi tiếp").
 - On-demand assets, so the art library can grow without inflating the first load.
 - A 256 KB save envelope from day one; the game owns migrations.
-- Music if the kit helper lands in time.
 - Content ships in the immutable build for v1; content packs are a later path.
-- No public leaderboard, no ranked run, no push in v1.
+- No public leaderboard, no ranked run, no push, no music in v1.
 
 ## Options considered (history)
 
 | Option | Why not chosen |
 |---|---|
-| **P0 minimal enablers** | **Chosen.** Shell + on-demand assets + 256 KB save + music. |
+| **P0 minimal enablers** | **Chosen.** Shell + on-demand assets + 256 KB save. |
 | **P1 live-content platform** | Deferred: content packs are a big platform bet; prove the loop first. |
 | **P2 full platform** | Deferred: conflict merge, ranked boss, server time, push are not v1 needs. |
 
@@ -36,7 +34,7 @@ The platform extension package is **P0**:
 - **D-06/D-07**: the save schema uses the envelope from day one; the economy can grow past 64 KB.
 - **D-11**: the content pipeline is "data in the build" for v1; content packs are a later path.
 - **D-16**: the first playable is gated by P0, not by P1/P2.
-- **Graduation**: platform ADRs/PRs (save size, asset delivery) + kit PRs (E-01, music) precede the game's implementation.
+- **Graduation**: platform ADRs/PRs (save size, asset delivery) + kit PRs (E-01, E-03) precede the game's implementation.
 
 ## Risks
 
@@ -55,4 +53,4 @@ The platform extension package is **P0**:
 
 **owner (2026-11-09):** chose P0 tối thiểu.
 
-**agent (2026-11-09):** recorded. P0 is the smallest package that unblocks a large RPG without turning the plan into a platform rewrite. Content packs (P1) should wait for evidence that the loop retains players. The platform work needs its own ADRs and conformance in the same PRs; the game's first playable is gated by P0, not P1/P2.
+**agent (2026-11-09):** recorded. P0 is the smallest package that unblocks a large RPG without turning the plan into a platform rewrite. Content packs (P1) should wait for evidence that the loop retains players. Music was removed from P0 after D-15 chose SFX only. The platform work needs its own ADRs and conformance in the same PRs; the game's first playable is gated by P0, not P1/P2.

@@ -1,6 +1,6 @@
-# E-03 — A game-kit FX player for pixel sprite sheets
+# E-03 — A game-kit FX player for pixel sprite sheets (decided)
 
-**Status:** proposed — chờ owner chốt · **Kind:** enhancement · **Blocked by:** D-03, D-13
+**Status:** decided — owner chose **Hybrid + E-03** on 2026-11-09 · **Kind:** enhancement · **Blocked by:** D-03, D-13
 
 ## The gap
 
@@ -78,4 +78,6 @@ const fx = playFx(scene, crit, { x, y, flip: true, scale: 2, onHit: (hit) => bat
 
 ## Discussion
 
-**agent (2026-11-09):** the kit already owns the feel helpers; a sprite-sheet player is the missing piece. Keep it small: one-shot, pivot/scale, hit callback, pool, reduced motion. Do not build a general shader/particle engine.
+**owner (2026-11-09):** chose Hybrid + E-03.
+
+**agent (2026-11-09):** recorded. The kit already owns the feel helpers; a sprite-sheet player is the missing piece. Keep it small: one-shot, pivot/scale, hit callback, pool, reduced motion. Do not build a general shader/particle engine. The first prototype is the crit-hit sheet in the real Phaser scene.

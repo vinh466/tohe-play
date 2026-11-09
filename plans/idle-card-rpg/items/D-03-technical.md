@@ -1,6 +1,18 @@
-# D-03 — Technical foundation: hybrid render, save envelope, data
+# D-03 — Technical foundation: hybrid render, save envelope, data (decided)
 
-**Status:** proposed — owner leans hybrid ("khả năng cao là 1") but wants the pixelfx/FX research first · **Kind:** decision · **Blocked by:** D-17, D-04
+**Status:** decided — owner chose **Hybrid + E-03** on 2026-11-09 · **Kind:** decision · **Blocked by:** D-17, D-04
+
+## Decision (owner's words)
+
+> "Hybrid + E-03 (Recommended)"
+
+- **Hybrid render**: Phaser for the board/cards/FX; DOM/game-kit sheets for team, hero, gear, summon, codex, daily and stage picker.
+- **FX**: pixelfx **sprite sheets** in Phaser (not runtime code), played by **E-03**; act timing in `content/fx.ts`.
+- **Pure TS core** for battle/progression/economy; the scene and sheets are views.
+- **Save envelope 256 KB** (P0), versioned and migrated by the game.
+- **TS catalogs + sim** (D-11).
+- **Assets on-demand** (P0), ~2 MB of FX on-demand.
+- **One-effect prototype** (`crit-hit`) in the first slice; it is a gate, not a separate decision: if it does not read at 360×640 on a mid-range phone, fall back to the kit's `shake`/`floatText`/`burst` and re-open the FX part.
 
 ## Question
 
@@ -81,6 +93,6 @@ Render board và sheet bằng gì; save/schema/migration ra sao; nội dung load
 
 ## Discussion
 
-**owner (2026-11-09):** "khả năng cao là 1. nhưng bàn sau đi, tôi có thêm 1 nguồn asset cần phân tích cùng là pixelfx... dive research xem có giải pháp tối ưu k (chấp nhận xây thêm cho nền tảng luôn, đừng nhìn hẹp bởi nền tảng)".
+**owner (2026-11-09):** "khả năng cao là 1. nhưng bàn sau đi, tôi có thêm 1 nguồn asset cần phân tích cùng là pixelfx... dive research xem có giải pháp tối ưu k (chấp nhận xây thêm cho nền tảng luôn, đừng nhìn hẹp bởi nền tảng)", then chose **Hybrid + E-03**.
 
-**agent (2026-11-09):** after the pixelfx analysis, A remains the right shape. pixelfx is a strong fit as **sprite sheets + act metadata**, not as a runtime code dependency. The one missing piece is a small kit FX player (E-03); the Studio `fx` kind (E-02) is not needed for v1. The prototype is the gate: measure one crit-hit sheet on a real phone before locking.
+**agent (2026-11-09):** after the pixelfx analysis, A remains the right shape. pixelfx is a strong fit as **sprite sheets + act metadata**, not as a runtime code dependency. The one missing piece is a small kit FX player (E-03); the Studio `fx` kind (E-02) is not needed for v1. The prototype is the gate: measure one crit-hit sheet on a real phone before art lock.

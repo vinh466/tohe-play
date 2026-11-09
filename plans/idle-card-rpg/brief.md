@@ -22,12 +22,12 @@ Năm câu hỏi gốc, ghi nguyên lựa chọn:
 | Hướng art | **Pixel art** |
 | Thế giới & thème | **Fantasy gốc** (thế giới riêng, tự do thiết kế phe phái/quái/lore) |
 | Idle hay active | **Cân bằng**: auto-battle là chính, nhưng có vài quyết định trong trận (đội hình, skill, mục tiêu) |
-| Độ lớn v1 | **Khoảng 1 tuần** nội dung gắn bó |
+| Độ lớn v1 | **4 vùng × 12 stage (~1.5 tuần)** — owner chọn "thêm nội dung" sau khi xem scope |
 
 Đọc ra từ các lựa chọn:
 
 - Owner thích **chiều sâu hệ thống** (gear, đội hình, nhiều trục nâng cấp) chứ không chỉ game giải trí nhanh.
-- Nhưng v1 chỉ ~1 tuần, nên phải chọn **ít trục nhưng sâu**, không bê nguyên 8 hệ thống của game live-service.
+- Nhưng v1 chỉ ~1.5 tuần, nên phải chọn **ít trục nhưng sâu**, không bê nguyên 8 hệ thống của game live-service.
 - Pixel art + fantasy gốc cho phép tự sản xuất asset, kiểm soát build size, và tạo bản sắc riêng thay vì bám IP.
 - "Cân bằng" là điểm khó nhất: auto để farm idle, nhưng trận đáng ra quyết định phải có chỗ cho người chơi can thiệp.
 
@@ -41,6 +41,9 @@ Năm câu hỏi gốc, ghi nguyên lựa chọn:
 | Team size (D-05) | **6 hero / 3 hàng** (owner đổi từ 4 hero sau khi xem wireframe) |
 | Tên game (D-14) | **Vân Du Ký** |
 | Daily (D-10) | **Daily nhẹ** — 3 task, 1 expedition, 1 boss; không energy, không streak phạt |
+| Nội dung v1 (D-09/D-16) | **4 vùng × 12 = 48 stage**, 16 hero, 16 quái, 4 boss, 1 event 7 ngày; không PvP/guild/ranked |
+| Engine/FX (D-03) | **Hybrid** Phaser board + DOM sheet; pixelfx sprite sheets + E-03 |
+| Audio (D-15) | **Chỉ SFX**, không music |
 
 ## Constraints in force
 
