@@ -1,6 +1,6 @@
-# Brief — RPG thẻ bài treo máy (working title)
+# Brief — Vân Du Ký (RPG thẻ bài treo máy)
 
-Status: **draft** — chờ owner xác nhận. Plan rời *Frame* khi brief được chốt.
+Status: **draft** — owner chưa xác nhận (2026-11-09: "để sau"). Plan vẫn ở *Frame*; không tự chốt.
 
 ## Why
 
@@ -9,7 +9,7 @@ Status: **draft** — chờ owner xác nhận. Plan rời *Frame* khi brief đư
 - Điều tôi muốn đánh mạnh nhất là **hệ thống phát triển, tiến trình và nội dung** — không phải chỉ một vòng lặp vui rồi hết.
 - Hình ảnh: nhân vật, quái, kỹ năng được **thẻ hóa**; khi đánh nhau, hiệu ứng va chạm/ra đòn phải làm **sát thương có sức nặng**, dễ đọc trên phone.
 - Cảm hứng đến từ các game trên điện thoại. Người chơi chính là **phone**, không phải desktop.
-- Hướng đã chốt: **Đoàn Thám Hiểm** — một đoàn hộ vệ đi qua thế giới fantasy gốc, không base/làng; caravan là home screen.
+- Hướng đã chốt: **Vân Du Ký** — một đoàn hộ vệ đi qua thế giới fantasy gốc, không base/làng; main zone là bàn đánh bài.
 - Giai đoạn này chỉ **planning và wireframe**. Đi chậm, bóc từng vấn đề, research các sản phẩm đã có, brainstorm rồi chốt với owner. Chưa viết code game.
 
 ## Owner's answers — 2026-11-09
@@ -35,10 +35,12 @@ Năm câu hỏi gốc, ghi nguyên lựa chọn:
 
 | Câu hỏi | Owner chọn |
 |---|---|
-| Định vị (D-01) | **Đoàn Thám Hiểm** — một đoàn hộ vệ đi qua thế giới fantasy gốc; **không base/làng**; caravan là home screen |
+| Định vị (D-01) | **Đoàn Thám Hiểm** — một đoàn hộ vệ đi qua thế giới fantasy gốc; **không base/làng**; **main zone là bàn đánh bài**, tự đánh qua màn |
 | Platform (D-02) | **Mở rộng nền tảng trước** — không ép game vào giới hạn hiện tại; gói cụ thể ở D-17 |
 | Battle control (D-04) | **Auto đánh thường + auto cast skill**, có toggle tắt auto cast để tự cast |
-| Team size (D-05) | **4 hero** một đội |
+| Team size (D-05) | **6 hero / 3 hàng** (owner đổi từ 4 hero sau khi xem wireframe) |
+| Tên game (D-14) | **Vân Du Ký** |
+| Daily (D-10) | **Daily nhẹ** — 3 task, 1 expedition, 1 boss; không energy, không streak phạt |
 
 ## Constraints in force
 

@@ -1,6 +1,6 @@
-# Plan — RPG thẻ bài treo máy (working title)
+# Plan — Vân Du Ký (RPG thẻ bài treo máy)
 
-- Goal: Một RPG thẻ bài treo máy phone-first cho Tò He — một đoàn thám hiểm đi qua thế giới fantasy gốc, **main zone là bàn đánh bài** tự động đánh qua màn, tiến trình dài là trục chính, phiên ngắn một tay, và nội dung mở rộng được lâu dài.
+- Goal: Một RPG thẻ bài treo máy phone-first cho Tò He — **Vân Du Ký**, một đoàn thám hiểm đi qua thế giới fantasy gốc, **main zone là bàn đánh bài** tự động đánh qua màn, tiến trình dài là trục chính, phiên ngắn một tay, và nội dung mở rộng được lâu dài.
 - Phase: **Frame** (Frame → Map → Resolve → Converge → Graduate → Close — [process](../README.md#phases))
 - Started: 2026-11-09 · Branch: `plan/idle-card-rpg` · PR: chưa mở
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
@@ -16,19 +16,21 @@
 - **D-09**: **auto-advance + farm**, **3 vùng × 12 stage = 36**; 3 boss; tower 30; daily expedition; world boss weekly/local. (owner, 2026-11-09)
 - **D-12**: board v3 approved — **3 hàng / 6 hero**, full info on cards, dock/sheets, dark-first. (owner, 2026-11-09)
 - **D-13**: **card-on-board** + **dark-first**; pixel art; card tự lao vào nhau, hit-stop/damage/shatter. (owner, 2026-11-09)
+- **D-14**: tên game **Vân Du Ký** — ký sự đoàn người đi trên con đường mây; fantasy gốc, tông ấm/huyền ảo. (owner, 2026-11-09)
+- **D-10**: **daily nhẹ** — 3 task, 1 expedition, 1 boss; không energy, không streak phạt; 7-day journey. (owner, 2026-11-09)
 - **D-17**: **P0 tối thiểu** — persistent shell (E-01) + asset on-demand + save envelope 256 KB + music helper; content packs để P1. (owner, 2026-11-09)
 - **E-01**: nằm trong P0; shell của game-kit có option `persistent`, bỏ "Ván mới". (owner, 2026-11-09)
 
 ## Next — one item
 
-**D-14 — chốt thế giới, tên game và tông kể chuyện.** Core gameplay/UX đã đủ chắc; cần một cái tên và một thế giới để hero/quái/vùng có chất liệu. Đề xuất 3 hướng tên + lore ngắn, rồi chốt.
+**D-11 — pipeline nội dung + balance simulation.** Đây là điều kiện để "nội dung mở rộng được": hero/stage/boss là data, có schema/validate, có sim để cân bằng 36 stage + 6 hero. Sau đó D-03 (engine/save) và D-08 (meta/codex).
 
 ## Waiting on the owner
 
-- **Brief**: xác nhận bản draft — nếu ổn, plan rời Frame.
-- **D-14**: tên game + thế giới (3 hướng đề xuất).
-- **D-10**: daily nhẹ (3 task + expedition + boss) hay không daily?
-- **D-11**: pipeline nội dung — TypeScript catalogs + Zod + balance sim (recommended) hay JSON/spreadsheet?
+- **D-11**: pipeline — TypeScript catalogs + Zod + balance sim (recommended) hay JSON/spreadsheet?
+- **D-03**: engine — Phaser cho battle + DOM cho sheet (recommended), all Phaser, hay all DOM?
+- **D-08**: meta — codex + bonds + company rank + local records (recommended), hay codex only / thêm achievements?
+- **Brief**: owner để sau; plan vẫn ở Frame, không tự chốt.
 
 ## Board
 
@@ -43,11 +45,11 @@
 | D-07 | Kinh tế, phần thưởng idle và nhịp tiến trình | decision | **researching** (offline combat decided) | D-06 |
 | D-08 | Lớp meta: codex, bonds, company rank; **no home** | decision | **researching** (no home decided) | D-01, D-06 |
 | D-09 | Khung nội dung: wave/stage/vùng/boss, auto-advance, chế độ phụ | decision | **decided** (3 vùng × 12) | D-04, D-05, D-06 |
-| D-10 | Nhịp chơi hằng ngày và cấu trúc live | decision | open | D-07, D-09 |
+| D-10 | Nhịp chơi hằng ngày và cấu trúc live | decision | **decided** (daily nhẹ) | D-07, D-09 |
 | D-11 | Pipeline sản xuất nội dung (data-driven) | decision | open | D-03, D-09 |
 | D-12 | UX: một bàn đánh bài, panel mở trên đó; formation 3 hàng/6 hero | decision | **decided** | D-05, D-08, D-10, E-01 |
 | D-13 | Art direction & cảm giác chiến đấu | decision | **decided** (card-on-board, dark-first) | D-01, D-05, D-12 |
-| D-14 | Thế giới, thème và tên game | decision | open | D-01 |
+| D-14 | Thế giới, thème và tên game | decision | **decided** (Vân Du Ký) | D-01 |
 | D-15 | Âm thanh, haptics và cảm giác chạm | decision | open | D-12, D-13 |
 | D-16 | Phạm vi v1, phasing và bộ wireframe | decision | open | D-04, D-07, D-10, D-12, D-13, D-17 |
 | D-17 | Gói platform extension: P0/P1/P2 | decision | **decided** (P0) | D-02 |

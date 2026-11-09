@@ -1,10 +1,10 @@
-# Design — RPG thẻ bài treo máy: first picture (v2, proposed)
+# Design — Vân Du Ký: first picture (v2, proposed)
 
 This page **composes** the items into one picture. It decides nothing: every claim points at the item that decides it, and *(proposed)* marks an item not yet `decided`. Date: 2026-11-09.
 
 ## Short answer: how complete is it?
 
-**Decided:** the game is a **roaming company (Đoàn Thám Hiểm)** with **no home**; the **main zone is the battle board**; **6 hero cards in 3 rows** (front/mid/back) vs 6 enemy cards; **round-based auto** with auto normal attacks + auto-cast skills and a manual toggle; **card-on-board** visuals, **dark-first**; **company level + star + gear** progression; **3 regions × 12 stages**; **offline combat**; the platform extension package is **P0** (persistent shell, on-demand assets, 256 KB save, music). **Open:** economy details, meta/codex, daily, content pipeline, world/name, audio, scope, technical foundation. Everything below is a **working proposal** to make the discussion concrete.
+**Decided:** the game is **Vân Du Ký**, a **roaming company** with **no home**; the **main zone is the battle board**; **6 hero cards in 3 rows** (front/mid/back) vs 6 enemy cards; **round-based auto** with auto normal attacks + auto-cast skills and a manual toggle; **card-on-board** visuals, **dark-first**; **company level + star + gear** progression; **3 regions × 12 stages**; **offline combat**; **light daily**; the platform extension package is **P0** (persistent shell, on-demand assets, 256 KB save, music). **Open:** economy details, meta/codex, content pipeline, audio, scope, technical foundation. Everything below is a **working proposal** to make the discussion concrete.
 
 ## 1. The picture
 
@@ -71,9 +71,7 @@ There is no home screen. The board is the app; the stage strip is the road; the 
 - **D-03** — technical foundation: engine split, save schema/migrations, data load, performance.
 - **D-07** — economy details: currency rates, summon/pity, duplicate value, offline rate.
 - **D-08** — meta: codex entries, bonds, company rank, local records; no home.
-- **D-10** — daily weight; no streak punishment.
 - **D-11** — content pipeline and balance simulation.
-- **D-14** — name, world, factions, tone, lore hooks.
 - **D-15** — audio/haptics; music or SFX only.
 - **D-16** — v1 scope, milestones, what is deliberately out; the wireframe pack is v3, with a 360×640 pass still needed.
 
