@@ -56,6 +56,7 @@ JSON Schema for editors: [`packages/contract/schema/game-manifest.schema.json`](
 | `minAge` | 0–18 | `0` | Hidden from younger profiles (M1). |
 | `tags` | string[] | `[]` | Up to 8 short tags. |
 | `sizeBudgetKb` | integer | `3000` | Upper bound for the build size (source maps excluded). Conformance fails above it. |
+| `saveBudgetKb` | integer | `64` | Upper bound for the game's serialized save, in KB (1 KB = 1024 bytes), 1–1024. The hub and the API enforce it; a game that omits it keeps 64 KB ([ADR 0059](../decisions/0059-a-game-declares-its-save-budget.md)). |
 | `rooms` | object | — | A game played online at a table ([ADR 0016](../decisions/0016-online-rooms-for-turn-based-games.md)); required with the `rooms` capability, and only with it. See [Online rooms](#online-rooms). |
 | `ranked` | object | — | A one-player game whose runs the server replays ([ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)); required with the `ranked` capability, which needs `scores` too. See [Ranked runs](#ranked-runs). |
 | `identity` | object | — | What the game asks of its player ([ADR 0045](../decisions/0045-games-declare-identity-and-entries.md)): `play` — `any` (default), `named` or `account`, what opening it asks for, at a table too; `rooms` — `named` (default) or `account`, the least a table of it asks for, only with `rooms`. See [Entries and identity](#entries-and-identity). |
@@ -327,7 +328,7 @@ run.finish(score);                               // at game over, or when the pl
 | `shell` | For `shell` games (SDK 0.7.0): `can` (`{ leaderboard, rooms }`: what the hub can open for this player), `menuChanged(open)`, `open('leaderboard' \| 'rooms', { board?, label? })`, `setMuted(muted)` (updates `settings` at once). |
 | `ranked` | For `ranked` games (SDK 0.8.0, [ADR 0030](../decisions/0030-ranked-runs-replayed-by-the-server.md)): `start()` → `{ run, seed }`, or `null` when the hub cannot open a run — play unranked; `finish(run, moves, score)` hands the run in (the hub keeps it until it is online). Standalone, `start()` is always `null`. |
 | `on(event, fn)` | `pause`, `resume`, `settings`. Returns an unsubscribe function. |
-| `save(data)` | JSON, ≤ 64 KB. Resolves when the hub stored it; rejects with the hub's reason. |
+| `save(data)` | JSON, ≤ the game's `saveBudgetKb` (64 KB by default; [ADR 0059](../decisions/0059-a-game-declares-its-save-budget.md)). Resolves when the hub stored it; rejects with the hub's reason. |
 | `submitScore(value, board?)` | Finite number; board defaults to `default`. |
 | `run(id, board?)` | A run that lasts across sittings: `update(value)` while it goes on, `finish(value)` when it ends. The hub keeps one score per run, its highest. |
 | `exit()` | Ask the hub to close the game. |

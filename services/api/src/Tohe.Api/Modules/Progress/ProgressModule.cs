@@ -10,7 +10,7 @@ using Tohe.Api.Modules.Integrity;
 
 namespace Tohe.Api.Modules.Progress;
 
-/// <param name="Data">The game's save, any JSON up to 64 KB.</param>
+/// <param name="Data">The game's save, any JSON up to its `saveBudgetKb` (64 KB by default; ADR 0059).</param>
 public sealed record PutSaveRequest(JsonElement Data);
 
 /// <param name="UpdatedAt">Server time of the last write.</param>
@@ -39,8 +39,8 @@ public sealed record RecordScoresResult(int Recorded);
 /// </summary>
 internal static partial class ProgressModule
 {
-    /// <summary>The Game Contract's save limit (MAX_SAVE_BYTES).</summary>
-    public const int MaxSaveBytes = 64 * 1024;
+    /// <summary>The default save limit, when a game declares no `saveBudgetKb` (ADR 0059).</summary>
+    public const int DefaultMaxSaveBytes = 64 * 1024;
 
     [GeneratedRegex("^[a-z][a-z0-9-]{1,38}[a-z0-9]$")]
     private static partial Regex GameIdPattern();
@@ -98,7 +98,11 @@ internal static partial class ProgressModule
                 }
 
                 var data = request.Data.GetRawText();
-                if (Encoding.UTF8.GetByteCount(data) > MaxSaveBytes)
+                var budgetKb = await db.Games.AsNoTracking()
+                    .Where(game => game.Id == gameId)
+                    .Select(game => (int?)game.SaveBudgetKb)
+                    .FirstOrDefaultAsync(ct) ?? 64;
+                if (Encoding.UTF8.GetByteCount(data) > budgetKb * 1024)
                 {
                     return Problems.Field("data", "save_too_large");
                 }

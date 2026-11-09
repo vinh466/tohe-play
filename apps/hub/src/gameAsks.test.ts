@@ -40,6 +40,7 @@ const game: GameSummary = {
   tags: [],
   minAge: 3,
   sizeKb: 10,
+  saveBudgetKb: 64,
   rooms: null,
   identity: { play: 'any', rooms: null },
   entries: ['share'],

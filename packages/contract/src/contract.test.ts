@@ -27,7 +27,15 @@ describe('GameManifest', () => {
       themes: ['light'],
       minAge: 0,
       sizeBudgetKb: 3000,
+      saveBudgetKb: 64,
     });
+  });
+
+  it('accepts a save budget from 1 KB to 1 MB and rejects outside it', () => {
+    const base = { id: 'merge', name: 'x', version: '1.0.0', protocol: 1 };
+    expect(GameManifest.parse({ ...base, saveBudgetKb: 256 }).saveBudgetKb).toBe(256);
+    expect(GameManifest.safeParse({ ...base, saveBudgetKb: 0 }).success).toBe(false);
+    expect(GameManifest.safeParse({ ...base, saveBudgetKb: 1025 }).success).toBe(false);
   });
 
   it('accepts a game with both themes or a dark-only one', () => {

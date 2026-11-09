@@ -27,7 +27,8 @@ internal sealed record GameManifestDocument(
     JsonElement? Identity = null,
     IReadOnlyList<string>? Entries = null,
     JsonElement? Names = null,
-    JsonElement? Descriptions = null);
+    JsonElement? Descriptions = null,
+    int? SaveBudgetKb = null);
 
 internal static partial class CatalogRules
 {

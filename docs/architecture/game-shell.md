@@ -50,6 +50,20 @@ and destroyed on the way back. "Vòng đời này giúp rõ ràng về luồng c
 
 ## Screens
 
+### A persistent world
+
+An RPG, a farm or a collection is a **world**, not a run: the player returns to the same company, roster and road.
+Such a game sets `persistent: true` in the kit's `createShell`:
+
+- the title's action is **Chơi tiếp** (or **Chơi** on a fresh save), with the game's summary line;
+- the quick panel has **no Ván mới** — a reset, if the game has one, lives in its own Cài đặt behind a confirmation;
+- the shell never calls the play stage's `newGame()`; it still owns the title, the panel, **Menu chính**, sound, the
+  how-to and the way back to Tò He;
+- Back still goes play → panel → play, panel → title, title → Tò He.
+
+The game's own screens (roster, gear, summon, codex, daily) live in the play stage, over the board, and are reached
+from its dock; they are not modes of the shell.
+
 ### Menu stage
 
 **Title screen** — the game's own colours (`--tohe-menu-bg`), a few shapes in the colours of its art drifting behind

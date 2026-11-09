@@ -1,6 +1,7 @@
 // Host side of the contract, used by the hub (and by the conformance kit's fake hub).
 // Unlike the game side this validates every message with the Zod schemas from @tohe/contract.
 import {
+  DEFAULT_SAVE_BUDGET_KB,
   type EntryResult,
   type GameManifest,
   GameMessage,
@@ -11,7 +12,6 @@ import {
   jsonBytes,
   MAX_ENTRY_PAYLOAD_BYTES,
   MAX_RANKED_MOVES,
-  MAX_SAVE_BYTES,
   PROTOCOL_VERSION,
   type RankedRun,
   type Reaction,
@@ -155,8 +155,9 @@ export function createHost(options: HostOptions): HostHandle {
     switch (message.type) {
       case 'save': {
         if (!can('save')) return reply(message.id, 'capability "save" not declared in game.json');
-        if (encoder.encode(JSON.stringify(message.data)).byteLength > MAX_SAVE_BYTES)
-          return reply(message.id, `save exceeds ${MAX_SAVE_BYTES} bytes`);
+        const maxSaveBytes = (manifest.saveBudgetKb ?? DEFAULT_SAVE_BUDGET_KB) * 1024;
+        if (encoder.encode(JSON.stringify(message.data)).byteLength > maxSaveBytes)
+          return reply(message.id, `save exceeds ${maxSaveBytes} bytes`);
         return settle(message.id, () => options.onSave?.(message.data as JsonValue));
       }
       case 'score': {
