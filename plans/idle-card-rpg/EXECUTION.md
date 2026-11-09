@@ -6,7 +6,7 @@ what to do next. Update it at the end of every session, newest session first in 
 - Branch: `feat/van-du-ky-core` (based on `plan/idle-card-rpg`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
 - Current checkpoint: **C6 — release candidate green** (v1.0.0, 2026-11-09)
-- Release: branch ready; no deploy, no tag, no merge until the owner says so.
+- Release: PR [#208](https://github.com/vinh466/tohe-play/pull/208) open, CI green; no deploy, no tag, no merge until the owner says so.
 
 ## Checkpoints
 
@@ -111,8 +111,8 @@ Newest first. One entry per session: what moved, what is blocked, next.
 - Full v1: 4 regions × 12 stages, 20 heroes, 20 enemies + 4 bosses, 10 bonds, 44 pixel portraits, save v2.
 - Story board + tower 40 + daily expedition + weekly boss + weekly challenge + Khởi Hành; stage picker, codex, gear, daily sheets.
 - Balance sim clears all 48 stages; SFX/haptics/reduced motion; public pages and OG for v1.
-- `pnpm verify` green: contract/SDK/kit/API 610 tests, all game builds and conformance. No deploy/tag/merge yet.
-- Next: owner's release word; then merge, tag and deploy per docs/guides/environments.md.
+- `pnpm verify` green: contract/SDK/kit/API 610 tests, all game builds and conformance. PR #208 CI green (verify, API, all conformance, e2e, chart).
+- Next: owner's release word ("merge", "deploy", "lên prod"); then merge, tag and deploy per docs/guides/environments.md.
 
 ### 2026-11-09 — agent (first playable + P0a)
 
