@@ -18,18 +18,21 @@
 - **D-13**: **card-on-board** + **dark-first**; pixel art; card tự lao vào nhau, hit-stop/damage/shatter. (owner, 2026-11-09)
 - **D-14**: tên game **Vân Du Ký** — ký sự đoàn người đi trên con đường mây; fantasy gốc, tông ấm/huyền ảo. (owner, 2026-11-09)
 - **D-10**: **daily nhẹ** — 3 task, 1 expedition, 1 boss; không energy, không streak phạt; 7-day journey. (owner, 2026-11-09)
+- **D-11**: **TS catalogs + balance sim** — content là data có kiểu, Zod/reference check trong test, sim cân bằng 36 stage. (owner, 2026-11-09)
+- **D-08**: **codex + bonds + company rank + local records**; không home. (owner, 2026-11-09)
+- **D-03**: **hybrid Phaser board + DOM sheets** là hướng owner nghiêng; cần prototype 1 effect pixelfx trước khi lock. (owner, 2026-11-09)
+- **E-03**: kit FX player cho sprite sheet + act timing; đề xuất, chưa chốt. (agent, 2026-11-09)
 - **D-17**: **P0 tối thiểu** — persistent shell (E-01) + asset on-demand + save envelope 256 KB + music helper; content packs để P1. (owner, 2026-11-09)
 - **E-01**: nằm trong P0; shell của game-kit có option `persistent`, bỏ "Ván mới". (owner, 2026-11-09)
 
 ## Next — one item
 
-**D-11 — pipeline nội dung + balance simulation.** Đây là điều kiện để "nội dung mở rộng được": hero/stage/boss là data, có schema/validate, có sim để cân bằng 36 stage + 6 hero. Sau đó D-03 (engine/save) và D-08 (meta/codex).
+**D-16 — v1 scope, milestones và graduation list.** Gom mọi quyết định thành phạm vi v1, thứ tự build (platform P0 → battle prototype → content), wireframe pack và danh sách ADR/PR. D-03/E-03/D-15 là các mục kỹ thuật còn mở, không chặn scope.
 
 ## Waiting on the owner
 
-- **D-11**: pipeline — TypeScript catalogs + Zod + balance sim (recommended) hay JSON/spreadsheet?
-- **D-03**: engine — Phaser cho battle + DOM cho sheet (recommended), all Phaser, hay all DOM?
-- **D-08**: meta — codex + bonds + company rank + local records (recommended), hay codex only / thêm achievements?
+- **D-03**: chốt hybrid + pixelfx sprite sheets + E-03, hay muốn prototype 1 effect trước?
+- **D-15**: audio — music + SFX (recommended) hay chỉ SFX?
 - **Brief**: owner để sau; plan vẫn ở Frame, không tự chốt.
 
 ## Board
@@ -38,22 +41,23 @@
 |---|---|---|---|---|
 | D-01 | Định vị, người chơi và lời hứa | decision | **decided** | — |
 | D-02 | Độ tương thích với nền tảng Tò He và các giới hạn | decision | **decided** (extend) | D-01 |
-| D-03 | Nền tảng kỹ thuật: engine, render, save, dữ liệu | decision | open | D-17, D-04 |
+| D-03 | Nền tảng kỹ thuật: engine, render, save, dữ liệu | decision | **proposed** (hybrid + pixelfx) | D-17, D-04 |
 | D-04 | Core loop & mô hình chiến đấu | decision | **decided** | D-01 |
 | D-05 | Card/character core: 6 hero/3 hàng, vai trò, hệ, kỹ năng, đội hình | decision | **decided** | D-04 |
 | D-06 | Hệ thống phát triển và đường cong sức mạnh | decision | **decided** (company + star + gear) | D-05, D-17 |
 | D-07 | Kinh tế, phần thưởng idle và nhịp tiến trình | decision | **researching** (offline combat decided) | D-06 |
-| D-08 | Lớp meta: codex, bonds, company rank; **no home** | decision | **researching** (no home decided) | D-01, D-06 |
+| D-08 | Lớp meta: codex, bonds, company rank; **no home** | decision | **decided** (codex + bonds + rank) | D-01, D-06 |
 | D-09 | Khung nội dung: wave/stage/vùng/boss, auto-advance, chế độ phụ | decision | **decided** (3 vùng × 12) | D-04, D-05, D-06 |
 | D-10 | Nhịp chơi hằng ngày và cấu trúc live | decision | **decided** (daily nhẹ) | D-07, D-09 |
-| D-11 | Pipeline sản xuất nội dung (data-driven) | decision | open | D-03, D-09 |
+| D-11 | Pipeline sản xuất nội dung (data-driven) | decision | **decided** (TS catalogs + sim) | D-03, D-09 |
 | D-12 | UX: một bàn đánh bài, panel mở trên đó; formation 3 hàng/6 hero | decision | **decided** | D-05, D-08, D-10, E-01 |
 | D-13 | Art direction & cảm giác chiến đấu | decision | **decided** (card-on-board, dark-first) | D-01, D-05, D-12 |
 | D-14 | Thế giới, thème và tên game | decision | **decided** (Vân Du Ký) | D-01 |
 | D-15 | Âm thanh, haptics và cảm giác chạm | decision | open | D-12, D-13 |
-| D-16 | Phạm vi v1, phasing và bộ wireframe | decision | open | D-04, D-07, D-10, D-12, D-13, D-17 |
+| D-16 | Phạm vi v1, phasing và bộ wireframe | decision | open | D-04, D-07, D-10, D-12, D-13, D-17, E-03 |
 | D-17 | Gói platform extension: P0/P1/P2 | decision | **decided** (P0) | D-02 |
 | E-01 | Kit: shell cho game persistent (bỏ "Ván mới") | enhancement | **decided** (P0) | D-17 |
+| E-03 | Kit: FX player cho sprite sheet + act timing | enhancement | **proposed** | D-03, D-13 |
 
 ## Research so far
 
@@ -64,6 +68,7 @@
 - [R-05 — Platform extension options](research/R-05-platform-extension.md): P0/P1/P2, costs, what the game can rely on.
 - [R-06 — Main-screen auto-battler UX](research/R-06-main-screen-ux.md): board as the app, bottom dock + sheets, auto-advance, offline return.
 - [R-07 — Formation: rows, ranks and what they buy](research/R-07-formation.md): 3 rows / 6 heroes chosen; 2×2 and 4-rank compared; density costs.
+- [R-08 — Pixel FX: pixelfx, sprite sheets and the platform](research/R-08-pixel-fx.md): MIT, 244 effects, act timing; measured sizes; sprite sheets + E-03.
 
 ## Wireframe
 

@@ -1,14 +1,20 @@
-# D-08 — Meta: no home, collection and codex
+# D-08 — Meta: no home, collection and codex (decided)
 
-**Status:** researching — **no home decided**; the meta shape is open · **Kind:** decision · **Blocked by:** D-01, D-06
+**Status:** decided — owner chose **Codex + bonds + rank** on 2026-11-09 · **Kind:** decision · **Blocked by:** D-01, D-06
 
-## Decision (owner's words)
+## Decisions (owner's words)
 
 > "k có nhà, trên main zone là khu vực đánh nhau luôn kiểu legends of mushroom luôn đánh qua màn ấy, còn phong cách thì là dạng board các card đánh nhau"
 
+> "Codex + bonds + rank (Recommended)"
+
 - **No home, no camp, no caravan screen.**
 - The **main zone is the battle board**; the company is always fighting through stages.
-- All meta lives in **panels over the board**: team, gear, summon, codex, daily, records.
+- All meta lives in **panels over the board**.
+- **Codex**: 12 hero entries, 12 enemy entries, 3 region entries; unlocked by meeting/defeating; small milestone bonuses.
+- **Bonds**: one bond pair per hero; deployed together, a small bonus; a short story line in the codex.
+- **Company rank**: account progression from stage clears; raises the shared hero level cap and offline rate.
+- **Records**: best stage, tower floor, boss damage; local only (no public board in v1).
 
 ## What replaces the home
 
@@ -62,6 +68,6 @@ The home used to carry four jobs; each needs a new place:
 
 ## Discussion
 
-**owner (2026-11-09):** no home; main zone is the fight; board of cards.
+**owner (2026-11-09):** no home; main zone is the fight; board of cards; chose codex + bonds + rank.
 
 **agent (2026-11-09):** recorded. Removing the home simplifies the UX and the art budget; the risk is that the game has no "quiet place" and no long-term sink outside gear/stars. The codex + bonds + company rank are the smallest answer; if playtests show the game needs a home, that is a new decision, not a silent base.

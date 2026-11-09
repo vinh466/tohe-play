@@ -70,10 +70,9 @@ There is no home screen. The board is the app; the stage strip is the road; the 
 
 - **D-03** — technical foundation: engine split, save schema/migrations, data load, performance.
 - **D-07** — economy details: currency rates, summon/pity, duplicate value, offline rate.
-- **D-08** — meta: codex entries, bonds, company rank, local records; no home.
-- **D-11** — content pipeline and balance simulation.
 - **D-15** — audio/haptics; music or SFX only.
 - **D-16** — v1 scope, milestones, what is deliberately out; the wireframe pack is v3, with a 360×640 pass still needed.
+- **E-03** — kit FX player; proposed, part of the first implementation slice.
 
 ## 5. Known risks without an answer yet
 

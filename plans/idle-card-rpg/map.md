@@ -30,6 +30,8 @@ flowchart TD
   D01 --> D13[D-13 Art direction & battle feel]
   D05 --> D13
   D12 --> D13
+  D03 --> E03[E-03 FX player]
+  D13 --> E03
   D01 --> D14[D-14 World, road & name]
   D12 --> D15[D-15 Audio, haptics & feel]
   D13 --> D15
@@ -46,7 +48,7 @@ flowchart TD
 |---|---|---|---|
 | D-01 | Game dành cho ai, lời hứa một câu, một phiên chơi dài bao lâu, "treo máy" nghĩa là gì, vì sao mở lại ngày mai? | Mọi lựa chọn battle, progression, UX và art đều bám vào đây | D-02, D-04, D-13, D-14 |
 | D-02 | Game này sống được trong giới hạn Tò He (64 KB save, build budget, offline, không server logic) hay cần thay đổi nền tảng? | Quyết định trước khi thiết kế hệ thống để không vẽ ra thứ không chạy được | D-17, E-01 |
-| D-03 | Engine/render (Phaser, DOM/React, hybrid), cách tách logic/view, save schema & migration, dữ liệu nội dung | Là nền để làm game lớn, nhiều nội dung, sửa lâu dài | D-11 |
+| D-03 | Engine/render (Phaser, DOM/React, hybrid), cách tách logic/view, save schema & migration, dữ liệu nội dung | Là nền để làm game lớn, nhiều nội dung, sửa lâu dài | D-11, E-03 |
 | D-04 | Vòng lặp chính: auto normal + auto-cast skill (toggle manual), nhịp trận, thắng/thua/thử lại | Là trục gameplay; quyết trước mọi hệ thống khác | D-03, D-05, D-08, D-09, D-16 |
 | D-05 | Nhân vật là thẻ: vai trò, hệ, rarity, kỹ năng, đội hình, cách thẻ tương tác (team size 4 đã chốt) | Là đơn vị nội dung và sức mạnh; quyết định độ sâu của battle | D-06, D-09, D-12, D-13 |
 | D-06 | Các trục phát triển (company level, sao, gear, skill…), đường cong và cảm giác mạnh lên | Là điểm mạnh chính theo yêu cầu của owner | D-07, D-08, D-09 |
@@ -62,6 +64,7 @@ flowchart TD
 | D-16 | v1 gồm gì, bao nhiêu nội dung, thứ tự build, bộ wireframe giao cho implementation | Chốt phạm vi để plan graduate được, không mở vô hạn | — |
 | D-17 | Gói platform extension: P0 (shell/assets/save/music), P1 (+ content packs), P2 (full) | Owner chọn mở rộng nền tảng trước; cần chốt cái gì là đủ cho bản chơi được | D-03, E-01, D-16 |
 | E-01 | Thêm `persistent` vào shell của game-kit: bỏ "Ván mới", giữ Chơi tiếp/Menu chính | Một RPG là thế giới persistent, không phải một ván; shell hiện tại sẽ hiện nút reset sai | D-12 |
+| E-03 | Kit FX player cho sprite sheet + act timing (pixelfx) | Board cần hit-stop/shake/push theo effect; kit chưa có player | D-16 |
 
 ## Considered and left off
 
