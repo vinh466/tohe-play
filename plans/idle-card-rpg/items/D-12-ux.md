@@ -1,12 +1,16 @@
 # D-12 — UX: one main board, panels over it
 
-**Status:** proposed — chờ owner chốt · **Kind:** decision · **Blocked by:** D-05, D-08, D-10, E-01
+**Status:** researching — **2 rows of 4 cards decided**; dock, sheets and pause behaviour open · **Kind:** decision · **Blocked by:** D-05, D-08, D-10, E-01
 
-## Question
+## Decision (owner's words)
 
-Với "main zone là khu vực đánh nhau, board các card", màn hình chính tổ chức thế nào để vừa đọc được trận, vừa mở được team/gear/summon/codex mà không rời khỏi trận?
+> "2 hàng 4 card (Recommended)"
 
-## The shape
+- **4 hero cards in the bottom row, 4 enemy cards in the top row**, a turn rail, and a clash zone between them.
+- Cards lunge/collide; damage numbers; skill cut-ins; the board is the main screen.
+- No home; the board is the app.
+
+**Wireframe v1:** [board-v1.html](../wireframes/board-v1.html) — board, team sheet, hero detail, summon, offline return, stage picker (low-fi, 380 × 676).
 
 ```
 ┌──────────────────────────────────────┐
