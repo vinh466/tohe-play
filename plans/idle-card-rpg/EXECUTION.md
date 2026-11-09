@@ -15,10 +15,10 @@ what to do next. Update it at the end of every session, newest session first in 
 | C0 | Spec & ADRs | `games/van-du-ky/SPEC.md`; ADR 0059 (save budget); docs updated; docs build | **done** (ADR 0060 deferred with P0b) |
 | C1 | Platform P0a | save budget in contract/API/hub; E-01 persistent shell; E-03 FX player; tests | **done** (on-demand is P0b) |
 | C2 | Game core | pure battle/progression/economy + catalogs + save + tests + sim | **done** |
-| C3 | Playable board | Phaser board + DOM sheets + one FX effect; 360×640; 60 fps | **first pass** (no FX yet) |
+| C3 | Playable board | Phaser board + DOM sheets + one FX effect; 360×640; 60 fps | **first pass** (no FX yet; board/sheets play) |
 | C4 | Content slice | region 1 (12 stages), 6 heroes, 1 boss | **done** (event later) |
 | C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | todo |
-| C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | todo |
+| C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | blocked by C3/C5 polish |
 
 ## Staging and deviations
 
@@ -106,10 +106,11 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 
 Newest first. One entry per session: what moved, what is blocked, next.
 
-### 2026-11-09 — agent (first playable)
+### 2026-11-09 — agent (first playable + P0a)
 
 - G0 spec + ADR 0059; G1 save budget across contract/SDK/API/hub; E-01 persistent shell; E-03 FX player.
 - Game scaffold, pure core (battle/stats/progression/economy/save), 6-hero/12-stage slice, tests and balance report.
 - Phaser board + DOM team/hero/summon/offline sheets; conformance passes at 360×640; public pages + OG.
-- Next: turn rail/top strip, codex/daily/gear-equip sheets, SFX/haptics, full content, `pnpm verify`, then release candidate.
+- `pnpm verify`: all tasks pass except the API test suite in parallel (local inotify instance limit; API passes sequentially with `-parallelMode none`, 610/610). Conformance all games passes.
+- Next: turn rail/top strip, codex/daily/gear-equip sheets, SFX/haptics, full content, then release candidate.
 - No owner action needed yet.

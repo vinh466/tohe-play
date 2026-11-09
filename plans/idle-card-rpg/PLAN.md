@@ -1,9 +1,9 @@
 # Plan — Vân Du Ký (RPG thẻ bài treo máy)
 
 - Goal: Một RPG thẻ bài treo máy phone-first cho Tò He — **Vân Du Ký**, một đoàn thám hiểm đi qua thế giới fantasy gốc, **main zone là bàn đánh bài** tự động đánh qua màn, tiến trình dài là trục chính, phiên ngắn một tay, và nội dung mở rộng được lâu dài.
-- Phase: **Converge** — all decisions are made; the brief is confirmed; the graduation list is ready. ([process](../README.md#phases))
-- Started: 2026-11-09 · Branch: `plan/idle-card-rpg` · PR: chưa mở
-- Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
+- Phase: **Graduate** — implementation started; the first playable exists in `games/van-du-ky`. The graduation list is being worked through in [EXECUTION.md](EXECUTION.md). ([process](../README.md#phases))
+- Started: 2026-11-09 · Branch: `feat/van-du-ky-core` · PR: chưa mở
+- Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md) · Execution: [EXECUTION.md](EXECUTION.md)
 
 ## Decided so far
 
@@ -29,13 +29,7 @@
 
 ## Next — one item
 
-**Graduate — write the platform P0 ADRs and the game spec.** First: the save-envelope 256 KB ADR + contract/API/hub/conformance, the asset on-demand ADR + Studio/hub, E-01 and E-03 kit PRs; then `games/van-du-ky/SPEC.md`. The plan is ready; implementation starts when the owner says.
-
-## Waiting on the owner
-
-- **Graduation**: owner says start; no open decisions.
-- The exact 20/20/4 roster and the 2 events' content are proposals inside D-16; they can be adjusted before art lock.
-- Brief is confirmed.
+**Implementation — C3/C5.** The first playable is in `games/van-du-ky`: board, core, 6-hero/12-stage slice, team/hero/summon/offline sheets. Next: the turn rail and top strip, codex/daily/gear-equip, SFX/haptics, then the full 20/20/4/2 content. The ledger is [EXECUTION.md](EXECUTION.md); release candidate only when C6 is green.
 
 ## Board
 

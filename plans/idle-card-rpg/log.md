@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-11-09 — agent (implementation starts)
+
+- Platform P0a: save budget across contract/SDK/API/hub, persistent shell, FX player; docs/ADR 0059.
+- Game `games/van-du-ky`: pure core, 6-hero/12-stage slice, Phaser board, team/hero/summon/offline sheets, public pages/OG.
+- Conformance passes; `pnpm verify` all tasks except API parallel (local inotify limit); API 610/610 sequential.
+- Next: C3/C5 polish (turn rail, codex/daily, SFX, full content), then C6 release candidate.
+
 ## 2026-11-09 — agent (brief confirmed + final scope)
 
 - Owner chốt brief; plan chuyển **Converge**.
