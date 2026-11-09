@@ -2,9 +2,9 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
-## 2026-11-09 — agent (owner decisions + re-align)
+## 2026-11-09 — agent (main-board pivot + P0)
 
-- Owner chốt: **Đoàn Thám Hiểm** (no base), **mở rộng nền tảng trước**, **auto đánh thường + auto cast skill (toggle manual)**, **4 hero**.
-- Re-align D-01/D-02/D-04/D-05, design.md, map: bỏ camp/làng; caravan là home; platform extension thành critical path.
-- Viết R-05 + D-17: P0 (shell/assets/save/music) vs P1 (content packs) vs P2 (full).
-- Next: owner chốt D-17 package và D-04 timing (round-based auto recommended vs real-time auto).
+- Owner chốt P0 platform, round-based auto, và **không nhà**: main zone là bàn đánh bài, tự đánh qua màn kiểu Legend of Mushroom.
+- Re-align D-01/D-04/D-08/D-12/design/PLAN: bỏ home/camp/caravan screen; board là app; meta thành panel.
+- Viết R-06 (main-screen auto-battler UX) + D-08 + D-12; D-17/E-01 chuyển decided (P0).
+- Next: D-05 roles/elements/gear; sau đó D-09 auto-advance + D-12 wireframe.

@@ -14,7 +14,7 @@ flowchart TD
   D04 --> D05[D-05 Card/character core]
   D05 --> D06[D-06 Progression]
   D06 --> D07[D-07 Economy & idle rewards]
-  D04 --> D08[D-08 Meta: collection & codex]
+  D04 --> D08[D-08 Meta: codex, bonds, rank (no home)]
   D06 --> D08
   D04 --> D09[D-09 Content framework]
   D05 --> D09
@@ -23,7 +23,7 @@ flowchart TD
   D09 --> D10
   D03 --> D11[D-11 Content pipeline]
   D09 --> D11
-  D05 --> D12[D-12 UX architecture]
+  D05 --> D12[D-12 UX: one board + panels]
   D08 --> D12
   D10 --> D12
   E01 --> D12
@@ -51,11 +51,11 @@ flowchart TD
 | D-05 | Nhân vật là thẻ: vai trò, hệ, rarity, kỹ năng, đội hình, cách thẻ tương tác (team size 4 đã chốt) | Là đơn vị nội dung và sức mạnh; quyết định độ sâu của battle | D-06, D-09, D-12, D-13 |
 | D-06 | Các trục phát triển (company level, sao, gear, skill…), đường cong và cảm giác mạnh lên | Là điểm mạnh chính theo yêu cầu của owner | D-07, D-08, D-09 |
 | D-07 | Nguồn/thu nhập tiền tệ, chỗ tiêu, phần thưởng offline, cap và nhịp tiến trình | Quyết định game có "đã" khi quay lại hay không, và có bị grind vô nghĩa | D-10, D-16 |
-| D-08 | Lớp meta ngoài trận: bộ sưu tập, codex, bonds, company rank; không base | Tạo lý do quay lại ngoài màn đánh; là chỗ mở rộng nội dung | D-12 |
+| D-08 | Lớp meta ngoài trận: codex, bonds, company rank, records; **không nhà** | Tạo lý do quay lại ngoài màn đánh; là chỗ mở rộng nội dung | D-12 |
 | D-09 | Khung nội dung: vùng/stage, dungeon, boss, sự kiện, chế độ phụ; schema dữ liệu | Để thêm nội dung hàng tháng mà không sửa core | D-10, D-11, D-16 |
 | D-10 | Nhịp hằng ngày: nhiệm vụ, daily, offline return, streak không gây áp lực; có live/event không | Quyết định retention và cách game tôn trọng thời gian người chơi | D-12, D-16 |
 | D-11 | Cách viết/thêm hero, stage, event: data-driven, validate, balance sim, asset packs | Là điều kiện để "nội dung mở rộng được" — mục tiêu cốt lõi | — |
-| D-12 | Screen map, navigation, information architecture, bố cục từng màn, luồng một tay; caravan home | Biến hệ thống thành sản phẩm dùng được; đầu ra wireframe | D-13, D-15, D-16 |
+| D-12 | Screen map, navigation, bố cục: **một bàn đánh bài + panel mở trên đó**; dock, sheet, pause | Biến hệ thống thành sản phẩm dùng được; đầu ra wireframe | D-13, D-15, D-16 |
 | D-13 | Art direction: thẻ, pixel art, khung thẻ, animation, hiệu ứng va chạm, damage number, readability | Là yêu cầu trực tiếp của owner và quyết định pipeline asset | D-15, D-16 |
 | D-14 | Thế giới, thème, tên game, tông kể chuyện; con đường và các vùng đất | Tạo bản sắc và chất liệu cho hero/quái/nội dung | — |
 | D-15 | Âm thanh, haptics, rung/feedback khi đánh, không khí | Hoàn thiện cảm giác "sát thương có sức nặng" trên phone | D-16 |

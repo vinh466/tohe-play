@@ -1,6 +1,6 @@
-# E-01 — A persistent game's shell (no "Ván mới")
+# E-01 — A persistent game's shell (no "Ván mới") — decided in P0
 
-**Status:** proposed — chờ owner chốt · **Kind:** enhancement · **Blocked by:** D-02, D-12
+**Status:** decided — owner chose P0, which includes E-01, on 2026-11-09 · **Kind:** enhancement · **Blocked by:** D-17
 
 ## The gap
 
@@ -68,6 +68,6 @@ The hub draws its top bar; the game owns the rest. No title screen of its own, l
 
 ## Discussion
 
-**agent (2026-11-09):** the gap is real but small. Overriding strings (A) would ship a confusing "Ván mới" that resets a world; C gives up the game's own title and costs vertical space. B is a one-option kit change with clear tests.
+**owner (2026-11-09):** chose P0, which includes E-01.
 
-**owner:** _chưa trả lời._
+**agent (2026-11-09):** the gap is real but small. Overriding strings (A) would ship a confusing "Ván mới" that resets a world; C gives up the game's own title and costs vertical space. B is a one-option kit change with clear tests. It is now part of the P0 platform package.

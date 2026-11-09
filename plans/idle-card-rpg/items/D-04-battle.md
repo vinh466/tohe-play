@@ -1,37 +1,32 @@
-# D-04 — Core loop and battle model (control decided; timing open)
+# D-04 — Core loop and battle model (decided)
 
-**Status:** researching — owner chose the control model on 2026-11-09; the timing model is open · **Kind:** decision · **Blocked by:** D-01
+**Status:** decided — owner chose the control model and round-based timing on 2026-11-09 · **Kind:** decision · **Blocked by:** D-01
 
 ## Decision (owner's words)
 
 > "auto đánh thường, auto cast skill (có thể tắt auto cast skill để tự cast)"
 
+> "Round-based auto (Recommended)"
+
 - Normal attacks happen **automatically**.
 - Skills are **auto-cast by default**.
 - A toggle turns **auto-cast off**, so the player can cast manually.
+- The battle runs in **rounds**: each round, every living unit acts once in SPD order; auto attacks/skills; the player can turn auto-cast off and choose a skill/target on their heroes' turns.
 - 4 heroes per team (D-05 decision).
 
 This is the "balanced" control layer: the game can be watched on auto, but the player can take over the skills when it matters.
 
-## Open: the timing model that carries it
+## Battle shape (decided direction; details in D-05/D-09/D-12)
 
-The owner's answer fixes **what the player controls**, not **how time flows**. Two implementations fit:
-
-### B1 — Real-time auto (AFK-like)
-
-- Each unit has an attack timer based on SPD; skills charge/cooldown; auto-cast on/off.
-- The player taps a skill to cast it immediately when ready; otherwise the AI does.
-- **Pros**: feels like "treo máy"; dynamic card clashes; good for long auto sessions.
-- **Cons**: harder to simulate and balance; timing windows are fuzzy; more state per frame.
-
-### B2 — Round-based auto (Summoners War-like)
-
-- Each round, every living unit acts once in SPD order; normal attacks auto; skills auto-cast when charged/ready.
-- The player can turn auto-cast off and choose a skill/target on their turn.
-- **Pros**: readable; easy to simulate; clear "who acts next"; deep speed/order play.
-- **Cons**: less continuous; auto sessions are a sequence of rounds, not a live fight.
-
-**Recommendation: B2 round-based auto, for the first playable.** It is the easiest to make fair with a small team, it fits the card/turn rail, and it still delivers the owner's control model. If the prototype feels too static, move to B1; the skill/auto-toggle design carries over.
+- 4 heroes vs 4 enemies, 2 rows (front/back), portrait.
+- 3–5 rounds, 20–40 s; boss 60–90 s; speed ×1/×2/×3.
+- **Turn rail** at the top: the next 6 actors in order; speed buffs/debuffs move icons.
+- **Auto-cast toggle** on the battle HUD: on by default; turning it off pauses the skill decision for the player's heroes, not the enemies.
+- **Targeting**: default lowest-HP enemy; tap to focus; bosses with adds can be targeted.
+- **Skills**: each hero has 1 basic + 1 active + 1 passive; active charges over turns; auto-casts when ready unless the toggle is off.
+- **Win/lose**: kill all enemies / all heroes down; retry free; no energy; a loss suggests a change (gear, formation, element), not a paywall.
+- **Determinism**: seeded RNG; same team/seed → same battle (needed for balance sim and a future ranked daily boss).
+- **Auto-advance**: the board keeps clearing waves and moving to the next stage until a loss; then the player can farm the highest cleared stage or upgrade. (Details in D-09.)
 
 ## Battle shape (provisional, follows the timing decision)
 
@@ -61,6 +56,6 @@ The owner's answer fixes **what the player controls**, not **how time flows**. T
 
 ## Discussion
 
-**owner (2026-11-09):** auto normal attacks + auto-cast skills, with a toggle to cast manually.
+**owner (2026-11-09):** auto normal attacks + auto-cast skills, with a toggle to cast manually; then chose **round-based auto** as the timing.
 
-**agent (2026-11-09):** the control model is clear. I recommend B2 (round-based auto) for the first playable because it is fair, readable and simulatable; B1 remains the alternative if the prototype feels too static. The owner should confirm B2 or ask for a B1 prototype before D-05 locks the skill system.
+**agent (2026-11-09):** recorded. Round-based auto is the right first playable: it is fair, readable and simulatable, and the manual toggle still gives the player a real decision. Real-time can be a later experiment if the board feels too static.

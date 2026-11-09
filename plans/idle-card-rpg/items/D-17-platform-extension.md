@@ -1,52 +1,36 @@
-# D-17 — Platform extension package
+# D-17 — Platform extension package (decided: P0)
 
-**Status:** proposed — chờ owner chốt · **Kind:** decision · **Blocked by:** D-02
+**Status:** decided — owner chose **P0 tối thiểu** on 2026-11-09 · **Kind:** decision · **Blocked by:** D-02
 
-## Question
+## Decision (owner's words)
 
-"Mở rộng nền tảng trước" cụ thể là mở rộng gì, theo thứ tự nào, và bản chơi được đầu tiên được phép dựa vào những gì?
+> "P0 tối thiểu (Recommended)"
 
-## Options
-
-### A — Minimal enablers (P0, recommended)
+The platform extension package is **P0**:
 
 1. **E-01 persistent shell** — a `persistent` option in the game-kit shell (no "Ván mới").
 2. **Asset on-demand** — the game declares `delivery: on-demand`; the hub fetches packs after first paint; offline cache keeps the last copy.
 3. **Save envelope 256 KB** — a versioned envelope; the API/hub accept 256 KB; 64 KB stays the default for other games.
 4. **Music helper** — a small kit helper for loops/fades.
 
-**Game gets:** a persistent world, a large art library, a long-lived save, a soundtrack. **Not:** content without a new build, remote events, push.
+**Not in P0:** content packs/remote content (P1), save conflict merge, ranked daily boss, server time, push (P2). The first playable does not wait for them.
 
-**Cost:** one contract change (save size), asset-delivery work across contract/Studio/hub/conformance, two kit PRs. **Timebox:** the first playable should not wait for content packs.
+## What the game can rely on
 
-### B — Live-content platform (P1)
+- A persistent shell (no "Ván mới", title says "Chơi tiếp").
+- On-demand assets, so the art library can grow without inflating the first load.
+- A 256 KB save envelope from day one; the game owns migrations.
+- Music if the kit helper lands in time.
+- Content ships in the immutable build for v1; content packs are a later path.
+- No public leaderboard, no ranked run, no push in v1.
 
-A + **content packs** + remote content delivery + offline cache:
+## Options considered (history)
 
-- A chapter/hero/event is a versioned content pack, not a game build.
-- New contract surface, API module, storage, hub loader, SDK, conformance, docs, ADR.
-- The game must handle missing/stale packs and offline.
-
-**Game gets:** weekly content without a release. **Cost:** the biggest platform project; it commits the owner to a live-content cadence.
-
-### C — Full platform (P2)
-
-B + save conflict merge + ranked daily boss + server time + push. Only if the game proves it needs competition/reminders. Push is against the calm tone.
-
-## Recommendation
-
-**A now; B only after the first playable proves the loop; C later.** The first playable needs the shell, assets and save headroom. Content packs are a platform bet that should be made with evidence, not before the game exists.
-
-Concretely, the first playable may rely on:
-
-- a persistent shell (E-01);
-- bundled assets **or** on-demand assets (decide in D-17; on-demand is preferred if the art library is expected to grow past ~10 MB);
-- a 256 KB save envelope;
-- no content packs; content ships in the immutable build;
-- no ranked/board, no push;
-- music if the kit helper lands in time.
-
-## What it changes
+| Option | Why not chosen |
+|---|---|
+| **P0 minimal enablers** | **Chosen.** Shell + on-demand assets + 256 KB save + music. |
+| **P1 live-content platform** | Deferred: content packs are a big platform bet; prove the loop first. |
+| **P2 full platform** | Deferred: conflict merge, ranked boss, server time, push are not v1 needs. |
 
 - **D-03**: the technical foundation targets the extended platform (asset loader, save envelope, content in build).
 - **D-06/D-07**: the save schema uses the envelope from day one; the economy can grow past 64 KB.
@@ -69,6 +53,6 @@ Concretely, the first playable may rely on:
 
 ## Discussion
 
-**agent (2026-11-09):** recommend A. The owner chose to extend first; the smallest extension that actually unblocks a large RPG is the shell + assets + save headroom + music. Content packs are the right P1, but only after the loop is proven. If the owner wants a weekly-content game from day one, B moves to P0 — that is a different product plan and should be decided explicitly.
+**owner (2026-11-09):** chose P0 tối thiểu.
 
-**owner:** _chưa trả lời._
+**agent (2026-11-09):** recorded. P0 is the smallest package that unblocks a large RPG without turning the plan into a platform rewrite. Content packs (P1) should wait for evidence that the loop retains players. The platform work needs its own ADRs and conformance in the same PRs; the game's first playable is gated by P0, not P1/P2.

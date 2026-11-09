@@ -26,14 +26,26 @@ The game is a **roaming company**, not a village. There is **no base, no camp, n
 - The caravan still gives a home and an idle-fiction ("the company travels while you are away") without becoming a second game.
 - It keeps the door open for a **cosmetic caravan** later (banners, lanterns, a visible road) without adding buildings.
 
-## What it changes
+## Clarification — no home, the main zone is the battle board
 
-- **D-08**: no base/camp. Meta = collection, codex, bonds, company rank, local records. The "farm" feeling comes from gear/stage farming + the caravan's idle supplies.
-- **D-09**: chapters are regions on a road, not islands; the tower is a landmark on the road; the world boss is a shadow that follows the company.
-- **D-12**: the home tab is **Đoàn** (caravan), not **Làng/Camp**; tabs become Đoàn · Hành Trình · Anh Hùng · Triệu Hồi + More.
+**Owner (2026-11-09):** *"không có nhà, trên main zone là khu vực đánh nhau luôn kiểu legends of mushroom luôn đánh qua màn ấy, còn phong cách thì là dạng board các card đánh nhau."*
+
+- There is **no home, no camp, no caravan screen**. The game opens on the **battle board** and the company is always on the road, always fighting through stages.
+- The **main zone is the board**: hero cards and enemy cards face each other, auto-advance through waves, bosses at region ends.
+- The "expedition" is the fiction of the endless march; the **stage progress** is the road. The board changes background per region.
+- All meta (team, gear, summon, codex, daily, records) lives in **panels over the board**, not in separate home screens.
+- The promise becomes: *"Một đội, một con đường, luôn tiến về phía trước."*
+
+This supersedes the "caravan as home" idea in the earlier draft. The caravan can exist as a visual motif in the board background, never as a screen.
+
+## What it changes (updated)
+
+- **D-08**: no home at all. Meta = collection, codex, bonds, company rank, local records, all in panels over the board. The "farm" feeling comes from the endless stage march + gear drops + the offline return.
+- **D-09**: continuous stages; auto-advance through waves; bosses at region ends; the tower is a landmark on the road; the world boss is a shadow that follows the company.
+- **D-12**: one main screen — the battle board — with a bottom dock/panels; no home tab, no 4-tab navigation.
 - **D-14**: world = a long road through a shattered original fantasy world; name still open.
-- **D-16**: v1 scope loses the camp screens/buildings; that budget goes to heroes, stages and battle polish.
-- **D-07**: idle supplies come from the caravan, not buildings; one idle source, not two.
+- **D-16**: v1 scope loses the home/camp screens entirely; that budget goes to the board, battle feel, heroes and stages.
+- **D-07**: idle supplies come from the company fighting offline, not from buildings; one idle source.
 
 ## Options considered (history)
 
@@ -45,10 +57,10 @@ The game is a **roaming company**, not a village. There is **no base, no camp, n
 
 ## Open sub-questions
 
-- **D-08**: how much of the caravan is visible/customisable without becoming a base? (Recommendation: cosmetic only, one screen.)
-- **D-07**: what replaces the "farm" feeling of a base? (Recommendation: gear/stage farming + a visible road progress + company rank.)
+- **D-08**: how much collection meta replaces the home? (Recommendation: codex, bonds, company rank, local records; no base, no decoration.)
+- **D-07**: what replaces the "farm" feeling of a base? (Recommendation: the endless stage march, gear drops, offline return.)
 - **D-14**: the name and the world's central mystery.
-- **D-12**: does the caravan screen show the road ahead, the team, and the idle chest in one view? (Recommendation: yes, one screen.)
+- **D-12**: how the panels open over the board without hiding the fight. (Recommendation: bottom dock + sheets; the battle pauses while a sheet is open.)
 
 ## Evidence
 
