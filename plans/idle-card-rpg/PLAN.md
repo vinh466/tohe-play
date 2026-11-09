@@ -1,7 +1,7 @@
 # Plan — Vân Du Ký (RPG thẻ bài treo máy)
 
 - Goal: Một RPG thẻ bài treo máy phone-first cho Tò He — **Vân Du Ký**, một đoàn thám hiểm đi qua thế giới fantasy gốc, **main zone là bàn đánh bài** tự động đánh qua màn, tiến trình dài là trục chính, phiên ngắn một tay, và nội dung mở rộng được lâu dài.
-- Phase: **Resolve → Converge** (brief deferred by the owner; decisions recorded; graduation list drafted — [process](../README.md#phases))
+- Phase: **Converge** — all decisions are made; the brief is confirmed; the graduation list is ready. ([process](../README.md#phases))
 - Started: 2026-11-09 · Branch: `plan/idle-card-rpg` · PR: chưa mở
 - Brief: [brief.md](brief.md) · Map: [map.md](map.md) · Design: [design.md](design.md) · Log: [log.md](log.md)
 
@@ -12,9 +12,9 @@
 - **D-04**: **Round-based auto**; auto đánh thường + auto cast skill, có toggle tắt auto cast để tự cast. (owner, 2026-11-09)
 - **D-05**: **6 hero / 3 hàng**, 4 role, 4 element, 3 rarity, 4 gear slot, 1 basic + 1 active + 1 passive, bond pairs, 5 stats. (owner, 2026-11-09)
 - **D-06**: **company level + star + gear** — 3 trục; không level từng hero, không prestige ở v1. (owner, 2026-11-09)
-- **D-07**: **offline vẫn đánh** — farm màn cao nhất khi đóng app, cap 12 h, summary card. (owner, 2026-11-09)
+- **D-07**: **offline vẫn đánh** + **earned gacha + pity** — shards from play, 10-pull, pity 10/50, duplicates → shards; no money. (owner, 2026-11-09)
 - **D-08**: **codex + bonds + company rank + local records**; không home. (owner, 2026-11-09)
-- **D-09**: **auto-advance + farm**, **4 vùng × 12 = 48 stage**, 4 boss, tower 40, daily expedition, world boss, 1 event 7 ngày. (owner, 2026-11-09)
+- **D-09**: **auto-advance + farm**, **4 vùng × 12 = 48 stage**, 4 boss, tower 40, daily expedition, world boss, **2 event**. (owner, 2026-11-09)
 - **D-10**: **daily nhẹ** — 3 task, 1 expedition, 1 boss; không energy, không streak phạt. (owner, 2026-11-09)
 - **D-11**: **TS catalogs + balance sim** — content là data có kiểu, Zod/reference check trong test. (owner, 2026-11-09)
 - **D-12**: board v3 approved — 3 hàng / 6 hero, full info, dock/sheets, dark-first. (owner, 2026-11-09)
@@ -22,20 +22,20 @@
 - **D-14**: tên game **Vân Du Ký** — ký sự đoàn người đi trên con đường mây. (owner, 2026-11-09)
 - **D-15**: **chỉ SFX**, không music. (owner, 2026-11-09)
 - **D-03**: **hybrid Phaser board + DOM sheets**; pixelfx sprite sheets + E-03; prototype crit-hit. (owner, 2026-11-09)
-- **D-16**: **thêm nội dung** — 4 vùng × 12, 16 hero, 16 quái, 4 boss, 1 event; không PvP/guild/ranked. (owner, 2026-11-09)
+- **D-16**: **thêm nội dung** — 4 vùng × 12, **20 hero, 20 quái, 4 boss, 2 event** (~2 tuần); không PvP/guild/ranked. (owner, 2026-11-09)
 - **D-17**: **P0 tối thiểu** — persistent shell (E-01) + asset on-demand + save 256 KB; content packs để P1; không music. (owner, 2026-11-09)
 - **E-01**: nằm trong P0; shell có option `persistent`, bỏ "Ván mới". (owner, 2026-11-09)
 - **E-03**: kit FX player cho sprite sheet + act timing. (owner, 2026-11-09)
 
 ## Next — one item
 
-**D-07 — chốt mô hình summon/kinh tế còn lại.** Đây là quyết định cuối cùng: gacha kiếm được + pity (recommended), deterministic recruit, hay hybrid. Sau đó viết graduation list cuối và chờ owner chốt brief.
+**Graduate — write the platform P0 ADRs and the game spec.** First: the save-envelope 256 KB ADR + contract/API/hub/conformance, the asset on-demand ADR + Studio/hub, E-01 and E-03 kit PRs; then `games/van-du-ky/SPEC.md`. The plan is ready; implementation starts when the owner says.
 
 ## Waiting on the owner
 
-- **D-07**: summon — earned gacha + pity (recommended), deterministic, hay hybrid?
-- **D-16**: xác nhận con số 16 hero / 16 quái / 4 boss / 1 event (đề xuất), hay chỉnh.
-- **Brief**: owner để sau; plan không tự chốt. Graduation chỉ bắt đầu sau khi brief được xác nhận.
+- **Graduation**: owner says start; no open decisions.
+- The exact 20/20/4 roster and the 2 events' content are proposals inside D-16; they can be adjusted before art lock.
+- Brief is confirmed.
 
 ## Board
 
@@ -47,7 +47,7 @@
 | D-04 | Core loop & mô hình chiến đấu | decision | **decided** | D-01 |
 | D-05 | Card/character core: 6 hero/3 hàng, vai trò, hệ, kỹ năng, đội hình | decision | **decided** | D-04 |
 | D-06 | Hệ thống phát triển và đường cong sức mạnh | decision | **decided** (company + star + gear) | D-05, D-17 |
-| D-07 | Kinh tế, summon, phần thưởng idle và nhịp tiến trình | decision | **researching** (offline decided; summon open) | D-06 |
+| D-07 | Kinh tế, summon, phần thưởng idle và nhịp tiến trình | decision | **decided** (offline + earned gacha) | D-06 |
 | D-08 | Lớp meta: codex, bonds, company rank; **no home** | decision | **decided** (codex + bonds + rank) | D-01, D-06 |
 | D-09 | Khung nội dung: 4 vùng × 12, boss, tower, event | decision | **decided** | D-04, D-05, D-06 |
 | D-10 | Nhịp chơi hằng ngày và cấu trúc live | decision | **decided** (daily nhẹ) | D-07, D-09 |
@@ -95,7 +95,7 @@ Game, in order:
 6. Content schema + catalogs + Zod tests + reference checks + balance sim (D-11).
 7. Battle prototype + one pixelfx crit-hit (D-03/D-13/E-03); gate at 360×640, 60 fps.
 8. Meta slice: save envelope, company/star/gear, summon, codex, daily.
-9. Content: region 1 → 4; 16 heroes/16 enemies/4 bosses; art packs; sim.
+9. Content: region 1 → 4; 20 heroes/20 enemies/4 bosses/2 events; art packs; sim.
 10. Polish: FX set, SFX/haptics, onboarding, credits, conformance.
 
 Docs to update in the same PRs: Game Contract (save/asset delivery), Asset Studio (on-demand), Game shell (persistent), and the new ADRs.

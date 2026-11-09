@@ -61,7 +61,7 @@ flowchart TD
 | D-13 | Art direction: thẻ, pixel art, khung thẻ, animation, hiệu ứng va chạm, damage number, readability | Là yêu cầu trực tiếp của owner và quyết định pipeline asset | D-15, D-16 |
 | D-14 | Thế giới, thème, tên game, tông kể chuyện; con đường và các vùng đất | Tạo bản sắc và chất liệu cho hero/quái/nội dung | — |
 | D-15 | Âm thanh, haptics, rung/feedback khi đánh; **chỉ SFX**, không music | Hoàn thiện cảm giác "sát thương có sức nặng" trên phone | D-16 |
-| D-16 | v1 gồm gì: 4 vùng × 12, 16 hero, 16 quái, 4 boss, 1 event; thứ tự build, bộ wireframe | Chốt phạm vi để plan graduate được, không mở vô hạn | — |
+| D-16 | v1 gồm gì: 4 vùng × 12, 20 hero, 20 quái, 4 boss, 2 event; thứ tự build, bộ wireframe | Chốt phạm vi để plan graduate được, không mở vô hạn | — |
 | D-17 | Gói platform extension: P0 (shell/assets/save), P1 (+ content packs), P2 (full); không music | Owner chọn mở rộng nền tảng trước; cần chốt cái gì là đủ cho bản chơi được | D-03, E-01, D-16 |
 | E-01 | Thêm `persistent` vào shell của game-kit: bỏ "Ván mới", giữ Chơi tiếp/Menu chính | Một RPG là thế giới persistent, không phải một ván; shell hiện tại sẽ hiện nút reset sai | D-12 |
 | E-03 | Kit FX player cho sprite sheet + act timing (pixelfx) | Board cần hit-stop/shake/push theo effect; kit chưa có player | D-16 |

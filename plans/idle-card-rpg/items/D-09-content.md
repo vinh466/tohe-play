@@ -15,9 +15,9 @@
 - **Tower**: 40 floors at launch, scaling.
 - **Daily expedition**: one rotating resource dungeon per day.
 - **World boss**: weekly async boss; local damage record in v1.
-- **One 7-day Khởi Hành event**: tasks + rewards; no live-ops calendar.
+- **One 7-day Khởi Hành event** and **one weekly Thử Thách Đường Mây**; no live-ops calendar.
 - The stage strip at the top is the road: `Vùng 1 · 3/12`.
-- **Content duration target**: ~1.5 weeks at 2–3 short sessions a day.
+- **Content duration target**: ~2 weeks at 2–3 short sessions a day.
 
 ## Content shape (decided)
 
@@ -30,8 +30,8 @@
 | **Tower** | A landmark on the road; 40 floors at launch, scaling | A second progression path when the road walls |
 | **Daily expedition** | One rotating resource dungeon per day | A short daily reason to log in |
 | **World boss** | A weekly async boss; damage record, local in v1 | A long-term goal without PvP |
-| **Codex** | 16 hero / 16 enemy / 4 region entries; 8 bond pairs | Collection content that reuses battle art |
-| **Event** | One 7-day Khởi Hành journey; tasks + rewards | A launch retention arc, not a live-ops calendar |
+| **Codex** | 20 hero / 20 enemy / 4 region entries; 10 bond pairs | Collection content that reuses battle art |
+| **Events** | Khởi Hành (7 days) + Thử Thách Đường Mây (weekly challenge) | A launch arc and a rotating challenge, not a live-ops calendar |
 
 ## Open (implementation details, not decisions)
 
@@ -58,6 +58,6 @@
 
 ## Discussion
 
-**owner (2026-11-09):** chose auto-advance + farm, then 3 regions × 12, then **"Thêm nội dung"** — revised to **4 regions × 12**, 4 bosses, 16 heroes, 16 enemies, 40 tower floors and one 7-day event.
+**owner (2026-11-09):** chose auto-advance + farm, then 3 regions × 12, then **"Thêm nội dung"** — revised to **4 regions × 12**, 4 bosses, **20 heroes / 20 enemies**, 40 tower floors and **2 events**.
 
-**agent (2026-11-09):** recorded. The scope grew from 36 to 48 stages; the same structure scales. The cost is more art (16 heroes/16 enemies/4 bosses/4 backdrops), more balance and a longer build; the simulation and content tests become the gate. The exact roster (16/16/4) is a proposal the owner can adjust before art lock.
+**agent (2026-11-09):** recorded. The scope grew from 36 to 48 stages and from 16 to 20 heroes; the same structure scales. The cost is more art (20 heroes/20 enemies/4 bosses/4 backdrops), more balance and a longer build; the simulation and content tests become the gate. The exact roster (20/20/4) is a proposal the owner can adjust before art lock; the second event is the first cut if time slips.

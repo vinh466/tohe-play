@@ -11,8 +11,8 @@
 - **No home, no camp, no caravan screen.**
 - The **main zone is the battle board**; the company is always fighting through stages.
 - All meta lives in **panels over the board**.
-- **Codex**: 16 hero entries, 16 enemy entries, 4 region entries; unlocked by meeting/defeating; small milestone bonuses.
-- **Bonds**: one bond pair per hero (8 pairs for 16 heroes); deployed together, a small bonus; a short story line in the codex.
+- **Codex**: 20 hero entries, 20 enemy entries, 4 region entries; unlocked by meeting/defeating; small milestone bonuses.
+- **Bonds**: one bond pair per hero (10 pairs for 20 heroes); deployed together, a small bonus; a short story line in the codex.
 - **Company rank**: account progression from stage clears; raises the shared hero level cap and offline rate.
 - **Records**: best stage, tower floor, boss damage; local only (no public board in v1).
 
@@ -51,7 +51,7 @@ The home used to carry four jobs; each needs a new place:
 
 ## Recommendation
 
-**A**, with a small scope: 16 hero entries, 16 enemy entries, 4 region entries, 8 bond pairs, company rank 1–20, local records. The codex is a **panel**, not a screen with its own navigation; it opens over the board.
+**A**, with a small scope: 20 hero entries, 20 enemy entries, 4 region entries, 10 bond pairs, company rank 1–20, local records. The codex is a **panel**, not a screen with its own navigation; it opens over the board.
 
 ## What it changes
 
