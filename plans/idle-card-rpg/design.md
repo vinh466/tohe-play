@@ -4,7 +4,7 @@ This page **composes** the items into one picture. It decides nothing: every cla
 
 ## Short answer: how complete is it?
 
-**Decided:** the game is a **roaming company (Đoàn Thám Hiểm)** with **no home**; the **main zone is the battle board**; **4 hero cards**; **round-based auto** with auto normal attacks + auto-cast skills and a manual toggle; the platform extension package is **P0** (persistent shell, on-demand assets, 256 KB save, music). **Open:** roles/elements/gear, progression, economy, content framework, daily, the board's detailed UX, art direction, world/name, scope. Everything below is a **working proposal** to make the discussion concrete.
+**Decided:** the game is a **roaming company (Đoàn Thám Hiểm)** with **no home**; the **main zone is the battle board**; **6 hero cards in 3 rows** (front/mid/back) vs 6 enemy cards; **round-based auto** with auto normal attacks + auto-cast skills and a manual toggle; **card-on-board** visuals, **dark-first**; the platform extension package is **P0** (persistent shell, on-demand assets, 256 KB save, music). **Open:** roles/elements details, gear/skills, progression formulas, economy, content framework, daily, the board's density/readability, world/name, scope. Everything below is a **working proposal** to make the discussion concrete.
 
 ## 1. The picture
 
@@ -23,14 +23,15 @@ flowchart LR
 
 There is no home screen. The board is the app; the stage strip is the road; the panels are the systems.
 
-**Wireframe v1:** [board-v1.html](wireframes/board-v1.html) — the first layout (one row of four); kept for history.
-**Wireframe v2:** [board-v2.html](wireframes/board-v2.html) — **2×2 per side** (front/back × 2 columns), formation sheet, stage preview and boss board; the current direction.
+**Wireframe v1:** [board-v1.html](wireframes/board-v1.html) — history (one row of four).
+**Wireframe v2:** [board-v2.html](wireframes/board-v2.html) — history (2×2 per side).
+**Wireframe v3:** [board-v3.html](wireframes/board-v3.html) — current: **3 rows / 6 heroes**, card-on-board, dark-first; board, formation sheet, stage preview, boss board.
 
 ## 2. The pieces, the standard behind each, and where each lives
 
 | Piece | Does | Standard / prior art | Lives in | Item |
 |---|---|---|---|---|
-| **Battle board** | 4 hero cards vs 4 enemy cards; auto-advance; turn rail; clash effects | Legend of Mushroom's always-on action + a card board | Play stage, full screen | D-01, D-04 |
+| **Battle board** | 6 hero cards vs 6 enemy cards, 3 rows (front/mid/back); auto-advance; turn rail; card clash effects | Legend of Mushroom's always-on action + a card board | Play stage, full screen | D-01, D-04, D-05 |
 | **Wave / stage** | Waves, loot, auto-advance, stop/farm, region end | AFK campaign + Legend of Mushroom waves | Top strip + board | D-09 |
 | **Boss** | Every N stages / region end; phases, telegraphs, bigger reward | AFK bosses, Summoners War | Board | D-09 |
 | **Panels** | Team, hero detail, gear, summon, codex, daily, records | Mobile RPG sheets over the action | Sheets over the board | D-12 |

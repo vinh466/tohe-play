@@ -29,7 +29,40 @@ Question: với 4 hero, nên có bao nhiêu hàng, hàng thay đổi gì, và l�
 - **AFK Arena**: 5 heroes, front/back; position changes who is targeted and which skills connect.
 - **Epic Seven**: 4 heroes, front/back; position affects targeting/passives, while speed decides turn order.
 
-## Recommendation: 2×2 per side
+## Owner decision — 3 rows / 6 heroes (2026-11-09)
+
+> "3 hàng / 6 hero"
+
+This **supersedes the 2×2 recommendation below**. The game now targets:
+
+- **6 heroes**, arranged **3 rows × 2 columns**: front, mid, back.
+- The enemy side uses the same 3×2 grid.
+- The earlier 4-hero decision and the 4-across phone math are withdrawn.
+
+### What 3 rows costs
+
+| Cost | Detail |
+|---|---|
+| **Density** | 12 cards on screen (6 heroes + 6 enemies), plus turn rail, clash, controls, dock. Card height ~52–56 px; portrait ~32×32. |
+| **Readability** | Names truncate; damage numbers and buffs compete for space. Test at 360×640, not only 380×676. |
+| **Battle length** | 12 units per round; a round takes longer. Auto/speed ×2/×3 becomes essential. |
+| **Art** | 6 hero cards in the team (roster 12), 6 enemy cards per stage; more portrait/sprite variants. |
+| **Balance** | More combinations, more gear/star investment; the simulation must cover 6-slot teams. |
+| **Collection pressure** | The player needs 6 geared heroes, not 4; company-level sharing helps, but gear/star still spread thin. |
+
+### Row rules for 3 rows
+
+| Row | Bonus | Job |
+|---|---|---|
+| **Front** | +20% DEF, +10% HP; draws single-target melee; protects mid/back | Vanguard, bruiser Blade |
+| **Mid** | +10% ATK, +5% SPD; balanced; some skills hit mid | Blade, Binder |
+| **Back** | +15% ATK; safer; ranged/heal/control | Seer, Binder |
+
+- Skills can target a row ("hit the back row", "taunt the front row"), but v1 keeps row-target skills to **one per role**.
+- A dead card leaves an empty slot; rows do not collapse, so position stays meaningful.
+- Enemy formations use the same 3×2; the stage preview shows them; bosses can occupy the front row with adds in mid/back.
+
+## Recommendation (superseded by the owner): 2×2 per side
 
 Each side has **2 rows × 2 columns**: 4 slots.
 

@@ -1,28 +1,29 @@
-# D-05 — Card/character core: 4 heroes, 4 roles, 4 elements decided
+# D-05 — Card/character core: 6 heroes, 3 rows, 4 roles, 4 elements
 
-**Status:** researching — team size, roles and elements decided on 2026-11-09; rarity, gear, skills and bonds are open · **Kind:** decision · **Blocked by:** D-04
+**Status:** researching — **6 heroes / 3 rows** (owner changed from 4), 4 roles and 4 elements decided; rarity, gear, skills and bonds are open · **Kind:** decision · **Blocked by:** D-04
 
 ## Decisions (owner's words)
 
-> "4 hero (Recommended)"
+> "4 hero (Recommended)" → later changed to **"3 hàng / 6 hero"**
 
 > "4 role / 4 element (Recommended)"
 
-- **4 heroes** per team.
+- **6 heroes** per team, arranged **3 rows × 2 columns** (front, mid, back).
 - **4 roles**: Vanguard (tank), Blade (DPS), Seer (support/heal), Binder (control/debuff).
 - **4 elements**: Ember, Tide, Stone, Gale; 1.25× advantage, 0.8× disadvantage; no hard gates.
+- **Row preference**: Vanguard front; Blade front/mid; Binder mid/back; Seer back.
 
-The research's phone math supports 4 cards: on a 360 px screen, four cards are ~78 px wide — enough for a portrait, name, HP bar and skill button.
+The 6-hero decision supersedes the earlier 4-hero phone math. The trade-off is explicit: 12 cards on screen, smaller card text, longer battles, more art/balance. The wireframe v3 must prove it reads at 360×640; if it does not, the owner can revert to 2×2/4 heroes.
 
 ## What is still open
 
 | Sub-question | Options | Recommendation |
 |---|---|---|
-| **Formation** | 1 row · 2×2 per side · 3 rows | **2×2 per side**: 2 front, 2 back; tank front, support back; enemies use the same grid (R-07) |
+| **Formation** | 2×2 · 3 rows / 6 heroes | **3 rows / 6 heroes** (owner, 2026-11-09); front/mid/back, 2 columns; enemies use the same grid |
 | **Rarity** | 3 tiers · 4 tiers · no rarity | **3**: Common, Rare, Epic; star 1–5; no "SSR" inflation |
 | **Gear slots** | 4 · 6 | **4**: weapon, armor, charm, relic; 2-piece sets; no random substat rerolls in v1 |
 | **Skills** | 1 active · 2 active · 1 basic + 1 active + 1 passive | **1 basic + 1 active + 1 passive**; active charges and auto-casts; passive unlocks at star 3/5 |
-| **Synergy** | Element aura · role synergy · bonds | **Element aura (2/4)** + **one bond pair** per hero; keep it legible |
+| **Synergy** | Element aura · role synergy · bonds | **Element aura (2/4/6)** + **one bond pair** per hero; keep it legible |
 | **Stats** | 5 · 6 · 8 | **5**: HP, ATK, DEF, SPD, CRIT; control chance is a skill property, not a stat |
 
 ## Proposed card anatomy

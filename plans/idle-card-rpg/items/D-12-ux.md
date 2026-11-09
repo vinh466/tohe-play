@@ -1,27 +1,33 @@
 # D-12 — UX: one main board, panels over it
 
-**Status:** researching — board layout mostly approved; **formation moves to multiple rows**; wireframe v2 pending · **Kind:** decision · **Blocked by:** D-05, D-08, D-10, E-01
+**Status:** researching — **3 rows / 6 heroes decided**; wireframe v3 pending · **Kind:** decision · **Blocked by:** D-05, D-08, D-10, E-01
 
-## Decision (owner's words)
+## Decisions (owner's words)
 
 > "hầu hết ổn, nhưng về đội hình nghiên cứu cho tôi về dạng nhiều hàng để có chiến thuật sắp xếp hơn cả ta lẫn quái, có thể sắp tank lên trên sp ở dưới chẳng hạn"
 
-- The board layout is **mostly approved**: top strip, turn rail, clash zone, controls, dock, sheets.
-- The **formation** must support **multiple rows for both heroes and enemies**: tank in front, support in back, and the player can arrange the team.
-- The earlier "one row of 4" is **superseded**; see R-07 for the formation research and the proposed **2×2 per side**.
+> "3 hàng / 6 hero"
 
-**Wireframe v1:** [board-v1.html](../wireframes/board-v1.html) — history; the formation part is replaced by v2.
-**Wireframe v2:** [board-v2.html](../wireframes/board-v2.html) — 2×2 per side, formation sheet, stage preview, boss board (low-fi, 380 × 676).
+- The board layout is **approved in principle**: top strip, turn rail, clash zone, controls, dock, sheets.
+- **6 heroes**, arranged **3 rows × 2 columns** (front, mid, back); the enemy side uses the same 3×2.
+- The earlier one-row and 2×2/4-hero layouts are **superseded**.
+- **Card-on-board** and **dark-first** are decided in D-13.
+
+**Wireframe v1:** [board-v1.html](../wireframes/board-v1.html) — history (one row of four).
+**Wireframe v2:** [board-v2.html](../wireframes/board-v2.html) — history (2×2 per side).
+**Wireframe v3:** [board-v3.html](../wireframes/board-v3.html) — current: 3 rows / 6 heroes, card-on-board, dark-first; board, formation sheet, stage preview, boss board. Readability risk: 12 cards, 8 px names; test at 360×640 before locking.
 
 ```
 ┌──────────────────────────────────────┐
 │ Vùng 1 · 3/12   [gold] [essence] [≡] │  stage progress + resources + menu
-│  [turn rail: next 6 actors]           │
-│        enemy back   [E3] [E4]         │  back row: casters/healers
-│        enemy front  [E1] [E2]         │  front row: tanks/brutes
+│  [turn rail: next 6 of 12 actors]     │
+│        enemy back   [E5] [E6]         │  back: casters/healers
+│        enemy mid    [E3] [E4]         │  mid: DPS/control
+│        enemy front  [E1] [E2]         │  front: tanks/brutes
 │        ────── clash zone ──────       │  clash, damage numbers, boss bar
-│        hero front   [H1] [H2]         │  front row: tank/melee
-│        hero back    [H3] [H4]         │  back row: support/ranged
+│        hero front   [H1] [H2]         │  front: tank/melee
+│        hero mid     [H3] [H4]         │  mid: DPS/control
+│        hero back    [H5] [H6]         │  back: support/ranged
 │ [auto-cast] [×2] [Dừng]   [Nâng cấp] │  battle controls + contextual upgrade
 │ [Đội] [Trang bị] [Triệu hồi] [Sổ] [⋯]│  bottom dock (panels)
 └──────────────────────────────────────┘
@@ -29,13 +35,13 @@
 
 - **The board is the app.** There is no home screen and no tab that replaces the board.
 - **Top strip**: region/stage progress, soft currencies, settings/menu.
-- **Turn rail**: the next 6 actors, above the enemy rows.
-- **Enemy zone**: enemy back row + front row, 2 cards each; HP, buffs, boss bar.
+- **Turn rail**: the next 6 of 12 actors, above the enemy rows.
+- **Enemy zone**: 3 rows of 2 cards — back, mid, front; HP, buffs, boss bar.
 - **Middle**: the clash — cards lunge, hit-stop, damage numbers, skill cut-ins; the region background.
-- **Hero zone**: hero front row + back row, 2 cards each; HP, skill charge, element, star; tap to target/see details.
+- **Hero zone**: 3 rows of 2 cards — front, mid, back; HP, skill charge, element, star; tap to target/see details.
 - **Battle controls**: auto-cast toggle, speed ×1/×2/×3, stop/farm, contextual "Nâng cấp" when something is affordable.
 - **Bottom dock**: Đội · Trang bị · Triệu hồi · Sổ tay · ⋯ (daily, records, settings, credits). A dock button opens a **sheet** over the board.
-- **Formation**: 2×2 per side; front row +DEF/draws melee, back row +ATK/safer; the player arranges it in the formation sheet, not by dragging on the board.
+- **Formation**: 3 rows × 2 columns per side; front +DEF/draws melee, mid +ATK/SPD, back +ATK/safer; the player arranges it in the formation sheet, not by dragging on the board.
 
 ## Navigation options
 
