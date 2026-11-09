@@ -110,7 +110,7 @@ Newest first. One entry per session: what moved, what is blocked, next.
 
 - G0 spec + ADR 0059; G1 save budget across contract/SDK/API/hub; E-01 persistent shell; E-03 FX player.
 - Game scaffold, pure core (battle/stats/progression/economy/save), 6-hero/12-stage slice, tests and balance report.
-- Phaser board + DOM team/hero/summon/offline sheets; conformance passes at 360×640; public pages + OG.
+- Phaser board + turn rail + SFX + DOM team/hero/summon/offline sheets; conformance passes at 360×640; public pages + OG.
 - `pnpm verify`: all tasks pass except the API test suite in parallel (local inotify instance limit; API passes sequentially with `-parallelMode none`, 610/610). Conformance all games passes.
-- Next: turn rail/top strip, codex/daily/gear-equip sheets, SFX/haptics, full content, then release candidate.
+- Next: codex/daily/stage-picker/gear-equip sheets, full 20/20/4/2 content, asset on-demand P0b, then release candidate.
 - No owner action needed yet.

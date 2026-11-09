@@ -3,7 +3,7 @@
 
 import type { PlayStage, StageContext } from '@tohe/game-kit';
 import { createGame } from '@tohe/game-kit/phaser';
-import { persist, session, store, t } from './app.ts';
+import { persist, session, sfx, store, t } from './app.ts';
 import { STAGES } from './content/stages.ts';
 import { loadouts, nextStage, recordClear } from './core/progression.ts';
 import type { StageDef } from './core/types.ts';
@@ -140,6 +140,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   };
 
   const onWin = () => {
+    sfx.play('levelUp');
     const nextSave = recordClear(store.save, stage, Date.now());
     store.set(nextSave);
     void persist();
@@ -163,6 +164,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   };
 
   const onLose = () => {
+    sfx.play('error');
     ctx.gameOver(
       { title: t.lose, body: 'Đổi đội hình hoặc nâng gear rồi thử lại.' },
       {

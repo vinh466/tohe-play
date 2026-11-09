@@ -3,6 +3,7 @@
 
 import { crispText, floatText, shake } from '@tohe/game-kit/phaser';
 import Phaser from 'phaser';
+import { sfx } from './app.ts';
 import { RULES } from './content/index.ts';
 import { REGIONS } from './content/stages.ts';
 import { basicAttack, cast, createBattle, step } from './core/battle.ts';
@@ -33,6 +34,7 @@ export class BoardScene extends Phaser.Scene {
   private eventIndex = 0;
   private cards = new Map<string, CardView>();
   private cardLayer!: Phaser.GameObjects.Container;
+  private turnText!: Phaser.GameObjects.Text;
   private timer?: Phaser.Time.TimerEvent;
   private ended = false;
   private paused = false;
@@ -67,6 +69,13 @@ export class BoardScene extends Phaser.Scene {
       .text(width / 2, 14, regionName.toUpperCase(), {
         fontFamily: 'sans-serif',
         fontSize: '10px',
+        color: '#a89f8d',
+      })
+      .setOrigin(0.5, 0);
+    this.turnText = this.add
+      .text(width / 2, 30, '', {
+        fontFamily: 'sans-serif',
+        fontSize: '9px',
         color: '#a89f8d',
       })
       .setOrigin(0.5, 0);
@@ -246,6 +255,13 @@ export class BoardScene extends Phaser.Scene {
   }
 
   private updateCards() {
+    const next = this.state.order
+      .slice(this.state.turn)
+      .map((id) => this.state.units.find((unit) => unit.id === id))
+      .filter((unit): unit is BattleUnit => unit !== undefined && !unit.dead)
+      .slice(0, 6)
+      .map((unit) => unit.name);
+    this.turnText.setText(next.length > 0 ? `LƯỢT · ${next.join(' · ')}` : '');
     for (const unit of this.state.units) {
       const card = this.cards.get(unit.id);
       if (!card) continue;
@@ -296,6 +312,7 @@ export class BoardScene extends Phaser.Scene {
             size: event.crit ? 16 : 13,
           });
           if (!this.reducedMotion) shake(this, event.crit ? 'medium' : 'small');
+          if (!this.reducedMotion) sfx.play('merge');
           this.tweens.add({
             targets: target.container,
             x: target.container.x + (event.source.startsWith('h') ? 6 : -6),
@@ -311,6 +328,7 @@ export class BoardScene extends Phaser.Scene {
             stroke: '#171614',
             size: 13,
           });
+        sfx.play('pop');
       } else if (event.type === 'death') {
         const target = this.cards.get(event.unit);
         target?.container.setAlpha(0.28);
