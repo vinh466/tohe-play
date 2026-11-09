@@ -1,81 +1,66 @@
-# D-04 — Core loop and battle model
+# D-04 — Core loop and battle model (control decided; timing open)
 
-**Status:** proposed — chờ owner chốt · **Kind:** decision · **Blocked by:** D-01
+**Status:** researching — owner chose the control model on 2026-11-09; the timing model is open · **Kind:** decision · **Blocked by:** D-01
 
-## Question
+## Decision (owner's words)
 
-Vòng lặp chính là gì, và trận đánh diễn ra thế nào để "cân bằng" giữa auto và quyết định, đọc được trên phone, và đủ sâu cho một tuần nội dung?
+> "auto đánh thường, auto cast skill (có thể tắt auto cast skill để tự cast)"
 
-## Options
+- Normal attacks happen **automatically**.
+- Skills are **auto-cast by default**.
+- A toggle turns **auto-cast off**, so the player can cast manually.
+- 4 heroes per team (D-05 decision).
 
-### A — ATB / Combat Readiness (Epic Seven)
+This is the "balanced" control layer: the game can be watched on auto, but the player can take over the skills when it matters.
 
-- Mỗi unit tích một thanh; tốc độ và kỹ năng đẩy/kéo thanh quyết định ai đi trước.
-- **Pros**: sâu nhất; turn manipulation là một lớp tactic rất hay; hợp người thích Epic Seven.
-- **Cons**: UI dày (thanh ATB, nhiều trạng thái); khó đọc trên 360 px; khó simulate; dễ thành "spreadsheet" với người mới.
-- **Cost**: cao; cần nhiều thời gian cân bằng và test.
+## Open: the timing model that carries it
 
-### B — Round-based speed order (Summoners War) — recommended
+The owner's answer fixes **what the player controls**, not **how time flows**. Two implementations fit:
 
-- Mỗi round, mọi unit còn sống hành động một lần theo SPD; buff/debuff tick cuối round.
-- **Pros**: đọc rõ ("ai đi tiếp"); auto dễ; vẫn có chiều sâu nhờ speed tuning, buff/debuff, target, ultimate timing; simulate được.
-- **Cons**: ít "liên tục" hơn ATB; cần làm turn rail đẹp để không nhàm.
-- **Cost**: trung bình; cân bằng speed và ultimate charge là chính.
+### B1 — Real-time auto (AFK-like)
 
-### C — Auto-charge ultimates (AFK Arena)
+- Each unit has an attack timer based on SPD; skills charge/cooldown; auto-cast on/off.
+- The player taps a skill to cast it immediately when ready; otherwise the AI does.
+- **Pros**: feels like "treo máy"; dynamic card clashes; good for long auto sessions.
+- **Cons**: harder to simulate and balance; timing windows are fuzzy; more state per frame.
 
-- Đánh thường auto; ultimate tích năng lượng; người chơi bấm hoặc để auto.
-- **Pros**: nhẹ nhất; tốt nhất cho idle; UI ít.
-- **Cons**: quá ít agency; "cân bằng" sẽ thành "xem auto"; khó tạo cảm giác first clear/boss đáng nhớ.
-- **Cost**: thấp; nhưng không đạt yêu cầu "có quyết định".
+### B2 — Round-based auto (Summoners War-like)
 
-## Recommendation
+- Each round, every living unit acts once in SPD order; normal attacks auto; skills auto-cast when charged/ready.
+- The player can turn auto-cast off and choose a skill/target on their turn.
+- **Pros**: readable; easy to simulate; clear "who acts next"; deep speed/order play.
+- **Cons**: less continuous; auto sessions are a sequence of rounds, not a live fight.
 
-**B + một lớp C**: round-based speed order, **auto đánh thường**, **manual ultimate** (hoặc auto toggle), **target selection** cho boss/first clear.
+**Recommendation: B2 round-based auto, for the first playable.** It is the easiest to make fair with a small team, it fits the card/turn rail, and it still delivers the owner's control model. If the prototype feels too static, move to B1; the skill/auto-toggle design carries over.
 
-### Battle shape
+## Battle shape (provisional, follows the timing decision)
 
-- **4 hero vs 4 enemy**, 2 hàng (trước/sau), portrait.
-- **3–5 round**, 20–40 s; boss 60–90 s. Tốc độ ×1/×2/×3; auto toggle.
-- **Turn rail** trên cùng: 6 actor tiếp theo, icon hero/enemy; buff speed làm icon di chuyển.
-- **Ultimate**: tích theo lượt/năng lượng; bấm card để tung; giữ lại để burst. Auto tung khi sẵn.
-- **Target**: mặc định enemy HP thấp nhất; tap để focus; boss có add thì chọn.
-- **Formation**: hàng trước nhận melee nhiều hơn, bảo vệ hàng sau; một số skill đánh theo hàng.
-- **Win/lose**: giết hết enemy / hết hero. Retry miễn phí; không energy. Thua hiện gợi ý ("thiếu power", "đổi hệ", "nâng gear"), không hiện paywall.
-- **Determinism**: seeded RNG; cùng team/seed → cùng trận. Cần cho balance sim và daily boss ranked sau này.
-
-### Vì sao không chọn A hay C
-
-- A đòi hỏi một UI và một hệ thống cân bằng mà v1 1 tuần không đủ thời gian để làm tốt; nếu làm dở, nó khó hiểu hơn B.
-- C bỏ mất phần "quyết định" mà owner muốn; nó biến game thành idle thuần, trong khi điểm mạnh cần là hệ thống/tiến trình.
-- B là điểm cân bằng: đủ quen với người chơi Summoners War, đủ nhẹ cho người chơi AFK, đủ rõ cho phone.
+- 4 heroes vs 4 enemies, 2 rows (front/back), portrait.
+- 3–5 rounds, 20–40 s; boss 60–90 s; speed ×1/×2/×3.
+- **Turn rail** at the top: the next 6 actors in order; speed buffs/debuffs move icons.
+- **Auto-cast toggle** on the battle HUD: on by default; turning it off pauses the skill decision for the player's heroes, not the enemies.
+- **Targeting**: default lowest-HP enemy; tap to focus; bosses with adds can be targeted.
+- **Ultimate/skill**: each hero has 1 basic + 1 active + 1 passive; active charges over turns; auto-casts when ready unless the toggle is off.
+- **Win/lose**: kill all enemies / all heroes down; retry free; no energy; a loss suggests a change (gear, formation, element), not a paywall.
+- **Determinism**: seeded RNG; same team/seed → same battle (needed for balance sim and a future ranked daily boss).
 
 ## What it changes
 
-- **D-05**: 4 hero, role/element, skill set; ultimate charge.
-- **D-06**: gear có SPD; speed tuning là một phần của progression.
-- **D-09**: stage design theo wave/round; boss có phase/telegraph.
-- **D-12**: battle screen layout (turn rail, 4 cards, ultimate buttons).
-- **D-13**: card/sprite lunge, hit-stop, damage numbers.
-- **D-16**: battle prototype là milestone đầu.
-
-## Open sub-questions (giải ở D-04 khi owner chốt hướng)
-
-- SPD có RNG ±5% như Epic Seven không? (Đề xuất: không ở v1; deterministic, chỉ buff/debuff thay đổi order.)
-- Ultimate charge bằng lượt hay bằng energy? (Đề xuất: lượt; 3–4 lượt, có thể bị giảm bởi gear/skill.)
-- Auto có dùng ultimate thông minh hay bấm bừa? (Đề xuất: auto dùng khi HP team thấp hoặc boss sắp phase; có thể chọn "auto thường" vs "auto full".)
-- Có cho phép pause giữa trận không? (Đề xuất: có, game offline; panel của shell pause.)
+- **D-05**: 4 heroes, roles/elements, 1 basic + 1 active + 1 passive; the active is the skill the player can cast.
+- **D-06**: SPD is a real stat; gear can change turn order.
+- **D-09**: stages are built from rounds/waves; bosses have phases and telegraphed skills.
+- **D-12**: battle HUD needs a turn rail, 4 cards, an auto-cast toggle, a speed toggle and a target marker.
+- **D-13**: card/sprite lunge, hit-stop, damage numbers, skill cut-in.
+- **D-16**: the battle prototype is the first milestone.
 
 ## Evidence
 
-- [R-03 — Battle, card UX and pixel art](../research/R-03-battle-card-ux.md).
-- [R-01 — Genre landscape](../research/R-01-genre.md).
-- Epic Seven's CR: https://epic7x.com/combat-readiness-tutorial/
-- AFK's auto + manual ultimates: Deconstructor of Fun, *AFK Arena* (2019).
-- Summoners War's 4-unit turn-based battles: Troy Dunniway, *Summoners War Breakdown* (2017).
+- [R-03 — Battle, card UX and pixel art](../research/R-03-battle-card-ux.md): the three models compared; 4-card math.
+- [R-01 — Genre landscape](../research/R-01-genre.md): AFK's auto + manual ultimates; Summoners War's 4-unit turn-based battles.
+- AFK Arena: Deconstructor of Fun (2019); Summoners War: Troy Dunniway (2017); Epic Seven CR: Epic7x (2019).
 
 ## Discussion
 
-**agent (2026-11-09):** recommend B+. Nó giữ được "cân bằng" đúng nghĩa: auto cho farm, manual cho khoảnh khắc khó. Nếu owner muốn sâu hơn nữa, A là con đường nâng cấp sau v1, không phải bây giờ.
+**owner (2026-11-09):** auto normal attacks + auto-cast skills, with a toggle to cast manually.
 
-**owner:** _chưa trả lời._
+**agent (2026-11-09):** the control model is clear. I recommend B2 (round-based auto) for the first playable because it is fair, readable and simulatable; B1 remains the alternative if the prototype feels too static. The owner should confirm B2 or ask for a B1 prototype before D-05 locks the skill system.

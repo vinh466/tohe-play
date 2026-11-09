@@ -1,87 +1,62 @@
-# D-02 — Platform fit: what Tò He allows, and the one gap
+# D-02 — Platform fit: extend the platform first
 
-**Status:** proposed — chờ owner chốt · **Kind:** decision · **Blocked by:** D-01
+**Status:** decided — owner chose **"Mở rộng nền tảng trước"** on 2026-11-09; the scope is D-17 · **Kind:** decision · **Blocked by:** D-01
 
-## Question
+## Decision (owner's words)
 
-Game này sống được trong giới hạn hiện tại của Tò He (64 KB save, build budget, offline, không server logic), hay cần thay đổi nền tảng trước?
+> "Mở rộng nền tảng trước"
 
-## Facts
+The game will **not** be squeezed into the current limits first. The platform gets the extensions a large, long-lived RPG needs, and the game is designed against the extended platform. The exact package, order and cost are **D-17**; this item records the direction and the facts that constrain it.
 
-| Constraint | Fact |
-|---|---|
-| Save | JSON ≤ 64 KB, one save per profile, last write wins |
-| Build | `sizeBudgetKb` default 3 000, max 50 000; conformance fails above the declared budget |
-| Offline | Play/save/score offline; sync later; no server logic |
-| Sandbox | No API calls, no `localStorage`/IndexedDB/cookies; only the Game Contract |
-| Assets | Studio packs pinned in `game.json`, bundled in `studio/`; `bundle` delivery only for now |
-| Shell | Two stages; quick panel has **Ván mới** and **Menu chính** |
-| Scores / ranked | `scores` is a number; `ranked` replays a seeded run with a pure `verify` module |
-| Themes | `light`, `dark`, or both |
+## What "extend" can mean — candidate extensions
 
-## Options
+| Candidate | Why the game wants it | Touches | Rough cost |
+|---|---|---|---|
+| **E-01 persistent-game shell** | A world is not a "run"; the panel must not offer "Ván mới" | `@tohe/game-kit` only | Small |
+| **Asset on-demand delivery** | A live RPG accumulates heroes, enemies, backgrounds, audio; bundling everything inflates the first load | Contract (ADR 0051's future values), Studio, hub loader, conformance | Medium |
+| **Content packs / remote content** | Add chapters, heroes, events without a new immutable build | Contract, API, storage, hub, conformance, ADR | Large |
+| **Save > 64 KB + versioned envelope** | A long-lived roster/gear/event state may outgrow 64 KB; migrations need room | Contract, API, hub, docs, ADR | Medium |
+| **Save conflict handling** | Two offline devices can overwrite each other (last write wins today) | API, hub, contract semantics | Medium |
+| **Music / audio helper** | A 1-week RPG wants a theme and a battle loop, not only SFX | `@tohe/game-kit` | Small |
+| **Ranked daily boss / boards** | A deterministic daily boss run could use the existing `ranked`+`scores`; the board UI exists | Game + existing platform; maybe a board label | Small–medium |
+| **Push notifications** | Idle chest reminders; optional, and against Tò He's calm tone | PWA/service worker, API, consent | Medium–large |
 
-### A — Adapt to the platform; one small kit enhancement (recommended)
+## What must stay true
 
-- `sizeBudgetKb: 4500`, `orientation: portrait`, `capabilities: ["save", "shell"]`, `identity.play: "any"`.
-- No Game Contract change. No API change. No new origin.
-- Add **E-01**: a `persistent` option to `@tohe/game-kit`'s shell so the quick panel has no "Ván mới" and the title says "Chơi tiếp". This is a kit change with tests, not a contract change.
-- Assets via Studio packs (`tohe-pixel`) where ready; direct assets only as a fallback.
-- No public leaderboard in v1; local records only.
+Whatever is extended, these do not change:
 
-**Cost:** the game must live within 64 KB save and ~4.5 MB build; the kit change is a small PR; no ranked/board features in v1.
-
-### B — Extend the platform first
-
-- Asset `on-demand` delivery, a bigger default budget, a first-class "persistent game" mode, ranked daily boss.
-- **Pros:** more room for content; a real leaderboard.
-- **Cons:** delays the game by a platform project; the game design would be shaped by features that may not be needed; the owner wants the game, not a platform rewrite.
-- **Verdict:** not now; revisit after v1 proves the loop.
-
-### C — Split into two games
-
-- A small battle game + a separate camp/meta game.
-- **Pros:** each fits the current shell.
-- **Cons:** two saves, two entries in the catalog, a broken loop; the player would have to jump between games.
-- **Verdict:** reject.
+- No ads, no in-app purchases, no tracking.
+- Games are sandboxed; no game calls the API directly; no `localStorage` of its own.
+- Offline-first: play, save and score without a network; sync later.
+- Immutable builds; a published version never changes.
+- One origin per game; the Game Contract is the only interface.
+- The owner's approval rule for contract changes: ADR + docs + conformance in the same PR.
 
 ## Recommendation
 
-**A + E-01.** The platform is already sufficient for a 1-week RPG: 64 KB is 4× what a 12-hero save needs; 4.5 MB is in the same class as existing games; offline-first is a feature, not a limit. The only real mismatch is semantic: a persistent world is not a "run". Fix that in the kit, not in the contract.
+Stage the extensions; do not turn the game into a platform rewrite.
 
-## The shell gap, in one picture
+1. **P0 — unblock the game (must):** E-01 persistent shell; decide whether the first playable uses bundled assets or on-demand assets.
+2. **P1 — make it live (should):** asset on-demand; content packs or a documented "new build per content drop" pipeline; save envelope with room to grow.
+3. **P2 — long-lived (later):** save conflict handling, ranked daily boss, push/music.
 
-```
-Today (a run game):        Wanted (a persistent RPG):
-title ─ Chơi ─▶ play       title ─ Chơi tiếp ─▶ world (camp/tabs)
-  panel: Tiếp tục            panel: Tiếp tục
-         Ván mới  ← wrong          Về làng / Menu chính
-         Menu chính                (no "Ván mới")
-```
+D-17 chooses the exact P0/P1 package and their order. The game's first playable should not wait for P2.
 
-E-01 adds `persistent?: boolean` (or a `panel` option) to `ShellOptions`:
+## Why the owner's choice changes the plan
 
-- title action: **Chơi tiếp** always, with a summary line ("Làng Mây · Chương 2 · Đội 1.240");
-- panel: no **Ván mới**; keeps sound, quick rows, how-to, **Menu chính**;
-- `stage.newGame()` is not called by the shell; the game's own screens handle reset in settings;
-- tests: a persistent shell never shows the new-game confirmation; Back still works.
-
-## What it changes
-
-- `game.json` fields, conformance, build size.
-- The save schema and migration plan (D-03/D-06).
-- The shell/E-01 work (small kit PR).
-- The scores/ranked decision: deferred to v2.
+- The original recommendation (adapt to 64 KB / 4.5 MB) is **withdrawn**. The game's save/build design will use the new limits once D-17 sets them.
+- D-03 (technical foundation), D-06 (save schema), D-07 (economy) and D-11 (content pipeline) now depend on D-17.
+- The graduation list will include platform ADRs and PRs, not only the game.
 
 ## Evidence
 
-- [R-04 — Platform fit](../research/R-04-platform-fit.md).
-- `packages/contract/src/manifest.ts` (size max 50 000).
-- `packages/game-kit/src/shell.ts` (panel's new-game tool).
-- `docs/contracts/game-contract-v1.md`, `docs/architecture/progress-sync.md`.
+- [R-04 — Platform fit](../research/R-04-platform-fit.md): current facts; the shell gap; the size/save estimates.
+- [R-05 — Platform extension options](../research/R-05-platform-extension.md): the candidate packages and their costs.
+- ADR 0051 (asset delivery: `bundle` now, `precache`/`on-demand` later).
+- `docs/contracts/game-contract-v1.md`, `docs/architecture/progress-sync.md`, `docs/architecture/game-shell.md`.
 
 ## Discussion
 
-**agent (2026-11-09):** recommend A. The platform's limits are not the bottleneck; the bottleneck is scope. A 4.5 MB pixel game and a 15 KB save are comfortable. E-01 is a small, reusable kit improvement, not a contract change. A public board would force a ranked/verify design that the game does not need in v1.
+**owner (2026-11-09):** chose "Mở rộng nền tảng trước".
 
-**owner:** _chưa trả lời._
+**agent (2026-11-09):** recorded. The risk is scope: a platform program can delay the game indefinitely. The plan should timebox P0/P1, define a "good enough" platform for the first playable, and keep each extension tied to a game need. D-17 is the place to make that trade-off explicit.
