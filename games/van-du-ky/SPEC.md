@@ -1,6 +1,6 @@
 # Vân Du Ký (`van-du-ky`) — spec
 
-> **Status: v1.1.0 implemented (12-cell hex board + DOM/CSS view, 2026-11-10).** The owner confirmed the plan and brief
+> **Status: v1.1.0 live in production (12-cell hex board + DOM/CSS view, 2026-11-10).** The owner confirmed the plan and brief
 > on 2026-11-09 ("ok quyết định cũng đủ r, giờ sựng spec, làm core nền tảng cho chắc chắn...") and the hex-board direction
 > on 2026-11-10 ("hợp lý, chốt mạnh như v làm chuẩn đi"). This spec is the source of truth for the game. It follows
 > `plans/idle-card-rpg/PLAN.md`; where this page and the plan disagree, the plan's decisions win until the owner changes them.

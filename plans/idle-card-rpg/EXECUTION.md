@@ -5,9 +5,9 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - Branch: `plan/hex-board` for the hex-board research (game work merges via `feat/van-du-ky-core`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C9 — 12-cell hex board implemented** (v1.1.0 RC, 2026-11-10), awaiting the release word;
-  C8 concept approved by the owner; C7 UI/UX v2 and C6 v1.0.0 live as v1.0.1
-- Release: v1.0.1 live (prod-2026-11-10.2); v1.1.0 built and verified locally; no deploy, no tag, no merge until the owner says so.
+- Current checkpoint: **C9 — 12-cell hex board live** (v1.1.0, prod-2026-11-10.3, 2026-11-10); C8 concept approved;
+  C7 UI/UX v2 and C6 v1.0.0 released before it
+- Release: v1.1.0 live (prod-2026-11-10.3), UAT `uat-2026-11-10.3`, chart `0.1.0-g2bc38b6`; v1.0.1 superseded.
 
 ## Checkpoints
 
@@ -22,7 +22,7 @@ what to do next. Update it at the end of every session, newest session first in 
 | C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (v1.0.0 live, prod-2026-11-10.1) |
 | C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **done** (v1.0.1 live) |
 | C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **done** (owner approved 2026-11-10) |
-| C9 | 12-cell hex board | core columns 0–3, 12-cell formations/terrain, DOM/CSS board, loss popup/rewind, auto road, effect pass, tests, conformance | **done** (v1.1.0 RC, 331 KB, p50 16.7 ms) |
+| C9 | 12-cell hex board | core columns 0–3, 12-cell formations/terrain, DOM/CSS board, loss popup/rewind, auto road, effect pass, tests, conformance | **done and live** (v1.1.0, prod-2026-11-10.3, 331 KB, p50 16.7 ms) |
 
 ## Staging and deviations
 
@@ -109,6 +109,15 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-10 — agent (v1.1.0 released)
+
+- PR [#211](https://github.com/vinh466/tohe-play/pull/211) merged; main CI green including API, all conformance, chart and
+  E2E; images and chart published for `2bc38b6`.
+- UAT `uat-2026-11-10.3` deployed and checked 20/20; prod `prod-2026-11-10.3` tagged with notes; platform-infra PR
+  [#364](https://github.com/vinetic-spaces/platform-infra/pull/364) merged; Argo synced.
+- `check:prod` 23/23; production `/api/config` reports `sha-2bc38b695b55…`; catalog has `van-du-ky 1.1.0`.
+- Next: owner playtest and feedback; `Chiêu` tab and lane bonuses are the next planned UI steps.
 
 ### 2026-11-10 — agent (12-cell hex board implemented)
 
