@@ -118,8 +118,9 @@ Newest first. One entry per session: what moved, what is blocked, next.
   ×3 and reduced-motion variants, cached centres. Stage deck: road + 3-line feed, 12-cell bench, loss popup, wall.
 - Win: no modal, clear ribbon + road marker + next stage after ~0.8 s. Loss: small popup, auto rewind to wave start,
   basic gold only, one retry then wall. Boss: one gold-rimmed hex. Auto always; only `Dừng`.
-- Verified: typecheck, 73 tests, build (331 KB), conformance PASS; headless DPR 2 p50/p95 16.7 ms at 320/360/390,
-  no long tasks. Next: owner's release word; then PR, merge, tag, UAT/prod.
+- Verified: typecheck, 73 tests, balance sim (48/48), build (331 KB), conformance PASS; headless DPR 2 p50/p95 16.7 ms
+  at 320/360/390, no long tasks. Full `pnpm verify`: 62/63 tasks; the pre-existing API hard-bot timing test failed at
+  21.6 s (>20 s) under suite load, passes alone (609/610). Next: owner's release word; then PR, merge, tag, UAT/prod.
 
 ### 2026-11-10 — agent (DOM/CSS and effects spike)
 
