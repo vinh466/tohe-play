@@ -183,7 +183,7 @@ export class BoardView {
 
   /** Restart the current stage from wave 1; used by the wall's retry and after a team change. */
   restartStage(team: readonly HeroLoadout[] = this.team): void {
-    this.load({ ...this.data, team });
+    this.load({ ...this.data, team, speed: this.speed, reducedMotion: this.reducedMotion });
   }
 
   /** Re-enter the current wave from the HP it had when the wave began. */
@@ -199,12 +199,14 @@ export class BoardView {
 
   setSpeed(speed: 1 | 2 | 3): void {
     this.speed = speed;
+    this.data.speed = speed;
     this.applyMotion();
     if (!this.ended && !this.paused && !this.animating) this.schedule(this.speed === 3 ? 90 : 150);
   }
 
   setReducedMotion(reduced: boolean): void {
     this.reducedMotion = reduced;
+    this.data.reducedMotion = reduced;
     this.applyMotion();
   }
 
