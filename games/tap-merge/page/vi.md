@@ -20,7 +20,9 @@ và bây giờ có thêm hai lối chơi ngắn, cùng một cuốn sổ để �
 Ba lối vào, cùng một cuốn sổ. Vô Tận là bàn vô tận như trước, vẫn là mode xếp hạng duy nhất. Hành Trình có 24 màn
 ngắn, mỗi màn một mục tiêu và một mức par cho 1–3 sao; không có giới hạn nước cứng. Mỗi Ngày là một bàn theo ngày
 cho cả nhà, 120 nước, 1–3 sao theo khối lớn nhất; bỏ một ngày không sao. Sổ Tay Khối lưu 20 khối từ 2 đến 1M và 11
-huy hiệu: khối nào bạn gặp ở bất kỳ mode nào cũng nằm lại trong sổ, không coin, không mua, không hết hạn.
+huy hiệu: khối nào bạn gặp ở bất kỳ mode nào cũng nằm lại trong sổ, không coin, không mua, không hết hạn. Mỗi chế độ
+giữ ván riêng; bấm Chế độ ở menu để chơi tiếp ván đang dở hoặc bắt đầu ván mới. Thử mode khác không làm mất ván Vô
+Tận.
 
 ### Một ván có lâu không?
 

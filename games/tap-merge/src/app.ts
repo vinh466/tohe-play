@@ -114,10 +114,11 @@ export const store: {
   pending: { ...(saved?.pending ?? {}) },
 };
 
-/** The active game of a door, if any. */
+/** The active game of a door, if any. A Daily left open yesterday is not today's Daily. */
 export function gameFor(mode: Mode, state = store): State | null {
   const game =
     mode === 'classic' ? state.classicGame : mode === 'journey' ? state.journeyGame : state.dailyGame;
+  if (mode === 'daily' && game && dailyDateOf(game.level) !== todayId()) return null;
   return game && !game.over ? game : null;
 }
 

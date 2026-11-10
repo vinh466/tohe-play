@@ -1,6 +1,6 @@
 // The game's own full screens: Hành Trình, Mỗi Ngày and Sổ Tay Khối (SPEC.md, "Screens"). Plain DOM inside the
 // shell's screen body; the shell owns the header, Back and the title behind them. No engine, no board.
-import { formatValue, type IconName, icon, type Theme } from '@tohe/game-kit';
+import { formatScore, formatValue, type IconName, icon, type Theme } from '@tohe/game-kit';
 import type { Stats } from './app.ts';
 import { ALBUM_CARDS, BADGES } from './content/album.ts';
 import {
@@ -9,6 +9,7 @@ import {
   chapterOf,
   chapterUnlocked,
   dailyMoves,
+  LEVEL_BY_ID,
   LEVELS,
   type Level,
 } from './content/levels.ts';
@@ -34,11 +35,13 @@ export interface ScreenDeps {
   achievements: ReadonlySet<string>;
   stats: Stats;
   best: number;
-  game: State | null;
+  /** The active run of each door, if any: a screen offers Continue for its own, never a restart by accident. */
+  journeyGame: State | null;
+  dailyGame: State | null;
   onPlayLevel(levelId: string): void;
-  onContinue(): void;
+  onResumeJourney(): void;
+  onResumeDaily(): void;
   onPlayDaily(date: string): void;
-  onPracticeDaily(date: string): void;
   onOpenScreen(id: string): void;
 }
 
@@ -105,6 +108,35 @@ const chapterTitle = (chapter: { number: number; vi: string; en: string }, local
 const levelStars = (journey: Readonly<Record<string, number>>, level: Level): number =>
   journey[level.id] ?? 0;
 
+const levelLabelFor = (id: string, t: Strings): string => {
+  const level = LEVEL_BY_ID.get(id);
+  return level ? t.levelLabel(level.chapter, level.index) : id;
+};
+
+/** A two-step confirmation inside a screen: the run in progress is only replaced after a second, explicit tap. */
+const confirmPanel = (
+  t: Strings,
+  body: string,
+  confirmLabel: string,
+  onConfirm: () => void,
+  onCancel: () => void,
+): HTMLElement => {
+  const box = el('div', 'confirm-inline');
+  box.append(el('p', 'screen-note', body));
+  const actions = el('div', 'detail-actions');
+  const cancel = el('button', 'tohe-button tohe-button-secondary');
+  cancel.type = 'button';
+  cancel.append(icon('arrow-left'), el('span', 'tohe-label', t.cancel));
+  cancel.addEventListener('click', onCancel);
+  const confirm = el('button', 'tohe-button tohe-button-primary');
+  confirm.type = 'button';
+  confirm.append(icon('play'), el('span', 'tohe-label', confirmLabel));
+  confirm.addEventListener('click', onConfirm);
+  actions.append(cancel, confirm);
+  box.append(actions);
+  return box;
+};
+
 /** Hành Trình: three chapter sections, eight level stamps each, and the selected level's goal and par. */
 export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
   root.replaceChildren();
@@ -113,11 +145,30 @@ export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
   const total = totalStars(deps.journey);
   const next = LEVELS.find((level) => levelStars(deps.journey, level) === 0) ?? (LEVELS[0] as Level);
   let selected: Level = next;
+  const active = deps.journeyGame;
+  const activeLevel = active?.level ?? null;
 
   const head = el('div', 'journey-head');
   head.append(el('p', 'screen-note', deps.t.journeyHint));
   head.append(el('span', 'journey-summary', deps.t.chapterDone(total, LEVELS.length * 3)));
   page.append(head);
+
+  if (active?.level) {
+    const banner = el('div', 'active-run');
+    banner.append(
+      el(
+        'p',
+        'screen-note',
+        deps.t.inProgressLevel(levelLabelFor(active.level, deps.t), formatScore(active.score, deps.locale)),
+      ),
+    );
+    const resume = el('button', 'tohe-button tohe-button-primary');
+    resume.type = 'button';
+    resume.append(icon('play'), el('span', 'tohe-label', deps.t.continueLevel));
+    resume.addEventListener('click', () => deps.onResumeJourney());
+    banner.append(resume);
+    page.append(banner);
+  }
 
   const detail = el('div', 'level-detail');
   page.append(detail);
@@ -141,9 +192,12 @@ export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
       stamp.disabled = !unlocked;
       stamp.classList.toggle('is-selected', level.id === selected.id);
       stamp.classList.toggle('is-done', stars > 0);
+      stamp.classList.toggle('is-active', level.id === activeLevel);
       stamp.setAttribute(
         'aria-label',
-        `${deps.t.levelName(level.index)} · ${deps.t.stars(stars)}${unlocked ? '' : ` · ${deps.t.locked(chapter.unlockAt)}`}`,
+        `${deps.t.levelName(level.index)} · ${deps.t.stars(stars)}${
+          level.id === activeLevel ? ` · ${deps.t.activeLevelTag}` : ''
+        }${unlocked ? '' : ` · ${deps.t.locked(chapter.unlockAt)}`}`,
       );
       stamp.append(el('span', 'level-number', String(level.index)));
       stamp.append(starRow(stars, deps.t));
@@ -160,7 +214,7 @@ export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
     page.append(section);
   }
 
-  function renderDetail(): void {
+  function renderDetail(confirm: 'restart' | 'switch' | null = null): void {
     detail.replaceChildren();
     const chapter = chapterOf(selected);
     const title = el(
@@ -170,7 +224,7 @@ export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
     );
     detail.append(title);
     const intro = deps.locale.startsWith('vi') ? selected.intro.vi : selected.intro.en;
-    detail.append(el('p', 'screen-note', intro));
+    detail.append(el('p', 'screen-note level-intro', intro));
     const goal = el('div', 'level-goal');
     goal.append(
       miniBlock(selected.target, deps),
@@ -181,18 +235,65 @@ export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
     detail.append(el('p', 'screen-note', deps.t.parLine(selected.par.three, selected.par.two)));
     const stars = levelStars(deps.journey, selected);
     detail.append(starRow(stars, deps.t));
+    const isActive = activeLevel === selected.id;
+
+    if (confirm === 'restart') {
+      detail.append(
+        confirmPanel(
+          deps.t,
+          deps.t.confirmRestartLevel,
+          deps.t.startOver,
+          () => deps.onPlayLevel(selected.id),
+          () => renderDetail(),
+        ),
+      );
+      return;
+    }
+    if (confirm === 'switch') {
+      detail.append(
+        confirmPanel(
+          deps.t,
+          deps.t.confirmSwitchLevel(deps.t.levelName(selected.index)),
+          deps.t.playLevel,
+          () => deps.onPlayLevel(selected.id),
+          () => renderDetail(),
+        ),
+      );
+      return;
+    }
+
     const actions = el('div', 'detail-actions');
     const play = el('button', 'tohe-button tohe-button-primary');
     play.type = 'button';
-    play.append(icon('play'), el('span', 'tohe-label', stars > 0 ? deps.t.replayLevel : deps.t.playLevel));
-    play.addEventListener('click', () => deps.onPlayLevel(selected.id));
+    play.append(
+      icon('play'),
+      el(
+        'span',
+        'tohe-label',
+        isActive ? deps.t.continueLevel : stars > 0 ? deps.t.replayLevel : deps.t.playLevel,
+      ),
+    );
+    play.addEventListener('click', () => {
+      if (isActive) deps.onResumeJourney();
+      else if (activeLevel) renderDetail('switch');
+      else deps.onPlayLevel(selected.id);
+    });
     actions.append(play);
-    if (deps.game && deps.game.mode === 'journey' && deps.game.level === selected.id && !deps.game.over) {
+    if (isActive) {
       const again = el('button', 'tohe-button tohe-button-secondary');
       again.type = 'button';
-      again.append(icon('play'), el('span', 'tohe-label', deps.t.continueLevel));
-      again.addEventListener('click', () => deps.onContinue());
+      again.append(icon('arrow-counter-clockwise'), el('span', 'tohe-label', deps.t.replayLevel));
+      again.addEventListener('click', () => renderDetail('restart'));
       actions.append(again);
+    } else if (activeLevel) {
+      const resume = el('button', 'tohe-button tohe-button-secondary');
+      resume.type = 'button';
+      resume.append(
+        icon('play'),
+        el('span', 'tohe-label', deps.t.continueLevelRun(levelLabelFor(activeLevel, deps.t))),
+      );
+      resume.addEventListener('click', () => deps.onResumeJourney());
+      actions.append(resume);
     }
     detail.append(actions);
   }
@@ -209,6 +310,7 @@ export function renderDaily(root: HTMLElement, deps: ScreenDeps): void {
   const date = todayId();
   const stars = deps.dailyDates[date] ?? 0;
   const played = Object.hasOwn(deps.dailyDates, date);
+  const active = deps.dailyGame;
   const month = monthOf(date);
   const monthDays = stampedInMonth(deps.dailyDates, month);
 
@@ -219,17 +321,59 @@ export function renderDaily(root: HTMLElement, deps: ScreenDeps): void {
   top.append(el('strong', 'daily-date', deps.t.dailyToday(dateLabel(date))));
   top.append(el('span', 'daily-budget', deps.t.dailyBudget(dailyMoves)));
   today.append(top);
+  today.append(
+    el(
+      'p',
+      'screen-note daily-status',
+      active
+        ? deps.t.dailyInProgress(active.moves, dailyMoves)
+        : played
+          ? deps.t.dailyStampedStars(stars)
+          : deps.t.dailyNotPlayed,
+    ),
+  );
   today.append(el('p', 'screen-note', deps.t.dailyStars));
   if (played) today.append(starRow(stars, deps.t));
+
   const actions = el('div', 'detail-actions');
-  const play = el('button', `tohe-button ${played ? 'tohe-button-secondary' : 'tohe-button-primary'}`);
-  play.type = 'button';
-  play.append(icon('target'), el('span', 'tohe-label', played ? deps.t.dailyPractice : deps.t.dailyPlay));
-  play.addEventListener('click', () => {
-    if (played) deps.onPracticeDaily(date);
-    else deps.onPlayDaily(date);
-  });
-  actions.append(play);
+  const renderActions = (confirming = false): void => {
+    actions.replaceChildren();
+    if (confirming) {
+      actions.append(
+        confirmPanel(
+          deps.t,
+          deps.t.confirmRestartDaily,
+          deps.t.dailyPractice,
+          () => deps.onPlayDaily(date),
+          () => renderActions(),
+        ),
+      );
+      return;
+    }
+    const primary = el('button', 'tohe-button tohe-button-primary');
+    primary.type = 'button';
+    primary.append(
+      icon(active ? 'play' : 'target'),
+      el(
+        'span',
+        'tohe-label',
+        active ? deps.t.continueLevel : played ? deps.t.dailyPractice : deps.t.dailyPlay,
+      ),
+    );
+    primary.addEventListener('click', () => {
+      if (active) deps.onResumeDaily();
+      else deps.onPlayDaily(date);
+    });
+    actions.append(primary);
+    if (active) {
+      const again = el('button', 'tohe-button tohe-button-secondary');
+      again.type = 'button';
+      again.append(icon('arrow-counter-clockwise'), el('span', 'tohe-label', deps.t.dailyPractice));
+      again.addEventListener('click', () => renderActions(true));
+      actions.append(again);
+    }
+  };
+  renderActions();
   today.append(actions);
   page.append(today);
 

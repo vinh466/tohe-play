@@ -39,9 +39,11 @@ import {
   type Level,
   levelComplete,
   levelStars,
+  nextJourneyLevel,
   nextLevel,
 } from './content/levels.ts';
 import { todayId } from './date.ts';
+import { parseChoice, type StartChoice } from './flow.ts';
 import {
   type Cell,
   cellAt,
@@ -49,6 +51,7 @@ import {
   dailyDateOf,
   floorOf,
   isStuck,
+  type Mode,
   matches,
   newDailyGame,
   newGame,
@@ -76,6 +79,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   const pending = ctx.fresh ? { ...store.pending } : {};
   if (ctx.fresh) store.pending = {};
+  const requested = parseChoice(ctx.choice);
   let level: Level | null = null;
   let runId: string | null = null;
   let run: ReturnType<typeof session.run> | null = null;
@@ -83,7 +87,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   const beginClassic = (): State => {
     const previous = store.classicGame;
-    if (previous && previous.score > 0 && store.run) {
+    if (previous && !previous.over && previous.score > 0 && store.run) {
       void session.run(store.run).finish(previous.score).catch(scoreFailed);
     }
     countClassicStart();
@@ -110,11 +114,63 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     return newDailyGame(date, dailySeed(date));
   };
 
+  const resumeClassic = (): State => {
+    const saved = gameFor('classic');
+    if (!saved) return beginClassic();
+    level = null;
+    store.lastMode = 'classic';
+    runId = store.run ?? newRunId();
+    run = runFor(runId);
+    return saved;
+  };
+
+  const resumeJourney = (): State => {
+    const saved = gameFor('journey');
+    if (!saved) return beginLevel(nextJourneyLevel(store.journey));
+    level = saved.level ? (LEVEL_BY_ID.get(saved.level) ?? null) : null;
+    runId = null;
+    run = null;
+    store.lastMode = 'journey';
+    return saved;
+  };
+
+  const resumeDaily = (): State => {
+    const saved = gameFor('daily');
+    if (!saved) return beginDaily(todayId());
+    level = null;
+    runId = null;
+    run = null;
+    store.lastMode = 'daily';
+    return saved;
+  };
+
+  const resumeMode = (mode: Mode): State => {
+    if (mode === 'classic') return resumeClassic();
+    if (mode === 'journey') return resumeJourney();
+    return resumeDaily();
+  };
+
+  const newMode = (mode: Mode): State => {
+    if (mode === 'classic') return beginClassic();
+    if (mode === 'journey') return beginLevel(nextJourneyLevel(store.journey));
+    return beginDaily(todayId());
+  };
+
+  const startFor = (choice: StartChoice, fresh: boolean): State => {
+    if (choice.kind === 'level') {
+      const chosen = LEVEL_BY_ID.get(choice.level);
+      return chosen ? beginLevel(chosen) : newMode('journey');
+    }
+    return fresh ? newMode(choice.mode) : resumeMode(choice.mode);
+  };
+
   if (ctx.fresh && pending.level) {
     const chosen = LEVEL_BY_ID.get(pending.level);
     state = chosen ? beginLevel(chosen) : beginClassic();
   } else if (ctx.fresh && pending.daily) {
     state = beginDaily(pending.daily);
+  } else if (requested) {
+    state = startFor(requested, ctx.fresh);
   } else if (!ctx.fresh) {
     const mode = activeMode();
     const saved = mode ? gameFor(mode) : null;
@@ -154,11 +210,13 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const hud = createHud({ menu: ctx.menuButton(), parent: ctx.root, locale: session.locale });
   const scores = hud.score({ score: t.score, best: t.best });
   scores.setBest(store.best);
-  // Only the classic is ranked: a Journey or Daily score must not light the classic best's crown.
-  if (state.mode !== 'classic') {
-    const bestBox = ctx.root.querySelector<HTMLElement>('.tohe-stat-best');
-    if (bestBox) bestBox.style.display = 'none';
-  }
+  // Only the classic is ranked: a Journey or Daily score must not light the classic best's crown. Switching modes
+  // turns the box back on, so it follows the state rather than the first screen.
+  const bestBox = ctx.root.querySelector<HTMLElement>('.tohe-stat-best');
+  const showBest = (mode: Mode) => {
+    if (bestBox) bestBox.style.display = mode === 'classic' ? '' : 'none';
+  };
+  showBest(state.mode);
   const rescueBox = document.createElement('div');
   rescueBox.className = 'rescue';
   const shuffleLabel = document.createElement('span');
@@ -264,6 +322,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   let moving = false;
   /** Set by leave(): moves still animating stop there. */
   let left = false;
+  /** Bumped whenever a mode or level replaces the board: an animation from the old board must not land on the new one. */
+  let runToken = 0;
 
   /** Xáo trộn shows how many are left; it only works, and pulses, when nothing can merge (SPEC.md). */
   function showShuffle() {
@@ -308,6 +368,31 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     showShuffle();
     showGoal();
   });
+
+  /**
+   * Puts a run on the board in place: a mode switch from the hub, a restart, or a resume. It saves the door being
+   * left first, then the new door, so no active run is lost by trying another mode.
+   */
+  function adopt(next: State): void {
+    runToken += 1;
+    moving = false;
+    state = next;
+    passedBest = state.mode === 'classic' && store.best > 0 && state.score > store.best;
+    showBest(state.mode);
+    scores.setBest(store.best);
+    board.setBoard(state);
+    showScore(state.score, false);
+    showShuffle();
+    showGoal();
+    toast.classList.remove('is-visible');
+    void save();
+  }
+
+  /** A choice from the hub's own buttons: continue a door, start a new one, or pick a level. */
+  function playChoice(choice: StartChoice, fresh: boolean): void {
+    void save();
+    adopt(startFor(choice, fresh));
+  }
 
   // Light/dark follows the hub (ADR 0013): the page through the menu stage's followTheme, the board here.
   const offTheme = session.on('settings', (settings) => {
@@ -356,8 +441,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       return;
     }
     const fresh = recordMove(result.state, result.events);
-    await animate(result.state, result.events);
-    if (left) return;
+    if (!(await animate(result.state, result.events))) return;
     afterMove(fresh);
   }
 
@@ -367,24 +451,26 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     if (!result.ok) return;
     sfx.play('click');
     const fresh = recordMove(result.state, result.events);
-    await animate(result.state, result.events);
-    if (left) return;
+    if (!(await animate(result.state, result.events))) return;
     afterMove(fresh);
   }
   shuffleButton.addEventListener('click', () => void rescue());
 
-  async function animate(next: State, events: Parameters<BoardScene['play']>[0]) {
+  /** Animates a move; false when a mode switch or leave replaced the board while it ran. */
+  async function animate(next: State, events: Parameters<BoardScene['play']>[0]): Promise<boolean> {
     moving = true;
+    const mine = runToken;
     const before = state.score;
     state = next;
     showShuffle();
     await board.play(events, state, before);
-    if (left) return;
+    if (left || mine !== runToken) return false;
     showScore(state.score);
     moving = false;
     showShuffle();
     showGoal();
     void save();
+    return true;
   }
 
   function afterMove(freshCards: number[]) {
@@ -501,16 +587,19 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         content: resultContent(stars, freshCards, badges, t.notRanked),
       },
       { label: t.replayLevel, icon: 'play', onClick: () => startLevel(level as Level) },
-      next
-        ? [
-            {
-              label: t.nextLevel,
-              icon: 'caret-right',
-              dismiss: true,
-              onClick: () => startLevel(next),
-            },
-          ]
-        : [],
+      [
+        ...(next
+          ? [
+              {
+                label: t.nextLevel,
+                icon: 'caret-right' as const,
+                dismiss: true,
+                onClick: () => startLevel(next),
+              },
+            ]
+          : []),
+        { label: t.modes, icon: 'cards', onClick: () => ctx.changeMode() },
+      ],
     );
   }
 
@@ -527,6 +616,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         content: resultContent(0, freshCards, badges, t.notRanked),
       },
       { label: t.replayLevel, icon: 'play', onClick: () => startLevel(level as Level) },
+      [{ label: t.modes, icon: 'cards', onClick: () => ctx.changeMode() }],
     );
   }
 
@@ -553,46 +643,20 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         icon: 'play',
         onClick: () => startDaily(date),
       },
+      [{ label: t.modes, icon: 'cards', onClick: () => ctx.changeMode() }],
     );
   }
 
   function startLevel(next: Level) {
-    level = next;
-    state = newLevelGame(next);
-    runId = null;
-    run = null;
-    passedBest = false;
-    board.setBoard(state);
-    scores.setBest(store.best);
-    showScore(0, false);
-    showShuffle();
-    showGoal();
-    void save();
+    adopt(beginLevel(next));
   }
 
   function startDaily(date: string) {
-    level = null;
-    state = newDailyGame(date, dailySeed(date));
-    runId = null;
-    run = null;
-    passedBest = false;
-    board.setBoard(state);
-    scores.setBest(store.best);
-    showScore(0, false);
-    showShuffle();
-    showGoal();
-    void save();
+    adopt(beginDaily(date));
   }
 
   function startClassicFresh() {
-    state = beginClassic();
-    passedBest = false;
-    board.setBoard(state);
-    scores.setBest(store.best);
-    showScore(0, false);
-    showShuffle();
-    showGoal();
-    void save();
+    adopt(beginClassic());
   }
 
   /** The panel's Ván mới: a fresh game of the current mode, not a jump to another door. */
@@ -640,12 +704,21 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   return {
     pause: () => kit.pause(),
     resume: () => kit.resume(),
-    newGame: () => {
+    newGame: (choice, fresh = true) => {
       sfx.play('click');
-      restartCurrent();
+      const parsed = parseChoice(choice);
+      if (parsed) playChoice(parsed, fresh);
+      else restartCurrent();
     },
-    // Màu khối opens the presets over the panel; a tap repaints the board and the goal behind it at once.
+    // Chế độ switches the board in place; Màu khối opens the presets over the panel.
     quick: () => [
+      {
+        kind: 'action',
+        icon: 'cards',
+        label: t.modes,
+        value: state.mode === 'classic' ? t.classic : state.mode === 'journey' ? t.journey : t.daily,
+        onClick: () => ctx.changeMode(),
+      },
       {
         kind: 'card',
         icon: 'palette',
