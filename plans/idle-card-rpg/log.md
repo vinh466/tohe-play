@@ -2,6 +2,13 @@
 
 Newest first. One entry per working session: what moved, what is waiting on whom. ≤ 5 lines each.
 
+## 2026-11-10 — agent (UI/UX v2)
+
+- Owner chơi v1.0.0: UI lệch/chồng lấn, hơi lag. R-10 đo và thiết kế lại.
+- Stage thành cột HUD/board/controls/dock; card vẽ sẵn texture, turn rail bằng portrait, số sát thương DOM, atlas 44 frame, maxDpr 1.25.
+- Headless: p50 49.9→16.7ms (320), 50→33.3ms (360/390), long task gần như hết; layout test 320×380/360×452/390×652.
+- Sheets gọn hơn; HUD vàng/tinh chất/cấp/đợt; dock Đội/Trang bị/Triệu hồi/Sổ tay/Hôm nay. Chờ chữ release.
+
 ## 2026-11-09 — agent (v1.0.0 release candidate)
 
 - Full v1: 4 vùng × 12 màn, 20 hero, 20 quái + 4 boss, 10 mối nối, 44 portrait pixel, save v2.

@@ -132,7 +132,7 @@ games/<id>/
 
 | Module | Purpose |
 | --- | --- |
-| `createGame` | Phaser game at device pixels (crisp), fills its parent, re-lays out on resize/rotation, pauses the scene and its tweens on the SDK's `pause`, no Phaser audio or banner; `#perf` in the address shows a frame-rate readout |
+| `createGame` | Phaser game at device pixels (crisp; `maxDpr` caps the ratio, default 3, 2 for pixel art), fills its parent, re-lays out on resize/rotation, pauses the scene and its tweens on the SDK's `pause`, no Phaser audio or banner; `#perf` in the address shows a frame-rate readout |
 | `drawTexture` / `crispImage` | Shapes and text that do not change, drawn once with Canvas 2D at device pixels and shown as one image (see *Frame cost on phones*) |
 | `sfx` | Synthesised sounds (Web Audio, no files): `pop`, `drop`, `merge(level)`, `combo(n)`, `levelUp`, `error`, `fanfare`; unlocked on a tap (iOS), and again after an interruption; respects `muted` |
 | `haptics` | `tap` / `bump` / `success` / `celebrate` (rarest moments) via `navigator.vibrate` where supported (Android); silent elsewhere |

@@ -5,7 +5,7 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - Branch: `feat/van-du-ky-core` (based on `plan/idle-card-rpg`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C6 — release candidate green** (v1.0.0, 2026-11-09)
+- Current checkpoint: **C7 — UI/UX v2 green** (v1.0.1, 2026-11-10); C6 v1.0.0 shipped to production
 - Release: PR [#208](https://github.com/vinh466/tohe-play/pull/208) open, CI green; no deploy, no tag, no merge until the owner says so.
 
 ## Checkpoints
@@ -18,7 +18,8 @@ what to do next. Update it at the end of every session, newest session first in 
 | C3 | Playable board | Phaser board + DOM sheets + kit FX; 360×640; 60 fps | **done** (shake/float/tween, SFX, haptics) |
 | C4 | Content slice | region 1 (12 stages), 6 heroes, 1 boss | **done** |
 | C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | **done** |
-| C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (report to owner) |
+| C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (v1.0.0 live, prod-2026-11-10.1) |
+| C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **in progress → green** |
 
 ## Staging and deviations
 
@@ -105,6 +106,18 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-10 — agent (UI/UX v2)
+
+- Owner playtest: overlapping UI and lag. R-10 measured 20 fps p50 / 50 ms frames and 150–190 ms long tasks in headless
+  Chrome at 360×640, and a top strip over the first card row at 320×568.
+- Stage is now a flex column (HUD / board / controls / dock); 44 portraits in one atlas; cards are pre-drawn textures;
+  turn rail is portrait chips; damage numbers are pooled DOM; `maxDpr` 1.25; no per-tick card text.
+- Sheets: sticky header, grab handle, slide-in, wrapped codex tabs, honest disabled states; HUD shows gold/essence,
+  company level, wave and a Today badge; dock is Đội/Trang bị/Triệu hồi/Sổ tay/Hôm nay.
+- Headless result: p50 49.9→16.7 ms at 320, 50→33.3 ms at 360/390; long tasks 19/100+/85 → 2/0/0. Layout test at
+  320×380, 360×452, 390×652; screenshots at 320/360/390.
+- Next: gates, PR, owner's release word.
 
 ### 2026-11-09 — agent (v1.0.0 release candidate)
 

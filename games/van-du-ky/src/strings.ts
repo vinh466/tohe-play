@@ -15,8 +15,13 @@ export interface Strings {
   reducedMotion: string;
   reducedMotionNote: string;
   stage(stageId: string): string;
+  wave: string;
   autoCastOn: string;
   autoCastOff: string;
+  autoOnShort: string;
+  autoOffShort: string;
+  speedShort: string;
+  run: string;
   speed: string;
   stop: string;
   upgrade: string;
@@ -49,8 +54,11 @@ export interface Strings {
   tower: string;
   floor: string;
   expedition: string;
+  expeditionShort: string;
   boss: string;
+  bossShort: string;
   challenge: string;
+  challengeShort: string;
   week: string;
   claim: string;
   claimed: string;
@@ -62,6 +70,7 @@ export interface Strings {
   bond: string;
   bonds: string;
   region: string;
+  levelShort: string;
   furthest: string;
   heroes: string;
   enemies: string;
@@ -84,10 +93,10 @@ const VI: Strings = {
   title: 'Vân Du Ký',
   howToTitle: 'Cách chơi',
   hints: [
-    'Đoàn tự đánh qua từng màn. Chạm một thẻ để xem, hoặc tắt Tự tung chiêu để tự chọn.',
-    'Hàng trước đỡ đòn; hàng sau an toàn hơn. Đổi đội hình khi gặp tường.',
-    'Thắng màn nhận vàng, tinh chất và mảnh; mở thẻ mới ở Triệu hồi.',
-    'Đóng app thì đoàn vẫn đi; quay lại nhận phần đã farm (tối đa 12 giờ).',
+    'Đoàn tự đánh. Chạm thẻ khi tới lượt để tung chiêu.',
+    'Hàng trước đỡ đòn; hàng sau đánh mạnh hơn.',
+    'Thắng màn nhận vàng, tinh chất, mảnh; mở thẻ ở Triệu hồi.',
+    'Đóng app, đoàn vẫn đi; quay lại nhận tối đa 12 giờ.',
   ],
   progress: (save) =>
     `Công ty cấp ${save.company.level} · Vùng ${save.progress.region} · Màn ${save.progress.stage}`,
@@ -105,8 +114,13 @@ const VI: Strings = {
   reducedMotion: 'Giảm chuyển động',
   reducedMotionNote: 'Bớt rung và hiệu ứng khi đánh.',
   stage: (stageId) => `Màn ${stageId}`,
+  wave: 'Đợt',
   autoCastOn: 'Tự tung chiêu: bật',
   autoCastOff: 'Tự tung chiêu: tắt',
+  autoOnShort: 'Tự',
+  autoOffShort: 'Tay',
+  speedShort: 'Tốc',
+  run: 'Chạy',
   speed: 'Tốc độ',
   stop: 'Dừng',
   upgrade: 'Nâng cấp',
@@ -139,8 +153,11 @@ const VI: Strings = {
   tower: 'Tháp Đường Mây',
   floor: 'Tầng',
   expedition: 'Chuyến đi trong ngày',
+  expeditionShort: 'Đi trong ngày',
   boss: 'Boss thế giới',
+  bossShort: 'Boss tuần',
   challenge: 'Thử Thách Đường Mây',
+  challengeShort: 'Thử thách tuần',
   week: 'Tuần',
   claim: 'Nhận',
   claimed: 'Đã nhận',
@@ -152,6 +169,7 @@ const VI: Strings = {
   bond: 'Mối nối',
   bonds: 'Mối nối',
   region: 'Vùng',
+  levelShort: 'Cấp',
   furthest: 'Màn xa nhất',
   heroes: 'Anh hùng',
   enemies: 'Quái',
@@ -174,10 +192,10 @@ const EN: Strings = {
   title: 'Vân Du Ký',
   howToTitle: 'How to play',
   hints: [
-    'The company fights through each stage. Tap a card to inspect it, or turn Auto-cast off to pick skills.',
-    'The front row takes the hits; the back row is safer. Change formation when you hit a wall.',
-    'A win pays gold, essence and shards; open new cards in Summon.',
-    'Close the app and the company keeps walking; come back for up to 12 hours of farm.',
+    'The company fights on its own. Tap a card on its turn to cast.',
+    'The front row takes hits; the back row hits harder.',
+    'A win pays gold, essence and shards; open cards in Summon.',
+    'Close the app and the company keeps walking; up to 12 hours of farm.',
   ],
   progress: (save) =>
     `Company level ${save.company.level} · Region ${save.progress.region} · Stage ${save.progress.stage}`,
@@ -190,8 +208,13 @@ const EN: Strings = {
   reducedMotion: 'Reduced motion',
   reducedMotionNote: 'Less shake and fewer effects in battle.',
   stage: (stageId) => `Stage ${stageId}`,
+  wave: 'Wave',
   autoCastOn: 'Auto-cast: on',
   autoCastOff: 'Auto-cast: off',
+  autoOnShort: 'Auto',
+  autoOffShort: 'Manual',
+  speedShort: 'Speed',
+  run: 'Run',
   speed: 'Speed',
   stop: 'Stop',
   upgrade: 'Upgrade',
@@ -224,8 +247,11 @@ const EN: Strings = {
   tower: 'Cloud Road Tower',
   floor: 'Floor',
   expedition: 'Daily expedition',
+  expeditionShort: 'Expedition',
   boss: 'World boss',
+  bossShort: 'Weekly boss',
   challenge: 'Cloud Road Challenge',
+  challengeShort: 'Weekly challenge',
   week: 'Week',
   claim: 'Claim',
   claimed: 'Claimed',
@@ -237,6 +263,7 @@ const EN: Strings = {
   bond: 'Bond',
   bonds: 'Bonds',
   region: 'Region',
+  levelShort: 'Lv',
   furthest: 'Furthest',
   heroes: 'Heroes',
   enemies: 'Enemies',

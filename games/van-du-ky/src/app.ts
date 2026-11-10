@@ -11,15 +11,22 @@ sfx.setMuted(session.settings.muted);
 session.on('settings', (settings) => sfx.setMuted(settings.muted));
 
 let save = migrate(session.saved);
+const listeners = new Set<() => void>();
 
-/** The save in memory; `set` writes to the hub in the background. */
+/** The save in memory; `set` writes to the hub in the background and tells the HUD. */
 export const store = {
   get save(): SaveData {
     return save;
   },
   set(next: SaveData) {
     save = next;
+    for (const listener of listeners) listener();
     void persist();
+  },
+  /** Called after every save change, so the HUD's coins, stage and badges follow. */
+  subscribe(listener: () => void): () => void {
+    listeners.add(listener);
+    return () => listeners.delete(listener);
   },
 };
 

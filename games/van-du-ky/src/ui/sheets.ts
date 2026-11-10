@@ -127,7 +127,8 @@ function openSheet(host: SheetHost, title: string, subtitle?: string): Sheet {
   if (subtitle) titles.append(el('p', 'vd-sheet-subtitle', subtitle));
   head.append(titles, button(t.close, closeSheets, 'vd-close'));
   const body = el('div', 'vd-sheet-body');
-  card.append(head, body);
+  const grab = el('div', 'vd-grab');
+  card.append(grab, head, body);
   root.append(card);
   (document.querySelector('#stage') ?? document.body).append(root);
   return { card, body, close: closeSheets };
@@ -610,20 +611,21 @@ export function openSummonSheet(host: SheetHost): void {
     pull10.disabled = !canPull10;
     row.append(pull1, pull10);
     sheet.body.append(row);
-    if (!canPull1) sheet.body.append(hint('Cần thêm mảnh từ màn chơi để triệu hồi.'));
+    if (!canPull1) sheet.body.append(hint('Cần 100 mảnh từ màn chơi để triệu hồi.'));
+    else if (!canPull10) sheet.body.append(hint(`×10 cần 900 mảnh — còn ${900 - save.currencies.shards}.`));
     if (message) sheet.body.append(el('p', 'vd-error', message));
     if (results.length > 0) {
       const list = el('div', 'vd-results');
       for (const result of results) {
         const hero = heroOf(result.heroId);
-        const line = el('div', 'vd-result');
+        const line = el('div', `vd-result ${result.rarity}${result.duplicate ? '' : ' new'}`);
         line.append(
           portrait(result.heroId, 'md'),
           el(
             'span',
             '',
             `${hero?.name ?? result.heroId} · ${t.rarities[result.rarity as keyof typeof t.rarities] ?? result.rarity}${
-              result.duplicate ? ` · +${result.shards} ${t.shards}` : ' · mới'
+              result.duplicate ? ` · +${result.shards} ${t.shards}` : ' · MỚI'
             }`,
           ),
         );
@@ -1042,6 +1044,7 @@ export function openDailySheet(host: SheetHost): void {
       ),
     );
     sheet.body.append(section('Đường đi', modes));
+    sheet.body.append(button(t.credits, () => openCredits(host), 'vd-btn quiet'));
   };
   render();
 }
@@ -1081,7 +1084,7 @@ export function openMoreSheet(host: SheetHost): void {
 export function openCredits(host: SheetHost): void {
   const sheet = openSheet(host, t.credits);
   sheet.body.append(
-    hint('Vân Du Ký · bản 1.0.0'),
+    hint('Vân Du Ký · bản 1.0.1'),
     el('p', 'vd-credits', 'Ý tưởng và chỉ đạo: gia đình Tò He.'),
     el('p', 'vd-credits', 'Pixel portrait: vẽ bằng code trong art/generate-portraits.py.'),
     el('p', 'vd-credits', 'Engine: Phaser 4 (MIT), @tohe/game-kit, Be Vietnam Pro.'),

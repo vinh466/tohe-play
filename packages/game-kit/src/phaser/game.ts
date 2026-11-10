@@ -40,6 +40,11 @@ export interface KitGame<S extends Phaser.Scene> {
 export interface KitGameOptions<S extends Phaser.Scene> {
   parent: HTMLElement;
   background: string;
+  /**
+   * The most device pixels per CSS pixel the canvas may render at (default 3). A pixel-art game can pass 2: it halves
+   * or thirds the pixels to fill and still looks crisp, which is the first cost on a phone.
+   */
+  maxDpr?: number;
   /** Called once, and again if the game has to be restarted with another renderer. */
   createScene(): S;
   /**
@@ -56,10 +61,11 @@ const BOOT_WINDOW_MS = 8000;
 export function createGame<S extends Phaser.Scene>({
   parent,
   background: initialBackground,
+  maxDpr = 3,
   createScene,
   telemetry,
 }: KitGameOptions<S>): KitGame<S> {
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const dpr = Math.min(window.devicePixelRatio || 1, Math.max(1, maxDpr));
   let background = initialBackground;
   let size: Size = measure(parent);
   let renderer: 'webgl' | 'canvas' = webglWorks() ? 'webgl' : 'canvas';

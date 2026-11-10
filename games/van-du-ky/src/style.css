@@ -40,121 +40,432 @@ body {
 
 #stage {
   position: relative;
+  display: flex;
   flex: 1;
+  flex-direction: column;
   min-height: 0;
   overflow: hidden;
+  background: var(--vd-bg);
 }
 
 #stage canvas {
   display: block;
 }
 
-.battle-top {
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  z-index: 10;
+/* The stage is a column: HUD, board, controls, dock. The canvas gets the space between the bars, so a card can
+   never slide under the HUD at a short phone size. */
+.battle-hud {
+  flex: 0 0 auto;
+  border-bottom: 1.5px solid var(--vd-line);
+  background: var(--vd-bg);
+}
+
+.hud-main {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 6px 8px;
-  pointer-events: none;
+  gap: 7px;
+  min-height: 48px;
+  padding: 5px 8px 3px;
 }
 
-.battle-top > * {
-  pointer-events: auto;
-}
-
-.battle-menu {
-  border: 1.5px solid var(--vd-line);
-  background: var(--vd-surface);
-  color: var(--vd-ink);
-  border-radius: 8px;
-  min-width: 44px;
-  min-height: 44px;
-  font: inherit;
-  font-weight: 700;
-}
-
-.battle-label {
-  font-size: 11px;
-  color: var(--vd-muted);
-  letter-spacing: 0.04em;
-}
-
-.battle-controls {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: calc(58px + env(safe-area-inset-bottom));
-  z-index: 10;
-  display: flex;
-  gap: 6px;
-  padding: 6px 8px;
-}
-
-.battle-btn {
-  min-height: 44px;
+.hud-menu {
+  flex: 0 0 auto;
+  min-width: 42px;
+  min-height: 42px;
   border: 1.5px solid var(--vd-line);
   border-radius: 9px;
   background: var(--vd-surface);
   color: var(--vd-ink);
   font: inherit;
-  font-size: 11px;
   font-weight: 800;
-  padding: 0 10px;
 }
 
-.battle-btn.on {
+.hud-menu .tohe-menu-button-label {
+  font-size: 8px;
+}
+
+.hud-stage {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0;
+  min-width: 0;
+  min-height: 42px;
+  border: 0;
+  background: transparent;
+  color: var(--vd-ink);
+  font: inherit;
+  text-align: left;
+  padding: 0;
+}
+
+.hud-stage:active {
+  opacity: 0.78;
+}
+
+.hud-region {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--vd-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.hud-stage-name {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 15px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.hud-res {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 4px;
+}
+
+.res-chip {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  min-height: 30px;
+  padding: 0 6px;
+  border: 1.5px solid var(--vd-line);
+  border-radius: 8px;
+  background: var(--vd-surface);
+  color: var(--vd-ink);
+  font: inherit;
+  font-size: 10px;
+  font-weight: 800;
+}
+
+.res-chip:active {
+  transform: translateY(1px);
+}
+
+.res-icon {
+  width: 12px;
+  height: 12px;
+  color: var(--vd-gold);
+}
+
+.res-chip:last-child .res-icon {
+  color: var(--vd-accent);
+}
+
+.res-value {
+  font-variant-numeric: tabular-nums;
+}
+
+.hud-turn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 8px 5px;
+}
+
+.hud-turn-label {
+  color: var(--vd-muted);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+}
+
+.turn-rail {
+  display: flex;
+  flex: 1;
+  gap: 3px;
+  min-height: 26px;
+}
+
+.turn-chip {
+  width: 26px;
+  height: 26px;
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1.5px solid var(--vd-line);
+  border-radius: 6px;
+  background: #201e1a;
+  opacity: 0.82;
+}
+
+.turn-chip img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.turn-chip.hero {
+  border-color: #456c4e;
+  background: #1f2a22;
+}
+
+.turn-chip.enemy {
+  border-color: #6d3831;
+  background: #2d1f1c;
+}
+
+.turn-chip.now {
+  border-color: var(--vd-gold);
+  box-shadow: 0 0 0 1.5px var(--vd-gold);
+  opacity: 1;
+  transform: translateY(-1px);
+}
+
+.hud-progress {
+  height: 2px;
+  background: #39342c;
+}
+
+.hud-progress i {
+  display: block;
+  height: 100%;
+  background: var(--vd-gold);
+  transition: width 220ms ease-out;
+}
+
+.battle-board {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--vd-bg);
+}
+
+.battle-fx {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  overflow: hidden;
+  pointer-events: none;
+}
+
+.dmg {
+  position: absolute;
+  left: 0;
+  top: 0;
+  color: #ff8a6a;
+  font-family: "Be Vietnam Pro", system-ui, sans-serif;
+  font-size: 13px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow:
+    0 1px 0 #171614,
+    0 0 3px #171614;
+  transform: translate(-50%, -50%);
+  animation: float-up 640ms cubic-bezier(0.2, 0.7, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+.dmg.crit {
+  color: #ffd36e;
+  font-size: 18px;
+}
+
+.dmg.heal {
+  color: #8ed6a0;
+}
+
+.dmg.burn {
+  color: #ffab5e;
+}
+
+.dmg.shield {
+  color: #8fc8ff;
+}
+
+@keyframes float-up {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(0.85);
+  }
+  28% {
+    opacity: 1;
+    transform: translate(-50%, -72%) scale(1.06);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -170%) scale(1);
+  }
+}
+
+.battle-controls {
+  display: flex;
+  flex: 0 0 auto;
+  gap: 5px;
+  padding: 5px 8px;
+  border-top: 1.5px solid var(--vd-line);
+  background: var(--vd-bg);
+}
+
+.ctl {
+  position: relative;
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  min-width: 50px;
+  min-height: 46px;
+  padding: 0 6px;
+  border: 1.5px solid var(--vd-line);
+  border-radius: 9px;
+  background: var(--vd-surface);
+  color: var(--vd-ink);
+  font: inherit;
+}
+
+.ctl:active {
+  transform: translateY(1px);
+}
+
+.ctl svg {
+  width: 16px;
+  height: 16px;
+}
+
+.ctl-big {
+  font-size: 11px;
+  font-weight: 800;
+  line-height: 1.1;
+}
+
+.ctl-label {
+  color: var(--vd-muted);
+  font-size: 8px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+.ctl.on {
   border-color: var(--vd-leaf);
+}
+
+.ctl.on svg,
+.ctl.on .ctl-label {
   color: var(--vd-leaf);
 }
 
-.battle-btn.accent {
-  margin-left: auto;
-  background: var(--vd-accent);
+.ctl.primary {
+  flex: 1;
+  flex-direction: row;
+  gap: 6px;
+  min-width: 0;
   border-color: var(--vd-accent);
+  background: var(--vd-accent);
   color: #1a0f0d;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.ctl.primary svg {
+  width: 17px;
+  height: 17px;
+}
+
+.ctl-primary-label {
+  white-space: nowrap;
+}
+
+.badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  display: none;
+  width: 7px;
+  height: 7px;
+  border: 1px solid var(--vd-bg);
+  border-radius: 50%;
+  background: var(--vd-accent);
 }
 
 .battle-dock {
-  position: absolute;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  z-index: 10;
   display: flex;
-  gap: 2px;
-  padding: 4px 6px calc(4px + env(safe-area-inset-bottom));
+  flex: 0 0 auto;
+  padding: 3px 4px 4px;
   border-top: 1.5px solid var(--vd-line);
   background: var(--vd-bg);
 }
 
 .dock-item {
-  flex: 1;
+  position: relative;
   display: flex;
+  flex: 1;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 2px;
-  min-height: 48px;
+  min-height: 52px;
   border: 0;
   background: transparent;
   color: var(--vd-muted);
   font: inherit;
-  font-size: 9px;
 }
 
-.dock-icon {
-  display: grid;
-  place-items: center;
-  width: 22px;
-  height: 22px;
-  border: 1.5px solid var(--vd-line);
-  border-radius: 6px;
+.dock-item:active {
   color: var(--vd-ink);
-  font-size: 10px;
-  font-weight: 900;
+}
+
+.dock-item svg {
+  width: 20px;
+  height: 20px;
+}
+
+.dock-label {
+  font-size: 9px;
+  font-weight: 700;
+  line-height: 1.1;
+}
+
+@media (max-height: 520px) {
+  .hud-main {
+    min-height: 42px;
+    padding-top: 3px;
+  }
+
+  .hud-turn {
+    padding-bottom: 3px;
+  }
+
+  .turn-chip {
+    width: 22px;
+    height: 22px;
+  }
+
+  .battle-controls {
+    padding-top: 3px;
+    padding-bottom: 3px;
+  }
+
+  .ctl {
+    min-height: 40px;
+  }
+
+  .dock-item {
+    min-height: 46px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dmg {
+    animation-duration: 320ms;
+  }
+
+  .hud-progress i {
+    transition: none;
+  }
 }
 
 .sheet-card {
@@ -337,7 +648,8 @@ body {
 }
 
 .vd-btn:disabled {
-  opacity: 0.45;
+  opacity: 0.38;
+  filter: grayscale(0.7);
 }
 
 .vd-stats {
@@ -538,9 +850,8 @@ body {
 
 .vd-tabs {
   display: flex;
+  flex-wrap: wrap;
   gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: none;
   padding-bottom: 2px;
 }
 
@@ -838,4 +1149,93 @@ body {
   margin-top: 0;
   padding-top: 0;
   border-top: 0;
+}
+
+/* A sheet is a sheet: it slides up over the board, and its header stays reachable while the body scrolls. */
+.vd-sheet {
+  animation: scrim-in 140ms ease-out;
+}
+
+.vd-sheet-card {
+  max-height: 88%;
+  animation: sheet-up 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  overscroll-behavior: contain;
+}
+
+.vd-grab {
+  width: 38px;
+  height: 4px;
+  margin: 0 auto 7px;
+  border-radius: 3px;
+  background: var(--vd-line);
+}
+
+.vd-sheet-head {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  padding: 1px 0 6px;
+  background: var(--vd-surface);
+}
+
+.vd-result.new {
+  color: var(--vd-gold);
+}
+
+.vd-result.rare {
+  border-left: 2px solid #4a7fa0;
+  padding-left: 5px;
+}
+
+.vd-result.epic {
+  border-left: 2px solid #b07a3a;
+  padding-left: 5px;
+}
+
+@keyframes scrim-in {
+  from {
+    background: rgba(0, 0, 0, 0);
+  }
+}
+
+@keyframes sheet-up {
+  from {
+    transform: translateY(16px);
+    opacity: 0.6;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .vd-sheet,
+  .vd-sheet-card {
+    animation: none;
+  }
+}
+
+.hud-wave {
+  flex: 0 0 auto;
+  color: var(--vd-muted);
+  font-size: 8px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.hud-stage {
+  position: relative;
+  padding-right: 14px;
+}
+
+.hud-chevron {
+  position: absolute;
+  top: 50%;
+  right: 1px;
+  color: var(--vd-muted);
+  font-size: 15px;
+  line-height: 1;
+  transform: translateY(-50%);
+}
+
+.res-chip:last-child .res-icon {
+  color: #8fc8ff;
 }
