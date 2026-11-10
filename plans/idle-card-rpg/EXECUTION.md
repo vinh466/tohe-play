@@ -5,9 +5,9 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - Branch: `plan/hex-board` for the hex-board research (game work merges via `feat/van-du-ky-core`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C9 — 12-cell hex board live** (v1.1.0, prod-2026-11-10.3, 2026-11-10); C8 concept approved;
-  C7 UI/UX v2 and C6 v1.0.0 released before it
-- Release: v1.1.0 live (prod-2026-11-10.3), UAT `uat-2026-11-10.3`, chart `0.1.0-g2bc38b6`; v1.0.1 superseded.
+- Current checkpoint: **C10 — combat feedback RC** (v1.1.1, 2026-11-10); C9 12-cell hex board live in v1.1.0;
+  C8 concept approved; C7 UI/UX v2 and C6 v1.0.0 released before it
+- Release: v1.1.0 live (prod-2026-11-10.3); v1.1.1 combat feedback built and verified locally, awaiting the owner's word.
 
 ## Checkpoints
 
@@ -23,6 +23,7 @@ what to do next. Update it at the end of every session, newest session first in 
 | C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **done** (v1.0.1 live) |
 | C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **done** (owner approved 2026-11-10) |
 | C9 | 12-cell hex board | core columns 0–3, 12-cell formations/terrain, DOM/CSS board, loss popup/rewind, auto road, effect pass, tests, conformance | **done and live** (v1.1.0, prod-2026-11-10.3, 331 KB, p50 16.7 ms) |
+| C10 | Combat feedback | ×1 default and ×2/×5/×10; readable streak/slash/impact/ring; side labels, low-HP and ready pips; UI review | **done** (v1.1.1 RC, 74 tests, conformance PASS) |
 
 ## Staging and deviations
 
@@ -109,6 +110,17 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-10 — agent (v1.1.1 combat feedback RC)
+
+- Owner feedback: attack/hit effects were not visible; make ×1 the default and slower, with ×2/×5/×10; review UI/UX.
+- Speed: default ×1, options ×2/×5/×10; a v2 save without the new `speedV2` flag is reset once to ×1; modern saves keep
+  the chosen speed. ×1 is ~0.8 s per turn.
+- Attack feel: element streak from attacker to target, attacker cast glow, larger lunge, coloured slash + impact wash,
+  element ring, flash, stronger sparks, bigger damage numbers, hit-stop, lingering hit glow.
+- UI review: `ĐOÀN`/`ĐỊCH` labels above the grid, low-HP red bars, ready pips glow, speed button state and hint.
+- Verified: typecheck, 74 tests, balance sim 48/48, build, conformance PASS; p50/p95 16.7 ms at ×1 and ×10 at 360,
+  no long tasks. Next: owner playtest; release word before PR/merge/tag.
 
 ### 2026-11-10 — agent (v1.1.0 released)
 

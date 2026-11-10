@@ -10,6 +10,10 @@ export type Role = (typeof ROLES)[number];
 export const RARITIES = ['common', 'rare', 'epic'] as const;
 export type Rarity = (typeof RARITIES)[number];
 
+/** Battle speeds the player can choose; x1 is the default and is deliberately readable. */
+export const SPEEDS = [1, 2, 5, 10] as const;
+export type Speed = (typeof SPEEDS)[number];
+
 /** Rows: 0 front, 1 mid, 2 back. Columns: the four lanes, top (0) to bottom (3). */
 export type Row = 0 | 1 | 2;
 export type Column = 0 | 1 | 2 | 3;
