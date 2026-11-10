@@ -712,7 +712,7 @@ body {
 
 .vd-error {
   margin: 0;
-  color: var(--vd-accent);
+  color: #e07a68;
   font-size: 11px;
 }
 
