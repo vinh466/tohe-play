@@ -29,7 +29,7 @@
 
 ## Next — one item
 
-**Pentagon board review.** R-11 and `wireframes/pentagon-board-v4.html` explore a 6×3 pentagon board (9 cells/side, 6 deployed), left/right, minimal cards, a bottom command deck (road / bench / skills) and non-blocking auto-advance. Waiting on the owner's feedback before changing the core columns and the view.
+**Hex board review.** R-12 and `wireframes/hex-board-v5.html` explore a 6×3 flat-top hex honeycomb (9 cells/side, 6 deployed), left/right, minimal cards, a bottom command deck (road / bench / skills) and non-blocking auto-advance. Waiting on the owner's feedback before changing the core columns and the view.
 
 ## Board
 

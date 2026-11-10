@@ -1,6 +1,6 @@
 # R-11 — Bàn ngũ giác, đánh ngang: concept for the main battle screen
 
-Date: 2026-11-10 · Status: wireframe for the owner's review (no implementation yet)
+Date: 2026-11-10 · Status: **superseded by [R-12](R-12-hex-board.md)** — the owner corrected the shape to hexagons. Kept for the formation and command-deck reasoning.
 
 Question from the owner: the 6v6 top/bottom board works, but the main battle screen should be redesigned as a
 **pentagon board**, heroes and enemies **left/right**, more cells than the six heroes, minimal board cards, and a
