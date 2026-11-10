@@ -29,7 +29,7 @@
 
 ## Next — one item
 
-**Hex board review.** R-12 and `wireframes/hex-board-v5.html` explore a 6×3 flat-top hex honeycomb (9 cells/side, 6 deployed), left/right, minimal cards, a bottom command deck (road / bench / skills) and non-blocking auto-advance. Waiting on the owner's feedback before changing the core columns and the view.
+**Hex board review.** R-12 and `wireframes/hex-board-v6.html` explore a 6×4 flat-top hex honeycomb (12 cells/side, 6 deployed), left/right, minimal cards, terrain, a bottom command deck (road / bench / skills), auto always, and a loss popup that rewinds to the wave with only gold. Waiting on the owner's feedback before changing the core columns 0–3 and the view.
 
 ## Board
 

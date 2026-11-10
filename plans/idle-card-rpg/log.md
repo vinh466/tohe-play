@@ -4,9 +4,9 @@ Newest first. One entry per working session: what moved, what is waiting on whom
 
 ## 2026-11-10 — agent (pentagon board concept)
 
-- R-12 + wireframe v5: board 6×3 lục giác honeycomb, 9 ô/bên, 6 hero, 3 ô mở; trái/phải; card tối giản; deck dưới (Đường đi / Dự bị / Chiêu).
+- R-12 + wireframe v6: board 6×4 lục giác honeycomb, 12 ô/bên, 6 hero, 6 ô mở; trái/phải; card tối giản; deck dưới (Đường đi / Dự bị / Chiêu).
 - Thắng tự sang màn, ribbon trong feed, không popup; thua là panel “tường” dưới, không chặn board.
-- Chờ owner góp ý: 9 hay 12 ô, địa hình/lane, card có tên không, DOM/CSS hay Phaser.
+- Chờ owner góp ý: loss auto-retry, địa hình/lane, card có tên không, DOM/CSS hay Phaser.
 
 ## 2026-11-10 — agent (UI/UX v2)
 
