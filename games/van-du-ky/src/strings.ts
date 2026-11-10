@@ -93,9 +93,9 @@ const VI: Strings = {
   title: 'Vân Du Ký',
   howToTitle: 'Cách chơi',
   hints: [
-    'Đoàn tự đánh. Chạm thẻ khi tới lượt để tung chiêu.',
+    'Đoàn tự đánh và tự tung chiêu. Chạm thẻ để xem hồ sơ.',
     'Hàng trước đỡ đòn; hàng sau đánh mạnh hơn.',
-    'Thắng màn nhận vàng, tinh chất, mảnh; mở thẻ ở Triệu hồi.',
+    'Thắng màn mới nhận vàng, tinh chất, mảnh; chơi lại màn đã qua chỉ nhận ít vàng.',
     'Đóng app, đoàn vẫn đi; quay lại nhận tối đa 12 giờ.',
   ],
   progress: (save) =>
@@ -192,9 +192,9 @@ const EN: Strings = {
   title: 'Vân Du Ký',
   howToTitle: 'How to play',
   hints: [
-    'The company fights on its own. Tap a card on its turn to cast.',
+    'The company fights and casts on its own. Tap a card to read its sheet.',
     'The front row takes hits; the back row hits harder.',
-    'A win pays gold, essence and shards; open cards in Summon.',
+    'A new clear pays gold, essence and shards; replaying a cleared stage pays a little gold.',
     'Close the app and the company keeps walking; up to 12 hours of farm.',
   ],
   progress: (save) =>

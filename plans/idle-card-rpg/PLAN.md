@@ -21,7 +21,7 @@
 - **D-13**: **card-on-board** + **dark-first**; pixel art; card lao vào nhau, hit-stop/damage/shatter. (owner, 2026-11-09)
 - **D-14**: tên game **Vân Du Ký** — ký sự đoàn người đi trên con đường mây. (owner, 2026-11-09)
 - **D-15**: **chỉ SFX**, không music. (owner, 2026-11-09)
-- **D-03**: **hybrid Phaser board + DOM sheets**; pixelfx sprite sheets + E-03; prototype crit-hit. (owner, 2026-11-09)
+- **D-03**: **hybrid Phaser board + DOM sheets**; pixelfx sprite sheets + E-03; prototype crit-hit. (owner, 2026-11-09; **superseded 2026-11-10**: R-12/R-13 replaced the board with DOM/CSS and CSS/WAAPI effects)
 - **D-16**: **thêm nội dung** — 4 vùng × 12, **20 hero, 20 quái, 4 boss, 2 event** (~2 tuần); không PvP/guild/ranked. (owner, 2026-11-09)
 - **D-17**: **P0 tối thiểu** — persistent shell (E-01) + asset on-demand + save 256 KB; content packs để P1; không music. (owner, 2026-11-09)
 - **E-01**: nằm trong P0; shell có option `persistent`, bỏ "Ván mới". (owner, 2026-11-09)
@@ -29,7 +29,7 @@
 
 ## Next — one item
 
-**Release v1.0.1.** The UI/UX pass is green: the board is a flex column (no overlap), the HUD shows stage/level, gold and essence, turn rail, wave and progress; cards are pre-drawn textures; numbers are DOM; `maxDpr` 1.25; sheets are polished. `pnpm verify` and all-game conformance pass; the layout test covers 320×380, 360×452 and 390×652.
+**Hex board + technology review — implemented (v1.1.0).** R-12/wireframe v6 show a 6×4 honeycomb (12 cells/side, 6 deployed), left/right, minimal cards, terrain, a bottom command deck (road / bench), auto always, and a loss popup that rewinds with gold only. R-13/`tech-spike/dom-board.html` chose **DOM/CSS** (60 fps at 320/360/390, no engine) over Phaser/Pixi. The owner approved; core columns 0–3, the DOM view and the effect pass shipped in `games/van-du-ky`.
 
 ## Board
 

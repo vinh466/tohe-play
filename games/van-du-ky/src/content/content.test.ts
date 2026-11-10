@@ -5,7 +5,7 @@ import { GEAR } from './gear.ts';
 import { HEROES } from './heroes.ts';
 import { contentProblems, RULES, STARTER_TEAM } from './index.ts';
 import { SKILLS } from './skills.ts';
-import { REGIONS, STAGES } from './stages.ts';
+import { DEPLOY_SLOTS, REGIONS, STAGES } from './stages.ts';
 
 describe('content', () => {
   it('has no broken references, duplicate slots or empty waves', () => {
@@ -35,6 +35,14 @@ describe('content', () => {
 
   it('every enemy has a blurb and a portrait-sized identity', () => {
     for (const enemy of ENEMIES.items) expect(enemy.blurb?.length).toBeGreaterThan(10);
+  });
+
+  it('the deploy slots are six unique cells, two per rank', () => {
+    expect(DEPLOY_SLOTS).toHaveLength(6);
+    expect(new Set(DEPLOY_SLOTS.map((slot) => `${slot.row}:${slot.column}`)).size).toBe(6);
+    expect(DEPLOY_SLOTS.filter((slot) => slot.row === 0)).toHaveLength(2);
+    expect(DEPLOY_SLOTS.filter((slot) => slot.row === 1)).toHaveLength(2);
+    expect(DEPLOY_SLOTS.filter((slot) => slot.row === 2)).toHaveLength(2);
   });
 
   it('the starter team is six heroes with a front/mid/back formation', () => {

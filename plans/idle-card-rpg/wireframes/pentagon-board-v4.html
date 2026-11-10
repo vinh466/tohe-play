@@ -1,0 +1,480 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Wireframe — bàn ngũ giác (v4)</title>
+    <style>
+      :root {
+        --bg: #171614;
+        --surface: #2a2722;
+        --surface-2: #201e1a;
+        --ink: #f2ead9;
+        --muted: #a89f8d;
+        --line: #5a5348;
+        --soft: #39342c;
+        --accent: #d05a4a;
+        --gold: #d8a84e;
+        --leaf: #7fae86;
+        --tide: #5a9fc0;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; background: #0f0e0d; color: var(--ink); font-family: "Be Vietnam Pro", system-ui, sans-serif; }
+      body { padding: 26px; }
+      h1 { font-size: 19px; margin: 0 0 4px; letter-spacing: -0.01em; }
+      .sub { color: var(--muted); font-size: 12px; line-height: 1.5; max-width: 1180px; margin: 0 0 20px; }
+      .gallery { display: flex; gap: 26px; align-items: flex-start; flex-wrap: wrap; }
+      .frame { width: 390px; }
+      .caption { margin: 9px 0 0; color: var(--muted); font-size: 11px; line-height: 1.5; }
+      .caption b { color: var(--ink); }
+      .phone {
+        width: 390px; height: 844px; position: relative; display: flex; flex-direction: column;
+        overflow: hidden; border: 2px solid var(--line); border-radius: 24px;
+        background: var(--bg); box-shadow: 5px 6px 0 rgba(0,0,0,.45);
+      }
+      .status { height: 18px; display: flex; align-items: center; justify-content: space-between; padding: 0 16px; color: var(--muted); font-size: 9px; }
+      .hud { flex: 0 0 auto; border-bottom: 1.5px solid var(--line); }
+      .hud-main { display: flex; align-items: center; gap: 7px; min-height: 46px; padding: 4px 8px 2px; }
+      .menu { width: 44px; height: 44px; display: grid; place-items: center; border: 1.5px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font-size: 9px; font-weight: 800; }
+      .menu span { display: block; font-size: 16px; line-height: 1; }
+      .stage { flex: 1; min-width: 0; position: relative; padding-right: 14px; }
+      .stage small { display: block; color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+      .stage strong { display: block; font-size: 15px; line-height: 1.2; }
+      .stage::after { content: "›"; position: absolute; right: 0; top: 50%; transform: translateY(-50%); color: var(--muted); font-size: 16px; }
+      .res { display: flex; gap: 4px; }
+      .chip { display: flex; align-items: center; gap: 3px; height: 30px; padding: 0 7px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 10px; font-weight: 800; }
+      .coin { width: 11px; height: 11px; border: 2px solid var(--gold); border-radius: 50%; position: relative; }
+      .coin::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--gold); }
+      .gem-icon { width: 11px; height: 11px; border: 2px solid var(--tide); transform: rotate(45deg); }
+      .turn { display: flex; align-items: center; gap: 5px; padding: 0 8px 4px; }
+      .turn-label { color: var(--muted); font-size: 7px; font-weight: 800; letter-spacing: .08em; }
+      .turn-rail { display: flex; gap: 3px; flex: 1; }
+      .turn-chip { width: 25px; height: 25px; border: 1.5px solid var(--line); border-radius: 6px; overflow: hidden; opacity: .82; }
+      .turn-chip.hero { border-color: #456c4e; background: #1f2a22; }
+      .turn-chip.enemy { border-color: #6d3831; background: #2d1f1c; }
+      .turn-chip.now { border-color: var(--gold); box-shadow: 0 0 0 1.5px var(--gold); opacity: 1; }
+      .turn-chip img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+      .wave { margin-left: auto; color: var(--muted); font-size: 8px; }
+      .progress { height: 2px; background: var(--soft); }
+      .progress i { display: block; width: 25%; height: 100%; background: var(--gold); }
+
+      /* board */
+      .board { position: relative; display: flex; flex: 1; flex-direction: column; min-height: 0; padding: 8px 8px 4px; overflow: hidden; background: radial-gradient(ellipse at 50% 48%, #211d18 0, #171614 70%); }
+      .board::before { content: ""; position: absolute; left: 12%; right: 12%; top: 16%; bottom: 13%; border: 1px solid #28231d; border-radius: 50%; pointer-events: none; }
+      .board::after { content: ""; position: absolute; left: 23%; right: 23%; top: 24%; bottom: 21%; border: 1px dashed #221f1a; border-radius: 50%; pointer-events: none; }
+      .board-top { height: 18px; display: flex; align-items: center; justify-content: space-between; color: var(--muted); font-size: 7px; letter-spacing: .04em; }
+      .board-top .side-label { display: flex; gap: 3px; width: 49%; }
+      .board-top .side-label.right { justify-content: flex-end; }
+      .board-top .side-label span { width: 31%; text-align: center; }
+      .grid { display: grid; grid-template-columns: repeat(6, 1fr); grid-template-rows: repeat(3, 1fr); gap: 3px 3px; align-items: center; margin: auto 0; position: relative; z-index: 1; }
+      .clash { position: absolute; left: 50%; top: 10%; bottom: 8%; border-left: 1px dashed #3a342c; z-index: 0; }
+      .clash::after { content: "◆"; position: absolute; left: -5px; top: 46%; color: var(--gold); font-size: 9px; background: var(--bg); }
+      .cell { position: relative; aspect-ratio: 1 / 1.04; z-index: 1; }
+      .cell .rim { position: absolute; inset: 0; clip-path: polygon(50% 0, 100% 37%, 82% 100%, 18% 100%, 0 37%); }
+      .cell .shape { position: absolute; inset: 1.5px; clip-path: polygon(50% 0, 100% 37%, 82% 100%, 18% 100%, 0 37%); }
+      .cell.hero .rim { background: #456c4e; }
+      .cell.hero .shape { background: #1f2a22; }
+      .cell.enemy .rim { background: #6d3831; }
+      .cell.enemy .shape { background: #2d1f1c; }
+      .cell.empty .rim { background: #362f27; }
+      .cell.empty .shape { background: #1b1916; }
+      .cell.locked .rim { background: #302b25; }
+      .cell.locked .shape { background: #151412; }
+      .cell.ghost { opacity: .42; }
+      .cell.selected .rim { background: var(--gold); box-shadow: 0 0 0 2px var(--gold); }
+      .cell.boss .rim { background: var(--gold); }
+      .cell .body { position: absolute; inset: 8px 5px 7px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; z-index: 2; }
+      .portrait { width: 28px; height: 28px; border: 1.5px solid #171614; border-radius: 50%; overflow: hidden; background: #171614; }
+      .portrait img { width: 100%; height: 100%; image-rendering: pixelated; }
+      .hp { width: 38px; height: 4px; border: 1px solid #171614; border-radius: 3px; background: #3a342b; overflow: hidden; }
+      .hp i { display: block; height: 100%; background: var(--leaf); }
+      .enemy .hp i { background: var(--accent); }
+      .meta { display: flex; align-items: center; gap: 3px; height: 9px; }
+      .element { display: grid; place-items: center; width: 10px; height: 10px; border-radius: 50%; border: 1px solid #171614; color: #171614; font-size: 6px; font-weight: 900; }
+      .element.em { background: #d05a4a; } .element.ti { background: #5a9fc0; } .element.st { background: #b7a878; } .element.ga { background: #7fae86; }
+      .pips { display: flex; gap: 1px; }
+      .pips i { width: 4px; height: 3px; border-radius: 1px; background: var(--gold); }
+      .pips i.off { background: #3a342b; }
+      .empty .body { color: var(--muted); font-size: 16px; font-weight: 300; opacity: .7; }
+      .locked .body { color: var(--muted); font-size: 9px; opacity: .55; }
+      .terrain { position: absolute; right: 12px; bottom: 9px; z-index: 3; color: var(--gold); font-size: 8px; font-weight: 900; background: #171614; border: 1px solid var(--line); border-radius: 4px; padding: 0 2px; }
+      .dmg { position: absolute; z-index: 5; color: #ff8a6a; font-size: 12px; font-weight: 900; text-shadow: 0 1px 0 #171614; }
+      .dmg.d1 { left: 35%; top: 31%; } .dmg.d2 { left: 57%; top: 42%; color: #ffd36e; font-size: 15px; } .dmg.d3 { left: 47%; top: 61%; color: #8ed6a0; }
+      .clash-note { position: absolute; left: 50%; top: 47%; transform: translate(-50%,-50%); color: #5a5348; font-size: 7px; letter-spacing: .1em; background: var(--bg); padding: 2px; }
+
+      /* road + feed */
+      .panel-tabs { flex: 0 0 auto; display: flex; gap: 4px; padding: 5px 8px 0; border-top: 1.5px solid var(--line); background: #1b1916; }
+      .panel-tab { border: 1.5px solid var(--line); border-radius: 7px 7px 0 0; background: #201e1a; color: var(--muted); font-size: 8px; font-weight: 800; padding: 3px 8px; }
+      .panel-tab.on { color: var(--ink); border-color: var(--gold); background: #2c2a22; }
+      .road { flex: 0 0 auto; background: #1b1916; padding: 3px 8px 3px; }
+      .road-head { display: flex; align-items: center; gap: 6px; font-size: 9px; }
+      .road-head strong { font-size: 10px; }
+      .road-head .count { color: var(--muted); font-size: 8px; }
+      .auto { margin-left: auto; border: 1.5px solid var(--leaf); border-radius: 6px; background: #1f2a22; color: var(--leaf); font: inherit; font-size: 8px; font-weight: 800; padding: 2px 5px; }
+      .nodes { display: flex; align-items: center; gap: 2px; padding: 4px 0 1px; }
+      .node { position: relative; width: 20px; height: 20px; display: grid; place-items: center; flex: 0 0 auto; color: var(--muted); font-size: 7px; font-weight: 800; }
+      .node i { position: absolute; inset: 2px; transform: rotate(45deg); border: 1px solid #3a342c; background: #201e1a; }
+      .node span { position: relative; z-index: 1; }
+      .node.done { color: var(--leaf); } .node.done i { border-color: #4f7a58; background: #1f2a22; }
+      .node.now { color: var(--gold); } .node.now i { border-color: var(--gold); background: #2c2a22; box-shadow: 0 0 0 1px var(--gold); }
+      .node.boss { color: var(--accent); } .node.boss i { border-color: #6d3831; }
+      .node .star { position: absolute; right: -2px; top: -3px; color: var(--gold); font-size: 7px; font-style: normal; }
+      .road-foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 7px; }
+      .road-foot b { color: var(--ink); }
+
+      .feed { flex: 0 0 auto; padding: 3px 10px 2px; background: var(--bg); }
+      .feed-line { display: flex; align-items: center; gap: 5px; min-height: 17px; border-top: 1px solid #2d2a24; color: var(--muted); font-size: 8px; line-height: 1.3; }
+      .feed-line:first-child { border-top: 0; }
+      .feed-line b { color: var(--ink); }
+      .feed-line .tag { flex: 0 0 auto; min-width: 24px; color: var(--gold); font-size: 7px; font-weight: 800; }
+      .feed-line.clear { background: #1f2a22; border: 1px solid #456c4e; border-radius: 6px; padding: 2px 5px; color: var(--ink); margin: 2px 0; }
+      .feed-line.clear .tag { color: var(--leaf); }
+      .feed-line .next { margin-left: auto; color: var(--gold); font-weight: 800; font-size: 7px; }
+      .feed-line.heal .tag { color: var(--leaf); }
+      .feed-line.hit .tag { color: var(--accent); }
+
+      .controls { flex: 0 0 auto; display: flex; gap: 5px; border-top: 1.5px solid var(--line); padding: 4px 8px; }
+      .ctl { flex: 0 0 auto; min-width: 50px; min-height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--muted); font-size: 8px; }
+      .ctl b { color: var(--ink); font-size: 11px; }
+      .ctl.on { border-color: var(--leaf); color: var(--leaf); }
+      .ctl.on b { color: var(--leaf); }
+      .primary { flex: 1; min-width: 0; flex-direction: row; gap: 5px; border-color: var(--accent); background: var(--accent); color: #1a0f0d; font-size: 11px; font-weight: 900; }
+      .primary b { color: #1a0f0d; font-size: 11px; }
+      .dock { flex: 0 0 auto; display: flex; border-top: 1.5px solid var(--line); padding: 2px 4px 4px; }
+      .dock-item { flex: 1; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--muted); font-size: 8px; position: relative; }
+      .dock-item b { font-size: 17px; line-height: 1; color: var(--ink); font-weight: 400; }
+      .dock-item .dot { position: absolute; top: 6px; right: calc(50% - 15px); width: 6px; height: 6px; border-radius: 50%; background: var(--accent); border: 1px solid var(--bg); }
+      .dock-item.active { color: var(--ink); }
+      .dock-item.active b { color: var(--gold); }
+
+      /* formation */
+      .bench { flex: 0 0 auto; border-top: 1.5px solid var(--line); background: #1b1916; padding: 5px 8px 4px; }
+      .bench-head { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+      .bench-head .hint { color: var(--muted); font-size: 8px; }
+      .bench-head .save { margin-left: auto; border: 1.5px solid var(--gold); background: #2c2a22; color: var(--gold); border-radius: 6px; font: inherit; font-size: 9px; font-weight: 800; padding: 3px 7px; }
+      .bench-grid { display: flex; gap: 4px; overflow: hidden; padding: 5px 0 2px; }
+      .hero-chip { flex: 0 0 auto; width: 48px; border: 1.5px solid var(--line); border-radius: 7px; background: var(--surface); padding: 2px; text-align: center; font-size: 6px; color: var(--muted); }
+      .hero-chip img { display: block; width: 28px; height: 28px; margin: 0 auto 1px; image-rendering: pixelated; border-radius: 50%; }
+      .hero-chip.selected { border-color: var(--gold); color: var(--ink); }
+      .hero-chip.empty { border-style: dashed; opacity: .55; display: grid; place-items: center; min-height: 49px; font-size: 9px; }
+      .slot-info { display: flex; gap: 8px; align-items: baseline; padding: 2px 0; color: var(--muted); font-size: 8px; }
+      .slot-info b { color: var(--ink); }
+      .slot-info .terrain-tag { color: var(--gold); }
+
+      /* wall / loss */
+      .wall { flex: 0 0 auto; border-top: 1.5px solid var(--line); background: #201a17; padding: 8px 10px 6px; }
+      .wall-title { display: flex; align-items: baseline; gap: 6px; font-size: 12px; font-weight: 800; }
+      .wall-title span { color: var(--accent); }
+      .wall-body { color: var(--muted); font-size: 9px; line-height: 1.4; margin: 2px 0 6px; }
+      .wall-body b { color: var(--ink); }
+      .wall-actions { display: flex; gap: 5px; }
+      .wall-actions button { flex: 1; min-height: 32px; border: 1.5px solid var(--line); border-radius: 7px; background: var(--surface); color: var(--ink); font: inherit; font-size: 9px; font-weight: 800; }
+      .wall-actions button.primary { flex: 1.3; border-color: var(--accent); background: var(--accent); color: #1a0f0d; }
+
+      /* notes */
+      .notes { max-width: 1180px; margin-top: 26px; display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; }
+      .note { border-top: 1.5px solid var(--line); padding-top: 8px; }
+      .note h3 { margin: 0 0 4px; font-size: 12px; color: var(--gold); }
+      .note p, .note li { color: var(--muted); font-size: 10px; line-height: 1.5; }
+      .note ul { margin: 4px 0 0; padding-left: 14px; }
+      .note b { color: var(--ink); }
+      .legend { display: flex; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 9px; margin-top: 16px; }
+      .legend span { display: inline-flex; align-items: center; gap: 4px; }
+      .legend i { width: 14px; height: 14px; border: 1.5px solid #456c4e; background: #1f2a22; clip-path: polygon(50% 0, 100% 37%, 82% 100%, 18% 100%, 0 37%); }
+      .legend i.enemy { border-color: #6d3831; background: #2d1f1c; }
+      .legend i.empty { border-color: #362f27; background: #1b1916; }
+      .legend i.gold { border-color: var(--gold); background: #2c2a22; }
+    </style>
+  </head>
+  <body>
+    <h1>Vân Du Ký — bàn ngũ giác, đánh ngang (wireframe v4)</h1>
+    <p class="sub">
+      3 frame 390×844: giao chiến + tự đi (đề xuất), xếp đội, và trạng thái “tường”. Board là 6 cột × 3 hàng ngũ giác:
+      mỗi bên 9 ô, tối đa 6 hero; ô trống để mở đội hình. Card trên board tối giản (portrait, HP, gem, charge); chi tiết
+      nằm trong sheet. Thắng không còn popup: một dải kết quả chạy trong “feed” và marker đường đi tự sang màn sau.
+    </p>
+
+    <div class="gallery">
+      <!-- 1. BATTLE / AUTO-ADVANCE -->
+      <div class="frame">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+          <div class="hud">
+            <div class="hud-main">
+              <div class="menu"><span>≡</span>Menu</div>
+              <div class="stage"><small>Cấp 3 · Vùng 1 · Đồi Sương</small><strong>Màn 1-3</strong></div>
+              <div class="res"><div class="chip"><i class="coin"></i>1.280</div><div class="chip"><i class="gem-icon"></i>64</div></div>
+            </div>
+            <div class="turn">
+              <span class="turn-label">LƯỢT</span>
+              <div class="turn-rail">
+                <span class="turn-chip hero now"><img src="../../../games/van-du-ky/public/portraits/kiem-si.png" alt="" /></span>
+                <span class="turn-chip enemy"><img src="../../../games/van-du-ky/public/portraits/doi-lua.png" alt="" /></span>
+                <span class="turn-chip hero"><img src="../../../games/van-du-ky/public/portraits/troi-buoc.png" alt="" /></span>
+                <span class="turn-chip enemy"><img src="../../../games/van-du-ky/public/portraits/bun-non.png" alt="" /></span>
+                <span class="turn-chip hero"><img src="../../../games/van-du-ky/public/portraits/tien-tri.png" alt="" /></span>
+                <span class="turn-chip enemy"><img src="../../../games/van-du-ky/public/portraits/soi-tro.png" alt="" /></span>
+              </div>
+              <span class="wave">Đợt 1/2</span>
+            </div>
+            <div class="progress"><i></i></div>
+          </div>
+
+          <div class="board">
+            <div class="board-top">
+              <div class="side-label"><span>SAU</span><span>GIỮA</span><span>TRƯỚC</span></div>
+              <div class="side-label right"><span>TRƯỚC</span><span>GIỮA</span><span>SAU</span></div>
+            </div>
+            <div class="clash"><span class="clash-note">⚔</span></div>
+            <div class="grid"><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/tien-tri.png" alt="" /></div><div class="hp"><i style="width:88%"></i></div><div class="meta"><span class="element ti">N</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/troi-buoc.png" alt="" /></div><div class="hp"><i style="width:72%"></i></div><div class="meta"><span class="element ga">G</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/moc-y.png" alt="" /></div><div class="hp"><i style="width:80%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/ve-binh.png" alt="" /></div><div class="hp"><i style="width:91%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i></i><i></i></span></div></div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/loi-vu.png" alt="" /></div><div class="hp"><i style="width:64%"></i></div><div class="meta"><span class="element ga">G</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/kiem-si.png" alt="" /></div><div class="hp"><i style="width:78%"></i></div><div class="meta"><span class="element em">L</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/doi-lua.png" alt="" /></div><div class="hp"><i style="width:76%"></i></div><div class="meta"><span class="element em">L</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/may-xam.png" alt="" /></div><div class="hp"><i style="width:84%"></i></div><div class="meta"><span class="element ga">G</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/sen-da.png" alt="" /></div><div class="hp"><i style="width:93%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/bun-non.png" alt="" /></div><div class="hp"><i style="width:60%"></i></div><div class="meta"><span class="element ti">N</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/phu-thuy.png" alt="" /></div><div class="hp"><i style="width:89%"></i></div><div class="meta"><span class="element ti">N</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/soi-tro.png" alt="" /></div><div class="hp"><i style="width:45%"></i></div><div class="meta"><span class="element em">L</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell enemy empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div></div>
+            <span class="dmg d1">-85</span>
+            <span class="dmg d2">-132</span>
+            <span class="dmg d3">+46</span>
+          </div>
+
+          <div class="panel-tabs"><span class="panel-tab on">Đường đi</span><span class="panel-tab">Dự bị</span><span class="panel-tab">Chiêu</span></div>
+          <div class="road">
+            <div class="road-head"><strong>Đường đi · Đồi Sương</strong><span class="count">3/12</span><button type="button" class="auto">Tự đi ✓</button></div>
+            <div class="nodes">
+              <span class="node done"><i></i><span>1</span></span>
+              <span class="node done"><i></i><span>2</span></span>
+              <span class="node now"><i></i><span>3</span></span>
+              <span class="node"><i></i><span>4</span><em class="star">✦</em></span>
+              <span class="node"><i></i><span>5</span></span>
+              <span class="node"><i></i><span>6</span></span>
+              <span class="node"><i></i><span>7</span></span>
+              <span class="node"><i></i><span>8</span><em class="star">✦</em></span>
+              <span class="node"><i></i><span>9</span></span>
+              <span class="node"><i></i><span>10</span></span>
+              <span class="node"><i></i><span>11</span></span>
+              <span class="node boss"><i></i><span>12</span><em class="star">☠</em></span>
+            </div>
+            <div class="road-foot"><span>Tiếp: <b>1-4 · Đề nghị 8.200</b></span><span>Đội: 7.850</span></div>
+          </div>
+
+          <div class="feed">
+            <div class="feed-line clear"><span class="tag">✓</span><span><b>Màn 1-2 đã qua</b> · +210 vàng · +6 mảnh</span><span class="next">→ 1-3</span></div>
+            <div class="feed-line hit"><span class="tag">⚔</span><span>Kiếm Sĩ · Chém Đôi · <b>-132</b> · Dơi Lửa</span></div>
+            <div class="feed-line heal"><span class="tag">✚</span><span>Tiên Tri · Mưa Lành · <b>+46</b> · Vệ Binh</span></div>
+          </div>
+
+          <div class="controls">
+            <div class="ctl on">◉<b>Tự</b></div>
+            <div class="ctl"><b>×2</b>Tốc</div>
+            <div class="ctl"><b>Ⅱ</b>Dừng</div>
+            <div class="ctl primary">★<b>Nâng cấp</b></div>
+          </div>
+          <div class="dock">
+            <div class="dock-item active"><b>♟</b>Đội</div>
+            <div class="dock-item"><b>⚙</b>Trang bị</div>
+            <div class="dock-item"><b>▣</b>Triệu hồi<span class="dot"></span></div>
+            <div class="dock-item"><b>▤</b>Sổ tay</div>
+            <div class="dock-item"><b>◷</b>Hôm nay<span class="dot"></span></div>
+          </div>
+        </div>
+        <p class="caption">
+          <b>1 · Giao chiến + tự đi (đề xuất).</b> 6 hero bên trái, 6 quái bên phải trên 9 ô mỗi bên; 3 ô trống là chỗ
+          mở đội hình. Thắng màn 1-2: dải xanh trong feed tự chuyển sang 1-3, marker đường đi nhích, không có popup.
+        </p>
+      </div>
+
+      <!-- 2. FORMATION -->
+      <div class="frame">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+          <div class="hud">
+            <div class="hud-main">
+              <div class="menu"><span>≡</span>Menu</div>
+              <div class="stage"><small>Cấp 3 · Vùng 1 · Đồi Sương</small><strong>Xếp đội · 6/9</strong></div>
+              <div class="res"><div class="chip"><i class="coin"></i>1.280</div><div class="chip"><i class="gem-icon"></i>64</div></div>
+            </div>
+            <div class="progress"><i style="width:25%"></i></div>
+          </div>
+
+          <div class="board">
+            <div class="board-top">
+              <div class="side-label"><span>SAU</span><span>GIỮA</span><span>TRƯỚC</span></div>
+              <div class="side-label right"><span>TRƯỚC</span><span>GIỮA</span><span>SAU</span></div>
+            </div>
+            <div class="clash"><span class="clash-note">XẾP</span></div>
+            <div class="grid"><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/tien-tri.png" alt="" /></div><div class="hp"><i style="width:88%"></i></div><div class="meta"><span class="element ti">N</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/troi-buoc.png" alt="" /></div><div class="hp"><i style="width:72%"></i></div><div class="meta"><span class="element ga">G</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/moc-y.png" alt="" /></div><div class="hp"><i style="width:80%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/ve-binh.png" alt="" /></div><div class="hp"><i style="width:91%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i></i><i></i></span></div></div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell hero empty selected"><div class="rim"></div><div class="shape"></div><div class="body">+</div><span class="terrain">+DEF</span></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell enemy ghost"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/doi-lua.png" alt="" /></div><div class="hp"><i style="width:76%"></i></div><div class="meta"><span class="element em">L</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell enemy ghost"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/may-xam.png" alt="" /></div><div class="hp"><i style="width:84%"></i></div><div class="meta"><span class="element ga">G</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy ghost"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/sen-da.png" alt="" /></div><div class="hp"><i style="width:93%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy ghost"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/bun-non.png" alt="" /></div><div class="hp"><i style="width:60%"></i></div><div class="meta"><span class="element ti">N</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell enemy ghost"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/phu-thuy.png" alt="" /></div><div class="hp"><i style="width:89%"></i></div><div class="meta"><span class="element ti">N</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy empty ghost"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell enemy ghost"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/soi-tro.png" alt="" /></div><div class="hp"><i style="width:45%"></i></div><div class="meta"><span class="element em">L</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy empty ghost"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell enemy empty ghost"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div></div>
+          </div>
+
+          <div class="panel-tabs"><span class="panel-tab">Đường đi</span><span class="panel-tab on">Dự bị</span><span class="panel-tab">Chiêu</span></div>
+          <div class="bench">
+            <div class="bench-head"><strong>Xếp đội</strong><span class="hint">chọn ô rồi chọn hero</span><button type="button" class="save">Lưu</button></div>
+            <div class="bench-grid">
+              <div class="hero-chip selected"><img src="../../../games/van-du-ky/public/portraits/ve-binh.png" alt="" />Vệ Binh</div>
+              <div class="hero-chip"><img src="../../../games/van-du-ky/public/portraits/kiem-si.png" alt="" />Kiếm Sĩ</div>
+              <div class="hero-chip"><img src="../../../games/van-du-ky/public/portraits/tien-tri.png" alt="" />Tiên Tri</div>
+              <div class="hero-chip"><img src="../../../games/van-du-ky/public/portraits/troi-buoc.png" alt="" />Trói Buộc</div>
+              <div class="hero-chip"><img src="../../../games/van-du-ky/public/portraits/loi-vu.png" alt="" />Lôi Vũ</div>
+              <div class="hero-chip"><img src="../../../games/van-du-ky/public/portraits/moc-y.png" alt="" />Mộc Y</div>
+              <div class="hero-chip empty">+</div>
+              <div class="hero-chip empty">+</div>
+            </div>
+            <div class="slot-info"><span>Ô <b>giữa · dưới</b></span><span class="terrain-tag">▲ Đá: +10% DEF</span><span>Trống</span></div>
+          </div>
+
+          <div class="controls">
+            <div class="ctl">↺<b>Hủy</b></div>
+            <div class="ctl primary">✓<b>Lưu đội hình</b></div>
+          </div>
+          <div class="dock">
+            <div class="dock-item active"><b>♟</b>Đội</div>
+            <div class="dock-item"><b>⚙</b>Trang bị</div>
+            <div class="dock-item"><b>▣</b>Triệu hồi</div>
+            <div class="dock-item"><b>▤</b>Sổ tay</div>
+            <div class="dock-item"><b>◷</b>Hôm nay</div>
+          </div>
+        </div>
+        <p class="caption">
+          <b>2 · Xếp đội.</b> 9 ô/bên, 6 hero; ô trống mở để đổi chỗ. Ô có địa hình (▲ Đá +10% DEF) là lựa chọn thật,
+          không chỉ trang trí. Bàn đội thay cho feed khi đang xếp; bấm Lưu để về trận.
+        </p>
+      </div>
+
+      <!-- 3. WALL / LOSS -->
+      <div class="frame">
+        <div class="phone">
+          <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+          <div class="hud">
+            <div class="hud-main">
+              <div class="menu"><span>≡</span>Menu</div>
+              <div class="stage"><small>Cấp 5 · Vùng 1 · Đồi Sương</small><strong>Màn 1-4</strong></div>
+              <div class="res"><div class="chip"><i class="coin"></i>2.940</div><div class="chip"><i class="gem-icon"></i>120</div></div>
+            </div>
+            <div class="turn">
+              <span class="turn-label">LƯỢT</span>
+              <div class="turn-rail">
+                <span class="turn-chip enemy"><img src="../../../games/van-du-ky/public/portraits/sen-da.png" alt="" /></span>
+                <span class="turn-chip enemy"><img src="../../../games/van-du-ky/public/portraits/soi-tro.png" alt="" /></span>
+                <span class="turn-chip enemy"><img src="../../../games/van-du-ky/public/portraits/doi-lua.png" alt="" /></span>
+                <span class="turn-chip hero"><img src="../../../games/van-du-ky/public/portraits/ve-binh.png" alt="" /></span>
+                <span class="turn-chip hero"><img src="../../../games/van-du-ky/public/portraits/tien-tri.png" alt="" /></span>
+              </div>
+              <span class="wave">Đợt 2/2</span>
+            </div>
+            <div class="progress"><i style="width:33%"></i></div>
+          </div>
+
+          <div class="board">
+            <div class="board-top">
+              <div class="side-label"><span>SAU</span><span>GIỮA</span><span>TRƯỚC</span></div>
+              <div class="side-label right"><span>TRƯỚC</span><span>GIỮA</span><span>SAU</span></div>
+            </div>
+            <div class="clash"><span class="clash-note">⚔</span></div>
+            <div class="grid"><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait" style="filter:grayscale(1);opacity:.55"><img src="../../../games/van-du-ky/public/portraits/tien-tri.png" alt="" /></div><div class="hp"><i style="width:0%"></i></div><div class="meta"><span class="element ti">N</span><span class="pips"><i class="off"></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/troi-buoc.png" alt="" /></div><div class="hp"><i style="width:22%"></i></div><div class="meta"><span class="element ga">G</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/ve-binh.png" alt="" /></div><div class="hp"><i style="width:18%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i></i><i></i></span></div></div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/moc-y.png" alt="" /></div><div class="hp"><i style="width:15%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait" style="filter:grayscale(1);opacity:.55"><img src="../../../games/van-du-ky/public/portraits/loi-vu.png" alt="" /></div><div class="hp"><i style="width:0%"></i></div><div class="meta"><span class="element ga">G</span><span class="pips"><i class="off"></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell hero"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/kiem-si.png" alt="" /></div><div class="hp"><i style="width:10%"></i></div><div class="meta"><span class="element em">L</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell hero empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/sen-da.png" alt="" /></div><div class="hp"><i style="width:88%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/soi-tro.png" alt="" /></div><div class="hp"><i style="width:64%"></i></div><div class="meta"><span class="element em">L</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy boss"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/sen-da-co.png" alt="" /></div><div class="hp"><i style="width:72%"></i></div><div class="meta"><span class="element st">Đ</span><span class="pips"><i></i><i></i><i></i></span></div></div><span class="terrain">☠</span></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/doi-lua.png" alt="" /></div><div class="hp"><i style="width:35%"></i></div><div class="meta"><span class="element em">L</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/bun-non.png" alt="" /></div><div class="hp"><i style="width:49%"></i></div><div class="meta"><span class="element ti">N</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy"><div class="rim"></div><div class="shape"></div><div class="body"><div class="portrait"><img src="../../../games/van-du-ky/public/portraits/may-xam.png" alt="" /></div><div class="hp"><i style="width:81%"></i></div><div class="meta"><span class="element ga">G</span><span class="pips"><i></i><i class="off"></i><i class="off"></i></span></div></div></div><div class="cell enemy empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell enemy empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div><div class="cell enemy empty"><div class="rim"></div><div class="shape"></div><div class="body">+</div></div></div>
+            <span class="dmg d1">-64</span>
+            <span class="dmg d2">-120</span>
+          </div>
+
+          <div class="panel-tabs"><span class="panel-tab on">Đường đi</span><span class="panel-tab">Dự bị</span><span class="panel-tab">Chiêu</span></div>
+          <div class="road">
+            <div class="road-head"><strong>Đường đi · Đồi Sương</strong><span class="count">4/12</span><button type="button" class="auto" style="border-color:var(--accent);color:var(--accent);background:#2d1f1c">Dừng</button></div>
+            <div class="nodes">
+              <span class="node done"><i></i><span>1</span></span>
+              <span class="node done"><i></i><span>2</span></span>
+              <span class="node done"><i></i><span>3</span></span>
+              <span class="node now boss"><i></i><span>4</span><em class="star">✦</em></span>
+              <span class="node"><i></i><span>5</span></span>
+              <span class="node"><i></i><span>6</span></span>
+              <span class="node"><i></i><span>7</span></span>
+              <span class="node"><i></i><span>8</span><em class="star">✦</em></span>
+              <span class="node"><i></i><span>9</span></span>
+              <span class="node"><i></i><span>10</span></span>
+              <span class="node"><i></i><span>11</span></span>
+              <span class="node boss"><i></i><span>12</span><em class="star">☠</em></span>
+            </div>
+            <div class="road-foot"><span>Tường: <b>1-4 · thiếu 1.200 sức mạnh</b></span><span>Đội: 7.850</span></div>
+          </div>
+
+          <div class="wall">
+            <div class="wall-title">Tường ở màn 1-4 <span>· Đội còn 4 hero</span></div>
+            <div class="wall-body">Đổi đội hình, nâng gear hoặc thử lại. Không mất năng lượng, không mất màn đã qua.</div>
+            <div class="wall-actions">
+              <button type="button">Đổi đội</button>
+              <button type="button">Nâng cấp</button>
+              <button type="button" class="primary">Đánh lại 1-4</button>
+            </div>
+          </div>
+
+          <div class="controls">
+            <div class="ctl on">◉<b>Tự</b></div>
+            <div class="ctl"><b>×2</b>Tốc</div>
+            <div class="ctl"><b>▶</b>Chạy</div>
+            <div class="ctl primary">★<b>Nâng cấp</b></div>
+          </div>
+          <div class="dock">
+            <div class="dock-item active"><b>♟</b>Đội</div>
+            <div class="dock-item"><b>⚙</b>Trang bị</div>
+            <div class="dock-item"><b>▣</b>Triệu hồi<span class="dot"></span></div>
+            <div class="dock-item"><b>▤</b>Sổ tay</div>
+            <div class="dock-item"><b>◷</b>Hôm nay<span class="dot"></span></div>
+          </div>
+        </div>
+        <p class="caption">
+          <b>3 · Tường (thua).</b> Không còn modal chặn màn hình: một dải “tường” trong panel dưới nói thiếu gì và cho
+          Đổi đội / Nâng cấp / Đánh lại. Board đứng yên, người chơi vẫn thấy tiến trình đường đi.
+        </p>
+      </div>
+    </div>
+
+    <div class="legend">
+      <span><i></i> Ô hero</span>
+      <span><i class="enemy"></i> Ô địch</span>
+      <span><i class="empty"></i> Ô trống/mở</span>
+      <span><i class="gold"></i> Ô đang chọn / boss</span>
+    </div>
+
+    <div class="notes">
+      <div class="note">
+        <h3>Vì sao 9 ô mỗi bên?</h3>
+        <p>
+          Đủ chỗ cho 6 hero + 3 ô mở, tạo lựa chọn vị trí mà không phá 3 hàng trước/giữa/sau của combat hiện tại. Board
+          ngang 6 cột vẫn vừa 320 px nếu card tối giản; 390 px thì card thoải mái hơn. Nếu muốn nhiều hơn, phương án
+          kế tiếp là 4 hàng × 3 cột (12 ô/bên), nhưng cần thêm một hàng vào logic combat.
+        </p>
+      </div>
+      <div class="note">
+        <h3>Card trên board</h3>
+        <p>
+          Chỉ portrait, HP, gem nguyên tố và charge. Không tên, không role, không số — chạm để mở card chi tiết. Nhờ
+          vậy ô ngũ giác nhỏ vẫn đọc được, và board không còn là một bảng chữ.
+        </p>
+      </div>
+      <div class="note">
+        <h3>Tự đi, không popup</h3>
+        <p>
+          Thắng màn: dải xanh trong feed + marker đường đi chạy + loot hiện lên; board chuyển màn sau ~0.8 s. Thua:
+          dải “tường” trong panel dưới, không khoá màn hình. Boss/chương có thể có ribbon lớn hơn nhưng vẫn không chặn.
+        </p>
+      </div>
+      <div class="note">
+        <h3>Đáy màn hình dài</h3>
+        <p>
+          Đề xuất: <b>đường đi 12 màn + feed 3 dòng + điều khiển + dock</b>. Khi xếp đội, feed đổi thành bàn hero.
+          Phương án khác: bàn tay chiêu (3 skill) cho chế độ đánh tay; hoặc log trận đầy đủ. Mình nghiêng phương án
+          đường đi + feed vì nó vừa cho tiến trình vừa làm trận đánh dễ hiểu.
+        </p>
+      </div>
+      <div class="note">
+        <h3>Cơ chế mở</h3>
+        <p>
+          Ô trống = chỗ đặt thêm/đổi chỗ. Ô địa hình (Đá/Gió/Nước/Lửa) cho buff nhỏ. Có thể mở thêm ô theo cấp công
+          ty, và thưởng thêm nếu hero bond đứng cạnh nhau trên bàn ngũ giác.
+        </p>
+      </div>
+      <div class="note">
+        <h3>Góp ý giúp mình</h3>
+        <ul>
+          <li>9 ô/bên hay 12 ô/bên?</li>
+          <li>Card bỏ hẳn tên, hay giữ tên 1 dòng?</li>
+          <li>Đáy: đường đi + feed, hay bàn tay chiêu?</li>
+          <li>Ô địa hình có nên vào bản này không?</li>
+          <li>Thắng có cần ribbon lớn hơn cho boss/chương không?</li>
+        </ul>
+      </div>
+    </div>
+  </body>
+</html>

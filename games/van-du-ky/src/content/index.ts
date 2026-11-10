@@ -22,14 +22,14 @@ export const RULES: BattleRules = {
   gear: (id): GearDef => lookup(GEAR.items, 'gear', id),
 };
 
-/** The company's opening team: two front, two mid, two back. */
+/** The company's opening team: two front, two mid, two back, spread over the four lanes. */
 export const STARTER_TEAM: readonly HeroLoadout[] = [
-  { heroId: 've-binh', row: 0, column: 0, star: 2, gear: [] },
-  { heroId: 'kiem-si', row: 0, column: 1, star: 2, gear: ['kiem-lua'] },
+  { heroId: 've-binh', row: 0, column: 1, star: 2, gear: [] },
+  { heroId: 'kiem-si', row: 0, column: 2, star: 2, gear: ['kiem-lua'] },
   { heroId: 'troi-buoc', row: 1, column: 0, star: 1, gear: [] },
-  { heroId: 'loi-vu', row: 1, column: 1, star: 1, gear: [] },
-  { heroId: 'tien-tri', row: 2, column: 0, star: 2, gear: ['bua-nuoc'] },
-  { heroId: 'moc-y', row: 2, column: 1, star: 1, gear: [] },
+  { heroId: 'loi-vu', row: 1, column: 3, star: 1, gear: [] },
+  { heroId: 'tien-tri', row: 2, column: 1, star: 2, gear: ['bua-nuoc'] },
+  { heroId: 'moc-y', row: 2, column: 2, star: 1, gear: [] },
 ];
 
 /** The bond whose two heroes are exactly this pair, in either order. */

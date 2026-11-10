@@ -29,23 +29,6 @@ const shell = createShell({
   },
   settings: [
     {
-      label: t.autoCast,
-      icon: 'lightbulb',
-      when: 'any-time',
-      content: () => {
-        const row = document.createElement('label');
-        row.className = 'setting-row';
-        const input = document.createElement('input');
-        input.type = 'checkbox';
-        input.checked = store.save.settings.autoCast;
-        input.addEventListener('change', () => {
-          store.set({ ...store.save, settings: { ...store.save.settings, autoCast: input.checked } });
-        });
-        row.append(input, document.createTextNode(t.autoCastNote));
-        return row;
-      },
-    },
-    {
       label: t.reducedMotion,
       icon: 'shield',
       when: 'any-time',

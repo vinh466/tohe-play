@@ -3,10 +3,11 @@
 This is the working ledger for the build. The plan (`PLAN.md`) decides **what**; this page says **where we are** and
 what to do next. Update it at the end of every session, newest session first in the log.
 
-- Branch: `feat/van-du-ky-core` (based on `plan/idle-card-rpg`)
+- Branch: `plan/hex-board` for the hex-board research (game work merges via `feat/van-du-ky-core`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C7 — UI/UX v2 green** (v1.0.1, 2026-11-10); C6 v1.0.0 shipped to production
-- Release: PR [#208](https://github.com/vinh466/tohe-play/pull/208) open, CI green; no deploy, no tag, no merge until the owner says so.
+- Current checkpoint: **C9 — 12-cell hex board implemented** (v1.1.0 RC, 2026-11-10), awaiting the release word;
+  C8 concept approved by the owner; C7 UI/UX v2 and C6 v1.0.0 live as v1.0.1
+- Release: v1.0.1 live (prod-2026-11-10.2); v1.1.0 built and verified locally; no deploy, no tag, no merge until the owner says so.
 
 ## Checkpoints
 
@@ -19,7 +20,9 @@ what to do next. Update it at the end of every session, newest session first in 
 | C4 | Content slice | region 1 (12 stages), 6 heroes, 1 boss | **done** |
 | C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | **done** |
 | C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (v1.0.0 live, prod-2026-11-10.1) |
-| C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **in progress → green** |
+| C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **done** (v1.0.1 live) |
+| C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **done** (owner approved 2026-11-10) |
+| C9 | 12-cell hex board | core columns 0–3, 12-cell formations/terrain, DOM/CSS board, loss popup/rewind, auto road, effect pass, tests, conformance | **done** (v1.1.0 RC, 331 KB, p50 16.7 ms) |
 
 ## Staging and deviations
 
@@ -30,7 +33,7 @@ what to do next. Update it at the end of every session, newest session first in 
 3. **The game is dark-only** (`themes: ["dark"]`), as decided in D-13. The hub is still light/dark; the game keeps its
    own look. Screenshot the game at 360 px.
 4. **No music** (D-15). SFX + haptics only.
-5. **The board is 6v6 / 3 rows**; the 360×640 test is a gate, not a nice-to-have.
+5. **The board is 6v6 on 12 cells per side** (6 deployed, 6 open) with four lanes and three ranks; the 320×568 test is a gate, not a nice-to-have.
 
 ## Workstreams
 
@@ -106,6 +109,38 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-10 — agent (12-cell hex board implemented)
+
+- Owner approved the DOM/CSS + effect direction ("hợp lý, chốt mạnh như v làm chuẩn đi").
+- Core: `Column` 0–3, 12-cell starter/formation, `DEPLOY_SLOTS` two per rank, terrain stat marks; replay pays gold only.
+- View: Phaser removed; DOM/CSS 24-hex board (`view.ts`), pooled numbers, CSS/WAAPI hit/crit/active/heal/shield/death,
+  ×3 and reduced-motion variants, cached centres. Stage deck: road + 3-line feed, 12-cell bench, loss popup, wall.
+- Win: no modal, clear ribbon + road marker + next stage after ~0.8 s. Loss: small popup, auto rewind to wave start,
+  basic gold only, one retry then wall. Boss: one gold-rimmed hex. Auto always; only `Dừng`.
+- Verified: typecheck, 73 tests, balance sim (48/48), build (331 KB), conformance PASS; headless DPR 2 p50/p95 16.7 ms
+  at 320/360/390, no long tasks. Full `pnpm verify`: 62/63 tasks; the pre-existing API hard-bot timing test failed at
+  21.6 s (>20 s) under suite load, passes alone (609/610). Next: owner's release word; then PR, merge, tag, UAT/prod.
+
+### 2026-11-10 — agent (DOM/CSS and effects spike)
+
+- Owner asked whether DOM/CSS expands well and how to make attacks/hits feel better.
+- Wrote `research/R-14-effects-and-expansion.md`: growth table, effect tiers (hit/crit/active), heal/shield/status/death,
+  timing, perf rules (compositor-only, pools, cached centres), ×3 and reduced-motion variants, canvas overlay as escape hatch.
+- Built `research/tech-spike/dom-effects.html`: 24 hexes, 6v6, turn rail, road/feed, interactive effect buttons;
+  p50/p95 16.7 ms at DPR 2, no long tasks; verified orb → impact → flash/ring/number/hp-ghost sequence (`?manual`, `window.vdDemo`).
+- Next: owner approves the DOM board + effect direction; then implement core columns 0–3, 12-cell stages, the DOM view,
+  loss popup/auto rewind and the effect pass.
+
+### 2026-11-10 — agent (pentagon board concept)
+
+- Owner review of 1.0.1: UI bugs fixed, performance average (keep improving), content okay; wants a new battle-screen
+  concept: pentagon cells, left/right, more cells than 6, minimal cards, no blocking win popup, use the tall bottom.
+- Wrote `research/R-12-hex-board.md` and `wireframes/hex-board-v6.html`: 6×4 flat-top hexagons, 12 cells/side,
+  6 deployed, 6 open; seamless honeycomb; road + feed + tabs at the bottom; loss popup + auto retry.
+- Owner feedback: 12 cells, loss popup + auto rewind (gold only), auto always, boss 1 cell, terrain if cheap. Open: retry-win rewards, card text, deck tabs, DOM/CSS vs Phaser.
+- Wrote `research/R-13-tech-stack.md` and `research/tech-spike/dom-board.html`: DOM/CSS 24 hexes, 12 units, 170 numbers/6 s, p50 16.7 ms at 320/360/390, no long tasks.
+- Next: owner approves DOM/CSS; then core columns 0–3, 12-cell formation/stages and the DOM view.
 
 ### 2026-11-10 — agent (UI/UX v2)
 

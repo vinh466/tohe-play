@@ -114,7 +114,7 @@ export function normalize(input: SaveData): SaveData {
             !!entry &&
             typeof entry.heroId === 'string' &&
             (entry.row === 0 || entry.row === 1 || entry.row === 2) &&
-            (entry.column === 0 || entry.column === 1),
+            (entry.column === 0 || entry.column === 1 || entry.column === 2 || entry.column === 3),
         )
         .slice(0, 6)
     : [];

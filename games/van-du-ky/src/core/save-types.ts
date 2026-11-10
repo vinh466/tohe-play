@@ -16,7 +16,7 @@ export interface SaveHero {
 export interface SaveFormation {
   readonly heroId: string;
   readonly row: 0 | 1 | 2;
-  readonly column: 0 | 1;
+  readonly column: 0 | 1 | 2 | 3;
 }
 
 export interface SaveRecords {

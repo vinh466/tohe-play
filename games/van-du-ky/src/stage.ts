@@ -1,10 +1,10 @@
-// The play stage (ADR 0020): the board is the whole game. The stage is a column — HUD, board canvas, controls, dock —
-// so the HUD can never cover a card. The Phaser scene draws the 6v6 cards; this file owns the shell's menu button, the
-// bars, the number layer and every run mode (story, tower, expedition, world boss, weekly challenge).
+// The play stage (ADR 0020): the board is the whole game. The stage is a column — HUD, hex board, deck, controls,
+// dock — so nothing can cover a card. The board itself is DOM/CSS (view.ts); this file owns the shell menu, HUD,
+// the road/bench deck, rewards, the loss rewind and every run mode (story, tower, expedition, world boss, challenge).
 import { haptics, icon as kitIcon, type PlayStage, type StageContext } from '@tohe/game-kit';
-import { createGame } from '@tohe/game-kit/phaser';
 import { persist, session, sfx, store, t } from './app.ts';
 import { bossStage, challengeStage, expeditionStage, towerStage } from './content/events.ts';
+import { HEROES } from './content/heroes.ts';
 import { REGIONS, regionNumber, STAGES } from './content/stages.ts';
 import {
   dailyReady,
@@ -17,20 +17,24 @@ import {
   weekKey,
 } from './core/daily.ts';
 import {
+  addCurrency,
   hasAffordableUpgrade,
   loadouts,
   nextStage,
   recordClear,
   resetDaily,
   resetWeekly,
+  teamPower,
 } from './core/progression.ts';
 import type { SaveData } from './core/save-types.ts';
+import { terrainAt } from './core/terrain.ts';
 import type { StageDef } from './core/types.ts';
 import type { RunMode } from './ui/run-mode.ts';
 import {
   closeSheets,
   openCodex,
   openDailySheet,
+  openEnemySheet,
   openGearSheet,
   openHeroSheet,
   openOfflineCard,
@@ -39,7 +43,7 @@ import {
   openTeamSheet,
   type SheetHost,
 } from './ui/sheets.ts';
-import { BoardScene, type BoardSceneData, type BoardSummary, type Impact, type TurnToken } from './view.ts';
+import { type BoardSummary, BoardView, type FeedEvent, type TurnToken } from './view.ts';
 
 /** The stage the story resumes at: the next stage of the road, or the last one after the end. */
 function storyStage(save: SaveData): StageDef {
@@ -54,6 +58,10 @@ function compact(value: number): string {
   if (value >= 1_000_000) return `${(value / 1_000_000).toFixed(1).replace('.0', '')}m`;
   if (value >= 10_000) return `${Math.round(value / 1000)}k`;
   return value.toLocaleString('vi-VN');
+}
+
+function power(value: number): string {
+  return Math.round(value).toLocaleString('vi-VN');
 }
 
 function el<K extends keyof HTMLElementTagNameMap>(
@@ -98,6 +106,23 @@ function resourceIcon(kind: 'gold' | 'essence'): SVGSVGElement {
   return svg;
 }
 
+interface FeedLine {
+  readonly kind: 'hit' | 'heal' | 'shield' | 'death' | 'clear' | 'loss' | 'info';
+  readonly tag: string;
+  readonly text: string;
+  readonly next?: string;
+}
+
+const FEED_TAG: Record<FeedLine['kind'], string> = {
+  hit: '⚔',
+  heal: '✚',
+  shield: '◈',
+  death: '☠',
+  clear: '✓',
+  loss: '✕',
+  info: '▸',
+};
+
 export async function start(ctx: StageContext): Promise<PlayStage> {
   const template = document.querySelector<HTMLTemplateElement>('#play-stage') as HTMLTemplateElement;
   ctx.root.append(template.content.cloneNode(true));
@@ -109,8 +134,11 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   let mode: RunMode = { kind: 'story' };
   let stage: StageDef = storyStage(store.save);
   let stopped = false;
-  let scene!: BoardScene;
-  let kit!: ReturnType<typeof createGame>;
+  let view!: BoardView;
+  let activeTab: 'road' | 'bench' = 'road';
+  let lossCount = 0;
+  let lossTimer: number | null = null;
+  let runToken = 0;
 
   // MARK: HUD
 
@@ -160,30 +188,24 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     turnChips.push(chip);
   }
 
-  // MARK: board and effect layer
+  // MARK: board, effects, loss popup
 
-  const board = el('div', 'battle-board');
-  root.append(board);
-  const fx = el('div', 'battle-fx');
-  board.append(fx);
-  const fxPool: HTMLDivElement[] = [];
-  for (let index = 0; index < 12; index++) {
-    const node = el('div', 'dmg');
-    fx.append(node);
-    fxPool.push(node);
-  }
-  let fxCursor = 0;
+  const boardHost = el('div', 'battle-board');
+  root.append(boardHost);
 
-  const impact = (data: Impact) => {
-    const node = fxPool[fxCursor++ % fxPool.length] as HTMLDivElement;
-    node.className = `dmg ${data.kind}`;
-    node.textContent = data.text;
-    node.style.left = `${data.x}px`;
-    node.style.top = `${data.y}px`;
-    node.style.animation = 'none';
-    void node.offsetWidth;
-    node.style.animation = '';
-  };
+  const lossPopup = el('div', 'loss-popup');
+  lossPopup.hidden = true;
+  const lossInfo = el('div', 'loss-info');
+  const lossTitle = el('strong');
+  const lossBody = el('span');
+  lossInfo.append(lossTitle, lossBody);
+  const lossStop = el('button', 'loss-stop', t.stop);
+  lossStop.type = 'button';
+  lossStop.addEventListener('click', () => cancelLossRetry());
+  const lossTimerBar = el('div', 'loss-timer');
+  lossTimerBar.append(el('i'));
+  lossPopup.append(lossInfo, lossStop, lossTimerBar);
+  boardHost.append(lossPopup);
 
   const renderTurn = (tokens: readonly TurnToken[], currentId: string | null) => {
     turnChips.forEach((chip, index) => {
@@ -202,6 +224,156 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     });
   };
 
+  // MARK: deck (road + feed, bench)
+
+  const deck = el('div', 'battle-deck');
+  const tabs = el('div', 'deck-tabs');
+  const roadTab = el('button', 'deck-tab on', 'Đường đi');
+  roadTab.type = 'button';
+  const benchTab = el('button', 'deck-tab', 'Dự bị');
+  benchTab.type = 'button';
+  tabs.append(roadTab, benchTab);
+  deck.append(tabs);
+
+  const roadPanel = el('div', 'deck-panel road-panel');
+  const roadHead = el('div', 'road-head');
+  const roadTitle = el('strong');
+  const roadCount = el('span', 'road-count');
+  const autoBadge = el('span', 'auto-badge', '● Tự động');
+  roadHead.append(roadTitle, roadCount, autoBadge);
+  const roadNodes = el('div', 'road-nodes');
+  const roadFoot = el('div', 'road-foot');
+  const nextLine = el('span');
+  const teamLine = el('span');
+  roadFoot.append(nextLine, teamLine);
+  const feed = el('div', 'feed');
+  roadPanel.append(roadHead, roadNodes, roadFoot, feed);
+  deck.append(roadPanel);
+
+  const benchPanel = el('div', 'deck-panel bench-panel');
+  benchPanel.hidden = true;
+  const benchGrid = el('div', 'bench-grid');
+  const benchAction = el('button', 'bench-action vd-btn small', 'Sửa đội hình');
+  benchAction.type = 'button';
+  benchAction.addEventListener('click', () => openTeamSheet(sheetHost, (id) => openHeroSheet(sheetHost, id)));
+  benchPanel.append(benchGrid, benchAction);
+  deck.append(benchPanel);
+
+  const wallPanel = el('div', 'wall-panel');
+  wallPanel.hidden = true;
+  const wallTitle = el('strong', 'wall-title');
+  const wallBody = el('span', 'wall-body');
+  const wallActions = el('div', 'wall-actions');
+  const wallTeam = el('button', 'vd-btn small', 'Đổi đội');
+  wallTeam.type = 'button';
+  wallTeam.addEventListener('click', () => openTeamSheet(sheetHost, (id) => openHeroSheet(sheetHost, id)));
+  const wallUpgrade = el('button', 'vd-btn small', 'Nâng cấp');
+  wallUpgrade.type = 'button';
+  wallUpgrade.addEventListener('click', () => openTeamSheet(sheetHost, (id) => openHeroSheet(sheetHost, id)));
+  const wallRetry = el('button', 'vd-btn small primary', t.retry);
+  wallRetry.type = 'button';
+  wallRetry.addEventListener('click', () => {
+    hideWall();
+    lossCount = 0;
+    stopped = false;
+    paintHud();
+    view.restartStage(loadouts(store.save));
+  });
+  wallActions.append(wallTeam, wallUpgrade, wallRetry);
+  wallPanel.append(wallTitle, wallBody, wallActions);
+  deck.append(wallPanel);
+  root.append(deck);
+
+  let feedLines: FeedLine[] = [];
+
+  const renderFeed = () => {
+    feed.replaceChildren(
+      ...feedLines.map((line) => {
+        const node = el('div', `feed-line ${line.kind}`);
+        node.append(el('span', 'feed-tag', line.tag), el('span', 'feed-text', line.text));
+        if (line.next) node.append(el('span', 'feed-next', line.next));
+        return node;
+      }),
+    );
+  };
+
+  const addFeed = (line: FeedLine) => {
+    feedLines = [line, ...feedLines].slice(0, 3);
+    renderFeed();
+  };
+
+  const setDeckTab = (tab: 'road' | 'bench') => {
+    activeTab = tab;
+    roadTab.classList.toggle('on', tab === 'road');
+    benchTab.classList.toggle('on', tab === 'bench');
+    if (wallPanel.hidden) {
+      roadPanel.hidden = tab !== 'road';
+      benchPanel.hidden = tab !== 'bench';
+    }
+  };
+  roadTab.addEventListener('click', () => setDeckTab('road'));
+  benchTab.addEventListener('click', () => setDeckTab('bench'));
+
+  const renderBench = () => {
+    const team = loadouts(store.save);
+    const byCell = new Map(team.map((hero) => [`${hero.row}:${hero.column}`, hero]));
+    benchGrid.replaceChildren();
+    for (let row = 0; row < 3; row++) {
+      for (let column = 0; column < 4; column++) {
+        const hero = byCell.get(`${row}:${column}`);
+        const terrain = terrainAt('hero', row as 0 | 1 | 2, column as 0 | 1 | 2 | 3);
+        const slot = el('button', `bench-cell${hero ? ' filled' : ''}${terrain ? ' has-terrain' : ''}`);
+        slot.type = 'button';
+        slot.title = terrain ? `Ô ${row + 1}-${column + 1} · ${terrain.label}` : `Ô ${row + 1}-${column + 1}`;
+        if (hero) {
+          const def = HEROES.items.find((candidate) => candidate.id === hero.heroId);
+          const image = el('img');
+          image.src = `portraits/${hero.heroId}.png`;
+          image.alt = '';
+          image.draggable = false;
+          slot.append(image, el('span', 'bench-name', def?.name ?? hero.heroId));
+        } else {
+          slot.append(el('span', 'bench-plus', '+'));
+        }
+        if (terrain) slot.append(el('span', 'bench-terrain', terrain.label));
+        slot.addEventListener('click', () => openTeamSheet(sheetHost, (id) => openHeroSheet(sheetHost, id)));
+        benchGrid.append(slot);
+      }
+    }
+  };
+
+  const renderRoad = () => {
+    roadNodes.replaceChildren();
+    if (mode.kind !== 'story') {
+      roadTitle.textContent = modeLabel(mode);
+      roadCount.textContent = modeStageName(mode);
+      roadNodes.hidden = true;
+      roadFoot.hidden = true;
+      return;
+    }
+    roadNodes.hidden = false;
+    roadFoot.hidden = false;
+    const region = REGIONS.items.find((candidate) => candidate.id === stage.region);
+    roadTitle.textContent = `Đường đi · ${region?.name ?? ''}`;
+    roadCount.textContent = `${stage.index}/12`;
+    for (let index = 1; index <= 12; index++) {
+      const node = el(
+        'span',
+        `road-node${index < stage.index ? ' done' : index === stage.index ? ' now' : ''}${
+          index === 12 ? ' boss' : ''
+        }`,
+      );
+      node.append(el('i'), el('span', '', String(index)));
+      roadNodes.append(node);
+    }
+    const next = nextStage(stage);
+    nextLine.replaceChildren(
+      document.createTextNode('Tiếp: '),
+      el('b', '', next ? `${t.stage(next.id)} · ${power(next.recommendedPower)}` : 'hết chặng'),
+    );
+    teamLine.replaceChildren(document.createTextNode('Đội: '), el('b', '', power(teamPower(store.save))));
+  };
+
   // MARK: controls and dock
 
   const controls = el('div', 'battle-controls');
@@ -217,22 +389,29 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     return { button, icon, big, label: small };
   };
 
-  const auto = makeControl('lightbulb', t.autoOnShort, () => {
-    const on = !store.save.settings.autoCast;
-    store.set({ ...store.save, settings: { ...store.save.settings, autoCast: on } });
-    scene.setAutoCast(on);
-  });
-  auto.button.setAttribute('aria-label', t.autoCast);
   const speed = makeControl('timer', t.speedShort, () => {
     const next = store.save.settings.speed === 1 ? 2 : store.save.settings.speed === 2 ? 3 : 1;
     store.set({ ...store.save, settings: { ...store.save.settings, speed: next } });
-    scene.setSpeed(next);
+    view.setSpeed(next);
+    paintHud();
   });
   speed.button.setAttribute('aria-label', t.speed);
   const stop = makeControl('pause', t.stop, () => {
+    if (!lossPopup.hidden) {
+      cancelLossRetry();
+      return;
+    }
+    if (!wallPanel.hidden) return;
     stopped = !stopped;
-    if (stopped) scene.stopAuto();
-    else scene.resumeAuto();
+    if (stopped) {
+      view.stopAuto();
+      if (!wallPanel.hidden) {
+        // The wall is already the stopped state.
+      }
+    } else {
+      view.resumeAuto();
+      hideWall();
+    }
     paintHud();
   });
   stop.button.setAttribute('aria-label', t.stop);
@@ -240,7 +419,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   upgrade.type = 'button';
   upgrade.append(kitIcon('star'), el('span', 'ctl-primary-label', t.upgrade), el('i', 'badge'));
   upgrade.addEventListener('click', () => openTeamSheet(sheetHost, (id) => openHeroSheet(sheetHost, id)));
-  controls.append(auto.button, speed.button, stop.button, upgrade);
+  controls.append(speed.button, stop.button, upgrade);
   root.append(controls);
 
   const dock = el('nav', 'battle-dock');
@@ -313,16 +492,18 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     }
     goldValue.textContent = compact(save.currencies.gold);
     essenceValue.textContent = compact(save.currencies.essence);
-    auto.label.textContent = save.settings.autoCast ? t.autoOnShort : t.autoOffShort;
-    auto.button.classList.toggle('on', save.settings.autoCast);
-    auto.button.setAttribute('aria-pressed', String(save.settings.autoCast));
     speed.big.textContent = `×${save.settings.speed}`;
     stop.label.textContent = stopped ? t.run : t.stop;
     stop.icon.replaceChildren(kitIcon(stopped ? 'play' : 'pause'));
+    view?.setReducedMotion(save.settings.reducedMotion);
+    autoBadge.textContent = stopped ? '● Đã dừng' : '● Tự động';
+    autoBadge.classList.toggle('paused', stopped);
     upgradeBadge.style.display = hasAffordableUpgrade(save) ? 'block' : 'none';
     summonBadge.style.display = save.currencies.shards >= 100 ? 'block' : 'none';
     dailyBadge.style.display = dailyReady(save) ? 'block' : 'none';
     stageButton.setAttribute('aria-label', `${regionLine.textContent}, ${stageLine.textContent}`);
+    renderRoad();
+    renderBench();
   };
 
   // MARK: modes
@@ -343,20 +524,32 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     }
   };
 
-  const data = (): BoardSceneData => ({
+  const data = () => ({
     stage,
     team: loadouts(store.save),
     companyLevel: store.save.company.level,
-    autoCast: store.save.settings.autoCast,
     speed: store.save.settings.speed,
     reducedMotion: store.save.settings.reducedMotion,
-    onEnd: (result, summary) => finish(result, summary),
+    onEnd: (result: 'win' | 'lose', summary: BoardSummary) => finish(result, summary),
     onTurn: renderTurn,
-    onImpact: impact,
-    onWave: (wave, total) => {
+    onWave: (wave: number, total: number) => {
       waveLabel.textContent = `${t.wave} ${wave}/${total}`;
     },
-    onCardTap: (defId) => openHeroSheet(sheetHost, defId),
+    onFeed: (event: FeedEvent) => {
+      const amount = event.amount ?? 0;
+      const sign = event.kind === 'hit' || event.kind === 'death' ? '-' : '+';
+      const text =
+        event.kind === 'death'
+          ? `${event.target} ngã`
+          : `${event.source} · ${event.skill ?? 'Đòn đánh'} · ${sign}${amount} · ${event.target}${
+              event.crit ? ' · chí mạng' : ''
+            }`;
+      addFeed({ kind: event.kind, tag: FEED_TAG[event.kind], text });
+    },
+    onCardTap: (defId: string, side: 'hero' | 'enemy') => {
+      if (side === 'hero') openHeroSheet(sheetHost, defId);
+      else openEnemySheet(sheetHost, defId);
+    },
   });
 
   const sheetHost: SheetHost = {
@@ -366,38 +559,56 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       void persist();
     },
     onTeamChanged: () => {
+      lossCount = 0;
+      hideLoss();
+      hideWall();
       paintHud();
-      scene.restart(data());
+      view.load(data());
+      if (stopped) view.stopAuto();
     },
     startStory: (next) => startRun(next, { kind: 'story' }),
     startMode: (next) => startRun(modeStage(next), next),
-    pause: () => kit.pause(),
-    resume: () => kit.resume(),
+    pause: () => view.pause(),
+    resume: () => view.resume(),
   };
 
   const startRun = (next: StageDef, nextMode: RunMode) => {
     ctx.overlay.hide();
+    runToken++;
     stage = next;
     mode = nextMode;
     stopped = false;
+    lossCount = 0;
+    hideLoss();
+    hideWall();
     paintHud();
-    scene.restart(data());
+    view.load(data());
+    setDeckTab('road');
   };
 
   const returnToStory = () => {
     ctx.overlay.hide();
+    runToken++;
     mode = { kind: 'story' };
     stage = storyStage(store.save);
     stopped = false;
+    lossCount = 0;
+    hideLoss();
+    hideWall();
     paintHud();
-    scene.restart(data());
+    view.load(data());
+    setDeckTab('road');
   };
 
   const retry = () => {
     ctx.overlay.hide();
+    runToken++;
     stopped = false;
+    lossCount = 0;
+    hideLoss();
+    hideWall();
     paintHud();
-    scene.restart(data());
+    view.load(data());
   };
 
   function finish(result: 'win' | 'lose', summary: BoardSummary): void {
@@ -424,77 +635,140 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     }
   }
 
-  function storyWin() {
+  // MARK: story: a clear ribbon, no popup; a loss popup, one auto rewind
+
+  function storyWin(): void {
     const before = store.save;
+    const first = !before.cleared.includes(stage.id);
     const after = recordClear(before, stage, Date.now());
     store.set(after);
-    sfx.play('levelUp');
-    haptics.play('celebrate');
-    const next = nextStage(stage);
+    sfx.play(first ? 'levelUp' : 'pop');
+    haptics.play(first ? 'celebrate' : 'tap');
     const gainedGold = after.currencies.gold - before.currencies.gold;
     const gainedEssence = after.currencies.essence - before.currencies.essence;
     const gainedShards = after.currencies.shards - before.currencies.shards;
-    ctx.gameOver(
-      {
-        title: t.win,
-        body: `${t.stage(stage.id)} · +${gainedGold} ${t.gold} · +${gainedEssence} ${t.essence}${
-          gainedShards > 0 ? ` · +${gainedShards} ${t.shards}` : ''
-        } · ${t.company} ${after.company.level}`,
-      },
-      next
-        ? {
-            label: `${t.next} · ${t.stage(next.id)}`,
-            icon: 'caret-right',
-            onClick: () => startRun(next, { kind: 'story' }),
-          }
-        : { label: t.stages, icon: 'house', onClick: returnToStory },
-      [
-        {
-          label: t.stages,
-          icon: 'house',
-          onClick: () => {
-            ctx.overlay.hide();
-            openStagePicker(sheetHost);
-          },
-        },
-        {
-          label: t.team,
-          icon: 'users-three',
-          onClick: () => {
-            ctx.overlay.hide();
-            openTeamSheet(sheetHost, (id) => openHeroSheet(sheetHost, id));
-          },
-        },
-      ],
-    );
+    const parts = [`+${gainedGold} ${t.gold}`];
+    if (gainedEssence > 0) parts.push(`+${gainedEssence} ${t.essence}`);
+    if (gainedShards > 0) parts.push(`+${gainedShards} ${t.shards}`);
+    const next = nextStage(stage);
+    const clearedId = stage.id;
+    addFeed({
+      kind: 'clear',
+      tag: '✓',
+      text: `${t.stage(stage.id)} đã qua · ${parts.join(' · ')}`,
+      next: next ? `→ ${next.id}` : undefined,
+    });
+    paintHud();
+    if (!next) {
+      stopped = true;
+      view.stopAuto();
+      paintHud();
+      addFeed({ kind: 'info', tag: '▸', text: 'Đã hết chặng đường hiện có.' });
+      return;
+    }
+    const token = ++runToken;
+    const delay = Math.max(400, 1000 - store.save.settings.speed * 200);
+    const advance = () => {
+      if (token !== runToken || mode.kind !== 'story' || stage.id !== clearedId) return;
+      if (document.querySelector('.vd-sheet')) {
+        window.setTimeout(advance, 220);
+        return;
+      }
+      stage = next;
+      stopped = false;
+      lossCount = 0;
+      paintHud();
+      view.load(data());
+      setDeckTab('road');
+    };
+    window.setTimeout(advance, delay);
   }
 
-  function storyLose() {
+  function storyLose(): void {
+    lossCount++;
+    const gold = 8 + stage.index * 2 + (regionNumber(stage.id) - 1) * 4;
+    store.set(addCurrency(store.save, { gold }));
+    paintHud();
+    addFeed({
+      kind: 'loss',
+      tag: '✕',
+      text: `Đội ngã ở đợt ${view.wave} · +${gold} ${t.gold} · không nhận thưởng màn`,
+    });
     sfx.play('error');
     haptics.play('error');
-    ctx.gameOver(
-      { title: t.lose, body: 'Đổi đội hình hoặc nâng gear rồi thử lại.' },
-      { label: t.retry, icon: 'arrow-counter-clockwise', onClick: retry },
-      [
-        {
-          label: 'Đổi đội hình',
-          icon: 'users-three',
-          onClick: () => {
-            ctx.overlay.hide();
-            openTeamSheet(sheetHost, (id) => openHeroSheet(sheetHost, id));
-          },
-        },
-        {
-          label: t.stages,
-          icon: 'house',
-          onClick: () => {
-            ctx.overlay.hide();
-            openStagePicker(sheetHost);
-          },
-        },
-      ],
-    );
+    if (lossCount >= 2) {
+      showWall();
+      return;
+    }
+    showLoss();
   }
+
+  function showLoss(): void {
+    clearLossTimer();
+    const wave = view.wave;
+    lossTitle.textContent = `Đội ngã ở đợt ${wave}`;
+    lossBody.textContent = `Quay lại đầu đợt ${wave} sau 1s · +${
+      8 + stage.index * 2 + (regionNumber(stage.id) - 1) * 4
+    } ${t.gold} · không nhận thưởng màn`;
+    lossPopup.hidden = false;
+    lossPopup.classList.remove('go');
+    void lossPopup.offsetWidth;
+    lossPopup.classList.add('go');
+    view.stopAuto();
+    stopped = true;
+    paintHud();
+    const token = runToken;
+    lossTimer = window.setTimeout(() => {
+      if (token !== runToken) return;
+      hideLoss();
+      stopped = false;
+      view.rewindWave();
+      if (document.querySelector('.vd-sheet')) view.pause();
+      paintHud();
+    }, 1200);
+  }
+
+  function cancelLossRetry(): void {
+    clearLossTimer();
+    hideLoss();
+    stopped = true;
+    view.stopAuto();
+    showWall();
+    paintHud();
+  }
+
+  function clearLossTimer(): void {
+    if (lossTimer !== null) {
+      window.clearTimeout(lossTimer);
+      lossTimer = null;
+    }
+  }
+
+  function hideLoss(): void {
+    clearLossTimer();
+    lossPopup.hidden = true;
+    lossPopup.classList.remove('go');
+  }
+
+  function showWall(): void {
+    clearLossTimer();
+    hideLoss();
+    stopped = true;
+    view.stopAuto();
+    wallTitle.textContent = `Đội dừng ở ${t.stage(stage.id)}`;
+    wallBody.textContent = `Đợt ${view.wave}/${stage.waves.length} · lần thua chỉ nhận vàng cơ bản · đổi đội hình hoặc nâng đồ rồi đánh lại.`;
+    wallPanel.hidden = false;
+    roadPanel.hidden = true;
+    benchPanel.hidden = true;
+    paintHud();
+  }
+
+  function hideWall(): void {
+    wallPanel.hidden = true;
+    setDeckTab(activeTab);
+  }
+
+  // MARK: other modes (unchanged popups; the board is shared)
 
   function towerEnd(result: 'win' | 'lose', summary: BoardSummary) {
     if (mode.kind !== 'tower') return retry();
@@ -623,37 +897,29 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     );
   }
 
+  // MARK: boot
+
   await document.fonts.ready;
-  kit = createGame({
-    parent: board,
-    background: '#171614',
-    maxDpr: 1.25,
-    createScene: () => {
-      scene = new BoardScene(data());
-      return scene;
-    },
-  });
-  board.append(fx);
-  const stopResize = kit.onResize(() => {
-    scene.relayout();
-    paintHud();
-  });
-  const unsubscribe = store.subscribe(paintHud);
+  view = new BoardView(boardHost, data());
+  setDeckTab('road');
+  addFeed({ kind: 'info', tag: '▸', text: 'Chạm một thẻ để mở hồ sơ · đoàn tự đánh' });
   paintHud();
+  const unsubscribe = store.subscribe(paintHud);
   ctx.ready();
   openOfflineCard(sheetHost);
   session.telemetry.count('stage.open');
 
   return {
-    pause: () => kit.pause(),
-    resume: () => kit.resume(),
-    newGame: () => scene.restart(data()),
+    pause: () => view.pause(),
+    resume: () => view.resume(),
+    newGame: () => view.restartStage(loadouts(store.save)),
     leave: async () => {
+      runToken++;
       unsubscribe();
-      stopResize();
+      clearLossTimer();
       await persist();
       closeSheets();
-      kit.destroy();
+      view.destroy();
     },
     quick: () => [],
   };
