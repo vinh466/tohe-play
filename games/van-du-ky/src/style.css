@@ -1287,6 +1287,26 @@ body {
   align-items: flex-start;
 }
 
+.hex-sides {
+  position: absolute;
+  top: calc(50% - var(--grid-h, 0px) * 0.5 - 12px);
+  left: 8px;
+  right: 8px;
+  z-index: 2;
+  display: flex;
+  justify-content: space-between;
+  color: var(--vd-muted);
+  font-size: 7px;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.hex-side.enemy {
+  color: #e07a68;
+}
+
 .hex-col {
   display: flex;
   flex: 0 0 auto;
@@ -1396,7 +1416,7 @@ body {
 .hex-hp {
   position: relative;
   width: clamp(24px, calc(var(--hw) * 0.58), 44px);
-  height: 4px;
+  height: 5px;
   overflow: hidden;
   border: 1px solid #171614;
   border-radius: 3px;
@@ -1539,20 +1559,43 @@ body {
   filter: drop-shadow(0 0 4px var(--vd-gold));
 }
 
+.hex-cell.casting .hex-rim {
+  filter: drop-shadow(0 0 7px var(--cast-color, var(--vd-gold)));
+}
+
+.hex-cell.low-hp .hex-hp .fill {
+  background: #e07a68;
+}
+
+.hex-pips.ready i {
+  box-shadow: 0 0 3px var(--vd-gold);
+}
+
 .hex-flash {
-  z-index: 3;
+  z-index: 4;
   background: #fff;
   opacity: 0;
   pointer-events: none;
 }
 
+.hex-impact {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%);
+  background: var(--hit-color, #fff);
+  opacity: 0;
+  pointer-events: none;
+  mix-blend-mode: screen;
+}
+
 .hex-ring,
 .hex-shield {
   position: absolute;
-  z-index: 3;
-  border: 3px solid var(--vd-gold);
+  z-index: 5;
+  border: 4px solid var(--vd-gold);
   border-radius: 50%;
-  inset: 10%;
+  inset: 6%;
   opacity: 0;
   pointer-events: none;
 }
@@ -1560,6 +1603,10 @@ body {
 .hex-shield {
   border-color: #8fc8ff;
   inset: 5%;
+}
+
+.hex-cell .hex-ring {
+  border-color: var(--ring-color, var(--vd-gold));
 }
 
 .hex-cell.attacking {
@@ -1576,6 +1623,10 @@ body {
 
 .hex-cell.hit {
   z-index: 5;
+}
+
+.hex-cell.hit .hex-rim {
+  filter: drop-shadow(0 0 6px var(--hit-color, #fff));
 }
 
 .hex-cell.hit.flee-right .hex-body {
@@ -1596,6 +1647,10 @@ body {
 
 .hex-cell.hit .hex-flash {
   animation: hex-flash calc(260ms * var(--fx)) ease-out;
+}
+
+.hex-cell.hit .hex-impact {
+  animation: hex-impact calc(240ms * var(--fx)) ease-out;
 }
 
 .hex-cell.hit .hex-ring {
@@ -1772,7 +1827,79 @@ body {
 
 .hex-board .dmg {
   z-index: 8;
+  font-size: 16px;
   animation-duration: calc(640ms * var(--fx));
+}
+
+.hex-board .dmg.crit {
+  font-size: 24px;
+}
+
+.hex-board .dmg.heal,
+.hex-board .dmg.shield {
+  font-size: 16px;
+}
+
+.hex-board .slash {
+  position: absolute;
+  z-index: 9;
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, currentColor 10%, #fff 50%, currentColor 90%, transparent);
+  box-shadow: 0 0 10px currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transform: translate(-50%, -50%) rotate(var(--slash-angle)) scaleX(0.2);
+  transform-origin: center;
+  animation: hex-slash 220ms ease-out forwards;
+}
+
+@keyframes hex-slash {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--slash-angle)) scaleX(0.2);
+  }
+  18% {
+    opacity: 1;
+  }
+  70% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -50%) rotate(var(--slash-angle)) scaleX(1);
+  }
+}
+
+.hex-board .strike {
+  position: absolute;
+  z-index: 8;
+  height: 3px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, transparent, currentColor 12%, #fff 50%, currentColor 88%, transparent);
+  box-shadow: 0 0 8px currentColor;
+  opacity: 0;
+  pointer-events: none;
+  transform: translateY(-50%) rotate(var(--angle)) scaleX(0);
+  transform-origin: left center;
+  animation: hex-strike 220ms ease-out forwards;
+}
+
+@keyframes hex-strike {
+  0% {
+    opacity: 0;
+    transform: translateY(-50%) rotate(var(--angle)) scaleX(0);
+  }
+  18% {
+    opacity: 1;
+  }
+  72% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translateY(-50%) rotate(var(--angle)) scaleX(1);
+  }
 }
 
 .hex-board .orb {
@@ -2342,7 +2469,10 @@ body {
 }
 
 .hex-board.reduced-motion .burst,
-.hex-board.reduced-motion .orb {
+.hex-board.reduced-motion .orb,
+.hex-board.reduced-motion .slash,
+.hex-board.reduced-motion .strike,
+.hex-board.reduced-motion .hex-impact {
   display: none;
 }
 
@@ -2360,7 +2490,10 @@ body {
   }
 
   .hex-board .burst,
-  .hex-board .orb {
+  .hex-board .orb,
+  .hex-board .slash,
+  .hex-board .strike,
+  .hex-board .hex-impact {
     display: none;
   }
 }

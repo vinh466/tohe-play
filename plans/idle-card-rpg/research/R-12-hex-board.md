@@ -139,6 +139,8 @@ from this game. The recommendation is DOM/CSS, keeping the kit shell/SFX/haptics
 - `DEPLOY_SLOTS` fills two cells per rank; six deployed, six open. Terrain lives in `core/terrain.ts`.
 - The stage deck has `Đường đi` (12-node road + three-line feed) and `Dự bị` (12-cell formation); the loss popup and
   wall live in `stage.ts`. Winning the last wave advances after ~0.8 s without a modal.
+- Speed is **×1 default**, with ×2/×5/×10. ×1 is deliberately readable: wind-up, element streak, slash, impact,
+  hit-stop and recovery are all visible; the other speeds scale the same timeline.
 - Build: **331 KB** (was 1.4 MB with Phaser); measured headless DPR 2 at 320/360/390: p50 **16.7 ms**, p95 16.7–16.8 ms,
   no long tasks.
 

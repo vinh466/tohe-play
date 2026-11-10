@@ -1,5 +1,7 @@
 /** The JSON the hub stores for Vân Du Ký. Every field is plain JSON; the game owns migrations. */
 
+import type { Speed } from './types.ts';
+
 export type SaveSlot = 'weapon' | 'armor' | 'charm' | 'relic';
 
 export interface SaveGear {
@@ -73,8 +75,10 @@ export interface SaveData {
   readonly summon: { readonly pityRare: number; readonly pityEpic: number; readonly lastFree: string | null };
   readonly settings: {
     readonly autoCast: boolean;
-    readonly speed: 1 | 2 | 3;
+    readonly speed: Speed;
     readonly reducedMotion: boolean;
+    /** Set by v1.1.1+; absent on older saves, which resets the old ×2 to the readable ×1 once. */
+    readonly speedV2?: boolean;
   };
   readonly offline: { readonly at: number; readonly stage: string };
   readonly tutorial: { readonly seen: boolean };

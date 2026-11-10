@@ -7,6 +7,7 @@ describe('save', () => {
     expect(Object.keys(save.roster)).toHaveLength(6);
     expect(save.formation).toHaveLength(6);
     expect(save.company.level).toBe(1);
+    expect(save.settings.speed).toBe(1);
     expect(save.currencies).toEqual({ gold: 0, essence: 0, shards: 100 });
     expect(save.daily.stages).toBe(0);
     expect(save.weekly.bossClaimed).toBe(false);
@@ -36,12 +37,29 @@ describe('save', () => {
     };
     const save = migrate(v1);
     expect(save.v).toBe(2);
+    expect(save.settings.speed).toBe(1);
     expect(save.company.level).toBe(3);
     expect(save.daily.stages).toBe(0);
     expect(save.daily.journeyDay).toBe(2);
     expect(save.weekly.week).toBe('');
     expect(save.progress.records.bestStage).toBe('1-1');
     expect(() => migrate({ v: 99 })).toThrow(SaveError);
+  });
+
+  it('keeps the new speeds and resets an old x2 save to the readable x1', () => {
+    const old = migrate({
+      ...emptySave(),
+      v: 2,
+      settings: { autoCast: true, speed: 2, reducedMotion: false },
+    });
+    expect(old.settings.speed).toBe(1);
+    for (const speed of [1, 2, 5, 10] as const) {
+      const next = migrate({
+        ...emptySave(),
+        settings: { autoCast: true, speed, reducedMotion: false, speedV2: true },
+      });
+      expect(next.settings.speed).toBe(speed);
+    }
   });
 
   it('keeps the new fourth lane and drops an out-of-range column', () => {

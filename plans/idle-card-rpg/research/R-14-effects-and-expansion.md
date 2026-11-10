@@ -1,6 +1,6 @@
 # R-14 — DOM/CSS for the long run: expansion and battle feel
 
-Date: 2026-11-10 · Status: **implemented** in the v1.1.0 hex board (`view.ts` + `style.css`)
+Date: 2026-11-10 · Status: **implemented** in the v1.1.0 hex board; the combat-feedback pass is v1.1.1 (`view.ts` + `style.css`)
 
 Question: if the board is DOM/CSS, is it good for future expansion, and how do we make attacks and hits feel right?
 The short answer: **yes for the UI and card game; effects are CSS/WAAPI first, with a tiny canvas overlay only if a
@@ -32,8 +32,8 @@ playing an effect every 1.4 s:
 |---|---|---|---|
 | 390×844 | **16.7 ms** | 16.7 ms | 0 |
 
-The effect layer uses ~10 temporary nodes per hit (ring, flash, 6–10 sparks, projectile, number), a pool of 16 number
-nodes, and removes nodes after the timeline. It never creates a per-frame game loop: the next turn is a timer, the
+The effect layer uses ~18 temporary nodes per hit (strike, slash, ring, impact wash, flash, 9–12 sparks, projectile,
+number), a pool of 16 number nodes, and removes nodes after the timeline. It never creates a per-frame game loop: the next turn is a timer, the
 animation is CSS. A game can cap concurrent bursts at 3 and still feel rich.
 
 ## The attack/hit language
@@ -42,18 +42,20 @@ The current card game already has a good core: the attacker lunges, the target f
 drops. The next pass should make the **cause and the hit** readable in three beats:
 
 ```text
-wind-up ──▶ travel ──▶ impact ──▶ recovery
- 120 ms      180 ms      90 ms      180 ms
+wind-up ──▶ travel ──▶ impact + hit-stop ──▶ recovery
+ 160 ms      220 ms      60 ms                260 ms      (×1, the default)
 ```
+
+×1 is deliberately readable. ×2 halves every beat, ×5 quarters it, ×10 compresses it to ~0.12×; the turn gap, hit-stop
+and number animation scale with it.
 
 ### Normal hit — Tier 1
 
-- Attacker: body scales 1.06 and leans 4–6 px toward the target (wind-up).
-- A small element-coloured **projectile** or a short slash line travels to the target (only for ranged skills; melee
-  just lunges).
-- Target: flinches 3–4 px away, a **flash** (white, 18–22% opacity) and a **ring** in the element colour.
-- 6–8 **sparks** (CSS squares/dots) fly 16–30 px; they are gone in 300 ms.
-- Damage number: red-orange, 13 px; crit: gold, 19 px, slightly longer.
+- Attacker: body scales 1.12 and leans 10 px toward the target (wind-up), with an element-coloured cast glow.
+- A bright **element streak** runs from attacker to target before impact; ranged skills also send a projectile.
+- Target: flinches 8 px away, a coloured **slash**, a **flash**, an **element wash** and a **ring** in the element colour.
+- 9–12 **sparks** (CSS squares/dots) fly 16–30 px; they are gone in 300 ms.
+- Damage number: red-orange, 16 px; crit: gold, 24 px, with a board shake and haptic.
 - HP: fill drops immediately; a **ghost bar** (white/red, 50% opacity) catches up 100 ms later, so the lost chunk is
   visible.
 - Hit-stop: 40 ms on the board (no new turn), not a camera freeze; SFX one hit; no haptic.

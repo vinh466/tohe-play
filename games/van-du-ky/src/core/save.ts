@@ -1,6 +1,7 @@
 import { GEAR } from '../content/gear.ts';
 import { STARTER_TEAM } from '../content/index.ts';
 import type { SaveData, SaveFormation, SaveGear, SaveHero } from './save-types.ts';
+import type { Speed } from './types.ts';
 
 export * from './save-types.ts';
 
@@ -61,7 +62,7 @@ export function emptySave(): SaveData {
       challengeClaimed: false,
     },
     summon: { pityRare: 0, pityEpic: 0, lastFree: null },
-    settings: { autoCast: true, speed: 2, reducedMotion: false },
+    settings: { autoCast: true, speed: 1, reducedMotion: false, speedV2: true },
     offline: { at: 0, stage: '1-1' },
     tutorial: { seen: false },
   };
@@ -72,8 +73,7 @@ export function migrate(raw: unknown): SaveData {
   if (raw === null || raw === undefined) return emptySave();
   if (typeof raw !== 'object') throw new SaveError('save is not an object');
   const value = raw as Partial<SaveData> & { v?: unknown };
-  if (value.v === 1) return normalize(value as SaveData);
-  if (value.v !== SAVE_VERSION) {
+  if (value.v !== 1 && value.v !== SAVE_VERSION) {
     throw new SaveError(
       `save version ${String(value.v)} is not supported (this build reads ${SAVE_VERSION})`,
     );
@@ -201,7 +201,8 @@ export function normalize(input: SaveData): SaveData {
     },
     settings: {
       autoCast: input.settings?.autoCast !== false,
-      speed: input.settings?.speed === 1 ? 1 : input.settings?.speed === 3 ? 3 : 2,
+      speed: input.settings?.speedV2 === true ? normalizeSpeed(input.settings?.speed) : 1,
+      speedV2: true,
       reducedMotion: input.settings?.reducedMotion === true,
     },
     offline: {
@@ -221,6 +222,10 @@ export const SAVE_BUDGET_BYTES = 256 * 1024;
 
 export function fitsSaveBudget(save: SaveData): boolean {
   return serializedBytes(save) <= SAVE_BUDGET_BYTES;
+}
+
+function normalizeSpeed(value: unknown): Speed {
+  return value === 2 || value === 5 || value === 10 ? value : 1;
 }
 
 function clampInt(value: unknown, min: number, max: number, fallback: number): number {

@@ -28,7 +28,7 @@ import {
 } from './core/progression.ts';
 import type { SaveData } from './core/save-types.ts';
 import { terrainAt } from './core/terrain.ts';
-import type { StageDef } from './core/types.ts';
+import { SPEEDS, type StageDef } from './core/types.ts';
 import type { RunMode } from './ui/run-mode.ts';
 import {
   closeSheets,
@@ -390,8 +390,9 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   };
 
   const speed = makeControl('timer', t.speedShort, () => {
-    const next = store.save.settings.speed === 1 ? 2 : store.save.settings.speed === 2 ? 3 : 1;
-    store.set({ ...store.save, settings: { ...store.save.settings, speed: next } });
+    const index = SPEEDS.indexOf(store.save.settings.speed);
+    const next = SPEEDS[(index + 1) % SPEEDS.length] ?? 1;
+    store.set({ ...store.save, settings: { ...store.save.settings, speed: next, speedV2: true } });
     view.setSpeed(next);
     paintHud();
   });
@@ -493,6 +494,9 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     goldValue.textContent = compact(save.currencies.gold);
     essenceValue.textContent = compact(save.currencies.essence);
     speed.big.textContent = `×${save.settings.speed}`;
+    speed.button.classList.toggle('on', save.settings.speed !== 1);
+    speed.button.setAttribute('aria-label', `${t.speed} ×${save.settings.speed}`);
+    speed.button.title = `${t.speed} ×${save.settings.speed}`;
     stop.label.textContent = stopped ? t.run : t.stop;
     stop.icon.replaceChildren(kitIcon(stopped ? 'play' : 'pause'));
     view?.setReducedMotion(save.settings.reducedMotion);
@@ -667,7 +671,14 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       return;
     }
     const token = ++runToken;
-    const delay = Math.max(400, 1000 - store.save.settings.speed * 200);
+    const delay =
+      store.save.settings.speed === 10
+        ? 250
+        : store.save.settings.speed === 5
+          ? 400
+          : store.save.settings.speed === 2
+            ? 600
+            : 800;
     const advance = () => {
       if (token !== runToken || mode.kind !== 'story' || stage.id !== clearedId) return;
       if (document.querySelector('.vd-sheet')) {
@@ -902,7 +913,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   await document.fonts.ready;
   view = new BoardView(boardHost, data());
   setDeckTab('road');
-  addFeed({ kind: 'info', tag: '▸', text: 'Chạm một thẻ để mở hồ sơ · đoàn tự đánh' });
+  addFeed({ kind: 'info', tag: '▸', text: 'Chạm thẻ xem hồ sơ · Tốc ×1 để xem đòn đánh' });
   paintHud();
   const unsubscribe = store.subscribe(paintHud);
   ctx.ready();

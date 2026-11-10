@@ -16,6 +16,7 @@ import type {
   Element,
   HeroLoadout,
   Row,
+  Speed,
   StageDef,
 } from './core/types.ts';
 import { centerAt, HEX_COLUMNS, HEX_ROWS, type HexCenter, type HexLayout, hexLayout } from './view-layout.ts';
@@ -52,7 +53,7 @@ export interface BoardViewData {
   stage: StageDef;
   team: readonly HeroLoadout[];
   companyLevel: number;
-  speed: 1 | 2 | 3;
+  speed: Speed;
   reducedMotion: boolean;
   onEnd: (result: 'win' | 'lose', summary: BoardSummary) => void;
   onTurn: (tokens: readonly TurnToken[], currentId: string | null) => void;
@@ -66,6 +67,7 @@ interface UnitView {
   readonly hpFill: HTMLElement;
   readonly hpGhost: HTMLElement;
   readonly pips: HTMLElement[];
+  readonly pipsBox: HTMLElement;
   readonly portrait: HTMLImageElement;
   lastRatio: number;
   lastCharge: number;
@@ -126,7 +128,7 @@ export class BoardView {
   private ended = false;
   private paused = false;
   private animating = false;
-  private speed: 1 | 2 | 3;
+  private speed: Speed;
   private reducedMotion: boolean;
   private timer: number | null = null;
   private turnSignature = '';
@@ -145,9 +147,11 @@ export class BoardView {
     this.root.setAttribute('role', 'group');
     this.root.setAttribute('aria-label', 'Bàn đấu');
     this.grid = el('div', 'hex-grid');
+    const sides = el('div', 'hex-sides');
+    sides.append(el('span', 'hex-side hero', 'ĐOÀN'), el('span', 'hex-side enemy', 'ĐỊCH'));
     this.fx = el('div', 'hex-fx');
     this.banner = el('div', 'skill-banner');
-    this.root.append(this.grid, this.fx, this.banner);
+    this.root.append(this.grid, sides, this.fx, this.banner);
     host.append(this.root);
     this.layout = hexLayout(host.clientWidth, host.clientHeight);
     this.buildGrid();
@@ -197,11 +201,11 @@ export class BoardView {
     this.startWave(this.waveIndex, this.waveStartHp);
   }
 
-  setSpeed(speed: 1 | 2 | 3): void {
+  setSpeed(speed: Speed): void {
     this.speed = speed;
     this.data.speed = speed;
     this.applyMotion();
-    if (!this.ended && !this.paused && !this.animating) this.schedule(this.speed === 3 ? 90 : 150);
+    if (!this.ended && !this.paused && !this.animating) this.schedule(this.turnGap);
   }
 
   setReducedMotion(reduced: boolean): void {
@@ -263,6 +267,7 @@ export class BoardView {
         cell.dataset.lane = String(lane);
         const rim = el('div', 'hex-rim');
         const shape = el('div', 'hex-shape');
+        const impact = el('span', 'hex-impact');
         const body = el('div', 'hex-body');
         body.append(el('span', 'hex-empty', '+'));
         const flash = el('span', 'hex-flash');
@@ -270,7 +275,7 @@ export class BoardView {
         const shield = el('span', 'hex-shield');
         const boss = el('span', 'hex-boss', '♛');
         boss.setAttribute('aria-hidden', 'true');
-        cell.append(rim, shape, body, flash, ring, shield, boss);
+        cell.append(rim, shape, impact, body, flash, ring, shield, boss);
         if (terrain) cell.append(el('span', 'hex-terrain', terrain.label));
         cell.addEventListener('click', () => this.tap(cell));
         cell.addEventListener('keydown', (event) => {
@@ -293,11 +298,27 @@ export class BoardView {
     }
   }
 
+  /** CSS/WAAPI durations scale with the turn speed; x1 is the readable default. */
+  private get motionScale(): number {
+    if (this.reducedMotion) return 0.45;
+    return this.speed === 10 ? 0.12 : this.speed === 5 ? 0.25 : this.speed === 2 ? 0.5 : 1;
+  }
+
+  private get turnGap(): number {
+    return Math.max(18, Math.round(100 * this.motionScale));
+  }
+
+  private get waveDelay(): number {
+    return this.speed === 10 ? 160 : this.speed === 5 ? 260 : this.speed === 2 ? 500 : 800;
+  }
+
   private applyMotion(): void {
     this.root.classList.toggle('reduced-motion', this.reducedMotion);
-    this.root.classList.toggle('fast', this.speed === 3);
-    this.root.classList.toggle('medium', this.speed === 2);
-    this.root.style.setProperty('--fx', this.speed === 3 ? '0.5' : this.speed === 2 ? '0.75' : '1');
+    this.root.classList.toggle('x2', this.speed === 2);
+    this.root.classList.toggle('x5', this.speed === 5);
+    this.root.classList.toggle('x10', this.speed === 10);
+    this.root.dataset.speed = String(this.speed);
+    this.root.style.setProperty('--fx', String(this.motionScale));
   }
 
   private bindResize(): void {
@@ -317,6 +338,7 @@ export class BoardView {
     this.grid.style.height = `${next.gridH}px`;
     this.root.style.setProperty('--hw', `${next.cellW}px`);
     this.root.style.setProperty('--hh', `${next.cellH}px`);
+    this.root.style.setProperty('--grid-h', `${next.gridH}px`);
     this.cacheCenters();
   }
 
@@ -372,7 +394,7 @@ export class BoardView {
     this.relayout();
     this.updateCards(true);
     this.data.onWave(this.waveIndex + 1, this.stage.waves.length);
-    this.schedule(360);
+    this.schedule(this.speed === 10 ? 120 : this.speed === 5 ? 180 : this.speed === 2 ? 280 : 420);
   }
 
   private heroesWithHp(hp: readonly (number | undefined)[]): HeroLoadout[] {
@@ -437,7 +459,7 @@ export class BoardView {
       this.animating = false;
       this.updateCards();
       if (this.state.result !== 'ongoing') this.handleResult(this.state.result);
-      else this.schedule(this.speed === 3 ? 40 : this.speed === 2 ? 60 : 80);
+      else this.schedule(this.turnGap);
     });
   }
 
@@ -457,7 +479,7 @@ export class BoardView {
       .filter((unit) => unit.side === 'hero')
       .map((unit) => (unit.dead ? 0 : Math.min(unit.maxHp, unit.hp + Math.round(unit.maxHp * 0.15))));
     this.animating = true;
-    this.after(Math.max(280, Math.round(800 / this.speed)), () => {
+    this.after(this.waveDelay, () => {
       this.animating = false;
       this.startWave(next, hp);
     });
@@ -540,6 +562,7 @@ export class BoardView {
         hpFill: fill,
         hpGhost: ghost,
         pips: pipNodes,
+        pipsBox: pips,
         portrait,
         lastRatio: -1,
         lastCharge: -1,
@@ -578,8 +601,10 @@ export class BoardView {
         view.pips.forEach((pip, index) => {
           pip.classList.toggle('off', index >= unit.charge);
         });
+        view.pipsBox.classList.toggle('ready', unit.charge >= unit.activeCharge);
         view.lastCharge = unit.charge;
       }
+      view.cell.classList.toggle('low-hp', ratio > 0 && ratio <= 0.3);
       if (view.dead !== unit.dead) {
         view.dead = unit.dead;
         view.cell.classList.toggle('dead', unit.dead);
@@ -618,38 +643,52 @@ export class BoardView {
     const skill = turn?.type === 'turn' ? RULES.skill(turn.skill) : undefined;
     const active = skill?.kind === 'active';
     const reduced = this.reducedMotion;
-    const windup = reduced ? 0 : this.speed === 3 ? 30 : this.speed === 2 ? 50 : 90;
-    const travel = reduced ? 0 : this.speed === 3 ? 40 : this.speed === 2 ? 70 : 110;
+    const scale = this.motionScale;
+    const windup = reduced ? 0 : Math.round(160 * scale);
+    const travel = reduced ? 0 : Math.round(220 * scale);
     const impact = windup + travel;
-    const recovery = reduced ? 60 : this.speed === 3 ? 70 : this.speed === 2 ? 100 : 150;
-    if (source) this.lunge(source, impact);
+    const recovery = Math.round(260 * scale);
+    const hitStop = reduced ? 0 : Math.round(60 * scale);
+    const damage = events.find((event) => event.type === 'damage' && event.source !== event.target);
+    const target = damage?.type === 'damage' ? this.unitById(damage.target) : undefined;
+    const color = source ? ELEMENT_COLORS[source.element] : '#f2ead9';
+
+    if (source) this.lunge(source, target, impact);
+    if (source && target && !reduced) {
+      this.after(windup, () => this.strike(source.id, target.id, color, travel));
+      if (source.role === 'seer' || source.role === 'binder') {
+        this.after(windup, () => this.projectile(source.id, target.id, color));
+      }
+    }
     if (active && skill) this.showBanner(skill.name);
     if (active && !reduced) {
       this.after(0, () => haptics.play('success'));
       this.shake();
     }
 
-    if (source && skill && !reduced && (source.role === 'seer' || source.role === 'binder')) {
-      const target = events.find((event) => event.type === 'damage');
-      const targetUnit = target?.type === 'damage' ? this.unitById(target.target) : undefined;
-      if (targetUnit) this.projectile(source.id, targetUnit.id, ELEMENT_COLORS[source.element]);
-    }
-
     let offset = 0;
     for (const event of events) {
       const delay = impact + offset;
-      offset += 10;
+      offset += 8;
       if (event.type === 'damage') {
-        const target = this.unitById(event.target);
-        if (!target) continue;
+        const hitTarget = this.unitById(event.target);
+        if (!hitTarget) continue;
         const burn = event.source === event.target;
         this.after(burn ? impact + offset : delay, () =>
-          this.hitUnit(target, source, event.amount, event.crit, burn, skill?.kind === 'active', skill?.name),
+          this.hitUnit(
+            hitTarget,
+            source,
+            event.amount,
+            event.crit,
+            burn,
+            skill?.kind === 'active',
+            skill?.name,
+          ),
         );
       } else if (event.type === 'heal') {
-        const target = this.unitById(event.target);
-        if (!target) continue;
-        this.after(delay, () => this.healUnit(target, event.amount));
+        const hitTarget = this.unitById(event.target);
+        if (!hitTarget) continue;
+        this.after(delay, () => this.healUnit(hitTarget, event.amount));
         this.after(delay, () =>
           this.data.onFeed({
             kind: 'heal',
@@ -660,9 +699,9 @@ export class BoardView {
           }),
         );
       } else if (event.type === 'shield') {
-        const target = this.unitById(event.target);
-        if (!target) continue;
-        this.after(delay, () => this.shieldUnit(target, event.amount));
+        const hitTarget = this.unitById(event.target);
+        if (!hitTarget) continue;
+        this.after(delay, () => this.shieldUnit(hitTarget, event.amount));
         this.after(delay, () =>
           this.data.onFeed({
             kind: 'shield',
@@ -673,25 +712,45 @@ export class BoardView {
           }),
         );
       } else if (event.type === 'death') {
-        const target = this.unitById(event.unit);
-        if (target) this.after(delay, () => this.killUnit(target));
+        const dead = this.unitById(event.unit);
+        if (dead) this.after(delay, () => this.killUnit(dead));
       }
     }
-    await new Promise<void>((resolve) => this.after(impact + recovery + offset, resolve));
+    await new Promise<void>((resolve) => this.after(impact + recovery + offset + hitStop, resolve));
   }
 
-  private lunge(source: BattleUnit, impact: number): void {
+  private lunge(source: BattleUnit, target: BattleUnit | undefined, impact: number): void {
     const view = this.unitViews.get(source.id);
     if (!view) return;
-    const targetUnit = this.state.units.find((unit) => unit.side !== source.side && !unit.dead);
+    const targetUnit = target ?? this.state.units.find((unit) => unit.side !== source.side && !unit.dead);
     const targetX = targetUnit ? this.center(targetUnit.id).x : this.layout.width / 2;
     const sourceX = this.center(source.id).x;
-    view.cell.classList.remove('toward-left', 'toward-right');
+    view.cell.style.setProperty('--cast-color', ELEMENT_COLORS[source.element]);
+    view.cell.classList.remove('toward-left', 'toward-right', 'casting');
     view.cell.classList.add(sourceX < targetX ? 'toward-right' : 'toward-left');
-    view.cell.classList.add('attacking');
-    this.after(impact + 80, () => {
-      view.cell.classList.remove('attacking', 'toward-left', 'toward-right');
+    view.cell.classList.add('attacking', 'casting');
+    this.after(impact + Math.round(120 * this.motionScale), () => {
+      view.cell.classList.remove('attacking', 'toward-left', 'toward-right', 'casting');
     });
+  }
+
+  /** A visible element streak from attacker to target; the cause is readable before the impact. */
+  private strike(sourceId: string, targetId: string, color: string, travel: number): void {
+    if (this.reducedMotion) return;
+    const a = this.center(sourceId);
+    const b = this.center(targetId);
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const length = Math.max(24, Math.hypot(dx, dy) - this.layout.cellW * 0.2);
+    const line = el('span', 'strike');
+    line.style.left = `${a.x}px`;
+    line.style.top = `${a.y}px`;
+    line.style.width = `${length}px`;
+    line.style.color = color;
+    line.style.setProperty('--angle', `${Math.atan2(dy, dx)}rad`);
+    line.style.animationDuration = `${Math.max(90, travel)}ms`;
+    this.fx.append(line);
+    this.after(Math.max(90, travel) + 80, () => line.remove());
   }
 
   private hitUnit(
@@ -706,6 +765,9 @@ export class BoardView {
     const view = this.unitViews.get(target.id);
     if (!view) return;
     this.updateCards();
+    const color = ELEMENT_COLORS[target.element];
+    view.cell.style.setProperty('--hit-color', color);
+    view.cell.style.setProperty('--ring-color', crit ? 'var(--vd-gold)' : color);
     view.cell.classList.remove('hit', 'crit', 'flee-left', 'flee-right');
     void view.cell.offsetWidth;
     view.cell.classList.add('hit');
@@ -714,13 +776,25 @@ export class BoardView {
     const sourceX = source ? this.center(source.id).x : targetX - 10;
     view.cell.classList.add(targetX < sourceX ? 'flee-left' : 'flee-right');
     this.showNumber(view, `${burn ? '' : '-'}${amount}`, burn ? 'burn' : crit ? 'crit' : 'damage');
-    this.sparks(view, ELEMENT_COLORS[target.element], crit ? 10 : 7);
+    this.slash(view, color, crit);
+    const sparks = crit
+      ? this.speed >= 10
+        ? 5
+        : this.speed >= 5
+          ? 7
+          : 12
+      : this.speed >= 10
+        ? 3
+        : this.speed >= 5
+          ? 5
+          : 9;
+    this.sparks(view, color, sparks);
     if (!burn) {
       this.hitSound(crit, active);
       if (crit && !this.reducedMotion) haptics.play('bump');
       if ((crit || active) && !this.reducedMotion) this.shake();
     }
-    this.after(360, () => {
+    this.after(Math.max(180, Math.round(650 * this.motionScale)), () => {
       view.cell.classList.remove('hit', 'crit', 'flee-left', 'flee-right');
     });
     if (source) {
@@ -739,30 +813,34 @@ export class BoardView {
     const view = this.unitViews.get(target.id);
     if (!view) return;
     this.updateCards();
+    view.cell.style.setProperty('--ring-color', '#8ed6a0');
     view.cell.classList.remove('healed');
     void view.cell.offsetWidth;
     view.cell.classList.add('healed');
     this.showNumber(view, `+${amount}`, 'heal');
-    this.sparks(view, '#8ed6a0', 7);
-    this.after(460, () => view.cell.classList.remove('healed'));
+    this.sparks(view, '#8ed6a0', this.speed >= 5 ? 5 : 8);
+    this.after(Math.max(220, Math.round(520 * this.motionScale)), () => view.cell.classList.remove('healed'));
   }
 
   private shieldUnit(target: BattleUnit, amount: number): void {
     const view = this.unitViews.get(target.id);
     if (!view) return;
+    view.cell.style.setProperty('--ring-color', '#8fc8ff');
     view.cell.classList.remove('shielded');
     void view.cell.offsetWidth;
     view.cell.classList.add('shielded');
     this.showNumber(view, `+${amount}`, 'shield');
-    this.sparks(view, '#8fc8ff', 5);
-    this.after(800, () => view.cell.classList.remove('shielded'));
+    this.sparks(view, '#8fc8ff', this.speed >= 5 ? 4 : 6);
+    this.after(Math.max(260, Math.round(820 * this.motionScale)), () =>
+      view.cell.classList.remove('shielded'),
+    );
   }
 
   private killUnit(target: BattleUnit): void {
     const view = this.unitViews.get(target.id);
     if (!view) return;
     this.updateCards();
-    this.sparks(view, '#f2ead9', 7);
+    this.sparks(view, '#f2ead9', this.speed >= 5 ? 5 : 9);
     if (!this.reducedMotion) {
       sfx.play('drop');
       haptics.play('tap');
@@ -791,6 +869,22 @@ export class BoardView {
     node.style.animation = '';
   }
 
+  /** A bright slash across the target: the clearest single cue that a hit landed. */
+  private slash(view: UnitView, color: string, crit: boolean): void {
+    if (this.reducedMotion) return;
+    const point = this.center(view.cell.dataset.unit ?? '');
+    const angle = (crit ? -32 : -18) + Math.random() * 36;
+    const slash = el('span', 'slash');
+    slash.style.left = `${point.x}px`;
+    slash.style.top = `${point.y}px`;
+    slash.style.width = `${Math.round(this.layout.cellW * (crit ? 1.02 : 0.86))}px`;
+    slash.style.color = color;
+    slash.style.setProperty('--slash-angle', `${angle}deg`);
+    slash.style.animationDuration = `${Math.max(100, Math.round(220 * this.motionScale))}ms`;
+    this.fx.append(slash);
+    this.after(Math.max(120, Math.round(260 * this.motionScale)), () => slash.remove());
+  }
+
   private sparks(view: UnitView, color: string, count: number): void {
     if (this.reducedMotion) return;
     if (this.bursts.length >= 3) {
@@ -813,7 +907,7 @@ export class BoardView {
     }
     this.fx.append(burst);
     this.bursts.push(burst);
-    this.after(600, () => {
+    this.after(Math.max(160, Math.round(600 * this.motionScale)), () => {
       burst.remove();
       const index = this.bursts.indexOf(burst);
       if (index >= 0) this.bursts.splice(index, 1);
@@ -831,7 +925,7 @@ export class BoardView {
     orb.style.setProperty('--dx', `${b.x - a.x}px`);
     orb.style.setProperty('--dy', `${b.y - a.y}px`);
     this.fx.append(orb);
-    this.after(320, () => orb.remove());
+    this.after(Math.max(140, Math.round(320 * this.motionScale)), () => orb.remove());
   }
 
   private shake(): void {
