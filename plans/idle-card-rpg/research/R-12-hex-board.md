@@ -55,16 +55,16 @@ Proposed rule:
 ```text
 loss in wave 1  -> popup 1.2 s -> restart the stage at wave 1 (full team HP)
 loss in wave 2+ -> popup 1.2 s -> restart the current wave at its start HP
-win on retry    -> normal clear; first-clear only if the stage was never cleared before
+win on retry    -> new stage: normal clear; cleared stage: gold only
 loss again      -> auto stops; wall panel in the deck (Đổi đội · Nâng cấp · Đánh lại)
 ```
 
 - **Popup** is a small card over the lower board/deck: `Đội ngã ở đợt 2 · Quay lại đầu đợt 2 sau 1s · +12 vàng ·
   không nhận thưởng màn`. It has a `Dừng` button; auto continues on its own.
-- **Only one basic resource on the losing attempt**: gold (small, e.g. 10% of the stage's repeat gold). No shards, no
-  gear, no first-clear, no normal loot. The retry is a fresh attempt, so a win on it gives normal rewards; the
-  first-clear stays available until a clean win. If the owner wants the retry win to be gold-only too, that is a
-  one-line rule change; the anti-farm guard is the small consolation and one auto retry.
+- **Rewards (owner, 2026-11-10)**: replaying a **cleared** stage pays **only a little gold** — no shards, gear,
+  first-clear or normal loot. Winning a **new** stage pays normal rewards and first-clear. A loss pays a small gold
+  consolation only; a retry win on a new stage is a new clear and pays normal rewards. No XP/loot on the losing
+  attempt.
 - **One auto retry per stage attempt**, then the wall panel. Infinite retry would loop a weak team and hide the real
   answer (upgrade/formation). The player can still press `Đánh lại` manually.
 - **Auto is always on** for story stages: no `Tự đi` toggle. `Dừng` pauses; after a win the board moves on at once. A
@@ -85,7 +85,7 @@ loss again      -> auto stops; wall panel in the deck (Đổi đội · Nâng c�
 | --- | --- | --- |
 | **Đường đi** (default) | 12-node road, next stage/power, 3-line feed | During auto |
 | **Dự bị** | 6–12 roster chips, selected cell + terrain, `Lưu đội hình` | Formation mode |
-| **Chiêu** | 3 active skill cards, target hint | Only when auto-cast is off |
+| **Chiêu** (later) | 3 active skill cards, target hint | After the first playtest |
 | **Nhật ký** (optional) | Last 6–8 events, loot | For reading the fight |
 
 - Road: 12 nodes; 4/8 elite, 12 boss; current pulses; cleared green; `● Tự động` is a status, not a toggle.
@@ -98,6 +98,12 @@ loss again      -> auto stops; wall panel in the deck (Đổi đội · Nâng c�
 1. **Giao chiến + tự động**: 6 heroes left, 6 enemies right on 12 hexes each, 6 open + terrain; road + ribbon + feed.
 2. **Xếp đội**: selected open hex with terrain, ghosted enemy preview, bench, `Lưu`.
 3. **Thua + tự quay lại**: small popup, auto rewind, +gold only; after a second loss the wall panel appears (noted).
+
+## Technology
+
+See [R-13](R-13-tech-stack.md) and the DOM/CSS spike: the honeycomb board is a strong fit for plain DOM/CSS; the
+spike runs at 60 fps at 320/360/390 with 24 cells, 12 units and ~170 damage numbers in 6 s, and drops Phaser (1.4 MB)
+from this game. The recommendation is DOM/CSS, keeping the kit shell/SFX/haptics and the pure core.
 
 ## Implementation direction (after approval)
 
@@ -119,10 +125,10 @@ loss again      -> auto stops; wall panel in the deck (Đổi đội · Nâng c�
 ## Open questions
 
 1. Terrain now (recommended) and lane bonuses later — confirm?
-2. Loss: retry win normal rewards (recommended) or gold-only? First-clear only on a clean win — confirm?
+2. Loss/retry: a new-stage retry win pays normal rewards (owner, 2026-11-10); a cleared-stage replay pays gold only — confirm.
 3. One auto retry per attempt, then wall — or two?
 4. Card on board: no name (recommended) or one 7 px line?
-5. `Chiêu` tab: include now or after the first playtest?
+5. `Chiêu` tab: after the first playtest (owner, 2026-11-10).
 6. DOM/CSS board (recommended) or keep Phaser?
 7. Boss/chapter ribbon: larger but auto, or a 1.2 s pause?
 

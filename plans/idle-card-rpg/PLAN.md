@@ -29,7 +29,7 @@
 
 ## Next — one item
 
-**Hex board review.** R-12 and `wireframes/hex-board-v6.html` explore a 6×4 flat-top hex honeycomb (12 cells/side, 6 deployed), left/right, minimal cards, terrain, a bottom command deck (road / bench / skills), auto always, and a loss popup that rewinds to the wave with only gold. Waiting on the owner's feedback before changing the core columns 0–3 and the view.
+**Hex board + technology review.** R-12/wireframe v6 show a 6×4 honeycomb (12 cells/side, 6 deployed), left/right, minimal cards, terrain, a bottom command deck (road / bench), auto always, and a loss popup that rewinds with gold only. R-13/`tech-spike/dom-board.html` recommends **DOM/CSS** (60 fps at 320/360/390, no engine) over Phaser/Pixi. Waiting on approval to change core columns 0–3 and the view.
 
 ## Board
 

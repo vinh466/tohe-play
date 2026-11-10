@@ -6,7 +6,8 @@ Newest first. One entry per working session: what moved, what is waiting on whom
 
 - R-12 + wireframe v6: board 6×4 lục giác honeycomb, 12 ô/bên, 6 hero, 6 ô mở; trái/phải; card tối giản; deck dưới (Đường đi / Dự bị / Chiêu).
 - Thắng tự sang màn, ribbon trong feed, không popup; thua là panel “tường” dưới, không chặn board.
-- Chờ owner góp ý: loss auto-retry, địa hình/lane, card có tên không, DOM/CSS hay Phaser.
+- R-13 + spike DOM/CSS: 24 hex, 12 unit, 170 số/6s, p50 16.7ms ở 320/360/390, không long task; đề xuất bỏ Phaser khỏi game.
+- Chờ owner chốt: loss/retry rewards, card bỏ tên, Chiêu để sau, DOM/CSS.
 
 ## 2026-11-10 — agent (UI/UX v2)
 

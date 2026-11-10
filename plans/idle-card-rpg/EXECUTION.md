@@ -20,7 +20,7 @@ what to do next. Update it at the end of every session, newest session first in 
 | C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | **done** |
 | C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (v1.0.0 live, prod-2026-11-10.1) |
 | C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **done** (v1.0.1 live) |
-| C8 | Hex board concept | R-12 + wireframe v6; 12 cells/side, loss popup/retry, auto always, DOM vs Phaser | **wireframe for review** |
+| C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; 12 cells/side, loss popup/retry, auto always, DOM recommended | **wireframe + spike for review** |
 
 ## Staging and deviations
 
@@ -115,7 +115,8 @@ Newest first. One entry per session: what moved, what is blocked, next.
 - Wrote `research/R-12-hex-board.md` and `wireframes/hex-board-v6.html`: 6×4 flat-top hexagons, 12 cells/side,
   6 deployed, 6 open; seamless honeycomb; road + feed + tabs at the bottom; loss popup + auto retry.
 - Owner feedback: 12 cells, loss popup + auto rewind (gold only), auto always, boss 1 cell, terrain if cheap. Open: retry-win rewards, card text, deck tabs, DOM/CSS vs Phaser.
-- Next: owner feedback on the 12-cell hex wireframe; then core columns 0–3 and the chosen view.
+- Wrote `research/R-13-tech-stack.md` and `research/tech-spike/dom-board.html`: DOM/CSS 24 hexes, 12 units, 170 numbers/6 s, p50 16.7 ms at 320/360/390, no long tasks.
+- Next: owner approves DOM/CSS; then core columns 0–3, 12-cell formation/stages and the DOM view.
 
 ### 2026-11-10 — agent (UI/UX v2)
 
