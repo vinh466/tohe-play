@@ -913,7 +913,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   await document.fonts.ready;
   view = new BoardView(boardHost, data());
   setDeckTab('road');
-  addFeed({ kind: 'info', tag: '▸', text: 'Chạm thẻ xem hồ sơ · Tốc ×1 để xem đòn đánh' });
+  addFeed({ kind: 'info', tag: '▸', text: 'Chạm thẻ xem hồ sơ · Tốc thấp để xem đòn đánh' });
   paintHud();
   const unsubscribe = store.subscribe(paintHud);
   ctx.ready();
