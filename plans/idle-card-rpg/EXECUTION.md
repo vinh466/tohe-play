@@ -3,10 +3,11 @@
 This is the working ledger for the build. The plan (`PLAN.md`) decides **what**; this page says **where we are** and
 what to do next. Update it at the end of every session, newest session first in the log.
 
-- Branch: `feat/van-du-ky-core` (based on `plan/idle-card-rpg`)
+- Branch: `plan/hex-board` for the hex-board research (game work merges via `feat/van-du-ky-core`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C7 — UI/UX v2 green** (v1.0.1, 2026-11-10); C6 v1.0.0 shipped to production
-- Release: PR [#208](https://github.com/vinh466/tohe-play/pull/208) open, CI green; no deploy, no tag, no merge until the owner says so.
+- Current checkpoint: **C8 — hex board concept, awaiting owner approval** (R-12/R-13/R-14 + spikes);
+  C7 UI/UX v2 and C6 v1.0.0 live as v1.0.1
+- Release: v1.0.1 live (prod-2026-11-10.2); no deploy, no tag, no merge until the owner says so.
 
 ## Checkpoints
 
@@ -20,7 +21,7 @@ what to do next. Update it at the end of every session, newest session first in 
 | C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | **done** |
 | C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (v1.0.0 live, prod-2026-11-10.1) |
 | C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **done** (v1.0.1 live) |
-| C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; 12 cells/side, loss popup/retry, auto always, DOM recommended | **wireframe + spike for review** |
+| C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **wireframe + spikes for review** (awaiting owner go-ahead) |
 
 ## Staging and deviations
 
@@ -107,6 +108,16 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-10 — agent (DOM/CSS and effects spike)
+
+- Owner asked whether DOM/CSS expands well and how to make attacks/hits feel better.
+- Wrote `research/R-14-effects-and-expansion.md`: growth table, effect tiers (hit/crit/active), heal/shield/status/death,
+  timing, perf rules (compositor-only, pools, cached centres), ×3 and reduced-motion variants, canvas overlay as escape hatch.
+- Built `research/tech-spike/dom-effects.html`: 24 hexes, 6v6, turn rail, road/feed, interactive effect buttons;
+  p50/p95 16.7 ms at DPR 2, no long tasks; verified orb → impact → flash/ring/number/hp-ghost sequence (`?manual`, `window.vdDemo`).
+- Next: owner approves the DOM board + effect direction; then implement core columns 0–3, 12-cell stages, the DOM view,
+  loss popup/auto rewind and the effect pass.
 
 ### 2026-11-10 — agent (pentagon board concept)
 
