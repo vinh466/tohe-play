@@ -1,6 +1,6 @@
 # R-12 — Bàn lục giác 12 ô, đánh ngang: the main battle screen
 
-Date: 2026-11-10 · Status: **implemented in v1.1.0** (2026-11-10) — DOM/CSS board, 12 cells/side, loss rewind, auto always
+Date: 2026-11-10 · Status: **live in v1.1.0** (prod-2026-11-10.3) — DOM/CSS board, 12 cells/side, loss rewind, auto always
 
 Owner feedback after v1: the board should be **hexagons** (not pentagons), **12 cells per side**, seamless, with a
 non-blocking loss/retry flow and auto always. This page is the current design; the wireframe is
