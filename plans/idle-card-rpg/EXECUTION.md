@@ -1,0 +1,124 @@
+# Execution — Vân Du Ký (implementation)
+
+This is the working ledger for the build. The plan (`PLAN.md`) decides **what**; this page says **where we are** and
+what to do next. Update it at the end of every session, newest session first in the log.
+
+- Branch: `feat/van-du-ky-core` (based on `plan/idle-card-rpg`)
+- Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
+- Current checkpoint: **C6 — release candidate green** (v1.0.0, 2026-11-09)
+- Release: PR [#208](https://github.com/vinh466/tohe-play/pull/208) open, CI green; no deploy, no tag, no merge until the owner says so.
+
+## Checkpoints
+
+| # | Checkpoint | Done when | Status |
+|---|---|---|---|
+| C0 | Spec & ADRs | `games/van-du-ky/SPEC.md`; ADR 0059 (save budget); docs updated; docs build | **done** (ADR 0060 deferred with P0b) |
+| C1 | Platform P0a | save budget in contract/API/hub; E-01 persistent shell; E-03 FX player; tests | **done** (on-demand is P0b) |
+| C2 | Game core | pure battle/progression/economy + catalogs + save + tests + sim | **done** |
+| C3 | Playable board | Phaser board + DOM sheets + kit FX; 360×640; 60 fps | **done** (shake/float/tween, SFX, haptics) |
+| C4 | Content slice | region 1 (12 stages), 6 heroes, 1 boss | **done** |
+| C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | **done** |
+| C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (report to owner) |
+
+## Staging and deviations
+
+1. **Asset on-demand is P0b/P1.** v1 bundles its 44 portraits (~40 KB) and stays at 1.6 MB of the 8 MB budget, so
+   on-demand delivery is not needed to ship. The contract keeps `delivery: "bundle"` until the hub/Studio/API can serve
+   `on-demand`; that work is P1, not a v1 gate.
+2. **Full content is C5, not C1–C3.** Build the engine and a 6-hero/12-stage slice first; add the rest through data.
+3. **The game is dark-only** (`themes: ["dark"]`), as decided in D-13. The hub is still light/dark; the game keeps its
+   own look. Screenshot the game at 360 px.
+4. **No music** (D-15). SFX + haptics only.
+5. **The board is 6v6 / 3 rows**; the 360×640 test is a gate, not a nice-to-have.
+
+## Workstreams
+
+### G0 — Spec & docs
+
+- [x] `games/van-du-ky/SPEC.md`: board, 6v6/3 rows, elements/roles, progression, content, save, UX, art, SFX, themes.
+- [x] ADR 0059: a game's save budget (`saveBudgetKb`, default 64 KB, max 1 MB).
+- [ ] ADR 0060: asset on-demand delivery (P1; v1 bundles 1.6 MB of an 8 MB budget).
+- [x] `docs/contracts/game-contract-v1.md`: `saveBudgetKb` row and save section.
+- [x] `docs/architecture/progress-sync.md`: per-game save budget.
+- [x] `docs/architecture/game-shell.md`: `persistent` shell.
+- [x] `docs/architecture/game-fx.md` (new): pixelfx sprite sheets, act timing, E-03, licensing.
+- [x] `docs/decisions/index.md`: row for 0059 (0060 deferred).
+- [x] `pnpm --filter @tohe/docs build` passes.
+
+### P0a — Platform
+
+- [x] Contract: `saveBudgetKb` in `GameManifest`; regenerate JSON schema; update contract tests.
+- [x] SDK host: enforce `manifest.saveBudgetKb * 1024`; update docs/tests.
+- [x] API: `Game.SaveBudgetKb`, catalog sync, migration, `PUT /api/progress/saves/{gameId}` uses it; tests.
+- [x] Hub: `createHost` reads the manifest budget; manifestFrom carries it.
+- [x] E-01 `persistent` in `ShellOptions`: no `Ván mới`; title `Chơi tiếp`; no `stage.newGame()`; tests.
+- [x] E-03 `playFx` in `game-kit/phaser`: sprite sheet + act timing + hit callback + reduced motion; pure timing tests.
+- [x] Kit exports; `pnpm --filter @tohe/game-kit typecheck test` (version bump pending).
+
+### P0b — Asset on-demand (after C3)
+
+- [ ] ADR/contract `delivery: on-demand`; Studio/hub/API/conformance; offline cache (P1).
+- [x] Until then, keep `bundle`; the build stays at 1.6 MB, under the 8 MB `sizeBudgetKb`.
+
+### G1 — Game core
+
+- [x] Scaffold `games/van-du-ky`: package, tsconfig, vite (`base: './'`), `public/game.json`, icon, `page/`.
+- [x] Pure core: `rng`, `stats`, `battle`, `progression`, `economy`, `save`, `content`.
+- [x] Catalogs: heroes, skills, enemies, bonds, regions, stages, gear, events (expedition/tower/boss/challenge).
+- [x] Tests: turn order, damage, elements, rows, auto-cast toggle, win/lose, star/gear, save/restore.
+- [x] Balance sim: plays all 48 stages; all win with the growth curve.
+- [x] Save envelope v2: versioned plus a v1 migration; normalize; budget-aware; daily/weekly blocks.
+
+### G2 — UI/UX
+
+- [x] Research: R-09 at 360×640; sheet heights; one-hand reach; offline card; summon pity.
+- [x] Wireframe v4: board, formation, hero, gear, summon, stage picker, codex, daily, offline, events.
+- [x] Phaser board: 6v6/3 rows, portraits, turn rail, clash, damage numbers, auto-cast, speed, stop, upgrade.
+- [x] DOM sheets: team, hero, gear, summon, offline, stage picker, codex, daily, events, credits.
+- [x] SFX/haptics; reduced motion; empty states; sheets pause the board.
+- [x] Screenshots at 390×844 and conformance 360×640; stage-clear and expedition played in Chrome.
+
+### G3 — Release
+
+- [x] `pnpm --filter @tohe/game-van-du-ky test/typecheck/build/conformance`.
+- [x] public pages, OG images, sitemap; `pnpm verify` green (API 610/610, all games conformance).
+- [ ] Report the release candidate to the owner. No deploy/tag/merge without their word.
+
+## Gates (every code change)
+
+```sh
+pnpm exec biome check <paths>                         # V0
+pnpm exec turbo run typecheck test --filter=<pkg>     # V1
+pnpm verify                                           # V2, before a PR
+```
+
+V3 by kind: contract → conformance + schemas + ADR/docs; API → tests on PostgreSQL + regenerate OpenAPI/types; game →
+conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
+
+## Resume here
+
+1. `git status -sb`; read the newest log entry below.
+2. Read `PLAN.md` → decisions, then this file's current checkpoint.
+3. Continue at the first unchecked item; run the gate for the package touched.
+4. At session end: tick items, set `Current checkpoint`, add a log entry (≤5 lines), commit.
+
+## Session log
+
+Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-09 — agent (v1.0.0 release candidate)
+
+- Full v1: 4 regions × 12 stages, 20 heroes, 20 enemies + 4 bosses, 10 bonds, 44 pixel portraits, save v2.
+- Story board + tower 40 + daily expedition + weekly boss + weekly challenge + Khởi Hành; stage picker, codex, gear, daily sheets.
+- Balance sim clears all 48 stages; SFX/haptics/reduced motion; public pages and OG for v1.
+- `pnpm verify` green: contract/SDK/kit/API 610 tests, all game builds and conformance. PR #208 CI green (verify, API, all conformance, e2e, chart).
+- Next: owner's release word ("merge", "deploy", "lên prod"); then merge, tag and deploy per docs/guides/environments.md.
+
+### 2026-11-09 — agent (first playable + P0a)
+
+- G0 spec + ADR 0059; G1 save budget across contract/SDK/API/hub; E-01 persistent shell; E-03 FX player.
+- Game scaffold, pure core (battle/stats/progression/economy/save), 6-hero/12-stage slice, tests and balance report.
+- Phaser board + turn rail + SFX + DOM team/hero/summon/offline sheets; conformance passes at 360×640; public pages + OG.
+- `pnpm verify`: all tasks pass except the API test suite in parallel (local inotify instance limit; API passes sequentially with `-parallelMode none`, 610/610). Conformance all games passes.
+- Next: codex/daily/stage-picker/gear-equip sheets, full 20/20/4/2 content, asset on-demand P0b, then release candidate.
+- No owner action needed yet.

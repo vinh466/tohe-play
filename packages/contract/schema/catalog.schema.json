@@ -136,6 +136,13 @@
                 "exclusiveMinimum": 0,
                 "maximum": 50000
               },
+              "saveBudgetKb": {
+                "default": 64,
+                "description": "Most KB of the game save (1 KB = 1024 bytes); the hub and API enforce it (ADR 0059)",
+                "type": "integer",
+                "minimum": 1,
+                "maximum": 1024
+              },
               "rooms": {
                 "description": "Online rooms (ADR 0016); required with the \"rooms\" capability",
                 "type": "object",
@@ -542,7 +549,8 @@
               "themes",
               "minAge",
               "tags",
-              "sizeBudgetKb"
+              "sizeBudgetKb",
+              "saveBudgetKb"
             ],
             "additionalProperties": false
           },

@@ -108,6 +108,7 @@ const server = createServer((request, response) => {
         tags: [],
         minAge: 0,
         sizeKb: 1,
+        saveBudgetKb: 64,
         rooms: null,
         identity: { play: 'any', rooms: null },
         entries: [],

@@ -223,6 +223,20 @@ describe('the menu stage (ADR 0020)', () => {
     expect(calls).toEqual(['start fresh']);
   });
 
+  it('keeps a persistent world out of the run model: no new game, continue only', async () => {
+    const { shell, labels, tap, calls, back, tools } = setup({
+      persistent: true,
+      inProgress: () => 'Công ty · Chương 2 · Đội 1.920',
+    });
+    shell.start();
+    expect(labels()).toEqual(['Chơi tiếp']);
+    tap('Chơi tiếp');
+    await settle();
+    expect(calls).toEqual(['start']);
+    back();
+    expect(tools()).toEqual(['Cách chơi', 'Menu chính']);
+  });
+
   it('offers Chế độ on the title when a game with modes has a run in progress', () => {
     const { shell, labels, tap, menu } = setup({
       inProgress: () => 'Ván dở',

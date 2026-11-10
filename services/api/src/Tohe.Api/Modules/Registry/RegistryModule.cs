@@ -55,6 +55,7 @@ public sealed record GameSummary(
     IReadOnlyList<string> Tags,
     int MinAge,
     int SizeKb,
+    int SaveBudgetKb,
     GameRoomsView? Rooms,
     GameIdentityView Identity,
     IReadOnlyList<string> Entries);
@@ -130,6 +131,7 @@ internal static class RegistryModule
             game.Tags,
             game.MinAge,
             game.SizeKb,
+            game.SaveBudgetKb,
             game.Rooms is { } rooms ? GameRooms.Parse(rooms).ToView() : null,
             new GameIdentityView(game.IdentityPlay, game.IdentityRooms),
             game.Entries);

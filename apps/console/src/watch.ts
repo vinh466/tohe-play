@@ -22,6 +22,7 @@ export function manifestOf(run: RunReplay, build: RunBuild): GameManifest {
     minAge: 0,
     tags: [],
     sizeBudgetKb: 1,
+    saveBudgetKb: 64,
   };
 }
 

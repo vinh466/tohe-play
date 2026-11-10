@@ -1619,6 +1619,8 @@ export interface components {
             minAge: number;
             /** Format: int32 */
             sizeKb: number;
+            /** Format: int32 */
+            saveBudgetKb: number;
             rooms: null | components["schemas"]["GameRoomsView"];
             identity: components["schemas"]["GameIdentityView"];
             entries: string[];

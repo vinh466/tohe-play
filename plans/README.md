@@ -22,6 +22,7 @@ it goes straight to a doc change or an ADR.
 | fill-blocks | A calm 8 × 8 block puzzle with a deep core, a long journey, a daily challenge and mastery that never pressures | Frame (brief for the owner) | [PLAN.md](fill-blocks/PLAN.md) |
 | asset-studio | A Studio where agents (mostly) and people make, review and manage game assets centrally; games declare which packs, versions and delivery mode they use, the platform provides and keeps the guardrails; a farming slice proves it | Graduate (14 of 15 decided, 1 deferred; delivery.md) | [PLAN.md](asset-studio/PLAN.md) |
 | merge-block-evolution | Ghép Khối from MVP to a game with a reason to return: Orders, Workshop, Daily, Zen, brand/logo, UI/UX | Frame (brief draft; D-01/D-09/D-13 waiting on the owner) | [PLAN.md](merge-block-evolution/PLAN.md) |
+| idle-card-rpg | **Vân Du Ký** — a phone-first idle card RPG for Tò He: the battle board is the app, a roaming company auto-advances through 4 regions, with 20 heroes, deep progression and long-lived content | Graduate (v1.0.0 release candidate green; waiting on the release word) | [PLAN.md](idle-card-rpg/PLAN.md) |
 
 ## What a plan space is — and is not
 

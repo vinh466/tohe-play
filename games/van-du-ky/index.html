@@ -1,0 +1,21 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#171614" />
+    <link rel="icon" href="icon.svg" type="image/svg+xml" />
+    <title>Vân Du Ký</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <!-- The play stage's markup (ADR 0020): stage.ts clones it when play starts. -->
+    <template id="play-stage">
+      <main id="stage"></main>
+    </template>
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>

@@ -72,3 +72,4 @@ Create one with `/new-adr` or by copying [the template](0000-template.md) to the
 | [0056](0056-make-the-agent-workflow-tool-neutral.md) | Make the agent workflow tool-neutral, and put the gates in the repository | Accepted; the rules, `.opencode/` and the Definition of Done follow |
 | [0057](0057-a-game-shelf-for-16-plus.md) | Make the surface a game shelf for 16+, with family mode as a layer | Accepted |
 | [0058](0058-a-game-may-open-a-named-leaderboard.md) | A game may open a named leaderboard, with a short label | Accepted |
+| [0059](0059-a-game-declares-its-save-budget.md) | A game declares its save budget, from 64 KB by default up to 1 MB | Accepted |

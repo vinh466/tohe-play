@@ -4681,6 +4681,7 @@
           "tags",
           "minAge",
           "sizeKb",
+          "saveBudgetKb",
           "rooms",
           "identity",
           "entries"
@@ -4740,6 +4741,10 @@
             "format": "int32"
           },
           "sizeKb": {
+            "type": "integer",
+            "format": "int32"
+          },
+          "saveBudgetKb": {
             "type": "integer",
             "format": "int32"
           },
