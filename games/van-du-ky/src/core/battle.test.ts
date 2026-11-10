@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { RULES, STARTER_TEAM } from '../content/index.ts';
-import { STAGES, stageById } from '../content/stages.ts';
+import { stageById } from '../content/stages.ts';
 import { basicAttack, cast, createBattle, runBattle, runStage, step, turnOrder } from './battle.ts';
 import type { HeroLoadout } from './types.ts';
 

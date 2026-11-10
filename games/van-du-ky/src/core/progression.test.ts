@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { STAGES, stageById } from '../content/stages.ts';
+import { stageById } from '../content/stages.ts';
 import {
   addCompanyXp,
   addCurrency,
@@ -8,6 +8,7 @@ import {
   inventory,
   loadouts,
   recordClear,
+  replayGold,
   resetDaily,
   resetWeekly,
   setFormation,
@@ -109,7 +110,10 @@ describe('stage clears', () => {
     expect(first.company.xp).toBeGreaterThan(0);
     expect(first.currencies.gold).toBe(stage.firstClear.gold + stage.loot.gold);
     const again = recordClear(first, stage, 2000);
-    expect(again.currencies.gold).toBe(first.currencies.gold + stage.loot.gold);
+    expect(again.currencies.gold).toBe(first.currencies.gold + replayGold(stage));
+    expect(again.currencies.essence).toBe(first.currencies.essence);
+    expect(again.currencies.shards).toBe(first.currencies.shards);
+    expect(again.company.xp).toBe(first.company.xp);
     expect(again.cleared).toEqual(first.cleared);
     expect(again.daily.stages).toBe(2);
   });

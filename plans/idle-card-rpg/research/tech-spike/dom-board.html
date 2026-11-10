@@ -356,7 +356,9 @@
         // Charge pips on the attacker.
         attacker.charge = Math.min(3, attacker.charge + 1);
         const pips = attacker.cell.querySelectorAll('.pips i');
-        pips.forEach((pip, i) => pip.classList.toggle('off', i >= attacker.charge));
+        pips.forEach((pip, i) => {
+          pip.classList.toggle('off', i >= attacker.charge);
+        });
         document.getElementById('ticks').textContent = String(ticks);
       }
 
@@ -374,7 +376,9 @@
           u.hp = u.maxHp; u.dead = false; u.charge = 0;
           u.cell.classList.remove('dead');
           u.cell.querySelector('.hp i').style.width = '100%';
-          u.cell.querySelectorAll('.pips i').forEach((pip, i) => pip.classList.toggle('off', i > 0));
+          u.cell.querySelectorAll('.pips i').forEach((pip, i) => {
+            pip.classList.toggle('off', i > 0);
+          });
         }
       }, 9000);
 

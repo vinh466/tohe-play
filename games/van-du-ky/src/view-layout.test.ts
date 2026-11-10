@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { boardLayout } from './view-layout.ts';
+import { centerAt, HEX_COLUMNS, HEX_ROWS, hexLayout } from './view-layout.ts';
 
 const sizes = [
   { width: 320, height: 380 },
@@ -9,41 +9,46 @@ const sizes = [
   { width: 568, height: 220 },
 ];
 
-describe('boardLayout', () => {
-  it.each(sizes)('keeps every row inside the board and apart at $width×$height', ({ width, height }) => {
-    const layout = boardLayout(width, height);
-    const cardHalf = layout.cardHeight / 2;
-    // No two cards on one side touch: the gap between row centres is at least a card plus the row gap.
-    expect(layout.enemyY[0] - layout.enemyY[1]).toBeGreaterThanOrEqual(
-      layout.cardHeight + layout.rowGap - 0.001,
-    );
-    expect(layout.enemyY[1] - layout.enemyY[2]).toBeGreaterThanOrEqual(
-      layout.cardHeight + layout.rowGap - 0.001,
-    );
-    expect(layout.heroY[1] - layout.heroY[0]).toBeGreaterThanOrEqual(
-      layout.cardHeight + layout.rowGap - 0.001,
-    );
-    expect(layout.heroY[2] - layout.heroY[1]).toBeGreaterThanOrEqual(
-      layout.cardHeight + layout.rowGap - 0.001,
-    );
-    // The two sides never meet: the clash gap is clear.
-    expect(layout.enemyY[0] + cardHalf).toBeLessThanOrEqual(layout.clashTop + 0.001);
-    expect(layout.heroY[0] - cardHalf).toBeGreaterThanOrEqual(layout.clashBottom - 0.001);
-    // Everything is inside the canvas.
-    expect(layout.enemyY[2] - cardHalf).toBeGreaterThanOrEqual(0);
-    expect(layout.heroY[2] + cardHalf).toBeLessThanOrEqual(height + 0.001);
-    expect(layout.x[0] - layout.cardWidth / 2).toBeGreaterThanOrEqual(0);
-    expect(layout.x[1] + layout.cardWidth / 2).toBeLessThanOrEqual(width + 0.001);
+describe('hexLayout', () => {
+  it.each(sizes)('fits the honeycomb inside $width×$height', ({ width, height }) => {
+    const layout = hexLayout(width, height);
+    expect(layout.centers).toHaveLength(HEX_COLUMNS * HEX_ROWS);
+    expect(layout.cellW).toBeGreaterThanOrEqual(16);
+    expect(layout.cellH).toBeGreaterThan(0);
+    expect(layout.gridW).toBeLessThanOrEqual(width + 0.001);
+    expect(layout.gridH).toBeLessThanOrEqual(height + 0.001);
+    expect(layout.left).toBeGreaterThanOrEqual(0);
+    expect(layout.top).toBeGreaterThanOrEqual(0);
+    for (const centre of layout.centers) {
+      expect(centre.x).toBeGreaterThanOrEqual(0);
+      expect(centre.y).toBeGreaterThanOrEqual(0);
+      expect(centre.x).toBeLessThanOrEqual(width + 0.001);
+      expect(centre.y).toBeLessThanOrEqual(height + 0.001);
+    }
+    // Neighbouring columns interlock rather than leave a gap.
+    for (let column = 1; column < HEX_COLUMNS; column++) {
+      const a = centerAt(layout, column - 1, 0);
+      const b = centerAt(layout, column, 0);
+      expect(b.x - a.x).toBeGreaterThan(layout.cellW * 0.6);
+      expect(b.x - a.x).toBeLessThan(layout.cellW);
+    }
+    // The four lanes are one cell apart.
+    for (let row = 1; row < HEX_ROWS; row++) {
+      const a = centerAt(layout, 0, row - 1);
+      const b = centerAt(layout, 0, row);
+      expect(b.y - a.y).toBeCloseTo(layout.cellH, 4);
+    }
   });
 
-  it('gives a taller screen bigger cards, up to the cap', () => {
-    expect(boardLayout(390, 652).cardHeight).toBeGreaterThan(boardLayout(320, 380).cardHeight);
-    expect(boardLayout(390, 652).cardHeight).toBeLessThanOrEqual(64);
+  it('gives a taller screen bigger cells, up to the cap', () => {
+    expect(hexLayout(390, 652).cellW).toBeGreaterThan(hexLayout(320, 380).cellW);
+    expect(hexLayout(390, 652).cellW).toBeLessThanOrEqual(80);
   });
 
-  it('does not divide by zero or go negative on a tiny canvas', () => {
-    const layout = boardLayout(0, 0);
-    expect(layout.cardWidth).toBeGreaterThan(0);
-    expect(layout.cardHeight).toBeGreaterThan(0);
+  it('does not divide by zero or go negative on a missing board', () => {
+    const layout = hexLayout(0, 0);
+    expect(layout.cellW).toBeGreaterThan(0);
+    expect(layout.cellH).toBeGreaterThan(0);
+    expect(layout.centers).toHaveLength(HEX_COLUMNS * HEX_ROWS);
   });
 });

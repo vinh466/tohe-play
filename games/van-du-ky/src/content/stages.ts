@@ -61,14 +61,19 @@ const regionDefs: readonly RegionDef[] = REGION_PLANS.map((plan) => ({
   palette: plan.palette,
 }));
 
-/** Card slots in the order a growing wave takes them: front first, then mid, then back. */
-const SLOTS: readonly { readonly row: Row; readonly column: Column }[] = [
+/** Every cell on one side of the board: three ranks × four lanes. */
+export const ALL_SLOTS: readonly { readonly row: Row; readonly column: Column }[] = [0, 1, 2].flatMap((row) =>
+  [0, 1, 2, 3].map((column) => ({ row: row as Row, column: column as Column })),
+);
+
+/** The six slots a wave fills first: two front, two mid and two back, spread across the lanes. */
+export const DEPLOY_SLOTS: readonly { readonly row: Row; readonly column: Column }[] = [
   { row: 0, column: 0 },
-  { row: 0, column: 1 },
-  { row: 1, column: 0 },
+  { row: 0, column: 2 },
   { row: 1, column: 1 },
+  { row: 1, column: 3 },
   { row: 2, column: 0 },
-  { row: 2, column: 1 },
+  { row: 2, column: 2 },
 ];
 
 /** How many enemies each wave of a stage holds; stage 12's last wave is the boss plus two escorts. */
@@ -83,7 +88,7 @@ function waveSizes(index: number): readonly number[] {
 }
 
 function waveOf(plan: RegionPlan, index: number, wave: number, size: number, level: number): StageEnemy[] {
-  return SLOTS.slice(0, size).map((slot, offset) => {
+  return DEPLOY_SLOTS.slice(0, size).map((slot, offset) => {
     const id = plan.pool[(index + wave * 2 + offset) % plan.pool.length] as string;
     return e(id, slot.row, slot.column, level);
   });
@@ -98,9 +103,9 @@ function stageOf(plan: RegionPlan, regionNumber: number, index: number, offset: 
       return {
         boss: true,
         enemies: [
-          e(plan.boss, 0, 0, level + 1),
+          e(plan.boss, 0, 1, level + 1),
           e(plan.pool[2] as string, 2, 0, level),
-          e(plan.pool[3] as string, 2, 1, level),
+          e(plan.pool[3] as string, 2, 3, level),
         ],
       };
     }

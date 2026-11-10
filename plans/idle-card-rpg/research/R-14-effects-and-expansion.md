@@ -1,6 +1,6 @@
 # R-14 — DOM/CSS for the long run: expansion and battle feel
 
-Date: 2026-11-10 · Status: research + effect spike for the owner
+Date: 2026-11-10 · Status: **implemented** in the v1.1.0 hex board (`view.ts` + `style.css`)
 
 Question: if the board is DOM/CSS, is it good for future expansion, and how do we make attacks and hits feel right?
 The short answer: **yes for the UI and card game; effects are CSS/WAAPI first, with a tiny canvas overlay only if a
@@ -128,5 +128,6 @@ wind-up ──▶ travel ──▶ impact ──▶ recovery
 ## Files
 
 - [`tech-spike/dom-effects.html`](tech-spike/dom-effects.html) — interactive effect spike.
+- The game's shipped effect layer: `games/van-du-ky/src/view.ts` (pooled numbers, 3-burst cap, cached centres).
 - [`tech-spike/dom-board.html`](tech-spike/dom-board.html) — board performance spike.
 - [R-13](R-13-tech-stack.md) — renderer comparison.

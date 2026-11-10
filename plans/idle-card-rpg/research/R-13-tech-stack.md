@@ -1,12 +1,12 @@
 # R-13 — Rendering technology for the hex board: DOM/CSS, Pixi or Phaser?
 
-Date: 2026-11-10 · Status: research for the owner, with a working spike
+Date: 2026-11-10 · Status: **implemented in v1.1.0** — DOM/CSS was chosen; Phaser is gone
 
 The 12-cell hex board is a **turn-based card UI**, not a real-time sprite game: 24 hexes, 12 units, a handful of bars,
 numbers and CSS animations. This page compares the renderers that fit it and recommends one, with a measured spike.
 
 - Spike: [`tech-spike/dom-board.html`](tech-spike/dom-board.html) — open it; it auto-runs at ×3 with a perf readout.
-- Current game: Phaser 4 + `@tohe/game-kit/phaser`, 1.4 MB stage chunk, WebGL at DPR 1.25.
+- Former game: Phaser 4 + `@tohe/game-kit/phaser`, 1.4 MB stage chunk, WebGL at DPR 1.25. The shipped DOM board is 331 KB total.
 
 ## What the spike measured
 

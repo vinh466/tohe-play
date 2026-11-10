@@ -21,7 +21,6 @@ import {
   expeditionReward,
   journeyReady,
   journeyReward,
-  markExpedition,
   taskProgress,
   taskReady,
   weekKey,
@@ -44,6 +43,7 @@ import {
 import { createRng } from '../core/rng.ts';
 import type { SaveData, SaveFormation, SaveSlot } from '../core/save-types.ts';
 import { heroStats } from '../core/stats.ts';
+import { terrainAt } from '../core/terrain.ts';
 import type { HeroDef, Row, StageDef } from '../core/types.ts';
 import type { RunMode } from './run-mode.ts';
 
@@ -58,14 +58,10 @@ export interface SheetHost {
   resume(): void;
 }
 
-const POSITIONS: readonly { row: Row; column: 0 | 1 }[] = [
-  { row: 0, column: 0 },
-  { row: 0, column: 1 },
-  { row: 1, column: 0 },
-  { row: 1, column: 1 },
-  { row: 2, column: 0 },
-  { row: 2, column: 1 },
-];
+/** The 12 cells of one side: three ranks × four lanes. Six are filled at most; the rest are open. */
+const POSITIONS: readonly { row: Row; column: 0 | 1 | 2 | 3 }[] = [0, 1, 2].flatMap((row) =>
+  [0, 1, 2, 3].map((column) => ({ row: row as Row, column: column as 0 | 1 | 2 | 3 })),
+);
 
 const SLOT_ORDER: readonly SaveSlot[] = ['weapon', 'armor', 'charm', 'relic'];
 
@@ -213,7 +209,7 @@ export function openTeamSheet(host: SheetHost, onHero?: (heroId: string) => void
     sheet.body.replaceChildren();
     sheet.body.append(
       hint(
-        `${t.yourPower} ${number(teamPower(preview))} · chạm một ô rồi chọn hero · hàng trước +DEF/HP, hàng sau +ATK`,
+        `${t.yourPower} ${number(teamPower(preview))} · chạm một ô rồi chọn hero · 12 ô, tối đa 6 hero · hàng trước +DEF/HP, hàng sau +ATK`,
       ),
     );
 
@@ -231,15 +227,14 @@ export function openTeamSheet(host: SheetHost, onHero?: (heroId: string) => void
       );
       if (hero) {
         const info = el('div', 'vd-slot-info');
-        info.append(
-          portrait(hero.id),
-          el('span', '', `${hero.name}\n${t.roles[hero.role]} · ${t.elements[hero.element]}`),
-        );
+        info.append(portrait(hero.id), el('span', '', hero.name));
         slot.append(info);
       } else {
         slot.append(el('span', 'vd-muted', 'Trống'));
       }
-      slot.title = `${position.row}:${position.column}`;
+      const terrain = terrainAt('hero', position.row, position.column);
+      if (terrain) slot.append(el('span', 'vd-slot-terrain', terrain.label));
+      slot.title = `${hero ? `${hero.name} · ${t.roles[hero.role]} · ${t.elements[hero.element]}` : 'Trống'} · ô ${position.row + 1}-${position.column + 1}${terrain ? ` · ${terrain.label}` : ''}`;
       grid.append(slot);
     });
     sheet.body.append(grid);
@@ -467,6 +462,52 @@ export function openHeroSheet(host: SheetHost, heroId: string): void {
     );
   };
   render();
+}
+
+/** A compact enemy card: the board has no names, so a tap opens the detail here. */
+export function openEnemySheet(host: SheetHost, enemyId: string): void {
+  const enemy = ENEMIES.items.find((candidate) => candidate.id === enemyId);
+  const sheet = openSheet(host, 'Hồ sơ quái');
+  if (!enemy) {
+    sheet.body.append(hint('Không tìm thấy quái này.'));
+    return;
+  }
+  const head = el('div', 'vd-hero-head');
+  const info = el('div', 'vd-hero-info');
+  info.append(
+    el('strong', '', enemy.name),
+    el(
+      'span',
+      'vd-muted',
+      `${t.roles[enemy.role]} · ${t.elements[enemy.element]}${enemy.boss ? ' · Boss' : ''}`,
+    ),
+  );
+  head.append(portrait(enemy.id, 'lg'), info);
+  sheet.body.append(head);
+  sheet.body.append(el('p', 'vd-blurb', enemy.blurb ?? ''));
+  const stats = el('div', 'vd-stats');
+  stats.append(
+    statLine('HP', number(enemy.base.hp)),
+    statLine('ATK', number(enemy.base.atk)),
+    statLine('DEF', number(enemy.base.def)),
+    statLine('SPD', number(enemy.base.spd)),
+    statLine('CRIT', `${Math.round(enemy.base.crit * 100)}%`),
+  );
+  sheet.body.append(section(t.stats, stats));
+  const skills = el('div', 'vd-skills');
+  for (const id of [enemy.basic, enemy.active]) {
+    const skill = RULES.skill(id);
+    skills.append(
+      el(
+        'div',
+        'vd-skill',
+        `${skill.name} — ${skill.kind === 'active' ? `hồi ${skill.charge} lượt` : 'đánh thường'}${
+          skill.element ? ` · ${t.elements[skill.element]}` : ''
+        }`,
+      ),
+    );
+  }
+  sheet.body.append(section(t.skills, skills));
 }
 
 export function openGearSheet(host: SheetHost): void {

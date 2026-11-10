@@ -1,6 +1,6 @@
 # R-12 — Bàn lục giác 12 ô, đánh ngang: the main battle screen
 
-Date: 2026-11-10 · Status: wireframe for the owner's review (no implementation yet)
+Date: 2026-11-10 · Status: **implemented in v1.1.0** (2026-11-10) — DOM/CSS board, 12 cells/side, loss rewind, auto always
 
 Owner feedback after v1: the board should be **hexagons** (not pentagons), **12 cells per side**, seamless, with a
 non-blocking loss/retry flow and auto always. This page is the current design; the wireframe is
@@ -122,15 +122,25 @@ from this game. The recommendation is DOM/CSS, keeping the kit shell/SFX/haptics
 - **Performance**: DOM board, CSS-only numbers, one animation per card; target 60 fps at ×3 on a mid-range phone; use
   `#perf`. The build should be far under the 8 MB budget.
 
-## Open questions
+## Decisions (owner, 2026-11-10)
 
-1. Terrain now (recommended) and lane bonuses later — confirm?
-2. Loss/retry: a new-stage retry win pays normal rewards (owner, 2026-11-10); a cleared-stage replay pays gold only — confirm.
-3. One auto retry per attempt, then wall — or two?
-4. Card on board: no name (recommended) or one 7 px line?
-5. `Chiêu` tab: after the first playtest (owner, 2026-11-10).
-6. DOM/CSS board (recommended) or keep Phaser?
-7. Boss/chapter ribbon: larger but auto, or a 1.2 s pause?
+1. Terrain **now**; lane bonuses later.
+2. A new-stage retry win pays normal rewards; a cleared-stage replay pays **gold only**.
+3. **One** auto retry per attempt, then the wall.
+4. Cards have **no name** on the board; tap opens the sheet.
+5. `Chiêu` tab after the first playtest.
+6. **DOM/CSS** board, no Phaser.
+7. Boss/chapter ribbon: larger but auto; no 1.2 s pause.
+
+## Implementation (v1.1.0)
+
+- `games/van-du-ky/src/view.ts` is a DOM `BoardView`; `view-layout.ts` fits the 6×4 honeycomb and tests 320/360/390.
+- Core `Column` is `0|1|2|3` (four lanes); `Row` stays front/mid/back; a side is 4 lanes × 3 ranks = 12 cells.
+- `DEPLOY_SLOTS` fills two cells per rank; six deployed, six open. Terrain lives in `core/terrain.ts`.
+- The stage deck has `Đường đi` (12-node road + three-line feed) and `Dự bị` (12-cell formation); the loss popup and
+  wall live in `stage.ts`. Winning the last wave advances after ~0.8 s without a modal.
+- Build: **331 KB** (was 1.4 MB with Phaser); measured headless DPR 2 at 320/360/390: p50 **16.7 ms**, p95 16.7–16.8 ms,
+  no long tasks.
 
 ## Supersedes
 

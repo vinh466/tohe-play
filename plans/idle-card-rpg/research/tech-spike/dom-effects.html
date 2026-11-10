@@ -223,14 +223,14 @@
       <p>p50 <code id="p50">–</code> ms · p95 <code id="p95">–</code> ms · long tasks <code id="lt">0</code></p>
       <p>effect nodes <code id="effect-nodes">0</code> · hits <code id="hits">0</code></p>
       <p>
-        <button data-play="hit">Đánh thường</button>
-        <button data-play="crit">Chí mạng</button>
-        <button data-play="active">Chiêu chủ động</button>
-        <button data-play="heal">Hồi máu</button>
-        <button data-play="shield">Khiên</button>
-        <button data-play="death">Ngã</button>
-        <button data-play="auto">Chuỗi tự động</button>
-        <button data-play="reset">Hồi sinh</button>
+        <button type="button" data-play="hit">Đánh thường</button>
+        <button type="button" data-play="crit">Chí mạng</button>
+        <button type="button" data-play="active">Chiêu chủ động</button>
+        <button type="button" data-play="heal">Hồi máu</button>
+        <button type="button" data-play="shield">Khiên</button>
+        <button type="button" data-play="death">Ngã</button>
+        <button type="button" data-play="auto">Chuỗi tự động</button>
+        <button type="button" data-play="reset">Hồi sinh</button>
       </p>
       <label class="reduced"><input type="checkbox" id="reduced" /> Giảm chuyển động</label>
       <p>Effect timeline: wind-up → projectile → impact → hit-stop → flinch / flash / ring / number → HP ghost. At ×3 the wind-up is skipped and particles are capped.</p>
@@ -301,7 +301,9 @@
       const chips = [...rail.children];
       let turn = 0;
       function paintRail() {
-        chips.forEach((chip, i) => chip.classList.toggle('now', i === turn % chips.length));
+        chips.forEach((chip, i) => {
+          chip.classList.toggle('now', i === turn % chips.length);
+        });
         document.querySelector('.turn-label').textContent = 'LƯỢT';
       }
       paintRail();

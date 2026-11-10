@@ -44,6 +44,19 @@ describe('save', () => {
     expect(() => migrate({ v: 99 })).toThrow(SaveError);
   });
 
+  it('keeps the new fourth lane and drops an out-of-range column', () => {
+    const four = migrate({
+      ...emptySave(),
+      formation: [{ heroId: 've-binh', row: 0, column: 3 }],
+    });
+    expect(four.formation).toEqual([{ heroId: 've-binh', row: 0, column: 3 }]);
+    const bad = migrate({
+      ...emptySave(),
+      formation: [{ heroId: 've-binh', row: 0, column: 4 }],
+    });
+    expect(bad.formation.length).toBe(6);
+  });
+
   it('normalizes out-of-range values instead of keeping a broken save', () => {
     const save = migrate({
       ...emptySave(),

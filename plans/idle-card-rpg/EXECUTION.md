@@ -5,9 +5,9 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - Branch: `plan/hex-board` for the hex-board research (game work merges via `feat/van-du-ky-core`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C8 — hex board concept, awaiting owner approval** (R-12/R-13/R-14 + spikes);
-  C7 UI/UX v2 and C6 v1.0.0 live as v1.0.1
-- Release: v1.0.1 live (prod-2026-11-10.2); no deploy, no tag, no merge until the owner says so.
+- Current checkpoint: **C9 — 12-cell hex board implemented** (v1.1.0 RC, 2026-11-10), awaiting the release word;
+  C8 concept approved by the owner; C7 UI/UX v2 and C6 v1.0.0 live as v1.0.1
+- Release: v1.0.1 live (prod-2026-11-10.2); v1.1.0 built and verified locally; no deploy, no tag, no merge until the owner says so.
 
 ## Checkpoints
 
@@ -21,7 +21,8 @@ what to do next. Update it at the end of every session, newest session first in 
 | C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | **done** |
 | C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (v1.0.0 live, prod-2026-11-10.1) |
 | C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **done** (v1.0.1 live) |
-| C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **wireframe + spikes for review** (awaiting owner go-ahead) |
+| C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **done** (owner approved 2026-11-10) |
+| C9 | 12-cell hex board | core columns 0–3, 12-cell formations/terrain, DOM/CSS board, loss popup/rewind, auto road, effect pass, tests, conformance | **done** (v1.1.0 RC, 331 KB, p50 16.7 ms) |
 
 ## Staging and deviations
 
@@ -32,7 +33,7 @@ what to do next. Update it at the end of every session, newest session first in 
 3. **The game is dark-only** (`themes: ["dark"]`), as decided in D-13. The hub is still light/dark; the game keeps its
    own look. Screenshot the game at 360 px.
 4. **No music** (D-15). SFX + haptics only.
-5. **The board is 6v6 / 3 rows**; the 360×640 test is a gate, not a nice-to-have.
+5. **The board is 6v6 on 12 cells per side** (6 deployed, 6 open) with four lanes and three ranks; the 320×568 test is a gate, not a nice-to-have.
 
 ## Workstreams
 
@@ -108,6 +109,17 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-10 — agent (12-cell hex board implemented)
+
+- Owner approved the DOM/CSS + effect direction ("hợp lý, chốt mạnh như v làm chuẩn đi").
+- Core: `Column` 0–3, 12-cell starter/formation, `DEPLOY_SLOTS` two per rank, terrain stat marks; replay pays gold only.
+- View: Phaser removed; DOM/CSS 24-hex board (`view.ts`), pooled numbers, CSS/WAAPI hit/crit/active/heal/shield/death,
+  ×3 and reduced-motion variants, cached centres. Stage deck: road + 3-line feed, 12-cell bench, loss popup, wall.
+- Win: no modal, clear ribbon + road marker + next stage after ~0.8 s. Loss: small popup, auto rewind to wave start,
+  basic gold only, one retry then wall. Boss: one gold-rimmed hex. Auto always; only `Dừng`.
+- Verified: typecheck, 73 tests, build (331 KB), conformance PASS; headless DPR 2 p50/p95 16.7 ms at 320/360/390,
+  no long tasks. Next: owner's release word; then PR, merge, tag, UAT/prod.
 
 ### 2026-11-10 — agent (DOM/CSS and effects spike)
 

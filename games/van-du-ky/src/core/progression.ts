@@ -22,6 +22,11 @@ export function stageXp(stage: StageDef, first: boolean): number {
   return 100 + (regionNumber(stage.id) - 1) * 50 + stage.index * 10 + (first ? 50 : 0);
 }
 
+/** A cleared stage replay pays a little gold only: no essence, shards, gear, first-clear or XP. */
+export function replayGold(stage: StageDef): number {
+  return Math.max(4, Math.round(stage.loot.gold * 0.25));
+}
+
 /** Add XP and level the company; stops at 20. */
 export function addCompanyXp(save: SaveData, xp: number): SaveData {
   const next = cloneSave(save);
@@ -217,18 +222,18 @@ export function nextStage(stage: StageDef): StageDef | null {
   return index >= 0 && index + 1 < STAGES.items.length ? (STAGES.items[index + 1] as StageDef) : null;
 }
 
-/** Apply a win: loot, first-clear bonus, XP, the next stage. A loss changes nothing. */
+/** Apply a win: normal loot and XP on a first clear; only a little gold on a replay. A loss changes nothing. */
 export function recordClear(save: SaveData, stage: StageDef, now = Date.now()): SaveData {
   const next = cloneSave(save);
   const first = !next.cleared.includes(stage.id);
-  const gold = stage.loot.gold + (first ? stage.firstClear.gold : 0);
-  const essence = stage.loot.essence + (first ? stage.firstClear.essence : 0);
+  const gold = first ? stage.loot.gold + stage.firstClear.gold : replayGold(stage);
+  const essence = first ? stage.loot.essence + stage.firstClear.essence : 0;
   const shards = first ? stage.firstClear.shards : 0;
   const current = `${next.progress.region}-${next.progress.stage}`;
   const advances = stageOrder(stage.id) >= stageOrder(current);
   const upcoming = advances ? nextStage(stage) : null;
   const highest = stageOrder(stage.id) > stageOrder(next.progress.highest) ? stage.id : next.progress.highest;
-  const leveled = addCompanyXp(next, stageXp(stage, first));
+  const leveled = first ? addCompanyXp(next, stageXp(stage, first)) : next;
   return {
     ...leveled,
     currencies: {

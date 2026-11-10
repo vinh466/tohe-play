@@ -1,5 +1,8 @@
 # Design — Vân Du Ký: first picture (v2, proposed)
 
+> Historical v2 picture (2026-11-09). The board changed on 2026-11-10: **12 cells per side on a 6×4 honeycomb, DOM/CSS,
+auto always, loss popup + rewind**. R-12/R-13/R-14 and `games/van-du-ky/SPEC.md` are current.
+
 This page **composes** the items into one picture. It decides nothing: every claim points at the item that decides it, and *(proposed)* marks an item not yet `decided`. Date: 2026-11-09.
 
 ## Short answer: how complete is it?

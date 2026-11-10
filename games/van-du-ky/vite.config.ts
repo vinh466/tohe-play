@@ -6,7 +6,5 @@ export default defineConfig({
   server: { port: 4737, strictPort: true },
   build: {
     target: 'es2022',
-    // Phaser is one ~1.4 MB module that cannot be split further; the size budget is checked by conformance.
-    chunkSizeWarningLimit: 1600,
   },
 });

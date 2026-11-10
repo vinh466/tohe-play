@@ -1,6 +1,6 @@
 {
   "name": "@tohe/game-van-du-ky",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "private": true,
   "type": "module",
   "scripts": {
@@ -13,8 +13,7 @@
   },
   "dependencies": {
     "@tohe/game-kit": "workspace:*",
-    "@tohe/game-sdk": "workspace:*",
-    "phaser": "^4.2.0"
+    "@tohe/game-sdk": "workspace:*"
   },
   "devDependencies": {
     "@tohe/conformance": "workspace:*",

@@ -3,6 +3,7 @@
 
 import { createRng } from './rng.ts';
 import { applyRow, elementMultiplier, enemyStats, heroStats } from './stats.ts';
+import { applyTerrain, terrainAt } from './terrain.ts';
 import type {
   BattleEnemyLoadout,
   BattleEvent,
@@ -49,15 +50,18 @@ export function createBattle(rules: BattleRules, config: BattleConfig): BattleSt
   const heroIds = new Set(config.heroes.map((hero) => hero.heroId));
   config.heroes.forEach((loadout, index) => {
     const def = rules.hero(loadout.heroId);
-    const stats = applyRow(
-      heroStats(def, {
-        companyLevel: config.companyLevel,
-        star: loadout.star,
-        gear: loadout.gear.map((id) => rules.gear(id)),
-        plus: loadout.plus,
-        bond: heroIds.has(def.bond),
-      }),
-      loadout.row,
+    const stats = applyTerrain(
+      applyRow(
+        heroStats(def, {
+          companyLevel: config.companyLevel,
+          star: loadout.star,
+          gear: loadout.gear.map((id) => rules.gear(id)),
+          plus: loadout.plus,
+          bond: heroIds.has(def.bond),
+        }),
+        loadout.row,
+      ),
+      terrainAt('hero', loadout.row, loadout.column),
     );
     const hp = Math.max(0, Math.min(stats.hp, loadout.hp ?? stats.hp));
     units.push({
@@ -84,7 +88,10 @@ export function createBattle(rules: BattleRules, config: BattleConfig): BattleSt
   });
   config.enemies.forEach((loadout, index) => {
     const def = rules.enemy(loadout.enemyId);
-    const stats = applyRow(enemyStats(def.base, loadout.level, def.boss), loadout.row);
+    const stats = applyTerrain(
+      applyRow(enemyStats(def.base, loadout.level, def.boss), loadout.row),
+      terrainAt('enemy', loadout.row, loadout.column),
+    );
     units.push({
       id: `e${index + 1}`,
       side: 'enemy',
@@ -334,7 +341,6 @@ function chooseTargets(
       const row = enemies.filter((unit) => unit.row === 2);
       return [lowest(row.length > 0 ? row : enemies)];
     }
-    case 'enemy-lowest':
     default:
       return [lowest(enemies)];
   }
