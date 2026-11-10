@@ -972,7 +972,7 @@ body {
 
 .vd-warn {
   margin: 2px 0;
-  color: var(--vd-accent);
+  color: #e07a68;
   font-size: 11px;
   line-height: 1.4;
 }
