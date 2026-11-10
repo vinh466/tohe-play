@@ -70,8 +70,8 @@ body {
 
 .hud-menu {
   flex: 0 0 auto;
-  min-width: 42px;
-  min-height: 42px;
+  min-width: 44px;
+  min-height: 44px;
   border: 1.5px solid var(--vd-line);
   border-radius: 9px;
   background: var(--vd-surface);
@@ -147,10 +147,6 @@ body {
   font: inherit;
   font-size: 10px;
   font-weight: 800;
-}
-
-.res-chip:active {
-  transform: translateY(1px);
 }
 
 .res-icon {

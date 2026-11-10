@@ -117,7 +117,7 @@ Newest first. One entry per session: what moved, what is blocked, next.
   company level, wave and a Today badge; dock is Đội/Trang bị/Triệu hồi/Sổ tay/Hôm nay.
 - Headless result: p50 49.9→16.7 ms at 320, 50→33.3 ms at 360/390; long tasks 19/100+/85 → 2/0/0. Layout test at
   320×380, 360×452, 390×652; screenshots at 320/360/390.
-- Next: gates, PR, owner's release word.
+- Next: PR [#210](https://github.com/vinh466/tohe-play/pull/210) CI green; owner's release word.
 
 ### 2026-11-09 — agent (v1.0.0 release candidate)
 

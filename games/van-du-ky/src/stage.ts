@@ -123,20 +123,17 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const regionLine = el('span', 'hud-region');
   const stageLine = el('strong', 'hud-stage-name');
   const chevron = el('span', 'hud-chevron', '›');
+  chevron.setAttribute('aria-hidden', 'true');
   stageButton.append(regionLine, stageLine, chevron);
   stageButton.addEventListener('click', () => openStagePicker(sheetHost));
 
   const resources = el('div', 'hud-res');
-  const goldChip = el('button', 'res-chip');
-  goldChip.type = 'button';
+  const goldChip = el('div', 'res-chip');
   goldChip.append(resourceIcon('gold'), el('span', 'res-value'));
-  const essenceChip = el('button', 'res-chip');
-  essenceChip.type = 'button';
+  const essenceChip = el('div', 'res-chip');
   essenceChip.append(resourceIcon('essence'), el('span', 'res-value'));
   const goldValue = goldChip.querySelector('.res-value') as HTMLElement;
   const essenceValue = essenceChip.querySelector('.res-value') as HTMLElement;
-  goldChip.addEventListener('click', () => openGearSheet(sheetHost));
-  essenceChip.addEventListener('click', () => openTeamSheet(sheetHost, (id) => openHeroSheet(sheetHost, id)));
   resources.append(goldChip, essenceChip);
   hudMain.append(menu, stageButton, resources);
 
@@ -201,6 +198,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       const src = `portraits/${token.defId}.png`;
       if (image.getAttribute('src') !== src) image.src = src;
       chip.title = token.name;
+      chip.setAttribute('aria-label', token.name);
     });
   };
 
