@@ -19,7 +19,8 @@ what to do next. Update it at the end of every session, newest session first in 
 | C4 | Content slice | region 1 (12 stages), 6 heroes, 1 boss | **done** |
 | C5 | Full v1 content | 4 regions, 20 heroes, 20 enemies, 4 bosses, 2 events, tower, daily, world boss | **done** |
 | C6 | Release candidate | build, conformance, `pnpm verify`, public pages, OG, sitemap, report | **done** (v1.0.0 live, prod-2026-11-10.1) |
-| C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **in progress → green** |
+| C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **done** (v1.0.1 live) |
+| C8 | Pentagon board concept | R-11 + wireframe v4; owner review; decide 9 vs 12, deck tabs, DOM vs Phaser | **wireframe for review** |
 
 ## Staging and deviations
 
@@ -106,6 +107,15 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-10 — agent (pentagon board concept)
+
+- Owner review of 1.0.1: UI bugs fixed, performance average (keep improving), content okay; wants a new battle-screen
+  concept: pentagon cells, left/right, more cells than 6, minimal cards, no blocking win popup, use the tall bottom.
+- Wrote `research/R-11-pentagon-board.md` and `wireframes/pentagon-board-v4.html`: 6×3 pentagons, 9 cells/side,
+  6 deployed, 3 open; road + feed + tabs at the bottom; formation and wall states.
+- Open questions: 9 vs 12 cells, terrain/lane bonuses, board text, bottom deck tabs, DOM/CSS board vs Phaser.
+- Next: owner feedback on the wireframe; then core columns 0–2 and the chosen view.
 
 ### 2026-11-10 — agent (UI/UX v2)
 

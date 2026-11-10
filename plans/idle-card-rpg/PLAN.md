@@ -29,7 +29,7 @@
 
 ## Next — one item
 
-**Release v1.0.1.** The UI/UX pass is green: the board is a flex column (no overlap), the HUD shows stage/level, gold and essence, turn rail, wave and progress; cards are pre-drawn textures; numbers are DOM; `maxDpr` 1.25; sheets are polished. `pnpm verify` and all-game conformance pass; the layout test covers 320×380, 360×452 and 390×652.
+**Pentagon board review.** R-11 and `wireframes/pentagon-board-v4.html` explore a 6×3 pentagon board (9 cells/side, 6 deployed), left/right, minimal cards, a bottom command deck (road / bench / skills) and non-blocking auto-advance. Waiting on the owner's feedback before changing the core columns and the view.
 
 ## Board
 
