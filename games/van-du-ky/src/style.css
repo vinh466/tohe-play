@@ -1614,11 +1614,11 @@ body {
 }
 
 .hex-cell.attacking.toward-right .hex-body {
-  animation: hex-windup-right calc(120ms * var(--fx)) ease-out;
+  animation: hex-windup-right calc(160ms * var(--fx)) ease-out;
 }
 
 .hex-cell.attacking.toward-left .hex-body {
-  animation: hex-windup-left calc(120ms * var(--fx)) ease-out;
+  animation: hex-windup-left calc(160ms * var(--fx)) ease-out;
 }
 
 .hex-cell.hit {
