@@ -776,7 +776,7 @@ export class BoardView {
     const sourceX = source ? this.center(source.id).x : targetX - 10;
     view.cell.classList.add(targetX < sourceX ? 'flee-left' : 'flee-right');
     this.showNumber(view, `${burn ? '' : '-'}${amount}`, burn ? 'burn' : crit ? 'crit' : 'damage');
-    this.slash(view, color, crit);
+    if (!burn) this.slash(view, color, crit);
     const sparks = crit
       ? this.speed >= 10
         ? 5
