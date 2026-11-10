@@ -791,8 +791,8 @@ export class BoardView {
     this.sparks(view, color, sparks);
     if (!burn) {
       this.hitSound(crit, active);
-      if (crit && !this.reducedMotion) haptics.play('bump');
-      if ((crit || active) && !this.reducedMotion) this.shake();
+      if (crit && !this.reducedMotion && this.speed <= 5) haptics.play('bump');
+      if ((crit || active) && !this.reducedMotion && this.speed <= 5) this.shake();
     }
     this.after(Math.max(180, Math.round(650 * this.motionScale)), () => {
       view.cell.classList.remove('hit', 'crit', 'flee-left', 'flee-right');
@@ -843,7 +843,7 @@ export class BoardView {
     this.sparks(view, '#f2ead9', this.speed >= 5 ? 5 : 9);
     if (!this.reducedMotion) {
       sfx.play('drop');
-      haptics.play('tap');
+      if (this.speed <= 5) haptics.play('tap');
     }
     this.data.onFeed({ kind: 'death', source: target.name, target: target.name });
   }
