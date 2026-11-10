@@ -5,9 +5,9 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - Branch: `plan/hex-board` for the hex-board research (game work merges via `feat/van-du-ky-core`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C10 — combat feedback RC** (v1.1.1, 2026-11-10); C9 12-cell hex board live in v1.1.0;
-  C8 concept approved; C7 UI/UX v2 and C6 v1.0.0 released before it
-- Release: v1.1.0 live (prod-2026-11-10.3); v1.1.1 combat feedback built and verified locally, awaiting the owner's word.
+- Current checkpoint: **C10 — combat feedback live** (v1.1.1, prod-2026-11-10.5, 2026-11-10); C9 12-cell hex board live
+  in v1.1.0; C8 concept approved; C7 UI/UX v2 and C6 v1.0.0 released before it
+- Release: v1.1.1 live (prod-2026-11-10.5), UAT `uat-2026-11-10.5`, chart `0.1.0-g1214065`; v1.1.0 superseded.
 
 ## Checkpoints
 
@@ -23,7 +23,7 @@ what to do next. Update it at the end of every session, newest session first in 
 | C7 | UI/UX v2 | layout, HUD, turn rail, cards, performance, sheets, tests, screenshots | **done** (v1.0.1 live) |
 | C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **done** (owner approved 2026-11-10) |
 | C9 | 12-cell hex board | core columns 0–3, 12-cell formations/terrain, DOM/CSS board, loss popup/rewind, auto road, effect pass, tests, conformance | **done and live** (v1.1.0, prod-2026-11-10.3, 331 KB, p50 16.7 ms) |
-| C10 | Combat feedback | ×1 default and ×2/×5/×10; readable streak/slash/impact/ring; side labels, low-HP and ready pips; UI review | **done** (v1.1.1 RC, 74 tests, conformance PASS) |
+| C10 | Combat feedback | ×1 default and ×2/×5/×10; readable streak/slash/impact/ring; side labels, low-HP and ready pips; UI review | **done and live** (v1.1.1, prod-2026-11-10.5) |
 
 ## Staging and deviations
 
@@ -110,6 +110,14 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-10 — agent (v1.1.1 released)
+
+- PR [#213](https://github.com/vinh466/tohe-play/pull/213) merged (`1214065`); main CI green; images and chart published.
+- UAT `uat-2026-11-10.5` deployed and checked 20/20; prod `prod-2026-11-10.5` tagged with notes; platform-infra PR
+  [#366](https://github.com/vinetic-spaces/platform-infra/pull/366) merged; Argo synced.
+- `check:prod` 23/23; production `apiVersion` is `sha-12140658f7c2…`; catalog has `van-du-ky 1.1.1`.
+- Next: owner playtest of ×1/×2/×5/×10; `Chiêu` tab and lane bonuses remain later steps.
 
 ### 2026-11-10 — agent (v1.1.1 combat feedback RC)
 
