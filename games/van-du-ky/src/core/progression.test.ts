@@ -4,6 +4,7 @@ import {
   addCompanyXp,
   addCurrency,
   equipGear,
+  hasAffordableUpgrade,
   inventory,
   loadouts,
   recordClear,
@@ -35,13 +36,13 @@ describe('company growth', () => {
 });
 
 describe('heroes and gear', () => {
-  it('stars up with shards and refuses when short', () => {
+  it('stars up with essence and refuses when short', () => {
     const base = emptySave();
-    const save = { ...base, currencies: { ...base.currencies, shards: starCost(1) } };
+    const save = { ...base, currencies: { ...base.currencies, essence: starCost(1) } };
     const up = starUp(save, 'moc-y');
     expect(up.roster['moc-y']?.star).toBe(2);
-    expect(up.currencies.shards).toBe(0);
-    expect(() => starUp(up, 'moc-y')).toThrow('shards');
+    expect(up.currencies.essence).toBe(0);
+    expect(() => starUp(up, 'moc-y')).toThrow('essence');
   });
 
   it('a gear piece belongs to one hero and can move', () => {
@@ -170,5 +171,16 @@ describe('resets', () => {
       challengeRounds: 0,
       challengeClaimed: false,
     });
+  });
+});
+
+describe('affordable upgrades', () => {
+  it('lights the upgrade dot for essence (stars) or gold (gear)', () => {
+    const base = emptySave();
+    expect(hasAffordableUpgrade(base)).toBe(false);
+    const star = { ...base, currencies: { ...base.currencies, essence: starCost(1) } };
+    expect(hasAffordableUpgrade(star)).toBe(true);
+    const gear = { ...base, currencies: { ...base.currencies, gold: 40 } };
+    expect(hasAffordableUpgrade(gear)).toBe(true);
   });
 });

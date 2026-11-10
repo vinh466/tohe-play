@@ -6,6 +6,7 @@ import {
   claimDailyTask,
   claimJourney,
   DAILY_TASKS,
+  dailyReady,
   dayKey,
   expeditionReward,
   journeyReady,
@@ -121,5 +122,32 @@ describe('Khởi Hành journey', () => {
     expect(save.daily.journeyDay).toBe(8);
     expect(journeyReady(save, '2026-11-10')).toBe(false);
     expect(() => claimJourney(save, '2026-11-10')).toThrow('finished');
+  });
+});
+
+describe('daily ready dot', () => {
+  it('is on for a stale day and off when nothing is waiting', () => {
+    const today = '2026-11-10';
+    const week = '2026-11-09';
+    expect(dailyReady(emptySave(), today, week)).toBe(true);
+    const quiet = {
+      ...emptySave(),
+      daily: {
+        ...emptySave().daily,
+        date: today,
+        expedition: true,
+        journeyDay: 8,
+        journeyDate: today,
+      },
+      weekly: {
+        ...emptySave().weekly,
+        week,
+        bossClaimed: true,
+        challengeClaimed: true,
+      },
+    };
+    expect(dailyReady(quiet, today, week)).toBe(false);
+    const task = { ...quiet, daily: { ...quiet.daily, stages: 3 } };
+    expect(dailyReady(task, today, week)).toBe(true);
   });
 });

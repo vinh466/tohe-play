@@ -1,5 +1,5 @@
 ---
-updated: 2026-11-09
+updated: 2026-11-10
 kind: game thẻ bài treo máy
 ---
 
@@ -15,7 +15,7 @@ Một đoàn hộ vệ đi con đường mây. Bàn đánh bài là màn hình c
 
 ## Hợp với ai
 
-Bản 1.0 có bốn vùng, 48 màn, 20 hộ vệ, 20 quái, 4 boss, 10 mối nối. Ngoài chặng đường chính còn có Tháp Đường Mây 40 tầng, chuyến đi trong ngày, boss thế giới hằng tuần, Thử Thách Đường Mây và chuỗi bảy ngày Khởi Hành. Người lớn chơi lâu, trẻ nhỏ mở lên là đoàn tự đi; không có cửa hàng bằng tiền thật, không có bảng xếp hạng công khai.
+Bản 1.0 có bốn vùng, 48 màn, 20 hộ vệ, 20 quái, 4 boss, 10 mối nối. Ngoài chặng đường chính còn có Tháp Đường Mây 40 tầng, chuyến đi trong ngày, boss thế giới hằng tuần, Thử Thách Đường Mây và chuỗi bảy ngày Khởi Hành. Bản 1.0.1 gọn lại HUD, thẻ dễ đọc hơn và nhẹ hơn trên máy yếu. Người lớn chơi lâu, trẻ nhỏ mở lên là đoàn tự đi; không có cửa hàng bằng tiền thật, không có bảng xếp hạng công khai.
 
 ## Hỏi đáp
 

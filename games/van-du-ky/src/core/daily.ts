@@ -75,6 +75,18 @@ export function claimDailyTask(save: SaveData, taskId: string): SaveData {
   return { ...next, daily: { ...next.daily, tasks: [...next.daily.tasks, task.id].slice(0, 3) } };
 }
 
+/** A dot on Hôm nay: a task, the journey, the expedition or a weekly reward is waiting. */
+export function dailyReady(save: SaveData, today = dayKey(), week = weekKey()): boolean {
+  if (save.daily.date !== today || save.weekly.week !== week) return true;
+  return (
+    DAILY_TASKS.some((task) => taskReady(save, task)) ||
+    journeyReady(save, today) ||
+    !save.daily.expedition ||
+    (!save.weekly.bossClaimed && save.weekly.bossDamage > 0) ||
+    (!save.weekly.challengeClaimed && save.weekly.challengeRounds > 0)
+  );
+}
+
 /** Tower rewards; only the next floor pays, so a replay is practice. */
 export function towerClear(save: SaveData, floor: number): SaveData {
   const next = cloneSave(save);

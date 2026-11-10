@@ -59,12 +59,12 @@ export function starUp(save: SaveData, heroId: string): SaveData {
   if (!hero) throw new Error(`starUp: ${heroId} is not in the roster`);
   if (hero.star >= 5) throw new Error(`starUp: ${heroId} is already ★5`);
   const cost = starCost(hero.star);
-  if (save.currencies.shards < cost) throw new Error(`starUp: needs ${cost} shards`);
+  if (save.currencies.essence < cost) throw new Error(`starUp: needs ${cost} essence`);
   const next = cloneSave(save);
   const target = next.roster[heroId] as SaveHero;
   return {
     ...next,
-    currencies: { ...next.currencies, shards: next.currencies.shards - cost },
+    currencies: { ...next.currencies, essence: next.currencies.essence - cost },
     roster: { ...next.roster, [heroId]: { ...target, star: target.star + 1 } },
   };
 }
@@ -124,6 +124,16 @@ export function inventory(
 
 export function upgradeCost(piece: { readonly plus: number }): number {
   return 40 * (piece.plus + 1);
+}
+
+/** Something the player can pay for now: a star-up or a gear plus. A dot on Nâng cấp follows it. */
+export function hasAffordableUpgrade(save: SaveData): boolean {
+  for (const hero of Object.values(save.roster)) {
+    if (hero.star < 5 && save.currencies.essence >= starCost(hero.star)) return true;
+  }
+  return Object.values(save.gear).some(
+    (piece) => piece.plus < 5 && save.currencies.gold >= upgradeCost(piece),
+  );
 }
 
 export function upgradeGear(save: SaveData, gearId: string): SaveData {

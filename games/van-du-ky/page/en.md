@@ -1,5 +1,5 @@
 ---
-updated: 2026-11-09
+updated: 2026-11-10
 kind: idle card RPG
 ---
 
@@ -15,7 +15,7 @@ A company of guardians walks the cloud road. The card board is the game: six car
 
 ## Who it suits
 
-Version 1.0 has four regions, 48 stages, 20 guardians, 20 enemies, 4 bosses and 10 bonds. Beyond the main road there is a 40-floor tower, a daily expedition, a weekly world boss, a weekly challenge and a seven-day Departure journey. There is no real-money store and no public leaderboard; a missed day never wipes progress.
+Version 1.0 has four regions, 48 stages, 20 guardians, 20 enemies, 4 bosses and 10 bonds. Beyond the main road there is a 40-floor tower, a daily expedition, a weekly world boss, a weekly challenge and a seven-day Departure journey. Version 1.0.1 tightens the HUD, makes the cards easier to read and runs lighter on a weak phone. There is no real-money store and no public leaderboard; a missed day never wipes progress.
 
 ## Questions
 

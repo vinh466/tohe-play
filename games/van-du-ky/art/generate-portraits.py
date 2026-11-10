@@ -14,6 +14,7 @@ test fails when one is missing. Keep the drawings at 32×32: the UI scales them 
 from __future__ import annotations
 
 import hashlib
+import json
 import os
 import re
 from PIL import Image, ImageDraw
@@ -269,6 +270,44 @@ def enemy_portrait(entity: dict[str, str]) -> Image.Image:
     return img
 
 
+def write_atlas(entities: list[dict[str, str]]) -> None:
+    """Pack the same 32×32 frames into one 8-wide sheet for Phaser: one texture, one draw batch."""
+    columns = 8
+    rows = (len(entities) + columns - 1) // columns
+    sheet = Image.new("RGBA", (columns * W, rows * H), (0, 0, 0, 0))
+    frames = {}
+    for index, entity in enumerate(entities):
+        image = Image.open(os.path.join(OUT, f"{entity['id']}.png")).convert("RGBA")
+        x = (index % columns) * W
+        y = (index // columns) * H
+        sheet.alpha_composite(image, (x, y))
+        frames[entity["id"]] = {
+            "frame": {"x": x, "y": y, "w": W, "h": H},
+            "rotated": False,
+            "trimmed": False,
+            "spriteSourceSize": {"x": 0, "y": 0, "w": W, "h": H},
+            "sourceSize": {"w": W, "h": H},
+        }
+    sheet.save(os.path.join(OUT, "atlas.png"))
+    with open(os.path.join(OUT, "atlas.json"), "w", encoding="utf-8") as handle:
+        json.dump(
+            {
+                "frames": frames,
+                "meta": {
+                    "app": "van-du-ky portraits",
+                    "version": "1.0.0",
+                    "image": "atlas.png",
+                    "format": "RGBA8888",
+                    "size": {"w": sheet.width, "h": sheet.height},
+                    "scale": "1",
+                },
+            },
+            handle,
+            ensure_ascii=False,
+            separators=(",", ":"),
+        )
+
+
 def main() -> None:
     os.makedirs(OUT, exist_ok=True)
     entities = parse_heroes() + parse_enemies()
@@ -279,7 +318,8 @@ def main() -> None:
         seen.add(entity["id"])
         image = hero_portrait(entity) if entity["kind"] == "hero" else enemy_portrait(entity)
         image.save(os.path.join(OUT, f"{entity['id']}.png"))
-    print(f"wrote {len(entities)} portraits to {os.path.normpath(OUT)}")
+    write_atlas(entities)
+    print(f"wrote {len(entities)} portraits and an atlas to {os.path.normpath(OUT)}")
 
 
 if __name__ == "__main__":
