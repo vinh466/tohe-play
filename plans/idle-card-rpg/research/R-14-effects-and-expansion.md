@@ -1,6 +1,6 @@
 # R-14 — DOM/CSS for the long run: expansion and battle feel
 
-Date: 2026-11-10 · Status: **implemented** in the v1.1.0 hex board; the combat-feedback pass is v1.1.1 (`view.ts` + `style.css`)
+Date: 2026-11-10 · Status: **live** in v1.1.0/v1.1.1 (`view.ts` + `style.css`)
 
 Question: if the board is DOM/CSS, is it good for future expansion, and how do we make attacks and hits feel right?
 The short answer: **yes for the UI and card game; effects are CSS/WAAPI first, with a tiny canvas overlay only if a
