@@ -11,7 +11,21 @@ import {
   prefersReducedMotion,
   type StageContext,
 } from '@tohe/game-kit';
-import { finishGame, journeyStars, nextSeed, persist, scoreText, session, sfx, store, t } from './app.ts';
+import {
+  dropParked,
+  finishGame,
+  journeyStars,
+  nextSeed,
+  parkActive,
+  parkedRun,
+  persist,
+  resumeParked,
+  scoreText,
+  session,
+  sfx,
+  store,
+  t,
+} from './app.ts';
 import { chapterOf, DAILY_GOALS, DAILY_MOVES, dailySeed, LEVEL_BY_ID, LEVELS } from './content/levels.ts';
 import { bounds, type Shape, shapeById } from './content/shapes.ts';
 import { SKINS, skinById } from './content/skins.ts';
@@ -32,6 +46,7 @@ import {
   starsFor,
 } from './logic.ts';
 import { DEFAULT_PALETTE, isPalette, PALETTE_COLOURS, PALETTE_IDS } from './palette.ts';
+import { dailyDateOf, isLive, MODE_SLOTS, type ModeSlot, nextLevelId, slotOf } from './runs.ts';
 import { paletteLabel, todayId } from './strings.ts';
 
 interface Started {
@@ -79,6 +94,86 @@ const startEndless = (): Started => ({
 });
 
 const newId = (): string => newRunId();
+
+const fromRun = (state: State, runId: string | null): Started => ({
+  state,
+  goals: goalsFor(state),
+  runId: runId ?? newId(),
+});
+
+/** The next journey level to offer: the first without a star, else the last one. */
+const nextJourney = (): string =>
+  nextLevelId(
+    store.journey,
+    LEVELS.map((level) => level.id),
+  );
+
+/** Ends the live score of a run a new one replaces, so the board does not keep it open. */
+const closeRun = (state: State): void => {
+  if (store.run)
+    void session
+      .run(store.run)
+      .finish(state.score)
+      .catch((error) => session.log('warn', String(error)));
+};
+
+/**
+ * A mode chosen on the pre-play screen: resume that mode's run (the active one or a parked one), or start a fresh one.
+ * A run of another mode is parked first, never thrown away. `fresh` (a "Ván mới" on the mode) replaces the mode's run.
+ */
+function modeStart(slot: ModeSlot, fresh: boolean): Started {
+  const active = isLive(store.game) ? store.game : null;
+  if (!fresh && active && slotOf(active) === slot) return fromRun(active, store.run);
+  if (active && slotOf(active) !== slot) parkActive();
+  if (fresh) {
+    dropParked(slot);
+    if (active && slotOf(active) === slot) closeRun(active);
+    return slot === 'journey'
+      ? startLevel(nextJourney())
+      : slot === 'daily'
+        ? startDaily(todayId())
+        : startEndless();
+  }
+  const parked = resumeParked(slot);
+  if (parked) return fromRun(parked.state, parked.runId);
+  return slot === 'journey'
+    ? startLevel(nextJourney())
+    : slot === 'daily'
+      ? startDaily(todayId())
+      : startEndless();
+}
+
+/** A level from the journey screen: resume it when it is the live journey, or start it (the screen confirmed). */
+function levelStart(levelId: string, restart = false): Started {
+  const active = isLive(store.game) ? store.game : null;
+  if (!restart && active?.mode === 'journey' && active.level === levelId) return fromRun(active, store.run);
+  const parked = parkedRun('journey');
+  if (!restart && parked?.level === levelId) {
+    if (active?.mode === 'journey') closeRun(active);
+    else if (active) parkActive();
+    const resumed = resumeParked('journey');
+    return resumed ? fromRun(resumed.state, resumed.runId) : startLevel(levelId);
+  }
+  if (active?.mode === 'journey') closeRun(active);
+  else if (active) parkActive();
+  dropParked('journey');
+  return startLevel(levelId);
+}
+
+/** Today's daily: resume it when it is live or parked, otherwise start it (or a practice run). */
+function dailyStart(date: string, restart = false): Started {
+  const active = isLive(store.game) ? store.game : null;
+  if (!restart && active?.mode === 'daily' && dailyDateOf(active) === date) return fromRun(active, store.run);
+  if (active?.mode === 'daily') closeRun(active);
+  else if (active) parkActive();
+  const parked = parkedRun('daily');
+  if (!restart && parked && dailyDateOf(parked) === date) {
+    const resumed = resumeParked('daily');
+    return resumed ? fromRun(resumed.state, resumed.runId) : startDaily(date);
+  }
+  if (parked) dropParked('daily');
+  return startDaily(date);
+}
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) => {
   const node = document.createElement(tag);
@@ -133,11 +228,12 @@ export function start(ctx: StageContext): PlayStage {
 
   const pending = ctx.fresh ? { ...store.pending } : {};
   if (ctx.fresh) store.pending = {};
+  const choice = ctx.choice as ModeSlot | null;
   let started: Started;
-  if (ctx.fresh && pending.level) started = startLevel(pending.level);
-  else if (ctx.fresh && pending.daily) started = startDaily(pending.daily);
-  else if (!ctx.fresh && store.game && !store.game.over)
-    started = { state: store.game, goals: goalsFor(store.game), runId: store.run ?? newId() };
+  if (choice && MODE_SLOTS.includes(choice)) started = modeStart(choice, ctx.fresh);
+  else if (ctx.fresh && pending.level) started = levelStart(pending.level, pending.restart === true);
+  else if (ctx.fresh && pending.daily) started = dailyStart(pending.daily, pending.restart === true);
+  else if (!ctx.fresh && store.game && !store.game.over) started = fromRun(store.game, store.run);
   else started = startEndless();
 
   let state = started.state;
@@ -719,7 +815,7 @@ export function start(ctx: StageContext): PlayStage {
           label: t.nextLevel,
           icon: 'play',
           dismiss: true,
-          onClick: () => begin(startLevel(next.id)),
+          onClick: () => begin(levelStart(next.id)),
         });
       }
     }
@@ -746,11 +842,22 @@ export function start(ctx: StageContext): PlayStage {
     scheduleHint();
   }
 
-  function newGameInPlace(): void {
+  /** Ends this run and starts another of the same mode, or of the mode chosen on the pre-play screen. */
+  function newGameInPlace(choice?: string, fresh = true): void {
+    if (choice) {
+      store.game = state;
+      store.run = runId;
+      const slot = choice as ModeSlot;
+      if (MODE_SLOTS.includes(slot)) {
+        begin(modeStart(slot, fresh));
+        return;
+      }
+    }
     if (!finished && state.score > 0)
       void run.finish(state.score).catch((error) => session.log('warn', String(error)));
+    dropParked(slotOf(state));
     if (state.mode === 'journey' && state.level) begin(startLevel(state.level));
-    else if (state.mode === 'daily') begin(startDaily(state.level?.replace('daily-', '') ?? todayId()));
+    else if (state.mode === 'daily') begin(startDaily(dailyDateOf(state) ?? todayId()));
     else begin(startEndless());
   }
 
@@ -807,6 +914,13 @@ export function start(ctx: StageContext): PlayStage {
   };
 
   const quick = () => [
+    {
+      kind: 'action' as const,
+      icon: 'cards' as const,
+      label: t.modes,
+      value: state.mode === 'journey' ? t.modeJourney : state.mode === 'daily' ? t.modeDaily : t.modeEndless,
+      onClick: () => ctx.changeMode(),
+    },
     paletteRow(),
     skinRow(),
     {

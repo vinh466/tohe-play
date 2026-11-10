@@ -25,6 +25,8 @@ public sealed class Game
     public string[] Tags { get; set; } = [];
     public int MinAge { get; set; }
     public int SizeKb { get; set; }
+    /// <summary>Most KB of the game's save (ADR 0059); 64 without a declaration.</summary>
+    public int SaveBudgetKb { get; set; } = 64;
     /// <summary>The manifest's <c>rooms</c> block (ADR 0016) as JSON, for games played at a table; otherwise null.</summary>
     public string? Rooms { get; set; }
     /// <summary>The manifest's <c>ranked</c> block (ADR 0030) as JSON, for games whose runs the server replays.</summary>
@@ -81,6 +83,7 @@ internal sealed class GameConfiguration : IEntityTypeConfiguration<Game>
         builder.Property(game => game.Orientation).HasMaxLength(20);
         builder.Property(game => game.Rooms).HasColumnType("jsonb");
         builder.Property(game => game.Ranked).HasColumnType("jsonb");
+        builder.Property(game => game.SaveBudgetKb).HasDefaultValue(64);
         builder.Property(game => game.IdentityPlay).HasMaxLength(8).HasDefaultValue(GameLevels.Any);
         builder.Property(game => game.IdentityRooms).HasMaxLength(8);
         builder.Property(game => game.Entries).HasDefaultValueSql("'{}'::text[]");

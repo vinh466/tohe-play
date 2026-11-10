@@ -284,6 +284,11 @@ export interface ShellOptions {
   leaderboard?: boolean;
   /** Play runs against the clock: going on from the panel counts 3, 2, 1 first. */
   countdown?: boolean;
+  /**
+   * A persistent world (an RPG, a farm), not a run: the title offers **Chơi tiếp** and the panel has no **Ván mới**;
+   * the shell never calls `stage.newGame()`. A reset lives in the game's own settings, behind its own confirmation.
+   */
+  persistent?: boolean;
   /** The play stage's module, e.g. `() => import('./stage.ts')`: fetched while the menu is up, started on play. */
   stage(): Promise<StageModule>;
   /**
@@ -506,11 +511,11 @@ export function createShell(options: ShellOptions): Shell {
           icon: options.playIcon ?? 'play',
           attributes: { 'data-tohe-play': '' },
           onClick: () => {
-            if (summary || !options.prePlay) begin(false);
+            if (summary || !options.prePlay || options.persistent) begin(false);
             else showPrePlay('title');
           },
         },
-        ...(summary
+        ...(summary && !options.persistent
           ? [
               {
                 label: options.prePlay ? t.modes : t.newGame,
@@ -523,7 +528,9 @@ export function createShell(options: ShellOptions): Shell {
               },
             ]
           : []),
-        ...(options.modes ?? []).map((mode) => ({ variant: 'secondary' as const, ...mode })),
+        ...(options.persistent
+          ? []
+          : (options.modes ?? []).map((mode) => ({ variant: 'secondary' as const, ...mode }))),
         ...(options.online && can.rooms
           ? [
               {
@@ -910,7 +917,7 @@ export function createShell(options: ShellOptions): Shell {
       actions: [{ label: t.resume, icon: 'play', onClick: goOn }],
       rows: [soundRow(panel), ...quick],
       tools: [
-        ...(direct
+        ...(direct || options.persistent
           ? []
           : [
               {

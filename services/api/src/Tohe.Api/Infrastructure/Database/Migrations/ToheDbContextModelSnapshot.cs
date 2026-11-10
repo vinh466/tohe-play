@@ -1675,6 +1675,12 @@ namespace Tohe.Api.Infrastructure.Database.Migrations
                         .HasColumnType("jsonb")
                         .HasColumnName("rooms");
 
+                    b.Property<int>("SaveBudgetKb")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("integer")
+                        .HasDefaultValue(64)
+                        .HasColumnName("save_budget_kb");
+
                     b.Property<int>("SizeKb")
                         .HasColumnType("integer")
                         .HasColumnName("size_kb");

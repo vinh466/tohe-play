@@ -30,7 +30,7 @@ internal sealed class DeviceProgress(ToheDbContext db, IResults results, TimePro
                 return "save_invalid";
             }
 
-            if (Encoding.UTF8.GetByteCount(save.Data.GetRawText()) > ProgressModule.MaxSaveBytes)
+            if (Encoding.UTF8.GetByteCount(save.Data.GetRawText()) > ProgressModule.DefaultMaxSaveBytes)
             {
                 return "save_too_large";
             }

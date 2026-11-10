@@ -22,6 +22,7 @@ const manifest: GameManifest = {
   minAge: 0,
   tags: [],
   sizeBudgetKb: 3000,
+  saveBudgetKb: 64,
 };
 
 function setup(overrides: Partial<HostOptions> = {}) {
@@ -85,6 +86,12 @@ describe('game <-> host handshake', () => {
     });
     const session = await connect({ gameId: 'hello', transport: gameSide });
     await expect(session.save({})).rejects.toThrow('disk full');
+  });
+
+  it('enforces the game save budget (ADR 0059)', async () => {
+    const { gameSide } = setup({ manifest: { ...manifest, saveBudgetKb: 1 } });
+    const session = await connect({ gameId: 'hello', transport: gameSide });
+    await expect(session.save({ text: 'x'.repeat(2048) })).rejects.toThrow('save exceeds 1024 bytes');
   });
 
   it('rejects capabilities the manifest does not declare', async () => {

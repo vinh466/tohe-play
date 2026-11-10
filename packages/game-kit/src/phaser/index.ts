@@ -6,6 +6,17 @@ export {
   loadPacks,
   type PackScene,
 } from './assets.ts';
+export {
+  type FxAct,
+  type FxActHit,
+  type FxHandle,
+  type FxSheet,
+  type FxTimeline,
+  fxOrigin,
+  fxTimeline,
+  type PlayFxOptions,
+  playFx,
+} from './fx.ts';
 export { createGame, crispText, type KitGame, type KitGameOptions, type Size, webglWorks } from './game.ts';
 export {
   burst,

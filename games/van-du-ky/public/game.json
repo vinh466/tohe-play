@@ -1,0 +1,19 @@
+{
+  "$schema": "../../../packages/contract/schema/game-manifest.schema.json",
+  "id": "van-du-ky",
+  "name": "Vân Du Ký",
+  "version": "1.1.0",
+  "protocol": 1,
+  "description": "A phone-first idle card RPG: a company of guardians walks a long road, its card board is the game, and every stop makes the company stronger. No ads, no purchases, no energy.",
+  "descriptions": {
+    "vi": "RPG thẻ bài treo máy trên điện thoại: một đoàn hộ vệ đi con đường dài, bàn đánh bài là màn hình chính, mỗi chặng đường làm đoàn mạnh hơn. Không quảng cáo, không nạp, không năng lượng."
+  },
+  "icon": "icon.svg",
+  "orientation": "portrait",
+  "capabilities": ["save", "shell"],
+  "themes": ["dark"],
+  "minAge": 6,
+  "tags": ["rpg", "cards", "idle"],
+  "sizeBudgetKb": 8000,
+  "saveBudgetKb": 256
+}

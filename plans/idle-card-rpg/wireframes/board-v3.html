@@ -1,0 +1,311 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wireframe v3 — 3 hàng / 6 hero, dark-first</title>
+<style>
+  :root{
+    --bg:#171614; --phone:#1e1c19; --surface:#2a2722; --surface2:#24211d;
+    --ink:#f2ead9; --muted:#a89f8d; --line:#5a5348; --soft:#39342c;
+    --accent:#d05a4a; --gold:#d8a84e; --leaf:#7fae86;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;padding:28px;background:#0f0e0d;color:var(--ink);font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}
+  h1{font-size:20px;margin:0 0 4px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 22px}
+  .grid{display:grid;grid-template-columns:repeat(2,380px);gap:26px 24px;align-items:start}
+  .frame{width:380px}
+  .caption{font-size:12px;color:var(--muted);margin-top:8px;line-height:1.4}
+  .caption b{color:var(--ink)}
+  .phone{width:380px;height:676px;background:var(--phone);border:2px solid var(--line);border-radius:18px;overflow:hidden;position:relative;box-shadow:4px 5px 0 rgba(0,0,0,.45)}
+  .status{height:22px;display:flex;align-items:center;justify-content:space-between;padding:0 14px;font-size:10px;color:var(--muted)}
+  .top{display:flex;align-items:center;justify-content:space-between;padding:6px 12px 8px;border-bottom:1.5px solid var(--line)}
+  .stage{font-weight:800;font-size:12px;letter-spacing:.02em}
+  .stage small{display:block;font-weight:500;color:var(--muted);font-size:9px;letter-spacing:.06em}
+  .res{display:flex;gap:6px;align-items:center;font-size:10px}
+  .chip{border:1.5px solid var(--line);background:var(--surface);border-radius:7px;padding:3px 6px;font-weight:700}
+  .iconbtn{width:24px;height:24px;border:1.5px solid var(--line);border-radius:7px;display:grid;place-items:center;background:var(--surface);font-size:12px;font-weight:800}
+  .rail{display:flex;gap:4px;padding:5px 12px 4px;align-items:center}
+  .rail .label{font-size:8px;color:var(--muted);letter-spacing:.08em;margin-right:2px}
+  .turn{width:25px;height:18px;border:1.5px solid var(--line);border-radius:5px;background:var(--surface);display:grid;place-items:center;font-size:8px;font-weight:800}
+  .turn.enemy{background:#3a2320;border-color:#7a3a32}
+  .turn.hero{background:#213026;border-color:#4f7a58}
+  .turn.now{outline:2px solid var(--accent);outline-offset:1px}
+  .board{margin:2px 10px 0;border:1.5px solid var(--line);border-radius:10px;background:radial-gradient(ellipse at 50% 50%,#2a241c,#171614 70%);height:424px;position:relative;overflow:hidden}
+  .side{position:absolute;left:0;right:0}
+  .side.enemy{top:4px}
+  .side.hero{bottom:4px}
+  .rowwrap{display:flex;align-items:center;gap:3px;padding:0 7px 3px 3px}
+  .rowtag{width:22px;text-align:center;font-size:7px;color:var(--muted);letter-spacing:.03em;line-height:1.1}
+  .cards{flex:1;display:flex;gap:5px}
+  .card{flex:1;min-width:0;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);padding:3px;display:flex;gap:4px;align-items:center}
+  .card.enemy{background:#2d1f1c;border-color:#6d3831}
+  .card.hero{background:#1f2a22;border-color:#456c4e}
+  .pic{width:32px;height:40px;border:1px dashed var(--line);border-radius:4px;display:grid;place-items:center;font-size:7px;color:var(--muted);background:repeating-linear-gradient(45deg,#241f19,#241f19 4px,#2b251e 4px,#2b251e 8px);flex:none}
+  .info{min-width:0;flex:1}
+  .name{font-size:8px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .bar{height:4px;background:#3a342b;border:1px solid #4a4438;border-radius:3px;margin-top:2px;overflow:hidden}
+  .bar>i{display:block;height:100%;background:var(--leaf)}
+  .card.enemy .bar>i{background:var(--accent)}
+  .mini{display:flex;justify-content:space-between;align-items:center;margin-top:1px;font-size:7px;color:var(--muted)}
+  .dot{width:6px;height:6px;border-radius:50%;border:1px solid #191714;display:inline-block}
+  .dot.em{background:#cf5a3f}.dot.ti{background:#4c86a8}.dot.st{background:#9a8a5f}.dot.ga{background:#6a9a6b}
+  .clash{position:absolute;left:8px;right:8px;top:190px;height:40px;border:1.5px dashed var(--line);border-radius:8px;display:grid;place-items:center;text-align:center;color:var(--muted);font-size:8px;line-height:1.4}
+  .clash b{color:var(--ink);font-size:9px}
+  .dmg{position:absolute;font-weight:900;font-size:10px;color:var(--accent)}
+  .d1{left:16px;top:196px}.d2{right:18px;top:204px}.d3{left:150px;top:234px;color:var(--gold)}
+  .controls{display:flex;align-items:center;gap:5px;padding:6px 10px 3px}
+  .toggle{display:flex;align-items:center;gap:4px;border:1.5px solid var(--line);border-radius:8px;background:var(--surface);padding:3px 5px;font-size:9px;font-weight:700}
+  .knob{width:20px;height:11px;border-radius:8px;background:var(--leaf);position:relative}
+  .knob::after{content:"";position:absolute;right:1px;top:1px;width:9px;height:9px;border-radius:50%;background:#fff}
+  .btn{border:1.5px solid var(--line);border-radius:8px;background:var(--surface);padding:3px 6px;font-size:9px;font-weight:800}
+  .btn.accent{background:var(--accent);color:#1a0f0d;border-color:var(--accent)}
+  .spacer{flex:1}
+  .dock{position:absolute;left:10px;right:10px;bottom:7px;display:flex;gap:4px;border-top:1.5px solid var(--line);padding-top:5px}
+  .dock .item{flex:1;text-align:center;font-size:7px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:2px}
+  .dock .sq{width:21px;height:21px;border:1.5px solid var(--line);border-radius:6px;background:var(--surface);display:grid;place-items:center;font-size:8px;font-weight:800}
+  .dock .item.on .sq{background:var(--ink);color:var(--phone);border-color:var(--ink)}.dock .item.on{color:var(--ink);font-weight:700}
+  .scrim{position:absolute;inset:0;background:rgba(0,0,0,.6)}
+  .sheet{position:absolute;left:0;right:0;bottom:0;background:var(--phone);border-top:2px solid var(--line);border-radius:16px 16px 0 0;padding:9px 13px 13px}
+  .grab{width:36px;height:4px;border-radius:3px;background:var(--line);margin:0 auto 7px}
+  .sheet h2{font-size:13px;margin:0}
+  .hint{font-size:9px;color:var(--muted);margin:2px 0 7px}
+  .rowhead{display:flex;justify-content:space-between;align-items:center;font-size:8px;font-weight:800;letter-spacing:.04em;margin:5px 0 2px;color:var(--ink)}
+  .rowhead span{font-weight:500;color:var(--muted);font-size:7px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:2px}
+  .slot{min-height:54px;border:1.5px solid #456c4e;border-radius:8px;background:#1f2a22;padding:4px;display:flex;gap:5px;align-items:center}
+  .slot .pic{width:30px;height:36px;font-size:7px}
+  .slot .name{font-size:8px}
+  .slot small{font-size:7px;color:var(--muted)}
+  .rows{border-top:1.5px solid var(--line);margin-top:4px}
+  .r{display:flex;align-items:center;gap:7px;padding:4px 0;border-bottom:1px solid var(--soft);font-size:9px}
+  .r .pic{width:22px;height:22px;border:1.5px solid var(--line);border-radius:5px;background:#24211d;display:grid;place-items:center;font-size:7px;font-weight:800}
+  .r .grow{flex:1}.r b{font-size:9px}.r small{color:var(--muted);font-size:8px}
+  .fullbtn{margin-top:8px;width:100%;border:1.5px solid var(--accent);border-radius:9px;background:var(--accent);color:#1a0f0d;padding:8px;font-weight:900;font-size:11px;box-shadow:3px 3px 0 rgba(0,0,0,.35)}
+  .fullbtn.secondary{background:var(--surface);color:var(--ink);border-color:var(--line)}
+  .enemyform{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:5px 0 7px}
+  .eform{border:1.5px solid #6d3831;border-radius:7px;background:#2d1f1c;padding:3px;display:flex;gap:4px;align-items:center;font-size:7px;font-weight:700}
+  .eform .pic{width:26px;height:30px;font-size:6px}
+  .eform small{color:var(--muted);font-weight:500;font-size:7px}
+  .boss{border:2px solid var(--line);border-radius:9px;background:#2a2722;padding:5px;margin:5px 0}
+  .bosshp{height:8px;border:1.5px solid var(--line);border-radius:5px;background:#3a342b;overflow:hidden;margin-top:3px}
+  .bosshp>i{display:block;height:100%;width:72%;background:var(--accent)}
+  .note{font-size:8px;color:var(--muted);margin-top:5px;line-height:1.4}
+  .tabs{display:flex;gap:4px;margin:5px 0 3px}.tab{border:1.5px solid var(--line);border-radius:6px;padding:2px 6px;font-size:8px;font-weight:700;background:var(--surface)}.tab.on{background:var(--ink);color:var(--phone)}
+</style>
+</head>
+<body>
+  <h1>Wireframe v3 — 3 hàng / 6 hero, card-on-board, dark-first</h1>
+  <p class="sub">Low-fi, 380 × 676. 12 card trên board (6 ta + 6 quái), card ~52–56 px, portrait 32×32. Kiểm tra độ đọc ở 360×640 trước khi chốt.</p>
+
+  <div class="grid">
+
+    <!-- 1. BOARD -->
+    <div class="frame">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+        <div class="top">
+          <div class="stage">VÙNG 1 · 3/12<small>VÂN DU KÝ</small></div>
+          <div class="res"><span class="chip">1.2k</span><span class="chip">40</span><span class="iconbtn">≡</span></div>
+        </div>
+        <div class="rail"><span class="label">LƯỢT</span><span class="turn hero now">H1</span><span class="turn enemy">E1</span><span class="turn hero">H2</span><span class="turn enemy">E2</span><span class="turn hero">H3</span><span class="turn enemy">E3</span></div>
+        <div class="board">
+          <div class="side enemy">
+            <div class="rowwrap"><div class="rowtag">SAU</div><div class="cards">
+              <div class="card enemy"><div class="pic">E5</div><div class="info"><div class="name">Mây Xám</div><div class="bar"><i style="width:64%"></i></div><div class="mini"><span class="dot ga"></span><span>64%</span></div></div></div>
+              <div class="card enemy"><div class="pic">E6</div><div class="info"><div class="name">Phù Thủy</div><div class="bar"><i style="width:88%"></i></div><div class="mini"><span class="dot ti"></span><span>88%</span></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">GIỮA</div><div class="cards">
+              <div class="card enemy"><div class="pic">E3</div><div class="info"><div class="name">Bùn Non</div><div class="bar"><i style="width:76%"></i></div><div class="mini"><span class="dot st"></span><span>76%</span></div></div></div>
+              <div class="card enemy"><div class="pic">E4</div><div class="info"><div class="name">Dơi Lửa</div><div class="bar"><i style="width:52%"></i></div><div class="mini"><span class="dot em"></span><span>52%</span></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">TRƯỚC</div><div class="cards">
+              <div class="card enemy"><div class="pic">E1</div><div class="info"><div class="name">Sên Đá</div><div class="bar"><i style="width:72%"></i></div><div class="mini"><span class="dot st"></span><span>72%</span></div></div></div>
+              <div class="card enemy"><div class="pic">E2</div><div class="info"><div class="name">Sói Tro</div><div class="bar"><i style="width:41%"></i></div><div class="mini"><span class="dot em"></span><span>41%</span></div></div></div>
+            </div></div>
+          </div>
+          <div class="clash"><div><b>VA CHẠM</b><br>card lao · hit-stop · damage · shatter</div></div>
+          <div class="dmg d1">-128</div><div class="dmg d2">-64</div><div class="dmg d3">CRIT -240</div>
+          <div class="side hero">
+            <div class="rowwrap"><div class="rowtag">TRƯỚC</div><div class="cards">
+              <div class="card hero"><div class="pic">H1</div><div class="info"><div class="name">Vệ Binh</div><div class="bar"><i style="width:82%"></i></div><div class="mini"><span class="dot st"></span><span>✦3/5</span></div></div></div>
+              <div class="card hero"><div class="pic">H2</div><div class="info"><div class="name">Kiếm Sĩ</div><div class="bar"><i style="width:64%"></i></div><div class="mini"><span class="dot em"></span><span>✦5/5</span></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">GIỮA</div><div class="cards">
+              <div class="card hero"><div class="pic">H3</div><div class="info"><div class="name">Trói Buộc</div><div class="bar"><i style="width:70%"></i></div><div class="mini"><span class="dot ga"></span><span>✦4/5</span></div></div></div>
+              <div class="card hero"><div class="pic">H4</div><div class="info"><div class="name">Lôi Vũ</div><div class="bar"><i style="width:58%"></i></div><div class="mini"><span class="dot ga"></span><span>✦2/5</span></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">SAU</div><div class="cards">
+              <div class="card hero"><div class="pic">H5</div><div class="info"><div class="name">Tiên Tri</div><div class="bar"><i style="width:91%"></i></div><div class="mini"><span class="dot ti"></span><span>✦2/5</span></div></div></div>
+              <div class="card hero"><div class="pic">H6</div><div class="info"><div class="name">Mộc Y</div><div class="bar"><i style="width:86%"></i></div><div class="mini"><span class="dot st"></span><span>✦1/5</span></div></div></div>
+            </div></div>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="toggle"><span class="knob"></span>Auto cast</div>
+          <div class="btn">×2</div>
+          <div class="btn">Dừng</div>
+          <div class="spacer"></div>
+          <div class="btn accent">Nâng cấp</div>
+        </div>
+        <div class="dock">
+          <div class="item on"><span class="sq">Đ</span>Đội</div>
+          <div class="item"><span class="sq">T</span>Trang bị</div>
+          <div class="item"><span class="sq">S</span>Triệu hồi</div>
+          <div class="item"><span class="sq">S</span>Sổ tay</div>
+          <div class="item"><span class="sq">⋯</span>Khác</div>
+        </div>
+      </div>
+      <div class="caption"><b>1. Board 3×2.</b> 6 quái (sau/giữa/trước) + 6 hero (trước/giữa/sau); 12 card, card nhỏ hơn v2; turn rail 6/12.</div>
+    </div>
+
+    <!-- 2. FORMATION -->
+    <div class="frame">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+        <div class="top"><div class="stage">ĐỘI HÌNH<small>3 HÀNG · 6 HERO</small></div><div class="res"><span class="iconbtn">×</span></div></div>
+        <div class="board" style="height:240px">
+          <div class="side enemy" style="top:4px">
+            <div class="rowwrap"><div class="rowtag">SAU</div><div class="cards">
+              <div class="card enemy"><div class="pic">E5</div><div class="info"><div class="name">Mây Xám</div><div class="bar"><i style="width:64%"></i></div></div></div>
+              <div class="card enemy"><div class="pic">E6</div><div class="info"><div class="name">Phù Thủy</div><div class="bar"><i style="width:88%"></i></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">TRƯỚC</div><div class="cards">
+              <div class="card enemy"><div class="pic">E1</div><div class="info"><div class="name">Sên Đá</div><div class="bar"><i style="width:72%"></i></div></div></div>
+              <div class="card enemy"><div class="pic">E2</div><div class="info"><div class="name">Sói Tro</div><div class="bar"><i style="width:41%"></i></div></div></div>
+            </div></div>
+          </div>
+          <div class="clash" style="top:96px;height:26px"><div><b>BATTLE PAUSE</b></div></div>
+          <div class="side hero" style="bottom:4px">
+            <div class="rowwrap"><div class="rowtag">TRƯỚC</div><div class="cards">
+              <div class="card hero"><div class="pic">H1</div><div class="info"><div class="name">Vệ Binh</div><div class="bar"><i style="width:82%"></i></div></div></div>
+              <div class="card hero"><div class="pic">H2</div><div class="info"><div class="name">Kiếm Sĩ</div><div class="bar"><i style="width:64%"></i></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">SAU</div><div class="cards">
+              <div class="card hero"><div class="pic">H5</div><div class="info"><div class="name">Tiên Tri</div><div class="bar"><i style="width:91%"></i></div></div></div>
+              <div class="card hero"><div class="pic">H6</div><div class="info"><div class="name">Mộc Y</div><div class="bar"><i style="width:86%"></i></div></div></div>
+            </div></div>
+          </div>
+        </div>
+        <div class="scrim"></div>
+        <div class="sheet" style="height:480px">
+          <div class="grab"></div>
+          <h2>Đội hình</h2>
+          <div class="hint">Sức mạnh 1.920 · chạm/kéo · 6 slot</div>
+          <div class="rowhead">HÀNG TRƯỚC <span>+20% DEF · +10% HP · hút đòn</span></div>
+          <div class="grid2">
+            <div class="slot"><div class="pic">H1</div><div><div class="name">Vệ Binh</div><small>Vanguard</small></div></div>
+            <div class="slot"><div class="pic">H2</div><div><div class="name">Kiếm Sĩ</div><small>Blade</small></div></div>
+          </div>
+          <div class="rowhead">HÀNG GIỮA <span>+10% ATK · +5% SPD</span></div>
+          <div class="grid2">
+            <div class="slot"><div class="pic">H3</div><div><div class="name">Trói Buộc</div><small>Binder</small></div></div>
+            <div class="slot"><div class="pic">H4</div><div><div class="name">Lôi Vũ</div><small>Blade</small></div></div>
+          </div>
+          <div class="rowhead">HÀNG SAU <span>+15% ATK · an toàn hơn</span></div>
+          <div class="grid2">
+            <div class="slot"><div class="pic">H5</div><div><div class="name">Tiên Tri</div><small>Seer</small></div></div>
+            <div class="slot"><div class="pic">H6</div><div><div class="name">Mộc Y</div><small>Seer</small></div></div>
+          </div>
+          <div class="rows">
+            <div class="r"><span class="pic">H7</span><div class="grow"><b>Hỏa Kỳ</b><br><small>Binder · Ember · ưa giữa</small></div><span class="btn">Chọn</span></div>
+          </div>
+          <div class="fullbtn">Lưu đội hình</div>
+        </div>
+      </div>
+      <div class="caption"><b>2. Formation sheet 3×2.</b> Trước/giữa/sau + bonus; 6 slot; roster gợi ý hàng; kéo hoặc chạm.</div>
+    </div>
+
+    <!-- 3. STAGE PREVIEW -->
+    <div class="frame">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+        <div class="top"><div class="stage">MÀN 4<small>ĐỒI SƯƠNG · ELITE</small></div><div class="res"><span class="iconbtn">×</span></div></div>
+        <div style="padding:8px 13px">
+          <div class="enemyform">
+            <div class="eform"><div class="pic">E5</div><div>Mây Xám<br><small>Binder · Gale</small></div></div>
+            <div class="eform"><div class="pic">E6</div><div>Phù Thủy<br><small>Seer · Tide</small></div></div>
+            <div class="eform"><div class="pic">E3</div><div>Bùn Non<br><small>Blade · Stone</small></div></div>
+            <div class="eform"><div class="pic">E4</div><div>Dơi Lửa<br><small>Blade · Ember</small></div></div>
+            <div class="eform"><div class="pic">E1</div><div>Sên Đá<br><small>Vanguard · Stone</small></div></div>
+            <div class="eform"><div class="pic">E2</div><div>Sói Tro<br><small>Blade · Ember</small></div></div>
+          </div>
+          <div class="boss">
+            <div style="display:flex;justify-content:space-between;font-size:9px;font-weight:800"><span>Đề xuất 1.850</span><span>Đội 1.920</span></div>
+            <div class="bosshp"><i></i></div>
+            <div class="note">Đánh giá: đủ mạnh · nên mang Stone để chống Ember.</div>
+          </div>
+          <div style="font-size:10px;font-weight:800;margin:6px 0 3px">Thưởng</div>
+          <div class="rows">
+            <div class="r"><span class="pic">G</span><div class="grow"><b>Vàng</b><br><small>+320 · lần đầu +640</small></div></div>
+            <div class="r"><span class="pic">E</span><div class="grow"><b>Tinh chất</b><br><small>+24</small></div></div>
+            <div class="r"><span class="pic">S</span><div class="grow"><b>Mảnh ký ức</b><br><small>+6 · cơ hội gear Stone</small></div></div>
+          </div>
+          <div style="display:flex;gap:5px;margin-top:10px">
+            <div class="fullbtn secondary" style="flex:1">Đổi đội hình</div>
+            <div class="fullbtn" style="flex:1">Đánh</div>
+          </div>
+          <div class="note">Quái cũng 3 hàng; xem trước formation + thưởng; đổi đội hình ngay trước trận.</div>
+        </div>
+      </div>
+      <div class="caption"><b>3. Stage preview.</b> 6 quái 3×2; xem trước formation, power, thưởng; đổi đội hình trước trận.</div>
+    </div>
+
+    <!-- 4. BOSS -->
+    <div class="frame">
+      <div class="phone">
+        <div class="status"><span>9:41</span><span>▮▮▮</span></div>
+        <div class="top"><div class="stage">VÙNG 1 · BOSS<small>NGƯỜI GIỮ ĐỒI</small></div><div class="res"><span class="chip">1.2k</span><span class="chip">40</span><span class="iconbtn">≡</span></div></div>
+        <div class="rail"><span class="label">LƯỢT</span><span class="turn hero now">H1</span><span class="turn enemy">B</span><span class="turn hero">H2</span><span class="turn enemy">E3</span><span class="turn hero">H3</span><span class="turn enemy">E5</span></div>
+        <div class="board">
+          <div class="side enemy">
+            <div class="rowwrap"><div class="rowtag">SAU</div><div class="cards">
+              <div class="card enemy"><div class="pic">E5</div><div class="info"><div class="name">Mây Xám</div><div class="bar"><i style="width:60%"></i></div><div class="mini"><span class="dot ga"></span><span>60%</span></div></div></div>
+              <div class="card enemy"><div class="pic">E6</div><div class="info"><div class="name">Phù Thủy</div><div class="bar"><i style="width:80%"></i></div><div class="mini"><span class="dot ti"></span><span>80%</span></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">GIỮA</div><div class="cards">
+              <div class="card enemy"><div class="pic">E3</div><div class="info"><div class="name">Bùn Non</div><div class="bar"><i style="width:70%"></i></div><div class="mini"><span class="dot st"></span><span>70%</span></div></div></div>
+              <div class="card enemy"><div class="pic">E4</div><div class="info"><div class="name">Dơi Lửa</div><div class="bar"><i style="width:30%"></i></div><div class="mini"><span class="dot em"></span><span>30%</span></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">TRƯỚC</div><div class="cards">
+              <div class="card enemy" style="flex:1.6"><div class="pic">B</div><div class="info"><div class="name">Sên Đá Cổ · BOSS</div><div class="bar"><i style="width:72%"></i></div><div class="mini"><span class="dot st"></span><span>72%</span></div></div></div>
+            </div></div>
+          </div>
+          <div class="clash"><div><b>BOSS TELEGRAPH</b><br>“Địa chấn” đánh hàng sau · 1 lượt nữa</div></div>
+          <div class="side hero">
+            <div class="rowwrap"><div class="rowtag">TRƯỚC</div><div class="cards">
+              <div class="card hero"><div class="pic">H1</div><div class="info"><div class="name">Vệ Binh</div><div class="bar"><i style="width:82%"></i></div><div class="mini"><span class="dot st"></span><span>✦3/5</span></div></div></div>
+              <div class="card hero"><div class="pic">H2</div><div class="info"><div class="name">Kiếm Sĩ</div><div class="bar"><i style="width:64%"></i></div><div class="mini"><span class="dot em"></span><span>✦5/5</span></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">GIỮA</div><div class="cards">
+              <div class="card hero"><div class="pic">H3</div><div class="info"><div class="name">Trói Buộc</div><div class="bar"><i style="width:70%"></i></div><div class="mini"><span class="dot ga"></span><span>✦4/5</span></div></div></div>
+              <div class="card hero"><div class="pic">H4</div><div class="info"><div class="name">Lôi Vũ</div><div class="bar"><i style="width:58%"></i></div><div class="mini"><span class="dot ga"></span><span>✦2/5</span></div></div></div>
+            </div></div>
+            <div class="rowwrap"><div class="rowtag">SAU</div><div class="cards">
+              <div class="card hero"><div class="pic">H5</div><div class="info"><div class="name">Tiên Tri</div><div class="bar"><i style="width:91%"></i></div><div class="mini"><span class="dot ti"></span><span>✦2/5</span></div></div></div>
+              <div class="card hero"><div class="pic">H6</div><div class="info"><div class="name">Mộc Y</div><div class="bar"><i style="width:86%"></i></div><div class="mini"><span class="dot st"></span><span>✦1/5</span></div></div></div>
+            </div></div>
+          </div>
+        </div>
+        <div class="controls">
+          <div class="toggle"><span class="knob"></span>Auto cast</div>
+          <div class="btn">×2</div>
+          <div class="btn">Dừng</div>
+          <div class="spacer"></div>
+          <div class="btn accent">Nâng cấp</div>
+        </div>
+        <div class="dock">
+          <div class="item on"><span class="sq">Đ</span>Đội</div>
+          <div class="item"><span class="sq">T</span>Trang bị</div>
+          <div class="item"><span class="sq">S</span>Triệu hồi</div>
+          <div class="item"><span class="sq">S</span>Sổ tay</div>
+          <div class="item"><span class="sq">⋯</span>Khác</div>
+        </div>
+      </div>
+      <div class="caption"><b>4. Boss board.</b> Boss chiếm hàng trước; adds giữa/sau; telegraph đánh hàng sau buộc đổi formation.</div>
+    </div>
+
+  </div>
+</body>
+</html>

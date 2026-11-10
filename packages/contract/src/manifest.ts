@@ -60,6 +60,11 @@ export const ENTRY_SAMPLES = { min: 1, max: 5 } as const;
 /** Where a build ships the payloads its share makes, for conformance: `entries/share.json`. */
 export const entrySamplesPath = (kind: EntryKind) => `entries/${kind}.json`;
 
+/** Default save budget, KB: what a game gets without declaring `saveBudgetKb` (ADR 0059). */
+export const DEFAULT_SAVE_BUDGET_KB = 64;
+/** Most a game may declare as its save budget, KB (ADR 0059). */
+export const MAX_SAVE_BUDGET_KB = 1024;
+
 /**
  * A language tag as `init.locale` carries it (ADR 0048): BCP 47 limited to a language, an optional script and an
  * optional region, in canonical case — `vi`, `en`, `en-GB`, `zh-Hant`, `es-419`.
@@ -244,6 +249,13 @@ export const GameManifest = z
     minAge: z.number().int().min(0).max(18).default(0),
     tags: z.array(z.string().max(20)).max(8).default([]),
     sizeBudgetKb: z.number().int().positive().max(50_000).default(3000),
+    saveBudgetKb: z
+      .number()
+      .int()
+      .min(1)
+      .max(MAX_SAVE_BUDGET_KB)
+      .default(DEFAULT_SAVE_BUDGET_KB)
+      .describe('Most KB of the game save (1 KB = 1024 bytes); the hub and API enforce it (ADR 0059)'),
     rooms: RoomsManifest.optional().describe('Online rooms (ADR 0016); required with the "rooms" capability'),
     ranked: RankedManifest.optional().describe(
       'Ranked runs (ADR 0030); required with the "ranked" capability',

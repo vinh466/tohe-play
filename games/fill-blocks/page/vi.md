@@ -20,7 +20,7 @@ Trẻ nhỏ có thể chơi bằng cách chạm; người lớn có hành trình
 
 ### Đang chơi dở mà thoát ra thì sao?
 
-Ván được lưu sau mỗi nước đi. Lần sau mở game, bấm Chơi tiếp là chơi tiếp từ chỗ cũ.
+Ván được lưu sau mỗi nước đi. Lần sau mở game, bấm Chơi tiếp là chơi tiếp từ chỗ cũ. Mỗi chế độ giữ một ván riêng: đổi từ Chơi tự do sang Hành trình hay Hôm nay, ván cũ vẫn còn trong Chế độ.
 
 ### Có cần tài khoản không?
 

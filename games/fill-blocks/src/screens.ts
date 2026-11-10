@@ -1,8 +1,8 @@
 // The game's own full screens: Journey, Daily, Stats and Achievements. They are plain DOM inside the shell's screen
 // body; the shell owns the header, Back and the title behind them.
-import { formatScore, type IconName, icon } from '@tohe/game-kit';
+import { formatScore, type IconName, icon, prefersReducedMotion } from '@tohe/game-kit';
 import { ACHIEVEMENTS, type AchievementGroup } from './content/achievements.ts';
-import { CHAPTERS, chapterOf, DAILY_GOALS, LEVELS, type Level } from './content/levels.ts';
+import { CHAPTERS, chapterOf, DAILY_GOALS, LEVEL_BY_ID, LEVELS, type Level } from './content/levels.ts';
 import { rankOf } from './content/ranks.ts';
 import { type Goal, goalMet, type State } from './logic.ts';
 import { recentDays, type Strings, todayId } from './strings.ts';
@@ -25,13 +25,20 @@ export interface ScreenDeps {
   best: number;
   game: State | null;
   achievements: ReadonlySet<string>;
-  onPlayLevel(levelId: string): void;
-  onContinue(): void;
-  onPlayDaily(date: string): void;
+  onPlayLevel(levelId: string, restart?: boolean): void;
+  onPlayDaily(date: string, restart?: boolean): void;
   onPracticeDaily(date: string): void;
   onOpenScreen(id: string): void;
   canStreakBoard: boolean;
   onOpenStreakBoard(): void;
+  /** The journey run parked when the player changed mode, if it is unfinished. */
+  parkedJourney: State | null;
+  /** Today's daily run parked when the player changed mode, if it is unfinished. */
+  parkedDaily: State | null;
+  /** Which goals the best result of each journey level met. */
+  journeyGoals: Readonly<Record<string, readonly boolean[]>>;
+  /** Which goals today's daily met, when it was stamped. */
+  dailyGoals: { date: string; met: readonly boolean[] } | null;
 }
 
 const el = <K extends keyof HTMLElementTagNameMap>(tag: K, className: string, text?: string) => {
@@ -58,14 +65,19 @@ const starRow = (count: number, t: Strings): HTMLElement => {
   return row;
 };
 
-const goalList = (goals: readonly Goal[], t: Strings, state: State | null): HTMLElement => {
+const goalList = (
+  goals: readonly Goal[],
+  t: Strings,
+  met?: readonly boolean[] | State | null,
+): HTMLElement => {
   const list = el('ul', 'goal-list');
+  const live = met && !Array.isArray(met) ? (met as State) : null;
   goals.forEach((goal, index) => {
-    const met = state ? goalMet(state, goal) : false;
-    const item = el('li', met ? 'goal is-met' : 'goal');
+    const done = Array.isArray(met) ? met[index] === true : live !== null ? goalMet(live, goal) : false;
+    const item = el('li', done ? 'goal is-met' : 'goal');
     item.append(iconSpan(index === 0 ? 'target' : 'star', 'ui-icon'));
     item.append(el('span', 'goal-text', t.goal(goal.kind, goal.value)));
-    if (met) item.append(iconSpan('check', 'ui-icon goal-check'));
+    if (done) item.append(iconSpan('check', 'ui-icon goal-check'));
     list.append(item);
   });
   return list;
@@ -101,20 +113,39 @@ const metaTabs = (deps: ScreenDeps, current: string): HTMLElement => {
 const levelStars = (journey: Readonly<Record<string, number>>, level: Level): number =>
   journey[level.id] ?? 0;
 
-/** The Journey screen: three paper chapters, six stamps each, and the selected level's goals. */
+/** The Journey screen: the selected level and its goals first, then three paper chapters of stamps. */
 export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
   root.replaceChildren();
   const page = el('div', 'journey');
   page.append(metaTabs(deps, 'journey'));
   const total = totalStars(deps.journey);
-  const next = LEVELS.find((level) => levelStars(deps.journey, level) === 0) ?? (LEVELS[0] as Level);
+  const active = deps.game && deps.game.mode === 'journey' && !deps.game.over ? deps.game : null;
+  const live = active ?? deps.parkedJourney;
+  const next =
+    (live?.level ? LEVEL_BY_ID.get(live.level) : undefined) ??
+    LEVELS.find((level) => levelStars(deps.journey, level) === 0) ??
+    (LEVELS[0] as Level);
   let selected: Level = next;
+  let confirming = false;
 
   const head = el('div', 'journey-head');
   head.append(el('p', 'screen-note', deps.t.journeyHint));
   const summary = el('span', 'journey-summary', deps.t.progress(total, LEVELS.length * 3));
   head.append(summary);
   page.append(head);
+
+  // The selected level's goals and its button sit above the map: the common case — continue the journey — is one tap,
+  // not a scroll past every chapter.
+  const detail = el('div', 'level-detail');
+  page.append(detail);
+
+  const nameOfLevel = (level: Level): string => {
+    const chapter = chapterOf(level);
+    const number = LEVELS.filter((item) => item.chapter === level.chapter).findIndex(
+      (item) => item.id === level.id,
+    );
+    return `${chapterTitle(chapter, deps.locale)} · ${deps.t.levelName(number + 1)}`;
+  };
 
   for (const chapter of CHAPTERS) {
     const unlocked = total >= chapter.unlockAt;
@@ -143,9 +174,11 @@ export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
       stamp.append(starRow(stars, deps.t));
       stamp.addEventListener('click', () => {
         selected = level;
+        confirming = false;
         for (const other of grid.querySelectorAll('.level-stamp')) other.classList.remove('is-selected');
         stamp.classList.add('is-selected');
         renderDetail();
+        detail.scrollIntoView({ block: 'start', behavior: prefersReducedMotion() ? 'auto' : 'smooth' });
       });
       grid.append(stamp);
     });
@@ -153,36 +186,62 @@ export function renderJourney(root: HTMLElement, deps: ScreenDeps): void {
     page.append(section);
   }
 
-  const detail = el('div', 'level-detail');
-  page.append(detail);
-
   function renderDetail(): void {
     detail.replaceChildren();
-    const chapter = chapterOf(selected);
-    const number = LEVELS.filter((level) => level.chapter === selected.chapter).findIndex(
-      (level) => level.id === selected.id,
-    );
-    const title = el(
-      'h3',
-      'detail-title',
-      `${chapterTitle(chapter, deps.locale)} · ${deps.t.levelName(number + 1)}`,
-    );
-    detail.append(title);
+    detail.append(el('h3', 'detail-title', nameOfLevel(selected)));
     const stars = levelStars(deps.journey, selected);
     detail.append(starRow(stars, deps.t));
-    detail.append(goalList(selected.goals, deps.t, deps.game?.level === selected.id ? deps.game : null));
+    const sameLevel = live?.level === selected.id;
+    const met =
+      sameLevel && active
+        ? selected.goals.map((goal) => goalMet(active, goal))
+        : (deps.journeyGoals[selected.id] ?? (stars === 3 ? [true, true, true] : undefined));
+    detail.append(goalList(selected.goals, deps.t, met));
+    if (confirming && live && live.level !== selected.id) {
+      detail.append(
+        el(
+          'p',
+          'screen-note switch-note',
+          deps.t.switchWarning(nameOfLevel(LEVEL_BY_ID.get(live.level ?? '') ?? selected)),
+        ),
+      );
+    }
     const actions = el('div', 'detail-actions');
-    const play = el('button', 'tohe-button tohe-button-primary');
+    const play = el('button', `tohe-button ${confirming ? 'tohe-button-secondary' : 'tohe-button-primary'}`);
     play.type = 'button';
-    play.append(icon('play'), el('span', 'tohe-label', deps.t.playLevel));
-    play.addEventListener('click', () => deps.onPlayLevel(selected.id));
+    play.append(
+      icon('play'),
+      el(
+        'span',
+        'tohe-label',
+        confirming ? deps.t.startNew : sameLevel ? deps.t.continueLevel : deps.t.playLevel,
+      ),
+    );
+    play.addEventListener('click', () => {
+      if (!confirming && live && live.level !== selected.id) {
+        confirming = true;
+        renderDetail();
+        return;
+      }
+      deps.onPlayLevel(selected.id);
+    });
     actions.append(play);
-    if (deps.game && deps.game.mode === 'journey' && deps.game.level === selected.id && !deps.game.over) {
+    if (sameLevel && !confirming) {
       const again = el('button', 'tohe-button tohe-button-secondary');
       again.type = 'button';
-      again.append(icon('play'), el('span', 'tohe-label', deps.t.next));
-      again.addEventListener('click', () => deps.onContinue());
+      again.append(icon('arrow-counter-clockwise'), el('span', 'tohe-label', deps.t.restartLevel));
+      again.addEventListener('click', () => deps.onPlayLevel(selected.id, true));
       actions.append(again);
+    }
+    if (confirming) {
+      const back = el('button', 'tohe-button tohe-button-secondary');
+      back.type = 'button';
+      back.append(icon('arrow-left'), el('span', 'tohe-label', deps.t.back));
+      back.addEventListener('click', () => {
+        confirming = false;
+        renderDetail();
+      });
+      actions.append(back);
     }
     detail.append(actions);
   }
@@ -199,20 +258,46 @@ export function renderDaily(root: HTMLElement, deps: ScreenDeps): void {
   const date = todayId();
   const stars = deps.dailyDates[date] ?? 0;
   const played = Object.hasOwn(deps.dailyDates, date);
+  const active =
+    deps.game && deps.game.mode === 'daily' && !deps.game.over && deps.game.level === `daily-${date}`
+      ? deps.game
+      : null;
+  const live = active ?? deps.parkedDaily;
 
   page.append(el('h3', 'daily-date', deps.t.dailyToday(deps.t.date(date))));
+  if (live) page.append(el('p', 'screen-note', deps.t.inProgressDaily(formatScore(live.score, deps.locale))));
   page.append(el('h4', 'section-label', deps.t.dailyGoal));
-  page.append(goalList(DAILY_GOALS, deps.t, null));
+  const met = live
+    ? DAILY_GOALS.map((goal) => goalMet(live, goal))
+    : deps.dailyGoals?.date === date
+      ? deps.dailyGoals.met
+      : stars === 3
+        ? [true, true, true]
+        : undefined;
+  page.append(goalList(DAILY_GOALS, deps.t, met));
 
   const actions = el('div', 'detail-actions');
-  const play = el('button', `tohe-button ${played ? 'tohe-button-secondary' : 'tohe-button-primary'}`);
+  const play = el(
+    'button',
+    `tohe-button ${played && !live ? 'tohe-button-secondary' : 'tohe-button-primary'}`,
+  );
   play.type = 'button';
-  play.append(icon('target'), el('span', 'tohe-label', played ? deps.t.dailyPractice : deps.t.dailyPlay));
+  play.append(
+    icon('target'),
+    el('span', 'tohe-label', live ? deps.t.continueLevel : played ? deps.t.dailyPractice : deps.t.dailyPlay),
+  );
   play.addEventListener('click', () => {
     if (played) deps.onPracticeDaily(date);
     else deps.onPlayDaily(date);
   });
   actions.append(play);
+  if (live) {
+    const again = el('button', 'tohe-button tohe-button-secondary');
+    again.type = 'button';
+    again.append(icon('arrow-counter-clockwise'), el('span', 'tohe-label', deps.t.restartLevel));
+    again.addEventListener('click', () => deps.onPlayDaily(date, true));
+    actions.append(again);
+  }
   page.append(actions);
   if (played) page.append(starRow(stars, deps.t));
 

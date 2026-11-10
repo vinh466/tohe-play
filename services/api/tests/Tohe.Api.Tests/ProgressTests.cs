@@ -77,6 +77,33 @@ public sealed class ProgressTests(ApiFactory factory) : IClassFixture<ApiFactory
     }
 
     [Fact]
+    public async Task A_game_with_a_larger_save_budget_accepts_a_larger_save()
+    {
+        await Games.KnowSaveBudgetAsync(factory, "van-du-ky", 256);
+        var (client, me) = await RegisterAsync("Bố");
+        await PlayAsAsync(client, me.Profiles[0].Id);
+
+        var accepted = await client.PutAsJsonAsync(
+            Url("/api/progress/saves/van-du-ky"),
+            new { data = new { blob = new string('x', 100_000) } },
+            Ct);
+        Assert.Equal(HttpStatusCode.OK, accepted.StatusCode);
+
+        var refused = await client.PutAsJsonAsync(
+            Url("/api/progress/saves/van-du-ky"),
+            new { data = new { blob = new string('x', 300_000) } },
+            Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, refused.StatusCode);
+
+        // A game without the field keeps the 64 KB default.
+        var defaultRefused = await client.PutAsJsonAsync(
+            Url("/api/progress/saves/hello"),
+            new { data = new { blob = new string('x', 70_000) } },
+            Ct);
+        Assert.Equal(HttpStatusCode.BadRequest, defaultRefused.StatusCode);
+    }
+
+    [Fact]
     public async Task Scores_are_stored_once_and_the_board_ranks_the_accounts_profiles_only()
     {
         await Games.KnowAsync(factory, "merge-block", "hello");

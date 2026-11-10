@@ -86,6 +86,8 @@ pressures the player. No ads, purchases, energy, currency or punishing streaks.
 - **Mastery rank** from personal best: 10 ranks, `0, 100, 250, 500, 1000, 1750, 2750, 4000, 6000, 9000`. No decay.
   The title and end card show the rank and the next threshold.
 - **Stats**: games, total score, total lines, best combo, longest streak, perfect clears, journey stars.
+- **Goals of a finished level/day**: the best result's met goals are saved with it (`journeyGoals`, `dailyGoals`), so a
+  3-star level does not show three unchecked goals when it is opened again.
 - **Streak board**: a signed-in player's best streak of a run is submitted to the named board `streak` (ADR 0058)
   and can be opened from the end card and the stats screen as **Bảng chuỗi**; the score board stays the main board.
 - **15 achievements**: first line, 2/3/4-line clear, ×3/×8 combo, first perfect clear, 1,000/5,000 points,
@@ -96,28 +98,44 @@ pressures the player. No ads, purchases, energy, currency or punishing streaks.
   **Dễ phân biệt** (Okabe–Ito). A save from before the choice existed moves its old paper default to Tươi sáng; a
   deliberate contrast choice stays.
 
+## Modes and saved runs
+
+The player may keep a run of **each mode** at once. The active run is the one on screen; the other modes' unfinished
+runs are **parked** in the save (`parked`, with their hub run ids in `parkedRuns`) and shown in the mode screen with
+their score. Switching mode parks the active run before starting or resuming the chosen one, so a player who moves
+between free play, the journey and the daily never loses a run to a mode change. A parked daily is only valid for its
+day; a stale one is dropped. Starting **Ván mới** for a mode closes that mode's run (its live score run is finished)
+and starts fresh; starting a different journey level from its screen also asks first. The title's **Chơi tiếp**
+resumes the active run; **Chế độ** opens the three cards.
+
 ## Screens
 
 The kit's shell (ADR 0018–0020) with two stages. The game brings its content.
 
-1. **Title**: logo, best/rank, journey progress, **Chơi tự do** (or **Chơi tiếp**), **Hành trình**, **Ván mới** when
-   a game is in progress; tools: Hôm nay, Thành tích, Cài đặt, Cách chơi, Xếp hạng. The daily is a tool, not a
-   pressure card.
-2. **Journey** (a full screen of the shell): 3 chapter pages; 6 level stamps per chapter; stars; a selected level's
-   goals and **Chơi**; **Tiếp tục** to the next unplayed; locked levels say why.
-3. **Daily** (a full screen): today's goals, **Chơi hôm nay** or **Đã đóng dấu**, a 28-day calendar of stamps.
-4. **Stats / Achievements** (full screens): the totals, rank progress and the 15 stamps.
-5. **How to play** (before the first **Chơi**, then from **Cách chơi**): three picture hints — drag or tap a piece
+1. **Title**: logo, best/rank, journey progress, **Chơi** (or **Chơi tiếp** when a run is waiting), **Chế độ** when
+   a run is in progress; tools: **Hành trình** (its tabs hold Hôm nay, Thống kê, Thành tích), Cài đặt, Cách chơi,
+   sound, credits. The daily is a tab inside Hành trình, not a pressure card.
+2. **Modes** (the shell's pre-play screen, from **Chơi** with no run, **Chế độ**, or the panel): three cards —
+   **Chơi tự do**, **Hành trình**, **Hôm nay** — each with its state (in progress and score, best, stars, played
+   today). A **Ván mới** beside a live free/daily run ends that run after a confirm; journey's levels are picked in
+   the journey screen.
+3. **Journey** (a full screen of the shell): the selected level's goals and **Chơi**/**Chơi tiếp** at the top (no
+   scroll), then 3 chapter pages, 6 level stamps each, stars and locks. The in-progress level is selected on open; **Chơi tiếp** resumes it and **Chơi lại** starts it again; choosing
+   another level while a journey run is unfinished asks before replacing it (`Bạn đang chơi dở …`).
+4. **Daily** (a full screen): today's goals, **Chơi hôm nay**, **Chơi tiếp** when a run is unfinished, **Chơi lại**
+   to start it again, or **Chơi lại để luyện** once stamped, and a 28-day calendar of stamps.
+5. **Stats / Achievements** (full screens): the totals, rank progress and the 15 stamps.
+6. **How to play** (before the first **Chơi**, then from **Cách chơi**): three picture hints — drag or tap a piece
    onto the board; a full row/column clears; clear again and again for a combo. A first move pulses.
-6. **Playing**: the kit's HUD (Menu, score, best); a compact combo meter (8 pips, multiplier, shields) and the
+7. **Playing**: the kit's HUD (Menu, score, best); a compact combo meter (8 pips, multiplier, shields) and the
    goal count in the middle; the board in the upper area; a **thumb deck** at the bottom with the utility row above
    the three pieces, so the tray is the lowest, easiest target for one hand. Drag lifts a **board-scale piece above
    the finger**; the board ghost shows its colour, the rows/columns it would clear glow, and a badge shows the lines
    and points. **Đổi khay** when stuck and a rescue is left; hint after idle. The board, tray and controls are DOM
    buttons with ARIA labels; the board is a grid of 64 cells.
-7. **Game over**: the board dims; the end card with score/best/rank (endless), stars/goals (journey/daily), the
+8. **Game over**: the board dims; the end card with score/best/rank (endless), stars/goals (journey/daily), the
    actions above.
-8. **Cài đặt**: sound, **Màu sắc** (five presets, default Tươi sáng), **Bàn** (unlocked skins), **Gợi ý** (on/off), reduced
+9. **Cài đặt**: sound, **Màu sắc** (five presets, default Tươi sáng), **Bàn** (unlocked skins), **Gợi ý** (on/off), reduced
    motion follows the system.
 
 ## Feel (juice), in tiers
@@ -161,7 +179,7 @@ there is no asset pack and no network request outside the game's folder.
 
 | Capability | Use |
 | --- | --- |
-| `save` | After every placement: the game state, best, journey stars, daily stamps, stats, achievements, settings. The last game in progress resumes on open. |
+| `save` | After every placement and mode change: the active game, the parked runs of the other modes (and their run ids), best, journey stars and met goals, daily stamps and today's met goals, stats, achievements, settings. The active run resumes on open. |
 | `scores` | A live run (ADR 0014): `session.run(id).update(score)` after scoring moves, `finish(score)` at the end or when a new game replaces it. Journey levels use a run of their own; the household board shows the best. At the end, `submitScore(maxStreak, 'streak')` puts the run's longest streak on the named board `streak` (ADR 0058). |
 | `shell` | The two stages and the shell screens. |
 | settings | `muted`, `theme`; the game's own settings live in the save. |

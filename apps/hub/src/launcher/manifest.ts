@@ -47,6 +47,7 @@ export function manifestFrom(game: GameSummary): GameManifest {
     minAge: game.minAge,
     tags: game.tags,
     sizeBudgetKb: Math.max(game.sizeKb, 1),
+    saveBudgetKb: game.saveBudgetKb ?? 64,
   };
 }
 

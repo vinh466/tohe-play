@@ -1,0 +1,527 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tech spike — DOM/CSS battle effects</title>
+    <style>
+      :root {
+        --bg: #171614; --surface: #2a2722; --ink: #f2ead9; --muted: #a89f8d; --line: #5a5348;
+        --soft: #39342c; --accent: #d05a4a; --gold: #d8a84e; --leaf: #7fae86; --tide: #5a9fc0;
+        --ember: #d05a4a; --stone: #b7a878; --gale: #7fae86;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; min-height: 100%; background: #0f0e0d; color: var(--ink); font-family: "Be Vietnam Pro", system-ui, sans-serif; }
+      body { display: flex; flex-wrap: wrap; gap: 26px; align-items: flex-start; padding: 24px; }
+      .phone { width: min(390px, calc(100vw - 24px)); height: min(844px, calc(100vh - 24px)); flex: 0 0 auto; display: flex; flex-direction: column; overflow: hidden; position: relative; border: 2px solid var(--line); border-radius: 24px; background: var(--bg); box-shadow: 5px 6px 0 rgba(0,0,0,.45); }
+      .hud { flex: 0 0 auto; border-bottom: 1.5px solid var(--line); }
+      .hud-main { display: flex; align-items: center; gap: 7px; min-height: 46px; padding: 4px 8px 2px; }
+      .menu { width: 44px; height: 44px; display: grid; place-items: center; border: 1.5px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--ink); font-size: 9px; font-weight: 800; }
+      .menu span { display: block; font-size: 16px; line-height: 1; }
+      .stage { flex: 1; min-width: 0; }
+      .stage small { display: block; color: var(--muted); font-size: 8px; font-weight: 700; letter-spacing: .05em; text-transform: uppercase; }
+      .stage strong { display: block; font-size: 15px; line-height: 1.2; }
+      .res { display: flex; gap: 4px; }
+      .chip { display: flex; align-items: center; gap: 3px; height: 30px; padding: 0 7px; border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); font-size: 10px; font-weight: 800; }
+      .coin { width: 11px; height: 11px; border: 2px solid var(--gold); border-radius: 50%; position: relative; }
+      .coin::after { content: ""; position: absolute; inset: 3px; border-radius: 50%; background: var(--gold); }
+      .gem-icon { width: 11px; height: 11px; border: 2px solid var(--tide); transform: rotate(45deg); }
+      .turn { display: flex; align-items: center; gap: 5px; padding: 0 8px 4px; }
+      .turn-label { color: var(--muted); font-size: 7px; font-weight: 800; letter-spacing: .08em; }
+      .turn-rail { display: flex; gap: 3px; flex: 1; }
+      .turn-chip { width: 25px; height: 25px; border: 1.5px solid var(--line); border-radius: 6px; overflow: hidden; opacity: .8; }
+      .turn-chip.hero { border-color: #456c4e; background: #1f2a22; }
+      .turn-chip.enemy { border-color: #6d3831; background: #2d1f1c; }
+      .turn-chip.now { border-color: var(--gold); box-shadow: 0 0 0 1.5px var(--gold); opacity: 1; }
+      .turn-chip img { display: block; width: 100%; height: 100%; image-rendering: pixelated; }
+      .wave { margin-left: auto; color: var(--muted); font-size: 8px; }
+      .progress { height: 2px; background: var(--soft); }
+      .progress i { display: block; width: 25%; height: 100%; background: var(--gold); }
+
+      .board { position: relative; flex: 1; min-height: 0; display: flex; align-items: center; justify-content: center; overflow: hidden; background: radial-gradient(ellipse at 50% 48%, #211d18 0, #171614 70%); }
+      .board::before { content: ""; position: absolute; left: 10%; right: 10%; top: 11%; bottom: 9%; border: 1px solid #28231d; border-radius: 50%; }
+      .hexgrid { --hw: 74px; --hh: 64px; display: flex; justify-content: center; align-items: flex-start; position: relative; z-index: 1; }
+      .hexcol { display: flex; flex-direction: column; width: var(--hw); flex: 0 0 auto; }
+      .hexcol + .hexcol { margin-left: calc(var(--hw) * -0.25); }
+      .hexcol:nth-child(even) { margin-top: calc(var(--hh) / 2); }
+      .cell { position: relative; width: var(--hw); height: var(--hh); flex: 0 0 auto; z-index: 1; }
+      .cell .rim { position: absolute; inset: 0; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: #456c4e; }
+      .cell .shape { position: absolute; inset: 1.5px; clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: #1f2a22; }
+      .cell.enemy .rim { background: #6d3831; }
+      .cell.enemy .shape { background: #2d1f1c; }
+      .cell.empty .rim { background: #362f27; }
+      .cell.empty .shape { background: #1b1916; }
+      .cell .body { position: absolute; inset: 13px 13px 11px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; z-index: 2; }
+      .portrait { width: 30px; height: 30px; border: 1.5px solid #171614; border-radius: 50%; overflow: hidden; background: #171614; }
+      .portrait img { width: 100%; height: 100%; image-rendering: pixelated; }
+      .hp { width: 40px; height: 4px; border: 1px solid #171614; border-radius: 3px; background: #3a342b; overflow: hidden; position: relative; }
+      .hp .ghost, .hp .fill { position: absolute; inset: 0; transform-origin: left center; transform: scaleX(1); }
+      .hp .ghost { background: #f2ead9; opacity: .5; transition: transform 220ms ease-out 100ms; }
+      .hp .fill { background: var(--leaf); transition: transform 120ms linear; }
+      .enemy .hp .fill { background: var(--accent); }
+      .meta { display: flex; align-items: center; gap: 3px; height: 11px; }
+      .element { display: grid; place-items: center; width: 11px; height: 11px; border-radius: 50%; border: 1px solid #171614; color: #171614; font-size: 6px; font-weight: 900; }
+      .element.em { background: var(--ember); } .element.ti { background: var(--tide); } .element.st { background: var(--stone); } .element.ga { background: var(--gale); }
+      .pips { display: flex; gap: 1px; }
+      .pips i { width: 4px; height: 3px; border-radius: 1px; background: var(--gold); }
+      .pips i.off { background: #3a342b; }
+      .empty .body { color: var(--muted); font-size: 15px; opacity: .7; }
+      .cell.dead { pointer-events: none; }
+      .cell.dead .portrait { filter: grayscale(1); opacity: .35; transition: filter 220ms, opacity 220ms; }
+      .cell.dead .shape { background: #151412; }
+      .cell.dead .hp .fill { transform: scaleX(0); }
+      .cell.dead .body { transform: scale(.92) rotate(-2deg); opacity: .55; transition: transform 260ms ease-out, opacity 260ms; }
+      .cell.terrain .body::after { content: attr(data-terrain); position: absolute; bottom: -1px; font-size: 6px; color: var(--gold); font-weight: 900; }
+
+      .flash, .ring, .shield { position: absolute; inset: 0; pointer-events: none; z-index: 3; opacity: 0; }
+      .flash { clip-path: polygon(25% 0, 75% 0, 100% 50%, 75% 100%, 25% 100%, 0 50%); background: #fff; }
+      .ring { border: 3px solid var(--gold); border-radius: 50%; inset: 10%; }
+      .shield { border: 2px solid #8fc8ff; border-radius: 50%; inset: 6%; }
+      .cell.attacking { z-index: 6; }
+      .cell.attacking .body { animation: windup 180ms ease-out; }
+      .cell.attacking.toward-right .body { animation-name: windup; }
+      .cell.attacking.toward-left .body { animation-name: windup-left; }
+      .cell.hit { z-index: 5; }
+      .cell.hit .body { animation: flinch 180ms ease-out; }
+      .cell.hit.flee-left .body { animation-name: flinch-left; }
+      .cell.hit.flee-right .body { animation-name: flinch; }
+      .cell.crit .body { animation: crit-flinch 240ms ease-out; }
+      .cell.crit.flee-left .body { animation-name: crit-flinch-left; }
+      .cell.crit.flee-right .body { animation-name: crit-flinch; }
+      .cell.hit .flash { animation: flash 260ms ease-out; }
+      .cell.hit .ring { animation: ring 360ms ease-out; }
+      .cell.healed .ring { border-color: var(--leaf); animation: ring 420ms ease-out; }
+      .cell.healed .body { animation: heal-pop 260ms ease-out; }
+      .cell.shielded .shield { animation: shield 700ms ease-out; }
+      .board.shake { animation: board-shake 150ms ease-out; }
+
+      @keyframes windup { 0% { transform: scale(1); } 60% { transform: scale(1.07) translateX(6px); } 100% { transform: scale(1); } }
+      @keyframes windup-left { 0% { transform: scale(1); } 60% { transform: scale(1.07) translateX(-6px); } 100% { transform: scale(1); } }
+      @keyframes flinch { 0% { transform: translateX(0); } 35% { transform: translateX(4px); } 100% { transform: translateX(0); } }
+      @keyframes flinch-left { 0% { transform: translateX(0); } 35% { transform: translateX(-4px); } 100% { transform: translateX(0); } }
+      @keyframes crit-flinch { 0% { transform: translateX(0) scale(1); } 25% { transform: translateX(7px) scale(1.06); } 55% { transform: translateX(-3px) scale(.98); } 100% { transform: translateX(0) scale(1); } }
+      @keyframes crit-flinch-left { 0% { transform: translateX(0) scale(1); } 25% { transform: translateX(-7px) scale(1.06); } 55% { transform: translateX(3px) scale(.98); } 100% { transform: translateX(0) scale(1); } }
+      @keyframes flash { 0% { opacity: 0; } 18% { opacity: .6; } 100% { opacity: 0; } }
+      @keyframes ring { 0% { opacity: 1; transform: scale(.5); } 100% { opacity: 0; transform: scale(1.9); } }
+      @keyframes heal-pop { 0% { transform: scale(1); } 45% { transform: scale(1.06); } 100% { transform: scale(1); } }
+      @keyframes shield { 0% { opacity: .9; transform: scale(.8); } 35% { opacity: .5; } 100% { opacity: 0; transform: scale(1.25); } }
+      @keyframes board-shake { 0%,100% { transform: translate(0,0); } 25% { transform: translate(-2px,1px); } 50% { transform: translate(2px,-1px); } 75% { transform: translate(-1px,1px); } }
+
+      .fx { position: absolute; inset: 0; z-index: 7; overflow: hidden; pointer-events: none; }
+      .dmg { position: absolute; left: 0; top: 0; color: #ff8a6a; font-size: 13px; font-weight: 900; line-height: 1; text-shadow: 0 1px 0 #171614, 0 0 3px #171614; transform: translate(-50%,-50%); animation: float-up 640ms cubic-bezier(.2,.7,.3,1) forwards; will-change: transform, opacity; }
+      .dmg.crit { color: #ffd36e; font-size: 19px; }
+      .dmg.heal { color: #8ed6a0; }
+      @keyframes float-up { 0% { opacity: 1; transform: translate(-50%,-50%) scale(.85); } 25% { opacity: 1; transform: translate(-50%,-76%) scale(1.1); } 100% { opacity: 0; transform: translate(-50%,-180%) scale(1); } }
+      .orb { position: absolute; left: 0; top: 0; width: 14px; height: 14px; border-radius: 50%; z-index: 7; transform: translate(-50%,-50%); animation: fly 240ms linear forwards; box-shadow: 0 0 6px currentColor; }
+      @keyframes fly { 0% { transform: translate(-50%,-50%) scale(.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: translate(calc(-50% + var(--dx)), calc(-50% + var(--dy))) scale(1); opacity: .2; } }
+      .burst { position: absolute; left: 0; top: 0; width: 0; height: 0; z-index: 7; }
+      .burst i { position: absolute; width: 4px; height: 4px; border-radius: 1px; background: currentColor; opacity: 0; animation: spark 460ms ease-out forwards; }
+      @keyframes spark { 0% { opacity: 1; transform: translate(0,0) scale(1); } 100% { opacity: 0; transform: translate(var(--x), var(--y)) scale(.3) rotate(45deg); } }
+      .skill-banner { position: absolute; left: 50%; top: 26%; z-index: 9; transform: translate(-50%, -50%); padding: 4px 10px; border: 1.5px solid var(--gold); border-radius: 8px; background: #201e1a; color: var(--gold); font-size: 9px; font-weight: 900; letter-spacing: .04em; opacity: 0; pointer-events: none; }
+      .skill-banner.go { animation: banner 900ms ease-out; }
+      @keyframes banner { 0% { opacity: 0; transform: translate(-50%,-30%) scale(.9); } 18% { opacity: 1; transform: translate(-50%,-50%) scale(1); } 70% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%,-80%); } }
+
+      .panel-tabs { flex: 0 0 auto; display: flex; gap: 4px; padding: 5px 8px 0; border-top: 1.5px solid var(--line); background: #1b1916; }
+      .panel-tab { border: 1.5px solid var(--line); border-radius: 7px 7px 0 0; background: #201e1a; color: var(--muted); font-size: 8px; font-weight: 800; padding: 3px 8px; }
+      .panel-tab.on { color: var(--ink); border-color: var(--gold); background: #2c2a22; }
+      .road { flex: 0 0 auto; background: #1b1916; padding: 3px 8px; }
+      .road-head { display: flex; align-items: center; gap: 6px; font-size: 9px; }
+      .road-head strong { font-size: 10px; }
+      .road-head .count { color: var(--muted); font-size: 8px; }
+      .auto { margin-left: auto; color: var(--leaf); font-size: 8px; font-weight: 800; }
+      .nodes { display: flex; align-items: center; gap: 2px; padding: 4px 0 2px; }
+      .node { position: relative; width: 20px; height: 20px; display: grid; place-items: center; color: var(--muted); font-size: 7px; font-weight: 800; }
+      .node i { position: absolute; inset: 2px; transform: rotate(45deg); border: 1px solid #3a342c; background: #201e1a; }
+      .node span { position: relative; z-index: 1; }
+      .node.done { color: var(--leaf); } .node.done i { border-color: #4f7a58; background: #1f2a22; }
+      .node.now { color: var(--gold); } .node.now i { border-color: var(--gold); background: #2c2a22; box-shadow: 0 0 0 1px var(--gold); }
+      .node.boss { color: var(--accent); } .node.boss i { border-color: #6d3831; }
+      .road-foot { display: flex; justify-content: space-between; color: var(--muted); font-size: 7px; }
+      .road-foot b { color: var(--ink); }
+      .feed { flex: 0 0 auto; min-height: 58px; padding: 3px 10px 2px; }
+      .feed-line { display: flex; gap: 5px; min-height: 17px; border-top: 1px solid #2d2a24; color: var(--muted); font-size: 8px; line-height: 1.3; align-items: center; }
+      .feed-line:first-child { border-top: 0; }
+      .feed-line b { color: var(--ink); }
+      .feed-line .tag { min-width: 24px; color: var(--gold); font-size: 7px; font-weight: 800; }
+      .feed-line.clear { background: #1f2a22; border: 1px solid #456c4e; border-radius: 6px; padding: 2px 5px; color: var(--ink); margin: 2px 0; }
+      .feed-line.clear .tag { color: var(--leaf); }
+      .feed-line .next { margin-left: auto; color: var(--gold); font-weight: 800; font-size: 7px; }
+      .controls { flex: 0 0 auto; display: flex; gap: 5px; border-top: 1.5px solid var(--line); padding: 4px 8px; }
+      .ctl { flex: 0 0 auto; min-width: 50px; min-height: 42px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; border: 1.5px solid var(--line); border-radius: 9px; background: var(--surface); color: var(--muted); font-size: 8px; }
+      .ctl b { color: var(--ink); font-size: 11px; }
+      .ctl.on { border-color: var(--leaf); color: var(--leaf); }
+      .ctl.on b { color: var(--leaf); }
+      .primary { flex: 1; min-width: 0; flex-direction: row; gap: 5px; border-color: var(--accent); background: var(--accent); color: #1a0f0d; font-size: 11px; font-weight: 900; }
+      .primary b { color: #1a0f0d; font-size: 11px; }
+      .dock { flex: 0 0 auto; display: flex; border-top: 1.5px solid var(--line); padding: 2px 4px 4px; }
+      .dock-item { flex: 1; min-height: 48px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 1px; color: var(--muted); font-size: 8px; position: relative; }
+      .dock-item b { font-size: 17px; line-height: 1; color: var(--ink); font-weight: 400; }
+      .dock-item .dot { position: absolute; top: 6px; right: calc(50% - 15px); width: 6px; height: 6px; border-radius: 50%; background: var(--accent); border: 1px solid var(--bg); }
+      .dock-item.active b { color: var(--gold); }
+
+      .side { width: 300px; color: var(--muted); font-size: 12px; line-height: 1.55; }
+      .side h1 { color: var(--ink); font-size: 17px; margin: 0 0 4px; }
+      .side .big { color: var(--leaf); font-size: 26px; font-weight: 900; margin: 8px 0 2px; }
+      .side code { color: var(--gold); }
+      .side button { border: 1.5px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); font: inherit; font-size: 10px; font-weight: 800; padding: 6px 8px; margin: 2px 2px 2px 0; }
+      .side button:hover { border-color: var(--gold); }
+      .side .reduced { display: flex; align-items: center; gap: 6px; margin-top: 6px; font-size: 10px; }
+      @media (prefers-reduced-motion: reduce) {
+        .cell.attacking .body, .cell.hit .body, .cell.hit .flash, .cell.hit .ring, .cell.healed .ring, .cell.healed .body, .cell.shielded .shield, .board.shake { animation: none !important; }
+        .burst, .orb { display: none; }
+      }
+      .reduced-motion .cell.attacking .body, .reduced-motion .cell.hit .body, .reduced-motion .cell.hit .flash, .reduced-motion .cell.hit .ring, .reduced-motion .cell.healed .ring, .reduced-motion .cell.healed .body, .reduced-motion .cell.shielded .shield, .reduced-motion .board.shake { animation: none !important; }
+      .reduced-motion .burst, .reduced-motion .orb { display: none; }
+    </style>
+  </head>
+  <body>
+    <div class="phone">
+      <div class="hud">
+        <div class="hud-main">
+          <div class="menu"><span>≡</span>Menu</div>
+          <div class="stage"><small>Cấp 3 · Vùng 1 · Đồi Sương</small><strong>Màn 1-3</strong></div>
+          <div class="res"><div class="chip"><i class="coin"></i>1.280</div><div class="chip"><i class="gem-icon"></i>64</div></div>
+        </div>
+        <div class="turn"><span class="turn-label">LƯỢT</span><div class="turn-rail" id="rail"></div><span class="wave">Đợt 1/2</span></div>
+        <div class="progress"><i></i></div>
+      </div>
+      <div class="board" id="board">
+        <div class="hexgrid" id="grid"></div>
+        <div class="fx" id="fx"></div>
+        <div class="skill-banner" id="banner"></div>
+      </div>
+      <div class="panel-tabs"><span class="panel-tab on">Đường đi</span><span class="panel-tab">Dự bị</span></div>
+      <div class="road">
+        <div class="road-head"><strong>Đường đi · Đồi Sương</strong><span class="count">3/12</span><span class="auto">● Tự động</span></div>
+        <div class="nodes" id="road-nodes"></div>
+        <div class="road-foot"><span>Tiếp: <b>1-4 · Đề nghị 8.200</b></span><span>Đội: 7.850</span></div>
+      </div>
+      <div class="feed" id="feed">
+        <div class="feed-line clear"><span class="tag">✓</span><span><b>Màn 1-2 đã qua</b> · +210 vàng · +6 mảnh</span><span class="next">→ 1-3</span></div>
+        <div class="feed-line"><span class="tag">⚔</span><span>Kiếm Sĩ · Chém Đôi · <b>-132</b> · Dơi Lửa</span></div>
+        <div class="feed-line"><span class="tag">✚</span><span>Tiên Tri · Mưa Lành · <b>+46</b> · Vệ Binh</span></div>
+      </div>
+      <div class="controls">
+        <div class="ctl on">◉<b>Tự</b></div>
+        <div class="ctl"><b>×3</b>Tốc</div>
+        <div class="ctl"><b>Ⅱ</b>Dừng</div>
+        <div class="ctl primary">★<b>Nâng cấp</b></div>
+      </div>
+      <div class="dock">
+        <div class="dock-item active"><b>♟</b>Đội</div>
+        <div class="dock-item"><b>⚙</b>Trang bị</div>
+        <div class="dock-item"><b>▣</b>Triệu hồi<span class="dot"></span></div>
+        <div class="dock-item"><b>▤</b>Sổ tay</div>
+        <div class="dock-item"><b>◷</b>Hôm nay<span class="dot"></span></div>
+      </div>
+    </div>
+
+    <div class="side">
+      <h1>DOM/CSS effects spike</h1>
+      <p>24 hex cells, 6v6, no engine. Buttons trigger the same effect timeline the game would use.</p>
+      <div class="big"><span id="fps">–</span> fps</div>
+      <p>p50 <code id="p50">–</code> ms · p95 <code id="p95">–</code> ms · long tasks <code id="lt">0</code></p>
+      <p>effect nodes <code id="effect-nodes">0</code> · hits <code id="hits">0</code></p>
+      <p>
+        <button type="button" data-play="hit">Đánh thường</button>
+        <button type="button" data-play="crit">Chí mạng</button>
+        <button type="button" data-play="active">Chiêu chủ động</button>
+        <button type="button" data-play="heal">Hồi máu</button>
+        <button type="button" data-play="shield">Khiên</button>
+        <button type="button" data-play="death">Ngã</button>
+        <button type="button" data-play="auto">Chuỗi tự động</button>
+        <button type="button" data-play="reset">Hồi sinh</button>
+      </p>
+      <label class="reduced"><input type="checkbox" id="reduced" /> Giảm chuyển động</label>
+      <p>Effect timeline: wind-up → projectile → impact → hit-stop → flinch / flash / ring / number → HP ghost. At ×3 the wind-up is skipped and particles are capped.</p>
+    </div>
+
+    <script>
+      const PORTRAIT = '../../../../games/van-du-ky/public/portraits/';
+      const HEROES = [
+        ['tien-tri','N','ti'], ['troi-buoc','G','ga'], ['ve-binh','Đ','st'],
+        ['moc-y','Đ','st'], ['loi-vu','G','ga'], ['kiem-si','L','em'],
+      ];
+      const ENEMIES = [
+        ['doi-lua','L','em'], ['bun-non','N','ti'], ['soi-tro','L','em'],
+        ['may-xam','G','ga'], ['phu-thuy','N','ti'], ['sen-da','Đ','st'],
+      ];
+      const ELEM_CLASS = { L: 'em', N: 'ti', Đ: 'st', G: 'ga' };
+      const ELEM_COLOR = { L: '#d05a4a', N: '#5a9fc0', Đ: '#b7a878', G: '#7fae86' };
+      const grid = document.getElementById('grid');
+      const cols = [];
+      for (let c = 0; c < 6; c++) {
+        const col = document.createElement('div');
+        col.className = 'hexcol';
+        for (let r = 0; r < 4; r++) col.append(document.createElement('div'));
+        grid.append(col);
+        cols.push(col);
+      }
+      const units = [];
+      function build(side, list, c, r, idx) {
+        const [id, letter, elem] = list[idx % list.length];
+        const cell = document.createElement('div');
+        cell.className = `cell ${side}`;
+        cell.dataset.id = `${side}-${idx}`;
+        cell.innerHTML = `<div class="rim"></div><div class="shape"></div>
+          <div class="body"><div class="portrait"><img src="${PORTRAIT}${id}.png" alt="" /></div>
+          <div class="hp"><i class="ghost"></i><i class="fill"></i></div>
+          <div class="meta"><span class="element ${elem}">${letter}</span><span class="pips"><i></i><i></i><i class="off"></i></span></div></div>
+          <span class="flash"></span><span class="ring"></span><span class="shield"></span>`;
+        cols[c].children[r].replaceWith(cell);
+        const maxHp = 900 + idx * 140;
+        const unit = { side, id: `${side}-${idx}`, cell, letter, elem, hp: maxHp, maxHp, dead: false };
+        units.push(unit);
+        return unit;
+      }
+      // 6 heroes and 6 enemies, 12 empty cells; left c0..2, right c3..5.
+      build('hero', HEROES, 0, 0, 0); build('hero', HEROES, 0, 1, 1);
+      build('hero', HEROES, 1, 0, 2); build('hero', HEROES, 1, 2, 3);
+      build('hero', HEROES, 2, 0, 4); build('hero', HEROES, 2, 1, 5);
+      build('enemy', ENEMIES, 3, 0, 0); build('enemy', ENEMIES, 3, 1, 1);
+      build('enemy', ENEMIES, 3, 2, 2); build('enemy', ENEMIES, 4, 0, 3);
+      build('enemy', ENEMIES, 4, 1, 4); build('enemy', ENEMIES, 5, 0, 5);
+      for (let c = 0; c < 6; c++) for (let r = 0; r < 4; r++) {
+        const node = cols[c].children[r];
+        if (node.classList.contains('cell')) continue;
+        node.classList.add('cell', 'empty', c < 3 ? 'hero' : 'enemy');
+        node.innerHTML = `<div class="rim"></div><div class="shape"></div><div class="body">+</div>`;
+      }
+      for (const u of units) { u.cell.querySelector('.fill').style.transform = 'scaleX(1)'; u.cell.querySelector('.ghost').style.transform = 'scaleX(1)'; }
+
+      // Turn rail
+      const rail = document.getElementById('rail');
+      const railIds = [['kiem-si','hero'],['doi-lua','enemy'],['troi-buoc','hero'],['bun-non','enemy'],['tien-tri','hero'],['soi-tro','enemy']];
+      for (const [id, side] of railIds) {
+        const chip = document.createElement('span');
+        chip.className = `turn-chip ${side}${chip === rail.firstChild ? ' now' : ''}`;
+        chip.innerHTML = `<img src="${PORTRAIT}${id}.png" alt="" />`;
+        rail.append(chip);
+      }
+      const chips = [...rail.children];
+      let turn = 0;
+      function paintRail() {
+        chips.forEach((chip, i) => {
+          chip.classList.toggle('now', i === turn % chips.length);
+        });
+        document.querySelector('.turn-label').textContent = 'LƯỢT';
+      }
+      paintRail();
+
+      // Road
+      const nodes = document.getElementById('road-nodes');
+      for (let i = 1; i <= 12; i++) {
+        const node = document.createElement('span');
+        node.className = `node${i < 3 ? ' done' : i === 3 ? ' now' : i === 12 ? ' boss' : ''}`;
+        node.innerHTML = `<i></i><span>${i}</span>`;
+        nodes.append(node);
+      }
+
+      // Effect layer
+      const board = document.getElementById('board');
+      const fx = document.getElementById('fx');
+      const banner = document.getElementById('banner');
+      const numbers = [];
+      for (let i = 0; i < 16; i++) { const n = document.createElement('div'); n.className = 'dmg'; fx.append(n); numbers.push(n); }
+      let numberCursor = 0;
+      let hits = 0;
+      let effectNodes = 0;
+      const reduce = document.getElementById('reduced');
+      reduce.addEventListener('change', () => document.body.classList.toggle('reduced-motion', reduce.checked));
+
+      function boardPoint(cell, y = 0.32) {
+        const r = cell.getBoundingClientRect();
+        const b = board.getBoundingClientRect();
+        return { x: r.left - b.left + r.width / 2, y: r.top - b.top + r.height * y };
+      }
+      function poolNode(className, x, y) {
+        const node = document.createElement('span');
+        node.className = className;
+        node.style.left = `${x}px`;
+        node.style.top = `${y}px`;
+        fx.append(node);
+        effectNodes++;
+        document.getElementById('effect-nodes').textContent = String(effectNodes);
+        return node;
+      }
+      function cleanup(node, ms) { setTimeout(() => { node.remove(); effectNodes = Math.max(0, effectNodes - 1); document.getElementById('effect-nodes').textContent = String(effectNodes); }, ms); }
+
+      function number(cell, text, kind = '') {
+        const p = boardPoint(cell, 0.3);
+        const node = numbers[numberCursor++ % numbers.length];
+        node.className = `dmg ${kind}`;
+        node.textContent = text;
+        node.style.left = `${p.x}px`;
+        node.style.top = `${p.y}px`;
+        node.style.animation = 'none';
+        void node.offsetWidth;
+        node.style.animation = '';
+        hits++;
+        document.getElementById('hits').textContent = String(hits);
+      }
+      function particles(cell, color, count = 7) {
+        if (document.body.classList.contains('reduced-motion')) return;
+        const p = boardPoint(cell, 0.5);
+        const burst = poolNode('burst', p.x, p.y);
+        burst.style.color = color;
+        for (let i = 0; i < count; i++) {
+          const bit = document.createElement('i');
+          const angle = Math.random() * Math.PI * 2;
+          const dist = 16 + Math.random() * 30;
+          bit.style.setProperty('--x', `${Math.cos(angle) * dist}px`);
+          bit.style.setProperty('--y', `${Math.sin(angle) * dist}px`);
+          bit.style.animationDelay = `${Math.random() * 40}ms`;
+          burst.append(bit);
+        }
+        cleanup(burst, 600);
+      }
+      function projectile(source, target, color) {
+        if (document.body.classList.contains('reduced-motion')) return;
+        const a = boardPoint(source, 0.5);
+        const b = boardPoint(target, 0.45);
+        const orb = poolNode('orb', a.x, a.y);
+        orb.style.background = color;
+        orb.style.color = color;
+        orb.style.setProperty('--dx', `${b.x - a.x}px`);
+        orb.style.setProperty('--dy', `${b.y - a.y}px`);
+        cleanup(orb, 280);
+      }
+      function setHp(unit, hp) {
+        unit.hp = Math.max(0, Math.min(unit.maxHp, hp));
+        const fill = unit.cell.querySelector('.fill');
+        const ghost = unit.cell.querySelector('.ghost');
+        const old = unit.hp / unit.maxHp;
+        const ratio = unit.hp / unit.maxHp;
+        fill.style.transform = `scaleX(${ratio})`;
+        ghost.style.transform = `scaleX(${old})`;
+        setTimeout(() => { ghost.style.transform = `scaleX(${unit.hp / unit.maxHp})`; }, 110);
+        if (unit.hp <= 0) {
+          unit.dead = true;
+          unit.cell.classList.add('dead');
+        }
+      }
+      function hit(source, target, kind = 'hit') {
+        const crit = kind === 'crit';
+        const color = ELEM_COLOR[target.letter] || '#ff8a6a';
+        const amount = crit ? 180 + Math.round(Math.random() * 120) : 50 + Math.round(Math.random() * 90);
+        const old = target.hp;
+        target.cell.classList.remove('hit', 'crit', 'healed', 'shielded');
+        void target.cell.offsetWidth;
+        target.cell.classList.add('hit');
+        if (crit) target.cell.classList.add('crit');
+        target.cell.classList.remove('flee-left', 'flee-right');
+        target.cell.classList.add(target.cell.getBoundingClientRect().left < source.cell.getBoundingClientRect().left ? 'flee-left' : 'flee-right');
+        if (crit) { board.classList.remove('shake'); void board.offsetWidth; board.classList.add('shake'); }
+        setTimeout(() => setHp(target, old - amount), 50);
+        number(target.cell, `-${amount}`, crit ? 'crit' : '');
+        particles(target.cell, color, crit ? 10 : 7);
+        projectile(source.cell, target.cell, color);
+        setTimeout(() => target.cell.classList.remove('hit', 'crit', 'flee-left', 'flee-right'), 340);
+      }
+      function heal(source, target) {
+        const amount = 90 + Math.round(Math.random() * 80);
+        target.cell.classList.remove('healed'); void target.cell.offsetWidth; target.cell.classList.add('healed');
+        setHp(target, target.hp + amount);
+        number(target.cell, `+${amount}`, 'heal');
+        particles(target.cell, '#8ed6a0', 7);
+        setTimeout(() => target.cell.classList.remove('healed'), 450);
+      }
+      function shield(target) {
+        target.cell.classList.remove('shielded'); void target.cell.offsetWidth; target.cell.classList.add('shielded');
+        particles(target.cell, '#8fc8ff', 5);
+        setTimeout(() => target.cell.classList.remove('shielded'), 800);
+      }
+      function attack(source, target, kind = 'hit') {
+        source.cell.classList.add('attacking');
+        source.cell.classList.remove('toward-left', 'toward-right');
+        source.cell.classList.add(source.cell.getBoundingClientRect().left < target.cell.getBoundingClientRect().left ? 'toward-right' : 'toward-left');
+        if (kind === 'active') {
+          banner.textContent = 'CHIÊU · CHÉM ĐÔI';
+          banner.classList.remove('go'); void banner.offsetWidth; banner.classList.add('go');
+        }
+        setTimeout(() => projectile(source.cell, target.cell, ELEM_COLOR[source.letter] || '#d8a84e'), 60);
+        setTimeout(() => hit(source, target, kind), 300);
+        setTimeout(() => source.cell.classList.remove('attacking', 'toward-left', 'toward-right'), 380);
+      }
+      function death(target) {
+        setHp(target, 0);
+        particles(target.cell, '#f2ead9', 8);
+        number(target.cell, 'NGÃ', 'crit');
+      }
+      function randomPair() {
+        const heroes = units.filter((u) => u.side === 'hero' && !u.dead);
+        const enemies = units.filter((u) => u.side === 'enemy' && !u.dead);
+        if (!heroes.length || !enemies.length) return null;
+        return [heroes[Math.floor(Math.random() * heroes.length)], enemies[Math.floor(Math.random() * enemies.length)]];
+      }
+      function play(kind) {
+        const pair = randomPair();
+        if (!pair) return;
+        const [h, e] = pair;
+        if (kind === 'hit') attack(h, e, 'hit');
+        else if (kind === 'crit') attack(h, e, 'crit');
+        else if (kind === 'active') attack(h, e, 'active');
+        else if (kind === 'heal') heal(h, h);
+        else if (kind === 'shield') shield(h);
+        else if (kind === 'death') death(e);
+        else if (kind === 'reset') {
+          for (const u of units) { u.dead = false; u.hp = u.maxHp; u.cell.classList.remove('dead','hit','crit','healed','shielded','attacking','toward-left','toward-right','flee-left','flee-right'); setHp(u, u.maxHp); }
+          hits = 0; document.getElementById('hits').textContent = '0';
+        }
+        turn++;
+        paintRail();
+      }
+      document.querySelectorAll('[data-play]').forEach((button) => {
+        button.addEventListener('click', () => {
+          if (button.dataset.play === 'auto') auto = !auto;
+          else play(button.dataset.play);
+        });
+      });
+      let auto = !location.search.includes('manual');
+      let autoTimer = null;
+      function loop() {
+        if (auto) {
+          const kinds = ['hit','hit','hit','crit','active','heal','shield'];
+          play(kinds[Math.floor(Math.random() * kinds.length)]);
+        }
+        autoTimer = setTimeout(loop, 1400);
+      }
+      setTimeout(loop, 900);
+
+      // FPS / long tasks
+      const frames = []; let last = performance.now();
+      function frame(now) {
+        const dt = now - last; last = now;
+        if (dt > 0 && dt < 1000) frames.push(dt);
+        if (frames.length > 180) frames.shift();
+        if (frames.length > 30) {
+          const sorted = [...frames].sort((a, b) => a - b);
+          const q = (p) => sorted[Math.floor(sorted.length * p)];
+          document.getElementById('fps').textContent = String(Math.round(1000 / q(0.5)));
+          document.getElementById('p50').textContent = q(0.5).toFixed(1);
+          document.getElementById('p95').textContent = q(0.95).toFixed(1);
+        }
+        requestAnimationFrame(frame);
+      }
+      requestAnimationFrame(frame);
+      try { new PerformanceObserver((l) => { document.getElementById('lt').textContent = String(l.getEntries().length); }).observe({ entryTypes: ['longtask'] }); } catch {}
+      function clearEffects() {
+        for (const n of numbers) { n.style.animation = 'none'; n.style.opacity = '0'; n.textContent = ''; }
+        for (const node of fx.querySelectorAll('.orb, .burst')) node.remove();
+        effectNodes = 0; hits = 0;
+        document.getElementById('effect-nodes').textContent = '0';
+        document.getElementById('hits').textContent = '0';
+        for (const u of units) u.cell.classList.remove('hit','crit','healed','shielded','attacking','toward-left','toward-right','flee-left','flee-right');
+      }
+      window.vdDemo = (kind = 'crit') => {
+        auto = false;
+        clearEffects();
+        for (const u of units) { u.dead = false; u.cell.classList.remove('dead'); setHp(u, u.maxHp); }
+        const h = units.find((u) => u.side === 'hero');
+        const e = units.find((u) => u.side === 'enemy');
+        if (h && e) attack(h, e, kind);
+      };
+      window.vdPlay = (kind) => { auto = false; play(kind); };
+    </script>
+  </body>
+</html>

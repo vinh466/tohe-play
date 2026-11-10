@@ -1127,3 +1127,223 @@ body {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* ---------------------------------------------------------------- the modes (the shell's pre-play screen) */
+
+.mode-choice-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.55rem;
+  width: 100%;
+  padding-bottom: 0.25rem;
+}
+
+.mode-choice-note {
+  margin: 0;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.9rem;
+  background: var(--tohe-notice);
+  color: var(--tohe-notice-ink);
+  font-size: 0.82rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.mode-choice-row {
+  display: flex;
+  gap: 0.4rem;
+  width: 100%;
+  animation: mode-choice-in 0.28s ease both;
+}
+
+.mode-choice-row:nth-child(2) {
+  animation-delay: 0.03s;
+}
+
+.mode-choice-row:nth-child(3) {
+  animation-delay: 0.06s;
+}
+
+.mode-choice {
+  display: grid;
+  flex: 1;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.65rem;
+  min-width: 0;
+  padding: 0.65rem 0.7rem 0.65rem 0.65rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 1.1rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 2px 0 var(--tohe-line);
+  color: var(--tohe-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform 0.12s ease,
+    box-shadow 0.12s ease,
+    background 0.12s ease;
+}
+
+.mode-choice:hover,
+.mode-choice:focus-visible {
+  background: var(--tohe-soft);
+  box-shadow: 0 3px 0 var(--tohe-line);
+  transform: translateY(-1px);
+}
+
+.mode-choice:active {
+  box-shadow: 0 1px 0 var(--tohe-line);
+  transform: translateY(1px);
+}
+
+.mode-choice-mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border-radius: 0.95rem;
+  background: var(--tohe-soft-strong);
+  color: var(--tohe-brand-strong);
+}
+
+.mode-choice.is-journey .mode-choice-mark {
+  color: var(--tohe-accent);
+}
+
+.mode-choice.is-daily .mode-choice-mark {
+  color: var(--tohe-highlight);
+}
+
+.mode-choice-icon {
+  width: 1.55rem;
+  height: 1.55rem;
+}
+
+.mode-choice-words {
+  display: flex;
+  flex-direction: column;
+  gap: 0.05rem;
+  min-width: 0;
+}
+
+.mode-choice-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.mode-choice-head strong {
+  font-size: 1.03rem;
+  font-weight: 900;
+  line-height: 1.2;
+}
+
+.mode-choice-line {
+  overflow: hidden;
+  color: var(--tohe-ink-soft);
+  font-size: 0.83rem;
+  line-height: 1.32;
+  text-overflow: ellipsis;
+}
+
+.mode-choice-meta {
+  margin-top: 0.08rem;
+  color: var(--tohe-ink-soft);
+  font-size: 0.74rem;
+  font-weight: 700;
+  line-height: 1.3;
+}
+
+.mode-choice-badge {
+  padding: 0.08rem 0.42rem;
+  border-radius: 999px;
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.03em;
+  line-height: 1.5;
+  text-transform: uppercase;
+}
+
+.mode-choice-badge.is-live {
+  background: var(--tohe-brand-strong);
+  color: var(--tohe-on-brand);
+}
+
+.mode-choice-chevron {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--tohe-ink-faint);
+}
+
+.mode-choice-new {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.9rem;
+  border: 1px solid var(--tohe-line);
+  border-radius: 1rem;
+  background: var(--tohe-surface);
+  box-shadow: 0 2px 0 var(--tohe-line);
+  color: var(--tohe-ink-soft);
+  cursor: pointer;
+}
+
+.mode-choice-new:hover,
+.mode-choice-new:focus-visible {
+  background: var(--tohe-soft);
+  color: var(--tohe-ink);
+}
+
+.mode-choice-new .tohe-svg {
+  width: 1.2rem;
+  height: 1.2rem;
+}
+
+.mode-confirm {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+@keyframes mode-choice-in {
+  from {
+    opacity: 0;
+    transform: translateY(0.4rem);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+.switch-note {
+  margin-top: 0.6rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .mode-choice-row {
+    animation: none;
+  }
+
+  .mode-choice {
+    transition: none;
+  }
+}
+
+@media (max-width: 430px) {
+  .mode-choice {
+    gap: 0.5rem;
+    padding: 0.55rem;
+  }
+
+  .mode-choice-mark {
+    width: 2.6rem;
+    height: 2.6rem;
+  }
+}

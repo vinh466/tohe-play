@@ -38,6 +38,30 @@ export interface Strings {
   dailyCalendar: string;
   dailyNoStreak: string;
   dailyGoal: string;
+  modes: string;
+  modesBody: string;
+  modesChoose: string;
+  modeEndless: string;
+  modeEndlessLine: string;
+  modeJourney: string;
+  modeJourneyLine: string;
+  modeDaily: string;
+  modeDailyLine: string;
+  modeLive: string;
+  modeNew: string;
+  modeNewBody: string;
+  modeNewStart: string;
+  modeScore(score: string): string;
+  modeBest(score: string): string;
+  modeLevel(level: string, score: string): string;
+  modeStars(stars: number, total: number): string;
+  modeTodayDone(stars: number): string;
+  modeTodayFresh: string;
+  continueLevel: string;
+  restartLevel: string;
+  startNew: string;
+  back: string;
+  switchWarning(level: string): string;
   statsGames: string;
   statsScore: string;
   statsLines: string;
@@ -140,6 +164,30 @@ const vi: Strings = {
   dailyCalendar: '28 ngày gần đây',
   dailyNoStreak: 'Nghỉ một ngày cũng không sao.',
   dailyGoal: 'Mục tiêu hôm nay',
+  modes: 'Chế độ',
+  modesBody: 'Chọn cách chơi. Ván đang chơi dở được giữ lại khi bạn đổi chế độ.',
+  modesChoose: 'Chọn cách chơi.',
+  modeEndless: 'Chơi tự do',
+  modeEndlessLine: 'Lấp đầy bàn, không giới hạn lượt.',
+  modeJourney: 'Hành trình',
+  modeJourneyLine: '18 màn theo chương, mỗi màn ba mục tiêu.',
+  modeDaily: 'Hôm nay',
+  modeDailyLine: 'Thử thách mỗi ngày, ba mục tiêu.',
+  modeLive: 'Đang chơi',
+  modeNew: 'Ván mới',
+  modeNewBody: 'Ván đang chơi của chế độ này sẽ kết thúc. Điểm đã đạt vẫn được tính.',
+  modeNewStart: 'Bắt đầu mới',
+  modeScore: (score) => `Đang chơi: ${score} điểm`,
+  modeBest: (score) => `Kỷ lục: ${score}`,
+  modeLevel: (level, score) => `${level}: ${score} điểm`,
+  modeStars: (stars, total) => `Hành trình: ${stars}/${total} sao`,
+  modeTodayDone: (stars) => `Đã chơi: ${stars}/3 sao`,
+  modeTodayFresh: 'Chưa chơi hôm nay',
+  continueLevel: 'Chơi tiếp',
+  restartLevel: 'Chơi lại',
+  startNew: 'Bắt đầu',
+  back: 'Quay lại',
+  switchWarning: (level) => `Bạn đang chơi dở ${level}. Chơi màn này sẽ kết thúc ván đó.`,
   statsGames: 'Ván đã chơi',
   statsScore: 'Tổng điểm',
   statsLines: 'Hàng/cột đã xoá',
@@ -248,6 +296,30 @@ const en: Strings = {
   dailyCalendar: 'The last 28 days',
   dailyNoStreak: 'Missing a day costs nothing.',
   dailyGoal: "Today's goals",
+  modes: 'Modes',
+  modesBody: 'Choose how to play. A run in progress is kept when you change mode.',
+  modesChoose: 'Choose how to play.',
+  modeEndless: 'Free play',
+  modeEndlessLine: 'Fill the board, no move limit.',
+  modeJourney: 'Journey',
+  modeJourneyLine: '18 levels across chapters, three goals each.',
+  modeDaily: 'Today',
+  modeDailyLine: 'A daily challenge with three goals.',
+  modeLive: 'In progress',
+  modeNew: 'New run',
+  modeNewBody: 'This mode’s run will end. Points already scored still count.',
+  modeNewStart: 'Start new',
+  modeScore: (score) => `In progress: ${score} points`,
+  modeBest: (score) => `Best: ${score}`,
+  modeLevel: (level, score) => `${level}: ${score} points`,
+  modeStars: (stars, total) => `Journey: ${stars}/${total} stars`,
+  modeTodayDone: (stars) => `Played: ${stars}/3 stars`,
+  modeTodayFresh: 'Not played today',
+  continueLevel: 'Continue',
+  restartLevel: 'Restart',
+  startNew: 'Start',
+  back: 'Back',
+  switchWarning: (level) => `You are playing ${level}. Starting this level will end that run.`,
   statsGames: 'Games played',
   statsScore: 'Total score',
   statsLines: 'Lines cleared',

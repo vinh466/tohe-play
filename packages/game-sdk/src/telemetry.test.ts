@@ -29,6 +29,7 @@ const manifest: GameManifest = {
   minAge: 0,
   tags: [],
   sizeBudgetKb: 3000,
+  saveBudgetKb: 64,
 };
 
 async function play(telemetry: boolean | undefined, overrides: Partial<HostOptions> = {}) {

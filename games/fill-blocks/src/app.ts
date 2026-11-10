@@ -4,8 +4,9 @@ import { createSfx, formatScore, newRunId } from '@tohe/game-kit';
 import { connect } from '@tohe/game-sdk';
 import { earned } from './content/achievements.ts';
 import { rankName } from './content/ranks.ts';
-import { completed, type Goal, restore, type State, starsFor } from './logic.ts';
+import { completed, type Goal, goalMet, restore, type State, starsFor } from './logic.ts';
 import { DEFAULT_PALETTE, isPalette, type PaletteId } from './palette.ts';
+import { dailyDateOf, isLive, MODE_SLOTS, type ModeSlot, resumable, slotOf } from './runs.ts';
 import { stringsFor, todayId } from './strings.ts';
 
 export interface Stats {
@@ -37,7 +38,14 @@ export interface Saved {
   achievements?: string[];
   settings?: Partial<Settings>;
   /** A level or daily the journey screen asked the stage to start on the next play. */
-  pending?: { level?: string; daily?: string };
+  pending?: { level?: string; daily?: string; restart?: boolean };
+  /** Runs parked when the player changed mode; the active one is `game`. */
+  parked?: Partial<Record<ModeSlot, State>>;
+  /** The hub run id of each parked run, so resuming continues the same run instead of opening a new one. */
+  parkedRuns?: Partial<Record<ModeSlot, string>>;
+  /** The goals met in the best journey result per level, and in today's daily. */
+  journeyGoals?: Record<string, boolean[]>;
+  dailyGoals?: { date: string; met: boolean[] };
 }
 
 const DEFAULT_STATS: Stats = { games: 0, totalScore: 0, lines: 0, bestCombo: 0, bestStreak: 0, perfects: 0 };
@@ -52,6 +60,21 @@ session.on('settings', (settings) => sfx.setMuted(settings.muted));
 
 const saved = session.saved;
 const resumed = restore(saved?.game);
+// Yesterday's daily is not resumed as today's: it stays out of the way, and the daily screen starts today's.
+const active =
+  resumed && !resumed.over && (resumed.mode !== 'daily' || dailyDateOf(resumed) === todayId())
+    ? resumed
+    : null;
+const parked: Partial<Record<ModeSlot, State>> = {};
+const parkedRuns: Partial<Record<ModeSlot, string>> = {};
+for (const slot of MODE_SLOTS) {
+  const run = restore(saved?.parked?.[slot]);
+  if (!isLive(run) || slotOf(run) !== slot) continue;
+  if (slot === 'daily' && dailyDateOf(run) !== todayId()) continue;
+  parked[slot] = run;
+  const id = saved?.parkedRuns?.[slot];
+  if (typeof id === 'string' && id.length > 0) parkedRuns[slot] = id;
+}
 
 const settings = (): Settings => {
   const value = saved?.settings;
@@ -78,19 +101,63 @@ export const store: {
   stats: Stats;
   achievements: Set<string>;
   settings: Settings;
-  pending: { level?: string; daily?: string };
+  pending: { level?: string; daily?: string; restart?: boolean };
+  parked: Partial<Record<ModeSlot, State>>;
+  parkedRuns: Partial<Record<ModeSlot, string>>;
+  journeyGoals: Record<string, boolean[]>;
+  dailyGoals: { date: string; met: boolean[] } | null;
 } = {
   best: saved?.best ?? 0,
-  game: resumed && !resumed.over ? resumed : null,
+  game: active,
   tutorialSeen: saved?.tutorialSeen ?? false,
-  run: (resumed && !resumed.over && saved?.run) || null,
+  run: (active && saved?.run) || null,
   journey: { ...(saved?.journey ?? {}) },
   dailyDates: { ...(saved?.daily?.dates ?? {}) },
   stats: { ...DEFAULT_STATS, ...(saved?.stats ?? {}) },
   achievements: new Set(saved?.achievements ?? []),
   settings: settings(),
   pending: { ...(saved?.pending ?? {}) },
+  parked,
+  parkedRuns,
+  journeyGoals: { ...(saved?.journeyGoals ?? {}) },
+  dailyGoals: saved?.dailyGoals?.date === todayId() ? saved.dailyGoals : null,
 };
+
+/** A parked run that can be resumed now; do not remove it — `resumeParked` does. */
+export const parkedRun = (slot: ModeSlot): State | null => resumable(store.parked, slot);
+
+/** Keeps the active run in its mode's slot: switching to another mode never throws it away. */
+export function parkActive(): void {
+  const game = store.game;
+  if (!isLive(game)) return;
+  const slot = slotOf(game);
+  store.parked[slot] = game;
+  if (store.run) store.parkedRuns[slot] = store.run;
+}
+
+/** Takes a parked run back into play, with the hub run it already had. */
+export function resumeParked(slot: ModeSlot): { state: State; runId: string | null } | null {
+  const state = parkedRun(slot);
+  if (!state) return null;
+  const runId = store.parkedRuns[slot] ?? null;
+  delete store.parked[slot];
+  delete store.parkedRuns[slot];
+  return { state, runId };
+}
+
+/** Ends a parked run the player is replacing, so its live score does not stay open on the board. */
+export function dropParked(slot: ModeSlot): void {
+  const state = store.parked[slot];
+  const runId = store.parkedRuns[slot];
+  delete store.parked[slot];
+  delete store.parkedRuns[slot];
+  if (state && runId) {
+    void session
+      .run(runId)
+      .finish(state.score)
+      .catch((error) => session.log('warn', String(error)));
+  }
+}
 
 /** A new endless seed: not the hub's daily seed, and different from the last board. */
 export function nextSeed(): number {
@@ -120,15 +187,20 @@ export function finishGame(state: State, goals: readonly Goal[]): void {
   if (state.mode === 'journey' && level) {
     const stars = starsFor(state, goals);
     if (completed(state, goals)) {
-      store.journey[level] = Math.max(store.journey[level] ?? 0, stars);
+      const previous = store.journey[level] ?? 0;
+      store.journey[level] = Math.max(previous, stars);
+      // Keep which goals were met with the best result, so the level's detail does not show three stars and three
+      // unchecked goals.
+      if (stars >= previous) store.journeyGoals[level] = goals.map((goal) => goalMet(state, goal));
     }
   }
   if (state.mode === 'daily') {
     const date = state.level?.replace('daily-', '') ?? todayId();
-    // One scored attempt a day: a attempt that misses the primary goal does not stamp, so it can be retried;
+    // One scored attempt a day: an attempt that misses the primary goal does not stamp, so it can be retried;
     // after the first completed attempt, practice never changes the stamp.
     if (!Object.hasOwn(store.dailyDates, date) && completed(state, goals)) {
       store.dailyDates[date] = starsFor(state, goals);
+      store.dailyGoals = { date, met: goals.map((goal) => goalMet(state, goal)) };
     }
   }
 
@@ -146,6 +218,15 @@ export function finishGame(state: State, goals: readonly Goal[]): void {
 
 export function persist(): Promise<void> {
   const game = store.game && !store.game.over ? store.game : null;
+  const parked: Partial<Record<ModeSlot, State>> = {};
+  const parkedRuns: Partial<Record<ModeSlot, string>> = {};
+  for (const slot of MODE_SLOTS) {
+    const run = store.parked[slot];
+    if (!isLive(run)) continue;
+    parked[slot] = run;
+    const id = store.parkedRuns[slot];
+    if (id) parkedRuns[slot] = id;
+  }
   const data: Saved = {
     v: 1,
     best: store.best,
@@ -156,8 +237,12 @@ export function persist(): Promise<void> {
     stats: store.stats,
     achievements: [...store.achievements],
     settings: store.settings,
+    parked,
+    parkedRuns,
+    journeyGoals: store.journeyGoals,
   };
   if (game && store.run) data.run = store.run;
+  if (store.dailyGoals) data.dailyGoals = store.dailyGoals;
   if (store.pending.level || store.pending.daily) data.pending = store.pending;
   return session.save(data).catch((error) => session.log('warn', `save failed: ${String(error)}`));
 }

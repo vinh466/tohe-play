@@ -51,7 +51,7 @@ A game whose run lasts across sittings reports it as it grows (`run(id).update`)
 | Endpoint | Does |
 | --- | --- |
 | `GET /api/progress/saves` | Every save of the active profile, with the server time of its last write. |
-| `PUT /api/progress/saves/{gameId}` | Stores a save (any JSON, at most 64 KB as in the contract); the last write wins. |
+| `PUT /api/progress/saves/{gameId}` | Stores a save (any JSON, at most the game's `saveBudgetKb`, 64 KB by default as in the contract; [ADR 0059](../decisions/0059-a-game-declares-its-save-budget.md)); the last write wins. |
 | `POST /api/progress/scores` | Records runs (up to 200 per call). A known `clientId` raises that run's score or makes it final; otherwise it is ignored. |
 
 All need a session with a chosen profile (`403 profile_required` otherwise). The account's board is

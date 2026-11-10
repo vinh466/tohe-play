@@ -10,6 +10,10 @@ internal static class Games
 {
     public static Task KnowAsync(ApiFactory factory, params string[] ids) => AddAsync(factory, rooms: null, ranked: null, ids);
 
+    /// <summary>A game with a save budget of its own (ADR 0059).</summary>
+    public static Task KnowSaveBudgetAsync(ApiFactory factory, string id, int saveBudgetKb) =>
+        AddAsync(factory, rooms: null, ranked: null, [id], GameLevels.Any, [], saveBudgetKb);
+
     /// <summary>A game whose build opens share entries itself (ADR 0045), asking <paramref name="play"/> to open.</summary>
     public static Task KnowEntryGameAsync(ApiFactory factory, string id, string play = GameLevels.Any) =>
         AddAsync(factory, rooms: null, ranked: null, [id], play, [GameLevels.ShareEntry]);
@@ -33,7 +37,7 @@ internal static class Games
         AddAsync(factory, rooms, ranked, ids, GameLevels.Any, []);
 
     private static async Task AddAsync(
-        ApiFactory factory, string? rooms, string? ranked, string[] ids, string play, string[] entries)
+        ApiFactory factory, string? rooms, string? ranked, string[] ids, string play, string[] entries, int saveBudgetKb = 64)
     {
         await using var scope = factory.Services.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<ToheDbContext>();
@@ -57,6 +61,7 @@ internal static class Games
                 IdentityPlay = play,
                 IdentityRooms = rooms is null ? null : GameLevels.Named,
                 Entries = entries,
+                SaveBudgetKb = saveBudgetKb,
                 FirstSeenAt = DateTimeOffset.UtcNow,
                 UpdatedAt = DateTimeOffset.UtcNow,
             });
