@@ -1,6 +1,6 @@
 # R-15 — What the game needs next: a short roguelite run
 
-Date: 2026-11-11 · Status: **implemented** in the v1.2.0 slice
+Date: 2026-11-11 · Status: **live in v1.2.0** (prod-2026-11-11.1)
 
 The owner is happy with the hex board, the ×1/×2/×5/×10 pace and the deck. The next gap is not presentation: the
 story is a solved auto-battler. The player chooses a formation and gear before a stage, then watches. Replaying a
