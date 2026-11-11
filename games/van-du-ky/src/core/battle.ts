@@ -7,6 +7,7 @@ import { applyTerrain, terrainAt } from './terrain.ts';
 import type {
   BattleEnemyLoadout,
   BattleEvent,
+  BattleModifier,
   BattleState,
   BattleUnit,
   EnemyDef,
@@ -34,6 +35,8 @@ export interface BattleConfig {
   readonly enemies: readonly BattleEnemyLoadout[];
   readonly autoCast?: boolean;
   readonly maxRounds?: number;
+  /** Run-only modifiers; the story passes none. */
+  readonly modifiers?: readonly BattleModifier[];
 }
 
 const MAX_HEROES = 6;
@@ -47,24 +50,28 @@ export function createBattle(rules: BattleRules, config: BattleConfig): BattleSt
     throw new Error(`a battle needs 1–${MAX_ENEMIES} enemies`);
 
   const units: BattleUnit[] = [];
+  const modifiers = config.modifiers ?? [];
   const heroIds = new Set(config.heroes.map((hero) => hero.heroId));
   config.heroes.forEach((loadout, index) => {
     const def = rules.hero(loadout.heroId);
-    const stats = applyTerrain(
-      applyRow(
-        heroStats(def, {
-          companyLevel: config.companyLevel,
-          star: loadout.star,
-          gear: loadout.gear.map((id) => rules.gear(id)),
-          plus: loadout.plus,
-          bond: heroIds.has(def.bond),
-        }),
-        loadout.row,
+    const stats = applyModifiers(
+      applyTerrain(
+        applyRow(
+          heroStats(def, {
+            companyLevel: config.companyLevel,
+            star: loadout.star,
+            gear: loadout.gear.map((id) => rules.gear(id)),
+            plus: loadout.plus,
+            bond: heroIds.has(def.bond),
+          }),
+          loadout.row,
+        ),
+        terrainAt('hero', loadout.row, loadout.column),
       ),
-      terrainAt('hero', loadout.row, loadout.column),
+      modifiers,
     );
     const hp = Math.max(0, Math.min(stats.hp, loadout.hp ?? stats.hp));
-    units.push({
+    const unit: BattleUnit = {
       id: `h${index + 1}`,
       side: 'hero',
       defId: def.id,
@@ -84,7 +91,13 @@ export function createBattle(rules: BattleRules, config: BattleConfig): BattleSt
       immuneControl: false,
       statuses: [],
       dead: hp <= 0,
-    });
+    };
+    const shield = Math.max(0, ...modifiers.map((modifier) => modifier.startShield ?? 0));
+    if (shield > 0 && !unit.dead) unit.shield = Math.round(unit.maxHp * shield);
+    if (!unit.dead && modifiers.some((modifier) => modifier.startCharge === true)) {
+      unit.charge = unit.activeCharge;
+    }
+    units.push(unit);
   });
   config.enemies.forEach((loadout, index) => {
     const def = rules.enemy(loadout.enemyId);
@@ -125,6 +138,10 @@ export function createBattle(rules: BattleRules, config: BattleConfig): BattleSt
     units,
     pending: null,
     autoCast: config.autoCast ?? true,
+    lifesteal: Math.min(
+      1,
+      modifiers.reduce((sum, modifier) => sum + (modifier.lifesteal ?? 0), 0),
+    ),
     result: 'ongoing',
     events: [{ type: 'round', round: 1 }],
   };
@@ -247,6 +264,19 @@ function resolveSkill(state: BattleState, source: BattleUnit, skill: SkillDef, t
         if (target.hp <= 0 && !target.dead) {
           target.dead = true;
           state.events.push({ type: 'death', unit: target.id });
+        }
+        if (
+          state.lifesteal > 0 &&
+          source.side === 'hero' &&
+          source.id !== target.id &&
+          hit.amount > 0 &&
+          !source.dead
+        ) {
+          const before = source.hp;
+          source.hp = Math.min(source.maxHp, source.hp + Math.round(hit.amount * state.lifesteal));
+          const healed = source.hp - before;
+          if (healed > 0)
+            state.events.push({ type: 'heal', source: source.id, target: source.id, amount: healed });
         }
         break;
       }
@@ -397,6 +427,19 @@ function checkResult(state: BattleState) {
   const enemies = state.units.some((unit) => unit.side === 'enemy' && !unit.dead);
   if (!enemies) state.result = 'win';
   else if (!heroes) state.result = 'lose';
+}
+
+function applyModifiers(stats: Stats, modifiers: readonly BattleModifier[]): Stats {
+  let next = stats;
+  for (const modifier of modifiers) {
+    for (const [key, value] of Object.entries(modifier.stats ?? {})) {
+      const stat = key as keyof Stats;
+      const amount = value ?? 0;
+      if (stat === 'crit') next = { ...next, crit: Math.min(1, next.crit + amount) };
+      else next = { ...next, [stat]: Math.round(next[stat] * (1 + amount)) };
+    }
+  }
+  return next;
 }
 
 function effective(unit: BattleUnit): Stats {

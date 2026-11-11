@@ -5,6 +5,16 @@ import { haptics, icon as kitIcon, type PlayStage, type StageContext } from '@to
 import { persist, session, sfx, store, t } from './app.ts';
 import { bossStage, challengeStage, expeditionStage, towerStage } from './content/events.ts';
 import { HEROES } from './content/heroes.ts';
+import {
+  chooseRiftBlessings,
+  chooseRiftRelics,
+  createRiftRun,
+  type RiftRun,
+  riftClearBonus,
+  riftModifiers,
+  riftNodeReward,
+  riftStage,
+} from './content/rift.ts';
 import { REGIONS, regionNumber, STAGES } from './content/stages.ts';
 import {
   dailyReady,
@@ -38,6 +48,7 @@ import {
   openGearSheet,
   openHeroSheet,
   openOfflineCard,
+  openRiftChoice,
   openStagePicker,
   openSummonSheet,
   openTeamSheet,
@@ -139,6 +150,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   let lossCount = 0;
   let lossTimer: number | null = null;
   let runToken = 0;
+  let rift: RiftRun | null = null;
 
   // MARK: HUD
 
@@ -344,6 +356,31 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
 
   const renderRoad = () => {
     roadNodes.replaceChildren();
+    if (mode.kind === 'rift' && rift) {
+      const run = rift;
+      roadNodes.hidden = false;
+      roadFoot.hidden = false;
+      roadTitle.textContent = 'Dị Bản · chuyến đi';
+      roadCount.textContent = `${run.index + 1}/${run.nodes.length}`;
+      run.nodes.forEach((node, index) => {
+        const marker = el(
+          'span',
+          `road-node${index < run.index ? ' done' : index === run.index ? ' now' : ''}${
+            node.kind === 'boss' ? ' boss' : ''
+          }`,
+        );
+        marker.title = node.label;
+        marker.append(el('i'), el('span', '', node.icon));
+        roadNodes.append(marker);
+      });
+      const node = run.nodes[run.index] as (typeof run.nodes)[number];
+      nextLine.replaceChildren(document.createTextNode('Điểm: '), el('b', '', node.label));
+      teamLine.replaceChildren(
+        document.createTextNode('Phước: '),
+        el('b', '', `${run.blessings.length} · ${run.relic?.name ?? '—'}`),
+      );
+      return;
+    }
     if (mode.kind !== 'story') {
       roadTitle.textContent = modeLabel(mode);
       roadCount.textContent = modeStageName(mode);
@@ -458,6 +495,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         return t.boss;
       case 'challenge':
         return t.challenge;
+      case 'rift':
+        return 'Dị Bản';
       default:
         return t.stages;
     }
@@ -473,6 +512,8 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
         return t.bossShort;
       case 'challenge':
         return t.challengeShort;
+      case 'rift':
+        return `Tầng ${(rift?.index ?? 0) + 1}/${rift?.nodes.length ?? 6}`;
       default:
         return t.stage(stage.id);
     }
@@ -534,6 +575,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
     companyLevel: store.save.company.level,
     speed: store.save.settings.speed,
     reducedMotion: store.save.settings.reducedMotion,
+    modifiers: mode.kind === 'rift' ? riftModifiers(rift) : [],
     onEnd: (result: 'win' | 'lose', summary: BoardSummary) => finish(result, summary),
     onTurn: renderTurn,
     onWave: (wave: number, total: number) => {
@@ -571,7 +613,13 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       if (stopped) view.stopAuto();
     },
     startStory: (next) => startRun(next, { kind: 'story' }),
-    startMode: (next) => startRun(modeStage(next), next),
+    startMode: (next) => {
+      if (next.kind === 'rift') {
+        startRift();
+        return;
+      }
+      startRun(modeStage(next), next);
+    },
     pause: () => view.pause(),
     resume: () => view.resume(),
   };
@@ -579,6 +627,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const startRun = (next: StageDef, nextMode: RunMode) => {
     ctx.overlay.hide();
     runToken++;
+    rift = null;
     stage = next;
     mode = nextMode;
     stopped = false;
@@ -593,6 +642,7 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   const returnToStory = () => {
     ctx.overlay.hide();
     runToken++;
+    rift = null;
     mode = { kind: 'story' };
     stage = storyStage(store.save);
     stopped = false;
@@ -616,6 +666,10 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
   };
 
   function finish(result: 'win' | 'lose', summary: BoardSummary): void {
+    if (mode.kind === 'rift') {
+      riftEnd(result);
+      return;
+    }
     if (mode.kind === 'story') {
       if (result === 'win') storyWin();
       else storyLose();
@@ -637,6 +691,145 @@ export async function start(ctx: StageContext): Promise<PlayStage> {
       default:
         retry();
     }
+  }
+
+  // MARK: Dị Bản: six stops, a relic, a blessing after every stop
+
+  function startRift(): void {
+    ctx.overlay.hide();
+    runToken++;
+    rift = createRiftRun(Date.now() % 1_000_000_007);
+    mode = { kind: 'rift' };
+    stopped = false;
+    lossCount = 0;
+    hideLoss();
+    hideWall();
+    stage = riftStage(rift, 0, store.save.company.level);
+    paintHud();
+    view.load(data());
+    view.pause();
+    openRiftChoice(
+      sheetHost,
+      'Chọn di vật',
+      'Một vật phẩm theo cả chuyến đi.',
+      chooseRiftRelics(rift.seed),
+      (choice) => {
+        if (!rift) return;
+        rift.relic = choice;
+        addFeed({ kind: 'info', tag: '✦', text: `${choice.name} · ${choice.note}` });
+        enterRiftNode(0);
+      },
+    );
+  }
+
+  function enterRiftNode(index: number): void {
+    if (!rift) {
+      returnToStory();
+      return;
+    }
+    if (index >= rift.nodes.length) {
+      riftWin();
+      return;
+    }
+    rift.index = index;
+    const node = rift.nodes[index] as (typeof rift.nodes)[number];
+    if (node.kind === 'event') {
+      stage = riftStage(rift, index, store.save.company.level);
+      paintHud();
+      openRiftChoice(
+        sheetHost,
+        'Miếu cổ',
+        'Một phước lành miễn phí trước chặng sau.',
+        chooseRiftBlessings(rift),
+        (choice) => {
+          if (!rift) return;
+          rift.blessings.push(choice);
+          addFeed({ kind: 'info', tag: '✦', text: `${choice.name} · ${choice.note}` });
+          enterRiftNode(index + 1);
+        },
+      );
+      return;
+    }
+    stage = riftStage(rift, index, store.save.company.level);
+    stopped = false;
+    hideLoss();
+    hideWall();
+    setDeckTab('road');
+    paintHud();
+    view.load(data());
+  }
+
+  function riftEnd(result: 'win' | 'lose'): void {
+    if (!rift) {
+      returnToStory();
+      return;
+    }
+    if (result === 'lose') {
+      riftLose();
+      return;
+    }
+    const node = rift.nodes[rift.index] as (typeof rift.nodes)[number];
+    const reward = riftNodeReward(rift.index, node.kind === 'boss');
+    store.set(addCurrency(store.save, reward));
+    const parts = [`+${reward.gold} ${t.gold}`, `+${reward.essence} ${t.essence}`];
+    if (reward.shards > 0) parts.push(`+${reward.shards} ${t.shards}`);
+    addFeed({ kind: 'clear', tag: '✓', text: `Dị Bản · ${node.label} · ${parts.join(' · ')}` });
+    paintHud();
+    if (rift.index >= rift.nodes.length - 1) {
+      riftWin();
+      return;
+    }
+    openRiftChoice(
+      sheetHost,
+      `${node.label} đã qua`,
+      'Chọn một phước lành cho chặng sau.',
+      chooseRiftBlessings(rift),
+      (choice) => {
+        if (!rift) return;
+        rift.blessings.push(choice);
+        addFeed({ kind: 'info', tag: '✦', text: `${choice.name} · ${choice.note}` });
+        enterRiftNode(rift.index + 1);
+      },
+    );
+  }
+
+  function riftWin(): void {
+    if (!rift) {
+      returnToStory();
+      return;
+    }
+    const bonus = riftClearBonus();
+    store.set(addCurrency(store.save, bonus));
+    sfx.play('fanfare');
+    haptics.play('celebrate');
+    addFeed({
+      kind: 'clear',
+      tag: '★',
+      text: `Dị Bản đã qua · +${bonus.gold} ${t.gold} · +${bonus.essence} ${t.essence} · +${bonus.shards} ${t.shards}`,
+    });
+    paintHud();
+    ctx.gameOver(
+      {
+        title: 'Dị Bản đã qua',
+        body: `${rift.blessings.length} phước lành · +${bonus.gold} ${t.gold} · +${bonus.shards} ${t.shards}`,
+      },
+      { label: 'Đi tiếp', icon: 'caret-right', onClick: startRift },
+      [{ label: t.stages, icon: 'house', onClick: returnToStory }],
+    );
+  }
+
+  function riftLose(): void {
+    sfx.play('error');
+    haptics.play('error');
+    const depth = (rift?.index ?? 0) + 1;
+    ctx.gameOver(
+      {
+        title: `Dị Bản · dừng ở tầng ${depth}`,
+        body: 'Thử một di vật khác hoặc đổi đội hình rồi đi lại.',
+      },
+      { label: t.retry, icon: 'arrow-counter-clockwise', onClick: startRift },
+      [{ label: t.stages, icon: 'house', onClick: returnToStory }],
+    );
   }
 
   // MARK: story: a clear ribbon, no popup; a loss popup, one auto rewind

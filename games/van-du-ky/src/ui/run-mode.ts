@@ -6,7 +6,8 @@ export type RunMode =
   | { readonly kind: 'tower'; readonly floor: number }
   | { readonly kind: 'expedition' }
   | { readonly kind: 'boss' }
-  | { readonly kind: 'challenge' };
+  | { readonly kind: 'challenge' }
+  | { readonly kind: 'rift' };
 
 export function modeName(mode: RunMode): string {
   switch (mode.kind) {
@@ -18,6 +19,8 @@ export function modeName(mode: RunMode): string {
       return 'Boss thế giới';
     case 'challenge':
       return 'Thử Thách Đường Mây';
+    case 'rift':
+      return 'Dị Bản';
     default:
       return 'Chặng đường';
   }

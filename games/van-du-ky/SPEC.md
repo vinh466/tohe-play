@@ -1,6 +1,6 @@
 # Vân Du Ký (`van-du-ky`) — spec
 
-> **Status: v1.1.1 live in production (combat feedback, 2026-11-10).** The owner confirmed the plan and brief
+> **Status: v1.2.0 Dị Bản RC (2026-11-11); v1.1.1 live in production.** The owner confirmed the plan and brief
 > on 2026-11-09 ("ok quyết định cũng đủ r, giờ sựng spec, làm core nền tảng cho chắc chắn...") and the hex-board direction
 > on 2026-11-10 ("hợp lý, chốt mạnh như v làm chuẩn đi"). This spec is the source of truth for the game. It follows
 > `plans/idle-card-rpg/PLAN.md`; where this page and the plan disagree, the plan's decisions win until the owner changes them.
@@ -14,7 +14,7 @@ and gear. No ads, no purchases, no energy, no punishing streaks.
 - **6 heroes vs 6 enemies** on a **6 × 4 flat-top honeycomb**: three ranks (front, mid, back) × four lanes = **12 cells
   per side**, six deployed and six open. The open cells are formation space; they never collapse.
 - The board is **DOM/CSS**, not a canvas engine: 24 hexes, a portrait, HP bar, element gem and charge pips per card, and
-  a small effect layer. No names on the board; tap a card for its sheet. The build is ~330 KB instead of 1.4 MB of
+  a small effect layer. No names on the board; tap a card for its sheet. The build is ~345 KB instead of 1.4 MB of
   Phaser.
 - The stage is a **column**: HUD (menu, stage/level, gold and essence, six-portrait turn rail, wave and region
   progress), the hex board, a **deck** (Đường đi: road + three-line feed; Dự bị: 12-cell formation), a control bar and
@@ -68,6 +68,20 @@ and gear. No ads, no purchases, no energy, no punishing streaks.
 - The **stage picker** lets the player farm any cleared stage; the default is auto-advance/farm highest.
 - No energy; retries are free. A stage can be attempted under the recommended power; the preview warns, it does not
   lock.
+
+## Dị Bản (the rift)
+
+- A short **roguelite run** beside the story, launched from the waypoint sheet (stage picker): **six stops** — three
+  battles, one event, one elite and one boss.
+- **Choose one of three relics** at the start and **one of three blessings after every stop**. A choice is locked
+  (no close button); it applies for the rest of the run. The pool stops offering owned blessings while it can.
+- Modifiers are run-only: stat shares, **lifesteal**, **starting shield**, **starting charge**. The story passes an
+  empty modifier list, so its balance is unchanged.
+- Rewards every stop: gold/essence, boss shards; a clear bonus after the sixth. No first-clear or gear, so a rift is
+  a repeatable diversion, not the best farm.
+- Loss ends the run (no story rewind); earned rewards stay, and **Đi lại** starts a new run. Winning offers **Đi tiếp**.
+- The road deck becomes a six-node rift map while the mode is active; the bench and team sheet still work.
+- The run lives in the page: closing the app ends it. No save schema change.
 
 ## Growth
 
@@ -150,7 +164,8 @@ There is no home. The board is the app.
 | **Summon sheet** | portal, pity, ×1/×10, results, duplicates → shards |
 | **Codex** | heroes/enemies/regions, bonds, records |
 | **Daily** | 3 tasks, expedition, boss, 7-day journey |
-| **Stage picker** | regions/stages, recommended power, rewards, farm |
+| **Stage picker** | regions/stages, recommended power, rewards, farm; **Dị Bản** entry |
+| **Dị Bản** | six-stop rift, relic + blessings, run rewards, rift map in the deck |
 | **Offline card** | time away, loot, Nhận |
 | **Settings/credits** | sound, reduced motion, language, credits |
 | **How to play** | first-time, one card, one screen |
