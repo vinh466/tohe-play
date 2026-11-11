@@ -215,6 +215,21 @@ export interface BattleUnit {
   dead: boolean;
 }
 
+/** A run-only battle modifier (rift relic/blessing). Heroes only; the story passes an empty list. */
+export interface BattleModifier {
+  readonly id: string;
+  readonly name: string;
+  readonly note: string;
+  /** Additive shares: hp/atk/def/spd are ×(1 + value), crit is +value (capped at 1). */
+  readonly stats?: Partial<Record<keyof Stats, number>>;
+  /** Share of damage dealt that returns as HP. */
+  readonly lifesteal?: number;
+  /** Share of max HP as a shield at the start of each wave. */
+  readonly startShield?: number;
+  /** Start each wave with the active skill charged. */
+  readonly startCharge?: boolean;
+}
+
 export interface PendingTurn {
   readonly unitId: string;
   readonly activeReady: boolean;
@@ -233,6 +248,8 @@ export interface BattleState {
   readonly units: BattleUnit[];
   pending: PendingTurn | null;
   autoCast: boolean;
+  /** Total lifesteal share for the hero side in this battle. */
+  lifesteal: number;
   result: BattleResult;
   readonly events: BattleEvent[];
 }

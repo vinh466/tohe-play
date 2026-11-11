@@ -7,6 +7,7 @@ import { bossName } from '../content/events.ts';
 import { GEAR } from '../content/gear.ts';
 import { HEROES } from '../content/heroes.ts';
 import { RULES } from '../content/index.ts';
+import type { RiftBlessing } from '../content/rift.ts';
 import { REGIONS, STAGES } from '../content/stages.ts';
 import {
   bossReward,
@@ -111,7 +112,7 @@ function number(value: number): string {
   return Math.round(value).toLocaleString('vi-VN');
 }
 
-function openSheet(host: SheetHost, title: string, subtitle?: string): Sheet {
+function openSheet(host: SheetHost, title: string, subtitle?: string, locked = false): Sheet {
   closeSheets(false);
   host.pause();
   resumeAfterSheets = () => host.resume();
@@ -121,7 +122,8 @@ function openSheet(host: SheetHost, title: string, subtitle?: string): Sheet {
   const titles = el('div', 'vd-sheet-titles');
   titles.append(el('h2', '', title));
   if (subtitle) titles.append(el('p', 'vd-sheet-subtitle', subtitle));
-  head.append(titles, button(t.close, closeSheets, 'vd-close'));
+  head.append(titles);
+  if (!locked) head.append(button(t.close, closeSheets, 'vd-close'));
   const body = el('div', 'vd-sheet-body');
   const grab = el('div', 'vd-grab');
   card.append(grab, head, body);
@@ -296,6 +298,33 @@ export function openTeamSheet(host: SheetHost, onHero?: (heroId: string) => void
     );
   };
   render();
+}
+
+// MARK: rift choice
+
+export function openRiftChoice(
+  host: SheetHost,
+  title: string,
+  subtitle: string,
+  options: readonly RiftBlessing[],
+  onPick: (option: RiftBlessing) => void,
+): void {
+  const sheet = openSheet(host, title, subtitle, true);
+  const list = el('div', 'vd-rift-choices');
+  for (const option of options) {
+    const card = el('button', 'vd-rift-card');
+    card.type = 'button';
+    const icon = el('span', 'vd-rift-icon', option.icon);
+    const info = el('div', 'vd-rift-info');
+    info.append(el('strong', '', option.name), el('span', '', option.note));
+    card.append(icon, info);
+    card.addEventListener('click', () => {
+      closeSheets();
+      onPick(option);
+    });
+    list.append(card);
+  }
+  sheet.body.append(list, hint('Chọn một — hiệu lực cho cả chuyến đi.'));
 }
 
 // MARK: hero and gear
@@ -724,6 +753,20 @@ export function openStagePicker(host: SheetHost): void {
     const power = teamPower(current);
     sheet.body.replaceChildren();
     sheet.body.append(hint(`${t.yourPower} ${number(power)} · ${t.furthest} ${current.progress.highest}`));
+    sheet.body.append(
+      section(
+        'Dị Bản',
+        hint('6 điểm dừng · chọn di vật và phước lành · nhận vàng, tinh chất, mảnh'),
+        button(
+          'Vào Dị Bản',
+          () => {
+            closeSheets();
+            host.startMode({ kind: 'rift' });
+          },
+          'vd-btn primary',
+        ),
+      ),
+    );
     const stage = STAGES.items.find((candidate) => candidate.id === selected) ?? STAGES.items[0];
     if (stage) {
       const details = el('div', 'vd-stage-detail top');

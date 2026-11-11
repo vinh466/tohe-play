@@ -5,9 +5,9 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - Branch: `plan/hex-board` for the hex-board research (game work merges via `feat/van-du-ky-core`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C10 — combat feedback live** (v1.1.1, prod-2026-11-10.5, 2026-11-10); C9 12-cell hex board live
-  in v1.1.0; C8 concept approved; C7 UI/UX v2 and C6 v1.0.0 released before it
-- Release: v1.1.1 live (prod-2026-11-10.5), UAT `uat-2026-11-10.5`, chart `0.1.0-g1214065`; v1.1.0 superseded.
+- Current checkpoint: **C11 — Dị Bản RC** (v1.2.0, 2026-11-11); C10 combat feedback live in v1.1.1; C9 12-cell hex
+  board live in v1.1.0; C8 concept approved; C7 UI/UX v2 and C6 v1.0.0 released before it
+- Release: v1.1.1 live (prod-2026-11-10.5); v1.2.0 Dị Bản built and verified locally, awaiting the owner's word.
 
 ## Checkpoints
 
@@ -24,6 +24,7 @@ what to do next. Update it at the end of every session, newest session first in 
 | C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **done** (owner approved 2026-11-10) |
 | C9 | 12-cell hex board | core columns 0–3, 12-cell formations/terrain, DOM/CSS board, loss popup/rewind, auto road, effect pass, tests, conformance | **done and live** (v1.1.0, prod-2026-11-10.3, 331 KB, p50 16.7 ms) |
 | C10 | Combat feedback | ×1 default and ×2/×5/×10; readable streak/slash/impact/ring; side labels, low-HP and ready pips; UI review | **done and live** (v1.1.1, prod-2026-11-10.5) |
+| C11 | Dị Bản | six-stop roguelite, relic + blessings, battle modifiers, rift map, locked choice sheet, rewards, tests | **done** (v1.2.0 RC, 79 tests, conformance PASS) |
 
 ## Staging and deviations
 
@@ -110,6 +111,17 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-11 — agent (Dị Bản RC)
+
+- Owner asked for the next layer: research products, expand mechanics/content/UX, make the game more engaging.
+- Wrote `research/R-15-roguelite-rift.md`: six-stop rift, relic + blessing choices, run-only modifiers, rewards.
+- Core: `BattleModifier` (stat shares, lifesteal, starting shield/charge) applied to heroes only; story unchanged.
+- Content: `content/rift.ts` — 6 stops, 4 relics, 8 blessings, deterministic stage generation from a seed, per-stop
+  rewards. UI: locked choice sheet, `Dị Bản` entry in the stage picker, 6-node rift map in the road deck.
+- Verified: typecheck, **79 tests**, balance sim 48/48, build, conformance PASS; played through relic → blessings →
+  event → elite → boss (win and loss overlays) in headless Chrome.
+- Next: owner playtest; then lane bonuses, curses/risk and a daily seed if the loop is fun.
 
 ### 2026-11-10 — agent (v1.1.1 released)
 

@@ -40,6 +40,37 @@ describe('battle setup', () => {
     runBattle(state, RULES);
     expect(state.result).toBe('win');
   });
+
+  it('applies run modifiers to the hero side', () => {
+    const plain = battle(7);
+    const modified = createBattle(RULES, {
+      seed: 7,
+      companyLevel: 1,
+      heroes: STARTER_TEAM,
+      enemies: stage.waves[0]!.enemies,
+      autoCast: true,
+      modifiers: [
+        {
+          id: 'test',
+          name: 'Test',
+          note: '+20% HP · shield · charge · lifesteal',
+          stats: { hp: 0.2, atk: 0.2, crit: 0.1 },
+          startShield: 0.2,
+          startCharge: true,
+          lifesteal: 0.15,
+        },
+      ],
+    });
+    const before = plain.units.find((unit) => unit.side === 'hero')!;
+    const hero = modified.units.find((unit) => unit.side === 'hero')!;
+    expect(hero.maxHp).toBeGreaterThan(before.maxHp);
+    expect(hero.base.atk).toBeGreaterThan(before.base.atk);
+    expect(hero.base.crit).toBeGreaterThan(before.base.crit);
+    expect(hero.shield).toBe(Math.round(hero.maxHp * 0.2));
+    expect(hero.charge).toBe(hero.activeCharge);
+    expect(modified.lifesteal).toBe(0.15);
+    expect(modified.units.find((unit) => unit.side === 'enemy')!.shield).toBe(0);
+  });
 });
 
 describe('manual turns', () => {

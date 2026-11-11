@@ -10,6 +10,7 @@ import { basicAttack, cast, createBattle, step } from './core/battle.ts';
 import { terrainAt } from './core/terrain.ts';
 import type {
   BattleEvent,
+  BattleModifier,
   BattleState,
   BattleUnit,
   Column,
@@ -55,6 +56,8 @@ export interface BoardViewData {
   companyLevel: number;
   speed: Speed;
   reducedMotion: boolean;
+  /** Run-only modifiers; the story passes an empty list. */
+  readonly modifiers: readonly BattleModifier[];
   onEnd: (result: 'win' | 'lose', summary: BoardSummary) => void;
   onTurn: (tokens: readonly TurnToken[], currentId: string | null) => void;
   onWave: (wave: number, total: number) => void;
@@ -68,6 +71,7 @@ interface UnitView {
   readonly hpGhost: HTMLElement;
   readonly pips: HTMLElement[];
   readonly pipsBox: HTMLElement;
+  readonly shieldMark: HTMLElement;
   readonly portrait: HTMLImageElement;
   lastRatio: number;
   lastCharge: number;
@@ -389,6 +393,7 @@ export class BoardView {
       // Auto is always on for Vân Du Ký; Dừng pauses, it does not hand the turn to the player.
       autoCast: true,
       maxRounds: this.stage.rounds,
+      modifiers: this.data.modifiers,
     });
     this.renderUnits();
     this.relayout();
@@ -553,7 +558,9 @@ export class BoardView {
         pips.append(pip);
         pipNodes.push(pip);
       }
-      meta.append(gem, pips);
+      const shieldMark = el('span', 'hex-shield-mark', '◈');
+      shieldMark.hidden = true;
+      meta.append(gem, pips, shieldMark);
       body.replaceChildren(portraitBox, hp, meta);
       const boss = ENEMIES.items.find((candidate) => candidate.id === unit.defId)?.boss === true;
       cell.classList.toggle('boss', boss);
@@ -563,6 +570,7 @@ export class BoardView {
         hpGhost: ghost,
         pips: pipNodes,
         pipsBox: pips,
+        shieldMark,
         portrait,
         lastRatio: -1,
         lastCharge: -1,
@@ -605,6 +613,7 @@ export class BoardView {
         view.lastCharge = unit.charge;
       }
       view.cell.classList.toggle('low-hp', ratio > 0 && ratio <= 0.3);
+      view.shieldMark.hidden = unit.shield <= 0;
       if (view.dead !== unit.dead) {
         view.dead = unit.dead;
         view.cell.classList.toggle('dead', unit.dead);
