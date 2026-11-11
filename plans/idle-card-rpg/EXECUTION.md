@@ -5,9 +5,9 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - Branch: `plan/hex-board` for the hex-board research (game work merges via `feat/van-du-ky-core`)
 - Worktree: `/home/vinh/.local/share/opencode/worktree/2794c1/van-du-ky-core`
-- Current checkpoint: **C11 — Dị Bản RC** (v1.2.0, 2026-11-11); C10 combat feedback live in v1.1.1; C9 12-cell hex
-  board live in v1.1.0; C8 concept approved; C7 UI/UX v2 and C6 v1.0.0 released before it
-- Release: v1.1.1 live (prod-2026-11-10.5); v1.2.0 Dị Bản built and verified locally, awaiting the owner's word.
+- Current checkpoint: **C11 — Dị Bản live** (v1.2.0, 2026-11-11); C10 combat feedback live in v1.1.1; C9 12-cell
+  hex board live in v1.1.0; C8 concept approved; C7 UI/UX v2 and C6 v1.0.0 released before it
+- Release: v1.2.0 Dị Bản live (prod-2026-11-11.1, commit `6426e0a`); owner playtest feedback pending.
 
 ## Checkpoints
 
@@ -24,7 +24,7 @@ what to do next. Update it at the end of every session, newest session first in 
 | C8 | Hex board concept | R-12 + wireframe v6; R-13 tech spike; R-14 effects/expansion; 12 cells/side, loss popup/retry, auto always, DOM recommended | **done** (owner approved 2026-11-10) |
 | C9 | 12-cell hex board | core columns 0–3, 12-cell formations/terrain, DOM/CSS board, loss popup/rewind, auto road, effect pass, tests, conformance | **done and live** (v1.1.0, prod-2026-11-10.3, 331 KB, p50 16.7 ms) |
 | C10 | Combat feedback | ×1 default and ×2/×5/×10; readable streak/slash/impact/ring; side labels, low-HP and ready pips; UI review | **done and live** (v1.1.1, prod-2026-11-10.5) |
-| C11 | Dị Bản | six-stop roguelite, relic + blessings, battle modifiers, rift map, locked choice sheet, rewards, tests | **done** (v1.2.0 RC, 79 tests, conformance PASS) |
+| C11 | Dị Bản | six-stop roguelite, relic + blessings, battle modifiers, rift map, locked choice sheet, rewards, tests | **done and live** (v1.2.0, prod-2026-11-11.1, 79 tests, conformance PASS) |
 
 ## Staging and deviations
 
@@ -88,7 +88,8 @@ what to do next. Update it at the end of every session, newest session first in 
 
 - [x] `pnpm --filter @tohe/game-van-du-ky test/typecheck/build/conformance`.
 - [x] public pages, OG images, sitemap; `pnpm verify` green (API 610/610, all games conformance).
-- [ ] Report the release candidate to the owner. No deploy/tag/merge without their word.
+- [x] Report the release candidate to the owner. No deploy/tag/merge without their word.
+- [x] Owner approved production ("ok len prod di"); v1.2.0 released as prod-2026-11-11.1.
 
 ## Gates (every code change)
 
@@ -111,6 +112,16 @@ conformance + SPEC + public pages; kit → typecheck/tests; docs → docs build.
 ## Session log
 
 Newest first. One entry per session: what moved, what is blocked, next.
+
+### 2026-11-11 — agent (v1.2.0 released)
+
+- Owner approved production ("ok len prod di"); PR [#215](https://github.com/vinh466/tohe-play/pull/215) merged
+  (`6426e0a`); main CI green after one rerun of the pre-existing hub progress-test flake; images and chart published.
+- UAT `uat-2026-11-11.1` deployed and checked 20/20; prod `prod-2026-11-11.1` tagged with notes; platform-infra PR
+  [#367](https://github.com/vinetic-spaces/platform-infra/pull/367) merged; Argo synced.
+- `check:prod` 23/23; production `apiVersion` is `sha-6426e0a98a10…`; catalog has `van-du-ky 1.2.0`; entry 200.
+- Next: owner playtest of Dị Bản (run length, difficulty, blessing variety, rewards, relic balance); then lane
+  bonuses, curses/risk choices, a daily shared seed and the `Chiêu` tab.
 
 ### 2026-11-11 — agent (Dị Bản RC)
 
