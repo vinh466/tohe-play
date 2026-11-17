@@ -1,5 +1,5 @@
 # Platform API. Build context: repository root.
-FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+FROM mcr.microsoft.com/dotnet/sdk:11.0 AS build
 WORKDIR /src
 COPY global.json ./
 COPY services/api/Directory.Build.props services/api/Directory.Packages.props services/api/
