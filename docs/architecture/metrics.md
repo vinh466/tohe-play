@@ -57,7 +57,7 @@ becomes a sign-up or a link, so `completed` over `started` is a floor for that m
 
 The `tohe` chart's `PrometheusRule` (`metrics.prometheusRule.enabled`, with its ServiceMonitor and NetworkPolicy — a
 PR of the chart's own) holds six, as E-08 set them; who receives them is the cluster's Alertmanager, configured in
-`platform-infra`.
+`infra`.
 
 | Alert | When | Severity |
 | --- | --- | --- |

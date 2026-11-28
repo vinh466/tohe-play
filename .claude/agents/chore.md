@@ -37,7 +37,7 @@ a package listed there is not yours to bump.
   stop and hand the work back.
 
 Never: commit, push, open or merge pull requests, create tags, deploy, touch UAT (10.100.0.2), production
-(toheplay.io.vn) or `platform-infra`, edit plan notes or memory, or touch any database or container other than the dev
+(toheplay.io.vn) or `infra`, edit plan notes or memory, or touch any database or container other than the dev
 stack. Do not close or ignore Dependabot pull requests.
 
 Your final message is the report: files changed (one line each), the tail of `pnpm verify` and whether it passed,

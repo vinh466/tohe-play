@@ -32,5 +32,5 @@ fix. Rank by severity. Keep facts apart from your assumptions. If you find nothi
 do not invent findings to fill it.
 
 Shell use is read-only: `git log`, `git show`, `git diff`, `git status`, `grep`, `ls`, `cat`. No git writes, no network
-writes, nothing against UAT (10.100.0.2), production (toheplay.io.vn) or `platform-infra`. Do not run `pnpm verify`; the
+writes, nothing against UAT (10.100.0.2), production (toheplay.io.vn) or `infra`. Do not run `pnpm verify`; the
 master does.

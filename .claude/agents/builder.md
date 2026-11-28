@@ -40,7 +40,7 @@ How to work:
 - Stay in the packet's scope. Anything outside it goes into your report, not into the diff.
 
 Never: commit, push, open or merge pull requests, create tags, deploy, touch UAT (10.100.0.2), production
-(toheplay.io.vn) or `platform-infra`, edit plan notes or memory, or touch any database or container other than the dev
+(toheplay.io.vn) or `infra`, edit plan notes or memory, or touch any database or container other than the dev
 stack.
 
 If you meet a design question the packet and the docs do not answer, stop and report it. Do not guess. If the checks

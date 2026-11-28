@@ -24,7 +24,7 @@ root, so the records `resend._domainkey` and `send` sit at the root.
 | --- | --- | --- |
 | 1 | owner | Resend → **Domains → Add domain** `notify.toheplay.io.vn`. Let Resend add its records in Cloudflare, or add them by hand, DNS only: the DKIM `TXT` at `resend._domainkey.notify`, and the `MX` and `TXT` at `send.notify`. Wait for **Verified**. |
 | 2 | owner | Resend → **API keys**: a key with sending access to `notify.toheplay.io.vn` only. |
-| 3 | agent opens, owner merges | `platform-infra`, `apps/tohe/values.yaml`: `Email__From: "Tò He <no-reply@notify.toheplay.io.vn>"`. |
+| 3 | agent opens, owner merges | `infra`, `apps/tohe/values.yaml`: `Email__From: "Tò He <no-reply@notify.toheplay.io.vn>"`. |
 | 4 | owner, right after 3 syncs | Infisical `platform` / `prod` / `/tohe`: `email-smtp-password` = the new key. Reloader rolls the API. |
 | 5 | owner | UAT, in `~/.config/tohe-uat/uat.env`: `TOHE_UAT_EMAIL_FROM='Tò He <no-reply@notify.toheplay.io.vn>'` and the new key, then deploy again. |
 | 6 | agent | In this repository: `pnpm check:prod`'s `--sending-domain` default becomes `notify.toheplay.io.vn`, and the examples in [Configuration](configuration.md) and [UAT](uat.md) follow. |
@@ -99,5 +99,5 @@ Not watched from outside:
 - The console: it is behind Cloudflare Access, and it is not for players.
 - UAT: it runs on the homelab and is not public.
 
-The cluster's own alerts (Alertmanager, in `platform-infra`) are a separate thing. They see inside, these checks see
+The cluster's own alerts (Alertmanager, in `infra`) are a separate thing. They see inside, these checks see
 what a player sees.

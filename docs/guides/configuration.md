@@ -69,7 +69,7 @@ UAT and local development go without them (a developer may register an app for `
 
 ### Settings from Infisical in production
 
-In production (`platform-infra`), the API's settings that the owner sets — the sign-in providers' client IDs and secrets
+In production (`infra`), the API's settings that the owner sets — the sign-in providers' client IDs and secrets
 first — live in Infisical, folder `/tohe/api`, one key per setting with `__` between its sections
 (`Auth__Providers__Google__ClientId`). An `InfisicalStaticSecret` copies the folder into the Secret `tohe-api-env`, which
 the chart hands to the API whole with `api.extraEnvFrom` (optional: the API starts without it). Changing a key restarts

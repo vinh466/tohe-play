@@ -52,7 +52,7 @@ Three browser origins, on purpose:
 | Docs | `http://localhost:4710` | `http://10.100.0.2:4810` | Static, independent of the app; stays up if the app is down. |
 
 Environments are described in [ADR 0010](../decisions/0010-environments-dev-and-uat.md). Production runs the same
-images on the `platform-infra` cluster through Tò He's Helm chart, configured when the containers start
+images on the `infra` cluster through Tò He's Helm chart, configured when the containers start
 ([ADR 0021](../decisions/0021-release-production-through-the-tohe-chart.md), [Configuration](../guides/configuration.md)).
 There all of Tò He is on `toheplay.io.vn`, a domain it has to itself: the hub at its root, the games origin at
 `games.toheplay.io.vn`, the docs at `docs.toheplay.io.vn` — one level down, which Cloudflare's free certificate

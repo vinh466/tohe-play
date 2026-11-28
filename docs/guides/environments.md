@@ -18,7 +18,7 @@ does the steps.
 | Where | The developer's machine: `pnpm dev` or compose project `tohe`, ports 47xx | GitHub Actions: the pull request, then `main` | The homelab, `10.100.0.2`: hub `http://10.100.0.2:4820`, console `:4821`, docs `:4810`, games `:4830`, compose project `tohe-uat` | Hub `https://toheplay.io.vn` (API at `/api`), console `https://console.toheplay.io.vn` behind Cloudflare Access, games `https://games.toheplay.io.vn`, docs `https://docs.toheplay.io.vn` ([ADR 0040](../decisions/0040-all-of-tohe-on-one-domain-of-its-own.md), [ADR 0042](../decisions/0042-hosts-by-trust-paths-by-component.md)) |
 | Runs | The working tree | The checks, then the images and the chart | The images of the newest `uat-` tag | The images of the newest `prod-` tag |
 | Data | Throwaway | Throwaway | Real, the family's | Real once people other than the owner use it |
-| Config lives in | `compose.yaml` | `.github/workflows/ci.yml` | `compose.uat.yaml` and `~/.config/tohe-uat/uat.env` on the homelab | The `apps/tohe` component of the `platform-infra` repository (Argo CD), secrets in Infisical `/tohe` |
+| Config lives in | `compose.yaml` | `.github/workflows/ci.yml` | `compose.uat.yaml` and `~/.config/tohe-uat/uat.env` on the homelab | The `apps/tohe` component of the `infra` repository (Argo CD), secrets in Infisical `/tohe` |
 | An agent may | Anything | — | Tag and deploy when the owner says "deploy"; read logs | Read from outside; tag and promote when the owner says "lên prod" |
 
 What each image reads is in [Configuration](configuration.md); how UAT is run in [UAT environment](uat.md); the chart
@@ -46,7 +46,7 @@ flowchart TD
   use --> prod{Owner says lên prod}
   prod --> ptag[Tag prod-YYYY-MM-DD.N]
   ptag --> release[GitHub Release with notes]
-  release --> infra[platform-infra pull request: targetRevision only, merged by the agent]
+  release --> infra[infra pull request: targetRevision only, merged by the agent]
   infra --> argo[Argo CD syncs]
   argo --> prodcheck[Checks on production]
 ```
@@ -60,9 +60,9 @@ production directly.
 | --- | --- |
 | "merge" | Merges the pull request the owner reviewed, with a merge commit, once its checks are green. CI then builds and publishes the images for the new commit on `main`. Nothing is merged without the owner's word. |
 | "deploy" | Tags the commit `uat-…` (the newest commit of `main` unless told otherwise), pushes the tag, runs `deploy/uat/deploy.sh <tag>` and runs the [checks](#checks-after-a-deploy). Reports the result. |
-| "lên prod" (or the owner tags `prod-…` themselves) | Takes the commit of the newest `uat-` tag unless the owner names another, checks that it carries a `uat-` tag, tags it `prod-…`, publishes a GitHub Release, opens the `platform-infra` pull request that changes only `targetRevision` of `apps/tohe`, merges it, waits for Argo CD, and runs the [checks](#checks-after-a-deploy). Reports the result. If a `prod-` tag the owner made points at a commit without a `uat-` tag, stops and asks. |
+| "lên prod" (or the owner tags `prod-…` themselves) | Takes the commit of the newest `uat-` tag unless the owner names another, checks that it carries a `uat-` tag, tags it `prod-…`, publishes a GitHub Release, opens the `infra` pull request that changes only `targetRevision` of `apps/tohe`, merges it, waits for Argo CD, and runs the [checks](#checks-after-a-deploy). Reports the result. If a `prod-` tag the owner made points at a commit without a `uat-` tag, stops and asks. |
 
-Any other change to `platform-infra` stays a pull request the owner merges.
+Any other change to `infra` stays a pull request the owner merges.
 
 ## Tags
 
@@ -99,7 +99,7 @@ settings.
 
 What CI publishes for each commit on `main`: the images `ghcr.io/vinh466/tohe-play/<api|hub|games|docs>:sha-<full commit>`
 and the chart `oci://ghcr.io/vinh466/charts/tohe` at version `<Chart.yaml version>-g<7-char sha>`. The `targetRevision`
-in `platform-infra` is that chart version.
+in `infra` is that chart version.
 
 ## Checks after a deploy
 
@@ -223,4 +223,4 @@ Detail is in [Local development](local-development.md). In short:
   database is not rolled back with the code: that is why a migration waits one release before it removes anything. A
   backup from before the deploy is in `~/backups/tohe-uat/` ([UAT](uat.md#backups)).
 - **Production**: a new `prod-` tag on an older commit that has a `uat-` tag, promoted the same way (release,
-  `platform-infra` pull request, Argo CD). The old tag stays.
+  `infra` pull request, Argo CD). The old tag stays.
