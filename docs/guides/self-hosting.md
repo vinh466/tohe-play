@@ -66,7 +66,7 @@ kubectl --namespace tohe exec statefulset/tohe-postgres -- pg_dump -U tohe -d to
 
 ## On a database and secrets you already run
 
-Point the chart at your PostgreSQL and a Secret you manage — the shape production uses on the `platform-infra`
+Point the chart at your PostgreSQL and a Secret you manage — the shape production uses on the `infra`
 cluster:
 
 ```yaml

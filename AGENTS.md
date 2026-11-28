@@ -54,7 +54,7 @@ The loop, risk tiers, research depth, gates (V0–V4), stop rules and metrics ar
 - Production (toheplay.io.vn): read it from outside only; never write to its cluster. The one exception: an agent
   creates drafts in the Asset Studio with its `studio.draft` token, and never approves (ADR 0051, 0052). Pull requests
   are merged, and `uat-`/`prod-` tags on `main` made, only on the owner's word ("merge", "deploy", "lên prod"). In
-  `platform-infra` an agent may open pull requests; the only one it merges is the one that changes `targetRevision` of
+  `infra` an agent may open pull requests; the only one it merges is the one that changes `targetRevision` of
   `apps/tohe`. See docs/guides/environments.md and ADR 0041.
 - Before merging a dependency upgrade, check `docs/roadmap/upgrade-watchlist.md`. Dependabot PRs listed there
   stay open on purpose as reminders — do not close them or add ignore rules for them.

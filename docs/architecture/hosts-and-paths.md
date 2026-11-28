@@ -289,7 +289,7 @@ flowchart TD
   serve --> service["a service of its own,<br/>proxied by prefix — same URLs"]
 ```
 
-A new host needs an ADR, DNS, `publicUrls`, the chart's ingress and `platform-infra`. A new namespace needs one line in the
+A new host needs an ADR, DNS, `publicUrls`, the chart's ingress and `infra`. A new namespace needs one line in the
 map and a review.
 
 ## Where things stand
@@ -299,11 +299,11 @@ stays in force for its part.
 
 | Part | Today | In place when |
 | --- | --- | --- |
-| The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; `security.txt` once `hub.securityContact` is set in `platform-infra` | the map's pull request |
+| The map, real `404`s, `robots.txt`, `security.txt`, HSTS for subdomains, the API reference behind a switch | in place: `packages/routes`, with today's namespaces; `security.txt` once `hub.securityContact` is set in `infra` | the map's pull request |
 | The app under `/play` and `/account`, the manifest's `id` | in place: `/play`, `/account`, `/r`, `/s` (the pages of the entry pipeline, [Entry links](entry-links.md)); manifest `id: "/"`, `start_url: "/play"`, `scope: "/"`; the old paths are a `404` since 2026-10-22 | the routes' pull request |
 | Public pages and `sitemap.xml` at the root; the docs at the root of `docs.` | in place: `apps/web` is built into the hub image and serves the home page, the games' pages, the install guide, the FAQ, about, and the terms and privacy notice at the root, and the same in English under `/en/` but for the terms and the privacy notice (indexed, its own CSP; `/` never redirects, and shows *Chơi tiếp* on a device that has played), with `/sitemap.xml`, `robots.txt`, `llms.txt` and the link-preview picture; `apps/docs` serves the docs at the root of `docs.toheplay.io.vn` (`/docs/<page>` answers `301`); the chart's `site` values are `docs` | the public pages' pull request |
 | The console on `console.` | in place: the hub image's second site (port 8081) at the root of `console.toheplay.io.vn` — `http://localhost:4721` locally, `http://10.100.0.2:4821` on UAT — with its own sign-in and its `__Host-tohe.console` session ([Admin console](admin.md#the-consoles-session)); `/admin` on the root is a `404`. Cloudflare Access is in front, on since 2026-10-22 ([ADR 0046](../decisions/0046-player-surfaces-two-zones-one-frame.md)); the API does not check Access's token yet | the console's pull request |
-| The Studio on `studio.` ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)) | the hub image's third site (port 8082) serves the Studio app — `http://localhost:4722` locally, `http://10.100.0.2:4822` on UAT — with its own sign-in and its `__Host-tohe.studio` session ([Asset Studio](asset-studio.md#the-studio-app)); the chart's `studio.enabled` turns it on. Production since 2026-10-24 (`prod-2026-10-24.3`, `platform-infra` #252): `studio.toheplay.io.vn`, its library on `assets.toheplay.io.vn` ([ADR 0054](../decisions/0054-the-studios-library-on-assets.md)); the hub's host answers `/api/studio` with 404 | done |
+| The Studio on `studio.` ([ADR 0051](../decisions/0051-an-asset-studio-for-game-assets.md)) | the hub image's third site (port 8082) serves the Studio app — `http://localhost:4722` locally, `http://10.100.0.2:4822` on UAT — with its own sign-in and its `__Host-tohe.studio` session ([Asset Studio](asset-studio.md#the-studio-app)); the chart's `studio.enabled` turns it on. Production since 2026-10-24 (`prod-2026-10-24.3`, `infra` #252): `studio.toheplay.io.vn`, its library on `assets.toheplay.io.vn` ([ADR 0054](../decisions/0054-the-studios-library-on-assets.md)); the hub's host answers `/api/studio` with 404 | done |
 | Mail from `notify.`; `status.` | mail from the root; no status page | the owner's setup ([Mail and the status page](../guides/mail-and-status.md)) |
 | Crawlers by name in `robots.txt` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: `searchCrawlers` and `trainingCrawlers` in the map | the routes' pull request |
 | The English public pages, `/en/…` ([ADR 0047](../decisions/0047-two-languages-and-an-introduction-surface-that-grows.md)) | in place: the namespace `en`, the English pages, the sitemap's `hreflang` alternates, the VI \| EN switch and the suggestion; the terms and the privacy notice Vietnamese-only (`vietnameseOnlyPages`) | the languages' pull request; the legal texts' English with the review's item for them |
